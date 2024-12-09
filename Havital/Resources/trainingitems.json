@@ -1,0 +1,97 @@
+{
+    "trainingItems": [
+        {
+            "id": "0",
+            "name": "超慢跑",
+            "type": "single",
+            "properties": {
+                "duration": "20",
+                "goal": {
+                    "targetHeartRate": 150,
+                    "averagePace": 0,
+                    "distance": 0
+                }
+            }
+        },
+        {
+            "id": "1",
+            "name": "跳繩",
+            "type": "single",
+            "properties": {
+                "duration": "20",
+                "goal": {
+                    "targetHeartRate": 150,
+                    "averagePace": 0,
+                    "distance": 0
+                }
+            }
+        },
+        {
+            "id": "2",
+            "name": "慢跑",
+            "type": "single",
+            "properties": {
+                "duration": "20",
+                "goal": {
+                    "targetHeartRate": 150,
+                    "averagePace": 10.3,
+                    "distance": 5.2
+                }
+            }
+        },
+        {
+            "id": "3",
+            "name": "TABATA",
+            "type": "composite",
+            "properties": {
+                "duration": "20:10 x 8 rounds",
+                "goal": {
+                    "targetHeartRate": 130,
+                    "averagePace": 0,
+                    "distance": 0
+                }
+            },
+            "subItems": [
+                {
+                    "id": "3-1",
+                    "name": "深蹲",
+                    "type": "single",
+                    "properties": {
+                        "duration": "20s",
+                        "goal": {
+                            "targetHeartRate": 0,
+                            "averagePace": 10.3,
+                            "distance": 5.2
+                        }
+                    }
+                },
+                {
+                    "id": "3-2",
+                    "name": "棒式",
+                    "type": "single",
+                    "properties": {
+                        "duration": "20",
+                        "goal": {
+                            "targetHeartRate": 0,
+                            "averagePace": 0,
+                            "distance": 0
+                        }
+                    }
+                },
+                {
+                    "id": "3-3",
+                    "name": "開合跳",
+                    "type": "single",
+                    "properties": {
+                        "duration": "20s",
+                        "goal": {
+                            "targetHeartRate": 0,
+                            "averagePace": 0,
+                            "distance": 0
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

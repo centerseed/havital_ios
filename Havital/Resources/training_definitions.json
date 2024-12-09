@@ -1,0 +1,25 @@
+{
+    "training_types": [
+        {"id": "0", "type": "aerobics"},
+        {"id": "1", "type": "anaerobic"},
+        {"id": "2", "type": "strength"},
+        {"id": "3", "type": "warmup"},
+        {"id": "4", "type": "relax"},
+        {"id": "5", "type": "rest"}
+    ],
+    "training_item_defs": [
+        {"name": "runing", "hints": ["run_hint_1_id", "run_hint_2_id"], "resource": "run_resources_1_id", "training_type_id": "0"},
+        {"name": "jump_rope", "hints": ["jump_rope_hint_1_id", "jump_rope_hint_2_id"], "resource": "jump_rope_1_id", "training_type_id": "0"},
+        {"name": "super_slow_run", "hints": ["super_slow_run_1_id", "super_slow_run_2_id"], "resource": "super_slow_run_1_id", "training_type_id": "0"},
+        {"name": "hiit", "hints": ["hiit_1_id", "hiit_2_id"], "resource": "hiit_1_id", "training_type_id": "1"},
+        {"name": "strength_training", "hints": ["strength_training_1_id", "strength_training_2_id"], "resource": "strength_training_1_id", "training_type_id": "2"},
+        {"name": "breath_training", "hints": ["breath_training_1_id"], "training_type_id": "4"},
+        {"name": "rest", "hints": ["rest_1_id"], "training_type_id": "5"},
+        {"name": "warmup", "hints": ["warmup_1_id"], "training_type_id": "3"},
+        {"name": "cooldown", "hints": ["relax_1_id"], "training_type_id": "4"}
+    ],
+    "training_sub_item_defs": [
+        {"id": "sub_1-1", "name": "squat", "resource": "squat_resource_1_id"},
+        {"id": "sub_1-2", "name": "stick", "resource": "squat_resource_1_id"}
+    ]
+}
