@@ -19,6 +19,10 @@ class TrainingPlanStorage {
         defaults.set(data, forKey: planKey)
     }
     
+    func deletePlan() {
+        defaults.removeObject(forKey: planKey)
+    }
+    
     func loadPlan() -> TrainingPlan? {
         guard let data = defaults.data(forKey: planKey) else {
             return nil

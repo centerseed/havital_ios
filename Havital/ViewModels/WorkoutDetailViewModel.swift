@@ -45,10 +45,18 @@ class WorkoutDetailViewModel: ObservableObject {
     
     func loadHeartRateData() {
         Task {
-            let rawHeartRates = await healthKitManager.fetchHeartRateData(for: workout)
-            let heartRatePoints = rawHeartRates.map { HeartRatePoint(time: $0.0, value: $0.1) }
-            await MainActor.run {
-                self.heartRates = heartRatePoints
+            do {
+                let heartRateValues = try await healthKitManager.fetchHeartRatesForWorkout(workout)
+                let startTime = workout.startDate
+                let heartRatePoints = heartRateValues.enumerated().map { index, value in
+                    let time = startTime.addingTimeInterval(Double(index * 5)) // 假設每個點間隔5秒
+                    return HeartRatePoint(time: time, value: value)
+                }
+                await MainActor.run {
+                    self.heartRates = heartRatePoints
+                }
+            } catch {
+                print("Error fetching heart rate data: \(error)")
             }
         }
     }

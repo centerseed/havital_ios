@@ -137,8 +137,8 @@ struct PerformanceChartView: View {
             Task {
                 do {
                     // 獲取最大心率和靜息心率
-                    let maxHR = await self.healthKitManager.fetchMaxHeartRate()
-                    let restingHR = await self.healthKitManager.fetchRestingHeartRate()
+                    let maxHR = await healthKitManager.fetchMaxHeartRate()
+                    let restingHR = await healthKitManager.fetchRestingHeartRate()
                     
                     print("最大心率: \(maxHR), 靜息心率: \(restingHR)")
                     
@@ -165,6 +165,17 @@ struct PerformanceChartView: View {
                     // 獲取訓練數據
                     let workouts = await self.healthKitManager.fetchWorkoutsForDateRange(start: startDate, end: endDate)
                     print("獲取到 \(workouts.count) 條訓練記錄")
+                    
+                    // 獲取HRV數據
+                    let hrvData = await self.healthKitManager.fetchHRVData(start: startDate, end: endDate)
+                    print("獲取到 \(hrvData.count) 條HRV記錄")
+                    
+                    // 按日期分組HRV數據
+                    let hrvByDate = Dictionary(grouping: hrvData) { item in
+                        calendar.startOfDay(for: item.0)
+                    }.mapValues { values in
+                        values.map { $0.1 }.reduce(0, +) / Double(values.count)
+                    }
                     
                     var validWorkouts: [(Date, Double, HKWorkoutActivityType)] = []
                     
@@ -222,6 +233,9 @@ struct PerformanceChartView: View {
                             calendar.isDate(workoutDate.0, inSameDayAs: currentDate)
                         }
                         
+                        // 獲取當天的HRV值
+                        let todayHRV = hrvByDate[calendar.startOfDay(for: currentDate)] ?? 0
+                        
                         if !todaysWorkouts.isEmpty {
                             // 計算當天的總 TRIMP
                             let totalTrimp = todaysWorkouts.reduce(0.0) { sum, workout in
@@ -235,9 +249,21 @@ struct PerformanceChartView: View {
                             let hasWorkout = true
                             let workoutName = WorkoutUtils.workoutTypeString(for: todaysWorkouts[0].2)
                             
+                            // 計算當天的表現指數，結合HRV數據
+                            var performance = self.banisterModel.performance()
+                            
+                            // 如果有HRV數據，將其納入表現指數計算
+                            if todayHRV > 0 {
+                                // 將HRV標準化到0-1的範圍（假設正常HRV範圍是20-100）
+                                let normalizedHRV = min(max((todayHRV - 20) / 80, 0), 1)
+                                // HRV對表現指數的影響權重（可以根據需要調整）
+                                let hrvWeight = 0.2
+                                performance = performance * (1 - hrvWeight) + normalizedHRV * 100 * hrvWeight
+                            }
+                            
                             let point = PerformancePoint(
                                 date: currentDate,
-                                performance: self.banisterModel.performance(),
+                                performance: performance,
                                 hasWorkout: hasWorkout,
                                 workoutName: workoutName
                             )

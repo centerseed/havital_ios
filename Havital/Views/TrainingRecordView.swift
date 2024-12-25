@@ -2,7 +2,7 @@ import SwiftUI
 import HealthKit
 
 struct TrainingRecordView: View {
-    @StateObject private var healthKitManager = HealthKitManager()
+    @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var workouts: [HKWorkout] = []
     
     var body: some View {

@@ -20,10 +20,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+	<string>Havital 需要存取健康記錄，以提供更完整的健康分析</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>我們需要訪問您的健康數據以顯示您的運動記錄</string>
+	<string>Havital 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>我們需要更新您的健康數據以記錄您的運動情況</string>
+	<string>Havital 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -81,6 +81,7 @@ class TrainingPlanGenerator {
         let purpose: String
         let tips: String
         let days: [DayInput]
+        let startDate: TimeInterval?
         
         struct DayInput: Codable {
             let target: String
@@ -118,14 +119,19 @@ class TrainingPlanGenerator {
         let jsonData = try JSONSerialization.data(withJSONObject: jsonDict)
         let input = try JSONDecoder().decode(TrainingPlanInput.self, from: jsonData)
         
-        // 生成計劃開始時間（從今天開始）
+        // 使用指定的開始日期或今天
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let startDate: Date
+        if let timestamp = input.startDate {
+            startDate = calendar.startOfDay(for: Date(timeIntervalSince1970: timestamp))
+        } else {
+            startDate = calendar.startOfDay(for: Date())
+        }
         
         // 生成每天的訓練項目
         let days = input.days.enumerated().map { (index, dayInput) -> TrainingDay in
             // 計算當天的時間戳
-            let dayDate = calendar.date(byAdding: .day, value: index, to: today)!
+            let dayDate = calendar.date(byAdding: .day, value: index, to: startDate)!
             let timestamp = Int(dayDate.timeIntervalSince1970)
             
             // 生成訓練項目
