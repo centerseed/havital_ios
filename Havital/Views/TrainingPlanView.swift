@@ -1,79 +1,29 @@
 import SwiftUI
 import HealthKit
 
-struct TrainingPlanView: View {
-    @State private var plan: TrainingPlan?
-    @State private var showingUserPreference = false
-    @StateObject private var userPrefManager = UserPreferenceManager.shared
-    @StateObject private var healthKitManager = HealthKitManager()
+class TrainingPlanViewModel: ObservableObject {
+    @Published var trainingDays: [TrainingDay] = []
+    @Published var plan: TrainingPlan?
     
-    var body: some View {
-        NavigationStack {
-            mainContent
-        }
-        .onAppear(perform: loadPlan)
-    }
-    
-    private var mainContent: some View {
-        Group {
-            if let plan = plan {
-                List {
-                    Section("本週目標") {
-                        Text(plan.purpose)
-                            .font(.headline)
-                    }
-                    
-                    Section("訓練提示") {
-                        Text(plan.tips)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Section("每日計劃") {
-                        ForEach(plan.days) { day in
-                            DayView(day: day, isToday: isToday(timestamp: day.startTimestamp))
-                                .environmentObject(healthKitManager)
-                        }
-                    }
-                }
-            } else {
-                ProgressView("載入訓練計劃中...")
-            }
-        }
-        .navigationTitle("第一週訓練")
-        .toolbar {
-            toolbarContent
-        }
-        .sheet(isPresented: $showingUserPreference) {
-            UserPreferenceView(preference: userPrefManager.currentPreference)
-        }
-    }
-    
-    private var toolbarContent: some View {
-        Menu {
-            Button(action: {
-                showingUserPreference = true
-            }) {
-                Label("個人資料", systemImage: "person.circle")
-            }
-            
-            Button(action: generateNewPlan) {
-                Label("重新生成計劃", systemImage: "arrow.clockwise")
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .foregroundColor(.primary)
-        }
-    }
-    
-    private func loadPlan() {
-        plan = TrainingPlanStorage.shared.loadPlan()
-        if plan == nil {
+    func loadTrainingPlan() {
+        if let plan = TrainingPlanStorage.shared.loadPlan() {
+            self.plan = plan
+            self.trainingDays = plan.days
+        } else {
+            // 如果沒有現有計劃，生成新的
             generateNewPlan()
         }
     }
     
-    private func generateNewPlan() {
+    func updateTrainingDay(_ updatedDay: TrainingDay) async throws {
+        try await TrainingPlanStorage.shared.updateTrainingDay(updatedDay)
+        // 更新本地數據
+        if let index = trainingDays.firstIndex(where: { $0.id == updatedDay.id }) {
+            trainingDays[index] = updatedDay
+        }
+    }
+    
+    func generateNewPlan() {
         let jsonString = """
         {"purpose": "第一週訓練目標：循序漸進建立規律運動習慣，提升心肺耐力。", "tips": "本週訓練以超慢跑為主，建議選擇舒適的環境和服裝，專注於呼吸和感受身體的律動。如有任何不適，請立即停止運動。", "days": [{"target": "超慢跑", "training_items": [{"name": "warmup", "duration_minutes": 5}, {"name": "super_slow_run", "duration_minutes": 22, "goals": {"heart_rate": 121}}, {"name": "relax", "duration_minutes": 5}]}, {"target": "休息", "training_items": [{"name": "rest"}]}, {"target": "超慢跑", "training_items": [{"name": "warmup", "duration_minutes": 5}, {"name": "super_slow_run", "duration_minutes": 22, "goals": {"heart_rate": 121}}, {"name": "relax", "duration_minutes": 5}]}, {"target": "休息", "training_items": [{"name": "rest"}]}, {"target": "超慢跑", "training_items": [{"name": "warmup", "duration_minutes": 5}, {"name": "super_slow_run", "duration_minutes": 22, "goals": {"heart_rate": 121}}, {"name": "relax", "duration_minutes": 5}]}, {"target": "休息", "training_items": [{"name": "rest"}]}, {"target": "休息", "training_items": [{"name": "rest"}]}]}
         """
@@ -81,39 +31,117 @@ struct TrainingPlanView: View {
         if let jsonData = jsonString.data(using: .utf8),
            let jsonDict = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
             do {
-                plan = try TrainingPlanStorage.shared.generateAndSaveNewPlan(from: jsonDict)
+                let newPlan = try TrainingPlanStorage.shared.generateAndSaveNewPlan(from: jsonDict)
+                self.plan = newPlan
+                self.trainingDays = newPlan.days
             } catch {
                 print("Error generating plan: \(error)")
             }
         }
     }
+}
+
+struct TrainingPlanView: View {
+    @StateObject private var viewModel = TrainingPlanViewModel()
+    @State private var showingUserPreference = false
+    @StateObject private var userPrefManager = UserPreferenceManager.shared
+    @StateObject private var healthKitManager = HealthKitManager()
     
-    private func isToday(timestamp: Int) -> Bool {
-        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        return Calendar.current.isDateInToday(date)
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let plan = viewModel.plan {
+                    List {
+                        Section("本週目標") {
+                            Text(plan.purpose)
+                                .font(.headline)
+                        }
+                        
+                        Section("訓練提示") {
+                            Text(plan.tips)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Section("每日計劃") {
+                            ForEach(viewModel.trainingDays) { day in
+                                let isToday = Calendar.current.isDateInToday(Date(timeIntervalSince1970: TimeInterval(day.startTimestamp)))
+                                DayView(day: day, isToday: isToday, viewModel: viewModel)
+                                    .environmentObject(healthKitManager)
+                            }
+                        }
+                    }
+                } else {
+                    ProgressView("載入訓練計劃中...")
+                }
+            }
+            .navigationTitle("第一週訓練")
+            .toolbar {
+                Menu {
+                    Button(action: {
+                        showingUserPreference = true
+                    }) {
+                        Label("個人資料", systemImage: "person.circle")
+                    }
+                    
+                    Button(action: {
+                        viewModel.generateNewPlan()
+                    }) {
+                        Label("重新生成計劃", systemImage: "arrow.clockwise")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(.primary)
+                }
+            }
+            .sheet(isPresented: $showingUserPreference) {
+                UserPreferenceView(preference: userPrefManager.currentPreference)
+            }
+            .task {
+                viewModel.loadTrainingPlan()
+            }
+        }
     }
 }
 
 struct DayView: View {
     let day: TrainingDay
     let isToday: Bool
+    let viewModel: TrainingPlanViewModel
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var workouts: [HKWorkout] = []
     @State private var isCompleted: Bool
+    @State private var showingEditSheet = false
+    @State private var isFutureDay: Bool = false
     
-    init(day: TrainingDay, isToday: Bool) {
+    init(day: TrainingDay, isToday: Bool, viewModel: TrainingPlanViewModel) {
         self.day = day
         self.isToday = isToday
+        self.viewModel = viewModel
         self._isCompleted = State(initialValue: day.isCompleted)
     }
     
     var body: some View {
-        NavigationLink(destination: TrainingDayDetailView(day: day).environmentObject(healthKitManager)) {
+        NavigationLink(destination: TrainingDayDetailView(day: day)
+            .environmentObject(viewModel)
+            .environmentObject(healthKitManager)) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text(formatDate(timestamp: day.startTimestamp))
                         .font(.headline)
                         .foregroundColor(isToday ? .blue : .primary)
+                    
+                    Spacer()
+                    
+                    if isFutureDay {
+                        Button(action: {
+                            showingEditSheet = true
+                        }) {
+                            Image(systemName: "pencil.circle.fill")
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
                     
                     if isToday {
                         Text("今天")
@@ -124,8 +152,6 @@ struct DayView: View {
                             .background(Color.blue)
                             .cornerRadius(8)
                     }
-                    
-                    Spacer()
                     
                     if isCompleted {
                         Image(systemName: "checkmark.circle.fill")
@@ -153,46 +179,12 @@ struct DayView: View {
             .padding(.vertical, 8)
         }
         .task {
-            await checkCompletion()
+            // 檢查是否為未來日期
+            let dayStart = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
+            isFutureDay = dayStart > Date()
         }
-    }
-    
-    private func checkCompletion() async {
-        // 獲取當天的開始和結束時間
-        let dayStart = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
-        let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart)!
-        
-        // 檢查是否是未來的日期
-        let now = Date()
-        guard dayStart <= now else {
-            // 如果是未來的日期，確保設置為未完成
-            if isCompleted {
-                isCompleted = false
-                try? TrainingPlanStorage.shared.updateDayCompletion(day.id, isCompleted: false)
-            }
-            return
-        }
-        
-        // 獲取當天的運動記錄
-        let workouts = await healthKitManager.fetchWorkoutsForDateRange(start: dayStart, end: dayEnd)
-        
-        // 計算總運動時間（分鐘）
-        let totalDuration = workouts.reduce(0) { $0 + $1.duration / 60 }
-        
-        // 計算所需的運動時間（所有訓練項目的時間總和）
-        let requiredDuration = day.trainingItems.reduce(0) { $0 + $1.durationMinutes }
-        
-        // 如果總運動時間超過要求時間的 60%，標記為完成
-        let completed = totalDuration >= Double(requiredDuration) * 0.6
-        
-        if completed != isCompleted {
-            isCompleted = completed
-            // 更新存儲
-            do {
-                try TrainingPlanStorage.shared.updateDayCompletion(day.id, isCompleted: completed)
-            } catch {
-                print("更新訓練完成狀態失敗：\(error)")
-            }
+        .sheet(isPresented: $showingEditSheet) {
+            TrainingDayEditView(day: day, viewModel: viewModel)
         }
     }
     
@@ -202,6 +194,148 @@ struct DayView: View {
         formatter.dateFormat = "MM/dd EEEE"
         formatter.locale = Locale(identifier: "zh_TW")
         return formatter.string(from: date)
+    }
+}
+
+struct TrainingDayEditView: View {
+    let day: TrainingDay
+    let viewModel: TrainingPlanViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedType: String
+    @State private var isUpdating = false
+    
+    private let trainingTypes = [
+        ("超慢跑", [
+            TrainingItem(
+                id: UUID().uuidString,
+                type: "warmup",
+                name: "熱身",
+                resource: "",
+                durationMinutes: 5,
+                subItems: [
+                    SubItem(id: "1", name: "原地慢跑"),
+                    SubItem(id: "2", name: "伸展運動"),
+                    SubItem(id: "3", name: "關節活動")
+                ],
+                goals: [],
+                goalCompletionRates: [:]
+            ),
+            TrainingItem(
+                id: UUID().uuidString,
+                type: "super_slow_run",
+                name: "超慢跑",
+                resource: "",
+                durationMinutes: 22,
+                subItems: [
+                    SubItem(id: "1", name: "保持呼吸平穩"),
+                    SubItem(id: "2", name: "注意配速"),
+                    SubItem(id: "3", name: "維持正確姿勢")
+                ],
+                goals: [Goal(type: "heart_rate", value: 121)],
+                goalCompletionRates: [:]
+            ),
+            TrainingItem(
+                id: UUID().uuidString,
+                type: "relax",
+                name: "放鬆",
+                resource: "",
+                durationMinutes: 5,
+                subItems: [
+                    SubItem(id: "1", name: "緩步走路"),
+                    SubItem(id: "2", name: "深呼吸"),
+                    SubItem(id: "3", name: "伸展放鬆")
+                ],
+                goals: [],
+                goalCompletionRates: [:]
+            )
+        ]),
+        ("休息", [
+            TrainingItem(
+                id: UUID().uuidString,
+                type: "rest",
+                name: "休息",
+                resource: "",
+                durationMinutes: 0,
+                subItems: [
+                    SubItem(id: "1", name: "充分休息"),
+                    SubItem(id: "2", name: "補充水分"),
+                    SubItem(id: "3", name: "適當伸展")
+                ],
+                goals: [],
+                goalCompletionRates: [:]
+            )
+        ])
+    ]
+    
+    init(day: TrainingDay, viewModel: TrainingPlanViewModel) {
+        self.day = day
+        self.viewModel = viewModel
+        self._selectedType = State(initialValue: day.purpose)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("選擇訓練類型") {
+                    ForEach(trainingTypes, id: \.0) { type, items in
+                        Button(action: {
+                            Task {
+                                await updateTrainingDay(type: type, items: items)
+                            }
+                        }) {
+                            HStack {
+                                Text(type)
+                                Spacer()
+                                if type == selectedType {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                        .disabled(isUpdating)
+                    }
+                }
+            }
+            .navigationTitle("調整訓練")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                    .disabled(isUpdating)
+                }
+            }
+            .overlay {
+                if isUpdating {
+                    ProgressView()
+                }
+            }
+        }
+    }
+    
+    private func updateTrainingDay(type: String, items: [TrainingItem]) async {
+        isUpdating = true
+        defer { isUpdating = false }
+        
+        // 更新訓練日
+        var updatedDay = day
+        updatedDay.purpose = type
+        updatedDay.trainingItems = items
+        
+        // 更新提示
+        updatedDay.tips = type == "超慢跑" ?
+            "保持呼吸平穩，注意配速和姿勢，如果感到不適請立即休息。" :
+            "今天是休息日，讓身體充分恢復。可以進行輕度伸展，但避免劇烈運動。"
+        
+        // 保存更改
+        do {
+            try await viewModel.updateTrainingDay(updatedDay)
+            selectedType = type
+            dismiss()
+        } catch {
+            print("更新訓練日失敗：\(error)")
+        }
     }
 }
 

@@ -16,10 +16,10 @@ struct TrainingPlan: Codable, Identifiable {
 
 struct TrainingDay: Codable, Identifiable {
     var id: String
-    let startTimestamp: Int
-    let purpose: String
+    var startTimestamp: Int
+    var purpose: String
     var isCompleted: Bool
-    let tips: String
+    var tips: String
     var trainingItems: [TrainingItem]
     
     enum CodingKeys: String, CodingKey {

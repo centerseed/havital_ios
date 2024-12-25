@@ -3,24 +3,23 @@ import HealthKit
 import Charts
 
 struct WorkoutDetailView: View {
-    let workout: HKWorkout
-    @StateObject private var healthKitManager = HealthKitManager()
-    @State private var heartRates: [HeartRatePoint] = []
+    @StateObject private var viewModel: WorkoutDetailViewModel
+    
+    init(workout: HKWorkout) {
+        _viewModel = StateObject(wrappedValue: WorkoutDetailViewModel(workout: workout, healthKitManager: HealthKitManager()))
+    }
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // 基本信息
                 workoutInfoSection
-                
-                // 心率圖表
                 heartRateChartSection
             }
             .padding()
         }
         .navigationTitle("訓練詳情")
         .onAppear {
-            loadHeartRateData()
+            viewModel.loadHeartRateData()
         }
     }
     
@@ -30,16 +29,16 @@ struct WorkoutDetailView: View {
                 .font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text(WorkoutUtils.workoutTypeString(for: workout))
+                Text(viewModel.workoutType)
                     .font(.subheadline)
                     .foregroundColor(.primary)
                 
-                Label(WorkoutUtils.formatDuration(workout.duration), systemImage: "clock")
-                if let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) {
-                    Label(String(format: "%.0f kcal", calories), systemImage: "flame.fill")
+                Label(viewModel.duration, systemImage: "clock")
+                if let calories = viewModel.calories {
+                    Label(calories, systemImage: "flame.fill")
                 }
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                    Label(String(format: "%.2f km", distance / 1000), systemImage: "figure.walk")
+                if let distance = viewModel.distance {
+                    Label(distance, systemImage: "figure.walk")
                 }
             }
             .font(.subheadline)
@@ -56,26 +55,21 @@ struct WorkoutDetailView: View {
             Text("心率變化")
                 .font(.headline)
             
-            if heartRates.isEmpty {
+            if viewModel.heartRates.isEmpty {
                 ProgressView()
                     .frame(height: 200)
             } else {
-                let maxHeartRate = heartRates.max(by: { $0.value < $1.value })?.value ?? 0
-                let minHeartRate = heartRates.min(by: { $0.value < $1.value })?.value ?? 0
-                let yAxisMax = maxHeartRate * 1.1
-                let yAxisMin = max(minHeartRate * 0.9, 0)
-                
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("最高心率: \(Int(maxHeartRate))")
+                        Text("最高心率: \(viewModel.maxHeartRate)")
                         Spacer()
-                        Text("最低心率: \(Int(minHeartRate))")
+                        Text("最低心率: \(viewModel.minHeartRate)")
                     }
                     .font(.caption)
                     .foregroundColor(.secondary)
                     
                     Chart {
-                        ForEach(heartRates) { point in
+                        ForEach(viewModel.heartRates) { point in
                             LineMark(
                                 x: .value("時間", point.time),
                                 y: .value("心率", point.value)
@@ -90,21 +84,12 @@ struct WorkoutDetailView: View {
                         }
                     }
                     .frame(height: 200)
-                    .chartYScale(domain: yAxisMin...yAxisMax)
+                    .chartYScale(domain: viewModel.yAxisRange.min...viewModel.yAxisRange.max)
                     .chartXAxis {
                         AxisMarks(values: .stride(by: .minute, count: 5)) { value in
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
                                     Text(WorkoutUtils.formatTime(date))
-                                }
-                            }
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks { value in
-                            if let heartRate = value.as(Double.self) {
-                                AxisValueLabel {
-                                    Text("\(Int(heartRate))")
                                 }
                             }
                         }
@@ -116,14 +101,6 @@ struct WorkoutDetailView: View {
         .background(Color(.systemBackground))
         .cornerRadius(10)
         .shadow(radius: 1)
-    }
-    
-    private func loadHeartRateData() {
-        healthKitManager.fetchHeartRateData(for: workout) { heartRateData in
-            heartRates = heartRateData.map { date, value in
-                HeartRatePoint(time: date, value: value)
-            }
-        }
     }
 }
 
