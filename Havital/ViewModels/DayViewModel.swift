@@ -6,8 +6,9 @@ class DayViewModel: ObservableObject {
     let isToday: Bool
     private let trainingPlanViewModel: TrainingPlanViewModel
     private let healthKitManager: HealthKitManager
+    @Published var workouts: [HKWorkout] = []
     
-    init(day: TrainingDay, isToday: Bool, trainingPlanViewModel: TrainingPlanViewModel, healthKitManager: HealthKitManager) {
+    init(day: TrainingDay, isToday: Bool, trainingPlanViewModel: TrainingPlanViewModel, healthKitManager: HealthKitManager = HealthKitManager()) {
         self.day = day
         self.isToday = isToday
         self.trainingPlanViewModel = trainingPlanViewModel
@@ -29,10 +30,25 @@ class DayViewModel: ObservableObject {
         return dateFormatter.string(from: date)
     }
     
-    func getWorkouts() async -> [HKWorkout] {
-        let dayStart = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
-        let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart)!
-        return await healthKitManager.fetchWorkoutsForDateRange(start: dayStart, end: dayEnd)
+    func fetchWorkoutsForDay() {
+        let date = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        Task {
+            do {
+                let fetchedWorkouts = try await healthKitManager.fetchWorkoutsForDateRange(start: startOfDay, end: endOfDay)
+                await MainActor.run {
+                    self.workouts = fetchedWorkouts
+                }
+            } catch {
+                print("Error fetching workouts: \(error)")
+                await MainActor.run {
+                    self.workouts = []
+                }
+            }
+        }
     }
     
     func updateTrainingDay(_ updatedDay: TrainingDay) async throws {

@@ -2,71 +2,116 @@ import SwiftUI
 import HealthKit
 
 struct TrainingRecordView: View {
+    @StateObject private var viewModel = TrainingRecordViewModel()
     @EnvironmentObject private var healthKitManager: HealthKitManager
-    @State private var workouts: [HKWorkout] = []
+    @State private var selectedWorkout: HKWorkout?
+    @State private var showingWorkoutDetail = false
+    @State private var heartRateData: [(Date, Double)] = []
     
     var body: some View {
         NavigationStack {
-            List(workouts, id: \.uuid) { workout in
-                NavigationLink(destination: WorkoutDetailView(workout: workout)) {
-                    WorkoutRowView(workout: workout)
+            Group {
+                if viewModel.isLoading {
+                    ProgressView("載入訓練記錄中...")
+                } else {
+                    workoutList
                 }
             }
-            .navigationTitle("訓練紀錄")
+            .navigationTitle("訓練記錄")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: PerformanceChartView()) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
+                        Image(systemName: "chart.xyaxis.line")
                     }
                 }
             }
-            .onAppear {
-                healthKitManager.requestAuthorization { success in
-                    if success {
-                        healthKitManager.fetchWorkouts { fetchedWorkouts in
-                            workouts = fetchedWorkouts
-                        }
-                    }
+            .sheet(item: $selectedWorkout) { workout in
+                NavigationStack {
+                    WorkoutDetailView(
+                        workout: workout,
+                        healthKitManager: healthKitManager,
+                        initialHeartRateData: heartRateData
+                    )
                 }
+            }
+            .task {
+                await viewModel.loadWorkouts(healthKitManager: healthKitManager)
+            }
+            .refreshable {
+                await viewModel.loadWorkouts(healthKitManager: healthKitManager)
             }
         }
     }
-}
-
-struct WorkoutRowView: View {
-    let workout: HKWorkout
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(WorkoutUtils.workoutTypeString(for: workout))
-                    .font(.headline)
-                Spacer()
-                Text(WorkoutUtils.formatDate(workout.startDate))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack {
-                Label("\(WorkoutUtils.formatDuration(workout.duration))", systemImage: "clock")
-                Spacer()
-                if let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) {
-                    Label(String(format: "%.0f kcal", calories), systemImage: "flame.fill")
-                }
-            }
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-            
-            if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                Text(String(format: "距離: %.2f km", distance / 1000))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+    private var workoutList: some View {
+        List {
+            ForEach(viewModel.workouts, id: \.uuid) { workout in
+                workoutRow(workout)
             }
         }
-        .padding(.vertical, 4)
+        .overlay {
+            if viewModel.workouts.isEmpty {
+                ContentUnavailableView(
+                    "沒有訓練記錄",
+                    systemImage: "figure.run",
+                    description: Text("過去一個月內沒有訓練記錄")
+                )
+            }
+        }
+    }
+    
+    private func workoutRow(_ workout: HKWorkout) -> some View {
+        Button {
+            Task {
+                // 預先加載心率數據
+                do {
+                    heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+                } catch {
+                    print("Error loading heart rate data: \(error)")
+                    heartRateData = []
+                }
+                selectedWorkout = workout
+            }
+        } label: {
+            WorkoutRowView(workout: workout)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+class TrainingRecordViewModel: ObservableObject {
+    @Published var workouts: [HKWorkout] = []
+    @Published var isLoading = false
+    
+    func loadWorkouts(healthKitManager: HealthKitManager) async {
+        await MainActor.run {
+            isLoading = true
+        }
+        
+        do {
+            try await healthKitManager.requestAuthorization()
+            let now = Date()
+            // 改為獲取一個月的數據
+            let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -1, to: now)!
+            
+            let fetchedWorkouts = try await healthKitManager.fetchWorkoutsForDateRange(start: oneMonthAgo, end: now)
+            
+            // 在主線程更新 UI
+            await MainActor.run {
+                self.workouts = fetchedWorkouts.sorted(by: { $0.startDate > $1.startDate }) // 按日期降序排序
+                self.isLoading = false
+            }
+        } catch {
+            print("Error loading workouts: \(error)")
+            await MainActor.run {
+                self.isLoading = false
+                self.workouts = []
+            }
+        }
     }
 }
 
 #Preview {
     TrainingRecordView()
+        .environmentObject(HealthKitManager())
 }

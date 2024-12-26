@@ -73,50 +73,13 @@ struct MyAchievementView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("我的成就")
-            .onAppear {
-                loadHRVData()
-            }
+            
         }
     }
     
-    private func loadHRVData() {
-        // 先請求授權
-        healthKitManager.requestAuthorization { success in
-            guard success else {
-                print("HealthKit 授權失敗")
-                return
-            }
-            
-            // 授權成功後獲取數據
-            Task {
-                // 設定日期範圍為最近一個月
-                let calendar = Calendar.current
-                let now = Date()
-                let endDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
-                let startDate = calendar.date(byAdding: .month, value: -1, to: calendar.startOfDay(for: endDate))!
-                
-                print("開始獲取 HRV 數據，時間範圍：\(startDate) 到 \(endDate)")
-                let data = await healthKitManager.fetchHRVData(start: startDate, end: endDate)
-                print("獲取到 \(data.count) 條 HRV 數據")
-                
-                // 按日期分組並計算每日平均值
-                let groupedData = Dictionary(grouping: data) { item in
-                    calendar.startOfDay(for: item.0)
-                }
-                
-                let dailyAverages = groupedData.map { (date, values) in
-                    let average = values.map { $0.1 }.reduce(0, +) / Double(values.count)
-                    return (date, average)
-                }.sorted { $0.0 < $1.0 }
-                
-                print("處理後得到 \(dailyAverages.count) 天的 HRV 平均值")
-            }
-        }
-    }
 }
 
 #Preview {
-    NavigationView {
-        MyAchievementView()
-    }
+    MyAchievementView()
+        .environmentObject(HealthKitManager())
 }

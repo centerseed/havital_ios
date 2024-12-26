@@ -74,10 +74,3 @@ class BanisterModel {
     }
 }
 
-struct PerformancePoint: Identifiable {
-    let id = UUID()
-    let date: Date
-    let performance: Double
-    let hasWorkout: Bool
-    let workoutName: String?
-}

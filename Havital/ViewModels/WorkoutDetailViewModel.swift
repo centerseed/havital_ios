@@ -1,14 +1,32 @@
 import SwiftUI
 import HealthKit
 
+@MainActor
 class WorkoutDetailViewModel: ObservableObject {
     @Published var heartRates: [HeartRatePoint] = []
+    @Published var isLoading = false
+    @Published var error: String?
     private let workout: HKWorkout
     private let healthKitManager: HealthKitManager
+    private var loadTask: Task<Void, Never>?
     
-    init(workout: HKWorkout, healthKitManager: HealthKitManager) {
+    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)]) {
         self.workout = workout
         self.healthKitManager = healthKitManager
+        
+        // 使用初始數據
+        if !initialHeartRateData.isEmpty {
+            self.heartRates = initialHeartRateData.map { timeAndValue in
+                HeartRatePoint(time: timeAndValue.0, value: timeAndValue.1)
+            }
+        } else {
+            // 如果沒有初始數據，則自動加載
+            loadHeartRateData()
+        }
+    }
+    
+    deinit {
+        loadTask?.cancel()
     }
     
     var workoutType: String {
@@ -26,37 +44,61 @@ class WorkoutDetailViewModel: ObservableObject {
     
     var distance: String? {
         guard let distance = workout.totalDistance?.doubleValue(for: .meter()) else { return nil }
-        return String(format: "%.2f km", distance / 1000)
+        if distance >= 1000 {
+            return String(format: "%.2f km", distance / 1000)
+        } else {
+            return String(format: "%.0f m", distance)
+        }
     }
     
-    var maxHeartRate: Int {
-        Int(heartRates.max(by: { $0.value < $1.value })?.value ?? 0)
+    var maxHeartRate: String {
+        let max = heartRates.map { $0.value }.max() ?? 0
+        return String(format: "%.0f bpm", max)
     }
     
-    var minHeartRate: Int {
-        Int(heartRates.min(by: { $0.value < $1.value })?.value ?? 0)
+    var minHeartRate: String {
+        let min = heartRates.map { $0.value }.min() ?? 0
+        return String(format: "%.0f bpm", min)
     }
     
     var yAxisRange: (min: Double, max: Double) {
-        let maxHR = Double(maxHeartRate)
-        let minHR = Double(minHeartRate)
-        return (min: max(minHR * 0.9, 0), max: maxHR * 1.1)
+        let values = heartRates.map { $0.value }
+        let min = values.min() ?? 0
+        let max = values.max() ?? 200
+        let padding = (max - min) * 0.1
+        return (min - padding, max + padding)
     }
     
     func loadHeartRateData() {
-        Task {
+        // 如果已經有數據，就不需要重新加載
+        guard heartRates.isEmpty else { return }
+        
+        // 取消之前的任務
+        loadTask?.cancel()
+        
+        // 創建新的任務
+        loadTask = Task { @MainActor in
+            isLoading = true
+            error = nil
+            
             do {
-                let heartRateValues = try await healthKitManager.fetchHeartRatesForWorkout(workout)
-                let startTime = workout.startDate
-                let heartRatePoints = heartRateValues.enumerated().map { index, value in
-                    let time = startTime.addingTimeInterval(Double(index * 5)) // 假設每個點間隔5秒
-                    return HeartRatePoint(time: time, value: value)
+                let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+                
+                // 檢查任務是否被取消
+                if Task.isCancelled { return }
+                
+                // 將心率數據轉換為圖表點
+                let heartRatePoints = heartRateData.map { timeAndValue in
+                    HeartRatePoint(time: timeAndValue.0, value: timeAndValue.1)
                 }
-                await MainActor.run {
-                    self.heartRates = heartRatePoints
-                }
+                
+                self.heartRates = heartRatePoints
+                self.isLoading = false
             } catch {
                 print("Error fetching heart rate data: \(error)")
+                self.error = "獲取心率數據時出錯"
+                self.isLoading = false
+                self.heartRates = []
             }
         }
     }

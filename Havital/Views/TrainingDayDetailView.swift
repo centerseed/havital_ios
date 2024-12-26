@@ -16,14 +16,14 @@ class TrainingDayDetailViewModel: ObservableObject {
         self.trainingPlanViewModel = trainingPlanViewModel
     }
     
+    @MainActor
     func requestAuthorization() {
-        healthKitManager.requestAuthorization { [weak self] success in
-            if !success {
-                self?.showingAuthorizationError = true
-                return
-            }
-            Task {
-                await self?.loadWorkoutData()
+        Task {
+            do {
+                try await healthKitManager.requestAuthorization()
+                await loadWorkoutData()
+            } catch {
+                showingAuthorizationError = true
             }
         }
     }
@@ -38,26 +38,29 @@ class TrainingDayDetailViewModel: ObservableObject {
         guard dayStart <= now else { return }
         
         // 獲取當天的運動記錄
-        let workouts = await healthKitManager.fetchWorkoutsForDateRange(start: dayStart, end: dayEnd)
-        
-        // 清空之前的心率數據
-        await MainActor.run {
-            self.heartRates = []
-        }
-        
-        // 對於每個訓練項目，檢查是否有心率目標並計算完成率
-        for workout in workouts {
-            let heartRates = await healthKitManager.fetchHeartRateData(for: workout)
-            if !heartRates.isEmpty {
-                await MainActor.run {
-                    self.heartRates.append(contentsOf: heartRates)
+        do {
+            let workouts = try await healthKitManager.fetchWorkoutsForDateRange(start: dayStart, end: dayEnd)
+            
+            // 清空之前的心率數據
+            await MainActor.run {
+                self.heartRates = []
+            }
+            
+            // 對於每個訓練項目，檢查是否有心率目標並計算完成率
+            for workout in workouts {
+                if let avgHeartRate = try await healthKitManager.fetchSleepHeartRateAverage(for: dayStart) {
+                    await MainActor.run {
+                        self.heartRates.append((dayStart, avgHeartRate))
+                    }
                 }
             }
-        }
-        
-        // 計算心率目標完成率
-        if !self.heartRates.isEmpty {
-            await calculateHeartRateGoalCompletions()
+            
+            // 計算心率目標完成率
+            if !self.heartRates.isEmpty {
+                await calculateHeartRateGoalCompletions()
+            }
+        } catch {
+            print("Error loading workouts: \(error)")
         }
     }
     
@@ -157,14 +160,8 @@ struct TrainingDayDetailView: View {
             Section("訓練項目") {
                 ForEach(day.trainingItems) { item in
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: TrainingItemStyle.icon(for: item.name))
-                                .foregroundColor(TrainingItemStyle.color(for: item.name))
-                                .font(.title2)
-                            
-                            Text(item.name)
-                                .font(.headline)
-                        }
+                        Text(item.name)
+                            .font(.headline)
                         
                         if item.durationMinutes > 0 {
                             Text("時長：\(item.durationMinutes) 分鐘")
@@ -201,7 +198,7 @@ struct TrainingDayDetailView: View {
             Text("請在設定中允許應用程序讀取健康資料，以便追蹤訓練目標的完成情況。")
         }
         .task {
-            viewModel.requestAuthorization()
+            await viewModel.requestAuthorization()
         }
     }
 }
@@ -212,51 +209,15 @@ struct GoalView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            
             HStack {
-                Text(goalTypeText)
-                    .font(.subheadline)
-                Text("\(goal.value) \(goalUnitText)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                Text("\(Int(completionRate))%")
+                    .font(.caption)
+                    .foregroundColor(completionRate >= 100 ? .green : .orange)
+                
+                ProgressView(value: min(completionRate, 100), total: 100)
+                    .tint(completionRate >= 100 ? .green : .orange)
             }
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 8)
-                        .cornerRadius(4)
-                    
-                    Rectangle()
-                        .fill(completionRate >= 100 ? Color.green : Color.blue)
-                        .frame(width: min(CGFloat(completionRate) / 100 * geometry.size.width, geometry.size.width), height: 8)
-                        .cornerRadius(4)
-                }
-            }
-            .frame(height: 8)
-            
-            Text("\(Int(completionRate))%")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(.vertical, 4)
-    }
-    
-    private var goalTypeText: String {
-        switch goal.type {
-        case "heart_rate":
-            return "目標心率："
-        default:
-            return "未知目標："
-        }
-    }
-    
-    private var goalUnitText: String {
-        switch goal.type {
-        case "heart_rate":
-            return "bpm"
-        default:
-            return ""
         }
     }
 }

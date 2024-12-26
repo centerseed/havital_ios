@@ -4,9 +4,14 @@ import Charts
 
 struct WorkoutDetailView: View {
     @StateObject private var viewModel: WorkoutDetailViewModel
+    @Environment(\.dismiss) private var dismiss
     
-    init(workout: HKWorkout) {
-        _viewModel = StateObject(wrappedValue: WorkoutDetailViewModel(workout: workout, healthKitManager: HealthKitManager()))
+    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)]) {
+        _viewModel = StateObject(wrappedValue: WorkoutDetailViewModel(
+            workout: workout,
+            healthKitManager: healthKitManager,
+            initialHeartRateData: initialHeartRateData
+        ))
     }
     
     var body: some View {
@@ -18,6 +23,17 @@ struct WorkoutDetailView: View {
             .padding()
         }
         .navigationTitle("訓練詳情")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
         .onAppear {
             viewModel.loadHeartRateData()
         }
@@ -55,18 +71,35 @@ struct WorkoutDetailView: View {
             Text("心率變化")
                 .font(.headline)
             
-            if viewModel.heartRates.isEmpty {
-                ProgressView()
-                    .frame(height: 200)
+            if viewModel.isLoading {
+                VStack {
+                    ProgressView("載入心率數據中...")
+                }
+                .frame(height: 200)
+            } else if let error = viewModel.error {
+                ContentUnavailableView(
+                    error,
+                    systemImage: "heart.slash",
+                    description: Text("請稍後再試")
+                )
+                .frame(height: 200)
+            } else if viewModel.heartRates.isEmpty {
+                ContentUnavailableView(
+                    "沒有心率數據",
+                    systemImage: "heart.slash",
+                    description: Text("無法獲取此次訓練的心率數據")
+                )
+                .frame(height: 200)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("最高心率: \(viewModel.maxHeartRate)")
+                        Text(viewModel.maxHeartRate)
+                            .foregroundColor(.red)
                         Spacer()
-                        Text("最低心率: \(viewModel.minHeartRate)")
+                        Text(viewModel.minHeartRate)
+                            .foregroundColor(.blue)
                     }
                     .font(.caption)
-                    .foregroundColor(.secondary)
                     
                     Chart {
                         ForEach(viewModel.heartRates) { point in
@@ -89,7 +122,7 @@ struct WorkoutDetailView: View {
                         AxisMarks(values: .stride(by: .minute, count: 5)) { value in
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
-                                    Text(WorkoutUtils.formatTime(date))
+                                    Text(date.formatted(.dateTime.hour().minute()))
                                 }
                             }
                         }
@@ -123,7 +156,7 @@ struct WorkoutDetailView_Previews: PreviewProvider {
                 metadata: nil
             )
             
-            WorkoutDetailView(workout: workout)
+            WorkoutDetailView(workout: workout, healthKitManager: HealthKitManager(), initialHeartRateData: [])
         }
     }
 }

@@ -178,9 +178,8 @@ class TrainingPlanGenerator {
                 "熱身",
                 "warmup",
                 [
-                    SubItem(id: "1", name: "原地慢跑"),
-                    SubItem(id: "2", name: "伸展運動"),
-                    SubItem(id: "3", name: "關節活動")
+                    SubItem(id: "1", name: "伸展運動"),
+                    SubItem(id: "2", name: "關節活動")
                 ]
             )
         case "super_slow_run":
@@ -188,9 +187,8 @@ class TrainingPlanGenerator {
                 "超慢跑",
                 "run",
                 [
-                    SubItem(id: "1", name: "保持呼吸平穩"),
-                    SubItem(id: "2", name: "注意配速"),
-                    SubItem(id: "3", name: "維持正確姿勢")
+                    SubItem(id: "1", name: "注意配速"),
+                    SubItem(id: "2", name: "維持正確姿勢")
                 ]
             )
         case "relax":
@@ -198,9 +196,7 @@ class TrainingPlanGenerator {
                 "放鬆",
                 "relax",
                 [
-                    SubItem(id: "1", name: "緩步走路"),
-                    SubItem(id: "2", name: "深呼吸"),
-                    SubItem(id: "3", name: "伸展放鬆")
+                    SubItem(id: "1", name: "伸展放鬆")
                 ]
             )
         case "rest":
