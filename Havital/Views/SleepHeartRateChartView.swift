@@ -2,156 +2,109 @@ import SwiftUI
 import Charts
 
 struct SleepHeartRateChartView: View {
-    @EnvironmentObject var healthKitManager: HealthKitManager
-    @State private var isLoading = true
-    @State private var heartRatePoints: [(Date, Double)] = []
-    @State private var selectedPoint: (Date, Double)?
+    @StateObject private var viewModel: SleepHeartRateViewModel
+    
+    init() {
+        _viewModel = StateObject(wrappedValue: SleepHeartRateViewModel(healthKitManager: HealthKitManager()))
+    }
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Text("睡眠靜息心率")
-                .font(.headline)
-                .padding(.horizontal)
-            
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: 200)
+        VStack {
+            if viewModel.isLoading {
+                ProgressView("載入中...")
+            } else if viewModel.heartRateData.isEmpty {
+                ContentUnavailableView(
+                    "沒有睡眠心率數據",
+                    systemImage: "heart.fill",
+                    description: Text("無法獲取睡眠心率數據")
+                )
             } else {
-                if heartRatePoints.isEmpty {
-                    Text("無睡眠心率數據")
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, maxHeight: 200)
-                } else {
+                VStack(alignment: .leading, spacing: 16) {
+                    Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
+                        ForEach(SleepHeartRateViewModel.TimeRange.allCases, id: \.self) { range in
+                            Text(range.rawValue).tag(range)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    
                     Chart {
-                        ForEach(heartRatePoints, id: \.0) { point in
+                        ForEach(viewModel.heartRateData, id: \.0) { item in
                             LineMark(
-                                x: .value("日期", point.0),
-                                y: .value("心率", point.1)
+                                x: .value("日期", item.0),
+                                y: .value("心率", item.1)
                             )
-                            .foregroundStyle(Color.purple.gradient)
+                            .foregroundStyle(.purple)
                             
                             PointMark(
-                                x: .value("日期", point.0),
-                                y: .value("心率", point.1)
+                                x: .value("日期", item.0),
+                                y: .value("心率", item.1)
                             )
                             .foregroundStyle(.purple)
                         }
-                        
-                        if let selected = selectedPoint {
-                            RuleMark(
-                                x: .value("Selected", selected.0)
-                            )
-                            .foregroundStyle(Color.gray.opacity(0.3))
-                            .annotation(position: .top) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(selected.0.formatted(.dateTime.month().day()))
-                                        .font(.caption)
-                                    Text("\(Int(selected.1))次/分鐘")
-                                        .font(.caption.bold())
-                                }
-                                .padding(6)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color(.systemBackground))
-                                        .shadow(radius: 2)
-                                )
-                            }
-                        }
                     }
-                    .frame(height: 200)
+                    .chartYScale(domain: viewModel.yAxisRange)
                     .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 5)) { value in
-                            if let date = value.as(Date.self) {
-                                AxisValueLabel {
-                                    Text(date.formatted(.dateTime.month().day()))
+                        switch viewModel.selectedTimeRange {
+                        case .week:
+                            AxisMarks(values: .stride(by: .day)) { value in
+                                if let date = value.as(Date.self) {
+                                    AxisValueLabel {
+                                        Text(formatDate(date))
+                                    }
+                                }
+                            }
+                        case .month:
+                            AxisMarks(values: .stride(by: .day)) { value in
+                                if let date = value.as(Date.self) {
+                                    let calendar = Calendar.current
+                                    let day = calendar.component(.day, from: date)
+                                    if day == 1 || day % 5 == 0 {
+                                        AxisValueLabel {
+                                            Text(formatDate(date))
+                                        }
+                                        AxisTick()
+                                        AxisGridLine()
+                                    }
+                                }
+                            }
+                        case .threeMonths:
+                            AxisMarks(values: .stride(by: .day)) { value in
+                                if let date = value.as(Date.self) {
+                                    let calendar = Calendar.current
+                                    let day = calendar.component(.day, from: date)
+                                    if day == 1 || day % 5 == 0 {
+                                        AxisValueLabel {
+                                            Text(formatDate(date))
+                                        }
+                                        AxisTick()
+                                        AxisGridLine()
+                                    }
                                 }
                             }
                         }
                     }
-                    .chartYAxis {
-                        AxisMarks(position: .leading)
-                    }
-                    .chartOverlay { proxy in
-                        GeometryReader { geometry in
-                            Rectangle()
-                                .fill(.clear)
-                                .contentShape(Rectangle())
-                                .gesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { value in
-                                            let xPosition = value.location.x - geometry[proxy.plotAreaFrame].origin.x
-                                            guard xPosition >= 0,
-                                                  xPosition <= geometry[proxy.plotAreaFrame].width else {
-                                                return
-                                            }
-                                            
-                                            guard let date = proxy.value(atX: xPosition) as Date? else {
-                                                return
-                                            }
-                                            
-                                            // 找到最近的數據點
-                                            let closest = heartRatePoints.min { first, second in
-                                                abs(first.0.timeIntervalSince(date)) < abs(second.0.timeIntervalSince(date))
-                                            }
-                                            
-                                            withAnimation(.easeInOut(duration: 0.1)) {
-                                                selectedPoint = closest
-                                            }
-                                        }
-                                        .onEnded { _ in
-                                            withAnimation(.easeInOut(duration: 0.1)) {
-                                                selectedPoint = nil
-                                            }
-                                        }
-                                )
-                        }
-                    }
-                    .padding()
                 }
+            }
+        }
+        .onChange(of: viewModel.selectedTimeRange) { _ in
+            Task {
+                await viewModel.loadHeartRateData()
             }
         }
         .task {
-            print("開始加載睡眠心率數據")
-            await loadSleepHeartRates()
+            await viewModel.loadHeartRateData()
         }
     }
     
-    private func loadSleepHeartRates() async {
-        isLoading = true
-        defer { isLoading = false }
-        
-        let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -30, to: endDate)!
-        
-        print("正在獲取從 \(startDate) 到 \(endDate) 的睡眠心率數據")
-        
-        var currentDate = startDate
-        var points: [(Date, Double)] = []
-        
-        while currentDate <= endDate {
-            do {
-                if let heartRate = try await healthKitManager.fetchSleepHeartRateAverage(for: currentDate) {
-                    print("獲取到 \(currentDate.formatted()) 的睡眠心率: \(heartRate)")
-                    points.append((currentDate, heartRate))
-                } else {
-                    print("未找到 \(currentDate.formatted()) 的睡眠心率數據")
-                }
-            } catch {
-                print("獲取 \(currentDate.formatted()) 的睡眠心率時發生錯誤: \(error.localizedDescription)")
-            }
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
-        }
-        
-        print("總共獲取到 \(points.count) 個數據點")
-        
-        await MainActor.run {
-            self.heartRatePoints = points
-        }
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd"
+        return formatter.string(from: date)
     }
 }
 
 #Preview {
     SleepHeartRateChartView()
-        .environmentObject(HealthKitManager())
+        .frame(height: 300)
+        .padding()
 }

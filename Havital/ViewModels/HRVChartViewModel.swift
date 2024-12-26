@@ -66,6 +66,18 @@ class HRVChartViewModel: ObservableObject {
         }
     }
     
+    var yAxisRange: ClosedRange<Double> {
+        guard !hrvData.isEmpty else { return 0...100 }
+        
+        let values = hrvData.map { $0.1 }
+        let min = values.min() ?? 0
+        let max = values.max() ?? 100
+        
+        // 添加 10% 的 padding
+        let padding = (max - min) * 0.1
+        return (min - padding)...(max + padding)
+    }
+    
     enum TimeRange: String, CaseIterable {
         case week = "一週"
         case month = "一個月"
