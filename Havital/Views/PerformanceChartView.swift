@@ -135,38 +135,21 @@ struct PerformanceChartView: View {
             // 獲取訓練數據
             let workouts = try await healthKitManager.fetchWorkoutsForDateRange(start: startDate, end: endDate)
             print("獲取到 \(workouts.count) 條訓練記錄")
-            
-            // 獲取HRV數據
-            let hrvData = try await healthKitManager.fetchHRVData(start: startDate, end: endDate)
-            print("獲取到 \(hrvData.count) 條HRV記錄")
-            
-            // 按日期分組HRV數據
-            let hrvByDate = Dictionary(grouping: hrvData) { item in
-                calendar.startOfDay(for: item.0)
-            }.mapValues { values in
-                values.map { $0.1 }.reduce(0, +) / Double(values.count)
-            }
+
             
             var validWorkouts: [(Date, Double, HKWorkoutActivityType)] = []
             
             // 處理每個訓練記錄
             for workout in workouts {
+                // 獲取心率數據
                 let heartRates = try await healthKitManager.fetchHeartRateData(for: workout)
-                
-                // 檢查心率數據數量是否大於50
-                guard heartRates.count >= 50 else {
-                    print("訓練記錄被排除 - 日期: \(workout.startDate), 心率數據數量不足: \(heartRates.count)")
+                guard !heartRates.isEmpty else {
+                    print("訓練記錄被排除 - 日期: \(workout.startDate), 無心率數據")
                     continue
                 }
                 
                 // 計算平均心率
                 let avgHR = heartRates.map { $0.1 }.reduce(0, +) / Double(heartRates.count)
-                
-                // 只處理心率大於50的訓練
-                guard avgHR > 50 else {
-                    print("訓練記錄被排除 - 日期: \(workout.startDate), 平均心率太低: \(avgHR)")
-                    continue
-                }
                 
                 // 計算TRIMP
                 let trimp = self.banisterModel.calculateTrimp(
@@ -175,9 +158,12 @@ struct PerformanceChartView: View {
                     restingHR: restingHR,
                     maxHR: maxHR
                 )
-                print("有效訓練記錄 - 日期: \(workout.startDate), 心率數據: \(heartRates.count)筆, 平均心率: \(avgHR), TRIMP: \(trimp)")
                 
-                validWorkouts.append((workout.startDate, trimp, workout.workoutActivityType))
+                // 如果心率太低，將TRIMP設為較小的值而不是完全排除
+                let effectiveTrimp = avgHR > 50 ? trimp : trimp * 0.5
+                print("訓練記錄 - 日期: \(workout.startDate), 心率數據: \(heartRates.count)筆, 平均心率: \(avgHR), TRIMP: \(effectiveTrimp)")
+                
+                validWorkouts.append((workout.startDate, effectiveTrimp, workout.workoutActivityType))
             }
             
             // 按日期排序訓練記錄
@@ -202,9 +188,7 @@ struct PerformanceChartView: View {
                 let todaysWorkouts = validWorkouts.filter { workoutDate in
                     calendar.isDate(workoutDate.0, inSameDayAs: currentDate)
                 }
-                
-                // 獲取當天的HRV值
-                let todayHRV = hrvByDate[calendar.startOfDay(for: currentDate)] ?? 0
+            
                 
                 if !todaysWorkouts.isEmpty {
                     // 計算當天的總 TRIMP
@@ -221,16 +205,8 @@ struct PerformanceChartView: View {
                     
                     // 計算當天的表現指數，結合HRV數據
                     var performance = self.banisterModel.performance()
-                    
-                    // 如果有HRV數據，將其納入表現指數計算
-                    if todayHRV > 0 {
-                        // 將HRV標準化到0-1的範圍（假設正常HRV範圍是20-100）
-                        let normalizedHRV = min(max((todayHRV - 20) / 80, 0), 1)
-                        // HRV對表現指數的影響權重（可以根據需要調整）
-                        let hrvWeight = 0.2
-                        performance = performance * (1 - hrvWeight) + normalizedHRV * 100 * hrvWeight
-                    }
-                    
+                
+            
                     let point = PerformancePoint(
                         date: currentDate,
                         performance: performance,
