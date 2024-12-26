@@ -34,20 +34,31 @@ struct TrainingDay: Codable, Identifiable {
 
 struct TrainingItem: Codable, Identifiable {
     let id: String
-    let type: String
-    let name: String
-    let resource: String
-    let durationMinutes: Int
-    let subItems: [SubItem]
-    let goals: [Goal]
+    var type: String
+    var name: String
+    var resource: String
+    var durationMinutes: Int
+    var subItems: [SubItem]
+    var goals: [Goal]
     var goalCompletionRates: [String: Double]
     
     enum CodingKeys: String, CodingKey {
-        case id, type, name, resource
+        case id
+        case type
+        case name
+        case resource
         case durationMinutes = "duration_minutes"
         case subItems = "sub_items"
         case goals
         case goalCompletionRates = "goal_completion_rates"
+    }
+    
+    var displayName: String {
+        let definitions = TrainingDefinitions.load()?.trainingItemDefs ?? []
+        if let def = definitions.first(where: { $0.name == name }) {
+            return def.displayName
+        }
+        return name
     }
     
     init(id: String, type: String, name: String, resource: String, durationMinutes: Int, subItems: [SubItem], goals: [Goal], goalCompletionRates: [String: Double] = [:]) {
@@ -63,13 +74,13 @@ struct TrainingItem: Codable, Identifiable {
 }
 
 struct SubItem: Codable, Identifiable {
-    let id: String
-    let name: String
+    var id: String
+    var name: String
 }
 
 struct Goal: Codable {
-    let type: String
-    let value: Int
+    var type: String
+    var value: Int
 }
 
 // MARK: - Training Plan Generator

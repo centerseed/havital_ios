@@ -58,7 +58,7 @@ struct TrainingPlanView: View {
                                             HStack {
                                                 Image(systemName: TrainingItemStyle.icon(for: item.name))
                                                     .foregroundColor(TrainingItemStyle.color(for: item.name))
-                                                Text(item.name)
+                                                Text(item.displayName)
                                                     .foregroundColor(.secondary)
                                                 if item.durationMinutes > 0 {
                                                     Text("(\(item.durationMinutes)分鐘)")
@@ -132,56 +132,37 @@ struct TrainingPlanView: View {
 struct DayView: View {
     let day: TrainingDay
     let isToday: Bool
-    let viewModel: TrainingPlanViewModel
-    @EnvironmentObject private var healthKitManager: HealthKitManager
     
     var body: some View {
-        NavigationLink(destination: TrainingDayDetailView(day: day)
-            .environmentObject(viewModel)
-            .environmentObject(healthKitManager)) {
-            VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(formatDate(timestamp: day.startTimestamp))
+                    .font(.headline)
+                
+                if isToday {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+            
+            Text(day.purpose)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            if !day.trainingItems.isEmpty {
                 HStack {
-                    Text(DateFormatterUtil.formatDate(timestamp: day.startTimestamp))
-                        .font(.headline)
-                        .foregroundColor(isToday ? .blue : .primary)
-                    
-                    Spacer()
-                    
-                    if isToday {
-                        Text("今天")
+                    ForEach(day.trainingItems) { item in
+                        Text(item.displayName)
                             .font(.caption)
-                            .foregroundColor(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.blue)
-                            .cornerRadius(8)
-                    }
-                    
-                    if day.isCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                    }
-                }
-                
-                Text(day.purpose)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                if !day.trainingItems.isEmpty {
-                    HStack {
-                        ForEach(day.trainingItems) { item in
-                            Text(item.name)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(4)
-                        }
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(4)
                     }
                 }
             }
-            .padding(.vertical, 8)
         }
+        .padding(.vertical, 8)
     }
     
     private func formatDate(timestamp: Int) -> String {
