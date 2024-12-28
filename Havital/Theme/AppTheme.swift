@@ -26,6 +26,8 @@ struct AppTheme {
     
     // MARK: - Dark Mode Colors
     struct DarkMode {
+        static let primaryColor = Color(hex: "#3AAFA9")
+        static let secondaryColor = Color(hex: "#76C893")
         static let backgroundColor = Color(hex: "#121212")
         static let cardBackgroundColor = Color(hex: "#1E1E1E")
         

@@ -13,6 +13,8 @@ struct UserPreference: Codable {
     let bodyHeight: Double
     let bodyWeight: Double
     let announcement: String
+    let workoutDays: Set<Int>
+    let preferredWorkouts: Set<String>
     
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -27,6 +29,8 @@ struct UserPreference: Codable {
         case bodyHeight = "body_height"
         case bodyWeight = "body_weight"
         case announcement
+        case workoutDays = "workout_days"
+        case preferredWorkouts = "preferred_workouts"
     }
 }
 

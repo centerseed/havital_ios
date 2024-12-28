@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CFF518742D1E7D7400CF284A /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = CFF518732D1E7D7400CF284A /* GoogleGenerativeAI */; };
+		CFF518762D1E7D9500CF284A /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = CFF518752D1E7D9500CF284A /* GoogleGenerativeAI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CFB67D032D07047800F672E3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFF518762D1E7D9500CF284A /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +78,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFF518742D1E7D7400CF284A /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +132,7 @@
 			);
 			name = Havital;
 			packageProductDependencies = (
+				CFF518752D1E7D9500CF284A /* GoogleGenerativeAI */,
 			);
 			productName = Havital;
 			productReference = CFB67CF02D07047500F672E3 /* Havital.app */;
@@ -148,6 +156,7 @@
 			);
 			name = HavitalTests;
 			packageProductDependencies = (
+				CFF518732D1E7D7400CF284A /* GoogleGenerativeAI */,
 			);
 			productName = HavitalTests;
 			productReference = CFB67D022D07047800F672E3 /* HavitalTests.xctest */;
@@ -208,6 +217,9 @@
 			);
 			mainGroup = CFB67CE72D07047500F672E3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CFF518722D1E7D1300CF284A /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CFB67CF12D07047500F672E3 /* Products */;
 			projectDirPath = "";
@@ -581,6 +593,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CFF518722D1E7D1300CF284A /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CFF518732D1E7D7400CF284A /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFF518722D1E7D1300CF284A /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
+		CFF518752D1E7D9500CF284A /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFF518722D1E7D1300CF284A /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CFB67CE82D07047500F672E3 /* Project object */;
 }

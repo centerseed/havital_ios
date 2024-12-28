@@ -14,7 +14,7 @@ struct LoginView: View {
                     .font(.system(size: 48, weight: .bold))
                     .foregroundColor(AppTheme.shared.primaryColor)
                 
-                Text("Make daily exercise more easily")
+                Text("輕鬆踏上，運動健康之路")
                     .font(.title2)
                     .foregroundColor(AppTheme.TextColors.secondary)
             }
@@ -32,8 +32,9 @@ struct LoginView: View {
             VStack(spacing: 16) {
                 Button {
                     isLoggedIn = true
+                    hasCompletedOnboarding = false
                 } label: {
-                    Text("登入")
+                    Text("開始使用")
                         .font(.title3)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
@@ -46,7 +47,7 @@ struct LoginView: View {
                 Button {
                     isLoggedIn = true
                 } label: {
-                    Text("註冊")
+                    Text("註冊(TBD)")
                         .font(.title3)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
@@ -63,7 +64,9 @@ struct LoginView: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 48)
         }
-        .background(AppTheme.shared.backgroundColor)
+        .background(Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.backgroundColor) : UIColor(AppTheme.shared.backgroundColor)
+        }))
     }
 }
 

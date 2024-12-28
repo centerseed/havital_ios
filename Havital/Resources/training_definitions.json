@@ -21,5 +21,11 @@
     "training_sub_item_defs": [
         {"id": "sub_1-1", "name": "squat", "resource": "squat_resource_1_id"},
         {"id": "sub_1-2", "name": "stick", "resource": "squat_resource_1_id"}
+    ],
+    "goal_defs":[
+        {"type":"heart_rate", "unit":"bpm"},
+        {"type":"pace", "unit":"km/hr"},
+        {"type":"times", "unit":"times"},
+        {"type":"distance", "unit":"meter"},
     ]
 }

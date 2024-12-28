@@ -19,8 +19,10 @@ struct HavitalApp: App {
     var body: some Scene {
         WindowGroup {
             if !hasCompletedOnboarding {
+                //LoginView()
+                //    .environmentObject(appViewModel)
                 OnboardingView()
-                    .environmentObject(appViewModel)
+                   .environmentObject(appViewModel)
             } else if !isLoggedIn {
                 LoginView()
                     .environmentObject(appViewModel)

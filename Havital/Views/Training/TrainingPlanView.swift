@@ -5,6 +5,7 @@ struct TrainingPlanView: View {
     @StateObject private var viewModel = TrainingPlanViewModel()
     @State private var showingUserPreference = false
     @State private var showingDatePicker = false
+    @AppStorage("isLoggedIn") private var isLoggedIn = false
     @StateObject private var userPrefManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
     
@@ -60,7 +61,7 @@ struct TrainingPlanView: View {
                                                     .foregroundColor(TrainingItemStyle.color(for: item.name))
                                                 Text(item.displayName)
                                                     .foregroundColor(.secondary)
-                                                if item.durationMinutes > 0 {
+                                                if item.durationMinutes > 0 && (item.name != "warmup" && item.name != "熱身" && item.name != "cooldown"){
                                                     Text("(\(item.durationMinutes)分鐘)")
                                                         .foregroundColor(.secondary)
                                                 }
@@ -88,6 +89,11 @@ struct TrainingPlanView: View {
                         showingDatePicker = true
                     }) {
                         Label("重新生成計劃", systemImage: "arrow.clockwise")
+                    }
+                    Button(action: {
+                        isLoggedIn = false
+                    }) {
+                        Label("登入畫面", systemImage: "arrow.clockwise")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

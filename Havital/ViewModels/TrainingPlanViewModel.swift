@@ -38,15 +38,17 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
-    func generateNewPlan() {
+    @MainActor
+    func generateNewPlan(plan: String? = nil) {
         // 刪除原有計劃
         storage.deletePlan()
         
+        /*
         let jsonString = """
         {"purpose": "第一週訓練目標：循序漸進建立規律運動習慣，提升心肺耐力。", "tips": "本週訓練以超慢跑為主，建議選擇舒適的環境和服裝，專注於呼吸和感受身體的律動。如有任何不適，請立即停止運動。", "days": [{"target": "超慢跑", "training_items": [{"name": "warmup", "duration_minutes": 5}, {"name": "super_slow_run", "duration_minutes": 22, "goals": {"heart_rate": 121}}, {"name": "cooldown", "duration_minutes": 5}]}, {"target": "休息", "training_items": [{"name": "rest"}]}, {"target": "超慢跑", "training_items": [{"name": "warmup", "duration_minutes": 5}, {"name": "super_slow_run", "duration_minutes": 22, "goals": {"heart_rate": 121}}, {"name": "cooldown", "duration_minutes": 5}]}, {"target": "休息", "training_items": [{"name": "rest"}]}, {"target": "超慢跑", "training_items": [{"name": "warmup", "duration_minutes": 5}, {"name": "super_slow_run", "duration_minutes": 22, "goals": {"heart_rate": 121}}, {"name": "cooldown", "duration_minutes": 5}]}, {"target": "休息", "training_items": [{"name": "rest"}]}, {"target": "休息", "training_items": [{"name": "rest"}]}]}
-        """
+        """*/
         
-        if let jsonData = jsonString.data(using: .utf8),
+        if let jsonData = plan?.data(using: .utf8),
            let jsonDict = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
             var mutableDict = jsonDict
             // 使用選擇的日期作為起始日期
