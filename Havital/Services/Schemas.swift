@@ -34,7 +34,7 @@ let trainingPlanSchema = Schema(
                     "tips": Schema(
                         type: .string,
                         description: "The tips for the day",
-                        nullable: false
+                        nullable: true
                     ),
                     "training_items": Schema(
                         type: .array,
@@ -85,3 +85,25 @@ let trainingPlanSchema = Schema(
     requiredProperties: ["purpose", "tips", "days"]
 )
 
+let summarySchema = Schema(
+    type: .object,
+    description: "Weekly training summary and analysis",
+    properties: [
+        "further_suggestion": Schema(
+            type: .string,
+            description: "Suggestions for future training",
+            nullable: false
+        ),
+        "summary": Schema(
+            type: .string,
+            description: "Overall summary of the week's training performance",
+            nullable: false
+        ),
+        "training_analysis": Schema(
+            type: .string,
+            description: "Detailed analysis of individual training sessions",
+            nullable: false
+        )
+    ],
+    requiredProperties: ["further_suggestion", "summary", "training_analysis"]
+)

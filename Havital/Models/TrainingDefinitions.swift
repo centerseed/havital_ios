@@ -70,7 +70,7 @@ struct TrainingDefinitions: Codable {
         
         do {
             let data = try Data(contentsOf: url)
-            print("JSON data loaded successfully.")
+            //print("JSON data loaded successfully.")
             let definitions = try JSONDecoder().decode(TrainingDefinitions.self, from: data)
             return definitions
         } catch {

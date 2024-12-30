@@ -61,7 +61,7 @@ struct TrainingPlanView: View {
                                                     .foregroundColor(TrainingItemStyle.color(for: item.name))
                                                 Text(item.displayName)
                                                     .foregroundColor(.secondary)
-                                                if item.durationMinutes > 0 && (item.name != "warmup" && item.name != "熱身" && item.name != "cooldown"){
+                                                if item.durationMinutes > 0 && (item.name != "warmup" && item.name != "cooldown"){
                                                     Text("(\(item.durationMinutes)分鐘)")
                                                         .foregroundColor(.secondary)
                                                 }
@@ -69,6 +69,22 @@ struct TrainingPlanView: View {
                                         }
                                     }
                                 }
+                            }
+                        }
+                        
+                        if viewModel.isLastDayOfPlan() {
+                            Section {
+                                Button(action: {
+                                    Task {
+                                        await viewModel.generateWeeklySummary()
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "chart.bar.doc.horizontal")
+                                        Text("查看本週成果")
+                                    }.padding(20)
+                                }
+                                .foregroundColor(.blue)
                             }
                         }
                     }
@@ -88,7 +104,7 @@ struct TrainingPlanView: View {
                     Button(action: {
                         showingDatePicker = true
                     }) {
-                        Label("重新生成計劃", systemImage: "arrow.clockwise")
+                        Label("修改計劃開始日期", systemImage: "arrow.clockwise")
                     }
                     Button(action: {
                         isLoggedIn = false
@@ -116,7 +132,7 @@ struct TrainingPlanView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("確定") {
-                                viewModel.generateNewPlan()
+                                viewModel.updatePlanStartDate(viewModel.selectedStartDate)
                                 showingDatePicker = false
                             }
                         }

@@ -22,6 +22,46 @@ struct TrainingDay: Codable, Identifiable {
     var isCompleted: Bool
     var tips: String
     var trainingItems: [TrainingItem]
+    var heartRateStats: HeartRateStats?
+    
+    struct HeartRateStats: Codable {
+        struct HeartRateRecord: Codable {
+            let timestamp: Date
+            let value: Double
+            
+            init(timestamp: Date, value: Double) {
+                self.timestamp = timestamp
+                self.value = value
+            }
+        }
+        
+        var averageHeartRate: Double
+        var heartRates: [HeartRateRecord]
+        var goalCompletionRate: Double
+        
+        init(averageHeartRate: Double, heartRates: [(Date, Double)], goalCompletionRate: Double) {
+            self.averageHeartRate = averageHeartRate
+            self.heartRates = heartRates.map { HeartRateRecord(timestamp: $0.0, value: $0.1) }
+            self.goalCompletionRate = goalCompletionRate
+        }
+        
+        var heartRateTuples: [(Date, Double)] {
+            return heartRates.map { ($0.timestamp, $0.value) }
+        }
+        
+        enum CodingKeys: String, CodingKey {
+            case averageHeartRate
+            case heartRates
+            case goalCompletionRate
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            averageHeartRate = try container.decode(Double.self, forKey: .averageHeartRate)
+            heartRates = try container.decode([HeartRateRecord].self, forKey: .heartRates)
+            goalCompletionRate = try container.decode(Double.self, forKey: .goalCompletionRate)
+        }
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -30,6 +70,7 @@ struct TrainingDay: Codable, Identifiable {
         case isCompleted = "is_completed"
         case tips
         case trainingItems = "training_items"
+        case heartRateStats = "heart_rate_stats"
     }
 }
 
@@ -99,7 +140,7 @@ class TrainingPlanGenerator {
         struct DayInput: Codable {
             let target: String
             let training_items: [TrainingItemInput]
-            let tips: String
+            let tips: String?
         }
         
         struct TrainingItemInput: Codable {
@@ -196,8 +237,9 @@ class TrainingPlanGenerator {
                     startTimestamp: timestamp,
                     purpose: dayInput.target,
                     isCompleted: false,
-                    tips: dayInput.tips,
-                    trainingItems: trainingItems
+                    tips: dayInput.tips ?? "",
+                    trainingItems: trainingItems,
+                    heartRateStats: nil
                 )
             } else {
                 // 休息日
@@ -219,7 +261,8 @@ class TrainingPlanGenerator {
                                 subItems: [],
                                 goals: []
                             )
-                        ]
+                        ],
+                        heartRateStats: nil
                     )
                 }
                 
@@ -228,7 +271,7 @@ class TrainingPlanGenerator {
                     startTimestamp: timestamp,
                     purpose: restDay.target,
                     isCompleted: false,
-                    tips: restDay.tips,
+                    tips: restDay.tips ?? "",
                     trainingItems: [
                         TrainingItem(
                             id: UUID().uuidString,
@@ -239,7 +282,8 @@ class TrainingPlanGenerator {
                             subItems: [],
                             goals: []
                         )
-                    ]
+                    ],
+                    heartRateStats: nil
                 )
             }
         }
@@ -256,39 +300,27 @@ class TrainingPlanGenerator {
         switch type {
         case "warmup":
             return (
-                "熱身",
                 "warmup",
-                [
-                    SubItem(id: "1", name: "伸展運動"),
-                    SubItem(id: "2", name: "關節活動")
-                ]
+                "warmup",
+                []
             )
         case "super_slow_run":
             return (
-                "超慢跑",
+                "super_slow_run",
                 "run",
-                [
-                    SubItem(id: "1", name: "注意配速"),
-                    SubItem(id: "2", name: "維持正確姿勢")
-                ]
+                []
             )
         case "relax":
             return (
-                "放鬆",
                 "relax",
-                [
-                    SubItem(id: "1", name: "伸展放鬆")
-                ]
+                "relax",
+                []
             )
         case "rest":
             return (
-                "休息",
                 "rest",
-                [
-                    SubItem(id: "1", name: "充分休息"),
-                    SubItem(id: "2", name: "補充水分"),
-                    SubItem(id: "3", name: "適當伸展")
-                ]
+                "rest",
+                []
             )
         default:
             return (type, type, [])

@@ -30,6 +30,11 @@ struct OnboardingView: View {
       
     let questions = [
         OnboardingQuestion(
+            title: "我是Vita，您的專屬運動顧問",
+            description: "建立運動習慣最好的方法，就是設定簡單的目標，然後讓運動融入日常生活中。\n 我會幫您設定合適的運動計畫，並依據您的執行狀況做調整。",
+            type: .intro
+        ),
+        OnboardingQuestion(
             title: "你的運動目標",
             description: "請分享你想透過運動達成什麼目標",
             type: .announcement,
@@ -119,6 +124,8 @@ struct OnboardingView: View {
                 // Question Content
                 Group {
                     switch questions[currentPage].type {
+                    case .intro:
+                        Text("")
                     case .announcement:
                         VStack(spacing: 20) {
                             TextField("輸入你的運動目標...", text: $announcement)
@@ -376,8 +383,17 @@ struct OnboardingView: View {
             do {
                 let result = try await GeminiService.shared.generateContent(
                     withPromptFiles: ["prompt_training_plan_base", "prompt_training_plan_onboard"],
-                    input: geminiInput
+                    input: geminiInput,
+                    schema: trainingPlanSchema
                 )
+                
+                // 打印完整的 AI 返回結果
+                print("=== AI Response ===")
+                if let jsonData = try? JSONSerialization.data(withJSONObject: result, options: .prettyPrinted),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    print(jsonString)
+                }
+                print("=================")
                 
                 // 將結果轉換為 JSON 字符串
                 let jsonData = try JSONSerialization.data(withJSONObject: result, options: .prettyPrinted)
@@ -475,6 +491,7 @@ struct OnboardingQuestion {
         case announcement
         case weekdaySelection
         case workoutSelection
+        case intro
     }
     
     init(title: String, description: String, type: QuestionType, range: ClosedRange<Double>? = nil) {

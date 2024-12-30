@@ -25,7 +25,7 @@ enum GeminiError: Error, Equatable {
 
 class GeminiService {
     static let shared = GeminiService()
-    private var model: GenerativeModel?
+    private var apiKey: String?
     
     private init() {
         loadApiKey()
@@ -37,11 +37,22 @@ class GeminiService {
               let key = dict["GeminiApiKey"] as? String else {
             return
         }
-        model = GenerativeModel(name: "gemini-1.5-flash", apiKey: key, generationConfig: GenerationConfig(
-            responseMIMEType: "application/json",
-            responseSchema: trainingPlanSchema
-          ))
+        apiKey = key
+    }
+    
+    private func getModel(with schema: Schema) throws -> GenerativeModel {
+        guard let apiKey = apiKey else {
+            throw GeminiError.invalidApiKey
+        }
         
+        return GenerativeModel(
+            name: "gemini-1.5-flash",
+            apiKey: apiKey,
+            generationConfig: GenerationConfig(
+                responseMIMEType: "application/json",
+                responseSchema: schema
+            )
+        )
     }
     
     private func loadPrompts(from fileNames: [String]) throws -> String {
@@ -69,17 +80,15 @@ class GeminiService {
         return promptContents.joined(separator: "\n")
     }
     
-    func generateContent(withPromptFiles fileNames: [String], input: [String: Any]) async throws -> [String: Any] {
-        guard let model = model else {
-            throw GeminiError.invalidApiKey
-        }
-        
+    public func generateContent(withPromptFiles fileNames: [String], input: [String: Any], schema: Schema) async throws -> [String: Any] {
+        let model = try getModel(with: schema)
         let promptContent = try loadPrompts(from: fileNames)
         let inputJson = try JSONSerialization.data(withJSONObject: input)
         let inputString = String(data: inputJson, encoding: .utf8) ?? "{}"
         
         let prompt = promptContent + "\n" + inputString
         print(prompt)
+        
         do {
             let response = try await model.generateContent(prompt)
             
@@ -89,11 +98,19 @@ class GeminiService {
                 throw GeminiError.invalidResponse
             }
             
-            print(jsonResponse)
-            
             return jsonResponse
         } catch {
             throw GeminiError.networkError(error)
         }
+    }
+    
+    // MARK: - Public Methods
+    
+    func generateTrainingPlan(withPromptFiles fileNames: [String], input: [String: Any]) async throws -> [String: Any] {
+        return try await generateContent(withPromptFiles: fileNames, input: input, schema: trainingPlanSchema)
+    }
+    
+    func generateSummary(withPromptFiles fileNames: [String], input: [String: Any]) async throws -> [String: Any] {
+        return try await generateContent(withPromptFiles: fileNames, input: input, schema: summarySchema)
     }
 }

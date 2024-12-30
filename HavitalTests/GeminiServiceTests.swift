@@ -35,6 +35,7 @@ class GeminiServiceTests: XCTestCase {
             let result = try await sut.generateContent(
                 withPromptFiles: ["prompt_training_plan_base", "prompt_training_plan_onboard"],
                 input: input
+                schema: trainingPlanSchema
             )
             
             // Then
@@ -65,6 +66,7 @@ class GeminiServiceTests: XCTestCase {
             _ = try await sut.generateContent(
                 withPromptFiles: ["prompt_training_plan_base"],
                 input: input
+                schema: trainingPlanSchema
             )
             XCTFail("Should throw invalid API key error")
         } catch {
@@ -81,6 +83,7 @@ class GeminiServiceTests: XCTestCase {
             _ = try await sut.generateContent(
                 withPromptFiles: ["nonexistent"],
                 input: input
+                schema: trainingPlanSchema
             )
             XCTFail("Should throw invalid prompt file error")
         } catch {

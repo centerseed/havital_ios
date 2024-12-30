@@ -3,14 +3,22 @@ import SwiftUI
 struct TrainingItemStyle {
     static func icon(for name: String) -> String {
         switch name.lowercased() {
-        case "熱身", "warmup":
+        case "warmup":
             return "figure.walk"
-        case "超慢跑", "super_slow_run":
+        case "super_slow_run":
             return "figure.run"
-        case "放鬆", "cooldown":
+        case "cooldown":
             return "figure.cooldown"
-        case "休息", "rest":
+        case "rest":
             return "bed.double"
+        case "jump_rope":
+            return "figure.jumprope"
+        case "hiit":
+            return "figure.highintensity.intervaltraining"
+        case "strength_training":
+            return "figure.strengthtraining.traditional"
+        case "breath_training":
+            return "lungs"
         default:
             return "figure.mixed.cardio"
         }
@@ -18,14 +26,22 @@ struct TrainingItemStyle {
     
     static func color(for name: String) -> Color {
         switch name.lowercased() {
-        case "熱身", "warmup":
+        case "warmup":
             return .orange
-        case "超慢跑", "super_slow_run":
+        case "super_slow_run":
             return .blue
-        case "放鬆", "cooldown":
+        case "cooldown":
             return .green
-        case "休息", "rest":
+        case "rest":
             return .gray
+        case "jump_rope":
+            return .purple
+        case "hiit":
+            return .red
+        case "strength_training":
+            return .orange
+        case "breath_training":
+            return .cyan
         default:
             return .primary
         }

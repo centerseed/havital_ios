@@ -4,6 +4,7 @@ import HealthKit
 class TrainingDayDetailViewModel: ObservableObject {
     @Published var heartRates: [(Date, Double)] = []
     @Published var averageHeartRate: Double = 0
+    @Published var heartRateGoalCompletionRate: Double = 0
     @Published var showingAuthorizationError = false
     @Published var workouts: [HKWorkout] = []
     
@@ -57,77 +58,20 @@ class TrainingDayDetailViewModel: ObservableObject {
             // 更新 workouts
             await MainActor.run {
                 self.workouts = fetchedWorkouts
-                self.heartRates = []
             }
             
-            // 獲取每個運動的心率數據
-            for workout in fetchedWorkouts {
-                do {
-                    let heartRates = try await healthKitManager.fetchHeartRateData(for: workout)
-                    await MainActor.run {
-                        self.heartRates.append(contentsOf: heartRates)
-                    }
-                } catch {
-                    print("無法獲取運動 \(workout.uuid) 的心率數據：\(error)")
+            // 從 day 中獲取心率數據
+            if let stats = day.heartRateStats {
+                await MainActor.run {
+                    self.heartRates = stats.heartRateTuples
+                    self.averageHeartRate = stats.averageHeartRate
+                    self.heartRateGoalCompletionRate = stats.goalCompletionRate
                 }
-            }
-            
-            // 計算心率目標完成率
-            if !self.heartRates.isEmpty {
-                await calculateHeartRateGoalCompletions()
             }
         } catch {
             print("Error loading workouts: \(error)")
         }
-    }
-    
-    private func calculateHeartRateGoalCompletions() async {
-        // 排序心率數據並保留最高的75%
-        let sortedHeartRates = heartRates.map { $0.1 }.sorted(by: >)  // 降序排列
-        let endIndex = Int(Double(sortedHeartRates.count) * 0.75)
-        let validHeartRates = Array(sortedHeartRates[..<endIndex])
-        
-        // 計算平均心率
-        let avgHeartRate = validHeartRates.reduce(0, +) / Double(validHeartRates.count)
-        
-        print("心率數據數量：\(heartRates.count)")
-        print("有效心率數據數量：\(validHeartRates.count)")
-        print("最高心率：\(sortedHeartRates.first ?? 0)")
-        print("最低有效心率：\(validHeartRates.last ?? 0)")
-        print("平均心率：\(avgHeartRate)")
-        
-        await MainActor.run {
-            self.averageHeartRate = avgHeartRate
-        }
-        
-        // 更新每個訓練項目的目標完成率
-        var updatedDay = day
-        for (itemIndex, item) in day.trainingItems.enumerated() {
-            for goal in item.goals where goal.type == "heart_rate" {
-                let targetHeartRate = Double(goal.value)
-                var completionRate = (avgHeartRate / targetHeartRate) * 100
-                
-                print("目標心率：\(targetHeartRate), 完成率：\(completionRate)") // 添加調試輸出
-                
-                // 根據規則調整完成率
-                if completionRate >= 100 {
-                    completionRate = 100
-                } else if completionRate < 50 {
-                    completionRate = 50
-                }
-                
-                // 更新完成率
-                updatedDay.trainingItems[itemIndex].goalCompletionRates["heart_rate"] = completionRate
-            }
-        }
-        
-        // 更新存儲
-        do {
-            try await trainingPlanViewModel.updateTrainingDay(updatedDay)
-        } catch {
-            print("更新目標完成率失敗：\(error)")
-        }
-    }
+    }    
 }
 
 struct TrainingDayDetailView: View {
@@ -269,9 +213,8 @@ struct EditTrainingDayView: View {
                 Section {
                     ForEach(trainingItems) { item in
                         HStack {
-                            Image(systemName: TrainingItemStyle.icon(for: item.displayName))
-                                .foregroundColor(TrainingItemStyle.color(for: item.displayName))
-         
+                            Image(systemName: TrainingItemStyle.icon(for: item.name))
+                                .foregroundColor(TrainingItemStyle.color(for: item.name))
                             Text(item.displayName)
                             Spacer()
                             Text("\(item.durationMinutes)分鐘")
@@ -530,7 +473,7 @@ struct TrainingDayContentView: View {
             TrainingTipsSection(tips: day.tips)
             
             if !viewModel.heartRates.isEmpty {
-                TrainingResultsSection(averageHeartRate: Int(viewModel.averageHeartRate))
+                TrainingResultsSection(averageHeartRate: Int(viewModel.averageHeartRate), heartRateGoalCompletionRate: viewModel.heartRateGoalCompletionRate)
             }
             
             TrainingItemsSection(items: day.trainingItems)
@@ -584,6 +527,7 @@ private struct WorkoutsSection: View {
 
 private struct TrainingResultsSection: View {
     let averageHeartRate: Int
+    let heartRateGoalCompletionRate: Double
     
     var body: some View {
         Section("訓練成果") {
@@ -592,6 +536,12 @@ private struct TrainingResultsSection: View {
                     Image(systemName: "heart.fill")
                         .foregroundColor(.red)
                     Text("運動平均心率：\(Int(averageHeartRate)) bpm")
+                        .font(.headline)
+                }
+                HStack {
+                    Image(systemName: "chart.bar")
+                        .foregroundColor(.blue)
+                    Text("心率目標完成率：\(String(format: "%.1f%%", heartRateGoalCompletionRate))")
                         .font(.headline)
                 }
             }
@@ -607,9 +557,8 @@ private struct TrainingItemsSection: View {
             ForEach(items) { item in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Image(systemName: TrainingItemStyle.icon(for: item.displayName))
-                            .foregroundColor(TrainingItemStyle.color(for: item.displayName))
-                        
+                        Image(systemName: TrainingItemStyle.icon(for: item.name))
+                            .foregroundColor(TrainingItemStyle.color(for: item.name))
                         Text(item.displayName)
                             .font(.headline)
                     }
