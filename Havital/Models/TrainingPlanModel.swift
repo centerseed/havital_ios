@@ -1,3 +1,5 @@
+// MARK: - Models
+
 import Foundation
 import SwiftUICore
 
@@ -123,6 +125,12 @@ struct SubItem: Codable, Identifiable {
 struct Goal: Codable {
     var type: String
     var value: Int
+}
+
+struct WeeklyAnalysis: Codable {
+    let summary: String
+    let training_analysis: String
+    let further_suggestion: String
 }
 
 // MARK: - Training Plan Generator

@@ -8,6 +8,7 @@ struct TrainingPlanView: View {
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     @StateObject private var userPrefManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
+    @State private var showingAnalysis = false
     
     var body: some View {
         NavigationStack {
@@ -75,9 +76,7 @@ struct TrainingPlanView: View {
                         if viewModel.isLastDayOfPlan() {
                             Section {
                                 Button(action: {
-                                    Task {
-                                        await viewModel.generateWeeklySummary()
-                                    }
+                                    showingAnalysis = true
                                 }) {
                                     HStack {
                                         Image(systemName: "chart.bar.doc.horizontal")
@@ -143,6 +142,9 @@ struct TrainingPlanView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showingAnalysis) {
+                WeeklyAnalysisView(viewModel: viewModel)
             }
             .task {
                 viewModel.loadTrainingPlan()

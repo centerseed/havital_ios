@@ -6,8 +6,8 @@ struct WeeklySummary: Codable {
     let days: [DaySummary]
     
     struct DaySummary: Codable {
-        let name: String
         let date: String
+        let name: String
         let plannedDuration: Int
         let actualDuration: Int
         let goals: [GoalSummary]
@@ -16,6 +16,12 @@ struct WeeklySummary: Codable {
             let type: String
             let target: Int
             let completionRate: Double
+            
+            enum CodingKeys: String, CodingKey {
+                case type
+                case target
+                case completionRate = "completionRate"
+            }
         }
     }
 }

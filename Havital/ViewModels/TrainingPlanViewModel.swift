@@ -4,30 +4,53 @@ import SwiftUI
 
 @MainActor
 class TrainingPlanViewModel: ObservableObject {
-    @Published var plan: TrainingPlan?
+    @Published var plan: TrainingPlan? {
+        didSet {
+            // 只在計劃 ID 改變時清除分析
+            if plan?.id != oldValue?.id {
+                weeklyAnalysis = nil
+                summaryStorage.clearSavedSummary()
+            }
+            
+            // 更新訓練日
+            if let plan = plan {
+                trainingDays = plan.days
+            } else {
+                trainingDays = []
+            }
+        }
+    }
     @Published var trainingDays: [TrainingDay] = []
     @Published var showingAuthorizationError = false
     @Published var selectedStartDate = Date()
+    @Published var selectedDay: TrainingDay?
+    @Published var weeklyAnalysis: WeeklyAnalysis?
+    @Published var isGeneratingAnalysis = false
+    @Published var analysisError: Error?
     
     private let storage: TrainingPlanStorage
     private let healthKitManager: HealthKitManager
+    private let summaryStorage = WeeklySummaryStorage.shared
     
     init(storage: TrainingPlanStorage = TrainingPlanStorage.shared, healthKitManager: HealthKitManager = HealthKitManager()) {
         self.storage = storage
         self.healthKitManager = healthKitManager
-        loadTrainingPlan()
+        
+        // 從存儲加載計劃
+        if let savedPlan = try? storage.loadPlan() {
+            self.plan = savedPlan
+            self.trainingDays = savedPlan.days
+            
+            // 嘗試加載保存的分析
+            if let savedAnalysis = summaryStorage.loadLatestSummary(forPlanId: savedPlan.id) {
+                self.weeklyAnalysis = savedAnalysis
+            }
+        }
     }
     
     func loadTrainingPlan() {
-        if let plan = storage.loadPlan() {
-            self.plan = plan
-            self.trainingDays = plan.days
-            // 檢查過去日期的完成狀態
-            Task {
-                await checkPastDaysCompletion()
-            }
-        } else {
-            updatePlanStartDate(selectedStartDate)
+        if let savedPlan = try? storage.loadPlan() {
+            self.plan = savedPlan
         }
     }
     
@@ -244,8 +267,8 @@ class TrainingPlanViewModel: ObservableObject {
         }
         
         let today = Date()
-        let calendar = Calendar.current
-        return calendar.isDateInToday(Date(timeIntervalSince1970: TimeInterval(lastDay.startTimestamp)))
+        let lastDayDate = Date(timeIntervalSince1970: TimeInterval(lastDay.startTimestamp))
+        return today >= Calendar.current.startOfDay(for: lastDayDate)
     }
     
     func updatePlanStartDate(_ newStartDate: Date) {
@@ -278,111 +301,118 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
-    func generateWeeklySummary() async {
+    private func generateWeeklySummary() async -> String {
+        guard let currentPlan = plan else { return "" }
+        
+        // 獲取計劃的開始和結束時間
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
-        var daySummaries: [WeeklySummary.DaySummary] = []
-        
-        // 按日期排序訓練日，並排除休息日
-        let sortedDays = trainingDays
-            .sorted { $0.startTimestamp < $1.startTimestamp }
-            .filter { day in
-                !day.trainingItems.contains { $0.name == "rest" }
-            }
-        
-        for day in sortedDays {
-            let dayDate = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
-            
-            // 獲取主要訓練項目的名稱（排除暖身和放鬆）
-            let mainTrainingItem = day.trainingItems.first { item in
-                item.name != "warmup" && item.name != "cooldown"
-            }
-            let trainingName = mainTrainingItem?.name ?? "Unknown Training"
-            
-            // 計算計劃時間（排除暖身和放鬆）
-            let plannedDuration = day.trainingItems.reduce(0) { total, item in
-                if item.name == "warmup" || item.name == "cooldown" {
-                    return total
-                }
-                return total + item.durationMinutes
-            }
-            
-            // 獲取實際運動時間
-            let calendar = Calendar.current
-            let startOfDay = calendar.startOfDay(for: dayDate)
-            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-            
-            var actualDuration = 0
-            do {
-                let workouts = try await healthKitManager.fetchWorkoutsForDateRange(start: startOfDay, end: endOfDay)
-                actualDuration = Int(workouts.reduce(0.0) { total, workout in
-                    total + workout.duration / 60.0
-                })
-            } catch {
-                print("Error fetching workouts: \(error)")
-            }
-            
-            // 收集目標完成情況
-            var goals: [WeeklySummary.DaySummary.GoalSummary] = []
-            for item in day.trainingItems {
-                for goal in item.goals {
-                    var completionRate: Double = 0.0
-                    
-                    // 如果是心率目標，從 heartRateStats 中獲取完成率
-                    if goal.type == "heart_rate" {
-                        if let stats = day.heartRateStats {
-                            completionRate = stats.goalCompletionRate
-                            print("Day \(dateFormatter.string(from: dayDate)) - Heart Rate Stats: \(stats.averageHeartRate), Goal: \(goal.value), Completion Rate: \(completionRate)")
-                        }
-                    } else {
-                        // 其他類型的目標從 goalCompletionRates 中獲取
-                        completionRate = item.goalCompletionRates[goal.type] ?? 0.0
-                        print("Day \(dateFormatter.string(from: dayDate)) - \(goal.type) Goal: \(goal.value), Completion Rate: \(completionRate)")
-                    }
-                    
-                    goals.append(WeeklySummary.DaySummary.GoalSummary(
-                        type: goal.type,
-                        target: goal.value,
-                        completionRate: completionRate
-                    ))
-                }
-            }
-            
-            daySummaries.append(WeeklySummary.DaySummary(
-                name: trainingName,
-                date: dateFormatter.string(from: dayDate),
-                plannedDuration: plannedDuration,
-                actualDuration: actualDuration,
-                goals: goals
-            ))
+        let workoutDays = trainingDays.filter { day in
+            !day.trainingItems.isEmpty && !day.trainingItems.contains { $0.name == "rest" }
         }
         
-        let weeklySummary = WeeklySummary(
-            startDate: dateFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(sortedDays.first?.startTimestamp ?? 0))),
-            endDate: dateFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(sortedDays.last?.startTimestamp ?? 0))),
+        guard let firstDay = workoutDays.min(by: { $0.startTimestamp < $1.startTimestamp }),
+              let lastDay = workoutDays.max(by: { $0.startTimestamp < $1.startTimestamp }) else {
+            return "{}"
+        }
+        
+        let startDate = Date(timeIntervalSince1970: TimeInterval(firstDay.startTimestamp))
+        let endDate = Date(timeIntervalSince1970: TimeInterval(lastDay.startTimestamp))
+        
+        var daySummaries: [WeeklySummary.DaySummary] = []
+        
+        for day in workoutDays.sorted(by: { $0.startTimestamp < $1.startTimestamp }) {
+            let dayDate = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
+            
+            // 計算實際運動時間
+            var totalMinutes = 0.0
+            if let heartRateStats = day.heartRateStats,
+               !heartRateStats.heartRates.isEmpty {
+                let startTime = heartRateStats.heartRates.first!.timestamp
+                let endTime = heartRateStats.heartRates.last!.timestamp
+                totalMinutes = endTime.timeIntervalSince(startTime) / 60.0
+            }
+            
+            for item in day.trainingItems where item.name != "warmup" && item.name != "cooldown" {
+                var goals: [WeeklySummary.DaySummary.GoalSummary] = []
+                
+                // 心率目標
+                if let heartRateStats = day.heartRateStats,
+                   let heartRateGoal = item.goals.first(where: { $0.type == "heart_rate" }) {
+                    goals.append(.init(
+                        type: "heart_rate",
+                        target: heartRateGoal.value,
+                        completionRate: heartRateStats.goalCompletionRate
+                    ))
+                }
+                
+                let daySummary = WeeklySummary.DaySummary(
+                    date: dateFormatter.string(from: dayDate),
+                    name: item.name,
+                    plannedDuration: item.durationMinutes,
+                    actualDuration: Int(totalMinutes),
+                    goals: goals
+                )
+                
+                daySummaries.append(daySummary)
+            }
+        }
+        
+        let summary = WeeklySummary(
+            startDate: dateFormatter.string(from: startDate),
+            endDate: dateFormatter.string(from: endDate),
             days: daySummaries
         )
         
-        // 保存總結
-        WeeklySummaryStorage.shared.saveSummary(weeklySummary, date: Date())
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
         
-        // 打印總結
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let jsonData = try encoder.encode(weeklySummary)
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("=== 本週訓練總結 ===")
-                print(jsonString)
-                print("==================")
-            }
-        } catch {
-            print("Error encoding weekly summary: \(error)")
+        guard let jsonData = try? encoder.encode(summary),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            return "{}"
         }
+        
+        return jsonString
     }
     
-    func loadSummaries(from startDate: Date, to endDate: Date) -> [WeeklySummary] {
-        return WeeklySummaryStorage.shared.loadSummaries(from: startDate, to: endDate)
+    func generateAnalysis() async {
+        guard let currentPlan = plan else { return }
+        
+        // 如果已經有分析結果，直接返回
+        if weeklyAnalysis != nil {
+            return
+        }
+        
+        // 檢查是否已有保存的分析
+        if let savedAnalysis = summaryStorage.loadLatestSummary(forPlanId: currentPlan.id) {
+            weeklyAnalysis = savedAnalysis
+            return
+        }
+        
+        isGeneratingAnalysis = true
+        analysisError = nil
+        
+        do {
+            let summary = await generateWeeklySummary()
+            let geminiInput = ["weekly_summary": summary]
+            
+            let result = try await GeminiService.shared.generateContent(
+                withPromptFiles: ["prompt_summary"],
+                input: geminiInput,
+                schema: summarySchema
+            )
+            
+            if let jsonData = try? JSONSerialization.data(withJSONObject: result),
+               let analysis = try? JSONDecoder().decode(WeeklyAnalysis.self, from: jsonData) {
+                weeklyAnalysis = analysis
+                // 保存分析結果
+                summaryStorage.saveSummary(analysis, date: Date(), planId: currentPlan.id)
+            }
+        } catch {
+            analysisError = error
+        }
+        
+        isGeneratingAnalysis = false
     }
 }
