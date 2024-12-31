@@ -1,14 +1,22 @@
 import SwiftUI
 import HealthKit
+import Combine
 
 struct TrainingPlanView: View {
-    @StateObject private var viewModel = TrainingPlanViewModel()
+    @StateObject private var viewModel: TrainingPlanViewModel
+    @StateObject private var calendarManager = CalendarManager()
     @State private var showingUserPreference = false
     @State private var showingDatePicker = false
     @AppStorage("isLoggedIn") private var isLoggedIn = false
+    @State private var showingAnalysis = false
     @StateObject private var userPrefManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
-    @State private var showingAnalysis = false
+    
+    init() {
+        // 在 MainActor 上創建 ViewModel
+        let viewModel = TrainingPlanViewModel()
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
     
     var body: some View {
         NavigationStack {
@@ -105,6 +113,13 @@ struct TrainingPlanView: View {
                     }) {
                         Label("修改計劃開始日期", systemImage: "arrow.clockwise")
                     }
+
+                    Button(action: {
+                        viewModel.showingCalendarSetup = true
+                    }) {
+                        Label("同步至行事曆", systemImage: "calendar.badge.plus")
+                    }
+                    
                     Button(action: {
                         isLoggedIn = false
                     }) {
@@ -145,6 +160,21 @@ struct TrainingPlanView: View {
             }
             .sheet(isPresented: $showingAnalysis) {
                 WeeklyAnalysisView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingCalendarSetup) {
+                CalendarSyncSetupView(isPresented: $viewModel.showingCalendarSetup) { preference in
+                    viewModel.syncToCalendar(preference: preference)
+                }
+                .environmentObject(calendarManager)
+            }
+            .alert("錯誤", isPresented: .constant(viewModel.error != nil)) {
+                Button("確定") {
+                    viewModel.error = nil
+                }
+            } message: {
+                if let error = viewModel.error {
+                    Text(error)
+                }
             }
             .task {
                 viewModel.loadTrainingPlan()

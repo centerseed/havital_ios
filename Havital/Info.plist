@@ -26,6 +26,10 @@
 	<string>Havital 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Havital 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Havital 需要行事曆權限來同步您的訓練計劃</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Havital 需要行事曆寫入權限來同步您的訓練計劃</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

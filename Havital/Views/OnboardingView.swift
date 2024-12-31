@@ -20,6 +20,8 @@ struct OnboardingView: View {
     @State private var announcement = ""
     @State private var selectedWeekdays: Set<Int> = []
     @State private var selectedWorkout: String = ""
+    @State private var isRequestingHealthKit = false
+    @State private var healthKitGranted = false
     
     let predefinedAnnouncements = [
         "我想感覺到更有精神",
@@ -33,6 +35,12 @@ struct OnboardingView: View {
             title: "我是Vita，您的專屬運動顧問",
             description: "建立運動習慣最好的方法，就是設定簡單的目標，然後讓運動融入日常生活中。\n 我會幫您設定合適的運動計畫，並依據您的執行狀況做調整。",
             type: .intro
+        ),
+        OnboardingQuestion(
+            title: "健康資料權限",
+            description: "為了提供更好的運動建議和追蹤您的進度，我們需要存取您的健康資料",
+            type: .healthKitPermission,
+            range: nil
         ),
         OnboardingQuestion(
             title: "你的運動目標",
@@ -254,6 +262,32 @@ struct OnboardingView: View {
                             }
                         }
                         .padding()
+                    case .healthKitPermission:
+                        VStack(spacing: 20) {
+                            if isRequestingHealthKit {
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                Text("正在請求健康資料權限...")
+                                    .font(.headline)
+                            } else if healthKitGranted {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.system(size: 50))
+                                Text("已獲得健康資料權限")
+                                    .font(.headline)
+                            } else {
+                                Button(action: {
+                                    requestHealthKitPermission()
+                                }) {
+                                    Text("授予健康資料權限")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .background(Color.blue)
+                                        .cornerRadius(10)
+                                }
+                            }
+                        }
                     case .workoutSelection:
                         VStack(spacing: 20) {
                             ForEach(getAvailableWorkouts(), id: \.name) { workout in
@@ -337,30 +371,25 @@ struct OnboardingView: View {
     }
     
     private func binding(for page: Int) -> Binding<Double> {
-        switch page {
-        case 0:
-            return Binding(
-                get: { Double(aerobicsLevel) },
-                set: { aerobicsLevel = Int($0) }
-            )
-        case 1:
-            return Binding(
-                get: { Double(strengthLevel) },
-                set: { strengthLevel = Int($0) }
-            )
-        case 2:
-            return Binding(
-                get: { Double(busyLevel) },
-                set: { busyLevel = Int($0) }
-            )
-        case 3:
-            return Binding(
-                get: { Double(proactiveLevel) },
-                set: { proactiveLevel = Int($0) }
-            )
-        default:
-            return .constant(0)
+        // Find the index of current slider in the questions array
+        let sliderQuestions = questions.enumerated().filter { $0.element.type == .slider }
+        if let sliderIndex = sliderQuestions.firstIndex(where: { $0.offset == page }) {
+            switch sliderIndex {
+            case 0: // 有氧運動能力
+                return Binding(
+                    get: { Double(aerobicsLevel) },
+                    set: { aerobicsLevel = Int($0) }
+                )
+            case 1: // 肌力訓練程度
+                return Binding(
+                    get: { Double(strengthLevel) },
+                    set: { strengthLevel = Int($0) }
+                )
+            default:
+                return .constant(0)
+            }
         }
+        return .constant(0)
     }
     
     private func completeOnboarding() {
@@ -477,6 +506,27 @@ struct OnboardingView: View {
         
         return availableWorkouts
     }
+    
+    private func requestHealthKitPermission() {
+        isRequestingHealthKit = true
+        
+        Task {
+            do {
+                let healthKitManager = HealthKitManager()
+                try await healthKitManager.requestAuthorization()
+                await MainActor.run {
+                    healthKitGranted = true
+                    isRequestingHealthKit = false
+                }
+            } catch {
+                await MainActor.run {
+                    isRequestingHealthKit = false
+                    errorMessage = "無法獲得健康資料權限：\(error.localizedDescription)"
+                    showError = true
+                }
+            }
+        }
+    }
 }
 
 struct OnboardingQuestion {
@@ -491,6 +541,7 @@ struct OnboardingQuestion {
         case announcement
         case weekdaySelection
         case workoutSelection
+        case healthKitPermission
         case intro
     }
     

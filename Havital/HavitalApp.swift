@@ -18,14 +18,12 @@ struct HavitalApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if !hasCompletedOnboarding {
-                //LoginView()
-                //    .environmentObject(appViewModel)
-                OnboardingView()
-                   .environmentObject(appViewModel)
-            } else if !isLoggedIn {
+            if !isLoggedIn {
                 LoginView()
                     .environmentObject(appViewModel)
+            } else if !hasCompletedOnboarding {
+                OnboardingView()
+                   .environmentObject(appViewModel)
             } else {
                 TabView {
                     TrainingPlanView()

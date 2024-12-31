@@ -2,7 +2,6 @@ import Foundation
 import HealthKit
 import SwiftUI
 
-@MainActor
 class TrainingPlanViewModel: ObservableObject {
     @Published var plan: TrainingPlan? {
         didSet {
@@ -27,23 +26,31 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var weeklyAnalysis: WeeklyAnalysis?
     @Published var isGeneratingAnalysis = false
     @Published var analysisError: Error?
+    @Published var showingCalendarSetup = false
+    @Published var error: String?
     
     private let storage: TrainingPlanStorage
     private let healthKitManager: HealthKitManager
     private let summaryStorage = WeeklySummaryStorage.shared
+    private let calendarManager: CalendarManager
     
-    init(storage: TrainingPlanStorage = TrainingPlanStorage.shared, healthKitManager: HealthKitManager = HealthKitManager()) {
+    nonisolated init(storage: TrainingPlanStorage = TrainingPlanStorage.shared,
+         healthKitManager: HealthKitManager = HealthKitManager(),
+         calendarManager: CalendarManager = CalendarManager()) {
         self.storage = storage
         self.healthKitManager = healthKitManager
+        self.calendarManager = calendarManager
         
-        // 從存儲加載計劃
-        if let savedPlan = try? storage.loadPlan() {
-            self.plan = savedPlan
-            self.trainingDays = savedPlan.days
-            
-            // 嘗試加載保存的分析
-            if let savedAnalysis = summaryStorage.loadLatestSummary(forPlanId: savedPlan.id) {
-                self.weeklyAnalysis = savedAnalysis
+        Task { @MainActor in
+            // 從存儲加載計劃
+            if let savedPlan = try? storage.loadPlan() {
+                self.plan = savedPlan
+                self.trainingDays = savedPlan.days
+                
+                // 嘗試加載保存的分析
+                if let savedAnalysis = summaryStorage.loadLatestSummary(forPlanId: savedPlan.id) {
+                    self.weeklyAnalysis = savedAnalysis
+                }
             }
         }
     }
@@ -415,5 +422,67 @@ class TrainingPlanViewModel: ObservableObject {
         }
         
         isGeneratingAnalysis = false
+    }
+    
+    func loadTrainingPlan(_ plan: TrainingPlan) {
+        self.plan = plan
+        
+        // 如果用戶之前已設定同步，自動同步到行事曆
+        if calendarManager.syncPreference != nil {
+            syncToCalendar()
+        } else {
+            // 如果還沒設定過，詢問用戶
+            showingCalendarSetup = true
+        }
+    }
+    
+    func syncToCalendar(preference: CalendarManager.SyncPreference? = nil) {
+        guard let plan = plan else { return }
+        
+        // 準備訓練日數據
+        let trainingDays = plan.days.map { day -> (Date, Bool) in
+            let isRest = day.trainingItems.contains { $0.name == "rest" }
+            let date = Date(timeIntervalSince1970: TimeInterval(day.startTimestamp))
+            return (date, !isRest)
+        }
+        
+        Task {
+            do {
+                try await calendarManager.syncTrainingPlan(days: trainingDays, preference: preference)
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    func updateTrainingDay(_ date: Date, isRest: Bool) {
+        guard var plan = plan else { return }
+        
+        // 更新計劃
+        let timestamp = Int(date.timeIntervalSince1970)
+        if let index = plan.days.firstIndex(where: { $0.startTimestamp == timestamp }) {
+            if isRest {
+                plan.days[index].trainingItems = [
+                    TrainingItem(
+                        id: UUID().uuidString,
+                        type: "rest",
+                        name: "rest",
+                        resource: "",
+                        durationMinutes: 0,
+                        subItems: [],
+                        goals: [],
+                        goalCompletionRates: [:]
+                    )
+                ]
+            }
+            self.plan = plan
+            
+            // 如果已設定同步，更新行事曆
+            if calendarManager.syncPreference != nil {
+                syncToCalendar()
+            }
+        }
     }
 }
