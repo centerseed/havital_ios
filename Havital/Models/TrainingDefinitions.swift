@@ -31,6 +31,7 @@ struct TrainingItemDefinition: Codable, Identifiable, Hashable {
         case "rest": return "休息"
         case "warmup": return "熱身"
         case "cooldown": return "放鬆"
+        case "yoga": return "瑜珈"
         default: return name
         }
     }

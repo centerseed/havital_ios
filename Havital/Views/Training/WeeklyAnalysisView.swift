@@ -1,10 +1,53 @@
 import SwiftUI
 import Combine
+import GoogleGenerativeAI
 
+struct CombinedFeedback: Codable {
+    let user_feedback: String
+    let weekly_summary: String
+}
 
 struct WeeklyAnalysisView: View {
     @StateObject var viewModel: TrainingPlanViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showingNextWeekPlanning = false
+    
+    private func formatJSON(_ jsonString: String) -> String {
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data),
+              let prettyData = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]),
+              let prettyString = String(data: prettyData, encoding: .utf8) else {
+            return jsonString
+        }
+        return prettyString
+    }
+    
+    private func generateCombinedJSON(userFeedback: UserFeedback, weeklySummary: String) async -> [String: Any]? {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let userFeedbackData = try encoder.encode(userFeedback)
+            let userFeedbackString = String(data: userFeedbackData, encoding: .utf8) ?? "{}"
+            
+            // 格式化 weekly summary
+            let formattedWeeklySummary = formatJSON(weeklySummary)
+            
+            let combinedFeedback = [
+                "user_feedback": try JSONSerialization.jsonObject(with: userFeedbackData),
+                "weekly_summary": try JSONSerialization.jsonObject(with: formattedWeeklySummary.data(using: .utf8) ?? Data())
+            ]
+            
+            return combinedFeedback
+        } catch {
+            print("Error generating JSON: \(error)")
+            return nil
+        }
+    }
+    
+    private func getTomorrowDate() -> Date {
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+    }
     
     var body: some View {
         NavigationView {
@@ -43,6 +86,22 @@ struct WeeklyAnalysisView: View {
                         .background(Color(.systemBackground))
                         .cornerRadius(12)
                         .shadow(radius: 2)
+                        
+                        Button(action: {
+                            showingNextWeekPlanning = true
+                        }) {
+                            HStack {
+                                Image(systemName: "calendar.badge.plus")
+                                Text("產生下週訓練計劃")
+                                    .font(.headline)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
                     } else if let error = viewModel.analysisError {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -83,6 +142,46 @@ struct WeeklyAnalysisView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("完成") {
                         dismiss()
+                    }
+                }
+            }
+            .sheet(isPresented: $showingNextWeekPlanning) {
+                NextWeekPlanningView { feeling, difficulty, days, item, completion in
+                    // 立即關閉 WeeklyAnalysisView
+                    dismiss()
+                    
+                    // 在背景執行計劃生成
+                    Task {
+                        let summary = await viewModel.generateWeeklySummary()
+                        let userFeedback = UserFeedback(
+                            feeling: feeling,
+                            difficul_adjust: difficulty.jsonValue,
+                            training_day_adjust: days.jsonValue,
+                            training_item_adjust: item.jsonValue
+                        )
+                        if let combinedJSON = await generateCombinedJSON(userFeedback: userFeedback, weeklySummary: summary) {
+                            do {
+                                let result = try await GeminiService.shared.generateFollowingPlan(input: combinedJSON)
+                                
+                                // 打印完整的 AI 返回結果
+                                print("=== AI Response ===")
+                                if let jsonData = try? JSONSerialization.data(withJSONObject: result, options: .prettyPrinted),
+                                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                                    print(jsonString)
+                                    
+                                    // 設定明天為開始日期
+                                    await MainActor.run {
+                                        viewModel.selectedStartDate = getTomorrowDate()
+                                        // 更新訓練計劃
+                                        viewModel.generateNewPlan(plan: jsonString)
+                                        // 完成後關閉 NextWeekPlanningView
+                                        completion()
+                                    }
+                                }
+                            } catch {
+                                print("Error generating new plan: \(error)")
+                            }
+                        }
                     }
                 }
             }

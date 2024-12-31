@@ -197,13 +197,42 @@ class TrainingPlanGenerator {
         
         // 獲取用戶偏好的訓練日
         let userPreference = userPrefManager.currentPreference
-        let workoutDays = userPreference?.workoutDays ?? []
+        var workoutDays = Array(userPreference?.workoutDays ?? []).sorted()
         
         // 將訓練日和休息日分開
         let workoutDayInputs = input.days.filter { !($0.training_items.count == 1 && $0.training_items[0].name == "rest") }
         let restDayInput = input.days.first { $0.training_items.count == 1 && $0.training_items[0].name == "rest" }
         
+        // 計算需要的訓練日數量
+        let requiredWorkoutDays = workoutDayInputs.count
+        
+        // 如果需要更多訓練日，從休息日中選擇添加
+        if requiredWorkoutDays > workoutDays.count {
+            let additionalDaysNeeded = requiredWorkoutDays - workoutDays.count
+            // 獲取所有可用的休息日，並按照與最近的訓練日的間隔排序
+            let restDays = Array(Set(0...6).subtracting(Set(workoutDays))).sorted { day1, day2 in
+                // 計算與最近訓練日的間隔
+                let gap1 = workoutDays.map { abs($0 - day1) }.min() ?? 7
+                let gap2 = workoutDays.map { abs($0 - day2) }.min() ?? 7
+                return gap1 > gap2 // 優先選擇間隔較大的日子
+            }
+            
+            // 從休息日中選擇需要的天數
+            workoutDays.append(contentsOf: restDays.prefix(additionalDaysNeeded))
+            workoutDays.sort()
+        }
+        
+        // 創建訓練日到訓練內容的映射
+        var workoutDayToInput: [Int: TrainingPlanInput.DayInput] = [:]
         var currentWorkoutIndex = 0
+        
+        // 按照原有的訓練日順序分配訓練內容
+        for day in workoutDays {
+            if currentWorkoutIndex < workoutDayInputs.count {
+                workoutDayToInput[day] = workoutDayInputs[currentWorkoutIndex]
+                currentWorkoutIndex += 1
+            }
+        }
         
         // 生成每天的訓練項目
         let days = (0..<7).map { dayOffset -> TrainingDay in
@@ -213,18 +242,12 @@ class TrainingPlanGenerator {
             
             // 獲取正確的星期幾（1-7，1是星期天）
             let weekday = calendar.component(.weekday, from: dayDate)
-
             // 調整為 0-6（0是星期天）
             let adjustedWeekday = weekday - 1
             
-            print("Date: \(dayDate), \(weekday), \(getWeekdayName(adjustedWeekday)), Workout Days: \(workoutDays.map { getWeekdayName($0) }.joined(separator: ", "))")
-            
             // 判斷是否為訓練日
-            if workoutDays.contains(adjustedWeekday) && currentWorkoutIndex < workoutDayInputs.count {
+            if let dayInput = workoutDayToInput[adjustedWeekday] {
                 // 訓練日
-                let dayInput = workoutDayInputs[currentWorkoutIndex]
-                currentWorkoutIndex += 1
-                
                 // 生成訓練項目
                 let trainingItems = dayInput.training_items.enumerated().map { (itemIndex, itemInput) -> TrainingItem in
                     let (name, type, subItems) = getTrainingItemDetails(itemInput.name)
@@ -251,35 +274,12 @@ class TrainingPlanGenerator {
                 )
             } else {
                 // 休息日
-                guard let restDay = restDayInput else {
-                    // 如果沒有休息日模板，創建一個默認的
-                    return TrainingDay(
-                        id: UUID().uuidString,
-                        startTimestamp: timestamp,
-                        purpose: "休息",
-                        isCompleted: false,
-                        tips: "",
-                        trainingItems: [
-                            TrainingItem(
-                                id: UUID().uuidString,
-                                type: "rest",
-                                name: "rest",
-                                resource: "",
-                                durationMinutes: 0,
-                                subItems: [],
-                                goals: []
-                            )
-                        ],
-                        heartRateStats: nil
-                    )
-                }
-                
                 return TrainingDay(
                     id: UUID().uuidString,
                     startTimestamp: timestamp,
-                    purpose: restDay.target,
+                    purpose: restDayInput?.target ?? "休息",
                     isCompleted: false,
-                    tips: restDay.tips ?? "",
+                    tips: restDayInput?.tips ?? "今天是休息日",
                     trainingItems: [
                         TrainingItem(
                             id: UUID().uuidString,

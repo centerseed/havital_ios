@@ -388,7 +388,7 @@ struct OnboardingView: View {
                 )
                 
                 // 打印完整的 AI 返回結果
-                print("=== AI Response ===")
+                print("=== AI Onboarding Response ===")
                 if let jsonData = try? JSONSerialization.data(withJSONObject: result, options: .prettyPrinted),
                    let jsonString = String(data: jsonData, encoding: .utf8) {
                     print(jsonString)

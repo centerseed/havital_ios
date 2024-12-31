@@ -301,7 +301,7 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
-    private func generateWeeklySummary() async -> String {
+    public func generateWeeklySummary() async -> String {
         guard let currentPlan = plan else { return "" }
         
         // 獲取計劃的開始和結束時間
@@ -309,7 +309,8 @@ class TrainingPlanViewModel: ObservableObject {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
         let workoutDays = trainingDays.filter { day in
-            !day.trainingItems.isEmpty && !day.trainingItems.contains { $0.name == "rest" }
+            //!day.trainingItems.isEmpty && !day.trainingItems.contains { $0.name == "rest" }
+            !day.trainingItems.isEmpty
         }
         
         guard let firstDay = workoutDays.min(by: { $0.startTimestamp < $1.startTimestamp }),
@@ -334,7 +335,7 @@ class TrainingPlanViewModel: ObservableObject {
                 totalMinutes = endTime.timeIntervalSince(startTime) / 60.0
             }
             
-            for item in day.trainingItems where item.name != "warmup" && item.name != "cooldown" {
+            for item in day.trainingItems {
                 var goals: [WeeklySummary.DaySummary.GoalSummary] = []
                 
                 // 心率目標

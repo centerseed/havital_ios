@@ -19,6 +19,8 @@ struct TrainingItemStyle {
             return "figure.strengthtraining.traditional"
         case "breath_training":
             return "lungs"
+        case "yoga":
+            return "figure.yoga"
         default:
             return "figure.mixed.cardio"
         }
@@ -42,6 +44,8 @@ struct TrainingItemStyle {
             return .orange
         case "breath_training":
             return .cyan
+        case "yoga":
+            return .mint
         default:
             return .primary
         }
