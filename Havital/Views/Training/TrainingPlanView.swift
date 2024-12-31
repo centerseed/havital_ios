@@ -99,7 +99,7 @@ struct TrainingPlanView: View {
                     ProgressView("載入訓練計劃中...")
                 }
             }
-            .navigationTitle("第一週訓練")
+            .navigationTitle("本週訓練計劃")
             .toolbar {
                 Menu {
                     Button(action: {

@@ -10,44 +10,71 @@ struct UserFeedback: Codable {
 struct NextWeekPlanningView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var feelingRating: Int = 3
-    @State private var difficultyAdjustment: AdjustmentType = .noChange
-    @State private var daysAdjustment: AdjustmentType = .noChange
-    @State private var trainingItemAdjustment: AdjustmentType = .noChange
+    @State private var difficultyAdjustment: DifficultyAdjustment = .keepTheSame
+    @State private var daysAdjustment: DaysAdjustment = .keepTheSame
+    @State private var trainingItemAdjustment: TrainingItemAdjustment = .keepTheSame
     @State private var isGenerating = false
     
-    enum AdjustmentType: String, CaseIterable {
+    enum DifficultyAdjustment: String, CaseIterable {
         case decrease = "減少"
-        case noChange = "不變"
+        case keepTheSame = "不變"
         case increase = "增加"
         
         var jsonValue: String {
             switch self {
-            case .decrease: return "decrease"
-            case .noChange: return "keep_the_same"
-            case .increase: return "increase"
+            case .decrease: return "decrease_difficulty"
+            case .keepTheSame: return "keep_the_same"
+            case .increase: return "increase_difficulty"
+            }
+        }
+    }
+
+    enum DaysAdjustment: String, CaseIterable {
+        case decrease = "減少一天"
+        case keepTheSame = "維持不變"
+        case increase = "增加一天"
+        
+        var jsonValue: String {
+            switch self {
+            case .decrease: return "decrease_1_day"
+            case .keepTheSame: return "keep_the_same"
+            case .increase: return "increase_1_day"
+            }
+        }
+    }
+
+    enum TrainingItemAdjustment: String, CaseIterable {
+        case decrease = "減少一種運動"
+        case keepTheSame = "維持不變"
+        case increase = "增加一種運動"
+        
+        var jsonValue: String {
+            switch self {
+            case .decrease: return "decrease_1_different_training_type"
+            case .keepTheSame: return "keep_the_same"
+            case .increase: return "increase_1_different_training_type"
             }
         }
     }
     
-    var onGenerate: (Int, AdjustmentType, AdjustmentType, AdjustmentType, @escaping () -> Void) -> Void
+    var onGenerate: (Int, DifficultyAdjustment, DaysAdjustment, TrainingItemAdjustment, @escaping () -> Void) -> Void
     
     var body: some View {
         NavigationView {
             ZStack {
                 Form {
                     Section(header: Text("本週訓練感受（0-最差，5-最佳）")) {
-                        Picker("訓練感受評分", selection: $feelingRating) {
-                            ForEach(0...5, id: \.self) { rating in
-                                Text("\(rating)")
-                                    .tag(rating)
+                        Stepper(value: $feelingRating, in: 1...5) {
+                            HStack {
+                                Text("整體感受：")
+                                Text(String(repeating: "⭐️", count: feelingRating))
                             }
                         }
-                        .pickerStyle(.segmented)
                     }
                     
                     Section(header: Text("難度調整")) {
                         Picker("難度", selection: $difficultyAdjustment) {
-                            ForEach(AdjustmentType.allCases, id: \.self) { type in
+                            ForEach(DifficultyAdjustment.allCases, id: \.self) { type in
                                 Text(type.rawValue).tag(type)
                             }
                         }
@@ -56,7 +83,7 @@ struct NextWeekPlanningView: View {
                     
                     Section(header: Text("運動天數調整")) {
                         Picker("運動天數", selection: $daysAdjustment) {
-                            ForEach(AdjustmentType.allCases, id: \.self) { type in
+                            ForEach(DaysAdjustment.allCases, id: \.self) { type in
                                 Text(type.rawValue).tag(type)
                             }
                         }
@@ -65,7 +92,7 @@ struct NextWeekPlanningView: View {
                     
                     Section(header: Text("運動項目變化調整")) {
                         Picker("運動項目", selection: $trainingItemAdjustment) {
-                            ForEach(AdjustmentType.allCases, id: \.self) { type in
+                            ForEach(TrainingItemAdjustment.allCases, id: \.self) { type in
                                 Text(type.rawValue).tag(type)
                             }
                         }

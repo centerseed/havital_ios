@@ -8,7 +8,7 @@ struct WeeklySummary: Codable {
     struct DaySummary: Codable {
         let date: String
         let name: String
-        let plannedDuration: Int
+        let duration_minutes: Int
         let actualDuration: Int
         let goals: [GoalSummary]
         

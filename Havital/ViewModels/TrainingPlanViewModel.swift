@@ -358,7 +358,7 @@ class TrainingPlanViewModel: ObservableObject {
                 let daySummary = WeeklySummary.DaySummary(
                     date: dateFormatter.string(from: dayDate),
                     name: item.name,
-                    plannedDuration: item.durationMinutes,
+                    duration_minutes: item.durationMinutes,
                     actualDuration: Int(totalMinutes),
                     goals: goals
                 )

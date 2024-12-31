@@ -50,7 +50,7 @@ let trainingPlanSchema = Schema(
                                 "duration_minutes": Schema(
                                     type: .integer,
                                     description: "Duration of the training in minutes",
-                                    nullable: true
+                                    nullable: false
                                 ),
                                 "goals": Schema(
                                     type: .object,

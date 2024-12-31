@@ -1,16 +1,15 @@
 用戶已經將該週的訓練成果上傳給vita，vita需要依據用戶的訓練完成狀況，來評估接下來的訓練課表。
 用戶的回傳資料：
 
-
-要產生好的訓練計劃，請think step by step，一步一步操作
-
-1. 先仔細閱讀weekly_summary裡面，days內的訓練計劃內容，先產生一份一模一樣的訓練計劃，包涵goals
+1. 先仔細閱讀weekly_summary裡面，days內的訓練計劃內容，以這份訓練計劃為基礎
 2. 接下來，理解raining_day_adjust，training_item_adjust，difficul_adjustc這三項用戶的反饋，了解要對步驟1產生的計劃做哪些修正
-3. 以步驟1的計劃為基礎，搭配步驟2的理解，再配合下列規則：
-4. difficul_adjust：增減請調整時間或強度，減幅最低20%，增幅最高10%
-4.1. training_day_adjust，以上週的訓練天數為基準，如果是increate則增加一天訓練日，如果是keep_the_same則不調整，在這步驟不調整訓練項目
-4.2. training_item_adjust，如果是increase，請將規則4.1已排定運動日中找一天替換成其他的訓練項目，並只增加一種訓練項目為限，並不要改變原本排定的訓練天數
+3. 以步驟1的計劃為基礎，搭配步驟2的理解，再經過以下步驟：
 
-請仔細確認新的訓練計劃是否符合上面的原則，特別注意不要一次調整太多讓用戶無法適應
-並務必確認warmup，cooldown不可單獨出現在訓練日中，一定要搭配runing，jump_rope，super_slow_run，hiit，strength_training出現
+- 依據difficul_adjust的反饋，請調整training_item內原有的duration_minutes和目標強度，減幅最低20%，增幅最高10%，得到一份更新的計劃
+- 接下來，如果training_day_adjust是increase_1_day則增加一天訓練日，如果是decrease_1_day就減少一天的訓練日。將上個步驟得到的計劃做對應的日期調整，得到更新的計劃
+- 接下來，如果training_item_adjust是increase_1_different_training_type，將剛剛得到的計劃其中一天的主要訓練項目（非warmup, cooldown）換成別的主要運動項目;
+如果是decrease_1_different_training_type，就將剛剛得到的計劃中出現頻率最低的主要訓練項目換成計劃中出現頻率最高的項目，得到最新更新的計劃
 
+請仔細確最新的的訓練計劃的訓練日數是否比原計劃差異在正負一天以內，以及訓練項目有沒有正確依照用戶反饋做調整
+務必確認warmup，cooldown不可單獨出現在訓練日中，一定要搭配runing，jump_rope，super_slow_run，hiit，strength_training出現
+務必確認training_item name只要是runing, jump_rope,super_slow_run,hiit,strength_training務必包含duration_minutes
