@@ -6,9 +6,16 @@ class WorkoutDetailViewModel: ObservableObject {
     @Published var heartRates: [HeartRatePoint] = []
     @Published var isLoading = false
     @Published var error: String?
+    @Published var zoneDistribution: [Int: TimeInterval] = [:]
+    @Published var heartRateZones: [HealthKitManager.HeartRateZone] = []
+    
     private let workout: HKWorkout
     private let healthKitManager: HealthKitManager
     private var loadTask: Task<Void, Never>?
+    
+    var workoutId: UUID {
+        workout.uuid
+    }
     
     init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)]) {
         self.workout = workout
@@ -70,9 +77,6 @@ class WorkoutDetailViewModel: ObservableObject {
     }
     
     func loadHeartRateData() {
-        // 如果已經有數據，就不需要重新加載
-        guard heartRates.isEmpty else { return }
-        
         // 取消之前的任務
         loadTask?.cancel()
         
@@ -93,13 +97,34 @@ class WorkoutDetailViewModel: ObservableObject {
                 }
                 
                 self.heartRates = heartRatePoints
+                
+                // 計算心率區間分佈
+                self.zoneDistribution = await healthKitManager.calculateZoneDistribution(heartRates: heartRateData)
+                self.heartRateZones = await healthKitManager.getHeartRateZones()
+                
                 self.isLoading = false
             } catch {
                 print("Error fetching heart rate data: \(error)")
                 self.error = "獲取心率數據時出錯"
                 self.isLoading = false
                 self.heartRates = []
+                self.zoneDistribution = [:]
+                self.heartRateZones = []
             }
         }
+    }
+    
+    // 格式化時間區間
+    func formatZoneDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration / 60)
+        let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    // 計算區間百分比
+    func calculateZonePercentage(_ duration: TimeInterval) -> Double {
+        let totalDuration = zoneDistribution.values.reduce(0, +)
+        guard totalDuration > 0 else { return 0 }
+        return duration / totalDuration * 100
     }
 }

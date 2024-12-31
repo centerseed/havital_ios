@@ -19,8 +19,6 @@ class HealthKitManager: ObservableObject {
             HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKObjectType.quantityType(forIdentifier: .distanceCycling)!,
-            HKObjectType.quantityType(forIdentifier: .distanceSwimming)!,
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKObjectType.quantityType(forIdentifier: .stepCount)!,
@@ -30,10 +28,7 @@ class HealthKitManager: ObservableObject {
         // 定義需要寫入的數據類型
         let typesToShare: Set<HKSampleType> = [
             HKObjectType.workoutType(),
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKObjectType.quantityType(forIdentifier: .distanceCycling)!,
-            HKObjectType.quantityType(forIdentifier: .distanceSwimming)!,
             HKObjectType.quantityType(forIdentifier: .heartRate)!
         ]
         
@@ -338,9 +333,10 @@ class HealthKitManager: ObservableObject {
     }
     
     func fetchMaxHeartRate() async -> Double {
-        // 默認最大心率計算公式：220 - 年齡
-        // 這裡先返回一個默認值，後續可以根據實際情況調整
-        return 180.0
+        // 從 UserPreferenceManager 獲取用戶年齡
+        let age = UserPreferenceManager.shared.currentPreference?.age ?? 30
+        // 使用 220 - age 公式計算最大心率
+        return Double(220 - age)
     }
     
     func fetchRestingHeartRate() async -> Double {
@@ -380,7 +376,167 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-
+    // MARK: - Heart Rate Zone
+    
+    struct HeartRateZone: Identifiable {
+        let id: Int
+        let zone: Int
+        let range: ClosedRange<Double>
+        let description: String
+        let benefit: String
+        
+        static func calculateZones(maxHR: Double) -> [HeartRateZone] {
+            return [
+                HeartRateZone(
+                    id: 1,
+                    zone: 1,
+                    range: (maxHR * 0.5)...(maxHR * 0.6),
+                    description: "非常放鬆的配速，有助於運動前的熱身與體能恢復的區間。",
+                    benefit: "初級心肺訓練。幫助熱身、放鬆。"
+                ),
+                HeartRateZone(
+                    id: 2,
+                    zone: 2,
+                    range: (maxHR * 0.6)...(maxHR * 0.7),
+                    description: "舒服且可以聊天的配速，也是燃脂比例最高的心率區間。",
+                    benefit: "基礎心肺訓練。提升恢復能力、促進新陳代謝，以及協助恢複。"
+                ),
+                HeartRateZone(
+                    id: 3,
+                    zone: 3,
+                    range: (maxHR * 0.7)...(maxHR * 0.8),
+                    description: "有助於體能基礎訓練的最佳訓練配速。",
+                    benefit: "提高有氧能力，優化心血管的訓練。"
+                ),
+                HeartRateZone(
+                    id: 4,
+                    zone: 4,
+                    range: (maxHR * 0.8)...(maxHR * 0.9),
+                    description: "跑馬拉松的建議心率，建議跑全馬時不要超過這個區間的上限。",
+                    benefit: "改善無氧能力及乳酸閾值，提高速度。"
+                ),
+                HeartRateZone(
+                    id: 5,
+                    zone: 5,
+                    range: (maxHR * 0.9)...(maxHR),
+                    description: "此區間是以無氧代謝為主要的能量來源，因此無法長時間維持，但可以訓練耐乳酸能力與最大攝氧量。",
+                    benefit: "提升無氧能力與肌耐力，增加功率。"
+                )
+            ]
+        }
+    }
+    
+    // MARK: - HealthKit Manager Extension
+    
+    func getHeartRateZones() async -> [HeartRateZone] {
+        let maxHR = await fetchMaxHeartRate()
+        return HeartRateZone.calculateZones(maxHR: maxHR)
+    }
+    
+    func calculateZoneDistribution(heartRates: [(Date, Double)]) async -> [Int: TimeInterval] {
+        let zones = await getHeartRateZones()
+        var distribution: [Int: TimeInterval] = [:]
+        
+        // 初始化所有區間的時間為 0
+        for zone in zones {
+            distribution[zone.zone] = 0
+        }
+        
+        // 如果只有一個心率數據點，返回空的分佈
+        guard heartRates.count > 1 else { return distribution }
+        
+        // 計算每個心率點所屬的區間和持續時間
+        for i in 0..<(heartRates.count - 1) {
+            let currentHR = heartRates[i].1
+            let duration = heartRates[i + 1].0.timeIntervalSince(heartRates[i].0)
+            
+            // 找到對應的心率區間
+            if let zone = zones.first(where: { $0.range.contains(currentHR) }) {
+                distribution[zone.zone, default: 0] += duration
+            }
+        }
+        
+        return distribution
+    }
+    
+    func getZoneForHeartRate(_ heartRate: Double) async -> Int? {
+        let zones = await getHeartRateZones()
+        return zones.first(where: { $0.range.contains(heartRate) })?.zone
+    }
+    
+    // MARK: - Weekly Heart Rate Analysis
+    
+    struct WeeklyHeartRateAnalysis {
+        var zoneDistribution: [Int: TimeInterval]
+        var moderateActivityTime: TimeInterval  // 第1-2區
+        var vigorousActivityTime: TimeInterval  // 第3-5區
+        
+        var totalActivityTime: TimeInterval {
+            moderateActivityTime + vigorousActivityTime
+        }
+    }
+    
+    func fetchWeeklyHeartRateAnalysis() async throws -> WeeklyHeartRateAnalysis {
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: endDate))!
+        
+        // 獲取這段時間內的所有運動
+        let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+            let query = HKSampleQuery(sampleType: .workoutType(),
+                                    predicate: predicate,
+                                    limit: HKObjectQueryNoLimit,
+                                    sortDescriptors: nil) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                continuation.resume(returning: samples as? [HKWorkout] ?? [])
+            }
+            healthStore.execute(query)
+        }
+        
+        var totalZoneDistribution: [Int: TimeInterval] = [:]
+        var moderateTime: TimeInterval = 0
+        var vigorousTime: TimeInterval = 0
+        
+        // 獲取每個運動的心率區間分佈
+        for workout in workouts {
+            let heartRateData = try await fetchHeartRateData(for: workout)
+            let distribution = await calculateZoneDistribution(heartRates: heartRateData)
+            
+            // 累加各區間時間
+            for (zone, duration) in distribution {
+                totalZoneDistribution[zone, default: 0] += duration
+                
+                // 計算中等強度和高強度時間
+                if zone > 1 && zone <= 3 {
+                    moderateTime += duration
+                } else if zone > 3 {
+                    vigorousTime += duration
+                }
+            }
+        }
+        
+        return WeeklyHeartRateAnalysis(
+            zoneDistribution: totalZoneDistribution,
+            moderateActivityTime: moderateTime,
+            vigorousActivityTime: vigorousTime
+        )
+    }
+    
+    func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = Int(duration) / 60 % 60
+        
+        if hours > 0 {
+            return String(format: "%d小時%d分鐘", hours, minutes)
+        } else {
+            return String(format: "%d分鐘", minutes)
+        }
+    }
 }
 
 // MARK: - 錯誤定義
