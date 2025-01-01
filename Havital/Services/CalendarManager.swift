@@ -36,7 +36,7 @@ class CalendarManager: ObservableObject {
         
         if let startHour = UserDefaults.standard.object(forKey: "PreferredStartHour") as? Int,
            let startMinute = UserDefaults.standard.object(forKey: "PreferredStartMinute") as? Int {
-            print("Loading saved start time: \(startHour):\(startMinute)")
+            //print("Loading saved start time: \(startHour):\(startMinute)")
             
             var components = calendar.dateComponents([.year, .month, .day], from: now)
             components.hour = startHour
@@ -45,13 +45,13 @@ class CalendarManager: ObservableObject {
             
             if let date = calendar.date(from: components) {
                 preferredStartTime = date
-                print("Start time set to: \(startHour):\(startMinute)")
+                //print("Start time set to: \(startHour):\(startMinute)")
             }
         }
         
         if let endHour = UserDefaults.standard.object(forKey: "PreferredEndHour") as? Int,
            let endMinute = UserDefaults.standard.object(forKey: "PreferredEndMinute") as? Int {
-            print("Loading saved end time: \(endHour):\(endMinute)")
+            //print("Loading saved end time: \(endHour):\(endMinute)")
             
             var components = calendar.dateComponents([.year, .month, .day], from: now)
             components.hour = endHour

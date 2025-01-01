@@ -1,7 +1,9 @@
 import Foundation
 import HealthKit
 import SwiftUI
+import os.log
 
+@MainActor
 class TrainingPlanViewModel: ObservableObject {
     @Published var plan: TrainingPlan? {
         didSet {
@@ -51,6 +53,11 @@ class TrainingPlanViewModel: ObservableObject {
                 if let savedAnalysis = summaryStorage.loadLatestSummary(forPlanId: savedPlan.id) {
                     self.weeklyAnalysis = savedAnalysis
                 }
+                
+                // 檢查完成狀態
+                print("初始化時檢查訓練完成狀態")
+                await self.checkPastDaysCompletion()
+                print("完成初始檢查訓練完成狀態")
             }
         }
     }
@@ -71,6 +78,7 @@ class TrainingPlanViewModel: ObservableObject {
     
     @MainActor
     func generateNewPlan(plan: String? = nil) {
+        os_log("開始生成新計劃", log: .default, type: .debug)
         // 刪除原有計劃
         storage.deletePlan()
         
@@ -82,21 +90,34 @@ class TrainingPlanViewModel: ObservableObject {
             
             // 生成新計劃
             do {
+                print("正在生成新計劃...")
                 let newPlan = try storage.generateAndSaveNewPlan(from: mutableDict)
                 self.plan = newPlan
                 self.trainingDays = newPlan.days
+                print("新計劃生成成功，訓練天數：\(newPlan.days.count)")
                 
                 // 立即檢查過去日期的完成狀態
-                Task {
-                    await checkPastDaysCompletion()
+                Task { @MainActor in
+                    do {
+                        print("準備檢查過去日期完成狀態")
+                        try await Task.sleep(nanoseconds: 1_000_000_000) // 等待1秒確保其他狀態已更新
+                        print("開始檢查過去日期完成狀態")
+                        await self.checkPastDaysCompletion()
+                        print("完成檢查過去日期完成狀態")
+                    } catch {
+                        print("檢查過去日期完成狀態時發生錯誤: \(error)")
+                    }
                 }
             } catch {
                 print("Error generating plan: \(error)")
             }
+        } else {
+            print("解析計劃 JSON 失敗")
         }
     }
     
-    private func checkPastDaysCompletion() async {
+    public func checkPastDaysCompletion() async {
+        print("進入 checkPastDaysCompletion")
         let today = Date()
         let calendar = Calendar.current
         
@@ -104,6 +125,7 @@ class TrainingPlanViewModel: ObservableObject {
         let sortedDays = trainingDays.enumerated().sorted { a, b in
             a.element.startTimestamp < b.element.startTimestamp
         }
+        print("排序後的訓練天數：\(sortedDays.count)")
         
         for (index, day) in sortedDays {
             // 獲取當前訓練日的日期
@@ -117,7 +139,14 @@ class TrainingPlanViewModel: ObservableObject {
             // 檢查是否是休息日
             if isRestDay(day) && dayDate < today {
                 print("第 \(index + 1) 天是休息日，標記為完成")
-                markDayAsCompleted(at: index)
+                await MainActor.run {
+                    if index < trainingDays.count {
+                        trainingDays[index].isCompleted = true
+                        if let plan = plan {
+                            try? storage.savePlan(plan)
+                        }
+                    }
+                }
                 continue
             }
             
@@ -148,11 +177,17 @@ class TrainingPlanViewModel: ObservableObject {
                 
                 let targetMinutes = Double(totalPlannedMinutes) * 0.8
                 if totalMinutes >= targetMinutes {
-                    print("第 \(index + 1) 天達到目標，標記為完成")
-                    markDayAsCompleted(at: index)
+                    await MainActor.run {
+                        if index < trainingDays.count {
+                            trainingDays[index].isCompleted = true
+                            if let plan = plan {
+                                try? storage.savePlan(plan)
+                            }
+                        }
+                    }
                 }
             } catch {
-                print("Error fetching workouts for day \(index + 1): \(error)")
+                print("Error fetching workouts: \(error)")
             }
         }
         
@@ -174,19 +209,12 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     private func markDayAsCompleted(at index: Int) {
-        guard index < trainingDays.count else { return }
-        var updatedDay = trainingDays[index]
-        updatedDay.isCompleted = true
-        trainingDays[index] = updatedDay
-        
-        // 更新儲存的計劃
-        if var currentPlan = plan {
-            currentPlan.days[index] = updatedDay
-            do {
-                try storage.savePlan(currentPlan)
-                self.plan = currentPlan
-            } catch {
-                print("Error saving plan: \(error)")
+        Task { @MainActor in
+            if index < trainingDays.count {
+                trainingDays[index].isCompleted = true
+                if let plan = plan {
+                    try? storage.savePlan(plan)
+                }
             }
         }
     }
@@ -300,8 +328,16 @@ class TrainingPlanViewModel: ObservableObject {
             self.trainingDays = currentPlan.days
             
             // 重新檢查過去日期的完成狀態
-            Task {
-                await checkPastDaysCompletion()
+            Task { @MainActor in
+                do {
+                    print("updatePlanStartDate: 準備檢查過去日期完成狀態")
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 等待1秒確保其他狀態已更新
+                    print("updatePlanStartDate: 開始檢查過去日期完成狀態")
+                    await self.checkPastDaysCompletion()
+                    print("updatePlanStartDate: 完成檢查過去日期完成狀態")
+                } catch {
+                    print("updatePlanStartDate: 檢查過去日期完成狀態時發生錯誤: \(error)")
+                }
             }
         } catch {
             print("Error saving plan with new start date: \(error)")

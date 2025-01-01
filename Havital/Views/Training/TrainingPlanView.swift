@@ -107,12 +107,12 @@ struct TrainingPlanView: View {
                     }) {
                         Label("個人資料", systemImage: "person.circle")
                     }
-                    
+                    /*
                     Button(action: {
                         showingDatePicker = true
                     }) {
                         Label("修改計劃開始日期", systemImage: "arrow.clockwise")
-                    }
+                    }*/
 
                     Button(action: {
                         viewModel.showingCalendarSetup = true
@@ -120,11 +120,12 @@ struct TrainingPlanView: View {
                         Label("同步至行事曆", systemImage: "calendar.badge.plus")
                     }
                     
+                    /*
                     Button(action: {
                         isLoggedIn = false
                     }) {
                         Label("登入畫面", systemImage: "arrow.clockwise")
-                    }
+                    }*/
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
@@ -178,6 +179,14 @@ struct TrainingPlanView: View {
             }
             .task {
                 viewModel.loadTrainingPlan()
+            }
+        }
+        .onAppear {
+            // 每次視圖出現時檢查完成狀態
+            Task { @MainActor in
+                print("TrainingPlanView出現，檢查訓練完成狀態")
+                await viewModel.checkPastDaysCompletion()
+                print("TrainingPlanView完成檢查訓練完成狀態")
             }
         }
     }
