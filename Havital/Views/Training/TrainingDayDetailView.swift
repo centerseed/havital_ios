@@ -186,9 +186,11 @@ struct EditTrainingDayView: View {
                 )
             ]
             updatedDay.tips = "好好休息"
+            updatedDay.purpose = "讓身體從上一次疲勞中恢複"
         } else {
             updatedDay.trainingItems = []
             updatedDay.tips = ""
+            updatedDay.purpose = ""
         }
         
         do {
@@ -197,6 +199,25 @@ struct EditTrainingDayView: View {
             tips = updatedDay.tips
         } catch {
             print("更新訓練日失敗：\(error)")
+        }
+    }
+    
+    private func formatPaceValue(_ value: Int) -> String {
+        let minutes = value / 60
+        let seconds = value % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    private func formatGoalValue(_ goal: Goal) -> String {
+        switch goal.type {
+        case "heart_rate":
+            return "\(goal.value) bpm"
+        case "times":
+            return "\(goal.value) 次"
+        case "pace":
+            return "\(formatPaceValue(goal.value))/公里"
+        default:
+            return "\(goal.value)"
         }
     }
     
@@ -210,14 +231,24 @@ struct EditTrainingDayView: View {
                 }
             
             if !isRestDay {
-                Section {
-                    ForEach(trainingItems) { item in
-                        HStack {
-                            Image(systemName: TrainingItemStyle.icon(for: item.name))
-                                .foregroundColor(TrainingItemStyle.color(for: item.name))
-                            Text(item.displayName)
-                            Spacer()
-                            Text("\(item.durationMinutes)分鐘")
+                Section("訓練項目") {
+                    ForEach(trainingItems.indices, id: \.self) { index in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Image(systemName: TrainingItemStyle.icon(for: trainingItems[index].name))
+                                    .foregroundColor(TrainingItemStyle.color(for: trainingItems[index].name))
+                                Text(trainingItems[index].displayName)
+                                Spacer()
+                                Text("\(trainingItems[index].durationMinutes)分鐘")
+                            }
+                            
+                            if !trainingItems[index].goals.isEmpty {
+                                ForEach(trainingItems[index].goals.indices, id: \.self) { goalIndex in
+                                    Text(formatGoalValue(trainingItems[index].goals[goalIndex]))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
                     .onDelete { indexSet in
@@ -227,75 +258,42 @@ struct EditTrainingDayView: View {
                         trainingItems.move(fromOffsets: from, toOffset: to)
                     }
                     
-                    Button("添加訓練項目") {
+                    Button {
                         showingItemSheet = true
+                    } label: {
+                        Label("添加訓練項目", systemImage: "plus.circle.fill")
                     }
+                }
+                
+                Section {
+                    TextField("訓練目標", text: $purpose)
+                    TextField("訓練提示", text: $tips)
+                }
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("完成") {
+                    var updatedDay = day
+                    updatedDay.trainingItems = trainingItems
+                    updatedDay.purpose = purpose
+                    updatedDay.tips = tips
+                    onSave(updatedDay)
                 }
             }
         }
         .sheet(isPresented: $showingItemSheet) {
             NavigationView {
-                EditTrainingItemView(onSave: { updatedItem in
-                    Task {
-                        if !updatedItem.name.isEmpty {
-                            trainingItems.append(updatedItem)
-                            purpose = updatedItem.displayName  // 更新 purpose 為訓練名稱
-                            do {
-                                var updatedDay = day
-                                updatedDay.trainingItems = trainingItems
-                                updatedDay.purpose = updatedItem.displayName  // 同時更新 day 的 purpose
-                                try await trainingPlanViewModel.updateTrainingDay(updatedDay)
-                            } catch {
-                                print("保存訓練項目失敗：\(error)")
-                            }
-                        }
+                EditTrainingItemView(
+                    onSave: { item in
+                        trainingItems.append(item)
+                        showingItemSheet = false
+                    },
+                    onCancel: {
                         showingItemSheet = false
                     }
-                }, onCancel: {
-                    showingItemSheet = false
-                })
-            }
-        }
-        .navigationTitle("編輯訓練日")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("保存") {
-                    var updatedDay = day
-                    updatedDay.purpose = purpose
-                    updatedDay.tips = ""
-                    
-                    if !isRestDay && !trainingItems.isEmpty {
-                        let warmup = TrainingItem(
-                            id: UUID().uuidString,
-                            type: "warmup",
-                            name: "warmup",
-                            resource: "",
-                            durationMinutes: 0,
-                            subItems: [],
-                            goals: [],
-                            goalCompletionRates: [:]
-                        )
-                        
-                        let cooldown = TrainingItem(
-                            id: UUID().uuidString,
-                            type: "cooldown",
-                            name: "cooldown",
-                            resource: "",
-                            durationMinutes: 0,
-                            subItems: [],
-                            goals: [],
-                            goalCompletionRates: [:]
-                        )
-                        
-                        updatedDay.trainingItems = [warmup] + trainingItems + [cooldown]
-                    } else {
-                        updatedDay.trainingItems = trainingItems
-                    }
-                    
-                    onSave(updatedDay)
-                    dismiss()
-                }
+                )
             }
         }
     }
@@ -305,10 +303,147 @@ struct EditTrainingItemView: View {
     let onSave: (TrainingItem) -> Void
     let onCancel: () -> Void
     
-    @State private var selectedDefinition: TrainingItemDefinition?
     @State private var editedItem: TrainingItem
     @State private var definitions: [TrainingItemDefinition] = []
+    @State private var selectedDefinition: TrainingItemDefinition?
+    @State private var showingGoalWheel = false
+    @State private var selectedGoalIndex: Int? = nil
     @EnvironmentObject private var trainingPlanViewModel: TrainingPlanViewModel
+    
+    private func getExistingGoals(for itemName: String) -> [Goal] {
+        guard let plan = trainingPlanViewModel.plan else { return [] }
+        
+        for day in plan.days {
+            for trainingItem in day.trainingItems where trainingItem.name == itemName {
+                if !trainingItem.goals.isEmpty {
+                    return trainingItem.goals
+                }
+            }
+        }
+        return []
+    }
+    
+    private var shouldShowGoals: Bool {
+        let name = editedItem.name.lowercased()
+        return name != "cooldown" && name != "warmup" && name != "rest"
+    }
+    
+    private var availableGoalTypes: [String] {
+        let name = editedItem.name.lowercased()
+        var types = ["heart_rate"]  // 所有運動項目都可以設定心率
+        
+        switch name {
+        case "jump_rope":
+            types.append("times")
+        case "running":
+            types.append("pace")
+        default:
+            break
+        }
+        
+        return types
+    }
+    
+    private var availableGoalDisplayNames: [String] {
+        return availableGoalTypes.map { getGoalDisplayName(type: $0) }
+    }
+    
+    private var hasAvailableGoals: Bool {
+        let currentGoalTypes = Set(editedItem.goals.map { $0.type })
+        let availableTypes = Set(availableGoalTypes)
+        return !availableTypes.subtracting(currentGoalTypes).isEmpty
+    }
+    
+    private func getGoalDisplayName(type: String) -> String {
+        switch type {
+        case "heart_rate":
+            return "心率"
+        case "times":
+            return "次數"
+        case "pace":
+            return "配速"
+        default:
+            return type
+        }
+    }
+    
+    private func getGoalUnit(for type: String) -> String {
+        switch type {
+        case "heart_rate":
+            return "bpm"
+        case "times":
+            return "次"
+        case "pace":
+            return "分鐘/公里"
+        default:
+            return ""
+        }
+    }
+    
+    private func formatPaceValue(_ value: Int) -> String {
+        let minutes = value / 60
+        let seconds = value % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    private func parsePaceInput(_ input: String) -> Int? {
+        let components = input.split(separator: ":")
+        guard components.count == 2,
+              let minutes = Int(components[0]),
+              let seconds = Int(components[1]),
+              seconds >= 0 && seconds < 60
+        else {
+            return nil
+        }
+        return minutes * 60 + seconds
+    }
+    
+    private func loadDefinitions() {
+        print("loadDefinitions...")
+        if let defs = TrainingDefinitions.load()?.trainingItemDefs {
+            // 過濾掉特殊項目
+            let filteredDefs = defs.filter { def in
+                let name = def.name.lowercased()
+                return name != "rest"
+            }
+            
+            definitions = filteredDefs
+            
+            // 如果還沒有選擇定義，選擇第一個
+            if selectedDefinition == nil, let firstDef = filteredDefs.first {
+                selectedDefinition = firstDef
+                editedItem.name = firstDef.name
+                editedItem.type = firstDef.name
+                
+                // 設置默認時長
+                switch firstDef.name {
+                case "warmup", "cooldown":
+                    editedItem.durationMinutes = 5
+                case "super_slow_run", "running":
+                    editedItem.durationMinutes = 20
+                case "jump_rope":
+                    editedItem.durationMinutes = 8
+                case "hiit":
+                    editedItem.durationMinutes = 4
+                default:
+                    editedItem.durationMinutes = 30
+                }
+                
+                // 設置默認目標
+                if shouldShowGoals {
+                    editedItem.goals = []
+                    if availableGoalTypes.contains("heart_rate") {
+                        editedItem.goals.append(Goal(type: "heart_rate", value: 120))
+                    }
+                    
+                    // 為跑步添加默認配速目標
+                    if ["running"].contains(firstDef.name.lowercased()) {
+                        editedItem.goals.append(Goal(type: "pace", value: 6 * 60))  // 默認6分鐘/公里
+                    }
+                }
+            }
+        }
+    }
     
     init(onSave: @escaping (TrainingItem) -> Void, onCancel: @escaping () -> Void) {
         print("EditTrainingItemView init...")
@@ -324,61 +459,6 @@ struct EditTrainingItemView: View {
             goals: [],
             goalCompletionRates: [:]
         ))
-    }
-    
-    private var shouldShowHeartRateGoal: Bool {
-        let name = editedItem.name.lowercased()
-        return name != "cooldown" && name != "warmup" && name != "rest"
-    }
-    
-    private func loadDefinitions() {
-        print("loadDefinitions...")
-        if let defs = TrainingDefinitions.load()?.trainingItemDefs {
-            // 過濾掉特殊項目
-            let filteredDefs = defs.filter { def in
-                let name = def.name.lowercased()
-                return name != "cooldown" && name != "warmup" && name != "rest"
-            }
-            
-            definitions = filteredDefs
-            
-            // 如果還沒有選擇定義，選擇第一個
-            if selectedDefinition == nil, let firstDef = filteredDefs.first {
-                selectedDefinition = firstDef
-                editedItem.name = firstDef.name
-                editedItem.type = firstDef.name
-                
-                // 設置默認時長
-                switch firstDef.name {
-                case "super_slow_run", "running":
-                    editedItem.durationMinutes = 20
-                case "jump_rope":
-                    editedItem.durationMinutes = 8
-                case "hiit":
-                    editedItem.durationMinutes = 4
-                default:
-                    editedItem.durationMinutes = 30
-                }
-                
-                // 設置默認目標
-                if shouldShowHeartRateGoal {
-                    editedItem.goals = [Goal(type: "heart_rate", value: 120)]
-                }
-            }
-        }
-    }
-    
-    private func getExistingGoals(for itemName: String) -> [Goal] {
-        guard let plan = trainingPlanViewModel.plan else { return [] }
-        
-        for day in plan.days {
-            for trainingItem in day.trainingItems where trainingItem.name == itemName {
-                if !trainingItem.goals.isEmpty {
-                    return trainingItem.goals
-                }
-            }
-        }
-        return []
     }
     
     var body: some View {
@@ -398,12 +478,18 @@ struct EditTrainingItemView: View {
                         let existingGoals = getExistingGoals(for: def.name)
                         if !existingGoals.isEmpty {
                             editedItem.goals = existingGoals
-                        } else if shouldShowHeartRateGoal {
-                            editedItem.goals = [Goal(type: "heart_rate", value: 120)]
+                        } else {
+                            // 設置默認目標
+                            editedItem.goals = []
+                            if shouldShowGoals {
+                                editedItem.goals.append(Goal(type: "heart_rate", value: 120))
+                            }
                         }
                         
                         // 設置默認時長
                         switch def.name {
+                        case "warmup", "cooldown":
+                            editedItem.durationMinutes = 5
                         case "super_slow_run", "running":
                             editedItem.durationMinutes = 20
                         case "jump_rope":
@@ -419,25 +505,74 @@ struct EditTrainingItemView: View {
                 Stepper("時長: \(editedItem.durationMinutes) 分鐘", value: $editedItem.durationMinutes, in: 0...240)
             }
             
-            if shouldShowHeartRateGoal {
-                Section("目標") {
+            if shouldShowGoals {
+                Section("目標設定") {
                     ForEach(editedItem.goals.indices, id: \.self) { index in
-                        HStack {
-                            Text("目標心率")
-                            Spacer()
-                            TextField("心率", value: $editedItem.goals[index].value, format: .number)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                            Text("bpm")
+                        VStack {
+                            if editedItem.goals[index].type == "pace" {
+                                Button(action: {
+                                    selectedGoalIndex = index
+                                    showingGoalWheel = true
+                                }) {
+                                    HStack {
+                                        Text("目標配速")
+                                        Spacer()
+                                        Text(formatPaceValue(editedItem.goals[index].value))
+                                        Text("/公里")
+                                    }
+                                }
+                                .foregroundColor(.primary)
+                            } else if editedItem.goals[index].type == "heart_rate" {
+                                Button(action: {
+                                    selectedGoalIndex = index
+                                    showingGoalWheel = true
+                                }) {
+                                    HStack {
+                                        Text("目標心率")
+                                        Spacer()
+                                        Text("\(editedItem.goals[index].value)")
+                                        Text("bpm")
+                                    }
+                                }
+                                .foregroundColor(.primary)
+                            } else {
+                                HStack {
+                                    Text("目標\(getGoalDisplayName(type: editedItem.goals[index].type))")
+                                    Spacer()
+                                    TextField("數值", value: $editedItem.goals[index].value, format: .number)
+                                        .keyboardType(.numberPad)
+                                        .multilineTextAlignment(.trailing)
+                                    Text(getGoalUnit(for: editedItem.goals[index].type))
+                                }
+                            }
                         }
                     }
                     .onDelete { indexSet in
                         editedItem.goals.remove(atOffsets: indexSet)
                     }
                     
-                    if editedItem.goals.isEmpty {
-                        Button("添加心率目標") {
-                            editedItem.goals.append(Goal(type: "heart_rate", value: 120))
+                    if hasAvailableGoals {
+                        Menu {
+                            ForEach(availableGoalTypes, id: \.self) { goalType in
+                                if !editedItem.goals.contains(where: { $0.type == goalType }) {
+                                    Button(action: {
+                                        var defaultValue = 120
+                                        switch goalType {
+                                        case "times":
+                                            defaultValue = 100
+                                        case "pace":
+                                            defaultValue = 6 * 60  // 6分鐘/公里
+                                        default:
+                                            break
+                                        }
+                                        editedItem.goals.append(Goal(type: goalType, value: defaultValue))
+                                    }) {
+                                        Text("添加\(getGoalDisplayName(type: goalType))目標")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label("添加目標", systemImage: "plus.circle.fill")
                         }
                     }
                 }
@@ -455,6 +590,14 @@ struct EditTrainingItemView: View {
                 Button("取消") {
                     onCancel()
                 }
+            }
+        }
+        .sheet(isPresented: $showingGoalWheel, onDismiss: { selectedGoalIndex = nil }) {
+            if let index = selectedGoalIndex {
+                GoalWheelContainer(
+                    goalType: editedItem.goals[index].type,
+                    value: $editedItem.goals[index].value
+                )
             }
         }
         .onAppear {
@@ -576,6 +719,14 @@ private struct TrainingItemsSection: View {
                                             .font(.subheadline)
                                             .foregroundColor(completionRate >= 100 ? .green : .orange)
                                     }
+                                } else if goal.type == "times" {
+                                    Text("目標次數：\(goal.value) 次")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                } else if goal.type == "pace" {
+                                    Text("目標配速：\(String(format: "%d:%02d", goal.value / 60, goal.value % 60))/公里")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
                                 }
                             }
                         }

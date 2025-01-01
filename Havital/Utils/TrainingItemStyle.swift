@@ -7,6 +7,8 @@ struct TrainingItemStyle {
             return "figure.walk"
         case "super_slow_run":
             return "figure.run"
+        case "running":
+            return "figure.run"
         case "cooldown":
             return "figure.cooldown"
         case "rest":
@@ -30,6 +32,8 @@ struct TrainingItemStyle {
         switch name.lowercased() {
         case "warmup":
             return .orange
+        case "running":
+            return .purple
         case "super_slow_run":
             return .blue
         case "cooldown":

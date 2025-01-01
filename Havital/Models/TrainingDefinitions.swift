@@ -22,7 +22,7 @@ struct TrainingItemDefinition: Codable, Identifiable, Hashable {
     
     var displayName: String {
         switch name {
-        case "runing": return "跑步"
+        case "running": return "跑步"
         case "jump_rope": return "跳繩"
         case "super_slow_run": return "超慢跑"
         case "hiit": return "高強度間歇"

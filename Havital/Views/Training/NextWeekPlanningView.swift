@@ -14,10 +14,11 @@ struct NextWeekPlanningView: View {
     @State private var daysAdjustment: DaysAdjustment = .keepTheSame
     @State private var trainingItemAdjustment: TrainingItemAdjustment = .keepTheSame
     @State private var isGenerating = false
+    @State private var showLoadingView = false
     
     enum DifficultyAdjustment: String, CaseIterable {
         case decrease = "減少"
-        case keepTheSame = "不變"
+        case keepTheSame = "維持不變"
         case increase = "增加"
         
         var jsonValue: String {
@@ -30,9 +31,9 @@ struct NextWeekPlanningView: View {
     }
 
     enum DaysAdjustment: String, CaseIterable {
-        case decrease = "減少一天"
+        case decrease = "減少"
         case keepTheSame = "維持不變"
-        case increase = "增加一天"
+        case increase = "增加"
         
         var jsonValue: String {
             switch self {
@@ -44,9 +45,9 @@ struct NextWeekPlanningView: View {
     }
 
     enum TrainingItemAdjustment: String, CaseIterable {
-        case decrease = "減少一種運動"
+        case decrease = "減少"
         case keepTheSame = "維持不變"
-        case increase = "增加一種運動"
+        case increase = "增加"
         
         var jsonValue: String {
             switch self {
@@ -71,6 +72,10 @@ struct NextWeekPlanningView: View {
                             }
                         }
                     }
+                    
+                    Text("對於下週的訓練期望，Vita會依據實際情況做出調整，也可以自由的編輯新產生的運動計畫")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                     
                     Section(header: Text("難度調整")) {
                         Picker("難度", selection: $difficultyAdjustment) {
@@ -101,24 +106,30 @@ struct NextWeekPlanningView: View {
                     
                     Section {
                         Button(action: {
-                            isGenerating = true
+                            showLoadingView = true
                             onGenerate(feelingRating, difficultyAdjustment, daysAdjustment, trainingItemAdjustment) {
-                                dismiss()
+                                showLoadingView = false
                             }
                         }) {
-                            HStack {
-                                Spacer()
-                                Text("開始產生下週計劃")
-                                    .bold()
-                                Spacer()
+                            if showLoadingView {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            } else {
+                                Text("開始產生下次計劃")
                             }
                         }
-                        .disabled(isGenerating)
+                        .disabled(showLoadingView)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.horizontal)
                     }
                 }
-                .blur(radius: isGenerating ? 3 : 0)
+                .blur(radius: showLoadingView ? 3 : 0)
                 
-                if isGenerating {
+                if showLoadingView {
                     VStack(spacing: 20) {
                         ProgressView()
                             .scaleEffect(1.5)
@@ -142,10 +153,10 @@ struct NextWeekPlanningView: View {
                     Button("取消") {
                         dismiss()
                     }
-                    .disabled(isGenerating)
+                    .disabled(showLoadingView)
                 }
             }
-            .interactiveDismissDisabled(isGenerating)
+            .interactiveDismissDisabled(showLoadingView)
         }
     }
 }

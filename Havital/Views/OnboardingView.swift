@@ -489,7 +489,7 @@ struct OnboardingView: View {
     
     private func getAvailableWorkouts() -> [(name: String, displayName: String)] {
         let definitions = TrainingDefinitions.load()?.trainingItemDefs ?? []
-        let targetWorkouts = ["runing", "jump_rope", "super_slow_run", "hiit", "strength_training"]
+        let targetWorkouts = ["running", "jump_rope", "super_slow_run", "hiit", "strength_training"]
         
         let availableWorkouts = definitions
             .filter { targetWorkouts.contains($0.name) }

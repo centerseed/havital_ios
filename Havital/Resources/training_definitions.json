@@ -8,7 +8,7 @@
         {"id": "5", "type": "rest"}
     ],
     "training_item_defs": [
-        {"name": "runing", "hints": ["run_hint_1_id", "run_hint_2_id"], "resource": "run_resources_1_id", "training_type_id": "0"},
+        {"name": "running", "hints": ["run_hint_1_id", "run_hint_2_id"], "resource": "run_resources_1_id", "training_type_id": "0"},
         {"name": "jump_rope", "hints": ["jump_rope_hint_1_id", "jump_rope_hint_2_id"], "resource": "jump_rope_1_id", "training_type_id": "0"},
         {"name": "super_slow_run", "hints": ["super_slow_run_1_id", "super_slow_run_2_id"], "resource": "super_slow_run_1_id", "training_type_id": "0"},
         {"name": "hiit", "hints": ["hiit_1_id", "hiit_2_id"], "resource": "hiit_1_id", "training_type_id": "1"},

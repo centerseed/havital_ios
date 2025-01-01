@@ -88,7 +88,7 @@ struct UserPreferenceView: View {
     
     private func getWorkoutDisplayName(_ name: String) -> String {
         switch name {
-        case "runing":
+        case "running":
             return "跑步"
         case "jump_rope":
             return "跳繩"

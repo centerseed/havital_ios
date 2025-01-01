@@ -14,7 +14,7 @@ struct LoginView: View {
                     .font(.system(size: 48, weight: .bold))
                     .foregroundColor(AppTheme.shared.primaryColor)
                 
-                Text("輕鬆踏上，運動健康之路")
+                Text("讓我們輕鬆踏上，運動健康之路")
                     .font(.title2)
                     .foregroundColor(AppTheme.TextColors.secondary)
             }
@@ -43,7 +43,7 @@ struct LoginView: View {
                         .foregroundColor(.white)
                         .cornerRadius(12)
                 }
-                
+                /*
                 Button {
                     isLoggedIn = true
                 } label: {
@@ -59,7 +59,7 @@ struct LoginView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(AppTheme.shared.primaryColor, lineWidth: 2)
                         )
-                }
+                }*/
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 48)

@@ -147,9 +147,6 @@ struct WeeklyAnalysisView: View {
             }
             .sheet(isPresented: $showingNextWeekPlanning) {
                 NextWeekPlanningView { feeling, difficulty, days, item, completion in
-                    // 立即關閉 WeeklyAnalysisView
-                    dismiss()
-                    
                     // 在背景執行計劃生成
                     Task {
                         let summary = await viewModel.generateWeeklySummary()
@@ -174,12 +171,14 @@ struct WeeklyAnalysisView: View {
                                         viewModel.selectedStartDate = getTomorrowDate()
                                         // 更新訓練計劃
                                         viewModel.generateNewPlan(plan: jsonString)
-                                        // 完成後關閉 NextWeekPlanningView
+                                        // 完成後關閉視圖
                                         completion()
+                                        dismiss()
                                     }
                                 }
                             } catch {
                                 print("Error generating new plan: \(error)")
+                                completion()
                             }
                         }
                     }
