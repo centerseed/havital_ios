@@ -119,7 +119,6 @@ struct TrainingPlanView: View {
                     }) {
                         Label("同步至行事曆", systemImage: "calendar.badge.plus")
                     }
-                    
                     /*
                     Button(action: {
                         isLoggedIn = false

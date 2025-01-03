@@ -5,6 +5,12 @@ struct GoalWheelView: View {
     @Binding var value: Int
     @Environment(\.dismiss) private var dismiss
     
+    init(goalType: String, value: Binding<Int>) {
+        print("GoalWheelView init - goalType: \(goalType), value: \(value.wrappedValue)")
+        self.goalType = goalType
+        self._value = value
+    }
+    
     private var minValue: Int {
         switch goalType {
         case "heart_rate":
@@ -67,6 +73,11 @@ struct GoalWheelView: View {
                 }
             }
             .pickerStyle(.wheel)
+            .onAppear {
+                print("GoalWheelView Picker onAppear - wheelValues count: \(wheelValues.count)")
+                print("GoalWheelView Picker onAppear - current value: \(value)")
+                print("GoalWheelView Picker onAppear - wheelValues: \(wheelValues)")
+            }
             
             if goalType == "pace" {
                 Text("/公里")
@@ -104,9 +115,18 @@ struct GoalWheelContainer: View {
     let goalType: String
     @Binding var value: Int
     
+    init(goalType: String, value: Binding<Int>) {
+        print("GoalWheelContainer init - goalType: \(goalType), value: \(value.wrappedValue)")
+        self.goalType = goalType
+        self._value = value
+    }
+    
     var body: some View {
         NavigationStack {
             GoalWheelView(goalType: goalType, value: $value)
+                .onAppear {
+                    print("GoalWheelContainer onAppear")
+                }
         }
     }
 }

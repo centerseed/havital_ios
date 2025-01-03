@@ -13,7 +13,7 @@ cooldown 緩和
 
 訓練目標定義：
 {"type":"heart_rate", "unit":"bpm"},
-{"type":"pace", "unit":"km/hr"},
+{"type":"pace", "unit":"seconds/km"},
 {"type":"times", "unit":"times"},
 {"type":"distance", "unit":"meter"},
 
@@ -27,7 +27,7 @@ cooldown 緩和
 6. 產生target，説名該天訓練得目的，用繁體中文顯示
 7. 產生tips，幫助用戶更有信心地完成訓練，用繁體中文顯示
 8. 關於訓練目標定義，請依據以下規則：
-8.1 run的目標只有pace，distance。對於心肺強渡中等的，先以8km/hr的配速開始
+8.1 run的目標只有pace，distance。對於心肺強渡中等的，先以480seconds/km的配速開始
 8.2 jump_rope的目標可以有heart_rate和times
 8.3 super_slow_run, hiit的目標只有heat_rate
 8.4 其餘strength_training, breath_training, rest, warmup, cooldown皆不需要訓練目標

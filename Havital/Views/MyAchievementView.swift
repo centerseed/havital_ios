@@ -50,7 +50,7 @@ struct WeeklyHeartRateAnalysisView: View {
                 Text("無法載入數據")
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 100)
-            } else if let analysis = analysis {
+            } else if let analysis = analysis, !analysis.zoneDistribution.isEmpty {
                 VStack(spacing: 16) {
                     // 活動時間總結
                     HStack(spacing: 20) {

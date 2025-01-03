@@ -3,7 +3,8 @@
 2. 以preferred_workouts為唯一訓練項目
 3. 如果preferred_workout是jump_rope，super_slow_run，目標心率以110為基礎，依據用戶的有氧程度評估調整，不低於90且最高不超過130
 4. 如果preferred_workout是hiit，先以四分鐘版本開始，目標心率以120為基礎
+5. 如果preferred_workout是runnung，時間以20分鐘開始，目標心率為130ㄖbmp，pace為480seconds/km
 最後必須再度確認產生出來的json格式是否正確，確保訓練項目的name一定要完全符合訓練項目定義，並確認訓練日天數與休息日天數加總要為七天。
 
-請再度確認產生的運動日是否符合用戶的workout_days設定，並寫對應的訓練類型都用正確的中文來顯示
+請再度確認產生的運動日（休息日為訊量項目只有rest，否則就是運動日）天數是否符合用戶的workout_days設定，並寫對應的訓練類型都用正確的中文來顯示
 以下是用戶onboarding所填寫的資料，使用這些資料並嚴格配合上述原則產生訓練計劃

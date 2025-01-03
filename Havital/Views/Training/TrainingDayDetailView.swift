@@ -310,6 +310,21 @@ struct EditTrainingItemView: View {
     @State private var selectedGoalIndex: Int? = nil
     @EnvironmentObject private var trainingPlanViewModel: TrainingPlanViewModel
     
+    private var goalWheelView: some View {
+        Group {
+            if let index = selectedGoalIndex {
+                NavigationStack {
+                    GoalWheelContainer(
+                        goalType: editedItem.goals[index].type,
+                        value: $editedItem.goals[index].value
+                    )
+                }
+            } else {
+                Text("Loading...")
+            }
+        }
+    }
+    
     private func getExistingGoals(for itemName: String) -> [Goal] {
         guard let plan = trainingPlanViewModel.plan else { return [] }
         
@@ -399,7 +414,6 @@ struct EditTrainingItemView: View {
     }
     
     private func loadDefinitions() {
-        print("loadDefinitions...")
         if let defs = TrainingDefinitions.load()?.trainingItemDefs {
             // 過濾掉特殊項目
             let filteredDefs = defs.filter { def in
@@ -446,7 +460,6 @@ struct EditTrainingItemView: View {
     }
     
     init(onSave: @escaping (TrainingItem) -> Void, onCancel: @escaping () -> Void) {
-        print("EditTrainingItemView init...")
         self.onSave = onSave
         self.onCancel = onCancel
         _editedItem = State(initialValue: TrainingItem(
@@ -513,6 +526,7 @@ struct EditTrainingItemView: View {
                                 Button(action: {
                                     selectedGoalIndex = index
                                     showingGoalWheel = true
+                                    print("selectedGoalIndex:", selectedGoalIndex)
                                 }) {
                                     HStack {
                                         Text("目標配速")
@@ -592,13 +606,18 @@ struct EditTrainingItemView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingGoalWheel, onDismiss: { selectedGoalIndex = nil }) {
-            if let index = selectedGoalIndex {
-                GoalWheelContainer(
-                    goalType: editedItem.goals[index].type,
-                    value: $editedItem.goals[index].value
-                )
-            }
+        .sheet(isPresented: $showingGoalWheel, onDismiss: {
+            selectedGoalIndex = nil
+            print("$showingGoalWheel onDismiss")
+        }) {
+            //if let index = selectedGoalIndex {
+                NavigationStack {
+                    GoalWheelContainer(
+                        goalType: editedItem.goals[selectedGoalIndex ?? 0].type,
+                        value: $editedItem.goals[selectedGoalIndex ?? 0].value
+                    )
+                }
+            //}
         }
         .onAppear {
             loadDefinitions()
@@ -698,52 +717,54 @@ private struct TrainingItemsSection: View {
     var body: some View {
         Section("訓練項目") {
             ForEach(items) { item in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: TrainingItemStyle.icon(for: item.name))
-                            .foregroundColor(TrainingItemStyle.color(for: item.name))
-                        Text(item.displayName)
-                            .font(.headline)
-                    }
-                    
-                    if !item.goals.isEmpty {
-                        ForEach(item.goals, id: \.type) { goal in
-                            HStack {
-                                if goal.type == "heart_rate" {
-                                    Text("目標心率：\(goal.value) bpm")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    
-                                    if let completionRate = item.goalCompletionRates["heart_rate"] {
-                                        Text(String(format: "完成率：%.1f%%", completionRate))
+                NavigationLink(destination: TrainingItemDetailView(itemName: item.name)) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: TrainingItemStyle.icon(for: item.name))
+                                .foregroundColor(TrainingItemStyle.color(for: item.name))
+                            Text(item.displayName)
+                                .font(.headline)
+                        }
+                        
+                        if !item.goals.isEmpty {
+                            ForEach(item.goals, id: \.type) { goal in
+                                HStack {
+                                    if goal.type == "heart_rate" {
+                                        Text("目標心率：\(goal.value) bpm")
                                             .font(.subheadline)
-                                            .foregroundColor(completionRate >= 100 ? .green : .orange)
+                                            .foregroundColor(.secondary)
+                                        
+                                        if let completionRate = item.goalCompletionRates["heart_rate"] {
+                                            Text(String(format: "完成率：%.1f%%", completionRate))
+                                                .font(.subheadline)
+                                                .foregroundColor(completionRate >= 100 ? .green : .orange)
+                                        }
+                                    } else if goal.type == "times" {
+                                        Text("目標次數：\(goal.value) 次")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    } else if goal.type == "pace" {
+                                        Text("目標配速：\(String(format: "%d:%02d", goal.value / 60, goal.value % 60))/公里")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
                                     }
-                                } else if goal.type == "times" {
-                                    Text("目標次數：\(goal.value) 次")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                } else if goal.type == "pace" {
-                                    Text("目標配速：\(String(format: "%d:%02d", goal.value / 60, goal.value % 60))/公里")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
                                 }
                             }
                         }
-                    }
-                    
-                    if !item.subItems.isEmpty {
-                        Text("訓練要點：")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        ForEach(item.subItems, id: \.id) { subItem in
-                            Text("• \(subItem.name)")
+                        
+                        if !item.subItems.isEmpty {
+                            Text("訓練要點：")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
+                            ForEach(item.subItems, id: \.id) { subItem in
+                                Text("• \(subItem.name)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
             }
         }
     }

@@ -18,13 +18,6 @@ struct TrainingRecordView: View {
                 }
             }
             .navigationTitle("訓練記錄")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: PerformanceChartView()) {
-                        Image(systemName: "chart.xyaxis.line")
-                    }
-                }
-            }
             .sheet(item: $selectedWorkout) { workout in
                 NavigationStack {
                     WorkoutDetailView(

@@ -22,28 +22,15 @@ struct UserPreferenceView: View {
                 Section("運動能力評估") {
                     LevelRow(title: "有氧運動能力", level: preference?.aerobicsLevel ?? 0)
                     LevelRow(title: "肌力訓練程度", level: preference?.strengthLevel ?? 0)
-                    LevelRow(title: "生活忙碌程度", level: preference?.busyLevel ?? 0)
-                    LevelRow(title: "運動主動性", level: preference?.proactiveLevel ?? 0)
+                /*#LevelRow(title: "生活忙碌程度", level: preference?.busyLevel ?? 0)
+                    LevelRow(title: "運動主動性", level: preference?.proactiveLevel ?? 0)*/
                 }
                 
-                Section("可運動時間") {
+                Section("偏好運動時間") {
                     ForEach(0..<7, id: \.self) { weekday in
                         if let workoutDays = preference?.workoutDays, workoutDays.contains(weekday) {
                             HStack {
                                 Text(getWeekdayString(weekday: weekday))
-                                Spacer()
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
-                        }
-                    }
-                }
-                
-                Section("偏好運動") {
-                    if let workouts = preference?.preferredWorkouts {
-                        ForEach(Array(workouts), id: \.self) { workout in
-                            HStack {
-                                Text(getWorkoutDisplayName(workout))
                                 Spacer()
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
