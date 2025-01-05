@@ -1,10 +1,13 @@
-並且，這是為第一次使用Havital用戶所設計的訓練計劃，必須嚴格遵循以下幾點：
-1. 先查看workout_days的數字，該數字代表訓練天數，數字多少就產生幾天的訓練日，其餘為休息日，務必產生不少於workout_days的訓練日
-2. 以preferred_workouts為唯一訓練項目
-3. 如果preferred_workout是jump_rope，super_slow_run，目標心率以110為基礎，依據用戶的有氧程度評估調整，不低於90且最高不超過130
-4. 如果preferred_workout是hiit，先以四分鐘版本開始，目標心率以120為基礎
-5. 如果preferred_workout是runnung，時間以20分鐘開始，目標心率為130ㄖbmp，pace為480seconds/km
-最後必須再度確認產生出來的json格式是否正確，確保訓練項目的name一定要完全符合訓練項目定義，並確認訓練日天數與休息日天數加總要為七天。
+並且，這是為第一次使用Havital用戶所設計的訓練計劃，必須嚴格遵循以下規則
+1. 產生訓練日項目：
+- 先查看workout_days的數字，該數字代表訓練日天數，數字多少就產生幾天的訓練日，比如果workout_days=3，就產生三天的運動日項目，workout_days=5，就產生五天的運動日項目。
+- 以preferred_workouts為唯一訓練項目，如果preferred_workouts沒設定就分配不同的訓練項目
+- 如果preferred_workout是jump_rope，super_slow_run，目標心率以110為基礎，依據用戶的有氧程度評估調整，不低於90且最高不超過130
+- 如果preferred_workout是hiit，先以四分鐘版本開始，目標心率以120bpm
+- 如果preferred_workout是runnung，時間以20分鐘開始，目標心率為130bmp，pace為480seconds/km
+2. 確認產生的訓續練日天數是否符合workout_days的數目。
+3. 接下來，填入一天的休息日（training_items只有rest）。
+4. 不要在每日的提示中說明該天是星期幾
 
-請再度確認產生的運動日（休息日為訊量項目只有rest，否則就是運動日）天數是否符合用戶的workout_days設定，並寫對應的訓練類型都用正確的中文來顯示
-以下是用戶onboarding所填寫的資料，使用這些資料並嚴格配合上述原則產生訓練計劃
+請再度確認產生的訓練日天數是否符合用戶的workout_days設定，並且對應的訓練類型都用正確的中文來顯示
+以下是用戶onboarding所填寫的資料，使用這些資料並嚴格配合上述原則，think step by step的產生訓練計劃

@@ -4,17 +4,17 @@ struct UserPreference: Codable {
     let userId: Int
     let userEmail: String
     let userName: String
-    let aerobicsLevel: Int
-    let strengthLevel: Int
-    let busyLevel: Int
-    let proactiveLevel: Int
-    let age: Int
-    let bodyFat: Double
-    let bodyHeight: Double
-    let bodyWeight: Double
-    let announcement: String
-    let workoutDays: Set<Int>
-    let preferredWorkouts: Set<String>
+    var aerobicsLevel: Int
+    var strengthLevel: Int
+    var busyLevel: Int
+    var proactiveLevel: Int
+    var age: Int
+    var bodyFat: Double
+    var bodyHeight: Double
+    var bodyWeight: Double
+    var announcement: String
+    var workoutDays: Set<Int>
+    var preferredWorkouts: Set<String>
     
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"

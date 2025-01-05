@@ -135,7 +135,6 @@ struct WeeklyAnalysis: Codable {
 
 // MARK: - Training Plan Generator
 class TrainingPlanGenerator {
-    @StateObject private var userPrefManager = UserPreferenceManager.shared
     static let shared = TrainingPlanGenerator()
     private init() {}
     
@@ -196,43 +195,44 @@ class TrainingPlanGenerator {
         }
         
         // 獲取用戶偏好的訓練日
-        let userPreference = userPrefManager.currentPreference
-        var workoutDays = Array(userPreference?.workoutDays ?? []).sorted()
+        let userPreference = UserPreferenceManager.shared.currentPreference
+        let preferredWorkoutDays = Array(userPreference?.workoutDays ?? []).sorted()
+        
+        print("Debug - Preferred workout days: \(preferredWorkoutDays)")  // Debug info
         
         // 將訓練日和休息日分開
         let workoutDayInputs = input.days.filter { !($0.training_items.count == 1 && $0.training_items[0].name == "rest") }
         let restDayInput = input.days.first { $0.training_items.count == 1 && $0.training_items[0].name == "rest" }
         
-        // 計算需要的訓練日數量
-        let requiredWorkoutDays = workoutDayInputs.count
-        
-        // 如果需要更多訓練日，從休息日中選擇添加
-        if requiredWorkoutDays > workoutDays.count {
-            let additionalDaysNeeded = requiredWorkoutDays - workoutDays.count
-            // 獲取所有可用的休息日，並按照與最近的訓練日的間隔排序
-            let restDays = Array(Set(0...6).subtracting(Set(workoutDays))).sorted { day1, day2 in
-                // 計算與最近訓練日的間隔
-                let gap1 = workoutDays.map { abs($0 - day1) }.min() ?? 7
-                let gap2 = workoutDays.map { abs($0 - day2) }.min() ?? 7
-                return gap1 > gap2 // 優先選擇間隔較大的日子
-            }
-            
-            // 從休息日中選擇需要的天數
-            workoutDays.append(contentsOf: restDays.prefix(additionalDaysNeeded))
-            workoutDays.sort()
-        }
-        
         // 創建訓練日到訓練內容的映射
         var workoutDayToInput: [Int: TrainingPlanInput.DayInput] = [:]
         var currentWorkoutIndex = 0
         
-        // 按照原有的訓練日順序分配訓練內容
-        for day in workoutDays {
+        // 首先將訓練日填入用戶偏好的日期
+        for day in preferredWorkoutDays {
             if currentWorkoutIndex < workoutDayInputs.count {
                 workoutDayToInput[day] = workoutDayInputs[currentWorkoutIndex]
                 currentWorkoutIndex += 1
             }
         }
+        
+        print("Debug - Initial workout mapping: \(workoutDayToInput.keys.sorted())")  // Debug info
+        
+        // 如果還有剩餘的訓練日，找其他未使用的日期填入
+        if currentWorkoutIndex < workoutDayInputs.count {
+            // 獲取所有未被使用的日期
+            let unusedDays = Array(Set(0...6).subtracting(Set(workoutDayToInput.keys))).sorted()
+            
+            // 繼續填入剩餘的訓練日
+            for day in unusedDays {
+                if currentWorkoutIndex < workoutDayInputs.count {
+                    workoutDayToInput[day] = workoutDayInputs[currentWorkoutIndex]
+                    currentWorkoutIndex += 1
+                }
+            }
+        }
+        
+        print("Debug - Final workout mapping: \(workoutDayToInput.keys.sorted())")  // Debug info
         
         // 生成每天的訓練項目
         let days = (0..<7).map { dayOffset -> TrainingDay in
@@ -240,13 +240,16 @@ class TrainingPlanGenerator {
             let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate)!
             let timestamp = Int(dayDate.timeIntervalSince1970)
             
-            // 獲取正確的星期幾（1-7，1是星期天）
+            // 獲取系統的星期幾（1-7，1是星期天）並轉換為用戶格式
             let weekday = calendar.component(.weekday, from: dayDate)
-            // 調整為 0-6（0是星期天）
-            let adjustedWeekday = weekday - 1
+            // 系統的weekday（1=星期天，2=星期一，...，7=星期六）
+            // 需要轉換為用戶的格式（0=星期天，1=星期一，...，6=星期六）
+            let dayIndex = weekday - 1
+            
+            print("Debug - Day \(dayOffset): weekday=\(weekday), dayIndex=\(dayIndex)")  // Debug info
             
             // 判斷是否為訓練日
-            if let dayInput = workoutDayToInput[adjustedWeekday] {
+            if let dayInput = workoutDayToInput[dayIndex] {
                 // 訓練日
                 // 生成訓練項目
                 let trainingItems = dayInput.training_items.enumerated().map { (itemIndex, itemInput) -> TrainingItem in

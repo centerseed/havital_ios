@@ -416,21 +416,6 @@ struct OnboardingView: View {
                     schema: trainingPlanSchema
                 )
                 
-                // 打印完整的 AI 返回結果
-                print("=== AI Onboarding Response ===")
-                if let jsonData = try? JSONSerialization.data(withJSONObject: result, options: .prettyPrinted),
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
-                    print(jsonString)
-                }
-                print("=================")
-                
-                // 將結果轉換為 JSON 字符串
-                let jsonData = try JSONSerialization.data(withJSONObject: result, options: .prettyPrinted)
-                if let jsonString = String(data: jsonData, encoding: .utf8) {
-                    // 生成訓練計劃
-                    try await trainingPlanVM.generateNewPlan(plan: jsonString)
-                }
-                
                 // 保存用戶偏好
                 let preference = UserPreference(
                     userId: 0,
@@ -451,6 +436,21 @@ struct OnboardingView: View {
                 
                 UserPreferenceManager.shared.currentPreference
                 UserPreferenceManager.shared.savePreference(preference)
+
+                // 打印完整的 AI 返回結果
+                print("=== AI Onboarding Response ===")
+                if let jsonData = try? JSONSerialization.data(withJSONObject: result, options: .prettyPrinted),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    print(jsonString)
+                }
+                print("=================")
+                
+                // 將結果轉換為 JSON 字符串
+                let jsonData = try JSONSerialization.data(withJSONObject: result, options: .prettyPrinted)
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    // 生成訓練計劃
+                    try await trainingPlanVM.generateNewPlan(plan: jsonString)
+                }
                 
                 await MainActor.run {
                     isGeneratingPlan = false
