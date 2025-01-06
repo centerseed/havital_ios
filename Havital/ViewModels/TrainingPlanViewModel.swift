@@ -205,7 +205,8 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     private func isRestDay(_ day: TrainingDay) -> Bool {
-        return day.trainingItems.contains { $0.name == "rest" }
+        // TODO: remove day.trainingItems.contains { $0.name == "rest" } in next version
+        return day.trainingItems.contains { $0.name == "rest" } || day.isTrainingDay == false
     }
     
     private func markDayAsCompleted(at index: Int) {

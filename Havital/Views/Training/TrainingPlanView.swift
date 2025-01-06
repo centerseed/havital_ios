@@ -119,12 +119,12 @@ struct TrainingPlanView: View {
                     }) {
                         Label("同步至行事曆", systemImage: "calendar.badge.plus")
                     }
-                    /*
+                    
                     Button(action: {
                         isLoggedIn = false
                     }) {
-                        Label("登入畫面", systemImage: "arrow.clockwise")
-                    }*/
+                        Label("重設計劃", systemImage: "arrow.clockwise")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)

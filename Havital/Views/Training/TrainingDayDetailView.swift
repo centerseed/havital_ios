@@ -187,10 +187,12 @@ struct EditTrainingDayView: View {
             ]
             updatedDay.tips = "好好休息"
             updatedDay.purpose = "讓身體從上一次疲勞中恢複"
+            updatedDay.isTrainingDay = false
         } else {
             updatedDay.trainingItems = []
             updatedDay.tips = ""
             updatedDay.purpose = ""
+            updatedDay.isTrainingDay = true
         }
         
         do {
@@ -798,6 +800,7 @@ struct GoalView: View {
             startTimestamp: Int(Date().timeIntervalSince1970),
             purpose: "測試目的",
             isCompleted: false,
+            isTrainingDay: false,
             tips: "測試提示",
             trainingItems: []
         )

@@ -22,6 +22,7 @@ struct TrainingDay: Codable, Identifiable {
     var startTimestamp: Int
     var purpose: String
     var isCompleted: Bool
+    var isTrainingDay: Bool
     var tips: String
     var trainingItems: [TrainingItem]
     var heartRateStats: HeartRateStats?
@@ -70,6 +71,7 @@ struct TrainingDay: Codable, Identifiable {
         case startTimestamp = "start_timestamp"
         case purpose
         case isCompleted = "is_completed"
+        case isTrainingDay
         case tips
         case trainingItems = "training_items"
         case heartRateStats = "heart_rate_stats"
@@ -148,6 +150,7 @@ class TrainingPlanGenerator {
             let target: String
             let training_items: [TrainingItemInput]
             let tips: String?
+            let is_training_day: Bool
         }
         
         struct TrainingItemInput: Codable {
@@ -201,8 +204,8 @@ class TrainingPlanGenerator {
         print("Debug - Preferred workout days: \(preferredWorkoutDays)")  // Debug info
         
         // 將訓練日和休息日分開
-        let workoutDayInputs = input.days.filter { !($0.training_items.count == 1 && $0.training_items[0].name == "rest") }
-        let restDayInput = input.days.first { $0.training_items.count == 1 && $0.training_items[0].name == "rest" }
+        let workoutDayInputs = input.days.filter { $0.is_training_day == true }
+        let restDayInput = input.days.first { $0.is_training_day == false }
         
         // 創建訓練日到訓練內容的映射
         var workoutDayToInput: [Int: TrainingPlanInput.DayInput] = [:]
@@ -271,6 +274,7 @@ class TrainingPlanGenerator {
                     startTimestamp: timestamp,
                     purpose: dayInput.target,
                     isCompleted: false,
+                    isTrainingDay: true,
                     tips: dayInput.tips ?? "",
                     trainingItems: trainingItems,
                     heartRateStats: nil
@@ -282,6 +286,7 @@ class TrainingPlanGenerator {
                     startTimestamp: timestamp,
                     purpose: restDayInput?.target ?? "休息",
                     isCompleted: false,
+                    isTrainingDay: false,
                     tips: restDayInput?.tips ?? "今天是休息日",
                     trainingItems: [
                         TrainingItem(

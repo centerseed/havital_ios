@@ -21,8 +21,8 @@ cooldown 緩和
 1. 休息日為當天的運動項目只有rest的日子，反之就是訓練日。訓練日中，除了rest，warmup，cooldown，breath_training之外，要在開始加上warmup，主訓練後加上cooldown。
 1.1 warmup，cooldown不可單獨出現在訓練日中，一定要一起搭配running，jump_rope，super_slow_run，hiit，strength_training出現
 2. rest，warmup，cooldown不需要duration_minutes
-3. running, super_slow_run的基準時間為20分鐘，jump_rope基準時間為8分鐘，依照使用者的訓練狀況和onboard狀況調整，範圍做最多在正負10%以內。goal在單周內的強度皆不改變。
-4. hiit目前只有4分鐘，8分鐘，15分鐘三種預設選項，不適用規則2的時間調整。
+3. running, super_slow_run的基準時間為20分鐘，jump_rope基準時間為8分鐘，依照使用者的狀況調整，範圍做最多在正負10%以內。goal在單周內的強度皆不改變。
+4. hiit目前只有4分鐘，8分鐘，15分鐘三種預設選項。
 5. 產生purpose，說明這週訓練的目的，用繁體中文顯示
 6. 產生target，説名該天訓練得目的，用繁體中文顯示
 7. 產生tips，幫助用戶更有信心地完成訓練，用繁體中文顯示

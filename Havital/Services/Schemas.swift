@@ -34,7 +34,12 @@ let trainingPlanSchema = Schema(
                     "tips": Schema(
                         type: .string,
                         description: "The tips for the day",
-                        nullable: true
+                        nullable: false
+                    ),
+                    "is_training_day": Schema(
+                        type: .boolean,
+                        description: "Is training day or not",
+                        nullable: false
                     ),
                     "training_items": Schema(
                         type: .array,
