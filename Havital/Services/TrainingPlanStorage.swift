@@ -5,6 +5,7 @@ class TrainingPlanStorage {
     private let generator = TrainingPlanGenerator.shared
     private let defaults = UserDefaults.standard
     private let planKey = "training_plan"
+    private let planOverviewKey = "training_plan_overview"
     
     private init() {}
     
@@ -51,6 +52,20 @@ class TrainingPlanStorage {
         } else {
             throw StorageError.dayNotFound
         }
+    }
+    
+    func saveTrainingPlanOverview(_ overview: [String: Any]) {
+        if let data = try? JSONSerialization.data(withJSONObject: overview) {
+            defaults.set(data, forKey: planOverviewKey)
+        }
+    }
+    
+    func loadTrainingPlanOverview() -> [String: Any]? {
+        guard let data = defaults.data(forKey: planOverviewKey),
+              let overview = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return overview
     }
     
     enum StorageError: Error {

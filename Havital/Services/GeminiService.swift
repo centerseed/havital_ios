@@ -56,25 +56,35 @@ class GeminiService {
     }
     
     private func loadPrompts(from fileNames: [String]) throws -> String {
+        print("=== Debug: Loading Prompt Files ===")
         let promptContents = try fileNames.map { fileName -> String in
+            print("Attempting to load prompt file: \(fileName)")
+            
             // First try with explicit path
-            if let url = Bundle.main.url(forResource: fileName, withExtension: "json", subdirectory: "Resources/Prompts"),
-               let content = try? String(contentsOf: url) {
-                return content
+            if let url = Bundle.main.url(forResource: fileName, withExtension: "json", subdirectory: "Resources/Prompts") {
+                print("Found file in Resources/Prompts: \(url.path)")
+                if let content = try? String(contentsOf: url) {
+                    return content
+                }
             }
             
             // Then try without subdirectory
-            if let url = Bundle.main.url(forResource: fileName, withExtension: "json"),
-               let content = try? String(contentsOf: url) {
-                return content
+            if let url = Bundle.main.url(forResource: fileName, withExtension: "json") {
+                print("Found file in root: \(url.path)")
+                if let content = try? String(contentsOf: url) {
+                    return content
+                }
             }
             
             // Finally, try direct file path
-            if let path = Bundle.main.path(forResource: fileName, ofType: "json"),
-               let content = try? String(contentsOfFile: path) {
-                return content
+            if let path = Bundle.main.path(forResource: fileName, ofType: "json") {
+                print("Found file with direct path: \(path)")
+                if let content = try? String(contentsOfFile: path) {
+                    return content
+                }
             }
             
+            print("Error: Could not find prompt file: \(fileName)")
             throw GeminiError.invalidPromptFile
         }
         return promptContents.joined(separator: "\n")
@@ -123,25 +133,63 @@ class GeminiService {
     
     public func generateContent(withPromptFiles fileNames: [String], input: [String: Any], schema: Schema) async throws -> [String: Any] {
         let model = try getModel(with: schema)
+        print(fileNames)
+        
         let promptContent = try loadPrompts(from: fileNames)
+        print(promptContent)
         let inputJson = try JSONSerialization.data(withJSONObject: input)
         let inputString = String(data: inputJson, encoding: .utf8) ?? "{}"
         
         let prompt = promptContent + "\n" + inputString
+        print("--------------- Promp start ---------------")
         print(prompt)
+        print("--------------- Promp end ---------------")
         
         do {
             let response = try await model.generateContent(prompt)
             
             guard let responseText = response.text,
                   let responseData = responseText.data(using: .utf8),
-                  let jsonResponse = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
+                  var jsonResponse = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
                 throw GeminiError.invalidResponse
             }
             
+            // 遞迴處理所有的字典值，將 Unicode 轉換為可讀的中文
+            func convertUnicodeInDictionary(_ dict: [String: Any]) -> [String: Any] {
+                var result: [String: Any] = [:]
+                
+                for (key, value) in dict {
+                    if let strValue = value as? String {
+                        // 處理字符串值
+                        result[key] = strValue.removingPercentEncoding ?? strValue
+                    } else if let dictValue = value as? [String: Any] {
+                        // 遞迴處理嵌套的字典
+                        result[key] = convertUnicodeInDictionary(dictValue)
+                    } else if let arrayValue = value as? [Any] {
+                        // 處理數組
+                        result[key] = arrayValue.map { item -> Any in
+                            if let dictItem = item as? [String: Any] {
+                                return convertUnicodeInDictionary(dictItem)
+                            } else if let strItem = item as? String {
+                                return strItem.removingPercentEncoding ?? strItem
+                            }
+                            return item
+                        }
+                    } else {
+                        result[key] = value
+                    }
+                }
+                
+                return result
+            }
+            
+            // 處理整個回應
+            jsonResponse = convertUnicodeInDictionary(jsonResponse)
+            
             return jsonResponse
         } catch {
-            throw GeminiError.networkError(error)
+            print("Generate content error: \(error)")
+            throw error
         }
     }
     

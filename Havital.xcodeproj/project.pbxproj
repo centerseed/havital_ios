@@ -44,11 +44,22 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		CF1573872D2E5BAE00DF73B5 /* Exceptions for "Havital" folder in "Compile Sources" phase from "Havital" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = CFB67CEC2D07047500F672E3 /* Sources */;
+			membershipExceptions = (
+				Resources/Prompts/prompt_running_overview.json,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CFB67CF22D07047500F672E3 /* Havital */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				CFF5177E2D15691B00CF284A /* Exceptions for "Havital" folder in "Havital" target */,
+				CF1573872D2E5BAE00DF73B5 /* Exceptions for "Havital" folder in "Compile Sources" phase from "Havital" target */,
 			);
 			path = Havital;
 			sourceTree = "<group>";
