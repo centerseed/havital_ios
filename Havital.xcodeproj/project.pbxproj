@@ -39,6 +39,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Resources/schema_weekly_plan.json,
 			);
 			target = CFB67CEF2D07047500F672E3 /* Havital */;
 		};
@@ -50,6 +51,7 @@
 			buildPhase = CFB67CEC2D07047500F672E3 /* Sources */;
 			membershipExceptions = (
 				Resources/Prompts/prompt_running_overview.json,
+				Resources/schema_weekly_plan.json,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */

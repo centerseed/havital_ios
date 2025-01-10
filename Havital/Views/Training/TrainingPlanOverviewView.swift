@@ -95,9 +95,18 @@ struct TrainingPlanOverviewView: View {
                 Button(action: {
                     Task {
                         isGeneratingPlan = true
+                        let promptFile: String
+                        switch selectedGoalType {
+                        case "beginner":
+                            promptFile = "prompt_plan_base_habit"
+                        case "running":
+                            promptFile = "prompt_plan_runing"
+                        default:  // custom
+                            promptFile = "prompt_plan_base_habit"
+                }
                         do {
                             var result = try await GeminiService.shared.generateContent(
-                                withPromptFiles: [selectedGoalType == "beginner" ? "prompt_plan_base_habit" : "prompt_plan_runing"],
+                                withPromptFiles: [promptFile],
                                 input: planOverview.merging(["action": "產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃"]) { (_, new) in new },
                                 schema: trainingPlanSchema
                             )

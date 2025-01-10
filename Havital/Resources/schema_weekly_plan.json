@@ -1,0 +1,21 @@
+{
+  "purpose": "string", // 訓練計畫的目標描述
+  "tips": "string", // 全局提示，針對整體計畫提供建議
+  "days": [ // 每天的訓練安排，為一個陣列
+    {
+      "target": "string", // 當日的訓練目標或簡介
+      "tips": "string", // 當日的提示，針對具體訓練提供建議
+      "is_training_day": "string", // 是否為訓練日，True 表示是，False 表示否
+      "training_items": [ // 當日的訓練項目列表
+        {
+          "name": "string", // 訓練項目的名稱
+          "duration_minutes": "integer", // 訓練持續時間（分鐘）
+          "goals": { // 可選，針對該訓練項目的目標
+            "heart_rate": "integer", // 目標心率
+            "times": "integer" // 目標次數
+          }
+        }
+      ]
+    }
+  ]
+}

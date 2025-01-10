@@ -17,6 +17,7 @@
         {"name": "rest", "hints": ["rest_1_id"], "training_type_id": "5"},
         {"name": "warmup", "hints": ["warmup_1_id"], "training_type_id": "3"},
         {"name": "cooldown", "hints": ["relax_1_id"], "training_type_id": "4"}
+        {"name": "cross_training", "hints": ["cross_training_id"], "training_type_id": "4"}
     ],
     "training_sub_item_defs": [
         {"id": "sub_1-1", "name": "squat", "resource": "squat_resource_1_id"},

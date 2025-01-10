@@ -253,11 +253,12 @@ struct TrainingPlanView: View {
                     }) {
                         Label("個人資料", systemImage: "person.circle")
                     }
+                    /*
                     Button(action: {
                         activeSheet = .datePicker
                     }) {
                         Label("修改計劃開始日期", systemImage: "arrow.clockwise")
-                    }
+                    }*/
                     Button(action: {
                         viewModel.showingCalendarSetup = true
                         activeSheet = .calendarSetup
@@ -267,7 +268,7 @@ struct TrainingPlanView: View {
                     Button(action: {
                         isLoggedIn = false
                     }) {
-                        Label("重設計劃", systemImage: "arrow.clockwise")
+                        Label("重新OnBoarding", systemImage: "arrow.clockwise")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

@@ -27,7 +27,7 @@ struct OnboardingView: View {
     @State private var healthKitGranted = false
     
     // 新增運動目標相關的狀態變量
-    @State private var selectedGoalType = ""  // "beginner" 或 "running"
+    @State private var selectedGoalType = ""  // "beginner" 或 "running" 或 "custom"
     @State private var hasRunningExperience = false
     @State private var longestDistance = 0.0  // 最長跑步距離
     @State private var paceInSeconds = 420  // 配速（秒/公里），預設 ˙ 分鐘
@@ -36,6 +36,7 @@ struct OnboardingView: View {
     @State private var targetTimeInMinutes = 35  // 預設 35 分鐘
     @State private var selectedRaceDate = Date().addingTimeInterval(12 * 7 * 24 * 60 * 60)  // 預設 12 週後
     @State private var trainingWeeks = 12  // 訓練週數
+    @State private var customGoal = ""
     
     @State private var questions: [OnboardingQuestion] = [
         OnboardingQuestion(
@@ -149,6 +150,29 @@ struct OnboardingView: View {
                                         .cornerRadius(10)
                                 }
                             }
+                            
+                            // 自定義目標輸入
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("或輸入你的自定義目標")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                TextField("例如：想要完成一場馬拉松", text: $customGoal)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding(.horizontal)
+                                    .onChange(of: customGoal) { newValue in
+                                        if !newValue.isEmpty {
+                                            announcement = newValue
+                                            selectedGoalType = "custom"
+                                            // 重置相關變量
+                                            aerobicsLevel = 3
+                                            strengthLevel = 3
+                                            selectedWorkout = ""
+                                            addGoalSpecificQuestions()
+                                        }
+                                    }
+                            }
+                            .padding(.top)
                         }
                         .padding()
                     
@@ -525,6 +549,58 @@ struct OnboardingView: View {
                             }
                         }
                         .padding()
+                    case .trainingWeeks:
+                        VStack(spacing: 20) {
+                            Text("選擇訓練計劃週數")
+                                .font(.headline)
+                                .padding(.bottom, 5)
+                            
+                            Menu {
+                                ForEach([4, 6, 8, 10, 12, 16, 20], id: \.self) { weeks in
+                                    Button(action: {
+                                        trainingWeeks = weeks
+                                    }) {
+                                        HStack {
+                                            Text("\(weeks)週")
+                                            if trainingWeeks == weeks {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text("\(trainingWeeks)週")
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .foregroundColor(.gray)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color(UIColor.systemBackground))
+                                .cornerRadius(10)
+                                .shadow(radius: 2)
+                            }
+                            .padding(.horizontal)
+                            
+                            Text("建議週數：")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.top)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("• 4-6週：適合短期目標或保持基本運動習慣")
+                                    .font(.subheadline)
+                                Text("• 8-12週：適合漸進式提升體能或改善體態")
+                                    .font(.subheadline)
+                                Text("• 16-20週：適合長期目標或準備重大比賽")
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                        }
+                        .padding()
                     }
                 }
                 
@@ -567,6 +643,8 @@ struct OnboardingView: View {
                             return !selectedWeekdays.isEmpty
                         case .bodyInfo:
                             return bodyHeight > 0 && bodyWeight > 0 && age > 0
+                        case .trainingWeeks:
+                            return trainingWeeks > 0
                         default:
                             return true
                         }
@@ -682,6 +760,27 @@ struct OnboardingView: View {
                     type: .runningGoals
                 )
             ]
+        } else {
+            selectedGoalType = "custom"
+            questions += [
+                OnboardingQuestion(
+                    title: "選擇訓練計劃週數",
+                    description: "請選擇你想要的訓練計劃週數",
+                    type: .trainingWeeks
+                ),
+                OnboardingQuestion(
+                    title: "有氧運動能力",
+                    description: "0-走路都會喘，7-可以連續跑十公里",
+                    type: .slider,
+                    range: 0...7
+                ),
+                OnboardingQuestion(
+                    title: "肌力訓練程度",
+                    description: "0-上下樓梯要扶東西，7-可以連續深蹲50下",
+                    type: .slider,
+                    range: 0...7
+                )
+            ]
         }
         
         // 添加共同的問題
@@ -704,26 +803,6 @@ struct OnboardingView: View {
     
     private func completeOnboarding() {
         isGeneratingPlan = true
-        
-        // 準備 Gemini 輸入數據
-        let geminiInput: [String: Any] = [
-            "user_info": [
-                "age": age,
-                "aerobics_level": aerobicsLevel,
-                "strength_level": strengthLevel,
-                "proactive_level": proactiveLevel,
-                "workout_days": selectedWeekdays.count,
-                "preferred_workout": selectedWorkout,
-                "goal_type": announcement,
-                "running_experience": hasRunningExperience,
-                "longest_distance": longestDistance,
-                "pace_in_seconds": paceInSeconds,
-                "target_distance": targetDistance,
-                "target_time_in_minutes": targetTimeInMinutes,
-                "training_weeks": trainingWeeks,
-                "race_date": selectedRaceDate.timeIntervalSince1970
-            ]
-        ]
         
         // 呼叫 Gemini 生成訓練計劃
         Task {
@@ -758,18 +837,32 @@ struct OnboardingView: View {
                 
                 UserPreferenceManager.shared.currentPreference = preference
                 UserPreferenceManager.shared.savePreference(preference)
-                               
-                var result = try await GeminiService.shared.generateContent(
-                    withPromptFiles: [selectedGoalType == "beginner" ? "prompt_encourage_habit_overview":"prompt_running_overview"],
-                    input: selectedGoalType == "beginner" ? [
+
+                let promptFile: String
+                switch selectedGoalType {
+                case "beginner":
+                    promptFile = "prompt_encourage_habit_overview"
+                case "running":
+                    promptFile = "prompt_running_overview"
+                default:  // custom
+                    promptFile = "prompt_custom_overview"
+                }
+
+                let input: [String: Any]
+                switch selectedGoalType {
+                case "beginner":
+                    input = [
                         "user_info": [
                             "age": age,
                             "aerobics_level": aerobicsLevel,
                             "strength_level": strengthLevel,
                             "workout_days": selectedWeekdays.count,
                             "preferred_workout": selectedWorkout,
+                            "training_goal": announcement,
                         ]
-                    ] : [
+                    ]
+                case "running":
+                    input = [
                         "user_info": [
                         "age": age,
                         "running_experience": hasRunningExperience,
@@ -779,8 +872,25 @@ struct OnboardingView: View {
                         "target_pace_in_seconds": targetpaceInSeconds,
                         "training_weeks": trainingWeeks,
                         "workout_days": selectedWeekdays.count,
+                        "training_goal": announcement,
                         ]
-                    ],
+                    ]
+                default:  // custom
+                    input = [
+                        "user_info": [
+                            "age": age,
+                            "aerobics_level": aerobicsLevel,
+                            "strength_level": strengthLevel,
+                            "workout_days": selectedWeekdays.count,
+                            "training_weeks": trainingWeeks,
+                            "training_goal": announcement,
+                        ]
+                    ]
+                }
+
+                var result = try await GeminiService.shared.generateContent(
+                    withPromptFiles: [promptFile],
+                    input: input,
                     schema: trainingOverviewSchema
                 )
                 
@@ -918,7 +1028,7 @@ struct OnboardingQuestion {
     let title: String
     let description: String
     let type: QuestionType
-    let range: ClosedRange<Double>?
+    var range: ClosedRange<Double>?
     
     enum QuestionType {
         case slider
@@ -931,6 +1041,7 @@ struct OnboardingQuestion {
         case runningExperience
         case runningPerformance
         case runningGoals
+        case trainingWeeks
     }
     
     init(title: String, description: String, type: QuestionType, range: ClosedRange<Double>? = nil) {

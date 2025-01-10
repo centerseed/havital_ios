@@ -1,0 +1,27 @@
+
+{
+  "target_evaluate": "string", // 對目標的評估與分析
+  "total_weeks": "number", // 總訓練週數
+  "training_hightlight": "string", // 訓練計畫的亮點與重點描述
+  "training_plan_name": "string", // 訓練計畫名稱
+  "training_plan_overview": "string", // 訓練計畫的概述
+  "training_stage_discription": [ // 訓練階段的描述列表
+    {
+      "stage_name": "string", // 階段名稱
+      "week_start": "number", // 階段開始週數
+      "week_end": "number" // 階段結束週數（可選）
+    }
+  ],
+  "user_information": { // 使用者信息
+    "age": "number", // 年齡
+    "workout_days": "number", // 每週可訓練天數
+    "training_goal": "string", // 訓練目標
+    "current_distance": "number", // 當前的跑步距離（公里）（可選）
+    "current_pace": "string", // 當前的配速（格式：秒/公里）（可選）
+    "target_distance": "number", // 目標跑步距離（公里）（可選）
+    "target_pace": "string", // 目標配速（格式：秒/公里）（可選）
+    "aerobics_level": "number", // 有氧程度（可選）
+    "strength_level": "number", 肌力程度 （可選）
+    "preferred_workout": "string", // 用戶偏好的訓練項目（可選）
+  }
+}
