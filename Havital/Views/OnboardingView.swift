@@ -744,7 +744,7 @@ struct OnboardingView: View {
                     announcement: announcement,
                     workoutDays: Set(selectedWeekdays),
                     preferredWorkout: selectedWorkout,
-                    goalType: announcement,
+                    goalType: selectedGoalType,
                     runningExperience: hasRunningExperience,
                     longestDistance: longestDistance,
                     paceInSeconds: paceInSeconds,

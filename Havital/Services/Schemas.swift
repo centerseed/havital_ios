@@ -161,13 +161,13 @@ let trainingOverviewSchema = Schema(
                         description: "The name of the training stage",
                         nullable: false
                     ),
-                    "stage_discroption": Schema(
+                    "stage_discription": Schema(
                         type: .string,
                         description: "The description of the training stage",
                         nullable: false
                     )
                 ],
-                requiredProperties: ["week_start", "week_end", "stage_name", "stage_discroption"]
+                requiredProperties: ["week_start", "week_end", "stage_name", "stage_discription"]
             )
         ),
         "user_information": Schema(
