@@ -39,7 +39,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Resources/schema_weekly_plan.json,
 			);
 			target = CFB67CEF2D07047500F672E3 /* Havital */;
 		};
@@ -51,7 +50,6 @@
 			buildPhase = CFB67CEC2D07047500F672E3 /* Sources */;
 			membershipExceptions = (
 				Resources/Prompts/prompt_running_overview.json,
-				Resources/schema_weekly_plan.json,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -433,7 +431,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -467,7 +465,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;

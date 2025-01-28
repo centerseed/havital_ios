@@ -17,9 +17,7 @@ struct OnboardingView: View {
     @State private var busyLevel = 3
     @State private var proactiveLevel = 3
     @State private var age = 25
-    @State private var bodyFat = 20.0
-    @State private var bodyHeight = 170.0
-    @State private var bodyWeight = 65.0
+    @State private var maxHeartRate = 190
     @State private var announcement = ""
     @State private var selectedWeekdays: Set<Int> = []
     @State private var selectedWorkout: String = ""
@@ -29,19 +27,37 @@ struct OnboardingView: View {
     // 新增運動目標相關的狀態變量
     @State private var selectedGoalType = ""  // "beginner" 或 "running" 或 "custom"
     @State private var hasRunningExperience = false
-    @State private var longestDistance = 0.0  // 最長跑步距離
+    @State private var currentDistance = 0.0   { // 當前跑步距離
+        didSet {
+            // 當當前距離改變時，自動更新目標距離
+            if currentDistance > 0 {
+                if currentDistance == 21.0975 {
+                    targetDistance = "半馬"
+                } else if currentDistance == 42.195 {
+                    targetDistance = "全馬"
+                } else {
+                    targetDistance = "\(Int(currentDistance))KM"
+                }
+                updateTargetPace()
+            }
+        }
+    }
     @State private var paceInSeconds = 420  // 配速（秒/公里），預設 ˙ 分鐘
     @State private var targetDistance = "5KM"  // 預設 5KM
     @State private var targetpaceInSeconds = 420  // 預設 7:00/km
     @State private var targetTimeInMinutes = 35  // 預設 35 分鐘
+    @State private var currentVDOT = 0.0
+    @State private var targetVDOT = 0.0
+    @State private var proposedVDOT = 0.0
+    @State private var difficulty = 0.0
     @State private var selectedRaceDate = Date().addingTimeInterval(12 * 7 * 24 * 60 * 60)  // 預設 12 週後
-    @State private var trainingWeeks = 12  // 訓練週數
+    @State private var trainingWeeks = 4  // 訓練週數
     @State private var customGoal = ""
     
     @State private var questions: [OnboardingQuestion] = [
         OnboardingQuestion(
-            title: "我是Vita，您的專屬運動顧問",
-            description: "建立運動習慣最好的方法，就是設定簡單的目標，然後讓運動融入日常生活中。\n 我會幫您設定合適的運動計畫，並依據您的執行狀況做調整。",
+            title: "準備好穿上你的跑鞋，出門享受跑步的樂趣了嗎？",
+            description: "無論您是跑步新手或者老手，Vita都可以協助您\n\n 1. 設定合適的距離和配速目標 \n\n 2. 依據運動科學，制定適合您的運動計畫  \n\n 3. 跟蹤您的訓練進度，並提供運動建議",
             type: .intro
         ),
         OnboardingQuestion(
@@ -51,14 +67,15 @@ struct OnboardingView: View {
         ),
         OnboardingQuestion(
             title: "選擇你的運動目標",
-            description: "請選擇你想要達成的運動目標",
+            description: "讓我們一起，朝向目標前進",
             type: .announcement
         )
     ]
       
     let predefinedAnnouncements = [
-        "小試身手，先培養運動習慣",
-        "挑戰跑步目標"
+        "很久沒運動了，先建立基礎體能",
+        "先試看看跑到5公里吧",
+        "設定目標賽事",
     ]
     
     var body: some View {
@@ -67,7 +84,7 @@ struct OnboardingView: View {
                 VStack(spacing: 20) {
                     ProgressView()
                         .scaleEffect(1.5)
-                    Text("正在生成訓練計劃...")
+                    Text("Vita正在生成專屬於您的訓練計劃...")
                         .font(.headline)
                 }
             } else if let overview = planOverview {
@@ -122,15 +139,15 @@ struct OnboardingView: View {
                                     announcement = goal
                                     addGoalSpecificQuestions()
                                     // 重置相關變量
-                                    if goal == "挑戰跑步目標" {
+                                    if goal != "很久沒運動了，先建立基礎體能" {
                                         hasRunningExperience = false
-                                        longestDistance = 0.0
+                                        currentDistance = 0.0
                                         paceInSeconds = 420
                                         targetDistance = "5KM"
                                         targetTimeInMinutes = 35
                                     } else {
-                                        aerobicsLevel = 3
-                                        strengthLevel = 3
+                                        aerobicsLevel = 1
+                                        strengthLevel = 1
                                         selectedWorkout = ""
                                     }
                                 }) {
@@ -151,28 +168,6 @@ struct OnboardingView: View {
                                 }
                             }
                             
-                            // 自定義目標輸入
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("或輸入你的自定義目標")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                
-                                TextField("例如：想要完成一場馬拉松", text: $customGoal)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .padding(.horizontal)
-                                    .onChange(of: customGoal) { newValue in
-                                        if !newValue.isEmpty {
-                                            announcement = newValue
-                                            selectedGoalType = "custom"
-                                            // 重置相關變量
-                                            aerobicsLevel = 3
-                                            strengthLevel = 3
-                                            selectedWorkout = ""
-                                            addGoalSpecificQuestions()
-                                        }
-                                    }
-                            }
-                            .padding(.top)
                         }
                         .padding()
                     
@@ -192,36 +187,17 @@ struct OnboardingView: View {
                         }
                         
                     case .bodyInfo:
-                        VStack(spacing: 20) {
-                            
+                        VStack(spacing: 20) {     
+                            Text("請輸入最大心率，如果沒有測量過最大心率，也可以輸入年齡來估算最大心率。")
+
                             HStack {
-                                Text("身高 (cm)")
+                                Text("最大心率")
                                 Spacer()
-                                TextField("身高", value: $bodyHeight, format: .number)
+                                TextField("最大心率", value: $maxHeartRate, format: .number)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 100)
-                                    .keyboardType(.decimalPad)
+                                    .keyboardType(.numberPad)
                             }
-                            
-                            HStack {
-                                Text("體重 (kg)")
-                                Spacer()
-                                TextField("體重", value: $bodyWeight, format: .number)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 100)
-                                    .keyboardType(.decimalPad)
-                            }
-                            
-                            HStack {
-                                Text("體脂率 (%)（選填）")
-                                Spacer()
-                                TextField("體脂率", value: $bodyFat, format: .number)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 100)
-                                    .keyboardType(.decimalPad)
-                            }
-                            
-                            Text("評估合適的運動強度，和計算最大心率")
                             
                             HStack {
                                 Text("年齡")
@@ -235,39 +211,38 @@ struct OnboardingView: View {
                         .padding()
                     case .weekdaySelection:
                         VStack(spacing: 20) {
-                            Text("請選擇偏好的運動的日期")
-                                .font(.subheadline)
-                                .foregroundColor(Color(UIColor { traitCollection in
-                                    traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.TextColors.secondary) : UIColor(AppTheme.TextColors.secondary)
-                                }))
-                                .padding(.top)
                             
-                            ForEach(0..<7, id: \.self) { weekday in
-                                Button(action: {
-                                    if selectedWeekdays.contains(weekday) {
-                                        selectedWeekdays.remove(weekday)
-                                    } else {
-                                        selectedWeekdays.insert(weekday)
+                            ScrollView {
+                                VStack(spacing: 15) {
+                                    ForEach(0..<7) { index in
+                                        let weekday = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][index]
+                                        Button(action: {
+                                            if selectedWeekdays.contains(index) {
+                                                selectedWeekdays.remove(index)
+                                            } else {
+                                                selectedWeekdays.insert(index)
+                                            }
+                                        }) {
+                                            HStack {
+                                                Text(weekday)
+                                                    .foregroundColor(selectedWeekdays.contains(index) ? .white : .primary)
+                                                Spacer()
+                                                Image(systemName: selectedWeekdays.contains(index) ? "checkmark.circle.fill" : "circle")
+                                            }
+                                            .padding()
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .fill(selectedWeekdays.contains(index) ? Color.accentColor : Color(.systemGray6))
+                                            )
+                                        }
                                     }
-                                }) {
-                                    Text(getWeekdayString(weekday: weekday))
-                                        .foregroundColor(selectedWeekdays.contains(weekday) ? .white : Color(UIColor { traitCollection in
-                                            traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.TextColors.primary) : UIColor(AppTheme.TextColors.primary)
-                                        }))
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(
-                                            selectedWeekdays.contains(weekday) ? 
-                                                Color(UIColor { traitCollection in
-                                                    traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.primaryColor) : UIColor(AppTheme.shared.primaryColor)
-                                                }) : 
-                                                Color.gray.opacity(0.1)
-                                        )
-                                        .cornerRadius(10)
                                 }
+                                .padding(.horizontal)
                             }
+                            .frame(maxHeight: UIScreen.main.bounds.height * 0.5)
+                            
+                            Spacer()
                         }
-                        .padding()
                     case .healthKitPermission:
                         VStack(spacing: 20) {
                             if isRequestingHealthKit {
@@ -368,38 +343,93 @@ struct OnboardingView: View {
                         .padding()
                     case .runningPerformance:
                         VStack(spacing: 20) {
-                            // 最長跑步距離輸入
+                            Text("如果不知道最佳跑步表現\n可以先參考先試試看跑5公里，並用全力完成五公里的成績來計算當前跑力。")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .padding(.leading, 20)
+                            
+                            // 最長跑步距離選擇
                             VStack(alignment: .leading) {
                                 Text("最長跑步距離")
                                     .font(.headline)
                                     .padding(.bottom, 5)
                                 
-                                HStack {
-                                    TextField("", value: $longestDistance, format: .number)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: 100)
-                                        .keyboardType(.decimalPad)
-                                    Text("公里")
+                                Menu {
+                                    ForEach(["3KM", "5KM", "10KM", "半馬", "全馬"], id: \.self) { distance in
+                                        Button(action: {
+                                            currentDistance = distance == "半馬" ? 21.0975 : 
+                                                            distance == "全馬" ? 42.195 : 
+                                                            Double(distance.replacingOccurrences(of: "KM", with: "")) ?? 0
+                                        }) {
+                                            HStack {
+                                                Text(distance)
+                                                if String(format: "%.1f", currentDistance) == String(format: "%.1f", 
+                                                    distance == "半馬" ? 21.0975 : 
+                                                    distance == "全馬" ? 42.195 : 
+                                                    Double(distance.replacingOccurrences(of: "KM", with: "")) ?? 0) {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(currentDistance == 0 ? "請選擇距離" : 
+                                             currentDistance == 21.0975 ? "半馬" :
+                                             currentDistance == 42.195 ? "全馬" :
+                                             "\(Int(currentDistance))KM")
+                                            .foregroundColor(currentDistance == 0 ? .gray : Color(UIColor { traitCollection in
+                                                traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.TextColors.primary) : UIColor(AppTheme.TextColors.primary)
+                                            }))
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        Image(systemName: "chevron.down")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding()
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(10)
                                 }
                             }
                             
-                            // 配速輸入
+                            // 完賽時間輸入
                             VStack(alignment: .leading) {
-                                Text("配速")
+                                Text("完賽時間")
                                     .font(.headline)
                                     .padding(.bottom, 5)
                                 
                                 HStack {
-                                    let minutes = paceInSeconds / 60
-                                    let seconds = paceInSeconds % 60
+                                    // 將配速（每公里秒數）轉換為總時間
+                                    let totalSeconds = paceInSeconds * Int(currentDistance)
+                                    let hours = totalSeconds / 3600
+                                    let minutes = (totalSeconds % 3600) / 60
+                                    
+                                    Picker("", selection: Binding(
+                                        get: { hours },
+                                        set: { newValue in
+                                            let oldMinutes = (paceInSeconds * Int(currentDistance) % 3600) / 60
+                                            let newTotalSeconds = newValue * 3600 + oldMinutes * 60
+                                            paceInSeconds = Int(Double(newTotalSeconds) / currentDistance)
+                                        }
+                                    )) {
+                                        ForEach(0...5, id: \.self) { hour in
+                                            Text("\(hour)").tag(hour)
+                                        }
+                                    }
+                                    .frame(width: 80)
+                                    .clipped()
+                                    
+                                    Text("時")
+                                        .padding(.trailing, 5)
                                     
                                     Picker("", selection: Binding(
                                         get: { minutes },
                                         set: { newValue in
-                                            paceInSeconds = newValue * 60 + (paceInSeconds % 60)
+                                            let oldHours = paceInSeconds * Int(currentDistance) / 3600
+                                            let newTotalSeconds = oldHours * 3600 + newValue * 60
+                                            paceInSeconds = Int(Double(newTotalSeconds) / currentDistance)
                                         }
                                     )) {
-                                        ForEach(3...15, id: \.self) { minute in
+                                        ForEach(0...59, id: \.self) { minute in
                                             Text("\(minute)").tag(minute)
                                         }
                                     }
@@ -407,26 +437,19 @@ struct OnboardingView: View {
                                     .clipped()
                                     
                                     Text("分")
-                                        .padding(.trailing, 5)
-                                    
-                                    Picker("", selection: Binding(
-                                        get: { seconds },
-                                        set: { newValue in
-                                            paceInSeconds = (paceInSeconds / 60) * 60 + newValue
-                                        }
-                                    )) {
-                                        ForEach(0...59, id: \.self) { second in
-                                            Text(String(format: "%02d", second)).tag(second)
-                                        }
-                                    }
-                                    .frame(width: 80)
-                                    .clipped()
-                                    
-                                    Text("秒/公里")
                                 }
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(10)
                             }
                         }
                         .padding()
+                        .onChange(of: currentDistance) { _ in
+                            calculateAndUpdateVDOT()
+                        }
+                        .onChange(of: paceInSeconds) {_ in
+                            calculateAndUpdateVDOT()
+                        }
                     
                     case .runningGoals:
                         VStack(spacing: 20) {
@@ -440,7 +463,7 @@ struct OnboardingView: View {
                                     ForEach(["3KM", "5KM", "10KM", "半馬", "全馬"], id: \.self) { distance in
                                         Button(action: {
                                             targetDistance = distance
-                                            updateTargetPace()
+                                            calculateTargetVDOT()
                                         }) {
                                             HStack {
                                                 Text(distance)
@@ -469,7 +492,7 @@ struct OnboardingView: View {
                             // 目標完賽時間輸入
                             if !targetDistance.isEmpty {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text("完成時間")
+                                    Text("目標完賽時間")
                                         .font(.headline)
                                         .padding(.bottom, 5)
                                     
@@ -481,10 +504,11 @@ struct OnboardingView: View {
                                             get: { hours },
                                             set: { newValue in
                                                 targetTimeInMinutes = newValue * 60 + (targetTimeInMinutes % 60)
+                                                calculateTargetVDOT()
                                                 updateTargetPace()
                                             }
                                         )) {
-                                            ForEach(0...6, id: \.self) { hour in
+                                            ForEach(0...5, id: \.self) { hour in
                                                 Text("\(hour)").tag(hour)
                                             }
                                         }
@@ -498,36 +522,48 @@ struct OnboardingView: View {
                                             get: { minutes },
                                             set: { newValue in
                                                 targetTimeInMinutes = (targetTimeInMinutes / 60) * 60 + newValue
+                                                calculateTargetVDOT()
                                                 updateTargetPace()
                                             }
                                         )) {
                                             ForEach(0...59, id: \.self) { minute in
-                                                Text(String(format: "%02d", minute)).tag(minute)
+                                                Text("\(minute)").tag(minute)
                                             }
                                         }
                                         .frame(width: 80)
                                         .clipped()
                                         
                                         Text("分")
+                                    }
+                                    .padding()
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(10)
+                                    
+                                    // 顯示配速
+                                    HStack {
+                                        Text("目標配速")
+                                            .font(.subheadline)
+                                            .foregroundColor(.gray)
                                         
                                         Spacer()
+                                        
+                                        Text("\(targetpaceInSeconds / 60)分\(String(format: "%02d", targetpaceInSeconds % 60))秒/公里")
+                                            .font(.system(.body, design: .monospaced))
                                     }
+                                    .padding(.top, 5)
                                 }
                                 
-                                // 顯示目標配速
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("目標配速")
-                                        .font(.headline)
-                                        .padding(.bottom, 5)
-                                    
-                                    Text("\(targetpaceInSeconds / 60)分\(String(format: "%02d", targetpaceInSeconds % 60))秒/公里")
-                                        .font(.system(.body, design: .monospaced))
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                // 顯示VDOT差異和難度等級
+                                if currentVDOT > 0 && targetVDOT > 0 {
+                                    VDOTDifficultyView(currentVDOT: currentVDOT, 
+                                                     targetVDOT: targetVDOT,
+                                                     trainingWeeks: trainingWeeks,
+                                                     age: age)
                                 }
                                 
                                 // 比賽日期選擇
                                 VStack(alignment: .leading, spacing: 20) {
-                                    Text("達成日期")
+                                    Text("比賽日期")
                                         .font(.headline)
                                         .padding(.top, 10)
                                     
@@ -556,7 +592,7 @@ struct OnboardingView: View {
                                 .padding(.bottom, 5)
                             
                             Menu {
-                                ForEach([4, 6, 8, 10, 12, 16, 20], id: \.self) { weeks in
+                                ForEach([4, 6, 8, 10], id: \.self) { weeks in
                                     Button(action: {
                                         trainingWeeks = weeks
                                     }) {
@@ -590,11 +626,11 @@ struct OnboardingView: View {
                                 .padding(.top)
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("• 4-6週：適合短期目標或保持基本運動習慣")
+                                Text("• 2週：適合短期目標或保持基本運動習慣")
                                     .font(.subheadline)
-                                Text("• 8-12週：適合漸進式提升體能或改善體態")
+                                Text("• 4-6週：適合漸進式提升體能或改善體態")
                                     .font(.subheadline)
-                                Text("• 16-20週：適合長期目標或準備重大比賽")
+                                Text("• 8週：緩步的提升基礎體能")
                                     .font(.subheadline)
                             }
                             .foregroundColor(.secondary)
@@ -630,19 +666,17 @@ struct OnboardingView: View {
                         case .runningExperience:
                             return true // 已經有默認選擇
                         case .runningPerformance:
-                            return longestDistance > 0 && paceInSeconds > 0
+                            return currentDistance > 0 && paceInSeconds > 0
                         case .runningGoals:
                             if hasRunningExperience {
                                 // 如果是跑步表現問題，需要檢查最長距離和配速
-                                return longestDistance > 0 && paceInSeconds > 0
+                                return currentDistance > 0 && paceInSeconds > 0
                             } else {
                                 // 如果是目標設定問題，需要檢查目標距離和時間
                                 return !targetDistance.isEmpty && targetTimeInMinutes > 0
                             }
                         case .weekdaySelection:
                             return !selectedWeekdays.isEmpty
-                        case .bodyInfo:
-                            return bodyHeight > 0 && bodyWeight > 0 && age > 0
                         case .trainingWeeks:
                             return trainingWeeks > 0
                         default:
@@ -720,7 +754,7 @@ struct OnboardingView: View {
         // 保留前三個固定問題，清除之前的接續問題
         questions = Array(questions.prefix(3))
         
-        if announcement == "小試身手，先培養運動習慣" {
+        if announcement == "很久沒運動了，先建立基礎體能" {
             selectedGoalType = "beginner"
             questions += [
                 OnboardingQuestion(
@@ -741,22 +775,17 @@ struct OnboardingView: View {
                     type: .workoutSelection
                 )
             ]
-        } else if announcement == "挑戰跑步目標" {
+        } else if announcement == "設定目標賽事" {
             selectedGoalType = "running"
             questions += [
                 OnboardingQuestion(
-                    title: "跑步經驗",
-                    description: "請告訴我們你的跑步經驗",
-                    type: .runningExperience
-                ),
-                OnboardingQuestion(
-                    title: "跑步表現",
-                    description: "請輸入你的最佳跑步表現",
+                    title: "跑力評估",
+                    description: "請輸入半年內最佳跑步表現",
                     type: .runningPerformance
                 ),
                 OnboardingQuestion(
-                    title: "目標設定",
-                    description: "請選擇你想要挑戰的目標",
+                    title: "設定目標賽事",
+                    description: "設定賽事的完賽目標",
                     type: .runningGoals
                 )
             ]
@@ -768,35 +797,27 @@ struct OnboardingView: View {
                     description: "請選擇你想要的訓練計劃週數",
                     type: .trainingWeeks
                 ),
-                OnboardingQuestion(
-                    title: "有氧運動能力",
-                    description: "0-走路都會喘，7-可以連續跑十公里",
-                    type: .slider,
-                    range: 0...7
-                ),
-                OnboardingQuestion(
-                    title: "肌力訓練程度",
-                    description: "0-上下樓梯要扶東西，7-可以連續深蹲50下",
-                    type: .slider,
-                    range: 0...7
-                )
             ]
         }
         
         // 添加共同的問題
         questions += [
             OnboardingQuestion(
-                title: "運動時間",
+                title: "偏好的運動日",
                 description: "請選擇一週中可以運動的時間",
                 type: .weekdaySelection
             ),
-            OnboardingQuestion(
-                title: "基本資料",
-                description: "請填寫您的基本身體資料",
-                type: .bodyInfo
-            )
         ]
-        
+
+        // 如果已經有最大心率，就不重複輸入
+        if UserPreferenceManager.shared.currentPreference?.maxHeartRate == nil {
+            questions.append(OnboardingQuestion(
+                title: "設定最大心率",
+                description: "最大心率是非常重要的訓練參考數據",
+                type: .bodyInfo
+            ))
+        }
+                
         // 確保當前頁面不會超出範圍
         currentPage = min(currentPage, questions.count - 1)
     }
@@ -804,7 +825,7 @@ struct OnboardingView: View {
     private func completeOnboarding() {
         isGeneratingPlan = true
         
-        // 呼叫 Gemini 生成訓練計劃
+        // 呼叫 PromptDashService 生成訓練計劃
         Task {
             do {
                 // 保存用戶偏好
@@ -817,40 +838,34 @@ struct OnboardingView: View {
                     busyLevel: 0,
                     proactiveLevel: 0,
                     age: age,
-                    bodyFat: 0,
-                    bodyHeight: bodyHeight,
-                    bodyWeight: bodyWeight,
+                    maxHeartRate: maxHeartRate,
                     announcement: announcement,
                     workoutDays: Set(selectedWeekdays),
                     preferredWorkout: selectedWorkout,
                     goalType: selectedGoalType,
                     runningExperience: hasRunningExperience,
-                    longestDistance: longestDistance,
+                    currentDistance: currentDistance,
                     paceInSeconds: paceInSeconds,
                     targetDistance: targetDistance,
                     targetTimeInMinutes: targetTimeInMinutes,
                     targetPaceInSeconds: targetpaceInSeconds,
                     trainingWeeks: trainingWeeks,
                     raceDate: selectedRaceDate,
+                    currentVDOT: currentVDOT,
+                    targetVDOT: targetVDOT,
                     weekOfPlan: 1
                 )
                 
                 UserPreferenceManager.shared.currentPreference = preference
                 UserPreferenceManager.shared.savePreference(preference)
 
-                let promptFile: String
-                switch selectedGoalType {
-                case "beginner":
-                    promptFile = "prompt_encourage_habit_overview"
-                case "running":
-                    promptFile = "prompt_running_overview"
-                default:  // custom
-                    promptFile = "prompt_custom_overview"
-                }
 
                 let input: [String: Any]
+                var apiPath: String
+                var jsonFormat = "schema_overview"
                 switch selectedGoalType {
                 case "beginner":
+                    apiPath = "/v1/prompt/8/16"
                     input = [
                         "user_info": [
                             "age": age,
@@ -862,20 +877,23 @@ struct OnboardingView: View {
                         ]
                     ]
                 case "running":
+                    apiPath = "/v1/prompt/8/27"
+                    jsonFormat = "schema_overview_vdot"
                     input = [
                         "user_info": [
-                        "age": age,
-                        "running_experience": hasRunningExperience,
-                        "longest_distance": longestDistance,
-                        "target_distance": targetDistance,
-                        "pace_in_seconds": paceInSeconds,
-                        "target_pace_in_seconds": targetpaceInSeconds,
-                        "training_weeks": trainingWeeks,
-                        "workout_days": selectedWeekdays.count,
-                        "training_goal": announcement,
+                            "age": age,
+                            "target_distance": targetDistance,
+                            "pace_in_seconds": paceInSeconds,
+                            "target_pace_in_seconds": targetpaceInSeconds,
+                            "training_weeks": trainingWeeks,
+                            "workout_days": selectedWeekdays.count,
+                            "current_vdot": currentVDOT,
+                            "target_vdot": targetVDOT,
+                            "diffculty": difficulty,
                         ]
                     ]
                 default:  // custom
+                    apiPath = "/v1/prompt/8/21"
                     input = [
                         "user_info": [
                             "age": age,
@@ -888,23 +906,33 @@ struct OnboardingView: View {
                     ]
                 }
 
-                var result = try await GeminiService.shared.generateContent(
-                    withPromptFiles: [promptFile],
-                    input: input,
-                    schema: trainingOverviewSchema
-                )
-                
-                if var userInformation = result["user_information"] as? [String: Any] {
-                    userInformation["preferred_workout"] = UserPreferenceManager.shared.currentPreference?.preferredWorkout
-                    result["user_information"] = userInformation
-                }
-                
-                print("訓練計劃概覽:\n\(result)")
-                
-                await MainActor.run {
-                    isGeneratingPlan = false
-                    self.planOverview = result
-                    TrainingPlanStorage.shared.saveTrainingPlanOverview(result)
+                print("生成訓練計劃概覽 - apiPath:\n\(apiPath)")
+                print("生成訓練計劃概覽 - 輸入:\n\(input)")
+                // 生成訓練計劃概覽
+                do {
+                    var result = try await PromptDashService.shared.generateContent(
+                        apiPath: apiPath, 
+                        userMessage: String(describing: input),
+                        variables: [
+                            ["JSON_FORMAT": jsonFormat]
+                        ]
+                    )
+                    
+                    if var userInformation = result["user_information"] as? [String: Any] {
+                        userInformation["preferred_workout"] = UserPreferenceManager.shared.currentPreference?.preferredWorkout
+                        result["user_information"] = userInformation
+                    }
+                    
+                    print("訓練計劃概覽:\n\(result)")
+                    
+                    await MainActor.run {
+                        isGeneratingPlan = false
+                        self.planOverview = result
+                        TrainingPlanStorage.shared.saveTrainingPlanOverview(result)
+                    }
+                } catch {
+                    print("Unexpected error: \(error)")
+                    throw error
                 }
             } catch {
                 await MainActor.run {
@@ -975,6 +1003,71 @@ struct OnboardingView: View {
         }
     }
     
+    private func calculateAndUpdateVDOT() {
+        guard currentDistance > 0 else { return }
+        
+        // 計算總完賽時間（秒）
+        let totalSeconds = paceInSeconds * Int(currentDistance)
+        
+        // 轉換距離為米
+        let distanceInMeters = Int(currentDistance * 1000)
+        
+        // 計算VDOT
+        let calculator = VDOTCalculator()
+        currentVDOT = calculator.calculateVDOT(distance: distanceInMeters, time: totalSeconds)
+        
+        print("計算的當前VDOT值：\(currentVDOT)")
+        
+        // 如果還沒有設置目標距離，自動設置為當前距離
+        if targetDistance.isEmpty {
+            if currentDistance == 21.0975 {
+                targetDistance = "半馬"
+            } else if currentDistance == 42.195 {
+                targetDistance = "全馬"
+            } else {
+                targetDistance = "\(Int(currentDistance))KM"
+            }
+        }
+    }
+    
+    private func getDistanceInMeters(_ distance: String) -> Int {
+        switch distance {
+        case "3KM":
+            return 3000
+        case "5KM":
+            return 5000
+        case "10KM":
+            return 10000
+        case "半馬":
+            return 21097
+        case "全馬":
+            return 42195
+        default:
+            return 10000
+        }
+    }
+    
+    private func calculateTargetVDOT() {
+        // 將目標距離轉換為米
+        let distanceInMeters = getDistanceInMeters(targetDistance)
+        
+        // 計算總時間（秒）
+        let totalSeconds = targetTimeInMinutes * 60
+        
+        // 計算目標VDOT
+        let calculator = VDOTCalculator()
+        targetVDOT = calculator.calculateVDOT(distance: distanceInMeters, time: totalSeconds)
+        
+        difficulty = calculator.calculateDifficultyIndex(vdot1: currentVDOT, vdot2: targetVDOT, week: trainingWeeks, age: age)
+        proposedVDOT = calculator.calculateProposedVDOT(currentVDOT: currentVDOT, targetDifficulty: 30, week: trainingWeeks, age: age)
+
+        print("計算的當前VDOT值：\(currentVDOT)")
+        print("計算的目標VDOT值：\(targetVDOT)")
+        print("計算的目標難度值：\(difficulty)")
+        print("計算的提案VDOT值：\(proposedVDOT)")
+
+    }
+    
     private func updateTargetPace() {
         // 根據目標距離和完賽時間計算配速
         let distanceInKm: Double
@@ -1002,6 +1095,36 @@ struct OnboardingView: View {
         targetpaceInSeconds = Int(Double(totalSeconds) / distanceInKm)
     }
     
+    private func getDifficultyText(difficulty: Double) -> String {
+        switch difficulty {
+        case ..<15:
+            return "輕鬆"
+        case 15..<25:
+            return "適中"
+        case 25..<45:
+            return "挑戰"
+        case 45..<80:
+            return "困難"
+        default:
+            return "極限挑戰"
+        }
+    }
+    
+    private func getDifficultyColor(diffPercentage: Double) -> Color {
+        switch diffPercentage {
+        case ..<5:
+            return .green
+        case 5..<10:
+            return .blue
+        case 10..<15:
+            return .orange
+        case 15..<20:
+            return .red
+        default:
+            return .purple
+        }
+    }
+    
     init() {
         // 初始化時計算預設配速
         _targetDistance = State(initialValue: "5KM")
@@ -1019,7 +1142,67 @@ struct OnboardingView: View {
         if let days = components.day {
             _trainingWeeks = State(initialValue: max(1, Int(ceil(Double(days) / 7.0))))
         } else {
-            _trainingWeeks = State(initialValue: 12)
+            _trainingWeeks = State(initialValue: 4)
+        }
+    }
+}
+
+struct VDOTDifficultyView: View {
+    let currentVDOT: Double
+    let targetVDOT: Double
+    let trainingWeeks: Int
+    let age: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("目標難度")
+                .font(.headline)
+                .padding(.bottom, 5)
+            
+            let calculator = VDOTCalculator()
+            let difficulty = calculator.calculateDifficultyIndex(vdot1: currentVDOT, vdot2: targetVDOT, week: trainingWeeks, age: age)
+            
+            HStack {
+                Text(getDifficultyText(difficulty: difficulty))
+                    .foregroundColor(getDifficultyColor(difficulty: difficulty))
+                    .font(.headline)
+                
+                Spacer()
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(10)
+        }
+        .padding(.top, 10)
+    }
+    
+    private func getDifficultyText(difficulty: Double) -> String {
+        switch difficulty {
+        case ..<15:
+            return "輕鬆"
+        case 15..<30:
+            return "適中"
+        case 30..<50:
+            return "挑戰"
+        case 50..<80:
+            return "困難"
+        default:
+            return "極限挑戰"
+        }
+    }
+    
+    private func getDifficultyColor(difficulty: Double) -> Color {
+        switch difficulty {
+        case ..<15:
+            return .green
+        case 15..<30:
+            return .blue
+        case 30..<40:
+            return .orange
+        case 40..<60:
+            return .red
+        default:
+            return .purple
         }
     }
 }

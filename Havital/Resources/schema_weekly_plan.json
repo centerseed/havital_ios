@@ -1,6 +1,8 @@
 {
   "purpose": "string", // 訓練計畫的目標描述
   "tips": "string", // 全局提示，針對整體計畫提供建議
+  "week_of_plan": "int", // 標示訓練計劃的當下周數
+  "totla_weeks": "int", // 訓練計劃的總周數
   "days": [ // 每天的訓練安排，為一個陣列
     {
       "target": "string", // 當日的訓練目標或簡介

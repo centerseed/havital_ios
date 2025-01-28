@@ -10,13 +10,11 @@ struct UserPreferenceView: View {
                 Section("基本資料") {
                     InfoRow(title: "姓名", value: preference?.userName ?? "未設定")
                     InfoRow(title: "信箱", value: preference?.userEmail ?? "未設定")
-                    InfoRow(title: "年齡", value: "\(preference?.age ?? 0)歲")
+                    
                 }
                 
                 Section("身體數據") {
-                    InfoRow(title: "身高", value: String(format: "%.1f cm", preference?.bodyHeight ?? 0))
-                    InfoRow(title: "體重", value: String(format: "%.1f kg", preference?.bodyWeight ?? 0))
-                    InfoRow(title: "體脂率", value: String(format: "%.1f%%", preference?.bodyFat ?? 0))
+                    InfoRow(title: "最大心率", value: "\(preference?.maxHeartRate ?? 0)bpm")
                 }
                 
                 Section("運動能力評估") {

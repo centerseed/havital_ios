@@ -67,7 +67,7 @@ struct TrainingPlanOverviewDetailView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     
-                                    Text(stage["stage_discription"] as? String ?? "")
+                                    Text(stage["stage_description"] as? String ?? "")
                                         .font(.body)
                                 }
                                 .padding()

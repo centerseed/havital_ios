@@ -92,29 +92,64 @@ struct WeeklyAnalysisView: View {
                             Button(action: {
                                 Task {
                                     isGeneratingPlan = true
+                                    // 先更新 weekOfPlan
                                     let weekOfPlan = (UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1) + 1
-                                    guard let planOverView = TrainingPlanStorage.shared.loadTrainingPlanOverview() else {
+                                    if var preference = UserPreferenceManager.shared.currentPreference {
+                                        preference.weekOfPlan = weekOfPlan
+                                        UserPreferenceManager.shared.savePreference(preference)
+                                    }
+                                    
+                                    guard var planOverview = TrainingPlanStorage.shared.loadTrainingPlanOverview() else {
                                         print("無法載入訓練計劃概覽")
                                         isGeneratingPlan = false
                                         return
                                     }
+                                    //let planOverview = TrainingPlanStorage.shared.loadTrainingPlanOverview()
                                     let selectedGoal = UserPreferenceManager.shared.currentPreference?.goalType ?? "defaultGoal"
                                     print("weekOfPlan: \(weekOfPlan), goal: \(selectedGoal)")
                                     
                                     do {
-                                        // 產生下週訓練計劃
-                                        let result = try await GeminiService.shared.generateContent(
-                                            withPromptFiles: [selectedGoal == "beginner" ? "prompt_plan_base_habit" : "prompt_plan_runing"],
-                                            input: planOverView.merging(["action": "產生第\(weekOfPlan)週訓練計劃"]) { (_, new) in new },
-                                            schema: trainingPlanSchema
+                                        // 確定API路徑
+                                        let selectedGoalType = UserPreferenceManager.shared.currentPreference?.goalType ?? "custom"
+                                        let apiPath: String
+                                        switch selectedGoalType {
+                                        case "beginner":
+                                            apiPath = "/v1/prompt/8/18"
+                                            
+                                        case "running":
+                                            apiPath = "/v1/prompt/8/28"
+                                            
+                                            print("current vdot: \(UserPreferenceManager.shared.currentPreference?.currentVDOT ?? 0)")
+                                            if var userInfo = planOverview["user_information"] as? [String: Any] {
+                                                userInfo["current_vdot"] = UserPreferenceManager.shared.currentPreference?.currentVDOT ?? 0
+                                                userInfo["target_vdot"] = UserPreferenceManager.shared.currentPreference?.targetVDOT ?? 0
+                                                
+                                                let calculator = VDOTCalculator()
+                                                let pace_table = calculator.trainingPaces(forVDOT: userInfo["current_vdot"] as! Double)
+                                                userInfo["pace_table"] = pace_table
+                                                planOverview["user_information"] = userInfo
+                                            }
+                                        default:  // custom
+                                            apiPath = "/v1/prompt/8/22"
+                                        }
+                                        
+                                        let mergedInput = planOverview.merging(["action": "產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃"]) { (_, new) in new }
+                                        print("選擇的 API 路徑: \(apiPath)")
+                                        print("合併後的輸入: \(mergedInput)")
+                                        
+                                        var result = try await PromptDashService.shared.generateContent(
+                                            apiPath: apiPath, 
+                                            userMessage: String(describing: mergedInput),
+                                            variables: [
+                                                ["JSON_FORMAT": "schema_weekly_plan"]
+                                            ]
                                         )
                                         
                                         print("成功生成計劃：\(result)")
                                         
-                                        // 更新並保存 weekOfPlan
-                                        if var preference = UserPreferenceManager.shared.currentPreference {
-                                            preference.weekOfPlan = weekOfPlan
-                                            UserPreferenceManager.shared.savePreference(preference)
+                                        if var weeklyPlan = result["weekly_plan"] as? [String: Any] {
+                                            weeklyPlan["week"] = weekOfPlan
+                                            result["weekly_plan"] = weeklyPlan
                                         }
                                         
                                         // 保存新的計劃
@@ -127,6 +162,8 @@ struct WeeklyAnalysisView: View {
                                                 isGeneratingPlan = false
                                                 dismiss()
                                             }
+                                        } else {
+                                            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法保存訓練計劃"])
                                         }
                                     } catch {
                                         print("生成計劃時出錯：\(error.localizedDescription)")

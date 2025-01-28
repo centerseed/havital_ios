@@ -9,9 +9,7 @@ struct UserPreference: Codable {
     var busyLevel: Int
     var proactiveLevel: Int
     var age: Int
-    var bodyFat: Double
-    var bodyHeight: Double
-    var bodyWeight: Double
+    var maxHeartRate: Int
     var announcement: String
     var workoutDays: Set<Int>
     var preferredWorkout: String
@@ -19,13 +17,15 @@ struct UserPreference: Codable {
     // 新增跑步相關欄位
     var goalType: String  // "小試身手" 或 "挑戰跑步目標"
     var runningExperience: Bool
-    var longestDistance: Double  // 最長跑步距離（公里）
+    var currentDistance: Double  // 當前跑步距離（公里）
     var paceInSeconds: Int  // 配速（秒/公里）
     var targetDistance: String  // 目標距離
     var targetTimeInMinutes: Int  // 目標完賽時間（分鐘）
     var targetPaceInSeconds: Int  // 目標配速（秒/公里）
     var trainingWeeks: Int  // 訓練週數
     var raceDate: Date?  // 比賽日期
+    var currentVDOT: Double?  // 當前VDOT值
+    var targetVDOT: Double?  // 目標VDOT值
     
     // 計劃進度
     var weekOfPlan: Int // 計劃中的第幾周
@@ -39,25 +39,25 @@ struct UserPreference: Codable {
         case busyLevel = "busy_level"
         case proactiveLevel = "proactive_level"
         case age
-        case bodyFat = "body_fat"
-        case bodyHeight = "body_height"
-        case bodyWeight = "body_weight"
+        case maxHeartRate = "max_heart_rate"
         case announcement
         case workoutDays = "workout_days"
         case preferredWorkout = "preferred_workout"
         case goalType = "goal_type"
         case runningExperience = "running_experience"
-        case longestDistance = "longest_distance"
+        case currentDistance = "current_distance"
         case paceInSeconds = "pace_in_seconds"
         case targetDistance = "target_distance"
         case targetTimeInMinutes = "target_time_in_minutes"
         case targetPaceInSeconds = "target_pace_in_seconds"
         case trainingWeeks = "training_weeks"
         case raceDate = "race_date"
+        case currentVDOT = "current_vdot"
+        case targetVDOT = "target_vdot"
         case weekOfPlan = "week_of_plan"
     }
     
-    init(userId: Int, userEmail: String, userName: String, aerobicsLevel: Int, strengthLevel: Int, busyLevel: Int, proactiveLevel: Int, age: Int, bodyFat: Double, bodyHeight: Double, bodyWeight: Double, announcement: String, workoutDays: Set<Int>, preferredWorkout: String, goalType: String = "", runningExperience: Bool = false, longestDistance: Double = 0.0, paceInSeconds: Int = 0, targetDistance: String = "", targetTimeInMinutes: Int = 0, targetPaceInSeconds: Int = 420, trainingWeeks: Int = 4, raceDate: Date? = nil, weekOfPlan: Int = 1) {
+    init(userId: Int, userEmail: String, userName: String, aerobicsLevel: Int, strengthLevel: Int, busyLevel: Int, proactiveLevel: Int, age: Int, maxHeartRate: Int, announcement: String, workoutDays: Set<Int>, preferredWorkout: String, goalType: String = "", runningExperience: Bool = false, currentDistance: Double = 0.0, paceInSeconds: Int = 0, targetDistance: String = "", targetTimeInMinutes: Int = 0, targetPaceInSeconds: Int = 420, trainingWeeks: Int = 4, raceDate: Date? = nil, currentVDOT: Double? = nil, targetVDOT: Double? = nil, weekOfPlan: Int = 1) {
         self.userId = userId
         self.userEmail = userEmail
         self.userName = userName
@@ -66,21 +66,21 @@ struct UserPreference: Codable {
         self.busyLevel = busyLevel
         self.proactiveLevel = proactiveLevel
         self.age = age
-        self.bodyFat = bodyFat
-        self.bodyHeight = bodyHeight
-        self.bodyWeight = bodyWeight
+        self.maxHeartRate = maxHeartRate
         self.announcement = announcement
         self.workoutDays = workoutDays
         self.preferredWorkout = preferredWorkout
         self.goalType = goalType
         self.runningExperience = runningExperience
-        self.longestDistance = longestDistance
+        self.currentDistance = currentDistance
         self.paceInSeconds = paceInSeconds
         self.targetDistance = targetDistance
         self.targetTimeInMinutes = targetTimeInMinutes
         self.targetPaceInSeconds = targetPaceInSeconds
         self.trainingWeeks = trainingWeeks
         self.raceDate = raceDate
+        self.currentVDOT = currentVDOT
+        self.targetVDOT = targetVDOT
         self.weekOfPlan = weekOfPlan
     }
 }

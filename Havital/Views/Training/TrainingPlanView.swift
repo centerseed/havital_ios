@@ -8,6 +8,7 @@ struct TrainingPlanView: View {
     @State private var showingUserPreference = false
     @State private var showingDatePicker = false
     @AppStorage("isLoggedIn") private var isLoggedIn = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingAnalysis = false
     @StateObject private var userPrefManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
@@ -85,6 +86,7 @@ struct TrainingPlanView: View {
                             if let overview = TrainingPlanStorage.shared.loadTrainingPlanOverview(),
                                let totalWeeks = overview["total_weeks"] as? Int {
                                 let currentWeek = userPrefManager.currentPreference?.weekOfPlan ?? 1
+                                //print("在入訓練進度：第\()週")
                                 
                                 // Calculate weekly progress
                                 let completedDays = viewModel.trainingDays.filter { $0.isCompleted && $0.isTrainingDay }.count
@@ -94,7 +96,7 @@ struct TrainingPlanView: View {
                                     HStack(alignment: .center, spacing: 24) {
                                         // Progress circles
                                         HStack(alignment: .center, spacing: 24) {
-                                            CircularProgressView(
+                                             CircularProgressView(
                                                 progress: Double(currentWeek) / Double(totalWeeks),
                                                 title: "\(currentWeek)/\(totalWeeks)",
                                                 subtitle: "總進度",
@@ -253,12 +255,11 @@ struct TrainingPlanView: View {
                     }) {
                         Label("個人資料", systemImage: "person.circle")
                     }
-                    /*
                     Button(action: {
                         activeSheet = .datePicker
                     }) {
                         Label("修改計劃開始日期", systemImage: "arrow.clockwise")
-                    }*/
+                    }
                     Button(action: {
                         viewModel.showingCalendarSetup = true
                         activeSheet = .calendarSetup
@@ -266,7 +267,8 @@ struct TrainingPlanView: View {
                         Label("同步至行事曆", systemImage: "calendar.badge.plus")
                     }
                     Button(action: {
-                        isLoggedIn = false
+                        hasCompletedOnboarding = false
+                        UserPreferenceManager.shared.currentPreference?.weekOfPlan = 1
                     }) {
                         Label("重新OnBoarding", systemImage: "arrow.clockwise")
                     }

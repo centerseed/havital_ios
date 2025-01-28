@@ -70,7 +70,6 @@ class GeminiService {
             
             // Then try without subdirectory
             if let url = Bundle.main.url(forResource: fileName, withExtension: "json") {
-                print("Found file in root: \(url.path)")
                 if let content = try? String(contentsOf: url) {
                     return content
                 }
@@ -78,7 +77,6 @@ class GeminiService {
             
             // Finally, try direct file path
             if let path = Bundle.main.path(forResource: fileName, ofType: "json") {
-                print("Found file with direct path: \(path)")
                 if let content = try? String(contentsOfFile: path) {
                     return content
                 }
@@ -92,8 +90,6 @@ class GeminiService {
     
     private func loadPromptAndInsertData(fileName: String, data: String, lineNumber: Int) throws -> String {
         print("=== Debug: Loading Prompt File ===")
-        print("File Name: \(fileName)")
-        print("Line Number: \(lineNumber)")
         
         // First try with explicit path
         if let url = Bundle.main.url(forResource: fileName, withExtension: "json", subdirectory: "Resources/Prompts") {
@@ -113,7 +109,6 @@ class GeminiService {
         
         // Then try without subdirectory
         if let url = Bundle.main.url(forResource: fileName, withExtension: "json") {
-            print("Found file in root: \(url.path)")
             if let content = try? String(contentsOf: url) {
                 let lines = content.components(separatedBy: .newlines)
                 guard lineNumber <= lines.count else {
@@ -141,9 +136,6 @@ class GeminiService {
         let inputString = String(data: inputJson, encoding: .utf8) ?? "{}"
         
         let prompt = promptContent + "\n" + inputString
-        print("--------------- Promp start ---------------")
-        print(prompt)
-        print("--------------- Promp end ---------------")
         
         do {
             let response = try await model.generateContent(prompt)

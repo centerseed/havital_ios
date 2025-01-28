@@ -8,12 +8,31 @@ struct TrainingPlanOverviewView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @Binding var hasCompletedOnboarding: Bool
-    
+    @State private var weeklyPlan: [String: Any] = [:]
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // 訓練計劃總覽
-                if let overview = planOverview["training_plan_overview"] as? String {
+                if let overview = planOverview["training_plan_overview"] as? [String] {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("訓練計劃總覽")
+                            .font(.headline)
+                            .font(.system(size: 16))
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(overview, id: \.self) { item in
+                                Text("• \(item)")
+                                    .font(.body)
+                                    .font(.system(size: 14))
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(UIColor.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(radius: 2)
+                } else if let overview = planOverview["training_plan_overview"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("訓練計劃總覽")
                             .font(.headline)
@@ -94,35 +113,68 @@ struct TrainingPlanOverviewView: View {
                 // 產生一週計劃按鈕
                 Button(action: {
                     Task {
-                        isGeneratingPlan = true
-                        let promptFile: String
-                        switch selectedGoalType {
-                        case "beginner":
-                            promptFile = "prompt_plan_base_habit"
-                        case "running":
-                            promptFile = "prompt_plan_runing"
-                        default:  // custom
-                            promptFile = "prompt_plan_base_habit"
-                }
                         do {
-                            var result = try await GeminiService.shared.generateContent(
-                                withPromptFiles: [promptFile],
-                                input: planOverview.merging(["action": "產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃"]) { (_, new) in new },
-                                schema: trainingPlanSchema
+                            isGeneratingPlan = true
+                            print("開始生成計劃")
+                            
+                            var apiPath: String
+                            var overview = planOverview
+
+                            switch selectedGoalType {
+                            case "beginner":
+                                apiPath = "/v1/prompt/8/18"
+                                
+                            case "running":
+                                apiPath = "/v1/prompt/8/28"
+                                
+                                print("current vdot: \(UserPreferenceManager.shared.currentPreference?.currentVDOT ?? 0)")
+                                if var userInfo = planOverview["user_information"] as? [String: Any] {
+                                    userInfo["current_vdot"] = UserPreferenceManager.shared.currentPreference?.currentVDOT ?? 0
+                                    userInfo["target_vdot"] = UserPreferenceManager.shared.currentPreference?.targetVDOT ?? 0
+                                    
+                                    let calculator = VDOTCalculator()
+                                    let pace_table = calculator.trainingPaces(forVDOT: userInfo["current_vdot"] as! Double)
+                                    userInfo["pace_table"] = pace_table
+                                    overview["user_information"] = userInfo
+                                }
+                            default:  // custom
+                                apiPath = "/v1/prompt/8/22"
+                            }
+                            
+                            let mergedInput = overview.merging(["action": "產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃"]) { (_, new) in new }
+                            print("選擇的 API 路徑: \(apiPath)")
+                            print("合併後的輸入: \(mergedInput)")
+                            
+                            var result = try await PromptDashService.shared.generateContent(
+                                apiPath: apiPath, 
+                                userMessage: String(describing: mergedInput),
+                                variables: [
+                                    ["JSON_FORMAT": "schema_weekly_plan"]
+                                ]
                             )
                             
                             print("成功生成計劃：\(result)")
                             
-                            // 處理生成的計劃
-                            if let plan = try? TrainingPlanStorage.shared.generateAndSaveNewPlan(from: result) {
-                                
-                                await MainActor.run {
-                                    isGeneratingPlan = false
-                                    dismiss()
-                                    hasCompletedOnboarding = true
-                                }
+                            if var weeklyPlan = result["weekly_plan"] as? [String: Any] {
+                                weeklyPlan["week"] = UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1
+                                result["weekly_plan"] = weeklyPlan
                             }
+                            
+                            // 先保存計劃
+                            if let plan = try? TrainingPlanStorage.shared.generateAndSaveNewPlan(from: result) {
+                                // 在主線程更新 UI
+                                await MainActor.run {
+                                    self.weeklyPlan = result
+                                    isGeneratingPlan = false
+                                    hasCompletedOnboarding = true
+                                    dismiss()
+                                }
+                            } else {
+                                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法保存訓練計劃"])
+                            }
+                            
                         } catch {
+                            print("未預期的錯誤: \(error)")
                             await MainActor.run {
                                 isGeneratingPlan = false
                                 showError = true
@@ -132,7 +184,7 @@ struct TrainingPlanOverviewView: View {
                     }
                 }) {
                     HStack {
-                        Text("產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週計劃")
+                        Text("產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃")
                             .fontWeight(.semibold)
                         if isGeneratingPlan {
                             ProgressView()

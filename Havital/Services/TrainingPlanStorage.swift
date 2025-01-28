@@ -55,14 +55,15 @@ class TrainingPlanStorage {
     }
     
     func saveTrainingPlanOverview(_ overview: [String: Any]) {
-        if let data = try? JSONSerialization.data(withJSONObject: overview) {
+        if let data = try? JSONSerialization.data(withJSONObject: overview, options: [.prettyPrinted]) {
             defaults.set(data, forKey: planOverviewKey)
         }
+        print("已保存訓練計劃概覽")
     }
     
     func loadTrainingPlanOverview() -> [String: Any]? {
         guard let data = defaults.data(forKey: planOverviewKey),
-              let overview = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let overview = try? JSONSerialization.jsonObject(with: data, options: [.allowFragments]) as? [String: Any] else {
             return nil
         }
         return overview
