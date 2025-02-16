@@ -1,8 +1,11 @@
 import SwiftUI
+import FirebaseAuth
 
 struct LoginView: View {
-    @AppStorage("isLoggedIn") private var isLoggedIn = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @StateObject private var authService = AuthenticationService.shared
+    @State private var showError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         VStack(spacing: 40) {
@@ -20,7 +23,7 @@ struct LoginView: View {
             }
             
             // Welcome Image
-            Image("welcome") // Make sure to add this image to assets
+            Image("welcome")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 250)
@@ -28,38 +31,33 @@ struct LoginView: View {
             
             Spacer()
             
-            // Login/Signup Buttons
+            // Login Button
             VStack(spacing: 16) {
                 Button {
-                    isLoggedIn = true
-                    hasCompletedOnboarding = false
+                    Task {
+                        do {
+                            let credential = try await authService.signInWithGoogle()
+                            try await Auth.auth().signIn(with: credential)
+                            hasCompletedOnboarding = false
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showError = true
+                        }
+                    }
                 } label: {
-                    Text("開始使用")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppTheme.shared.primaryColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                    HStack(spacing: 8) {
+                        Image(systemName: "g.circle.fill")
+                            .font(.title2)
+                        Text("使用 Google 登入")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppTheme.shared.primaryColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
                 }
-                /*
-                Button {
-                    isLoggedIn = true
-                } label: {
-                    Text("註冊(TBD)")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppTheme.shared.cardBackgroundColor)
-                        .foregroundColor(AppTheme.shared.primaryColor)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(AppTheme.shared.primaryColor, lineWidth: 2)
-                        )
-                }*/
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 48)
@@ -67,6 +65,11 @@ struct LoginView: View {
         .background(Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.backgroundColor) : UIColor(AppTheme.shared.backgroundColor)
         }))
+        .alert("登入失敗", isPresented: $showError) {
+            Button("確定", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
     }
 }
 

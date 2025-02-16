@@ -123,6 +123,39 @@ struct VDOTCalculator {
         return progressedVDOT
     }
 
+    // 計算當前週數應該達到的 VDOT 值
+    func calculateProgressiveVDOT(currentVDOT: Double, targetVDOT: Double, totalWeeks: Int, currentWeek: Int) -> Double {
+        // 確保輸入的週數有效
+        guard totalWeeks > 7, currentWeek > 0, currentWeek <= totalWeeks else {
+            return currentVDOT
+        }
+        
+        // 定義進展區間：從第3週開始到倒數第4週結束
+        let startWeek = 3
+        let endWeek = totalWeeks - 4
+        
+        // 如果在進展區間之前，返回初始 VDOT
+        if currentWeek < startWeek {
+            return currentVDOT
+        }
+        
+        // 如果在進展區間之後，返回目標 VDOT
+        if currentWeek > endWeek {
+            return targetVDOT
+        }
+        
+        // 計算進展區間內的線性增長
+        let progressWeeks = endWeek - startWeek + 1 // 總進展週數
+        let currentProgressWeek = currentWeek - startWeek + 1 // 當前進展週數
+        let vdotDifference = targetVDOT - currentVDOT
+        
+        // 使用線性插值計算當前應該達到的 VDOT
+        let progressRatio = Double(currentProgressWeek) / Double(progressWeeks)
+        let progressiveVDOT = currentVDOT + (vdotDifference * progressRatio)
+        
+        return progressiveVDOT
+    }
+
     // Helper function: Bisection method to find time (minutes)
     private func bisect(lower: Double, upper: Double, vdot: Double, distance: Double) -> Double {
         let tolerance = 1e-5

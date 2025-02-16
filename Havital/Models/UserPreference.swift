@@ -84,27 +84,3 @@ struct UserPreference: Codable {
         self.weekOfPlan = weekOfPlan
     }
 }
-
-// UserPreference Manager for handling storage
-class UserPreferenceManager: ObservableObject {
-    static let shared = UserPreferenceManager()
-    @Published var currentPreference: UserPreference?
-    
-    private init() {
-        loadPreference()
-    }
-    
-    func savePreference(_ preference: UserPreference) {
-        currentPreference = preference
-        if let encoded = try? JSONEncoder().encode(preference) {
-            UserDefaults.standard.set(encoded, forKey: "UserPreference")
-        }
-    }
-    
-    func loadPreference() {
-        if let data = UserDefaults.standard.data(forKey: "UserPreference"),
-           let preference = try? JSONDecoder().decode(UserPreference.self, from: data) {
-            currentPreference = preference
-        }
-    }
-}

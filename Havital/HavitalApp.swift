@@ -7,18 +7,24 @@
 
 import SwiftUI
 import HealthKit
+import FirebaseCore
 
 @main
 struct HavitalApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("isLoggedIn") private var isLoggedIn = false
     @AppStorage("isHealthKitAuthorized") private var isHealthKitAuthorized = false
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var appViewModel = AppViewModel()
+    @StateObject private var authService = AuthenticationService.shared
+    
+    init() {
+        // Configure Firebase
+        FirebaseApp.configure()
+    }
     
     var body: some Scene {
         WindowGroup {
-            if !isLoggedIn {
+            if !authService.isAuthenticated {
                 LoginView()
                     .environmentObject(appViewModel)
             } else if !hasCompletedOnboarding {

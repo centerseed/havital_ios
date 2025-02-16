@@ -117,74 +117,11 @@ struct TrainingPlanOverviewView: View {
                             isGeneratingPlan = true
                             print("開始生成計劃")
                             
-                            var apiPath: String
-                            var overview = planOverview
-
-                            switch selectedGoalType {
-                            case "beginner":
-                                apiPath = "/v1/prompt/8/18"
-                                
-                            case "running":
-                                apiPath = "/v1/prompt/8/28"
-                                
-                                print("current vdot: \(UserPreferenceManager.shared.currentPreference?.currentVDOT ?? 0)")
-                                if var userInfo = planOverview["user_information"] as? [String: Any] {
-                                    userInfo["current_vdot"] = UserPreferenceManager.shared.currentPreference?.currentVDOT ?? 0
-                                    userInfo["target_vdot"] = UserPreferenceManager.shared.currentPreference?.targetVDOT ?? 0
-                                    
-                                    let calculator = VDOTCalculator()
-                                    let pace_table = calculator.trainingPaces(forVDOT: userInfo["current_vdot"] as! Double)
-                                    userInfo["pace_table"] = pace_table
-                                    overview["user_information"] = userInfo
-                                }
-                            default:  // custom
-                                apiPath = "/v1/prompt/8/22"
-                            }
-                            
-                            let mergedInput = overview.merging(["action": "產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃"]) { (_, new) in new }
-                            print("選擇的 API 路徑: \(apiPath)")
-                            print("合併後的輸入: \(mergedInput)")
-                            
-                            var result = try await PromptDashService.shared.generateContent(
-                                apiPath: apiPath, 
-                                userMessage: String(describing: mergedInput),
-                                variables: [
-                                    ["JSON_FORMAT": "schema_weekly_plan"]
-                                ]
-                            )
-                            
-                            print("成功生成計劃：\(result)")
-                            
-                            if var weeklyPlan = result["weekly_plan"] as? [String: Any] {
-                                weeklyPlan["week"] = UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1
-                                result["weekly_plan"] = weeklyPlan
-                            }
-                            
-                            // 先保存計劃
-                            if let plan = try? TrainingPlanStorage.shared.generateAndSaveNewPlan(from: result) {
-                                // 在主線程更新 UI
-                                await MainActor.run {
-                                    self.weeklyPlan = result
-                                    isGeneratingPlan = false
-                                    hasCompletedOnboarding = true
-                                    dismiss()
-                                }
-                            } else {
-                                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法保存訓練計劃"])
-                            }
-                            
-                        } catch {
-                            print("未預期的錯誤: \(error)")
-                            await MainActor.run {
-                                isGeneratingPlan = false
-                                showError = true
-                                errorMessage = error.localizedDescription
-                            }
                         }
                     }
                 }) {
                     HStack {
-                        Text("產生第\(UserPreferenceManager.shared.currentPreference?.weekOfPlan ?? 1)週訓練計劃")
+                        Text("產生第\(UserPreferenceManager.shared.weekOfTraining ?? 1)週訓練計劃")
                             .fontWeight(.semibold)
                         if isGeneratingPlan {
                             ProgressView()

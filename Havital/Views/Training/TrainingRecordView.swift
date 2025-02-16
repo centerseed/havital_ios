@@ -7,6 +7,7 @@ struct TrainingRecordView: View {
     @State private var selectedWorkout: HKWorkout?
     @State private var showingWorkoutDetail = false
     @State private var heartRateData: [(Date, Double)] = []
+    @State private var paceData: [(Date, Double)] = []
     
     var body: some View {
         NavigationStack {
@@ -23,7 +24,8 @@ struct TrainingRecordView: View {
                     WorkoutDetailView(
                         workout: workout,
                         healthKitManager: healthKitManager,
-                        initialHeartRateData: heartRateData
+                        initialHeartRateData: heartRateData,
+                        initialPaceData: paceData
                     )
                 }
             }
@@ -64,6 +66,13 @@ struct TrainingRecordView: View {
                     heartRateData = []
                 }
                 selectedWorkout = workout
+                
+                do {
+                    paceData = try await healthKitManager.fetchPaceData(for: workout)
+                } catch {
+                    print("Error loading pace data: \(error)")
+                    paceData = []
+                }
             }
         } label: {
             WorkoutRowView(workout: workout)

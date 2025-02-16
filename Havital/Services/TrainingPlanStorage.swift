@@ -2,69 +2,56 @@ import Foundation
 
 class TrainingPlanStorage {
     static let shared = TrainingPlanStorage()
-    private let generator = TrainingPlanGenerator.shared
     private let defaults = UserDefaults.standard
     private let planKey = "training_plan"
     private let planOverviewKey = "training_plan_overview"
+    private let weeklyPlanKey = "weekly_plan"
     
     private init() {}
     
-    func generateAndSaveNewPlan(from jsonDict: [String: Any]) throws -> TrainingPlan {
-        let plan = try generator.generatePlan(from: jsonDict)
-        try savePlan(plan)
-        return plan
+    static func saveWeeklyPlan(_ plan: WeeklyPlan) {
+        do {
+            let data = try JSONEncoder().encode(plan)
+            UserDefaults.standard.set(data, forKey: shared.weeklyPlanKey)
+        } catch {
+            print("Error saving weekly plan: \(error)")
+        }
     }
     
-    func savePlan(_ plan: TrainingPlan) throws {
-        let data = try JSONEncoder().encode(plan)
-        defaults.set(data, forKey: planKey)
-    }
-    
-    func deletePlan() {
-        defaults.removeObject(forKey: planKey)
-    }
-    
-    func loadPlan() -> TrainingPlan? {
-        guard let data = defaults.data(forKey: planKey) else {
+    static func loadWeeklyPlan() -> WeeklyPlan? {
+        guard let data = UserDefaults.standard.data(forKey: shared.weeklyPlanKey) else {
             return nil
         }
-        return try? JSONDecoder().decode(TrainingPlan.self, from: data)
-    }
-    
-    func updateDayCompletion(_ dayId: String, isCompleted: Bool) throws {
-        guard var plan = loadPlan() else {
-            throw StorageError.planNotFound
-        }
         
-        plan.updateDayCompletion(dayId, isCompleted: isCompleted)
-        try savePlan(plan)
-    }
-    
-    func updateTrainingDay(_ updatedDay: TrainingDay) async throws {
-        guard var plan = loadPlan() else {
-            throw StorageError.planNotFound
-        }
-        
-        // 找到並更新對應的訓練日
-        if let index = plan.days.firstIndex(where: { $0.id == updatedDay.id }) {
-            plan.days[index] = updatedDay
-            try savePlan(plan)
-        } else {
-            throw StorageError.dayNotFound
-        }
-    }
-    
-    func saveTrainingPlanOverview(_ overview: [String: Any]) {
-        if let data = try? JSONSerialization.data(withJSONObject: overview, options: [.prettyPrinted]) {
-            defaults.set(data, forKey: planOverviewKey)
-        }
-        print("已保存訓練計劃概覽")
-    }
-    
-    func loadTrainingPlanOverview() -> [String: Any]? {
-        guard let data = defaults.data(forKey: planOverviewKey),
-              let overview = try? JSONSerialization.jsonObject(with: data, options: [.allowFragments]) as? [String: Any] else {
+        do {
+            return try JSONDecoder().decode(WeeklyPlan.self, from: data)
+        } catch {
+            print("Error loading weekly plan: \(error)")
             return nil
+        }
+    }
+
+    static func saveTrainingPlanOverview(_ overview: TrainingPlanOverview) {
+        do {
+            let data = try JSONEncoder().encode(overview)
+            shared.defaults.set(data, forKey: shared.planOverviewKey)
+            print("已保存訓練計劃概覽")
+        } catch {
+            print("保存訓練計劃概覽時出錯：\(error)")
+        }
+    }
+    
+    static func loadTrainingPlanOverview() -> TrainingPlanOverview {
+        guard let data = shared.defaults.data(forKey: shared.planOverviewKey),
+              let overview = try? JSONDecoder().decode(TrainingPlanOverview.self, from: data) else {
+            print("無法讀取訓練計劃概覽，返回空的概覽")
+            return TrainingPlanOverview(
+                targetEvaluate: "",
+                totalWeeks: 0,
+                trainingHighlight: "",
+                trainingPlanName: "",
+                trainingStageDescription: []
+            )
         }
         return overview
     }

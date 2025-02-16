@@ -1,9 +1,16 @@
 import SwiftUI
 import HealthKit
 
+struct DataPoint: Identifiable {
+    let id = UUID()
+    let time: Date
+    let value: Double
+}
+
 @MainActor
 class WorkoutDetailViewModel: ObservableObject {
-    @Published var heartRates: [HeartRatePoint] = []
+    @Published var heartRates: [DataPoint] = []
+    @Published var paces: [DataPoint] = []
     @Published var isLoading = false
     @Published var error: String?
     @Published var zoneDistribution: [Int: TimeInterval] = [:]
@@ -17,18 +24,29 @@ class WorkoutDetailViewModel: ObservableObject {
         workout.uuid
     }
     
-    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)]) {
+    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)], initialPaceData: [(Date, Double)]) {
         self.workout = workout
         self.healthKitManager = healthKitManager
         
         // 使用初始數據
+        // hear rate
         if !initialHeartRateData.isEmpty {
             self.heartRates = initialHeartRateData.map { timeAndValue in
-                HeartRatePoint(time: timeAndValue.0, value: timeAndValue.1)
+                DataPoint(time: timeAndValue.0, value: timeAndValue.1)
+            }
+            // pace
+            self.paces = initialPaceData.map { timeAndValue in
+                DataPoint(time: timeAndValue.0, value: timeAndValue.1)
             }
         } else {
             // 如果沒有初始數據，則自動加載
             loadHeartRateData()
+            loadPacesData()
+        }
+        // delay 2 sences for UI update
+        Task {
+            try await Task.sleep(nanoseconds: 2_000_000_000)
+            await postWorkoutData()
         }
     }
     
@@ -58,6 +76,17 @@ class WorkoutDetailViewModel: ObservableObject {
         }
     }
     
+    var pace: String? {
+        let distance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+        let duration = workout.duration
+        
+        let paceSecondsPerMeter = duration / Double(distance)
+        let paceInSecondsPerKm = paceSecondsPerMeter * 1000
+        let paceMinutes = Int(paceInSecondsPerKm) / 60
+        let paceRemainingSeconds = Int(paceInSecondsPerKm) % 60
+        return String(format: "%d:%02d min/km", paceMinutes, paceRemainingSeconds)
+    }
+    
     var maxHeartRate: String {
         let max = heartRates.map { $0.value }.max() ?? 0
         return String(format: "%.0f bpm", max)
@@ -74,6 +103,46 @@ class WorkoutDetailViewModel: ObservableObject {
         let max = values.max() ?? 200
         let padding = (max - min) * 0.1
         return (min - padding, max + padding)
+    }
+
+    func loadPacesData() {
+        // 取消之前的任務
+        loadTask?.cancel()
+        
+        // 創建新的任務
+        loadTask = Task { @MainActor in
+            isLoading = true
+            error = nil
+            
+            do {
+                let paceData = try await healthKitManager.fetchPaceData(for: workout)
+                
+                // 檢查任務是否被取消
+                if Task.isCancelled { return }
+                
+                self.paces = paceData.map { timeAndValue in
+                    DataPoint(time: timeAndValue.0, value: timeAndValue.1)
+                }
+        
+                self.isLoading = false
+            } catch {
+                print("Error fetching pace data: \(error)")
+                self.error = "獲取配速數據時出錯"
+            }
+        }
+    }
+    
+    private func postWorkoutData() async {
+        do {
+            
+            try await WorkoutService.shared.postWorkoutDetails(
+                workout: workout,
+                heartRates: heartRates,
+                paces: paces
+            )
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
     
     func loadHeartRateData() {
@@ -93,7 +162,7 @@ class WorkoutDetailViewModel: ObservableObject {
                 
                 // 將心率數據轉換為圖表點
                 let heartRatePoints = heartRateData.map { timeAndValue in
-                    HeartRatePoint(time: timeAndValue.0, value: timeAndValue.1)
+                    DataPoint(time: timeAndValue.0, value: timeAndValue.1)
                 }
                 
                 self.heartRates = heartRatePoints

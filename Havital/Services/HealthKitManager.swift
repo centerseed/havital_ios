@@ -16,6 +16,7 @@ class HealthKitManager: ObservableObject {
         let typesToRead: Set<HKObjectType> = [
             HKObjectType.workoutType(),
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.quantityType(forIdentifier: .runningSpeed)!,
             HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
@@ -241,6 +242,47 @@ class HealthKitManager: ObservableObject {
         }
     }
     
+    func fetchPaceData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let runningSpeedType = HKObjectType.quantityType(forIdentifier: .runningSpeed) else {
+            throw HealthError.typeNotAvailable
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(
+                withStart: workout.startDate,
+                end: workout.endDate,
+                options: .strictEndDate
+            )
+            
+            let runningSpeedQuery = HKSampleQuery(
+                sampleType: runningSpeedType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, samples, error in
+                if let error = error {
+                    print("獲取速度數據時出錯: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                guard let runningSpeedSamples = samples as? [HKQuantitySample] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                
+                let speeds = runningSpeedSamples.map { sample -> (Date, Double) in
+                    let speed = sample.quantity.doubleValue(for: HKUnit.meter().unitDivided(by: HKUnit.second()))
+                    return (sample.startDate, speed)
+                }
+                
+                continuation.resume(returning: speeds)
+            }
+            
+            healthStore.execute(runningSpeedQuery)
+        }
+    }
+
     func fetchHeartRateData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
             throw HealthError.typeNotAvailable
@@ -334,7 +376,7 @@ class HealthKitManager: ObservableObject {
     
     func fetchMaxHeartRate() async -> Double {
         // 從 UserPreferenceManager 獲取用戶年齡
-        let age = UserPreferenceManager.shared.currentPreference?.age ?? 30
+        let age = UserPreferenceManager.shared.age ?? 30
         // 使用 220 - age 公式計算最大心率
         return Double(220 - age)
     }

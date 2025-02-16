@@ -6,11 +6,12 @@ struct WorkoutDetailView: View {
     @StateObject private var viewModel: WorkoutDetailViewModel
     @Environment(\.dismiss) private var dismiss
     
-    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)]) {
+    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)], initialPaceData: [(Date, Double)]) {
         _viewModel = StateObject(wrappedValue: WorkoutDetailViewModel(
             workout: workout,
             healthKitManager: healthKitManager,
-            initialHeartRateData: initialHeartRateData
+            initialHeartRateData: initialHeartRateData,
+            initialPaceData: initialPaceData
         ))
     }
     
@@ -57,6 +58,9 @@ struct WorkoutDetailView: View {
                 }
                 if let distance = viewModel.distance {
                     Label(distance, systemImage: "figure.walk")
+                }
+                if let pace = viewModel.pace {
+                    Label(pace, systemImage: "stopwatch")
                 }
             }
             .font(.subheadline)
@@ -212,12 +216,6 @@ struct WorkoutDetailView: View {
     }
 }
 
-struct HeartRatePoint: Identifiable {
-    let id = UUID()
-    let time: Date
-    let value: Double
-}
-
 struct WorkoutDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
@@ -231,7 +229,7 @@ struct WorkoutDetailView_Previews: PreviewProvider {
                 metadata: nil
             )
             
-            WorkoutDetailView(workout: workout, healthKitManager: HealthKitManager(), initialHeartRateData: [])
+            WorkoutDetailView(workout: workout, healthKitManager: HealthKitManager(), initialHeartRateData: [], initialPaceData: [])
         }
     }
 }

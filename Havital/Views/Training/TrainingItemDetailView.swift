@@ -31,17 +31,6 @@ struct TrainingItemDetailView: View {
         .navigationTitle(displayName)
         .onAppear {
             loadExplanation()
-            loadDisplayName()
-        }
-    }
-    
-    private func loadDisplayName() {
-        if let defs = TrainingDefinitions.load()?.trainingItemDefs {
-            if let def = defs.first(where: { $0.name == itemName }) {
-                displayName = def.displayName
-            } else {
-                displayName = itemName
-            }
         }
     }
     
