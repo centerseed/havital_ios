@@ -35,22 +35,22 @@ struct HavitalApp: App {
                     TrainingPlanView()
                         .environmentObject(healthKitManager)
                         .tabItem {
-                            Image(systemName: "list.bullet")
+                            Image(systemName: "figure.run")
                             Text("訓練計劃")
                         }
                     
                     TrainingRecordView()
                         .environmentObject(healthKitManager)
                         .tabItem {
-                            Image(systemName: "chart.bar.fill")
+                            Image(systemName: "chart.line.text.clipboard")
                             Text("訓練紀錄")
                         }
                     
                     MyAchievementView()
                         .environmentObject(healthKitManager)
                         .tabItem {
-                            Image(systemName: "star")
-                            Text("我的成就")
+                            Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                            Text("訓練數據")
                         }
                 }
                 .onAppear {

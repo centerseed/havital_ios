@@ -5,8 +5,12 @@ class NetworkService {
     
     private init() {}
     
-    func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
+    func request<T: Decodable>(_ endpoint: Endpoint, body: Encodable? = nil) async throws -> T {
         var urlRequest = try endpoint.makeRequest()
+        
+        if let body = body {
+            urlRequest.httpBody = try JSONEncoder().encode(body)
+        }
         
         // Add authentication token to header if user is authenticated
         if endpoint.requiresAuth {

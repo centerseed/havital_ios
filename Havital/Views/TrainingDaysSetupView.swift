@@ -7,7 +7,7 @@ class TrainingDaysViewModel: ObservableObject {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     // 建議的訓練天數
-    let recommendedTrainingDays = 4
+    let recommendedTrainingDays = 2
     @Published var isLoading = false
     @Published var error: String?
     @Published var navigateToMainView = false
@@ -24,7 +24,7 @@ class TrainingDaysViewModel: ObservableObject {
         
         do {
             print("開始呼叫 API")
-            let plan = try await TrainingPlanService.shared.getWeeklyPlan()
+            let plan = try await TrainingPlanService.shared.createWeeklyPlan()
             print("成功獲取週計劃")
             weeklyPlan = plan
             hasCompletedOnboarding = true
@@ -42,12 +42,10 @@ class TrainingDaysViewModel: ObservableObject {
         error = nil
         
         do {
-            // 轉換為 API 格式（星期一為 1，星期日為 0）
-            let apiWeekdays = selectedWeekdays.map { weekday in
-                return weekday == 7 ? 0 : weekday
-            }
+            // 轉換為 API 格式（星期一為 1，星期日為 7）
+            let apiWeekdays = selectedWeekdays.map { $0 }
             
-            let apiLongRunDay = selectedLongRunDay == 7 ? 0 : selectedLongRunDay
+            let apiLongRunDay = selectedLongRunDay
             
             // 更新訓練日
             let preferences = [
@@ -142,7 +140,7 @@ struct TrainingDaysSetupView: View {
                     .padding(.bottom, 5)
                 
                 Picker("長跑日", selection: $viewModel.selectedLongRunDay) {
-                    ForEach(0..<7) { weekday in
+                    ForEach(1..<8) { weekday in
                         Text(getWeekdayName(weekday))
                             .tag(weekday)
                     }

@@ -579,6 +579,102 @@ class HealthKitManager: ObservableObject {
             return String(format: "%d分鐘", minutes)
         }
     }
+    
+    /// 獲取用戶的心率區間（使用心率儲備方法，從UserPreferences獲取）
+        func getHRRHeartRateZones() async -> [HeartRateZone] {
+            // 確保心率區間已計算並儲存
+            await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+            
+            // 從 HeartRateZonesManager 獲取區間
+            let hrZones = HeartRateZonesManager.shared.getHeartRateZones()
+            
+            // 轉換為 HealthKitManager.HeartRateZone
+            return HeartRateZonesBridge.shared.convertToHealthKitManagerZones(hrZones)
+        }
+        
+        /// 計算特定時間範圍內的心率區間分佈（使用心率儲備方法）
+        func calculateHRRZoneDistribution(heartRates: [(Date, Double)]) async -> [Int: TimeInterval] {
+            // 確保心率區間已計算並儲存
+            await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+            
+            let hrZones = HeartRateZonesManager.shared.getHeartRateZones()
+            var distribution: [Int: TimeInterval] = [:]
+            
+            // 初始化所有區間的時間為0
+            for zone in hrZones {
+                distribution[zone.zone] = 0
+            }
+            
+            // 如果沒有心率數據則返回空分佈
+            guard heartRates.count > 1 else {
+                return distribution
+            }
+            
+            // 排序心率數據（按時間）
+            let sortedHeartRates = heartRates.sorted { $0.0 < $1.0 }
+            
+            // 計算各區間的時間分佈
+            for i in 0..<(sortedHeartRates.count - 1) {
+                let currentPoint = sortedHeartRates[i]
+                let nextPoint = sortedHeartRates[i + 1]
+                
+                let heartRate = currentPoint.1
+                let timeInterval = nextPoint.0.timeIntervalSince(currentPoint.0)
+                
+                // 獲取該心率所屬的區間
+                let zone = HeartRateZonesManager.shared.getZoneForHeartRate(heartRate)
+                
+                // 累加該區間的時間
+                distribution[zone] = (distribution[zone] ?? 0) + timeInterval
+            }
+            
+            return distribution
+        }
+        
+        /// 獲取週心率區間分析（使用心率儲備方法）
+        func fetchHRRWeeklyHeartRateAnalysis() async throws -> WeeklyHeartRateAnalysis {
+            // 確保心率區間已計算並儲存
+            await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+            
+            let calendar = Calendar.current
+            let now = Date()
+            let startDate = calendar.date(byAdding: .day, value: -7, to: now)!
+            
+            // 獲取過去一週的跑步鍛煉
+            let workouts = try await fetchWorkoutsForDateRange(start: startDate, end: now)
+            
+            var combinedDistribution: [Int: TimeInterval] = [:]
+            var totalModerateTime: TimeInterval = 0
+            var totalVigorousTime: TimeInterval = 0
+            
+            // 處理每個鍛煉的心率數據
+            for workout in workouts {
+                // 獲取心率數據
+                let heartRates = try await fetchHeartRateData(for: workout)
+                if heartRates.isEmpty { continue }
+                
+                // 計算區間分佈（使用心率儲備方法）
+                let distribution = await calculateHRRZoneDistribution(heartRates: heartRates)
+                
+                // 合併到總計中
+                for (zone, time) in distribution {
+                    combinedDistribution[zone] = (combinedDistribution[zone] ?? 0) + time
+                    
+                    // 計算中等和高強度運動時間
+                    if zone == 2 || zone == 3 {
+                        totalModerateTime += time
+                    } else if zone >= 4 {
+                        totalVigorousTime += time
+                    }
+                }
+            }
+            
+            return WeeklyHeartRateAnalysis(
+                zoneDistribution: combinedDistribution,
+                moderateActivityTime: totalModerateTime,
+                vigorousActivityTime: totalVigorousTime
+            )
+        }
 }
 
 // MARK: - 錯誤定義

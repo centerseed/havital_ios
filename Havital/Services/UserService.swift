@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 class UserService {
     static let shared = UserService()
@@ -6,6 +7,7 @@ class UserService {
     private let userPreferenceManager = UserPreferenceManager.shared
     
     private init() {}
+    
     func createTarget(_ target: Target) async throws {
         print("開始建立賽事目標")
         guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets") else {
@@ -153,14 +155,24 @@ class UserService {
         print("成功更新用戶資料")
     }
     
-    func getCurrentUser() async throws -> User {
-        let endpoint = try Endpoint(
-            path: "/user",
-            method: .get,
-            requiresAuth: true
-        )
-        
-        return try await networkService.request(endpoint)
+    func getUserProfile() -> AnyPublisher<User, Error> {
+        return Future<User, Error> { promise in
+            Task {
+                do {
+                    let endpoint = try Endpoint(
+                        path: "/user",
+                        method: .get,
+                        requiresAuth: true
+                    )
+                    
+                    let user: User = try await self.networkService.request(endpoint)
+                    promise(.success(user))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
     }
     
     func loginWithGoogle(idToken: String) async throws -> User {
@@ -175,9 +187,27 @@ class UserService {
         return try await networkService.request(endpoint)
     }
     
+    // Updated to access nested user.data properties
     func syncUserPreferences(with user: User) {
-        userPreferenceManager.email = user.email
-        userPreferenceManager.name = user.name
-        userPreferenceManager.photoURL = user.photoURL
+        userPreferenceManager.email = user.data.email
+        userPreferenceManager.name = user.data.displayName
+        userPreferenceManager.photoURL = user.data.photoUrl
+        
+        // Additionally, we can sync more user preferences if needed
+        if let age = calculateAge(from: user.data.lastLogin) {
+            userPreferenceManager.age = age
+        }
+        
+        userPreferenceManager.maxHeartRate = user.data.maxHr
+        
+        // Update week of training if available
+        userPreferenceManager.weekOfTraining = user.data.weekOfTraining
+    }
+    
+    // Helper function to calculate age (placeholder implementation)
+    private func calculateAge(from dateString: String) -> Int? {
+        // This is just a placeholder - you would implement proper age calculation
+        // based on your actual data structure
+        return nil
     }
 }

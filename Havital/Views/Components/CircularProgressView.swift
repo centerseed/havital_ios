@@ -2,47 +2,64 @@ import SwiftUI
 
 struct CircularProgressView: View {
     let progress: Double
-    let title: String
-    let subtitle: String
-    let color: Color
+    let currentWeek: Int
+    let totalWeeks: Int
     
     var body: some View {
-        VStack {
-            ZStack {
-                Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 8)
-                Circle()
-                    .trim(from: 0, to: CGFloat(min(progress, 1.0)))
-                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear, value: progress)
+        ZStack {
+            // Background Circle
+            Circle()
+                .stroke(
+                    Color.gray.opacity(0.3),
+                    lineWidth: 8
+                )
+            
+            // Progress Circle
+            Circle()
+                .trim(from: 0, to: CGFloat(min(progress, 1.0)))
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.6)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(
+                        lineWidth: 8,
+                        lineCap: .round
+                    )
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeOut, value: progress)
+            
+            // Text in the center
+            VStack(spacing: 2) {
+                Text("\(currentWeek)")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
                 
-                VStack(spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .bold))
-                    Text(subtitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
+                Text("/ \(totalWeeks)")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                
+                Text("週")
+                    .font(.caption)
+                    .foregroundColor(.gray)
             }
-            .frame(width: 80, height: 80)
         }
     }
 }
 
-#Preview {
-    HStack {
-        CircularProgressView(
-            progress: 0.75,
-            title: "3/4",
-            subtitle: "總進度",
-            color: .blue
-        )
-        CircularProgressView(
-            progress: 0.5,
-            title: "2/4",
-            subtitle: "本週進度",
-            color: .green
-        )
+struct CircularProgressView_Previews: PreviewProvider {
+    static var previews: some View {
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
+            CircularProgressView(
+                progress: 0.25,
+                currentWeek: 2,
+                totalWeeks: 8
+            )
+            .frame(width: 100, height: 100)
+        }
     }
 }

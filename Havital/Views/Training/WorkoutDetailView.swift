@@ -19,6 +19,13 @@ struct WorkoutDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 workoutInfoSection
+                
+                if viewModel.isUploaded {
+                    if let uploadTime = viewModel.uploadTime {
+                        uploadStatusSection(uploadTime)
+                    }
+                }
+                
                 heartRateChartSection
                 heartRateZoneSection
             }
@@ -39,7 +46,7 @@ struct WorkoutDetailView: View {
         .onAppear {
             viewModel.loadHeartRateData()
         }
-        .id(viewModel.workoutId) 
+        .id(viewModel.workoutId)
     }
     
     private var workoutInfoSection: some View {
@@ -70,6 +77,32 @@ struct WorkoutDetailView: View {
         .background(Color(.systemBackground))
         .cornerRadius(10)
         .shadow(radius: 1)
+    }
+    
+    private func uploadStatusSection(_ uploadTime: Date) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Text("已同步到雲端")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text("同步時間: \(formatUploadTime(uploadTime))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(radius: 1)
+    }
+    
+    private func formatUploadTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd HH:mm"
+        return formatter.string(from: date)
     }
     
     private var heartRateChartSection: some View {
@@ -155,7 +188,7 @@ struct WorkoutDetailView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(viewModel.heartRateZones.sorted(by: { $0.zone < $1.zone })) { zone in
-                        let duration = viewModel.zoneDistribution[zone.zone] ?? 0
+                        let duration = viewModel.zoneDistribution[zone.id] ?? 0
                         let percentage = viewModel.calculateZonePercentage(duration)
                         
                         VStack(alignment: .leading, spacing: 4) {
@@ -183,7 +216,7 @@ struct WorkoutDetailView: View {
                                         .cornerRadius(4)
                                     
                                     Rectangle()
-                                        .fill(zoneColor(for: zone.zone))
+                                        .fill(zoneColor(for: zone.id))
                                         .frame(width: max(geometry.size.width * CGFloat(percentage / 100), 4), height: 8)
                                         .cornerRadius(4)
                                 }

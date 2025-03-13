@@ -2,18 +2,29 @@ import Foundation
 import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
+import Combine
 
 class AuthenticationService: ObservableObject {
     @Published var user: FirebaseAuth.User?
+    @Published var appUser: User?
     @Published var isAuthenticated = false
+    @Published var isLoading = false
     
     static let shared = AuthenticationService()
+    private var cancellables = Set<AnyCancellable>()
     
     private init() {
         // Listen to auth state changes
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
             self?.isAuthenticated = user != nil
+            
+            if user != nil {
+                // If user is authenticated with Firebase, fetch their profile from backend
+                self?.fetchUserProfile()
+            } else {
+                self?.appUser = nil
+            }
         }
     }
     
@@ -59,18 +70,41 @@ class AuthenticationService: ObservableObject {
         
         do {
             // Try to get existing user
-            let user = try await userService.getCurrentUser()
+            let user = try await loginWithGoogle(idToken: idToken)
+            self.appUser = user
             userService.syncUserPreferences(with: user)
         } catch {
-            // If user doesn't exist, create new user with Google login
-            let user = try await userService.loginWithGoogle(idToken: idToken)
-            userService.syncUserPreferences(with: user)
+            print("Failed to sync with backend: \(error.localizedDescription)")
+            throw error
         }
+    }
+    
+    private func loginWithGoogle(idToken: String) async throws -> User {
+        return try await UserService.shared.loginWithGoogle(idToken: idToken)
+    }
+    
+    func fetchUserProfile() {
+        isLoading = true
+        
+        UserService.shared.getUserProfile()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    print("Failed to fetch user profile: \(error)")
+                }
+            } receiveValue: { [weak self] user in
+                self?.appUser = user
+                UserService.shared.syncUserPreferences(with: user)
+            }
+            .store(in: &cancellables)
     }
     
     func signOut() throws {
         try Auth.auth().signOut()
         try GIDSignIn.sharedInstance.signOut()
+        appUser = nil
+        UserPreferenceManager.shared.clearUserData()
     }
     
     // Get the current ID token

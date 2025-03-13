@@ -3,11 +3,13 @@ import HealthKit
 
 struct WorkoutRowView: View {
     let workout: HKWorkout
+    var isUploaded: Bool = false
+    var uploadTime: Date? = nil
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 8) {
-                Text(WorkoutUtils.workoutTypeString(for: workout))
+                Text(WorkoutUtils.workoutTypeString(for: workout.workoutActivityType))
                     .font(.headline)
                 
                 HStack(spacing: 16) {

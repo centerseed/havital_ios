@@ -19,6 +19,11 @@ struct TrainingRecordView: View {
                 }
             }
             .navigationTitle("訓練記錄")
+            .overlay(alignment: .top) {
+                if let status = viewModel.uploadStatus {
+                    syncStatusView(status)
+                }
+            }
             .sheet(item: $selectedWorkout) { workout in
                 NavigationStack {
                     WorkoutDetailView(
@@ -75,41 +80,35 @@ struct TrainingRecordView: View {
                 }
             }
         } label: {
-            WorkoutRowView(workout: workout)
+            WorkoutRowView(
+                workout: workout,
+                isUploaded: viewModel.isWorkoutUploaded(workout),
+                uploadTime: viewModel.getWorkoutUploadTime(workout)
+            )
         }
         .buttonStyle(.plain)
     }
-}
-
-class TrainingRecordViewModel: ObservableObject {
-    @Published var workouts: [HKWorkout] = []
-    @Published var isLoading = false
     
-    func loadWorkouts(healthKitManager: HealthKitManager) async {
-        await MainActor.run {
-            isLoading = true
-        }
-        
-        do {
-            try await healthKitManager.requestAuthorization()
-            let now = Date()
-            // 改為獲取一個月的數據
-            let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -1, to: now)!
-            
-            let fetchedWorkouts = try await healthKitManager.fetchWorkoutsForDateRange(start: oneMonthAgo, end: now)
-            
-            // 在主線程更新 UI
-            await MainActor.run {
-                self.workouts = fetchedWorkouts.sorted(by: { $0.startDate > $1.startDate }) // 按日期降序排序
-                self.isLoading = false
+    private func syncStatusView(_ status: String) -> some View {
+        HStack {
+            if viewModel.isUploading {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .padding(.trailing, 4)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
             }
-        } catch {
-            print("Error loading workouts: \(error)")
-            await MainActor.run {
-                self.isLoading = false
-                self.workouts = []
-            }
+            
+            Text(status)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(16)
+        .padding(.top, 8)
     }
 }
 

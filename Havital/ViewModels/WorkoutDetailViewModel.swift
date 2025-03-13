@@ -16,6 +16,9 @@ class WorkoutDetailViewModel: ObservableObject {
     @Published var zoneDistribution: [Int: TimeInterval] = [:]
     @Published var heartRateZones: [HealthKitManager.HeartRateZone] = []
     
+    @Published var isUploaded: Bool = false
+    @Published var uploadTime: Date? = nil
+    
     private let workout: HKWorkout
     private let healthKitManager: HealthKitManager
     private var loadTask: Task<Void, Never>?
@@ -55,7 +58,7 @@ class WorkoutDetailViewModel: ObservableObject {
     }
     
     var workoutType: String {
-        WorkoutUtils.workoutTypeString(for: workout)
+        WorkoutUtils.workoutTypeString(for: workout.workoutActivityType)
     }
     
     var duration: String {
