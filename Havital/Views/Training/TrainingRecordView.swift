@@ -11,14 +11,22 @@ struct TrainingRecordView: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoading {
-                    ProgressView("載入訓練記錄中...")
-                } else {
-                    workoutList
+            ScrollView {
+                VStack(spacing: 20) {
+                    if viewModel.isLoading {
+                        ProgressView("載入訓練記錄中...")
+                            .foregroundColor(.white)
+                            .frame(height: 200)
+                    } else {
+                        workoutList
+                    }
                 }
+                .padding(.horizontal)
             }
+            .background(Color.black)
             .navigationTitle("訓練記錄")
+            .navigationBarTitleDisplayMode(.inline)
+            .foregroundColor(.white)
             .overlay(alignment: .top) {
                 if let status = viewModel.uploadStatus {
                     syncStatusView(status)
@@ -44,18 +52,20 @@ struct TrainingRecordView: View {
     }
     
     private var workoutList: some View {
-        List {
-            ForEach(viewModel.workouts, id: \.uuid) { workout in
-                workoutRow(workout)
-            }
-        }
-        .overlay {
+        Group {
             if viewModel.workouts.isEmpty {
                 ContentUnavailableView(
                     "沒有訓練記錄",
                     systemImage: "figure.run",
                     description: Text("過去一個月內沒有訓練記錄")
                 )
+                .foregroundColor(.white)
+            } else {
+                VStack(spacing: 16) {
+                    ForEach(viewModel.workouts, id: \.uuid) { workout in
+                        workoutRow(workout)
+                    }
+                }
             }
         }
     }
@@ -95,6 +105,7 @@ struct TrainingRecordView: View {
                 ProgressView()
                     .scaleEffect(0.7)
                     .padding(.trailing, 4)
+                    .foregroundColor(.white)
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
@@ -102,17 +113,19 @@ struct TrainingRecordView: View {
             
             Text(status)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.7))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(16)
         .padding(.top, 8)
     }
 }
 
+
 #Preview {
     TrainingRecordView()
         .environmentObject(HealthKitManager())
+        .background(Color.black)
 }

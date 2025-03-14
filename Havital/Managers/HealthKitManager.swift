@@ -102,7 +102,20 @@ class HealthKitManager: ObservableObject {
                     return
                 }
                 
-                let workouts = samples?.compactMap { $0 as? HKWorkout } ?? []
+                // Filter for running-related workouts only
+                let workouts = samples?.compactMap { $0 as? HKWorkout }
+                    .filter { workout in
+                        // Filter for running-related workout types
+                        let runningTypes: [HKWorkoutActivityType] = [
+                            .running,
+                            .trackAndField,
+                            .crossTraining,
+                            .mixedCardio,
+                            .highIntensityIntervalTraining
+                        ]
+                        return runningTypes.contains(workout.workoutActivityType)
+                    } ?? []
+                
                 continuation.resume(returning: workouts)
             }
             
@@ -661,9 +674,9 @@ class HealthKitManager: ObservableObject {
                     combinedDistribution[zone] = (combinedDistribution[zone] ?? 0) + time
                     
                     // 計算中等和高強度運動時間
-                    if zone == 2 || zone == 3 {
+                    if zone <= 2 {
                         totalModerateTime += time
-                    } else if zone >= 4 {
+                    } else {
                         totalVigorousTime += time
                     }
                 }

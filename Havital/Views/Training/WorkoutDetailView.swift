@@ -27,7 +27,7 @@ struct WorkoutDetailView: View {
                 }
                 
                 heartRateChartSection
-                heartRateZoneSection
+                hrrHeartRateZoneSection // 使用HRR心率區間
             }
             .padding()
         }
@@ -45,6 +45,10 @@ struct WorkoutDetailView: View {
         }
         .onAppear {
             viewModel.loadHeartRateData()
+        }
+        .task {
+            // 確保心率區間已同步
+            await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
         }
         .id(viewModel.workoutId)
     }
@@ -175,10 +179,21 @@ struct WorkoutDetailView: View {
         .shadow(radius: 1)
     }
     
-    private var heartRateZoneSection: some View {
+    // 使用心率儲備法計算的心率區間
+    private var hrrHeartRateZoneSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("心率區間分佈")
-                .font(.headline)
+            HStack {
+                Text("心率區間分佈")
+                    .font(.headline)
+                
+                Text("(HRR)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(4)
+            }
             
             if viewModel.isLoading {
                 ProgressView("載入數據中...")
@@ -186,46 +201,58 @@ struct WorkoutDetailView: View {
                 Text("無心率數據")
                     .foregroundColor(.secondary)
             } else {
-                VStack(spacing: 12) {
-                    ForEach(viewModel.heartRateZones.sorted(by: { $0.zone < $1.zone })) { zone in
-                        let duration = viewModel.zoneDistribution[zone.id] ?? 0
-                        let percentage = viewModel.calculateZonePercentage(duration)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("區間 \(zone.zone)")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Text("(\(Int(zone.range.lowerBound))-\(Int(zone.range.upperBound)) bpm)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(viewModel.formatZoneDuration(duration))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text(String(format: "%.1f%%", percentage))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                if viewModel.isLoadingHRRZones {
+                    ProgressView("計算心率區間中...")
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(viewModel.hrrZones.sorted(by: { $0.zone < $1.zone }), id: \.zone) { zone in
+                            let duration = viewModel.hrrZoneDistribution[zone.zone] ?? 0
+                            let percentage = viewModel.calculateHRRZonePercentage(duration)
                             
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.2))
-                                        .frame(height: 8)
-                                        .cornerRadius(4)
-                                    
-                                    Rectangle()
-                                        .fill(zoneColor(for: zone.id))
-                                        .frame(width: max(geometry.size.width * CGFloat(percentage / 100), 4), height: 8)
-                                        .cornerRadius(4)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("區間 \(zone.zone): \(zone.name)")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Text("(\(Int(zone.range.lowerBound))-\(Int(zone.range.upperBound)) bpm)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(viewModel.formatZoneDuration(duration))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(String(format: "%.1f%%", percentage))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.2))
+                                            .frame(height: 8)
+                                            .cornerRadius(4)
+                                        
+                                        Rectangle()
+                                            .fill(zoneColor(for: zone.zone))
+                                            .frame(width: max(geometry.size.width * CGFloat(percentage / 100), 4), height: 8)
+                                            .cornerRadius(4)
+                                    }
+                                }
+                                .frame(height: 8)
+                                
+                                Text(zone.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if !zone.benefit.isEmpty {
+                                    Text("好處: \(zone.benefit)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.top, 2)
                                 }
                             }
-                            .frame(height: 8)
-                            
-                            Text(zone.description)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
                         }
                     }
                 }
@@ -245,24 +272,6 @@ struct WorkoutDetailView: View {
         case 4: return .orange
         case 5: return .red
         default: return .gray
-        }
-    }
-}
-
-struct WorkoutDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            let workout = try! HKWorkout(
-                activityType: .running,
-                start: Date().addingTimeInterval(-3600),
-                end: Date(),
-                duration: 3600,
-                totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: 300),
-                totalDistance: HKQuantity(unit: .meter(), doubleValue: 5000),
-                metadata: nil
-            )
-            
-            WorkoutDetailView(workout: workout, healthKitManager: HealthKitManager(), initialHeartRateData: [], initialPaceData: [])
         }
     }
 }

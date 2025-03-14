@@ -44,7 +44,7 @@ class WorkoutBackgroundUploader {
                 
                 // Mark as uploaded
                 workoutUploadTracker.markWorkoutAsUploaded(workout)
-                print("成功上傳運動記錄: \(workout.workoutActivityType.name), 日期: \(workout.startDate)")
+                print("成功上傳運動記錄: \(workout.workoutActivityType), 日期: \(workout.startDate)")
                 
             } catch {
                 print("上傳運動記錄失敗: \(workoutId), 錯誤: \(error)")

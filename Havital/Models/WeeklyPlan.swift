@@ -5,6 +5,7 @@ struct WeeklyPlan: Codable {
     let purpose: String
     let weekOfPlan: Int
     let totalWeeks: Int
+    let totalDistance: Double
     let days: [TrainingDay]
     
     enum CodingKeys: String, CodingKey {
@@ -12,6 +13,7 @@ struct WeeklyPlan: Codable {
         case purpose
         case weekOfPlan = "week_of_plan"
         case totalWeeks = "total_weeks"
+        case totalDistance = "total_distance_km"
         case days
     }
     
@@ -26,6 +28,7 @@ struct WeeklyPlan: Codable {
             purpose = try nestedContainer.decode(String.self, forKey: .purpose)
             weekOfPlan = try nestedContainer.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try nestedContainer.decode(Int.self, forKey: .totalWeeks)
+            totalDistance = try nestedContainer.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
             days = try nestedContainer.decode([TrainingDay].self, forKey: .days)
         } else {
             // Parse directly from root container
@@ -33,6 +36,7 @@ struct WeeklyPlan: Codable {
             purpose = try container.decode(String.self, forKey: .purpose)
             weekOfPlan = try container.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try container.decode(Int.self, forKey: .totalWeeks)
+            totalDistance = try container.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
             days = try container.decode([TrainingDay].self, forKey: .days)
         }
     }

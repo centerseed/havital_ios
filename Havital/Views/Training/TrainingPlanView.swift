@@ -14,11 +14,6 @@ struct TrainingPlanView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // VDOT Chart Section
-                    VDOTChartView()
-                        .task {
-                            // Remove the incorrect viewModel reference
-                        }
                     
                     // Weekly Plan Section
                     Group {

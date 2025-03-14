@@ -16,6 +16,11 @@ class WorkoutDetailViewModel: ObservableObject {
     @Published var zoneDistribution: [Int: TimeInterval] = [:]
     @Published var heartRateZones: [HealthKitManager.HeartRateZone] = []
     
+    // HRR 心率區間相關
+    @Published var hrrZones: [HeartRateZonesManager.HeartRateZone] = []
+    @Published var hrrZoneDistribution: [Int: TimeInterval] = [:]
+    @Published var isLoadingHRRZones = false
+    
     @Published var isUploaded: Bool = false
     @Published var uploadTime: Date? = nil
     
@@ -50,6 +55,7 @@ class WorkoutDetailViewModel: ObservableObject {
         Task {
             try await Task.sleep(nanoseconds: 2_000_000_000)
             await postWorkoutData()
+            await calculateHRRZoneDistribution()
         }
     }
     
@@ -137,7 +143,6 @@ class WorkoutDetailViewModel: ObservableObject {
     
     private func postWorkoutData() async {
         do {
-            
             try await WorkoutService.shared.postWorkoutDetails(
                 workout: workout,
                 heartRates: heartRates,
@@ -174,6 +179,9 @@ class WorkoutDetailViewModel: ObservableObject {
                 self.zoneDistribution = await healthKitManager.calculateZoneDistribution(heartRates: heartRateData)
                 self.heartRateZones = await healthKitManager.getHeartRateZones()
                 
+                // 計算HRR心率區間分佈
+                await calculateHRRZoneDistribution()
+                
                 self.isLoading = false
             } catch {
                 print("Error fetching heart rate data: \(error)")
@@ -196,6 +204,39 @@ class WorkoutDetailViewModel: ObservableObject {
     // 計算區間百分比
     func calculateZonePercentage(_ duration: TimeInterval) -> Double {
         let totalDuration = zoneDistribution.values.reduce(0, +)
+        guard totalDuration > 0 else { return 0 }
+        return duration / totalDuration * 100
+    }
+    
+    // 新增方法：計算HRR區間分佈
+    func calculateHRRZoneDistribution() async {
+        isLoadingHRRZones = true
+        
+        // 確保心率區間已計算
+        await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+        
+        do {
+            // 獲取HRR心率區間
+            self.hrrZones = HeartRateZonesManager.shared.getHeartRateZones()
+            
+            // 如果已經有心率數據，計算區間分佈
+            if !heartRates.isEmpty {
+                // 將 DataPoint 轉換為 HealthKitManager 需要的格式
+                let heartRateData = heartRates.map { ($0.time, $0.value) }
+                
+                // 計算心率區間分佈
+                self.hrrZoneDistribution = await healthKitManager.calculateHRRZoneDistribution(heartRates: heartRateData)
+            }
+        } catch {
+            print("計算HRR心率區間分佈時出錯: \(error)")
+        }
+        
+        isLoadingHRRZones = false
+    }
+    
+    // 計算HRR區間百分比
+    func calculateHRRZonePercentage(_ duration: TimeInterval) -> Double {
+        let totalDuration = hrrZoneDistribution.values.reduce(0, +)
         guard totalDuration > 0 else { return 0 }
         return duration / totalDuration * 100
     }

@@ -50,7 +50,7 @@ struct HavitalApp: App {
                         .environmentObject(healthKitManager)
                         .tabItem {
                             Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                            Text("訓練數據")
+                            Text("表現數據")
                         }
                 }
                 .onAppear {

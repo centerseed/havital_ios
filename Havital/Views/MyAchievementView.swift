@@ -6,6 +6,8 @@ struct SectionTitleWithInfo: View {
     let title: String
     let explanation: String
     @State private var showingInfo = false
+    var useSheet: Bool = false
+    var sheetContent: (() -> AnyView)? = nil
     
     var body: some View {
         HStack {
@@ -18,15 +20,37 @@ struct SectionTitleWithInfo: View {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.secondary)
             }
-            .alert(title, isPresented: $showingInfo) {
-                Button("了解", role: .cancel) {}
-            } message: {
-                Text(explanation)
+            .if(!useSheet) { view in
+                view.alert(title, isPresented: $showingInfo) {
+                    Button("了解", role: .cancel) {}
+                } message: {
+                    Text(explanation)
+                }
+            }
+            .if(useSheet && sheetContent != nil) { view in
+                view.sheet(isPresented: $showingInfo) {
+                    sheetContent?()
+                }
             }
             
             Spacer()
         }
         .padding(.horizontal)
+    }
+}
+
+// Extension to support conditional modifiers
+extension View {
+    @ViewBuilder
+    func `if`<Transform: View>(
+        _ condition: Bool,
+        transform: (Self) -> Transform
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
     }
 }
 
@@ -37,10 +61,10 @@ struct MyAchievementView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // 心率區間設定
-                    HeartRateZonesSettingsView()
-                        .environmentObject(healthKitManager)
-                        .padding(.horizontal)
+                    VDOTChartView()
+                        .task {
+                            // Remove the incorrect viewModel reference
+                        }
                                         
                     // 使用 HRR 方法的心率區間分析
                     WeeklyHeartRateAnalysisViewHRR()
@@ -90,7 +114,7 @@ struct MyAchievementView: View {
                     VStack(alignment: .leading) {
                         SectionTitleWithInfo(
                             title: "睡眠靜息心率",
-                            explanation: "睡眠靜息心率是評估心臟健康和整體健康狀況的重要指標。較低的靜息心率通常表示更好的心臟功能和更高的體能水平。"
+                            explanation: "睡眠靜息心率是評估心臟健康和整體健康狀況的重要指標。較低的靜息心率通常表示更好的心臟功能和更高體能水平。"
                         )
                         
                         SleepHeartRateChartView()
@@ -110,7 +134,7 @@ struct MyAchievementView: View {
                 .padding(.vertical)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("訓練數據")
+            .navigationTitle("表現數據")
             .task {
                 // 確保已計算心率區間
                 await HeartRateZonesBridge.shared.syncHeartRateZones()
@@ -118,147 +142,6 @@ struct MyAchievementView: View {
         }
     }
 }
-
-// 心率區間設定視圖
-struct HeartRateZonesSettingsView: View {
-    @EnvironmentObject var healthKitManager: HealthKitManager
-    @State private var maxHeartRate: String = ""
-    @State private var restingHeartRate: String = ""
-    @State private var zones: [HeartRateZonesManager.HeartRateZone] = []
-    @State private var isLoading = true
-    @State private var showEditView = false
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("心率區間設定")
-                    .font(.headline)
-                
-                Spacer()
-                
-                Button {
-                    showEditView = true
-                } label: {
-                    Label("編輯", systemImage: "pencil")
-                        .font(.caption)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
-            }
-            
-            if isLoading {
-                ProgressView("載入中...")
-                    .frame(maxWidth: .infinity, minHeight: 100)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("最大心率")
-                            .font(.subheadline)
-                        Spacer()
-                        Text("\(maxHeartRate) bpm")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("靜息心率")
-                            .font(.subheadline)
-                        Spacer()
-                        Text("\(restingHeartRate) bpm")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Divider()
-                    
-                    Text("心率區間")
-                        .font(.subheadline)
-                        .padding(.top, 4)
-                    
-                    ForEach(zones, id: \.zone) { zone in
-                        HStack(alignment: .top) {
-                            Circle()
-                                .fill(zoneColor(for: zone.zone))
-                                .frame(width: 10, height: 10)
-                                .padding(.top, 4)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(zone.name) (區間 \(zone.zone))")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                
-                                Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                
-                                Text(zone.description)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(2)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(radius: 1)
-        .task {
-            await loadZoneData()
-        }
-        .sheet(isPresented: $showEditView) {
-            HRRHeartRateZoneEditorView()
-                .onDisappear {
-                    Task {
-                        await loadZoneData()
-                    }
-                }
-        }
-    }
-    
-    private func loadZoneData() async {
-        isLoading = true
-        
-        // 確保區間資料已計算
-        await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
-        
-        // 獲取心率數據
-        if let maxHR = UserPreferenceManager.shared.maxHeartRate {
-            maxHeartRate = "\(maxHR)"
-        } else {
-            maxHeartRate = "未設定"
-        }
-        
-        if let restingHR = UserPreferenceManager.shared.restingHeartRate {
-            restingHeartRate = "\(restingHR)"
-        } else {
-            restingHeartRate = "未設定"
-        }
-        
-        // 獲取心率區間
-        zones = HeartRateZonesManager.shared.getHeartRateZones()
-        
-        isLoading = false
-    }
-    
-    private func zoneColor(for zone: Int) -> Color {
-        switch zone {
-        case 1: return .blue
-        case 2: return .green
-        case 3: return .yellow
-        case 4: return .orange
-        case 5: return .red
-        default: return .gray
-        }
-    }
-}
-
 
 struct WeeklyHeartRateAnalysisViewHRR: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
@@ -273,7 +156,9 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitleWithInfo(
                 title: "本週心率區間分析 (HRR)",
-                explanation: "心率區間分析使用心率儲備（HRR）法計算，基於您的最大心率與靜息心率。這提供了更個人化的訓練強度分級，幫助您更有效地達成訓練目標。"
+                explanation: "心率區間分析使用心率儲備（HRR）法計算，基於您的最大心率與靜息心率。這提供了更個人化的訓練強度分級，幫助您更有效地達成訓練目標。",
+                useSheet: true,
+                sheetContent: { AnyView(HeartRateZoneInfoView()) }
             )
             
             if isLoading {
@@ -323,28 +208,6 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
                     .frame(height: 150)
                     .padding(.horizontal)
                     
-                    // 區間詳細說明
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(Array(analysis.zoneDistribution.sorted(by: { $0.key < $1.key })), id: \.key) { zone, duration in
-                                Button {
-                                    // 在按鈕 Action 中進行非同步呼叫，將結果存入 selectedZoneInfo
-                                    Task {
-                                        selectedZone = zone
-                                        if let hrZones = try? await healthKitManager.getHRRHeartRateZones(),
-                                           let info = hrZones.first(where: { $0.zone == zone }) {
-                                            selectedZoneInfo = info
-                                        } else {
-                                            selectedZoneInfo = nil
-                                        }
-                                        showZoneInfo = true
-                                    }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
                 }
             } else {
                 Text("無訓練數據")
@@ -359,7 +222,7 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
         .task {
             await loadHRRAnalysis()
         }
-        // alert 只根據已儲存的 selectedZoneInfo 來建立，沒有非同步邏輯
+        // 保留 alert 以支持點擊區間時顯示詳情
         .alert(isPresented: $showZoneInfo) {
             if let info = selectedZoneInfo {
                 return Alert(

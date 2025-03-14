@@ -14,7 +14,7 @@ class WorkoutService {
         print("Workout End Date:", workout.endDate)
         let workoutData = WorkoutData(
             id: workout.uuid.uuidString,
-            name: workout.workoutActivityType.name,
+            name: WorkoutUtils.workoutTypeString(for: workout.workoutActivityType),
             startDate: workout.startDate.timeIntervalSince1970,
             endDate: workout.endDate.timeIntervalSince1970,
             duration: workout.duration,
@@ -73,7 +73,8 @@ class WorkoutService {
                 
                 // 標記為已上傳
                 uploadTracker.markWorkoutAsUploaded(workout)
-                print("成功上傳運動記錄: \(workout.workoutActivityType.name), 日期: \(workout.startDate)")
+                let workoutName = WorkoutUtils.workoutTypeString(for: workout.workoutActivityType)
+                print("成功上傳運動記錄: \(workoutName), 日期: \(workout.startDate)")
                 
             } catch {
                 print("上傳運動記錄失敗: \(workout.startDate), 錯誤: \(error)")
