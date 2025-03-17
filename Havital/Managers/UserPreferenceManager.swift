@@ -201,6 +201,29 @@ class UserPreferenceManager: ObservableObject {
     }
 }
 
+extension UserPreferenceManager {
+    // VDOT数据模型
+    struct VDOTData {
+        let currentVDOT: Double?
+        let targetVDOT: Double?
+    }
+    
+    // 获取存储的VDOT数据
+    func getVDOTData() -> VDOTData? {
+        if let currentVDOT = UserDefaults.standard.object(forKey: "current_vdot") as? Double,
+           let targetVDOT = UserDefaults.standard.object(forKey: "target_vdot") as? Double {
+            return VDOTData(currentVDOT: currentVDOT, targetVDOT: targetVDOT)
+        }
+        return nil
+    }
+    
+    // 保存VDOT数据
+    func saveVDOTData(currentVDOT: Double, targetVDOT: Double) {
+        UserDefaults.standard.set(currentVDOT, forKey: "current_vdot")
+        UserDefaults.standard.set(targetVDOT, forKey: "target_vdot")
+    }
+}
+
 // MARK: - Publisher 擴展，支持 async/await
 extension Publisher {
     func async() async throws -> Output {

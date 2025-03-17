@@ -7,6 +7,26 @@ class WorkoutService {
     
     private init() {}
     
+    // Helper method to determine workout type string
+    private func getWorkoutTypeString(_ activityType: HKWorkoutActivityType) -> String {
+        switch activityType {
+        case .running, .walking, .trackAndField:
+            return "run"
+        case .cycling, .cycling:
+            return "cycling"
+        case .swimming, .swimBikeRun:
+            return "swim"
+        case .highIntensityIntervalTraining, .crossTraining, .functionalStrengthTraining:
+            return "hiit"
+        case .traditionalStrengthTraining:
+            return "strength"
+        case .yoga, .mindAndBody:
+            return "yoga"
+        default:
+            return "other"
+        }
+    }
+    
     // Original method for posting a single workout
     func postWorkoutDetails(workout: HKWorkout, heartRates: [DataPoint], paces: [DataPoint]) async throws {
         // Create workout data model
@@ -14,7 +34,8 @@ class WorkoutService {
         print("Workout End Date:", workout.endDate)
         let workoutData = WorkoutData(
             id: workout.uuid.uuidString,
-            name: WorkoutUtils.workoutTypeString(for: workout.workoutActivityType),
+            name: workout.workoutActivityType.name,
+            type: getWorkoutTypeString(workout.workoutActivityType), // New field: standardized type
             startDate: workout.startDate.timeIntervalSince1970,
             endDate: workout.endDate.timeIntervalSince1970,
             duration: workout.duration,
@@ -73,8 +94,7 @@ class WorkoutService {
                 
                 // 標記為已上傳
                 uploadTracker.markWorkoutAsUploaded(workout)
-                let workoutName = WorkoutUtils.workoutTypeString(for: workout.workoutActivityType)
-                print("成功上傳運動記錄: \(workoutName), 日期: \(workout.startDate)")
+                print("成功上傳運動記錄: \(workout.workoutActivityType.name), 日期: \(workout.startDate)")
                 
             } catch {
                 print("上傳運動記錄失敗: \(workout.startDate), 錯誤: \(error)")
@@ -101,6 +121,7 @@ class WorkoutService {
 struct WorkoutData: Codable {
     let id: String
     let name: String
+    let type: String  // Added new field: standardized type identifier
     let startDate: TimeInterval
     let endDate: TimeInterval
     let duration: TimeInterval
@@ -120,3 +141,35 @@ struct PaceData: Codable {
 }
 
 struct EmptyResponse: Codable {}
+
+// Extension to get a name for the workout type
+extension HKWorkoutActivityType {
+    var name: String {
+        switch self {
+        case .running:
+            return "跑步"
+        case .cycling:
+            return "騎車"
+        case .walking:
+            return "步行"
+        case .swimming:
+            return "游泳"
+        case .highIntensityIntervalTraining:
+            return "高強度間歇訓練"
+        case .traditionalStrengthTraining:
+            return "重量訓練"
+        case .functionalStrengthTraining:
+            return "功能性訓練"
+        case .crossTraining:
+            return "交叉訓練"
+        case .mixedCardio:
+            return "混合有氧"
+        case .yoga:
+            return "瑜伽"
+        case .pilates:
+            return "普拉提"
+        default:
+            return "其他運動"
+        }
+    }
+}

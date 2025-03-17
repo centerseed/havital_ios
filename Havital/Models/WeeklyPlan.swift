@@ -7,6 +7,23 @@ struct WeeklyPlan: Codable {
     let totalWeeks: Int
     let totalDistance: Double
     let days: [TrainingDay]
+    private let createdAtString: String?  // 原始字串，用於解碼
+    
+    // 計算屬性，將字串轉換為 Date 類型
+    var createdAt: Date? {
+        guard let dateString = createdAtString else { return nil }
+        
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+        
+        // 嘗試不帶小數秒解析
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: dateString)
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -15,6 +32,7 @@ struct WeeklyPlan: Codable {
         case totalWeeks = "total_weeks"
         case totalDistance = "total_distance_km"
         case days
+        case createdAtString = "created_at"  // 對應 API 回傳欄位名稱
     }
     
     init(from decoder: Decoder) throws {
@@ -30,6 +48,7 @@ struct WeeklyPlan: Codable {
             totalWeeks = try nestedContainer.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try nestedContainer.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
             days = try nestedContainer.decode([TrainingDay].self, forKey: .days)
+            createdAtString = try nestedContainer.decodeIfPresent(String.self, forKey: .createdAtString)
         } else {
             // Parse directly from root container
             id = try container.decode(String.self, forKey: .id)
@@ -38,6 +57,7 @@ struct WeeklyPlan: Codable {
             totalWeeks = try container.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try container.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
             days = try container.decode([TrainingDay].self, forKey: .days)
+            createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAtString)
         }
     }
     

@@ -72,32 +72,40 @@ class TrainingPlanService {
         }
     }
     
-    func createWeeklyPlan() async throws -> WeeklyPlan {
-        let request = try await makeRequest(path: "/plan/race_run/weekly", method: "POST")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("錯誤回應內容: \(responseString)")
+    func createWeeklyPlan(targetWeek: Int? = nil) async throws -> WeeklyPlan {
+        var request = try await makeRequest(path: "/plan/race_run/weekly", method: "POST")
+            
+            // 如果指定了目標週數，將其添加到請求體中
+            if let targetWeek = targetWeek {
+                let requestBody: [String: Any] = ["week_of_training": targetWeek]
+                request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+                print("正在產生第 \(targetWeek) 週的訓練計劃")
             }
-            throw URLError(.badServerResponse)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("錯誤回應內容: \(responseString)")
+                }
+                throw URLError(.badServerResponse)
+            }
+            
+            let decoder = JSONDecoder()
+            
+            // Debug: Print the JSON string to see its structure
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Received JSON: \(jsonString)")
+            }
+            
+            do {
+                let plan = try decoder.decode(WeeklyPlan.self, from: data)
+                TrainingPlanStorage.saveWeeklyPlan(plan)
+                return plan
+            } catch {
+                print("Decoding error: \(error)")
+                throw error
+            }
         }
-        
-        let decoder = JSONDecoder()
-        
-        // Debug: Print the JSON string to see its structure
-        if let jsonString = String(data: data, encoding: .utf8) {
-            print("Received JSON: \(jsonString)")
-        }
-        
-        do {
-            let plan = try decoder.decode(WeeklyPlan.self, from: data)
-            TrainingPlanStorage.saveWeeklyPlan(plan)
-            return plan
-        } catch {
-            print("Decoding error: \(error)")
-            throw error
-        }
-    }
 }
