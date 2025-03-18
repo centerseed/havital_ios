@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CircularProgressView: View {
+struct OldCircularProgressView: View {
     let progress: Double
     let currentWeek: Int
     let totalWeeks: Int
