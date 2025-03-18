@@ -5,8 +5,11 @@ struct WorkoutSummaryRow: View {
     let workout: HKWorkout
     @ObservedObject var viewModel: TrainingPlanViewModel
     @State private var averageHeartRate: Double? = nil
+    @State private var dynamicVDOT: Double? = nil
     @State private var isLoadingHeartRate = false
+    @State private var isLoadingVDOT = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
+    private let vdotCalculator = VDOTCalculator()
     
     var body: some View {
         HStack(spacing: 12) {
@@ -21,28 +24,45 @@ struct WorkoutSummaryRow: View {
                     .font(.system(size: 16))
             }
             
-            VStack(alignment: .leading, spacing: 2) {
-                // 時間
-                /*Text(viewModel.formatTime(workout.startDate))
-                    .font(.subheadline)
-                    .foregroundColor(.white)*/
-                Text("動態跑力：35.68")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 4) {
+                // 顯示動態跑力 (Dynamic VDOT)
+                if isLoadingVDOT {
+                    Text("計算動態跑力中...")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                } else if let vdot = dynamicVDOT {
+                    Text("動態跑力：\(String(format: "%.1f", vdot))")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                } else {
+                    Text("動態跑力：--")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                }
                 
                 // 配速、距離和平均心率
                 HStack(spacing: 12) {
                     if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                        Text("\(viewModel.formatDistance(distance))")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        HStack(spacing: 2) {
+                            Image(systemName: "ruler")
+                                .font(.system(size: 10))
+                                .foregroundColor(.blue)
+                            Text("\(viewModel.formatDistance(distance))")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
                     
                     if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
                         let paceInSeconds = workout.duration / distance * 1000
-                        Text("\(viewModel.formatPace(paceInSeconds))")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        HStack(spacing: 2) {
+                            Image(systemName: "speedometer")
+                                .font(.system(size: 10))
+                                .foregroundColor(.green)
+                            Text("\(viewModel.formatPace(paceInSeconds))")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
                     
                     // 新增：顯示平均心率
@@ -53,40 +73,47 @@ struct WorkoutSummaryRow: View {
                     } else if let avgHR = averageHeartRate {
                         HStack(spacing: 2) {
                             Image(systemName: "heart.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 10))
                                 .foregroundColor(.red)
                             Text("\(Int(avgHR.rounded()))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
                     }
+                    
+                    // 訓練時長
+                    HStack(spacing: 2) {
+                        Image(systemName: "fitness.timer.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.gray)
+                        Text(WorkoutUtils.formatDurationSimple(workout.duration))
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                   
                 }
             }
-            
-            Spacer()
-            
-            // 訓練時長
-            Text(WorkoutUtils.formatDuration(workout.duration))
-                .font(.caption)
-                .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.15))
-                .cornerRadius(8)
+
         }
         .padding(.vertical, 4)
         .task {
-            await loadAverageHeartRate()
+            await loadWorkoutData()
         }
     }
     
-    // 計算剔除首尾資料的平均心率
-    private func loadAverageHeartRate() async {
+    // 計算剔除首尾資料的平均心率並計算動態跑力
+    private func loadWorkoutData() async {
         isLoadingHeartRate = true
-        defer { isLoadingHeartRate = false }
+        isLoadingVDOT = true
+        
+        defer {
+            isLoadingHeartRate = false
+            isLoadingVDOT = false
+        }
         
         do {
             let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+            var avgHR: Double = 0
             
             // 確保至少有3筆資料，才能剔除首尾
             if heartRateData.count >= 3 {
@@ -95,16 +122,41 @@ struct WorkoutSummaryRow: View {
                 
                 // 計算平均值
                 let sum = trimmedHeartRates.reduce(0) { $0 + $1.1 }
-                let avgHR = sum / Double(trimmedHeartRates.count)
-                
-                await MainActor.run {
-                    self.averageHeartRate = avgHR
-                }
+                avgHR = sum / Double(trimmedHeartRates.count)
             } else if !heartRateData.isEmpty {
                 // 如果資料不足3筆，則計算所有資料的平均值
                 let sum = heartRateData.reduce(0) { $0 + $1.1 }
-                let avgHR = sum / Double(heartRateData.count)
+                avgHR = sum / Double(heartRateData.count)
+            } else {
+                return // 沒有心率數據，無法計算
+            }
+            
+            // 獲取用戶的最大心率和靜息心率
+            let maxHR = UserPreferenceManager.shared.maxHeartRate ?? 180
+            let restingHR = UserPreferenceManager.shared.restingHeartRate ?? 60
+            
+            // 計算動態跑力 (Dynamic VDOT)
+            if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                let distanceKm = distance / 1000
+                let paceInSeconds = workout.duration / distance * 1000
+                let paceMinutes = Int(paceInSeconds) / 60
+                let paceSeconds = Int(paceInSeconds) % 60
+                let paceStr = String(format: "%d:%02d", paceMinutes, paceSeconds)
                 
+                // 使用 VDOT 計算器計算動態跑力
+                let vdot = vdotCalculator.calculateDynamicVDOTFromPace(
+                    distanceKm: distanceKm,
+                    paceStr: paceStr,
+                    hr: avgHR,
+                    maxHR: Double(maxHR),
+                    restingHR: Double(restingHR)
+                )
+                
+                await MainActor.run {
+                    self.averageHeartRate = avgHR
+                    self.dynamicVDOT = vdot
+                }
+            } else {
                 await MainActor.run {
                     self.averageHeartRate = avgHR
                 }
@@ -134,12 +186,6 @@ struct CollapsedWorkoutSummary: View {
                         .foregroundColor(.blue)
                         .padding(.trailing, 4)
                 }
-            }
-            
-            if workouts.count > 1 {
-                Text("+\(workouts.count - 1)筆")
-                    .font(.caption)
-                    .foregroundColor(.gray)
             }
         }
         .padding(.top, 2)

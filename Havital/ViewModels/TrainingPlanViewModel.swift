@@ -272,22 +272,32 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     private func groupWorkoutsByDay(_ workouts: [HKWorkout]) -> [Int: [HKWorkout]] {
-        let calendar = Calendar.current
-        var grouped: [Int: [HKWorkout]] = [:]
-        
-        for workout in workouts {
-            let weekday = calendar.component(.weekday, from: workout.startDate)
-            // 轉換 weekday 為 1-7（週一到週日）
-            let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
+            let calendar = Calendar.current
+            var grouped: [Int: [HKWorkout]] = [:]
             
-            if grouped[adjustedWeekday] == nil {
-                grouped[adjustedWeekday] = []
+            // 定義跑步相關的活動類型
+            let runningActivityTypes: [HKWorkoutActivityType] = [
+                .running,
+            ]
+            
+            for workout in workouts {
+                // 只處理跑步相關的鍛煉
+                guard runningActivityTypes.contains(workout.workoutActivityType) else {
+                    continue
+                }
+                
+                let weekday = calendar.component(.weekday, from: workout.startDate)
+                // 轉換 weekday 為 1-7（週一到週日）
+                let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
+                
+                if grouped[adjustedWeekday] == nil {
+                    grouped[adjustedWeekday] = []
+                }
+                grouped[adjustedWeekday]?.append(workout)
             }
-            grouped[adjustedWeekday]?.append(workout)
+            
+            return grouped
         }
-        
-        return grouped
-    }
     
     private func getWeekDates(for plan: WeeklyPlan) -> (Date, Date) {
         let calendar = Calendar.current
@@ -340,11 +350,7 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 格式化工具方法
     func formatDistance(_ distance: Double) -> String {
-        if distance >= 1000 {
-            return String(format: "%.2f km", distance / 1000)
-        } else {
-            return String(format: "%.0f m", distance)
-        }
+        return String(format: "%.2f km", distance / 1000)
     }
     
     func formatShortDate(_ date: Date) -> String {

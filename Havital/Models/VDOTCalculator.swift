@@ -191,6 +191,69 @@ struct VDOTCalculator {
         let remainingSeconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, remainingSeconds)
     }
+    
+    func calculateHRRRatio(hr: Double, maxHR: Double, restingHR: Double) -> Double {
+            // 確保心率在有效範圍內
+            let validHR = min(max(hr, restingHR), maxHR)
+            
+            // HRR 比率 = (當前心率 - 靜息心率) / (最大心率 - 靜息心率)
+            let hrrRatio = (validHR - restingHR) / (maxHR - restingHR)
+            return hrrRatio
+        }
+        
+        /// 計算動態 VDOT 值，考慮心率因素
+        /// - Parameters:
+        ///   - distance: 距離（公里）
+        ///   - time: 時間（秒）
+        ///   - hr: 平均心率
+        ///   - maxHR: 最大心率
+        ///   - restingHR: 靜息心率
+        ///   - a: 指數模型參數 A
+        ///   - b: 指數模型參數 B
+        /// - Returns: 動態 VDOT 值
+        func calculateDynamicVDOT(distance: Double, time: Int, hr: Double, maxHR: Double = 180, restingHR: Double = 60, a: Double = 33.0, b: Double = 1.2) -> Double {
+            // 將公里轉換為米
+            let distanceInMeters = Int(distance * 1000)
+            
+            // 計算基本 VDOT
+            let vdot = calculateVDOT(distance: distanceInMeters, time: time)
+            
+            // 計算 HRR 比率
+            let hrrRatio = calculateHRRRatio(hr: hr, maxHR: maxHR, restingHR: restingHR)
+            
+            // 使用指數模型計算動態 VDOT
+            // dynamic_vdot = vdot + A * ((1 - hrr_ratio) ** B)
+            let dynamicVDOT = vdot + a * pow(1 - hrrRatio, b)
+            
+            return dynamicVDOT
+        }
+        
+        /// 根據配速字串計算動態 VDOT
+        /// - Parameters:
+        ///   - distanceKm: 距離（公里）
+        ///   - paceStr: 配速字串（格式如 "4:30"，表示每公里 4 分 30 秒）
+        ///   - hr: 平均心率
+        ///   - maxHR: 最大心率
+        ///   - restingHR: 靜息心率
+        /// - Returns: 動態 VDOT 值
+        func calculateDynamicVDOTFromPace(distanceKm: Double, paceStr: String, hr: Double, maxHR: Double = 180, restingHR: Double = 60) -> Double {
+            // 解析配速字串
+            let components = paceStr.split(separator: ":")
+            guard components.count == 2,
+                  let minutes = Int(components[0]),
+                  let seconds = Int(components[1]) else {
+                return 0 // 無效的配速格式
+            }
+            
+            // 計算總秒數
+            let paceSeconds = minutes * 60 + seconds
+            
+            // 計算總時間（秒）
+            let totalTimeSeconds = Int(distanceKm * Double(paceSeconds))
+            
+            // 使用總時間計算動態 VDOT
+            return calculateDynamicVDOT(distance: distanceKm, time: totalTimeSeconds, hr: hr, maxHR: maxHR, restingHR: restingHR)
+        }
 }
 
 // Example usage:

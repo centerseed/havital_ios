@@ -26,6 +26,12 @@ struct DailyTrainingCard: View {
                             Text(viewModel.weekdayName(for: day.dayIndex))
                                 .font(.headline)
                                 .foregroundColor(.white)
+                            // 添加具體日期顯示
+                            if let date = viewModel.getDateForDay(dayIndex: day.dayIndex) {
+                                Text(viewModel.formatShortDate(date))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
                             if isToday {
                                 Text("今天")
                                     .font(.caption)
@@ -34,15 +40,10 @@ struct DailyTrainingCard: View {
                                     .padding(.vertical, 2)
                                     .background(Color.blue)
                                     .cornerRadius(4)
-                            }
+                            }  
                         }
                         
-                        // 添加具體日期顯示
-                        if let date = viewModel.getDateForDay(dayIndex: day.dayIndex) {
-                            Text(viewModel.formatShortDate(date))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
+                        
                     }
                     
                     Spacer()
@@ -107,12 +108,7 @@ struct DailyTrainingCard: View {
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Text("\(workouts.count)筆")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+
                     }
                     .padding(.top, 4)
                     
