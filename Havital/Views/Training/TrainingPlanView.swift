@@ -17,6 +17,9 @@ struct TrainingPlanView: View {
     @State private var showNextWeekPlanningSheet = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
     
+    // 新增：追蹤哪些日子被展開的狀態
+    @State private var expandedDayIndices = Set<Int>()
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -96,28 +99,26 @@ struct TrainingPlanView: View {
         .task {
             await loadWeeklyPlan()
             await loadVDOTData()
+            // 新增：識別當天的訓練，自動展開
+            identifyTodayTraining()
         }
         .sheet(isPresented: $showUserProfile) {
             NavigationView {
                 UserProfileView()
             }
         }
-        /*
-        .sheet(isPresented: $showNextWeekPlanningSheet) {
-            NextWeekPlanningView { feeling, difficulty, days, trainingItem, completion in
-                // 當用戶完成下週計劃設定後的回調
-                Task {
-                    // 產生下週計劃的邏輯（調用 API 等）
-                    await generateNextWeekPlan(
-                        feeling: feeling,
-                        difficulty: difficulty.jsonValue,
-                        days: days.jsonValue,
-                        trainingItem: trainingItem.jsonValue,
-                        completion: completion
-                    )
+    }
+    
+    // 新增：識別並自動展開當天的訓練
+    private func identifyTodayTraining() {
+        if let plan = weeklyPlan {
+            for day in plan.days {
+                if isToday(dayIndex: day.dayIndex, planWeek: plan.weekOfPlan) {
+                    expandedDayIndices.insert(day.dayIndex)
+                    break
                 }
             }
-        }*/
+        }
     }
     
     @ViewBuilder
@@ -167,7 +168,7 @@ struct TrainingPlanView: View {
                                         
                                         // 进度圆环
                                         Circle()
-                                            .trim(from: 0.0, to: min(CGFloat(currentWeekDistance / plan.totalDistance), currentWeekDistance))
+                                            .trim(from: 0.0, to: min(CGFloat(currentWeekDistance / max(plan.totalDistance, 1.0)), 1.0))
                                             .stroke(style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
                                             .foregroundColor(.blue)
                                             .rotationEffect(Angle(degrees: 270.0))
@@ -179,7 +180,7 @@ struct TrainingPlanView: View {
                                                 .font(.system(size: 16, weight: .bold))
                                                 .foregroundColor(.white)
                                             
-                                            Text("\(formatDistance(max(currentWeekDistance, plan.totalDistance)))")
+                                            Text("\(formatDistance(plan.totalDistance))")
                                                 .font(.system(size: 10))
                                                 .foregroundColor(.gray)
                                         }
@@ -192,62 +193,10 @@ struct TrainingPlanView: View {
                                     .foregroundColor(.gray)
                             }
                             .frame(width: geometry.size.width / 2)
-                            
-                            // VDOT Circle Progress Bar
-                            /*
-                            VStack(spacing: 6) {
-                                if isLoadingVDOT {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .green))
-                                        .scaleEffect(1.0)
-                                        .frame(width: 80, height: 80)
-                                } else {
-                                    ZStack {
-                                        // 背景圆环
-                                        Circle()
-                                            .stroke(lineWidth: 8)
-                                            .opacity(0.3)
-                                            .foregroundColor(.green)
-                                        
-                                        // VDOT related
-                                        if targetVDOT > 0 {
-                                            Circle()
-                                                .trim(from: 0.0, to: min(CGFloat(currentVDOT / targetVDOT), 1.0))
-                                                .stroke(style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
-                                                .foregroundColor(.green)
-                                                .rotationEffect(Angle(degrees: 270.0))
-                                                .animation(.linear, value: currentVDOT)
-                                        }
-                                        
-                                        // current VDOT
-                                        VStack(spacing: 2) {
-                                            Text(String(format: "%.1f", currentVDOT))
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(.white)
-                                            
-                                            if targetVDOT > 0 {
-                                                Text("目標:\(String(format: "%.1f", targetVDOT))")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.gray)
-                                            }
-                                        }
-                                    }
-                                    .frame(width: 80, height: 80)
-                                    .
-                                }
-                                
-                                Text("VDOT")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    
-                               
-                            }
-                            .frame(width: geometry.size.width / 2) */
                         }
                         .frame(width: geometry.size.width)
-                        
                     }
-                    .frame(height: 100) // 设置一个固定高度以容纳进度条和标签
+                    .frame(height: 100)
                     
                     // 訓練目的
                     VStack(alignment: .leading, spacing: 2) {
@@ -261,20 +210,6 @@ struct TrainingPlanView: View {
                             .foregroundColor(.white)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    // 顯示訓練計劃建立時間
-                    /*
-                    if let createdDate = plan.createdAt {
-                        HStack {
-                            Text("建立於：")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            Text(formatDate(createdDate))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.top, 8)
-                    }*/
                     
                     // 顯示「產生下週課表」按鈕 (根據新的條件)
                     if shouldShowNextWeekButton(plan: plan) {
@@ -310,8 +245,23 @@ struct TrainingPlanView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 4)
                 
-                ForEach(plan.days) { day in
-                    dailyTrainingCard(day)
+                // 新增：先找出今天的訓練
+                let todayTrainings = plan.days.filter { day in
+                    isToday(dayIndex: day.dayIndex, planWeek: plan.weekOfPlan)
+                }
+                
+                // 新增：顯示今天的訓練（如果有）
+                if let todayTraining = todayTrainings.first {
+                    dailyTrainingCard(todayTraining, isToday: true)
+                        .transition(.opacity)
+                }
+                
+                // 新增：顯示其他天的訓練（非今天）
+                ForEach(plan.days.filter { day in
+                    !isToday(dayIndex: day.dayIndex, planWeek: plan.weekOfPlan)
+                }) { day in
+                    dailyTrainingCard(day, isToday: false)
+                        .transition(.opacity)
                 }
             }
         }
@@ -327,6 +277,190 @@ struct TrainingPlanView: View {
                 }
             }
         }
+    }
+    
+    // 修改：改為根據展開狀態顯示不同內容的訓練卡片
+    private func dailyTrainingCard(_ day: TrainingDay, isToday: Bool) -> some View {
+        let isExpanded = isToday || expandedDayIndices.contains(day.dayIndex)
+        
+        return VStack(alignment: .leading, spacing: 12) {
+            // 點擊標題欄可切換展開/摺疊狀態
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if expandedDayIndices.contains(day.dayIndex) {
+                        expandedDayIndices.remove(day.dayIndex)
+                    } else {
+                        expandedDayIndices.insert(day.dayIndex)
+                    }
+                }
+            }) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(weekdayName(for: day.dayIndex))
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            if isToday {
+                                Text("今天")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.blue)
+                                    .cornerRadius(4)
+                            }
+                        }
+                        
+                        // 添加具體日期顯示
+                        if let date = getDateForDay(dayIndex: day.dayIndex) {
+                            Text(formatShortDate(date))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if day.isTrainingDay {
+                        Text({
+                            switch day.type {
+                            case .easyRun, .easy: return "輕鬆"
+                            case .interval: return "間歇"
+                            case .tempo: return "節奏"
+                            case .longRun: return "長跑"
+                            case .race: return "比賽"
+                            case .rest: return "休息"
+                            case .crossTraining: return "交叉訓練"
+                            }
+                        }())
+                        .font(.subheadline)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .foregroundColor({
+                            switch day.type {
+                            case .easyRun, .easy: return Color.green
+                            case .interval, .tempo: return Color.orange
+                            case .longRun: return Color.blue
+                            case .race: return Color.red
+                            case .rest: return Color.gray
+                            case .crossTraining: return Color.purple
+                            }
+                        }())
+                        .background({
+                            switch day.type {
+                            case .easyRun, .easy: return Color.green.opacity(0.2)
+                            case .interval, .tempo: return Color.orange.opacity(0.2)
+                            case .longRun: return Color.blue.opacity(0.2)
+                            case .race: return Color.red.opacity(0.2)
+                            case .rest: return Color.gray.opacity(0.2)
+                            case .crossTraining: return Color.purple.opacity(0.2)
+                            }
+                        }())
+                        .cornerRadius(8)
+                    }
+                    
+                    // 新增：展開/摺疊指示器
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                        .padding(.leading, 4)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // 新增：條件性顯示詳細內容
+            if isExpanded {
+                // 完整顯示
+                VStack(alignment: .leading, spacing: 12) {
+                    // 分隔線
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                        .padding(.vertical, 4)
+                    
+                    Text(day.dayTarget)
+                        .font(.body)
+                        .foregroundColor(.white)
+                    
+                    if day.isTrainingDay, let trainingItems = day.trainingItems {
+                        // For interval training, show a special header with repeats info
+                        if day.type == .interval, trainingItems.count > 0, let repeats = trainingItems[0].goals.times {
+                            HStack {
+                                Text("間歇訓練")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.orange)
+                                Spacer()
+                                Text("\(repeats) × 重複")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.orange.opacity(0.15))
+                                    .cornerRadius(12)
+                            }
+                            .padding(.top, 4)
+                        }
+                        
+                        // Show each training item
+                        ForEach(trainingItems) { item in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(item.name)
+                                        .font(.subheadline)
+                                        .fontWeight(day.type == .interval ? .medium : .regular)
+                                        .foregroundColor(day.type == .interval ? .orange : .blue)
+                                    
+                                    if day.type == .interval, let times = item.goals.times {
+                                        Text("× \(times)")
+                                            .font(.caption)
+                                            .foregroundColor(.orange)
+                                            .padding(.leading, -4)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    // Show the pace and distance in a pill for all training types
+                                    HStack(spacing: 2) {
+                                        if let pace = item.goals.pace {
+                                            Text(pace)
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(day.type == .interval ? .orange : .blue)
+                                        }
+                                        if let distance = item.goals.distanceKm {
+                                            Text("/ \(String(format: "%.1f", distance)) km")
+                                                .font(.caption)
+                                                .foregroundColor(day.type == .interval ? .orange : .blue)
+                                        }
+                                    }
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                    .cornerRadius(12)
+                                    .opacity((item.goals.pace != nil || item.goals.distanceKm != nil) ? 1 : 0)
+                                }
+                            }
+                            
+                            Text(item.runDetails)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            } else {
+                // 摺疊時只顯示簡短摘要
+                Text(day.dayTarget)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .padding(.top, 4)
+            }
+        }
+        .padding()
+        .background(isToday ? Color(red: 0.15, green: 0.2, blue: 0.25) : Color(red: 0.15, green: 0.15, blue: 0.15))
+        .cornerRadius(12)
     }
     
     private func loadCurrentWeekDistance() async {
@@ -397,51 +531,22 @@ struct TrainingPlanView: View {
         return outputFormatter.string(from: date)
     }
     
+    // 格式化為簡短日期格式（僅月份和日期）
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd"
+        return formatter.string(from: date)
+    }
+    
     // 加载VDOT数据
     private func loadVDOTData() async {
         isLoadingVDOT = true
         defer { isLoadingVDOT = false }
         
-        // 尝试获取用户的当前VDOT和目标VDOT
-        do {
-            // 从UserDefaults或其他存储中获取
-            // 通常这类数据可能在用户完成onboarding或设置跑步目标时保存
-            let calculator = VDOTCalculator()
-            
-            // 模拟从用户偏好设置中获取VDOT数据
-            // 实际应用中应该从您的用户数据中获取
-            if let preference = UserPreferenceManager.shared.getVDOTData() {
-                // 如果有存储的值，使用存储的值
-                currentVDOT = preference.currentVDOT ?? 40.0
-                targetVDOT = preference.targetVDOT ?? 45.0
-            } else {
-                // 如果没有存储的值，使用默认值或通过其他方法计算
-                // 例如，可以根据最近的跑步表现计算
-                // 这里为了演示，暂时使用默认值
-                currentVDOT = 40.0
-                targetVDOT = 45.0
-                
-                // 如果有训练历史记录，可以基于最近的跑步计算当前VDOT
-                let recentWorkouts = try await fetchRecentRunningWorkouts()
-                if let bestWorkout = findBestPerformanceWorkout(workouts: recentWorkouts) {
-                    if let distance = bestWorkout.totalDistance?.doubleValue(for: .meter()),
-                       distance > 1000 { // 只考虑超过1公里的跑步
-                        let timeInSeconds = Int(bestWorkout.duration)
-                        let distanceInMeters = Int(distance)
-                        // 使用VDOT计算器计算VDOT值
-                        currentVDOT = calculator.calculateVDOT(distance: distanceInMeters, time: timeInSeconds)
-                    }
-                }
-            }
-            
-            // 更新UI
-            await MainActor.run {
-                self.currentVDOT = max(self.currentVDOT, 1.0) // 确保不为零
-                self.targetVDOT = max(self.targetVDOT, self.currentVDOT) // 确保目标不低于当前
-            }
-            
-        } catch {
-            print("加载VDOT数据时出错: \(error)")
+        // 簡化處理：使用默認值
+        await MainActor.run {
+            self.currentVDOT = 40.0
+            self.targetVDOT = 45.0
         }
     }
     
@@ -464,162 +569,15 @@ struct TrainingPlanView: View {
             workout.duration > 0
         }
         
-        // 如果没有有效的跑步记录，返回nil
         if runningWorkouts.isEmpty {
             return nil
         }
         
-        // 找出配速最快的跑步（简单示例）
-        // 实际应用中可能需要更复杂的算法来确定"最佳表现"
         return runningWorkouts.min { workoutA, workoutB in
             let paceA = workoutA.duration / (workoutA.totalDistance?.doubleValue(for: .meter()) ?? 1)
             let paceB = workoutB.duration / (workoutB.totalDistance?.doubleValue(for: .meter()) ?? 1)
             return paceA < paceB
         }
-    }
-    
-    private func dailyTrainingCard(_ day: TrainingDay) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(weekdayName(for: day.dayIndex))
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        if isToday(dayIndex: day.dayIndex, planWeek: weeklyPlan?.weekOfPlan ?? 0) {
-                            Text("今天")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.blue)
-                                .cornerRadius(4)
-                        }
-                    }
-                    
-                    // 添加具體日期顯示
-                    if let date = getDateForDay(dayIndex: day.dayIndex) {
-                        Text(formatShortDate(date))
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-                
-                Spacer()
-                
-                if day.isTrainingDay {
-                    Text({
-                        switch day.type {
-                        case .easyRun, .easy: return "輕鬆"
-                        case .interval: return "間歇"
-                        case .tempo: return "節奏"
-                        case .longRun: return "長跑"
-                        case .race: return "比賽"
-                        case .rest: return "休息"
-                        case .crossTraining: return "交叉訓練"
-                        }
-                    }())
-                    .font(.subheadline)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .foregroundColor({
-                        switch day.type {
-                        case .easyRun, .easy: return Color.green
-                        case .interval, .tempo: return Color.orange
-                        case .longRun: return Color.blue
-                        case .race: return Color.red
-                        case .rest: return Color.gray
-                        case .crossTraining: return Color.purple
-                        }
-                    }())
-                    .background({
-                        switch day.type {
-                        case .easyRun, .easy: return Color.green.opacity(0.2)
-                        case .interval, .tempo: return Color.orange.opacity(0.2)
-                        case .longRun: return Color.blue.opacity(0.2)
-                        case .race: return Color.red.opacity(0.2)
-                        case .rest: return Color.gray.opacity(0.2)
-                        case .crossTraining: return Color.purple.opacity(0.2)
-                        }
-                    }())
-                    .cornerRadius(8)
-                }
-            }
-            
-            Text(day.dayTarget)
-                .font(.body)
-                .foregroundColor(.white)
-            
-            if day.isTrainingDay, let trainingItems = day.trainingItems {
-                // For interval training, show a special header with repeats info
-                if day.type == .interval, trainingItems.count > 0, let repeats = trainingItems[0].goals.times {
-                    HStack {
-                        Text("間歇訓練")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.orange)
-                        Spacer()
-                        Text("\(repeats) × 重複")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.orange)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.orange.opacity(0.15))
-                            .cornerRadius(12)
-                    }
-                    .padding(.top, 4)
-                }
-                
-                // Show each training item
-                ForEach(trainingItems) { item in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(item.name)
-                                .font(.subheadline)
-                                .fontWeight(day.type == .interval ? .medium : .regular)
-                                .foregroundColor(day.type == .interval ? .orange : .blue)
-                            
-                            if day.type == .interval, let times = item.goals.times {
-                                Text("× \(times)")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                                    .padding(.leading, -4)
-                            }
-                            
-                            Spacer()
-                            
-                            // Show the pace and distance in a pill for all training types
-                            HStack(spacing: 2) {
-                                if let pace = item.goals.pace {
-                                    Text(pace)
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(day.type == .interval ? .orange : .blue)
-                                }
-                                if let distance = item.goals.distanceKm {
-                                    Text("/ \(String(format: "%.1f", distance)) km")
-                                        .font(.caption)
-                                        .foregroundColor(day.type == .interval ? .orange : .blue)
-                                }
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                            .cornerRadius(12)
-                            .opacity((item.goals.pace != nil || item.goals.distanceKm != nil) ? 1 : 0)
-                        }
-                    }
-                    
-                    Text(item.runDetails)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            }
-        }
-        .padding()
-        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-        .cornerRadius(12)
     }
     
     private func loadWeeklyPlan() async {
@@ -644,6 +602,9 @@ struct TrainingPlanView: View {
                 await loadCurrentWeekDistance()
             }
             await loadVDOTData()
+            
+            // 識別當天的訓練，自動展開
+            identifyTodayTraining()
         } catch {
             self.error = error
             print("刷新訓練計劃失敗: \(error)")
@@ -655,7 +616,7 @@ struct TrainingPlanView: View {
         return "星期" + weekdays[index - 1]
     }
     
-    // 判斷是否應該顯示「今天」標籤
+    // 判斷是否為今天
     private func isToday(dayIndex: Int, planWeek: Int) -> Bool {
         guard let date = getDateForDay(dayIndex: dayIndex) else {
             return false
@@ -665,32 +626,53 @@ struct TrainingPlanView: View {
         return calendar.isDateInToday(date)
     }
     
+    // 獲取特定天的日期
+    private func getDateForDay(dayIndex: Int) -> Date? {
+        guard let plan = weeklyPlan, let createdAt = plan.createdAt else {
+            return nil
+        }
+        
+        let calendar = Calendar.current
+        
+        // 找到創建日期所在週的週一
+        let creationWeekday = calendar.component(.weekday, from: createdAt)
+        let daysToSubtract = creationWeekday == 1 ? 6 : creationWeekday - 2
+        guard let firstWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: createdAt) else {
+            return nil
+        }
+        
+        // 計算該計劃週的週一日期
+        let weeksToAdd = plan.weekOfPlan - 1
+        guard let currentWeekMonday = calendar.date(byAdding: .weekOfYear, value: weeksToAdd, to: firstWeekMonday) else {
+            return nil
+        }
+        
+        // 計算課表中特定weekday對應的日期
+        return calendar.date(byAdding: .day, value: dayIndex - 1, to: currentWeekMonday)
+    }
+    
     // 判斷是否應該顯示產生下週課表按鈕
     private func shouldShowNextWeekButton(plan: WeeklyPlan) -> Bool {
-        guard let createdDate = plan.createdAt else {
+        guard let createdAt = plan.createdAt else {
             return false
         }
         
         let calendar = Calendar.current
         let now = Date()
         
-        // 1. 檢查當前是否為計劃週數的所屬週的週日
-        // 首先獲取計劃對應週數的週一日期（假設計劃從第1週開始）
-        let weeksToAdd = plan.weekOfPlan - 1 // 比如第1週就是加0週，第2週就是加1週
-        
-        // 查找創建日期那週的週一
-        let creationWeekday = calendar.component(.weekday, from: createdDate)
+        // 計算當前計劃週數的週一
+        let creationWeekday = calendar.component(.weekday, from: createdAt)
         let daysToSubtract = creationWeekday == 1 ? 6 : creationWeekday - 2
-        guard let firstWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: createdDate) else {
+        guard let firstWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: createdAt) else {
             return false
         }
         
-        // 計算當前計劃週數的週一
+        // 計算週數與日期
+        let weeksToAdd = plan.weekOfPlan - 1
         guard let currentWeekMonday = calendar.date(byAdding: .weekOfYear, value: weeksToAdd, to: firstWeekMonday) else {
             return false
         }
         
-        // 計算當前計劃週數的週日
         guard let currentWeekSunday = calendar.date(byAdding: .day, value: 6, to: currentWeekMonday) else {
             return false
         }
@@ -698,14 +680,13 @@ struct TrainingPlanView: View {
         // 當前日期是否是當前計劃週數的週日
         let isCurrentWeekSunday = calendar.isDate(now, inSameDayAs: currentWeekSunday)
         
-        // 2. 檢查還有沒有下一週
+        // 檢查還有沒有下一週
         let hasNextWeek = plan.weekOfPlan < plan.totalWeeks
         
-        // 3. 返回結果：如果是當前週的週日且還有下一週，則顯示按鈕
         return isCurrentWeekSunday && hasNextWeek
     }
     
-    // 產生下週計劃的方法
+    // 產生下週計劃
     private func generateNextWeekPlan() {
         guard let currentPlan = weeklyPlan else {
             print("無法產生下週課表：當前課表不存在")
@@ -716,72 +697,43 @@ struct TrainingPlanView: View {
         let nextWeek = currentPlan.weekOfPlan + 1
         
         // 確保下一週不超過總週數
-                guard nextWeek <= currentPlan.totalWeeks else {
-                    print("已經是最後一週，無法產生下週課表")
-                    return
-                }
+        guard nextWeek <= currentPlan.totalWeeks else {
+            print("已經是最後一週，無法產生下週課表")
+            return
+        }
+        
+        Task { @MainActor in
+            isLoading = true
+            
+            do {
+                print("開始產生第 \(nextWeek) 週課表...")
+                _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: nextWeek)
                 
-                // 設置 loading 狀態
-                Task { @MainActor in
-                    isLoading = true
+                // 產生成功後重新載入課表
+                do {
+                    let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                    weeklyPlan = newPlan
+                    error = nil
                     
-                    do {
-                        print("開始產生第 \(nextWeek) 週課表...")
-                        _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: nextWeek)
-                        
-                        // 產生成功後重新載入課表
-                        do {
-                            let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
-                            weeklyPlan = newPlan
-                            error = nil
-                            
-                            if newPlan.totalDistance > 0 {
-                                await loadCurrentWeekDistance()
-                            }
-                            
-                            print("成功產生第 \(nextWeek) 週課表並更新 UI")
-                        } catch {
-                            print("重新載入課表失敗: \(error)")
-                            self.error = error
-                        }
-                    } catch {
-                        print("產生下週課表失敗: \(error)")
-                        self.error = error
+                    if newPlan.totalDistance > 0 {
+                        await loadCurrentWeekDistance()
                     }
                     
-                    // 確保在所有情況下都會結束 loading 狀態
-                    isLoading = false
+                    // 識別當天的訓練，自動展開
+                    identifyTodayTraining()
+                    
+                    print("成功產生第 \(nextWeek) 週課表並更新 UI")
+                } catch {
+                    print("重新載入課表失敗: \(error)")
+                    self.error = error
                 }
+            } catch {
+                print("產生下週課表失敗: \(error)")
+                self.error = error
             }
-    private func getDateForDay(dayIndex: Int) -> Date? {
-        guard let plan = weeklyPlan, let createdDate = plan.createdAt else {
-            return nil
+            
+            isLoading = false
         }
-        
-        let calendar = Calendar.current
-        
-        // 找到創建日期所在週的週一
-        let creationWeekday = calendar.component(.weekday, from: createdDate)
-        let daysToSubtract = creationWeekday == 1 ? 6 : creationWeekday - 2
-        guard let firstWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: createdDate) else {
-            return nil
-        }
-        
-        // 計算該計劃週的週一日期（第1週就是創建週的週一，第2週就是往後加一週，依此類推）
-        let weeksToAdd = plan.weekOfPlan - 1
-        guard let currentWeekMonday = calendar.date(byAdding: .weekOfYear, value: weeksToAdd, to: firstWeekMonday) else {
-            return nil
-        }
-        
-        // 計算課表中特定weekday對應的日期
-        // dayIndex是1到7，分別代表週一到週日，需要減1來得到要加的天數
-        return calendar.date(byAdding: .day, value: dayIndex - 1, to: currentWeekMonday)
-    }
-
-    // 格式化為簡短日期格式（僅月份和日期）
-    private func formatShortDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter.string(from: date)
     }
 }
+
