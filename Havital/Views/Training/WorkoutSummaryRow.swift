@@ -47,7 +47,7 @@ struct WorkoutSummaryRow: View {
                             Image(systemName: "ruler")
                                 .font(.system(size: 10))
                                 .foregroundColor(.blue)
-                            Text("\(viewModel.formatDistance(distance))")
+                            Text("\(viewModel.formatDistance(distance/1000))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
@@ -174,7 +174,7 @@ struct CollapsedWorkoutSummary: View {
     var body: some View {
         HStack {
             if let workout = workouts.first, let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                Text("\(viewModel.formatDistance(distance))")
+                Text("\(viewModel.formatDistance(distance/1000))")
                     .font(.caption)
                     .foregroundColor(.blue)
                     .padding(.trailing, 4)

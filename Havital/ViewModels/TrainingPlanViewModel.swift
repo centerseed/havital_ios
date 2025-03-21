@@ -55,19 +55,21 @@ class TrainingPlanViewModel: ObservableObject {
         }
         
         do {
+            print("開始更新計劃")
             let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
             await MainActor.run {
                 weeklyPlan = newPlan
                 error = nil
             }
+            print("完成更新計劃")
             
-            if newPlan.totalDistance > 0 {
-                await loadCurrentWeekDistance(healthKitManager: healthKitManager)
-            }
+            //if newPlan.totalDistance > 0 {
+            //    await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+            //}
             
-            await loadVDOTData()
-            await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
-            await identifyTodayTraining()
+            //await loadVDOTData()
+            //await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+            //await identifyTodayTraining()
         } catch {
             await MainActor.run {
                 self.error = error
@@ -350,7 +352,7 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 格式化工具方法
     func formatDistance(_ distance: Double) -> String {
-        return String(format: "%.2f km", distance / 1000)
+        return String(format: "%.2f km", distance)
     }
     
     func formatShortDate(_ date: Date) -> String {

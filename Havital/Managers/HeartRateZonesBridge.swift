@@ -42,12 +42,12 @@ class HeartRateZonesBridge {
             }
             
             // 獲取心率數據
-            if userProfile.data.maxHr > 0 {
+            if userProfile.data.maxHr ?? 0 > 0 {
                 userPreferenceManager.maxHeartRate = userProfile.data.maxHr
                 print("從用戶資料獲取最大心率: \(userProfile.data.maxHr)")
             }
             
-            if userProfile.data.relaxingHr > 0 {
+            if userProfile.data.relaxingHr ?? 0 > 0 {
                 userPreferenceManager.restingHeartRate = userProfile.data.relaxingHr
                 print("從用戶資料獲取靜息心率: \(userProfile.data.relaxingHr)")
             }

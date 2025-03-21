@@ -35,14 +35,7 @@ struct LoginView: View {
             VStack(spacing: 16) {
                 Button {
                     Task {
-                        do {
-                            let credential = try await authService.signInWithGoogle()
-                            try await Auth.auth().signIn(with: credential)
-                            hasCompletedOnboarding = false
-                        } catch {
-                            errorMessage = error.localizedDescription
-                            showError = true
-                        }
+                        await authService.signInWithGoogle()
                     }
                 } label: {
                     HStack(spacing: 8) {
@@ -54,10 +47,19 @@ struct LoginView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(AppTheme.shared.primaryColor)
+                    .background(authService.isLoading ? Color.gray : AppTheme.shared.primaryColor)
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
+                .disabled(authService.isLoading)
+                .overlay(
+                    Group {
+                        if authService.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        }
+                    }
+                )
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 48)
@@ -65,8 +67,16 @@ struct LoginView: View {
         .background(Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.backgroundColor) : UIColor(AppTheme.shared.backgroundColor)
         }))
+        .onReceive(authService.$loginError) { newError in
+            if let error = newError {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        }
         .alert("登入失敗", isPresented: $showError) {
-            Button("確定", role: .cancel) { }
+            Button("確定", role: .cancel) {
+                authService.loginError = nil
+            }
         } message: {
             Text(errorMessage)
         }

@@ -74,13 +74,9 @@ class UserService {
         
         // Add auth token
         do {
-            if let token = try await AuthenticationService.shared.user?.getIDToken() {
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                print("成功添加認證 token")
-            } else {
-                print("無法獲取認證 token")
-                throw URLError(.userAuthenticationRequired)
-            }
+            let token = try await AuthenticationService.shared.getIdToken()
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("成功添加認證 token")
         } catch {
             print("獲取 token 時發生錯誤: \(error)")
             throw error
@@ -121,13 +117,9 @@ class UserService {
         
         // Add auth token
         do {
-            if let token = try await AuthenticationService.shared.user?.getIDToken() {
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                print("成功添加認證 token")
-            } else {
-                print("無法獲取認證 token")
-                throw URLError(.userAuthenticationRequired)
-            }
+            let token = try await AuthenticationService.shared.getIdToken()
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("成功添加認證 token")
         } catch {
             print("獲取 token 時發生錯誤: \(error)")
             throw error
@@ -176,15 +168,72 @@ class UserService {
     }
     
     func loginWithGoogle(idToken: String) async throws -> User {
-        let request = GoogleLoginRequest(idToken: idToken)
-        let endpoint = try Endpoint(
-            path: "/login/google",
-            method: .post,
-            requiresAuth: false,
-            body: request
-        )
+        print("嘗試使用 Google 登入，ID Token 長度: \(idToken.count)")
         
-        return try await networkService.request(endpoint)
+        // 確保請求正確的URL
+        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/login/google") else {
+            throw URLError(.badURL)
+        }
+        
+        // 建立請求 - 根據JS代碼匹配格式
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // 關鍵修改：將 idToken 放在 Authorization 標頭而不是請求體中
+        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        
+        // 不需要請求體
+        print("發送登入請求到: \(url.absoluteString)")
+        print("Authorization: Bearer \(idToken.prefix(20))...")
+        
+        // 發送請求
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("回應不是 HTTP 回應")
+            throw NetworkError.invalidResponse
+        }
+        
+        print("Google 登入回應狀態: \(httpResponse.statusCode)")
+        
+        // 檢查回應
+        if httpResponse.statusCode >= 400 {
+            if let responseText = String(data: data, encoding: .utf8) {
+                print("登入錯誤回應: \(responseText)")
+            }
+            throw NetworkError.httpError(statusCode: httpResponse.statusCode)
+        }
+        
+        // 解析回應數據
+        do {
+            // 嘗試正常解析
+            do {
+                let user = try JSONDecoder().decode(User.self, from: data)
+                print("成功解析用戶資料: \(user.data.displayName)")
+                return user
+            } catch {
+                // 如果正常解析失敗，查看是否回應格式為 { data: User }
+                print("嘗試備用解析方法")
+                if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let responseData = jsonObject["data"] as? [String: Any] {
+                    // 如果有 data 欄位，嘗試只解析該欄位
+                    let dataJSON = try JSONSerialization.data(withJSONObject: responseData)
+                    let userProfile = try JSONDecoder().decode(UserProfileData.self, from: dataJSON)
+                    let user = User(data: userProfile)
+                    print("成功使用備用方法解析用戶資料: \(user.data.displayName)")
+                    return user
+                } else {
+                    // 顯示原始 JSON 以便調試
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        print("無法解析的 JSON 資料: \(jsonString)")
+                    }
+                    throw error
+                }
+            }
+        } catch {
+            print("解析用戶數據失敗: \(error.localizedDescription)")
+            throw error
+        }
     }
     
     // Updated to access nested user.data properties

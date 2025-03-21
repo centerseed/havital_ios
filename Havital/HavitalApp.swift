@@ -8,6 +8,7 @@
 import SwiftUI
 import HealthKit
 import FirebaseCore
+import FirebaseAppCheck
 
 @main
 struct HavitalApp: App {

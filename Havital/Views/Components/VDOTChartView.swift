@@ -6,6 +6,7 @@ struct VDOTChartView: View {
     @StateObject private var viewModel = VDOTChartViewModel()
     @State private var selectedPoint: VDOTDataPoint? = nil
     @State private var showingHeartRateZoneEditor = false
+    @State private var showingInfo = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -14,6 +15,18 @@ struct VDOTChartView: View {
                 Text("動態跑力 (VDOT)")
                     .font(.headline)
                     .foregroundColor(.white)
+                
+                Button {
+                                showingInfo = true
+                            } label: {
+                                Image(systemName: "info.circle")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .alert("什麼是動態跑力？", isPresented: $showingInfo) {
+                                Button("了解", role: .cancel) {}
+                            } message: {
+                                Text("動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n它考慮了配速、距離以及心率保留率(HRR)，相比傳統VDOT值能更加準確地衡量您的訓練狀態。\n\n較高的動態跑力表示在相同配速下，您的心肺負擔較小，即跑步效率更高。隨著訓練的進行，動態跑力上升意味著您的跑步能力有所提升。")
+                            }
                 
                 Spacer()
             }

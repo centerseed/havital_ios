@@ -214,7 +214,7 @@ class HeartRateZonesManager {
                 )
             }
             
-            if userProfile.data.maxHr > 0 && userProfile.data.relaxingHr > 0 {
+            if userProfile.data.maxHr ?? 0 > 0 && userProfile.data.relaxingHr ?? 0 > 0 {
                 let maxHR = userProfile.data.maxHr
                 let restingHR = userProfile.data.relaxingHr
                 
@@ -225,7 +225,7 @@ class HeartRateZonesManager {
                 userPreferenceManager.restingHeartRate = restingHR
                 
                 // 計算並保存心率區間
-                calculateAndSaveHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+                calculateAndSaveHeartRateZones(maxHR: maxHR ?? 0, restingHR: restingHR ?? 0)
             }  else {
                 print("用戶資料中缺少有效的心率資訊")
             }

@@ -125,11 +125,11 @@ class UserPreferenceManager: ObservableObject {
         guard let user = user else { return }
         
         // 只有當用戶數據中的值大於0時才更新
-        if user.data.maxHr > 0 {
+        if user.data.maxHr ?? 0 > 0 {
             self.maxHeartRate = user.data.maxHr
         }
         
-        if user.data.relaxingHr > 0 {
+        if user.data.relaxingHr ?? 0 > 0 {
             self.restingHeartRate = user.data.relaxingHr
         }
         

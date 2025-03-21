@@ -81,7 +81,7 @@ class VDOTChartViewModel: ObservableObject {
         
         // 檢查是否需要從後端獲取數據
         // 如果10分鐘內已獲取過數據且不是強制刷新，則使用本地緩存
-        if !forceFetch && !storage.shouldRefreshData(cacheTimeInMinutes: 10) && !vdotPoints.isEmpty {
+        if !needUpdatedHrRange && !forceFetch && !storage.shouldRefreshData(cacheTimeInMinutes: 10) && !vdotPoints.isEmpty {
             print("使用10分鐘內的本地緩存VDOT數據")
             
             if shouldShowLoading {

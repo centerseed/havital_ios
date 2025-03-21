@@ -155,7 +155,7 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitleWithInfo(
-                title: "本週心率區間分析 (HRR)",
+                title: "最近一週心率區間分析 (HRR)",
                 explanation: "心率區間分析使用心率儲備（HRR）法計算，基於您的最大心率與靜息心率。這提供了更個人化的訓練強度分級，幫助您更有效地達成訓練目標。",
                 useSheet: true,
                 sheetContent: { AnyView(HeartRateZoneInfoView()) }

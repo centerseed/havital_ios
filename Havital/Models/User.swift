@@ -7,15 +7,14 @@ struct User: Codable {
 struct UserProfileData: Codable {
     let activeTrainingId: String?
     let activeWeeklyPlanId: String?
-    let authProvider: String
     let displayName: String
     let email: String
     let lastLogin: String
-    let maxHr: Int
+    let maxHr: Int?
     let photoUrl: String?
     let preferWeekDays: [Int]
     let preferWeekDaysLongrun: [Int]
-    let relaxingHr: Int
+    let relaxingHr: Int?
     let updatedAt: String
     let weekOfTraining: Int
     let personalBest: [String: [RaceBest]]?
@@ -23,7 +22,6 @@ struct UserProfileData: Codable {
     enum CodingKeys: String, CodingKey {
         case activeTrainingId = "active_training_id"
         case activeWeeklyPlanId = "active_weekly_plan_id"
-        case authProvider = "auth_provider"
         case displayName = "display_name"
         case email
         case lastLogin = "last_login"
