@@ -52,28 +52,42 @@ class TrainingPlanViewModel: ObservableObject {
     func refreshWeeklyPlan(healthKitManager: HealthKitManager) async {
         await MainActor.run {
             isLoading = true
+            error = nil
         }
         
-        do {
-            print("開始更新計劃")
-            let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
-            await MainActor.run {
-                weeklyPlan = newPlan
-                error = nil
-            }
-            print("完成更新計劃")
-            
-            //if newPlan.totalDistance > 0 {
-            //    await loadCurrentWeekDistance(healthKitManager: healthKitManager)
-            //}
-            
-            //await loadVDOTData()
-            //await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
-            //await identifyTodayTraining()
-        } catch {
-            await MainActor.run {
-                self.error = error
-                print("刷新訓練計劃失敗: \(error)")
+        let maxRetries = 3
+        var currentRetry = 0
+        
+        while currentRetry < maxRetries {
+            do {
+                print("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                await MainActor.run {
+                    weeklyPlan = newPlan
+                    error = nil
+                }
+                print("完成更新計劃")
+                
+                //if newPlan.totalDistance > 0 {
+                //    await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+                //}
+                
+                //await loadVDOTData()
+                //await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+                //await identifyTodayTraining()
+                
+                break // 成功後跳出重試迴圈
+            } catch {
+                currentRetry += 1
+                if currentRetry >= maxRetries {
+                    await MainActor.run {
+                        self.error = error
+                        print("刷新訓練計劃失敗 (已重試 \(maxRetries) 次): \(error)")
+                    }
+                } else {
+                    print("刷新訓練計劃失敗，準備重試: \(error)")
+                    try? await Task.sleep(nanoseconds: UInt64(1_000_000_000)) // 等待1秒後重試
+                }
             }
         }
         
