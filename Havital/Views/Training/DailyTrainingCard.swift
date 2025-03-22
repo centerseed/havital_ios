@@ -40,10 +40,8 @@ struct DailyTrainingCard: View {
                                     .padding(.vertical, 2)
                                     .background(Color.blue)
                                     .cornerRadius(4)
-                            }  
+                            }
                         }
-                        
-                        
                     }
                     
                     Spacer()

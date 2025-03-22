@@ -6,8 +6,12 @@ struct TrainingPlanView: View {
     @StateObject private var viewModel = TrainingPlanViewModel()
     @State private var showUserProfile = false
     @State private var showOnboardingConfirmation = false
+    @State private var showTrainingOverview = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
+    
+    // 添加一個計時器來刷新訓練記錄
+    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
         NavigationStack {
@@ -24,10 +28,30 @@ struct TrainingPlanView: View {
                             
                             // 每日訓練區塊
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("每日訓練")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 4)
+                                // 添加刷新按鈕
+                                HStack {
+                                    Text("每日訓練")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                    
+                                    Spacer()
+                                    
+                                    if viewModel.isLoadingWorkouts {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                    } else {
+                                        Button(action: {
+                                            print("手動刷新訓練記錄")
+                                            Task {
+                                                await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+                                            }
+                                        }) {
+                                            Image(systemName: "arrow.clockwise")
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 4)
                                 
                                 // 顯示今天的訓練
                                 if let todayTraining = plan.days.first(where: { viewModel.isToday(dayIndex: $0.dayIndex, planWeek: plan.weekOfPlan) }) {
@@ -68,10 +92,20 @@ struct TrainingPlanView: View {
             .refreshable {
                 await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
             }
-            .navigationTitle("第\(viewModel.weeklyPlan?.weekOfPlan ?? 0)週訓練計劃")
+            // 使用 trainingPlanName 作為導航標題
+            .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .foregroundColor(.white)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showTrainingOverview = true
+                    }) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.white)
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
@@ -103,8 +137,10 @@ struct TrainingPlanView: View {
                 Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。")
             }
         }
+        // 當視圖出現時載入數據
         .task {
             await viewModel.loadWeeklyPlan()
+            await viewModel.loadTrainingOverview()
             await viewModel.loadVDOTData()
             await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
             await viewModel.identifyTodayTraining()
@@ -114,9 +150,51 @@ struct TrainingPlanView: View {
                 await viewModel.loadCurrentWeekDistance(healthKitManager: healthKitManager)
             }
         }
+        // 每分鐘刷新訓練記錄
+        .onReceive(timer) { _ in
+            print("定時刷新訓練記錄")
+            Task {
+                await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+            }
+        }
+        // 當應用進入前台時刷新訓練記錄
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            print("應用進入前台，刷新訓練記錄")
+            Task {
+                await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+            }
+        }
         .sheet(isPresented: $showUserProfile) {
             NavigationView {
                 UserProfileView()
+            }
+        }
+        // 顯示訓練計劃概覽
+        .sheet(isPresented: $showTrainingOverview) {
+            NavigationView {
+                if let overview = viewModel.trainingOverview {
+                    TrainingPlanOverviewDetailView(overview: overview)
+                } else {
+                    VStack(spacing: 20) {
+                        Text("無法載入訓練計劃概覽")
+                            .font(.headline)
+                        
+                        Button("關閉") {
+                            showTrainingOverview = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding()
+                    }
+                    .navigationTitle("訓練計劃")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("關閉") {
+                                showTrainingOverview = false
+                            }
+                        }
+                    }
+                }
             }
         }
     }

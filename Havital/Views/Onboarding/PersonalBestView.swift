@@ -6,7 +6,7 @@ class PersonalBestViewModel: ObservableObject {
     @Published var targetMinutes = 0
     @Published var isLoading = false
     @Published var error: String?
-    @Published var navigateToTrainingDays = false
+    @Published var navigateToWeeklyDistance = false  // 修改為導航到週跑量設置頁面
     @Published var selectedDistance = "5" // 預設5公里
     @Published var hasPersonalBest = true // 是否有個人最佳成績
     
@@ -46,7 +46,7 @@ class PersonalBestViewModel: ObservableObject {
                 
                 try await UserService.shared.updatePersonalBestData(userData)
             }
-            navigateToTrainingDays = true
+            navigateToWeeklyDistance = true  // 修改為導航到週跑量設置頁面
         } catch {
             self.error = error.localizedDescription
         }
@@ -118,37 +118,36 @@ struct PersonalBestView: View {
                 }
             
         }
-                .navigationTitle("個人最佳成績")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            Task {
-                                print("開始更新個人最佳成績")
-                                await viewModel.updatePersonalBest(hours: viewModel.targetHours, minutes: viewModel.targetMinutes)
-                            }
-                        }) {
-                            HStack {
-                                Spacer()
-                                if viewModel.isLoading {
-                                    ProgressView()
-                                } else {
-                                    Text("下一步")
-                                }
-                                Spacer()
-                            }
+        .navigationTitle("個人最佳成績")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    Task {
+                        print("開始更新個人最佳成績")
+                        await viewModel.updatePersonalBest(hours: viewModel.targetHours, minutes: viewModel.targetMinutes)
+                    }
+                }) {
+                    HStack {
+                        Spacer()
+                        if viewModel.isLoading {
+                            ProgressView()
+                        } else {
+                            Text("下一步")
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && viewModel.currentPace.isEmpty))
-                        .padding(.vertical)
+                        Spacer()
                     }
                 }
-                .background(
-                    NavigationLink(destination: TrainingDaysSetupView(), isActive: $viewModel.navigateToTrainingDays) {
-                        EmptyView()
-                    }
-                )
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && viewModel.currentPace.isEmpty))
+                .padding(.vertical)
+            }
         }
-        
-    
+        // 修改為導航到週跑量設置頁面
+        .background(
+            NavigationLink(destination: WeeklyDistanceSetupView(targetDistance: viewModel.targetDistance), isActive: $viewModel.navigateToWeeklyDistance) {
+                EmptyView()
+            }
+        )
+    }
 }
