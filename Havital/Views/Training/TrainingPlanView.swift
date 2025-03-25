@@ -7,6 +7,7 @@ struct TrainingPlanView: View {
     @State private var showUserProfile = false
     @State private var showOnboardingConfirmation = false
     @State private var showTrainingOverview = false
+    @State private var showDebugView = false // 新增狀態變量控制調試視圖顯示
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
     
@@ -39,16 +40,6 @@ struct TrainingPlanView: View {
                                     if viewModel.isLoadingWorkouts {
                                         ProgressView()
                                             .scaleEffect(0.7)
-                                    } else {
-                                        Button(action: {
-                                            print("手動刷新訓練記錄")
-                                            Task {
-                                                await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
-                                            }
-                                        }) {
-                                            Image(systemName: "arrow.clockwise")
-                                                .foregroundColor(.gray)
-                                        }
                                     }
                                 }
                                 .padding(.horizontal, 4)
@@ -118,6 +109,13 @@ struct TrainingPlanView: View {
                         }) {
                             Label("重新OnBoarding", systemImage: "arrow.clockwise")
                         }
+                        /*
+                        // 新增進入調試視圖的按鈕
+                        Button(action: {
+                            showDebugView = true
+                        }) {
+                            Label("健身記錄同步測試", systemImage: "wrench.and.screwdriver")
+                        }*/
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .foregroundColor(.white)
@@ -197,5 +195,22 @@ struct TrainingPlanView: View {
                 }
             }
         }
+        /*
+        // 新增調試視圖的顯示
+        .sheet(isPresented: $showDebugView) {
+            NavigationStack {
+                WorkoutSyncDebugView()
+                    .environmentObject(healthKitManager)
+                    .navigationTitle("健身記錄同步測試")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("關閉") {
+                                showDebugView = false
+                            }
+                        }
+                    }
+            }
+        }*/
     }
 }

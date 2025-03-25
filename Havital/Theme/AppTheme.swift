@@ -6,7 +6,7 @@ struct AppTheme {
     private init() {}
     
     // MARK: - Light Mode Colors
-    let primaryColor = Color(hex: "#3AAFA9")
+    let primaryColor = Color(hex: "#3F86F6")
     let secondaryColor = Color(hex: "#76C893")
     let backgroundColor = Color(hex: "#FFFFFF")
     let cardBackgroundColor = Color(hex: "#F4F4F4")
@@ -26,7 +26,7 @@ struct AppTheme {
     
     // MARK: - Dark Mode Colors
     struct DarkMode {
-        static let primaryColor = Color(hex: "#3AAFA9")
+        static let primaryColor = Color(hex: "#3F86F6")
         static let secondaryColor = Color(hex: "#76C893")
         static let backgroundColor = Color(hex: "#121212")
         static let cardBackgroundColor = Color(hex: "#1E1E1E")

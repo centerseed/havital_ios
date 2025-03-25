@@ -13,7 +13,7 @@ struct LoginView: View {
             
             // Title and Subtitle
             VStack(spacing: 16) {
-                Text("Havital")
+                Text("Paceriz")
                     .font(.system(size: 48, weight: .bold))
                     .foregroundColor(AppTheme.shared.primaryColor)
                 
