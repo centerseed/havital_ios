@@ -7,6 +7,8 @@ class WorkoutBackgroundUploader {
     private let healthKitManager: HealthKitManager
     private let workoutUploadTracker: WorkoutUploadTracker
     private let workoutService: WorkoutService
+    private let notificationManager = SyncNotificationManager.shared
+    private var isUploading = false // 防止多個上傳過程同時運行
     
     private init() {
         self.healthKitManager = HealthKitManager()
@@ -15,12 +17,23 @@ class WorkoutBackgroundUploader {
     }
     
     /// 上傳所有未上傳的運動記錄，考慮心率資料的可用性
-    func uploadPendingWorkouts(workouts: [HKWorkout]) async {
+    @discardableResult
+    func uploadPendingWorkouts(workouts: [HKWorkout], sendNotifications: Bool = false) async -> Int {
+        // 如果已經在上傳中，則直接返回
+        guard !isUploading else {
+            print("已有上傳任務在進行中，跳過本次請求")
+            return 0
+        }
+        
+        isUploading = true
+        defer { isUploading = false }
+        
         print("開始上傳未同步的運動記錄...")
         
+        // 篩選出需要上傳的運動記錄
+        var workoutsToUpload: [HKWorkout] = []
+        
         for workout in workouts {
-            let workoutId = workout.uuid.uuidString
-            
             // 如果已經上傳且有心率資料，則跳過
             if workoutUploadTracker.isWorkoutUploaded(workout) &&
                workoutUploadTracker.workoutHasHeartRate(workout) {
@@ -37,17 +50,38 @@ class WorkoutBackgroundUploader {
                         continue
                     }
                     // 超過1小時，嘗試再次獲取心率資料並上傳
-                    print("運動記錄 \(workoutId) 已上傳但缺少心率資料，且超過1小時，嘗試再次獲取")
+                    print("運動記錄 \(workout.uuid.uuidString) 已上傳但缺少心率資料，且超過1小時，嘗試再次獲取")
                 }
             }
             
+            workoutsToUpload.append(workout)
+        }
+        
+        // 如果沒有需要上傳的記錄，直接返回
+        if workoutsToUpload.isEmpty {
+            print("沒有需要上傳的運動記錄")
+            return 0
+        }
+        
+        // 檢查是否為大批量上傳
+        let isBulkSync = workoutsToUpload.count > 5
+        
+        // 使用通知管理器處理通知
+        if sendNotifications && isBulkSync {
+            await notificationManager.startBulkSync(count: workoutsToUpload.count)
+        }
+        
+        // 開始上傳流程
+        var successCount = 0
+        
+        for workout in workoutsToUpload {
             do {
                 // 獲取心率數據
                 let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
                 
                 // 檢查心率數據是否有效（至少有一定數量的數據點）
                 if heartRateData.isEmpty || heartRateData.count < 5 {
-                    print("運動記錄 \(workoutId) 的心率數據不足，暫不上傳")
+                    print("運動記錄 \(workout.uuid.uuidString) 的心率數據不足，暫不上傳")
                     
                     // 如果之前沒有上傳過，標記為已嘗試但無心率資料
                     if !workoutUploadTracker.isWorkoutUploaded(workout) {
@@ -74,8 +108,10 @@ class WorkoutBackgroundUploader {
                 workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)
                 print("成功上傳運動記錄: \(workout.workoutActivityType.name), 日期: \(workout.startDate), 包含心率數據")
                 
+                successCount += 1
+                
             } catch {
-                print("上傳運動記錄失敗: \(workoutId), 錯誤: \(error)")
+                print("上傳運動記錄失敗: \(workout.uuid.uuidString), 錯誤: \(error)")
                 
                 // 如果之前沒有上傳過，標記為已嘗試但無心率資料
                 if !workoutUploadTracker.isWorkoutUploaded(workout) {
@@ -87,6 +123,19 @@ class WorkoutBackgroundUploader {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
         }
         
-        print("運動記錄上傳完成")
+        // 使用通知管理器處理完成通知
+        if sendNotifications {
+            if isBulkSync {
+                // 批量同步結束通知
+                notificationManager.recordSuccess(count: successCount)
+                await notificationManager.endBulkSync()
+            } else if successCount > 0 {
+                // 普通同步完成通知
+                await notificationManager.notifySyncCompletion(count: successCount)
+            }
+        }
+        
+        print("運動記錄上傳完成，成功: \(successCount), 總計: \(workoutsToUpload.count)")
+        return successCount
     }
 }

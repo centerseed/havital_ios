@@ -34,4 +34,9 @@ class UserProfileViewModel: ObservableObject {
         let adjustedIndex = (index - 1) % 7
         return "星期" + weekdays[adjustedIndex]
     }
+    
+    // Format heart rate to ensure proper display
+    func formatHeartRate(_ value: Int) -> String {
+        return "\(value) bpm"
+    }
 }

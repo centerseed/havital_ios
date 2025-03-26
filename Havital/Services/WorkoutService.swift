@@ -150,17 +150,26 @@ class WorkoutService {
         print("運動記錄同步完成，共處理 \(workoutsToUpload.count) 筆資料")
     }
     
-    // Helper methods for checking upload status
+    // WorkoutService.swift 中添加的方法
+
+    // 添加到 WorkoutService 類中
+    func markWorkoutAsUploaded(_ workout: HKWorkout, hasHeartRate: Bool = true) {
+        WorkoutUploadTracker.shared.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRate)
+    }
+
+    // 檢查特定運動記錄是否已上傳
     func isWorkoutUploaded(_ workout: HKWorkout) -> Bool {
         return WorkoutUploadTracker.shared.isWorkoutUploaded(workout)
     }
 
-    func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? {
-        return WorkoutUploadTracker.shared.getWorkoutUploadTime(workout)
-    }
-    
+    // 檢查特定運動記錄是否包含心率數據
     func workoutHasHeartRate(_ workout: HKWorkout) -> Bool {
         return WorkoutUploadTracker.shared.workoutHasHeartRate(workout)
+    }
+
+    // 獲取運動記錄的上傳時間
+    func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? {
+        return WorkoutUploadTracker.shared.getWorkoutUploadTime(workout)
     }
 }
 

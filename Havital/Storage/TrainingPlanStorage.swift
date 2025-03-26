@@ -60,4 +60,10 @@ class TrainingPlanStorage {
         case planNotFound
         case dayNotFound
     }
+    
+    func clearAll() {
+        defaults.removeObject(forKey: planKey)
+        defaults.removeObject(forKey: planOverviewKey)
+        defaults.removeObject(forKey: weeklyPlanKey)
+    }
 }

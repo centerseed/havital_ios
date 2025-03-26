@@ -4,10 +4,6 @@ import SwiftUI
 class TrainingDaysViewModel: ObservableObject {
     @Published var selectedWeekdays = Set<Int>()
     @Published var selectedLongRunDay: Int = 6 // 預設週六
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    
-    // 建議的訓練天數
-    let recommendedTrainingDays = 2
     @Published var isLoading = false
     @Published var error: String?
     @Published var navigateToMainView = false
@@ -17,6 +13,10 @@ class TrainingDaysViewModel: ObservableObject {
     @Published var weeklyPlan: WeeklyPlan?
     
     private let userPreferenceManager = UserPreferenceManager.shared
+    private let authService = AuthenticationService.shared
+    
+    // 建議的訓練天數
+    let recommendedTrainingDays = 2
     
     func generateWeeklyPlan() async {
         isLoading = true
@@ -27,7 +27,11 @@ class TrainingDaysViewModel: ObservableObject {
             let plan = try await TrainingPlanService.shared.createWeeklyPlan()
             print("成功獲取週計劃")
             weeklyPlan = plan
-            hasCompletedOnboarding = true
+            
+            // 更新登入服務的 onboarding 狀態
+            authService.hasCompletedOnboarding = true
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            
             navigateToMainView = true
         } catch {
             print("產生週計劃錯誤: \(error)")
@@ -104,7 +108,6 @@ class TrainingDaysViewModel: ObservableObject {
 struct TrainingDaysSetupView: View {
     @StateObject private var viewModel = TrainingDaysViewModel()
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showAlert = false
     @State private var showGenerateButton = false
     

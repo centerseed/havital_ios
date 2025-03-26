@@ -2,7 +2,8 @@ import Foundation
 import HealthKit
 
 class HealthKitManager: ObservableObject {
-    private let healthStore = HKHealthStore()
+    public var healthStore: HKHealthStore { _healthStore }
+    private let _healthStore = HKHealthStore()
     
     // MARK: - 初始化和授權
     

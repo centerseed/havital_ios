@@ -9,12 +9,6 @@ class WorkoutUploadTracker {
     
     private init() {}
     
-    // 上傳狀態結構，包含時間戳和心率數據狀態
-    struct UploadStatus: Codable {
-        let timestamp: TimeInterval
-        let hasHeartRate: Bool
-    }
-    
     /// 生成穩定的工作識別碼
     func generateStableWorkoutId(_ workout: HKWorkout) -> String {
         // 使用開始時間、結束時間和運動類型作為組合識別符
@@ -25,118 +19,111 @@ class WorkoutUploadTracker {
         return "\(startTimeStamp)_\(endTimeStamp)_\(activityType)"
     }
     
-    /// 標記運動為已上傳
+    /// 標記運動為已上傳，並指定是否包含心率數據
     func markWorkoutAsUploaded(_ workout: HKWorkout, hasHeartRate: Bool = true) {
         let stableId = generateStableWorkoutId(workout)
-        var uploadedWorkouts = getUploadedStatusDict()
+        var uploadedWorkouts = getUploadedWorkouts()
         
-        let status = UploadStatus(timestamp: Date().timeIntervalSince1970, hasHeartRate: hasHeartRate)
-        uploadedWorkouts[stableId] = status
+        // 儲存上傳時間和心率數據狀態
+        let uploadInfo: [String: Any] = [
+            "timestamp": Date().timeIntervalSince1970,
+            "hasHeartRate": hasHeartRate
+        ]
         
-        saveUploadStatusDict(uploadedWorkouts)
-    }
-    
-    /// 更新運動的心率狀態
-    func updateHeartRateStatus(for workout: HKWorkout, hasHeartRate: Bool) {
-        let stableId = generateStableWorkoutId(workout)
-        var uploadedWorkouts = getUploadedStatusDict()
+        uploadedWorkouts[stableId] = uploadInfo
         
-        if let existingStatus = uploadedWorkouts[stableId] {
-            let updatedStatus = UploadStatus(timestamp: existingStatus.timestamp, hasHeartRate: hasHeartRate)
-            uploadedWorkouts[stableId] = updatedStatus
-            saveUploadStatusDict(uploadedWorkouts)
+        do {
+            let data = try JSONSerialization.data(withJSONObject: uploadedWorkouts)
+            defaults.set(data, forKey: uploadedWorkoutsKey)
+        } catch {
+            print("保存已上傳運動記錄時出錯: \(error)")
         }
     }
     
     /// 檢查運動是否已上傳
     func isWorkoutUploaded(_ workout: HKWorkout) -> Bool {
         let stableId = generateStableWorkoutId(workout)
-        let uploadedWorkouts = getUploadedStatusDict()
+        let uploadedWorkouts = getUploadedWorkouts()
         return uploadedWorkouts[stableId] != nil
     }
     
     /// 檢查運動是否包含心率數據
     func workoutHasHeartRate(_ workout: HKWorkout) -> Bool {
         let stableId = generateStableWorkoutId(workout)
-        let uploadedWorkouts = getUploadedStatusDict()
-        return uploadedWorkouts[stableId]?.hasHeartRate ?? false
+        let uploadedWorkouts = getUploadedWorkouts()
+        
+        if let uploadInfo = uploadedWorkouts[stableId] as? [String: Any],
+           let hasHeartRate = uploadInfo["hasHeartRate"] as? Bool {
+            return hasHeartRate
+        }
+        
+        return false
     }
     
     /// 獲取運動上傳時間
     func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? {
         let stableId = generateStableWorkoutId(workout)
-        let uploadedWorkouts = getUploadedStatusDict()
-        if let timestamp = uploadedWorkouts[stableId]?.timestamp {
+        let uploadedWorkouts = getUploadedWorkouts()
+        
+        if let uploadInfo = uploadedWorkouts[stableId] as? [String: Any],
+           let timestamp = uploadInfo["timestamp"] as? TimeInterval {
             return Date(timeIntervalSince1970: timestamp)
         }
+        
         return nil
     }
     
-    /// 獲取需要重新上傳的運動記錄 (上傳但缺少心率數據且時間超過閾值)
-    func getWorkoutsNeedingHeartRateRetry(timeThreshold: TimeInterval = 3600) -> [String] {
-        let now = Date().timeIntervalSince1970
-        let uploadedWorkouts = getUploadedStatusDict()
-        
-        return uploadedWorkouts.filter { key, status in
-            // 篩選條件：已上傳但沒有心率數據，且在時間閾值內
-            !status.hasHeartRate && (now - status.timestamp) > timeThreshold
-        }.keys.map { $0 }
-    }
-    
-    /// 獲取已上傳運動記錄數量
-    func getUploadedWorkoutsCount() -> Int {
-        return getUploadedStatusDict().count
-    }
-    
-    /// 獲取已上傳但缺少心率資料的記錄數量
-    func getMissingHeartRateWorkoutsCount() -> Int {
-        return getUploadedStatusDict().filter { !$0.value.hasHeartRate }.count
-    }
-    
-    /// 返回上傳的運動記錄狀態字典
-    private func getUploadedStatusDict() -> [String: UploadStatus] {
+    /// 返回上傳的運動記錄資訊
+    private func getUploadedWorkouts() -> [String: Any] {
         guard let data = defaults.data(forKey: uploadedWorkoutsKey) else {
             return [:]
         }
         
         do {
-            // 先嘗試解碼為新格式
-            return try JSONDecoder().decode([String: UploadStatus].self, from: data)
-        } catch {
-            // 如果失敗，可能是舊格式，嘗試遷移
-            do {
-                let oldFormat = try JSONDecoder().decode([String: TimeInterval].self, from: data)
-                let newFormat = migrateOldFormat(oldFormat)
-                saveUploadStatusDict(newFormat)
-                return newFormat
-            } catch {
-                print("讀取已上傳運動記錄時出錯: \(error)")
-                return [:]
+            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                return dict
             }
-        }
-    }
-    
-    /// 遷移舊格式的數據到新格式
-    private func migrateOldFormat(_ oldFormat: [String: TimeInterval]) -> [String: UploadStatus] {
-        var newFormat: [String: UploadStatus] = [:]
-        for (key, timestamp) in oldFormat {
-            newFormat[key] = UploadStatus(timestamp: timestamp, hasHeartRate: true)
-        }
-        return newFormat
-    }
-    
-    /// 保存上傳狀態字典
-    private func saveUploadStatusDict(_ statuses: [String: UploadStatus]) {
-        do {
-            let data = try JSONEncoder().encode(statuses)
-            defaults.set(data, forKey: uploadedWorkoutsKey)
         } catch {
-            print("保存上傳狀態時出錯: \(error)")
+            print("讀取已上傳運動記錄時出錯: \(error)")
         }
+        
+        return [:]
+    }
+    
+    /// 獲取已上傳運動記錄的數量
+    func getUploadedWorkoutsCount() -> Int {
+        return getUploadedWorkouts().count
     }
     
     /// 清除已上傳運動記錄歷史
     func clearUploadedWorkouts() {
         defaults.removeObject(forKey: uploadedWorkoutsKey)
+    }
+    
+    /// 獲取需要重試獲取心率數據的運動記錄
+    func getWorkoutsNeedingHeartRateRetry(timeThreshold: TimeInterval = 3600) -> [String] {
+        let uploadedWorkouts = getUploadedWorkouts()
+        var workoutsNeedingRetry: [String] = []
+        
+        let now = Date().timeIntervalSince1970
+        
+        for (stableId, info) in uploadedWorkouts {
+            // 確保可以解析上傳信息
+            guard let uploadInfo = info as? [String: Any],
+                  let timestamp = uploadInfo["timestamp"] as? TimeInterval,
+                  let hasHeartRate = uploadInfo["hasHeartRate"] as? Bool else {
+                continue
+            }
+            
+            // 如果沒有心率數據且上傳時間超過指定閾值，添加到需要重試的列表
+            if !hasHeartRate {
+                let timeElapsed = now - timestamp
+                if timeElapsed >= timeThreshold { // 默認1小時 = 3600秒
+                    workoutsNeedingRetry.append(stableId)
+                }
+            }
+        }
+        
+        return workoutsNeedingRetry
     }
 }

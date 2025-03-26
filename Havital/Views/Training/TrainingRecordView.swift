@@ -11,25 +11,14 @@ struct TrainingRecordView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    if viewModel.isLoading {
-                        ProgressView("載入訓練記錄中...")
-                            .frame(height: 200)
-                    } else {
-                        workoutList
-                    }
+            Group {
+                if viewModel.isLoading {
+                    ProgressView("載入訓練記錄中...")
+                } else {
+                    workoutList
                 }
-                .padding(.horizontal)
             }
-            .background(Color(UIColor.systemBackground))
             .navigationTitle("訓練記錄")
-            .navigationBarTitleDisplayMode(.inline)
-            .overlay(alignment: .top) {
-                if let status = viewModel.uploadStatus {
-                    syncStatusView(status)
-                }
-            }
             .sheet(item: $selectedWorkout) { workout in
                 NavigationStack {
                     WorkoutDetailView(
@@ -46,23 +35,26 @@ struct TrainingRecordView: View {
             .refreshable {
                 await viewModel.loadWorkouts(healthKitManager: healthKitManager)
             }
+            .onDisappear {
+                // 在視圖消失時停止觀察者
+                viewModel.stopWorkoutObserver(healthKitManager: healthKitManager)
+            }
         }
     }
     
     private var workoutList: some View {
-        Group {
+        List {
+            ForEach(viewModel.workouts, id: \.uuid) { workout in
+                workoutRow(workout)
+            }
+        }
+        .overlay {
             if viewModel.workouts.isEmpty {
                 ContentUnavailableView(
                     "沒有訓練記錄",
                     systemImage: "figure.run",
                     description: Text("過去一個月內沒有訓練記錄")
                 )
-            } else {
-                VStack(spacing: 16) {
-                    ForEach(viewModel.workouts, id: \.uuid) { workout in
-                        workoutRow(workout)
-                    }
-                }
             }
         }
     }
@@ -74,7 +66,7 @@ struct TrainingRecordView: View {
                 do {
                     heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
                 } catch {
-                    print("Error loading heart rate data: \(error)")
+                    print("加載心率數據時出錯: \(error)")
                     heartRateData = []
                 }
                 selectedWorkout = workout
@@ -82,7 +74,7 @@ struct TrainingRecordView: View {
                 do {
                     paceData = try await healthKitManager.fetchPaceData(for: workout)
                 } catch {
-                    print("Error loading pace data: \(error)")
+                    print("加載配速數據時出錯: \(error)")
                     paceData = []
                 }
             }
@@ -95,30 +87,7 @@ struct TrainingRecordView: View {
         }
         .buttonStyle(.plain)
     }
-    
-    private func syncStatusView(_ status: String) -> some View {
-        HStack {
-            if viewModel.isUploading {
-                ProgressView()
-                    .scaleEffect(0.7)
-                    .padding(.trailing, 4)
-            } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
-            
-            Text(status)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(UIColor.tertiarySystemBackground))
-        .cornerRadius(16)
-        .padding(.top, 8)
-    }
 }
-
 
 #Preview {
     TrainingRecordView()

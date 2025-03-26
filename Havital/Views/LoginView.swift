@@ -2,7 +2,7 @@ import SwiftUI
 import FirebaseAuth
 
 struct LoginView: View {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    // 不再使用 AppStorage 來儲存 onboarding 狀態
     @StateObject private var authService = AuthenticationService.shared
     @State private var showError = false
     @State private var errorMessage = ""

@@ -101,12 +101,34 @@ class UserPreferenceManager: ObservableObject {
     }
     
     func clearUserData() {
+        // 清除基本用戶資訊
         email = ""
         name = nil
         photoURL = nil
+        age = nil
         maxHeartRate = nil
-        restingHeartRate = nil
-        heartRateZones = nil
+        currentPace = nil
+        currentDistance = nil
+        preferWeekDays = nil
+        preferWeekDaysLongRun = nil
+        weekOfTraining = nil
+        
+        // 清除其他相關緩存
+        TrainingPlanStorage.shared.clearAll()
+        WorkoutUploadTracker.shared.clearUploadedWorkouts()
+        
+        // 清除用戶偏好相關的 UserDefaults
+        let defaults = UserDefaults.standard
+        let keysToRemove = [
+            "training_plan", "training_plan_overview", "weekly_plan",
+            "user_email", "user_name", "age", "max_heart_rate",
+            "current_pace", "current_distance", "prefer_week_days",
+            "prefer_week_days_longrun", "week_of_training", "user_photo_url"
+        ]
+        
+        for key in keysToRemove {
+            defaults.removeObject(forKey: key)
+        }
     }
     
     /// 檢查是否有必要的心率數據

@@ -47,12 +47,6 @@ struct UserProfileView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 
-                            Text("訓練週期: 第\(userData.weekOfTraining)週")
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(4)
                         }
                     }
                     .padding(.vertical, 8)
@@ -75,7 +69,7 @@ struct UserProfileView: View {
                         Label("最大心率", systemImage: "heart.fill")
                             .foregroundColor(.red)
                         Spacer()
-                        Text("\(userData.maxHr) bpm")
+                        Text(viewModel.formatHeartRate(userData.maxHr ?? 0))
                             .fontWeight(.medium)
                     }
                     
@@ -83,7 +77,7 @@ struct UserProfileView: View {
                         Label("靜息心率", systemImage: "heart")
                             .foregroundColor(.blue)
                         Spacer()
-                        Text("\(userData.relaxingHr) bpm")
+                        Text(viewModel.formatHeartRate(userData.relaxingHr ?? 0))
                             .fontWeight(.medium)
                     }
                 }
@@ -100,20 +94,20 @@ struct UserProfileView: View {
                                 if userData.preferWeekDaysLongrun.contains(dayIndex) {
                                     Spacer()
                                     Text("長跑日")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 10)
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
-                                        .background(Color.blue)
+                                        .foregroundColor(Color.blue)
+                                        .background(Color.blue.opacity(0.2))
                                         .cornerRadius(8)
                                 } else {
                                     Spacer()
                                     Text("一般訓練")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 10)
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
-                                        .background(Color.green)
+                                        .foregroundColor(Color.green)
+                                        .background(Color.green.opacity(0.2))
                                         .cornerRadius(8)
                                 }
                             }

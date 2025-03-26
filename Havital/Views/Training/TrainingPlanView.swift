@@ -194,7 +194,18 @@ struct TrainingPlanView: View {
                     }
                 }
             }
+        }.onAppear {
+            // 檢查最後更新時間，如果距離上次更新超過一定時間（例如1小時），則自動刷新
+            if let lastUpdateTime = UserDefaults.standard.object(forKey: "last_weekly_plan_update") as? Date {
+                let hoursSinceLastUpdate = Calendar.current.dateComponents([.hour], from: lastUpdateTime, to: Date()).hour ?? 0
+                if hoursSinceLastUpdate >= 1 {
+                    Task {
+                        await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
+                    }
+                }
+            }
         }
+        
         /*
         // 新增調試視圖的顯示
         .sheet(isPresented: $showDebugView) {

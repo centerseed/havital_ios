@@ -1,10 +1,3 @@
-//
-//  HavitalApp.swift
-//  Havital
-//
-//  Created by 吳柏宗 on 2024/12/9.
-//
-
 import SwiftUI
 import HealthKit
 import FirebaseCore
@@ -14,7 +7,7 @@ import UserNotifications
 
 @main
 struct HavitalApp: App {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    // 不再使用 AppStorage 來儲存 onboarding 狀態，而是使用 AuthenticationService 提供的狀態
     @AppStorage("isHealthKitAuthorized") private var isHealthKitAuthorized = false
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var appViewModel = AppViewModel()
@@ -34,7 +27,7 @@ struct HavitalApp: App {
             if !authService.isAuthenticated {
                 LoginView()
                     .environmentObject(appViewModel)
-            } else if !hasCompletedOnboarding {
+            } else if !authService.hasCompletedOnboarding {
                 OnboardingView()
                    .environmentObject(appViewModel)
             } else {
