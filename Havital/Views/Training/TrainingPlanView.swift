@@ -33,7 +33,7 @@ struct TrainingPlanView: View {
                                 HStack {
                                     Text("每日訓練")
                                         .font(.headline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     
                                     Spacer()
                                     
@@ -59,7 +59,7 @@ struct TrainingPlanView: View {
                             VStack {
                                 Text("載入失敗")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 Text(error.localizedDescription)
                                     .font(.body)
                                     .foregroundColor(.red)
@@ -72,28 +72,28 @@ struct TrainingPlanView: View {
                                 .padding()
                             }
                             .padding()
-                            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                            .background(Color(.secondarySystemBackground))
                             .cornerRadius(12)
                         }
                     }
                 }
                 .padding(.horizontal)
             }
-            .background(Color.black)
+            .background(Color(UIColor.systemGroupedBackground))
             .refreshable {
                 await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
             }
             // 使用 trainingPlanName 作為導航標題
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
-            .foregroundColor(.white)
+            .foregroundColor(.primary)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         showTrainingOverview = true
                     }) {
                         Image(systemName: "info.circle")
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                 }
                 
@@ -118,7 +118,7 @@ struct TrainingPlanView: View {
                         }*/
                     } label: {
                         Image(systemName: "ellipsis.circle")
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                 }
             }

@@ -12,7 +12,8 @@ struct SectionTitleWithInfo: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.title2)
+                .font(.headline)
+                .foregroundColor(.primary)
             
             Button {
                 showingInfo = true
@@ -35,7 +36,6 @@ struct SectionTitleWithInfo: View {
             
             Spacer()
         }
-        .padding(.horizontal)
     }
 }
 
@@ -61,80 +61,87 @@ struct MyAchievementView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    VDOTChartView()
-                        .task {
-                            // Remove the incorrect viewModel reference
-                        }
-                                        
+                    // VDOT Chart Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionTitleWithInfo(
+                            title: "VDOT 趨勢",
+                            explanation: "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。"
+                        )
+                        .padding(.horizontal)
+                        
+                        VDOTChartView()
+                            .padding()
+                    }
+                    .background(Color(UIColor.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                    .padding(.horizontal)
+                    
                     // 使用 HRR 方法的心率區間分析
                     WeeklyHeartRateAnalysisViewHRR()
                         .environmentObject(healthKitManager)
+                        .background(Color(UIColor.systemBackground))
+                        .cornerRadius(10)
+                        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                         .padding(.horizontal)
-                                        
+                    
                     // 體能表現趨勢
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(
                             title: "體能表現趨勢",
                             explanation: "體能表現趨勢反映了你的運動強度和恢復狀況。通常運動日當天會累積疲勞，訓練表現分數會下降。而透過休息讓身體恢復，預期的表現分數會上升。\n 透過持續且強度適中的運動，整體的表現趨勢會上升。"
                         )
-                                            
+                        .padding(.horizontal)
+                        
                         PerformanceChartView()
                             .environmentObject(healthKitManager)
                             .frame(height: 250)
                             .padding()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(10)
-                        .shadow(radius: 1)
-                        .padding(.horizontal)
+                    }
+                    .background(Color(UIColor.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                    .padding(.horizontal)
                     
                     // HRV 趨勢圖
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(
                             title: "心率變異性 (HRV) 趨勢",
                             explanation: "心率變異性（HRV）是衡量身體恢復能力和壓力水平的重要指標。較高的HRV通常表示更好的恢復能力和較低的壓力水平。"
                         )
+                        .padding(.horizontal)
                         
                         HRVTrendChartView()
                             .environmentObject(healthKitManager)
-                            .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color(.systemBackground))
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
                     }
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.systemBackground))
+                    .background(Color(UIColor.systemBackground))
                     .cornerRadius(10)
-                    .shadow(radius: 1)
+                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                     .padding(.horizontal)
                     
                     // 睡眠靜息心率圖
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(
                             title: "睡眠靜息心率",
                             explanation: "睡眠靜息心率是評估心臟健康和整體健康狀況的重要指標。較低的靜息心率通常表示更好的心臟功能和更高體能水平。"
                         )
+                        .padding(.horizontal)
                         
                         SleepHeartRateChartView()
                             .environmentObject(healthKitManager)
-                            .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color(.systemBackground))
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
                     }
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.systemBackground))
+                    .background(Color(UIColor.systemBackground))
                     .cornerRadius(10)
-                    .shadow(radius: 1)
+                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle("表現數據")
+            .navigationBarTitleDisplayMode(.inline)
             .task {
                 // 確保已計算心率區間
                 await HeartRateZonesBridge.shared.syncHeartRateZones()
@@ -150,7 +157,7 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
     @State private var error: Error?
     @State private var showZoneInfo = false
     @State private var selectedZone: Int? = nil
-    @State private var selectedZoneInfo: HealthKitManager.HeartRateZone? = nil  // 新增 state 儲存選取的區間詳細資料
+    @State private var selectedZoneInfo: HealthKitManager.HeartRateZone? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -160,6 +167,7 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
                 useSheet: true,
                 sheetContent: { AnyView(HeartRateZoneInfoView()) }
             )
+            .padding(.horizontal)
             
             if isLoading {
                 ProgressView("載入數據中...")
@@ -207,22 +215,18 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
                     }
                     .frame(height: 150)
                     .padding(.horizontal)
-                    
                 }
+                .padding(.vertical)
             } else {
                 Text("無訓練數據")
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 100)
+                    .padding()
             }
         }
-        .padding(.vertical)
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(radius: 1)
         .task {
             await loadHRRAnalysis()
         }
-        // 保留 alert 以支持點擊區間時顯示詳情
         .alert(isPresented: $showZoneInfo) {
             if let info = selectedZoneInfo {
                 return Alert(
@@ -269,7 +273,6 @@ struct WeeklyHeartRateAnalysisViewHRR: View {
         return String(format: "%.0f分", minutes)
     }
 }
-
 
 #Preview {
     MyAchievementView()

@@ -7,6 +7,7 @@ struct VDOTChartView: View {
     @State private var selectedPoint: VDOTDataPoint? = nil
     @State private var showingHeartRateZoneEditor = false
     @State private var showingInfo = false
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -14,19 +15,18 @@ struct VDOTChartView: View {
             HStack {
                 Text("動態跑力 (VDOT)")
                     .font(.headline)
-                    .foregroundColor(.white)
                 
                 Button {
-                                showingInfo = true
-                            } label: {
-                                Image(systemName: "info.circle")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .alert("什麼是動態跑力？", isPresented: $showingInfo) {
-                                Button("了解", role: .cancel) {}
-                            } message: {
-                                Text("動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n它考慮了配速、距離以及儲備心率(HRR)區間，相比傳統VDOT值能更加準確地衡量您的訓練狀態。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。")
-                            }
+                    showingInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                }
+                .alert("什麼是動態跑力？", isPresented: $showingInfo) {
+                    Button("了解", role: .cancel) {}
+                } message: {
+                    Text("動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n它考慮了配速、距離以及儲備心率(HRR)區間，相比傳統VDOT值能更加準確地衡量您的訓練狀態。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。")
+                }
                 
                 Spacer()
             }
@@ -41,7 +41,6 @@ struct VDOTChartView: View {
                         
                         Text("請設定您的心率區間以獲得更準確的訓練強度指導")
                             .font(.subheadline)
-                            .foregroundColor(.white)
                         
                         Spacer()
                     }
@@ -57,7 +56,7 @@ struct VDOTChartView: View {
                     .cornerRadius(8)
                 }
                 .padding(12)
-                .background(Color(red: 0.2, green: 0.2, blue: 0.3))
+                .background(Color.blue.opacity(0.1))
                 .cornerRadius(8)
                 .padding(.bottom, 8)
             }
@@ -65,7 +64,7 @@ struct VDOTChartView: View {
             if viewModel.isLoading {
                 VStack {
                     ProgressView("載入中...")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .frame(height: 80)
                 .frame(maxWidth: .infinity)
@@ -76,7 +75,7 @@ struct VDOTChartView: View {
                         .foregroundColor(.orange)
                     Text(error)
                         .multilineTextAlignment(.center)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     Button("重試") {
                         Task {
                             await viewModel.fetchVDOTData()
@@ -91,9 +90,9 @@ struct VDOTChartView: View {
                 VStack {
                     Image(systemName: "chart.line.downtrend.xyaxis")
                         .font(.largeTitle)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     Text("暫無跑力數據")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .frame(height: 100)
                 .frame(maxWidth: .infinity)
@@ -103,7 +102,7 @@ struct VDOTChartView: View {
             }
         }
         .padding()
-        .background(Color.black)
+        .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
         .task {
             await viewModel.fetchVDOTData()
@@ -124,22 +123,21 @@ struct VDOTChartView: View {
                     VStack(alignment: .leading) {
                         Text("日期: \(dateFormatter.string(from: point.date))")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                         Text("VDOT: \(String(format: "%.2f", point.value))")
                             .font(.subheadline)
-                            .foregroundColor(.white)
                     }
                     Spacer()
                     Button {
                         selectedPoint = nil
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(Color(red: 0.2, green: 0.2, blue: 0.2))
+                .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(8)
                 .padding(.bottom, 8)
             }
@@ -170,7 +168,7 @@ struct VDOTChartView: View {
                         if let doubleValue = value.as(Double.self) {
                             Text(String(format: "%.1f", doubleValue))
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -211,20 +209,19 @@ struct VDOTChartView: View {
                         )
                 }
             }
-            .foregroundStyle(.white)
             
             // Stats
             HStack(alignment: .top, spacing: 12) {
                 statsBox(
                     title: "平均跑力",
                     value: String(format: "%.2f", viewModel.averageVdot),
-                    backgroundColor: Color(red: 0.1, green: 0.2, blue: 0.3)
+                    backgroundColor: Color.blue.opacity(0.15)
                 )
                 
                 statsBox(
                     title: "最新跑力",
                     value: String(format: "%.2f", viewModel.latestVdot),
-                    backgroundColor: Color(red: 0.1, green: 0.3, blue: 0.2)
+                    backgroundColor: Color.green.opacity(0.15)
                 )
             }
             .padding(.top, 8)
@@ -235,12 +232,11 @@ struct VDOTChartView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
             
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -261,5 +257,4 @@ struct VDOTChartView: View {
         VDOTChartView()
             .padding()
     }
-    .background(Color.black)
 }

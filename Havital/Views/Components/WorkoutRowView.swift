@@ -5,6 +5,7 @@ struct WorkoutRowView: View {
     let workout: HKWorkout
     let isUploaded: Bool
     let uploadTime: Date?
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -12,7 +13,6 @@ struct WorkoutRowView: View {
                 HStack(spacing: 4) {
                     Text(WorkoutUtils.workoutTypeString(for: workout.workoutActivityType))
                         .font(.headline)
-                        .foregroundColor(.white)
                     
                     if isToday(date: workout.startDate) {
                         Text("今天")
@@ -51,18 +51,17 @@ struct WorkoutRowView: View {
                 VStack(alignment: .leading) {
                     Text("距離")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     
                     if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                        Text(distance >= 1000 ? 
-                             String(format: "%.2f km", distance / 1000) : 
+                        Text(distance >= 1000 ?
+                             String(format: "%.2f km", distance / 1000) :
                              String(format: "%.0f m", distance))
                             .font(.subheadline)
-                            .foregroundColor(.white)
                     } else {
                         Text("-")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
@@ -72,10 +71,9 @@ struct WorkoutRowView: View {
                 VStack(alignment: .leading) {
                     Text("時間")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     Text(WorkoutUtils.formatDuration(workout.duration))
                         .font(.subheadline)
-                        .foregroundColor(.white)
                 }
                 
                 Spacer()
@@ -84,16 +82,15 @@ struct WorkoutRowView: View {
                 VStack(alignment: .leading) {
                     Text("卡路里")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     
                     if let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) {
                         Text(String(format: "%.0f kcal", calories))
                             .font(.subheadline)
-                            .foregroundColor(.white)
                     } else {
                         Text("-")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -102,12 +99,12 @@ struct WorkoutRowView: View {
             HStack {
                 Text(formattedDate(workout.startDate))
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                 Spacer()
             }
         }
         .padding()
-        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+        .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
     }
     
@@ -136,10 +133,10 @@ struct WorkoutRowView: View {
     )
     
     return WorkoutRowView(
-        workout: workout, 
-        isUploaded: true, 
+        workout: workout,
+        isUploaded: true,
         uploadTime: Date()
     )
-    .background(Color.black)
     .previewLayout(.sizeThatFits)
+    .padding()
 }

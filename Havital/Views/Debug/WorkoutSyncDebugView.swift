@@ -1036,22 +1036,4 @@ struct WorkoutSyncDebugView: View {
             return String(format: "%d'%02d\"/km", minutes, seconds)
         }
     }
-
-    // WorkoutUploadTracker 擴展，添加獲取已上傳記錄數量的方法
-    extension WorkoutUploadTracker {
-        func getUploadedWorkoutsCount() -> Int {
-            guard let data = UserDefaults.standard.data(forKey: "uploaded_workouts") else {
-                return 0
-            }
-            
-            do {
-                let records = try JSONDecoder().decode([String: TimeInterval].self, from: data)
-                return records.count
-            } catch {
-                print("獲取已上傳記錄數量時出錯: \(error)")
-                return 0
-            }
-        }
-    }
-
    

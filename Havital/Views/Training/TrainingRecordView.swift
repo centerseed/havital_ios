@@ -15,7 +15,6 @@ struct TrainingRecordView: View {
                 VStack(spacing: 20) {
                     if viewModel.isLoading {
                         ProgressView("載入訓練記錄中...")
-                            .foregroundColor(.white)
                             .frame(height: 200)
                     } else {
                         workoutList
@@ -23,10 +22,9 @@ struct TrainingRecordView: View {
                 }
                 .padding(.horizontal)
             }
-            .background(Color.black)
+            .background(Color(UIColor.systemBackground))
             .navigationTitle("訓練記錄")
             .navigationBarTitleDisplayMode(.inline)
-            .foregroundColor(.white)
             .overlay(alignment: .top) {
                 if let status = viewModel.uploadStatus {
                     syncStatusView(status)
@@ -59,7 +57,6 @@ struct TrainingRecordView: View {
                     systemImage: "figure.run",
                     description: Text("過去一個月內沒有訓練記錄")
                 )
-                .foregroundColor(.white)
             } else {
                 VStack(spacing: 16) {
                     ForEach(viewModel.workouts, id: \.uuid) { workout in
@@ -105,7 +102,6 @@ struct TrainingRecordView: View {
                 ProgressView()
                     .scaleEffect(0.7)
                     .padding(.trailing, 4)
-                    .foregroundColor(.white)
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
@@ -113,11 +109,11 @@ struct TrainingRecordView: View {
             
             Text(status)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.gray.opacity(0.2))
+        .background(Color(UIColor.tertiarySystemBackground))
         .cornerRadius(16)
         .padding(.top, 8)
     }
@@ -127,5 +123,4 @@ struct TrainingRecordView: View {
 #Preview {
     TrainingRecordView()
         .environmentObject(HealthKitManager())
-        .background(Color.black)
 }

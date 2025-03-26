@@ -2,13 +2,13 @@ import SwiftUI
 
 struct WeekOverviewCard: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
+    @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlan
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("本週概覽")
                 .font(.headline)
-                .foregroundColor(.white)
                 .padding(.horizontal, 4)
             
             VStack(spacing: 16) {
@@ -26,7 +26,7 @@ struct WeekOverviewCard: View {
                             
                             Text("訓練進度")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
                         .frame(width: geometry.size.width / 2)
                         
@@ -58,11 +58,10 @@ struct WeekOverviewCard: View {
                                     VStack(spacing: 2) {
                                         Text("\(String(format: "%.1f", viewModel.currentWeekDistance))")
                                             .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(.white)
                                         
                                         Text("\(viewModel.formatDistance(plan.totalDistance))")
                                             .font(.system(size: 10))
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.secondary)
                                     }
                                 }
                                 .frame(width: 80, height: 80)
@@ -70,7 +69,7 @@ struct WeekOverviewCard: View {
                             
                             Text("本週跑量")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
                         .frame(width: geometry.size.width / 2)
                     }
@@ -83,11 +82,10 @@ struct WeekOverviewCard: View {
                     Text("週目標")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     
                     Text(plan.purpose)
                         .font(.body)
-                        .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
@@ -116,7 +114,7 @@ struct WeekOverviewCard: View {
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+            .background(Color(UIColor.tertiarySystemBackground))
             .cornerRadius(12)
         }
     }
@@ -126,6 +124,7 @@ struct CircularProgressView: View {
     let progress: Double
     let currentWeek: Int
     let totalWeeks: Int
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ZStack {
@@ -147,15 +146,14 @@ struct CircularProgressView: View {
             VStack(spacing: 2) {
                 Text("\(currentWeek)")
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
                 
                 Text("/ \(totalWeeks)")
                     .font(.system(size: 12))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                 
                 Text("週")
                     .font(.system(size: 12))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
         }
     }

@@ -3,6 +3,7 @@ import HealthKit
 
 struct DailyTrainingCard: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
+    @Environment(\.colorScheme) var colorScheme
     let day: TrainingDay
     let isToday: Bool
     
@@ -25,12 +26,11 @@ struct DailyTrainingCard: View {
                         HStack(spacing: 4) {
                             Text(viewModel.weekdayName(for: day.dayIndex))
                                 .font(.headline)
-                                .foregroundColor(.white)
                             // 添加具體日期顯示
                             if let date = viewModel.getDateForDay(dayIndex: day.dayIndex) {
                                 Text(viewModel.formatShortDate(date))
                                     .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.secondary)
                             }
                             if isToday {
                                 Text("今天")
@@ -85,7 +85,7 @@ struct DailyTrainingCard: View {
                     
                     // 展開/摺疊指示器
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                         .font(.caption)
                         .padding(.leading, 4)
                 }
@@ -97,18 +97,8 @@ struct DailyTrainingCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     if !isExpanded {
                         Divider()
-                            .background(Color.gray.opacity(0.3))
                             .padding(.vertical, 2)
                     }
-                    
-                    HStack {
-                        Text("今日運動記錄")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-
-                    }
-                    .padding(.top, 4)
                     
                     if isExpanded {
                         ForEach(workouts, id: \.uuid) { workout in
@@ -127,12 +117,10 @@ struct DailyTrainingCard: View {
                 VStack(alignment: .leading, spacing: 12) {
                     // 分隔線
                     Divider()
-                        .background(Color.gray.opacity(0.3))
                         .padding(.vertical, 4)
                     
                     Text(day.dayTarget)
                         .font(.body)
-                        .foregroundColor(.white)
                     
                     if day.isTrainingDay, let trainingItems = day.trainingItems {
                         // For interval training, show a special header with repeats info
@@ -197,7 +185,7 @@ struct DailyTrainingCard: View {
                             
                             Text(item.runDetails)
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -205,14 +193,20 @@ struct DailyTrainingCard: View {
                 // 摺疊時只顯示簡短摘要（當天無訓練記錄時）
                 Text(day.dayTarget)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.top, 4)
             }
         }
         .padding()
-        .background(isToday ? Color(red: 0.15, green: 0.2, blue: 0.25) : Color(red: 0.15, green: 0.15, blue: 0.15))
-        .cornerRadius(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isToday
+                      ? (colorScheme == .dark
+                         ? Color(UIColor.systemBlue).opacity(0.2)
+                         : Color(UIColor.systemBlue).opacity(0.1))
+                      : Color(UIColor.tertiarySystemBackground))
+        )
     }
 }

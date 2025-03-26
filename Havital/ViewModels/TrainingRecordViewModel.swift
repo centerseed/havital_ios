@@ -17,10 +17,10 @@ class TrainingRecordViewModel: ObservableObject {
         do {
             try await healthKitManager.requestAuthorization()
             let now = Date()
-            // 改為獲取三個月的數據
-            let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -3, to: now)!
+            // 改為獲取兩個月的數據
+            let monthAgo = Calendar.current.date(byAdding: .month, value: -2, to: now)!
             
-            let fetchedWorkouts = try await healthKitManager.fetchWorkoutsForDateRange(start: oneMonthAgo, end: now)
+            let fetchedWorkouts = try await healthKitManager.fetchWorkoutsForDateRange(start: monthAgo, end: now)
             
             // 在主線程更新 UI
             await MainActor.run {

@@ -33,11 +33,11 @@ struct WorkoutSummaryRow: View {
                 } else if let vdot = dynamicVDOT {
                     Text("動態跑力：\(String(format: "%.1f", vdot))")
                         .font(.subheadline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 } else {
                     Text("動態跑力：--")
                         .font(.subheadline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 
                 // 配速、距離和平均心率
@@ -172,22 +172,47 @@ struct CollapsedWorkoutSummary: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     
     var body: some View {
-        HStack {
-            if let workout = workouts.first, let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                Text("\(viewModel.formatDistance(distance/1000))")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-                    .padding(.trailing, 4)
-                
-                if distance > 0 {
-                    let paceInSeconds = workout.duration / distance * 1000
-                    Text("\(viewModel.formatPace(paceInSeconds))")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                        .padding(.trailing, 4)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                if let workout = workouts.first {
+                    // 配速、距離和時長
+                    HStack(spacing: 12) {
+                        if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "ruler")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.blue)
+                                Text("\(viewModel.formatDistance(distance/1000))")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        
+                        if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                            let paceInSeconds = workout.duration / distance * 1000
+                            HStack(spacing: 2) {
+                                Image(systemName: "speedometer")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.green)
+                                Text("\(viewModel.formatPace(paceInSeconds))")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        
+                        // 訓練時長 (同 WorkoutSummaryRow)
+                        HStack(spacing: 2) {
+                            Image(systemName: "fitness.timer.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                            Text(WorkoutUtils.formatDurationSimple(workout.duration))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 }
             }
         }
-        .padding(.top, 2)
+        .padding(.vertical, 2)
     }
 }

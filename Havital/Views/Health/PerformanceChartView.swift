@@ -124,8 +124,8 @@ struct PerformanceChartView: View {
             components.second = 59
             let endDate = calendar.date(from: components)!
             
-            // 開始時間為三個月前的00:00:00
-            let startDate = calendar.date(byAdding: .month, value: -3, to: calendar.startOfDay(for: endDate))!
+            // 開始時間為一個月前的00:00:00
+            let startDate = calendar.date(byAdding: .month, value: -1, to: calendar.startOfDay(for: endDate))!
             
             print("查詢範圍 - 開始: \(startDate), 結束: \(endDate)")
             
