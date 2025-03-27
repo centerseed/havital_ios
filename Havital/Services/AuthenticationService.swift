@@ -187,6 +187,19 @@ class AuthenticationService: ObservableObject {
         
         return try await user.getIDToken()
     }
+    
+    func resetOnboarding() {
+        // 在主線程更新狀態
+        Task { @MainActor in
+            self.hasCompletedOnboarding = false
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        }
+        
+        // 清除相關的 onboarding 數據，但保留用戶登入狀態
+        TrainingPlanStorage.shared.clearAll()
+        
+        print("已重置 onboarding 狀態")
+    }
 }
 
 enum AuthError: Error {

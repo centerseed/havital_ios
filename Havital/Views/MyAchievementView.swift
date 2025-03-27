@@ -85,24 +85,6 @@ struct MyAchievementView: View {
                         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                         .padding(.horizontal)
                     
-                    // 體能表現趨勢
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionTitleWithInfo(
-                            title: "體能表現趨勢",
-                            explanation: "體能表現趨勢反映了你的運動強度和恢復狀況。通常運動日當天會累積疲勞，訓練表現分數會下降。而透過休息讓身體恢復，預期的表現分數會上升。\n 透過持續且強度適中的運動，整體的表現趨勢會上升。"
-                        )
-                        .padding(.horizontal)
-                        
-                        PerformanceChartView()
-                            .environmentObject(healthKitManager)
-                            .frame(height: 250)
-                            .padding()
-                    }
-                    .background(Color(UIColor.systemBackground))
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-                    .padding(.horizontal)
-                    
                     // HRV 趨勢圖
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(

@@ -128,7 +128,7 @@ struct TrainingPlanView: View {
                 titleVisibility: .visible
             ) {
                 Button("確定", role: .destructive) {
-                    hasCompletedOnboarding = false
+                    AuthenticationService.shared.resetOnboarding()
                 }
                 Button("取消", role: .cancel) {}
             } message: {

@@ -29,6 +29,9 @@ struct TrainingPlanOverviewDetailView: View {
                         
                         Text(overview.targetEvaluate)
                             .font(.body)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -40,6 +43,9 @@ struct TrainingPlanOverviewDetailView: View {
                         
                         Text(overview.trainingHighlight)
                             .font(.body)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -100,6 +106,7 @@ struct SectionCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             content()
         }
+        .frame(maxWidth: .infinity, alignment: .leading) // 確保佔據最大寬度
         .padding(.horizontal)
         .padding(.vertical, 16)
         .background(
@@ -129,6 +136,7 @@ struct TrainingStageCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // 階段標題和週數
             HStack {
                 Circle()
                     .fill(stageColors.0)
@@ -155,23 +163,35 @@ struct TrainingStageCard: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             
+            // 階段描述，確保文字可以根據內容動態調整高度
             Text(stage.stageDescription)
                 .font(.body)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true) // 確保文字可以根據內容動態調整高度
             
-            HStack {
-                Image(systemName: "flame.fill")
-                    .foregroundColor(stageColors.0)
-                Text("重點訓練:")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+            // 重點訓練部分
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(stageColors.0)
+                    Text("重點訓練:")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
                 
                 Text(stage.trainingFocus)
                     .font(.subheadline)
                     .foregroundColor(stageColors.0)
                     .fontWeight(.semibold)
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 10)
@@ -180,6 +200,7 @@ struct TrainingStageCard: View {
                     .fill(stageColors.1)
             )
         }
+        .frame(maxWidth: .infinity, alignment: .leading) // 確保佔據最大寬度
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -188,6 +209,9 @@ struct TrainingStageCard: View {
         .padding(.vertical, 4)
     }
 }
+
+
+// MARK: - Preview
 
 struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
     static var previews: some View {
