@@ -173,11 +173,6 @@ class WorkoutService {
     }
 }
 
-// 運動上傳相關錯誤
-enum WorkoutUploadError: Error {
-    case missingHeartRateData
-}
-
 // Data models for API
 struct WorkoutData: Codable {
     let id: String

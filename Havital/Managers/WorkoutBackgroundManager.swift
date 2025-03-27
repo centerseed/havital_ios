@@ -4,6 +4,12 @@ import UserNotifications
 import BackgroundTasks
 import UIKit
 
+// 自定義錯誤類型
+enum WorkoutUploadError: Error {
+    case missingHeartRateData
+    case serverError
+}
+
 // 完整的工作記錄背景管理器，含所有必要方法，支持心率資料檢查
 class WorkoutBackgroundManager: NSObject {
     static let shared = WorkoutBackgroundManager()
@@ -21,6 +27,7 @@ class WorkoutBackgroundManager: NSObject {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "lastWorkoutSyncNotificationTime")
+            UserDefaults.standard.synchronize()
         }
     }
     private let notificationCooldown: TimeInterval = 3600 // 1小時冷卻時間，只在必要時通知
@@ -30,6 +37,9 @@ class WorkoutBackgroundManager: NSObject {
     private var syncTotalCount = 0
     private var syncSuccessCount = 0
     private var isFirstLoginSync = false
+    
+    // 使用中的觀察查詢
+    private var activeObserverQuery: HKObserverQuery?
     
     // 跑步相關的活動類型
     private let runningActivityTypes: [HKWorkoutActivityType] = [
@@ -63,17 +73,26 @@ class WorkoutBackgroundManager: NSObject {
         clearAllWorkoutNotifications()
     }
     
-    // 設置觀察者來監聽新的健身記錄
+    // 設置觀察者來監聽新的健身記錄 - 修正版
     func setupWorkoutObserver() async {
         do {
-            // 請求授權
+            // 1. 請求授權
             try await requestAuthorizations()
             
-            // 獲取觀察器授權
+            // 2. 如果已有活動觀察查詢，則先取消
+            if let query = activeObserverQuery {
+                healthStore.stop(query)
+                activeObserverQuery = nil
+            }
+            
+            // 3. 創建新的觀察查詢
+            let query = createWorkoutObserverQuery()
+            
+            // 4. 啟用健康資料更新背景傳遞
             let status = await withCheckedContinuation { continuation in
                 healthStore.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .immediate) { success, error in
                     if let error = error {
-                        print("設置背景交付失敗: \(error.localizedDescription)")
+                        print("設置背景傳遞失敗: \(error.localizedDescription)")
                         continuation.resume(returning: false)
                         return
                     }
@@ -84,8 +103,8 @@ class WorkoutBackgroundManager: NSObject {
             if status {
                 print("已成功設置背景健身記錄觀察器")
                 
-                // 創建觀察者查詢
-                let query = createWorkoutObserverQuery()
+                // 保存查詢引用並執行
+                activeObserverQuery = query
                 healthStore.execute(query)
                 
                 // 運行一次上傳邏輯，處理已存在但尚未上傳的記錄
@@ -136,7 +155,7 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 檢查並上傳待處理的健身記錄
+    // 檢查並上傳待處理的健身記錄 - 修正版
     func checkAndUploadPendingWorkouts() async {
         print("檢查待上傳的健身記錄...")
         
@@ -152,6 +171,11 @@ class WorkoutBackgroundManager: NSObject {
         if UIApplication.shared.applicationState == .background {
             backgroundTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: {
                 print("健身記錄上傳背景任務即將過期")
+                
+                // 如果任務即將過期，嘗試請求更多執行時間
+                if #available(iOS 13.0, *) {
+                    self.scheduleBackgroundTask()
+                }
             })
         }
         
@@ -163,6 +187,9 @@ class WorkoutBackgroundManager: NSObject {
         }
         
         do {
+            // 標記同步開始
+            syncInProgress = true
+            
             // 獲取最近的健身記錄
             let workouts = try await fetchRecentWorkouts()
             
@@ -187,8 +214,7 @@ class WorkoutBackgroundManager: NSObject {
             if totalWorkoutsToProcess > 0 {
                 print("共發現 \(totalWorkoutsToProcess) 筆需要處理的健身記錄")
                 
-                // 標記同步開始
-                syncInProgress = true
+                // 設置同步狀態
                 syncTotalCount = totalWorkoutsToProcess
                 syncSuccessCount = 0
                 
@@ -402,10 +428,13 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 創建觀察者查詢
+    // 創建觀察者查詢 - 修正版
     private func createWorkoutObserverQuery() -> HKObserverQuery {
         let query = HKObserverQuery(sampleType: HKObjectType.workoutType(), predicate: nil) { [weak self] (query, completionHandler, error) in
-            guard let self = self else { return }
+            guard let self = self else {
+                completionHandler()
+                return
+            }
             
             if let error = error {
                 print("健身記錄觀察者查詢錯誤: \(error.localizedDescription)")
@@ -413,10 +442,37 @@ class WorkoutBackgroundManager: NSObject {
                 return
             }
             
+            print("偵測到新的健身記錄，啟動背景處理...")
+            
+            // 請求背景執行時間
+            var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+            backgroundTask = UIApplication.shared.beginBackgroundTask {
+                // 背景執行時間即將到期
+                if backgroundTask != .invalid {
+                    UIApplication.shared.endBackgroundTask(backgroundTask)
+                    backgroundTask = .invalid
+                }
+                completionHandler()
+            }
+            
             // 檢測到新的健身記錄，執行上傳邏輯
             Task {
                 await self.checkAndUploadPendingWorkouts()
+                
+                // 完成背景任務
+                if backgroundTask != .invalid {
+                    UIApplication.shared.endBackgroundTask(backgroundTask)
+                    backgroundTask = .invalid
+                }
+                
+                // 回調完成
                 completionHandler()
+                
+                // 在後台模式下，主動請求更多背景處理時間
+                if UIApplication.shared.applicationState == .background {
+                    // 安排後台任務以繼續處理
+                    self.scheduleBackgroundTask()
+                }
             }
         }
         
@@ -479,7 +535,7 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 獲取最近的健身記錄
+    // 獲取最近的健身記錄 - 修正版
     private func fetchRecentWorkouts() async throws -> [HKWorkout] {
         let calendar = Calendar.current
         let now = Date()
@@ -697,31 +753,31 @@ extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
         if notification.request.identifier == "workout.heartrate.retry" {
             completionHandler([])
         } else {
-            completionHandler([.banner, .sound])
+            if #available(iOS 14.0, *) {
+                completionHandler([.banner, .sound, .list])
+            } else {
+                completionHandler([.alert, .sound])
+            }
         }
     }
     
     // 處理通知的點擊事件
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        // 處理通知的點擊事件
-        // 處理通知的點擊事件
-        func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-            // 處理心率重試通知
-            if response.notification.request.identifier == "workout.heartrate.retry" {
-                // 當收到重試通知時，再次檢查並上傳運動記錄
-                Task {
-                    print("收到心率資料重試通知，重新檢查運動記錄...")
-                    await checkAndUploadPendingWorkouts()
-                    completionHandler()
-                }
-            } else if response.notification.request.identifier.hasPrefix("sync-training-data") ||
-                        response.notification.request.identifier == "first-login-sync" {
-                // 處理同步相關通知的點擊
-                completionHandler()
-            } else {
-                // 這裡可以處理用戶點擊通知的邏輯，例如導航到訓練記錄頁面
+        // 處理心率重試通知
+        if response.notification.request.identifier == "workout.heartrate.retry" {
+            // 當收到重試通知時，再次檢查並上傳運動記錄
+            Task {
+                print("收到心率資料重試通知，重新檢查運動記錄...")
+                await checkAndUploadPendingWorkouts()
                 completionHandler()
             }
+        } else if response.notification.request.identifier.hasPrefix("sync-training-data") ||
+                    response.notification.request.identifier == "first-login-sync" {
+            // 處理同步相關通知的點擊
+            completionHandler()
+        } else {
+            // 這裡可以處理用戶點擊通知的邏輯，例如導航到訓練記錄頁面
+            completionHandler()
         }
     }
 }

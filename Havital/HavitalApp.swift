@@ -18,7 +18,7 @@ struct HavitalApp: App {
         FirebaseApp.configure()
         FirebaseLogConfigurator.setup()
         
-        // 註冊背景任務
+        // 只在這裡註冊一次背景任務處理器
         registerBackgroundTasks()
     }
     
@@ -69,6 +69,16 @@ struct HavitalApp: App {
                 }
             }
         }
+        // 添加應用程式生命週期事件處理
+        .onChange(of: UIApplication.shared.applicationState) { state in
+            if state == .active {
+                // 應用進入前景
+                print("應用進入前景")
+                Task {
+                    await checkForPendingHealthUpdates()
+                }
+            }
+        }
     }
     
     /// 一次性請求所有必要的權限並設置背景處理
@@ -82,6 +92,9 @@ struct HavitalApp: App {
             
             // 3. 設置背景健身記錄同步（包括觀察者）
             await setupWorkoutBackgroundProcessing()
+            
+            // 4. 檢查是否有待處理的健身記錄
+            await checkForPendingHealthUpdates()
         }
     }
     
@@ -118,22 +131,49 @@ struct HavitalApp: App {
         // 設置通知代理
         UNUserNotificationCenter.current().delegate = WorkoutBackgroundManager.shared
         
+        // 標記首次登入狀態
+        if authService.isFirstLogin {
+            WorkoutBackgroundManager.shared.markFirstLogin()
+            authService.isFirstLogin = false
+        }
+        
         // 設置健身記錄觀察者（已經在主界面，所以已確認用戶登入且完成引導）
         print("設置健身記錄觀察者...")
         await WorkoutBackgroundManager.shared.setupWorkoutObserver()
-        
-        // 主動檢查待上傳記錄
-        print("檢查待上傳健身記錄...")
-        await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
         
         // 安排背景工作
         scheduleBackgroundWorkoutSync()
     }
     
+    // 檢查是否有待處理的健身記錄
+    private func checkForPendingHealthUpdates() async {
+        // 確保用戶已登入且完成引導
+        guard authService.isAuthenticated && authService.hasCompletedOnboarding else {
+            return
+        }
+        
+        // 主動檢查待上傳記錄
+        print("檢查待上傳健身記錄...")
+        await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
+    }
+    
+    // 註冊背景任務 - 只在初始化時呼叫一次
     private func registerBackgroundTasks() {
         let taskIdentifier = "com.havital.workout-sync"
         
+        // 先取消現有的所有任務請求
+        BGTaskScheduler.shared.cancelAllTaskRequests()
+        
+        // 註冊背景處理任務
         BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
+            // 背景同步任務
+            print("背景任務開始執行")
+            
+            // 設置任務到期處理
+            task.expirationHandler = {
+                print("背景健身記錄同步任務到期")
+            }
+            
             Task {
                 // 確保用戶已登入
                 guard AuthenticationService.shared.isAuthenticated else {
@@ -144,11 +184,15 @@ struct HavitalApp: App {
                 // 執行背景同步
                 await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
                 
-                // 標記任務完成並安排下一次執行
+                // 任務完成
                 (task as? BGProcessingTask)?.setTaskCompleted(success: true)
+                
+                // 安排下一次執行
                 scheduleBackgroundWorkoutSync()
             }
         }
+        
+        print("已註冊背景任務: \(taskIdentifier)")
     }
 }
 
@@ -169,6 +213,18 @@ func scheduleBackgroundWorkoutSync() {
         print("已安排背景健身記錄同步任務")
     } catch {
         print("無法安排背景同步任務: \(error.localizedDescription)")
+    }
+}
+
+// 擴展 AuthenticationService 以追蹤第一次登入狀態
+extension AuthenticationService {
+    var isFirstLogin: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "isFirstLogin")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "isFirstLogin")
+        }
     }
 }
 

@@ -12,13 +12,36 @@ class SyncNotificationManager {
     private var isBulkSyncInProgress = false
     
     // 上次發送通知的時間
-    private var lastNotificationTime: Date?
+    private var lastNotificationTime: Date? {
+        get {
+            return UserDefaults.standard.object(forKey: "lastSyncNotificationTime") as? Date
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "lastSyncNotificationTime")
+            UserDefaults.standard.synchronize()
+        }
+    }
     
     // 累計上傳成功的記錄數
     private var totalSuccessCount = 0
     
     // 通知的冷卻時間（秒）
-    private let notificationCooldown: TimeInterval = 30
+    private let notificationCooldown: TimeInterval = 3600 // 一小時
+    
+    // 用於追蹤已經通知過的記錄IDs
+    private let notifiedWorkoutsKey = "notifiedWorkoutIds"
+    private var notifiedWorkoutIds: Set<String> {
+        get {
+            if let array = UserDefaults.standard.array(forKey: notifiedWorkoutsKey) as? [String] {
+                return Set(array)
+            }
+            return []
+        }
+        set {
+            UserDefaults.standard.set(Array(newValue), forKey: notifiedWorkoutsKey)
+            UserDefaults.standard.synchronize()
+        }
+    }
     
     private init() {}
     
@@ -28,6 +51,7 @@ class SyncNotificationManager {
         isBulkSyncInProgress = false
         lastNotificationTime = nil
         totalSuccessCount = 0
+        notifiedWorkoutIds = []
     }
     
     // 開始批量同步
@@ -36,7 +60,7 @@ class SyncNotificationManager {
         isBulkSyncInProgress = true
         
         // 避免重複發送開始通知
-        if !hasShownBulkSyncStartNotification {
+        if !hasShownBulkSyncStartNotification && shouldSendNotification() {
             await sendSyncStartNotification(count: count)
             hasShownBulkSyncStartNotification = true
         }
@@ -50,7 +74,7 @@ class SyncNotificationManager {
     // 結束批量同步，發送結果通知
     func endBulkSync() async {
         // 確保只在真正有上傳成功的情況下發送通知
-        if totalSuccessCount > 0 {
+        if totalSuccessCount > 0 && shouldSendNotification() {
             await sendSyncCompletionNotification(count: totalSuccessCount)
         }
         
@@ -61,11 +85,27 @@ class SyncNotificationManager {
     }
     
     // 正常同步完成（非批量）
-    func notifySyncCompletion(count: Int) async {
+    func notifySyncCompletion(count: Int, workoutIds: [String] = []) async {
         // 如果正在進行批量同步，只累計數量而不發送通知
         if isBulkSyncInProgress {
             totalSuccessCount += count
             return
+        }
+        
+        // 檢查這些 workoutIds 是否已經通知過
+        let currentNotifiedIds = notifiedWorkoutIds
+        let newWorkoutIds = workoutIds.filter { !currentNotifiedIds.contains($0) }
+        
+        // 如果所有記錄都已經通知過，則跳過
+        if workoutIds.count > 0 && newWorkoutIds.isEmpty {
+            return
+        }
+        
+        // 否則更新已通知記錄集合
+        if !newWorkoutIds.isEmpty {
+            var updatedNotifiedIds = currentNotifiedIds
+            updatedNotifiedIds.formUnion(newWorkoutIds)
+            notifiedWorkoutIds = updatedNotifiedIds
         }
         
         // 檢查是否應該發送通知（避免頻繁通知）
@@ -148,5 +188,31 @@ class SyncNotificationManager {
         let identifiers = ["sync-training-data-start", "sync-training-data-completion"]
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+    
+    // 檢查特定運動記錄是否已發送通知
+    func hasNotifiedForWorkout(_ workoutId: String) -> Bool {
+        return notifiedWorkoutIds.contains(workoutId)
+    }
+    
+    // 標記特定運動記錄已通知
+    func markWorkoutAsNotified(_ workoutId: String) {
+        var ids = notifiedWorkoutIds
+        ids.insert(workoutId)
+        notifiedWorkoutIds = ids
+    }
+    
+    // 清理舊的通知紀錄
+    func cleanupOldNotifications(keepLatest: Int = 100) {
+        var allIds = Array(notifiedWorkoutIds)
+        
+        // 如果數量少於保留閾值，不執行清理
+        if allIds.count <= keepLatest {
+            return
+        }
+        
+        // 只保留最新的N條記錄（注意：這裡沒有時間戳信息，所以只是簡單地保留最後添加的記錄）
+        allIds = Array(allIds.suffix(keepLatest))
+        notifiedWorkoutIds = Set(allIds)
     }
 }
