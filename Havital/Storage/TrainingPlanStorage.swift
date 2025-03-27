@@ -50,7 +50,8 @@ class TrainingPlanStorage {
                 totalWeeks: 0,
                 trainingHighlight: "",
                 trainingPlanName: "",
-                trainingStageDescription: []
+                trainingStageDescription: [],
+                createdAt: ""
             )
         }
         return overview

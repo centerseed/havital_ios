@@ -253,7 +253,7 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     weekStart: 15,
                     weekEnd: 16
                 )
-            ]
+            ], createdAt: ""
         ))
     }
 }

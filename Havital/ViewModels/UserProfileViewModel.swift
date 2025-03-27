@@ -5,6 +5,8 @@ class UserProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: Error?
     @Published var userData: UserProfileData?
+    @Published var heartRateZones: [HeartRateZonesManager.HeartRateZone] = []
+    @Published var isLoadingZones = true
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -28,6 +30,15 @@ class UserProfileViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    func loadHeartRateZones() async {
+        isLoadingZones = true
+        // Ensure zone data is calculated
+        await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+        // Get heart rate zones
+        heartRateZones = HeartRateZonesManager.shared.getHeartRateZones()
+        isLoadingZones = false
+    }
+    
     func weekdayName(for index: Int) -> String {
         // Using a system where 1=Monday, 2=Tuesday, ... 7=Sunday
         let weekdays = ["一", "二", "三", "四", "五", "六", "日"]
@@ -35,8 +46,18 @@ class UserProfileViewModel: ObservableObject {
         return "星期" + weekdays[adjustedIndex]
     }
     
-    // Format heart rate to ensure proper display
-    func formatHeartRate(_ value: Int) -> String {
-        return "\(value) bpm"
+    func formatHeartRate(_ rate: Int) -> String {
+        return "\(rate) bpm"
+    }
+    
+    func zoneColor(for zone: Int) -> Color {
+        switch zone {
+        case 1: return .blue
+        case 2: return .green
+        case 3: return .yellow
+        case 4: return .orange
+        case 5: return .red
+        default: return .gray
+        }
     }
 }

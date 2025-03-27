@@ -70,7 +70,8 @@ struct HeartRateZoneInfoView: View {
                                         
                                         Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
                                             .font(.subheadline)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(.primary)
+                                            .fontWeight(.medium)
                                     }
                                     
                                     Text(zone.description)

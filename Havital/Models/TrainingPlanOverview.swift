@@ -24,6 +24,7 @@ struct TrainingPlanOverview: Codable {
     let trainingHighlight: String
     let trainingPlanName: String
     let trainingStageDescription: [TrainingStage]
+    let createdAt: String
     
     enum CodingKeys: String, CodingKey {
         case targetEvaluate = "target_evaluate"
@@ -31,5 +32,6 @@ struct TrainingPlanOverview: Codable {
         case trainingHighlight = "training_hightlight"
         case trainingPlanName = "training_plan_name"
         case trainingStageDescription = "training_stage_discription"
+        case createdAt = "created_at"
     }
 }

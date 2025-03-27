@@ -90,26 +90,37 @@ struct WeekOverviewCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // 顯示「產生下週課表」按鈕 (根據新的條件)
-                if viewModel.shouldShowNextWeekButton(plan: plan) {
-                    Button(action: {
-                        Task {
-                            await viewModel.generateNextWeekPlan()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "calendar.badge.plus")
-                                .font(.system(size: 16))
-                            Text("產生第\(plan.weekOfPlan + 1)週課表")
+                // 在 TrainingPlanView 中的適當位置添加以下代碼
+
+                // 判斷是否顯示產生課表按鈕
+                if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
+                    let (shouldShow, nextWeek) = viewModel.shouldShowNextWeekButton(plan: plan)
+                    
+                    if shouldShow {
+                        // 顯示產生課表按鈕
+                        VStack(spacing: 8) {
+                            Text("當前訓練週數：第 \(currentTrainingWeek) 週")
                                 .font(.subheadline)
-                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: {
+                                Task {
+                                    await viewModel.generateNextWeekPlan(targetWeek: nextWeek)
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "calendar.badge.plus")
+                                    Text("產生第 \(nextWeek) 週課表")
+                                }
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
                         }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 16)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .padding(.horizontal)
+                        .disabled(viewModel.isLoading)
                     }
-                    .padding(.top, 12)
                 }
             }
             .padding()

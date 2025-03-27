@@ -36,6 +36,86 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
+    // 計算從訓練開始到當前的週數
+    func calculateCurrentTrainingWeek() -> Int? {
+           guard let overview = trainingOverview,
+                 !overview.createdAt.isEmpty else {
+               print("無法計算訓練週數: 缺少 overview 或建立時間")
+               return nil
+           }
+           
+           let createdAtString = overview.createdAt
+           
+           // 解析 createdAt 字串為 Date 對象
+           let dateFormatter = ISO8601DateFormatter()
+           dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+           
+           guard let createdAtDate = dateFormatter.date(from: createdAtString) else {
+               print("無法解析建立時間: \(createdAtString)")
+               return nil
+           }
+           
+           let calendar = Calendar.current
+           let today = Date()
+           
+           // 輸出當前日期和建立日期，以便調試
+           let debugFormatter = DateFormatter()
+           debugFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss (EEEE)"
+           debugFormatter.locale = Locale(identifier: "zh_TW")
+           
+           print("當前日期: \(debugFormatter.string(from: today))")
+           print("訓練建立日期: \(debugFormatter.string(from: createdAtDate))")
+           
+           // 找到 createdAt 所在週的週一 (週的開始)
+           let createdAtWeekday = calendar.component(.weekday, from: createdAtDate)
+           let adjustedCreatedAtWeekday = createdAtWeekday == 1 ? 7 : createdAtWeekday - 1 // 將週日=1轉換為週日=7
+           
+           print("建立日期是星期 \(adjustedCreatedAtWeekday)")
+           
+           // 計算建立日期所在週的週一日期
+           let daysToSubtract = adjustedCreatedAtWeekday - 1
+           guard let createdAtWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAtDate)) else {
+               print("無法計算建立日期所在週的週一")
+               return nil
+           }
+           
+           print("建立日期所在週的週一: \(debugFormatter.string(from: createdAtWeekMonday))")
+           
+           // 找到今天所在週的週一
+           let todayWeekday = calendar.component(.weekday, from: today)
+           let adjustedTodayWeekday = todayWeekday == 1 ? 7 : todayWeekday - 1 // 將週日=1轉換為週日=7
+           
+           let todayDaysToSubtract = adjustedTodayWeekday - 1
+           guard let todayWeekMonday = calendar.date(byAdding: .day, value: -todayDaysToSubtract, to: calendar.startOfDay(for: today)) else {
+               print("無法計算今天所在週的週一")
+               return nil
+           }
+           
+           print("今天所在週的週一: \(debugFormatter.string(from: todayWeekMonday))")
+           
+           // 計算週數差異
+           // 使用 Calendar 直接計算這兩個週一之間的週數差異
+           let weekDiff = calendar.dateComponents([.weekOfYear], from: createdAtWeekMonday, to: todayWeekMonday).weekOfYear ?? 0
+           
+           // 訓練週數 = 週數差異 + 1（含第一週）
+           let trainingWeek = weekDiff + 1
+           
+           print("週數差異: \(weekDiff), 當前訓練週數: \(trainingWeek)")
+           
+           return trainingWeek
+       }
+        
+        // 取得訓練週數並輸出日誌
+        func logCurrentTrainingWeek() {
+            if let week = calculateCurrentTrainingWeek() {
+                print("=== 訓練週數計算結果 ===")
+                print("當前是第 \(week) 週訓練")
+                print("=======================")
+            } else {
+                print("無法計算訓練週數")
+            }
+        }
+    
     // 儲存當前計算好的週日期資訊
     private var currentWeekDateInfo: WeekDateInfo?
     
@@ -232,6 +312,7 @@ class TrainingPlanViewModel: ObservableObject {
         do {
             // 直接嘗試從 API 獲取最新數據
             let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
+            // "2025-03-27T03:10:15.031000+00:00"
             
             // 成功獲取後更新 UI
             await MainActor.run {
@@ -239,6 +320,9 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
             print("成功載入訓練計劃概覽")
+            
+            // 計算並輸出當前訓練週數
+            logCurrentTrainingWeek()
         } catch {
             print("載入訓練計劃概覽失敗: \(error)")
             
@@ -262,18 +346,28 @@ class TrainingPlanViewModel: ObservableObject {
     }
 
     // 在產生新週計劃時更新概覽
-    func generateNextWeekPlan() async {
+    // 產生指定週數的課表
+    func generateNextWeekPlan(targetWeek: Int? = nil) async {
         guard let currentPlan = weeklyPlan else {
-            print("無法產生下週課表：當前課表不存在")
+            print("無法產生課表：當前課表不存在")
             return
         }
         
-        // 計算下一週的週數
-        let nextWeek = currentPlan.weekOfPlan + 1
+        // 決定目標週數：優先使用參數提供的週數
+        let nextWeek: Int
+        if let specificWeek = targetWeek {
+            nextWeek = specificWeek
+        } else if let currentTrainingWeek = calculateCurrentTrainingWeek() {
+            // 如果沒有指定週數但可以計算當前訓練週數，則使用當前訓練週數
+            nextWeek = currentTrainingWeek
+        } else {
+            // 如果無法計算當前訓練週數，則使用計劃週數+1
+            nextWeek = currentPlan.weekOfPlan + 1
+        }
         
-        // 確保下一週不超過總週數
+        // 確保目標週數不超過總週數
         guard nextWeek <= currentPlan.totalWeeks else {
-            print("已經是最後一週，無法產生下週課表")
+            print("已經是最後一週，無法產生課表")
             return
         }
         
@@ -323,7 +417,7 @@ class TrainingPlanViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("產生下週課表失敗: \(error)")
+            print("產生課表失敗: \(error)")
             
             await MainActor.run {
                 self.error = error
@@ -373,6 +467,9 @@ class TrainingPlanViewModel: ObservableObject {
                 
                 // 更新訓練計劃概覽
                 await loadTrainingOverview()
+                
+                // 在這裡也輸出訓練週數計算結果
+                logCurrentTrainingWeek()
                 
                 if newPlan.totalDistance > 0 {
                     await loadCurrentWeekDistance(healthKitManager: healthKitManager)
@@ -556,20 +653,25 @@ class TrainingPlanViewModel: ObservableObject {
     
     
     // 判斷是否應該顯示產生下週課表按鈕
-    func shouldShowNextWeekButton(plan: WeeklyPlan) -> Bool {
-        // 獲取當前週的日期範圍
-        let (_, weekEnd) = getCurrentWeekDates()
+    // 判斷是否應該顯示產生課表按鈕，並返回應該產生的週數
+    func shouldShowNextWeekButton(plan: WeeklyPlan) -> (shouldShow: Bool, nextWeek: Int) {
+        // 計算當前實際訓練週數
+        guard let currentTrainingWeek = calculateCurrentTrainingWeek() else {
+            // 如果無法計算當前訓練週數，則使用計劃週數+1
+            let nextWeek = plan.weekOfPlan + 1
+            let hasNextWeek = nextWeek <= plan.totalWeeks
+            return (hasNextWeek, nextWeek)
+        }
         
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // 當前日期是否是當前計劃週數的週日
-        let isCurrentWeekSunday = calendar.isDate(now, equalTo: weekEnd, toGranularity: .day)
-        
-        // 檢查還有沒有下一週
-        let hasNextWeek = plan.weekOfPlan < plan.totalWeeks
-        
-        return isCurrentWeekSunday && hasNextWeek
+        // 如果當前實際訓練週數大於計畫週數，則應該顯示按鈕產生對應週數的課表
+        if currentTrainingWeek > plan.weekOfPlan {
+            // 確保不超過總週數
+            let hasNextWeek = currentTrainingWeek <= plan.totalWeeks
+            return (hasNextWeek, currentTrainingWeek)
+        } else {
+            // 如果當前實際訓練週數等於或小於計畫週數，不需要顯示按鈕
+            return (false, currentTrainingWeek)
+        }
     }
     
     // 輔助方法

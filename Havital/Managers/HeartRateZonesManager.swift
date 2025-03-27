@@ -57,7 +57,7 @@ class HeartRateZonesManager {
             name: "輕鬆 (E)",
             range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.easyLow, highPct: ZonePercentages.easyHigh),
             description: "基礎耐力訓練，可長時間維持的輕鬆配速",
-            benefit: "初級心肺訓練。幫助熱身、放鬆。"
+            benefit: "建立有氧基礎，增加粒線體數量。在有充足訓練時間下，輕鬆跑應該佔訓練的60~80%，以平衡訓練強度。"
         )
         
         let zone2 = HeartRateZone(
@@ -65,7 +65,7 @@ class HeartRateZonesManager {
             name: "馬拉松 (M)",
             range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.marathonLow, highPct: ZonePercentages.marathonHigh),
             description: "馬拉松配速訓練，提升長距離跑步的耐力",
-            benefit: "基礎心肺訓練。提升恢復能力、促進新陳代謝，以及協助恢復。"
+            benefit: "理論上跑全程馬拉松適合的心率範圍。此心率區間的訓練效益較低，通常是在週期後段適應比賽配速才會加入。"
         )
         
         let zone3 = HeartRateZone(
@@ -73,15 +73,15 @@ class HeartRateZonesManager {
             name: "閾值 (T)",
             range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.thresholdLow, highPct: ZonePercentages.thresholdHigh),
             description: "乳酸閾值訓練，提升速度耐力，約10K-半馬配速",
-            benefit: "提高有氧能力，優化心血管的訓練。"
+            benefit: "強度訓練有氧循環的臨界點，適當的訓練已提高乳酸清除能力，增加在較高配速的耐力。"
         )
         
         let zone4 = HeartRateZone(
             zone: 4,
             name: "無氧 (A)",
             range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.aerobicLow, highPct: ZonePercentages.aerobicHigh),
-            description: "提升最大有氧能力，約5K配速",
-            benefit: "改善無氧能力及乳酸閾值，提高速度。"
+            description: "有氧循環無法負荷的運動強度，約3至5K的配速",
+            benefit: "提升最大攝氧量，改善跑姿和強化肌力。"
         )
         
         let zone5 = HeartRateZone(
@@ -90,7 +90,7 @@ class HeartRateZonesManager {
             name: "間歇 (I)",
             range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.intervalLow, highPct: ZonePercentages.intervalHigh),
             description: "高強度間歇訓練，提升爆發力和速度",
-            benefit: "提升無氧能力與肌耐力，增加功率。"
+            benefit: "提升無氧能力與肌耐力，並提升最大攝氧量。適度的加入間歇訓練可以明顯的感受到進步，但千萬不要過量"
         )
         
         return [zone1, zone2, zone3, zone4, zone5]
