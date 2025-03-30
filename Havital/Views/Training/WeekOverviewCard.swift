@@ -93,6 +93,7 @@ struct WeekOverviewCard: View {
                 // 在 TrainingPlanView 中的適當位置添加以下代碼
 
                 // 判斷是否顯示產生課表按鈕
+                /*
                 if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
                     let (shouldShow, nextWeek) = viewModel.shouldShowNextWeekButton(plan: plan)
                     
@@ -105,7 +106,7 @@ struct WeekOverviewCard: View {
                             
                             Button(action: {
                                 Task {
-                                    await viewModel.generateNextWeekPlan(targetWeek: nextWeek)
+                                    await viewModel.generateNextWeekPlan()
                                 }
                             }) {
                                 HStack {
@@ -121,7 +122,7 @@ struct WeekOverviewCard: View {
                         .padding(.horizontal)
                         .disabled(viewModel.isLoading)
                     }
-                }
+                }*/
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)

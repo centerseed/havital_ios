@@ -90,19 +90,32 @@ class WorkoutBackgroundUploader {
                     continue
                 }
                 
-                // 獲取配速數據
-                let paceData = try await healthKitManager.fetchPaceData(for: workout)
-                
+                // 獲取所有擴展數據
+                let speedData = try await healthKitManager.fetchSpeedData(for: workout)
+                let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
+                let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
+                let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
+                let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
+                            
                 // 轉換為所需的 DataPoint 格式
                 let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-                let paces = paceData.map { DataPoint(time: $0.0, value: $0.1) }
+                let speeds = speedData.map { DataPoint(time: $0.0, value: $0.1) }
+                let strides = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let cadences = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let contactTimes = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
+                            
                 
                 // 上傳運動數據
                 try await workoutService.postWorkoutDetails(
-                    workout: workout,
-                    heartRates: heartRates,
-                    paces: paces
-                )
+                                workout: workout,
+                                heartRates: heartRates,
+                                speeds: speeds,
+                                strideLengths: strides,
+                                cadences: cadences,
+                                groundContactTimes: contactTimes,
+                                verticalOscillations: oscillations
+                            )
                 
                 // 標記為已上傳且包含心率資料
                 workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)

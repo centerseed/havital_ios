@@ -54,7 +54,7 @@ struct CircularProgressView_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
-            CircularProgressView(
+            OldCircularProgressView(
                 progress: 0.25,
                 currentWeek: 2,
                 totalWeeks: 8

@@ -17,13 +17,16 @@ class HealthKitManager: ObservableObject {
         let typesToRead: Set<HKObjectType> = [
             HKObjectType.workoutType(),
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKObjectType.quantityType(forIdentifier: .stepCount)!,
             HKObjectType.quantityType(forIdentifier: .runningSpeed)!,
+            HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,
+            HKObjectType.quantityType(forIdentifier: .runningGroundContactTime)!,
+            HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation)!,
             HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-            HKObjectType.quantityType(forIdentifier: .stepCount)!,
             HKObjectType.quantityType(forIdentifier: .vo2Max)!
         ]
         
@@ -50,19 +53,207 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    // MARK: - HRV 數據
+    // MARK: - 跑步數據獲取
     
-    func fetchHRVData(start: Date, end: Date) async throws -> [(Date, Double)] {
-        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
+    // 獲取速度數據
+    func fetchSpeedData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let runningSpeedType = HKObjectType.quantityType(forIdentifier: .runningSpeed) else {
+            throw HealthError.typeNotAvailable
+        }
+
+        return try await fetchQuantitySamples(
+            sampleType: runningSpeedType,
+            workout: workout,
+            unit: HKUnit.meter().unitDivided(by: HKUnit.second())
+        )
+    }
+
+    // 獲取步幅數據
+    func fetchStrideLengthData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let strideLengthType = HKObjectType.quantityType(forIdentifier: .runningStrideLength) else {
             throw HealthError.typeNotAvailable
         }
         
-        return try await withCheckedThrowingContinuation { continuation in
-            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        return try await fetchQuantitySamples(
+            sampleType: strideLengthType,
+            workout: workout,
+            unit: HKUnit.meter()
+        )
+    }
+
+    // 獲取觸地時間數據
+    func fetchGroundContactTimeData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let groundContactTimeType = HKObjectType.quantityType(forIdentifier: .runningGroundContactTime) else {
+            throw HealthError.typeNotAvailable
+        }
+        
+        return try await fetchQuantitySamples(
+            sampleType: groundContactTimeType,
+            workout: workout,
+            unit: HKUnit.secondUnit(with: .milli)
+        )
+    }
+
+    // 獲取垂直振幅數據
+    func fetchVerticalOscillationData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let verticalOscillationType = HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation) else {
+            throw HealthError.typeNotAvailable
+        }
+        
+        return try await fetchQuantitySamples(
+            sampleType: verticalOscillationType,
+            workout: workout,
+            unit: HKUnit.meter()
+        )
+    }
+    
+    // 獲取步頻數據 (通過步數計算)
+    // 獲取步頻數據 (通過步數計算)
+    func fetchCadenceData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        // 獲取步數數據
+        guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
+            throw HealthError.typeNotAvailable
+        }
+        
+        let stepCounts = try await fetchQuantitySamples(
+            sampleType: stepCountType,
+            workout: workout,
+            unit: HKUnit.count()
+        )
+        
+        // 如果步數數據不足，返回空數組
+        if stepCounts.count < 2 {
+            print("步數數據不足，無法計算步頻")
+            return []
+        }
+        
+        // 計算步頻
+        return calculateCadence(stepCount: stepCounts)
+    }
+
+    // 輔助方法：計算步頻 (步/分鐘)
+    private func calculateCadence(stepCount: [(Date, Double)]) -> [(Date, Double)] {
+        var cadenceData: [(Date, Double)] = []
+        
+        // 需要至少2個時間點來計算步頻
+        if stepCount.count < 2 {
+            return cadenceData
+        }
+        
+        // 對每個時間窗口計算步頻
+        for i in 1..<stepCount.count {
+            let previousPoint = stepCount[i-1]
+            let currentPoint = stepCount[i]
+            
+            let timeDifference = currentPoint.0.timeIntervalSince(previousPoint.0)
+            if timeDifference > 0 {
+                // 計算這段時間內的步數差異
+                let stepDifference = currentPoint.1 - previousPoint.1
+                
+                // 只有當步數差異為正數時才計算步頻
+                if stepDifference > 0 {
+                    // 計算步頻(步/分鐘)
+                    let cadenceValue = (stepDifference / timeDifference) * 60.0
+                    
+                    // 添加到結果中，使用時間窗口的中間點作為數據點時間
+                    let midPointTime = previousPoint.0.addingTimeInterval(timeDifference / 2)
+                    cadenceData.append((midPointTime, cadenceValue))
+                }
+            }
+        }
+        
+        return cadenceData
+    }
+    
+    // 輔助方法：找到最接近特定日期的數據點
+    private func findClosestDataPoint(_ dataPoints: [(Date, Double)], to targetDate: Date) -> (Date, Double)? {
+        guard !dataPoints.isEmpty else { return nil }
+        
+        var closestPoint: (Date, Double)? = nil
+        var minTimeDifference = Double.greatestFiniteMagnitude
+        
+        for point in dataPoints {
+            let timeDifference = abs(point.0.timeIntervalSince(targetDate))
+            if timeDifference < minTimeDifference {
+                minTimeDifference = timeDifference
+                closestPoint = point
+            }
+        }
+        
+        return closestPoint
+    }
+    
+    // 通用方法：獲取數量樣本數據
+    private func fetchQuantitySamples(
+        sampleType: HKQuantityType,
+        workout: HKWorkout,
+        unit: HKUnit
+    ) async throws -> [(Date, Double)] {
+        try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(
+                withStart: workout.startDate,
+                end: workout.endDate,
+                options: .strictEndDate
+            )
             
             let query = HKSampleQuery(
-                sampleType: hrvType,
+                sampleType: sampleType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, samples, error in
+                if let error = error {
+                    print("獲取數據時出錯 (\(sampleType.identifier)): \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                guard let quantitySamples = samples as? [HKQuantitySample] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                
+                let dataPoints = quantitySamples.map { sample -> (Date, Double) in
+                    let value = sample.quantity.doubleValue(for: unit)
+                    return (sample.startDate, value)
+                }
+                
+                continuation.resume(returning: dataPoints)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    // MARK: - 心率數據
+
+    func fetchHeartRateData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
+            throw HealthError.typeNotAvailable
+        }
+        
+        return try await fetchQuantitySamples(
+            sampleType: heartRateType,
+            workout: workout,
+            unit: HKUnit(from: "count/min")
+        )
+    }
+    
+    func fetchSleepHeartRateAverage(for date: Date) async throws -> Double? {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endTime = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: startOfDay)!
+        
+        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
+            throw HealthError.typeNotAvailable
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endTime, options: .strictEndDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        
+        let heartRates = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Double], Error>) in
+            let query = HKSampleQuery(
+                sampleType: heartRateType,
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sortDescriptor]
@@ -72,16 +263,23 @@ class HealthKitManager: ObservableObject {
                     return
                 }
                 
-                let hrvValues = samples?.compactMap { sample -> (Date, Double)? in
-                    guard let hrvSample = sample as? HKQuantitySample else { return nil }
-                    return (hrvSample.startDate, hrvSample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli)))
+                let rates = samples?.compactMap { sample -> Double? in
+                    guard let heartRateSample = sample as? HKQuantitySample else { return nil }
+                    return heartRateSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
                 } ?? []
                 
-                continuation.resume(returning: hrvValues)
+                continuation.resume(returning: rates)
             }
             
             healthStore.execute(query)
         }
+        
+        guard !heartRates.isEmpty else {
+            print("未找到心率數據")
+            return nil
+        }
+        
+        return calculateStableSleepHeartRate(heartRates)
     }
     
     // MARK: - 運動數據
@@ -144,23 +342,17 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    // MARK: - 心率數據
-    
-    func fetchSleepHeartRateAverage(for date: Date) async throws -> Double? {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        let endTime = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: startOfDay)!
-        
-        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
+    func fetchHRVData(start: Date, end: Date) async throws -> [(Date, Double)] {
+        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
             throw HealthError.typeNotAvailable
         }
         
-        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endTime, options: .strictEndDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        
-        let heartRates = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Double], Error>) in
+        return try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+            
             let query = HKSampleQuery(
-                sampleType: heartRateType,
+                sampleType: hrvType,
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sortDescriptor]
@@ -170,24 +362,19 @@ class HealthKitManager: ObservableObject {
                     return
                 }
                 
-                let rates = samples?.compactMap { sample -> Double? in
-                    guard let heartRateSample = sample as? HKQuantitySample else { return nil }
-                    return heartRateSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                let hrvValues = samples?.compactMap { sample -> (Date, Double)? in
+                    guard let hrvSample = sample as? HKQuantitySample else { return nil }
+                    return (hrvSample.startDate, hrvSample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli)))
                 } ?? []
                 
-                continuation.resume(returning: rates)
+                continuation.resume(returning: hrvValues)
             }
             
             healthStore.execute(query)
         }
-        
-        guard !heartRates.isEmpty else {
-            print("未找到心率數據")
-            return nil
-        }
-        
-        return calculateStableSleepHeartRate(heartRates)
     }
+    
+    // MARK: - 心率數據
     
     private func fetchSleepTimes(start: Date, end: Date) async throws -> [(Date, Date)] {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
@@ -297,46 +484,6 @@ class HealthKitManager: ObservableObject {
         }
     }
 
-    func fetchHeartRateData(for workout: HKWorkout) async throws -> [(Date, Double)] {
-        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
-            throw HealthError.typeNotAvailable
-        }
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            let predicate = HKQuery.predicateForSamples(
-                withStart: workout.startDate,
-                end: workout.endDate,
-                options: .strictEndDate
-            )
-            
-            let heartRateQuery = HKSampleQuery(
-                sampleType: heartRateType,
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
-            ) { _, samples, error in
-                if let error = error {
-                    print("獲取心率數據時出錯: \(error.localizedDescription)")
-                    continuation.resume(throwing: error)
-                    return
-                }
-                
-                guard let heartRateSamples = samples as? [HKQuantitySample] else {
-                    continuation.resume(returning: [])
-                    return
-                }
-                
-                let heartRates = heartRateSamples.map { sample -> (Date, Double) in
-                    let heartRate = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
-                    return (sample.startDate, heartRate)
-                }
-                
-                continuation.resume(returning: heartRates)
-            }
-            
-            healthStore.execute(heartRateQuery)
-        }
-    }
     
     func fetchHeartRatesForWorkout(_ workout: HKWorkout) async throws -> [Double] {
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
@@ -689,6 +836,7 @@ class HealthKitManager: ObservableObject {
                 vigorousActivityTime: totalVigorousTime
             )
         }
+    
 }
 
 // MARK: - 錯誤定義

@@ -27,8 +27,15 @@ class WorkoutService {
         }
     }
     
-    // 上傳單個運動記錄
-    func postWorkoutDetails(workout: HKWorkout, heartRates: [DataPoint], paces: [DataPoint]) async throws {
+    func postWorkoutDetails(
+        workout: HKWorkout,
+        heartRates: [DataPoint],
+        speeds: [DataPoint],
+        strideLengths: [DataPoint]? = nil,
+        cadences: [DataPoint]? = nil,
+        groundContactTimes: [DataPoint]? = nil,
+        verticalOscillations: [DataPoint]? = nil
+    ) async throws {
         // 確保有心率數據
         if heartRates.isEmpty || heartRates.count < 5 {
             print("警告: 運動記錄心率數據不足 (\(heartRates.count) 筆)，不上傳")
@@ -49,7 +56,11 @@ class WorkoutService {
             duration: workout.duration,
             distance: workout.totalDistance?.doubleValue(for: .meter()) ?? 0,
             heartRates: heartRates.map { HeartRateData(time: $0.time.timeIntervalSince1970, value: $0.value) },
-            paces: paces.map { PaceData(time: $0.time.timeIntervalSince1970, value: $0.value) }
+            speeds: speeds.map { SpeedData(time: $0.time.timeIntervalSince1970, value: $0.value) },
+            strideLengths: strideLengths?.map { StrideData(time: $0.time.timeIntervalSince1970, value: $0.value) },
+            cadences: cadences?.map { CadenceData(time: $0.time.timeIntervalSince1970, value: $0.value) },
+            groundContactTimes: groundContactTimes?.map { GroundContactTimeData(time: $0.time.timeIntervalSince1970, value: $0.value) },
+            verticalOscillations: verticalOscillations?.map { VerticalOscillationData(time: $0.time.timeIntervalSince1970, value: $0.value) }
         )
         
         let endpoint = try Endpoint(
@@ -66,88 +77,6 @@ class WorkoutService {
             print("上傳運動數據失敗: \(error)")
             throw error
         }
-    }
-    
-    // 同步多個待上傳的運動記錄
-    func syncPendingWorkouts(workouts: [HKWorkout], healthKitManager: HealthKitManager) async {
-        print("開始上傳未同步的運動記錄...")
-        let uploadTracker = WorkoutUploadTracker.shared
-        
-        // 查找需要同步的運動記錄
-        let pendingWorkouts = workouts.filter { workout in
-            // 如果未上傳或已上傳但無心率數據且超過嘗試時間，則需要同步
-            if !uploadTracker.isWorkoutUploaded(workout) {
-                return true
-            }
-            
-            if !uploadTracker.workoutHasHeartRate(workout) {
-                if let uploadTime = uploadTracker.getWorkoutUploadTime(workout) {
-                    let timeElapsed = Date().timeIntervalSince(uploadTime)
-                    return timeElapsed >= 3600 // 1小時後重試
-                }
-                return true
-            }
-            
-            return false
-        }
-        
-        // 僅取最近的30筆需要上傳的運動記錄
-        let workoutsToUpload = pendingWorkouts.prefix(30)
-        
-        print("發現 \(pendingWorkouts.count) 筆需同步運動記錄，將處理最新的 \(workoutsToUpload.count) 筆")
-        
-        for workout in workoutsToUpload {
-            do {
-                // 獲取心率數據
-                let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                
-                // 檢查心率數據是否充足
-                if heartRateData.isEmpty || heartRateData.count < 5 {
-                    print("運動記錄 \(workout.uuid) 心率數據不足 (\(heartRateData.count) 筆)，暫不上傳")
-                    
-                    // 標記為已嘗試但無心率資料
-                    if !uploadTracker.isWorkoutUploaded(workout) {
-                        uploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                    }
-                    continue
-                }
-                
-                // 獲取配速數據
-                let paceData = try await healthKitManager.fetchPaceData(for: workout)
-                
-                // 轉換為所需的 DataPoint 格式
-                let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-                let paces = paceData.map { DataPoint(time: $0.0, value: $0.1) }
-                
-                // 上傳運動數據
-                try await postWorkoutDetails(
-                    workout: workout,
-                    heartRates: heartRates,
-                    paces: paces
-                )
-                
-                // 標記為已上傳且有心率數據
-                uploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)
-                print("成功上傳運動記錄: \(workout.workoutActivityType.name), 日期: \(workout.startDate), 心率數據: \(heartRates.count) 筆")
-                
-            } catch WorkoutUploadError.missingHeartRateData {
-                print("運動記錄 \(workout.uuid) 缺少心率數據，標記為待稍後處理")
-                if !uploadTracker.isWorkoutUploaded(workout) {
-                    uploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                }
-            } catch {
-                print("上傳運動記錄失敗: \(workout.startDate), 錯誤: \(error)")
-                // 如果是首次嘗試，標記為已嘗試但失敗
-                if !uploadTracker.isWorkoutUploaded(workout) {
-                    uploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                }
-            }
-            
-            // 在上傳之間添加小延遲以避免過度使用服務器
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
-        }
-        
-        print("運動記錄同步完成，共處理 \(workoutsToUpload.count) 筆資料")
     }
     
     // WorkoutService.swift 中添加的方法
@@ -183,7 +112,11 @@ struct WorkoutData: Codable {
     let duration: TimeInterval
     let distance: Double
     let heartRates: [HeartRateData]
-    let paces: [PaceData]
+    let speeds: [SpeedData]                  // 改為速度
+    let strideLengths: [StrideData]?         // 步幅
+    let cadences: [CadenceData]?             // 步頻
+    let groundContactTimes: [GroundContactTimeData]? // 觸地時間
+    let verticalOscillations: [VerticalOscillationData]? // 垂直振幅
 }
 
 struct HeartRateData: Codable {
@@ -191,9 +124,29 @@ struct HeartRateData: Codable {
     let value: Double
 }
 
-struct PaceData: Codable {
+struct SpeedData: Codable {
     let time: TimeInterval
-    let value: Double
+    let value: Double  // 單位：m/s
+}
+
+struct StrideData: Codable {
+    let time: TimeInterval
+    let value: Double  // 單位：m
+}
+
+struct CadenceData: Codable {
+    let time: TimeInterval
+    let value: Double  // 單位：steps/min
+}
+
+struct GroundContactTimeData: Codable {
+    let time: TimeInterval
+    let value: Double  // 單位：ms
+}
+
+struct VerticalOscillationData: Codable {
+    let time: TimeInterval
+    let value: Double  // 單位：m
 }
 
 struct EmptyResponse: Codable {}

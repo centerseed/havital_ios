@@ -57,12 +57,6 @@ class WorkoutBackgroundManager: NSObject {
     // 重試閾值時間（秒）
     private let retryThresholdTime: TimeInterval = 3600 // 1小時
     
-    private override init() {
-        super.init()
-        // 設置通知中心代理
-        notificationCenter.delegate = self
-    }
-    
     // MARK: - 公開方法
     
     // 標記應用第一次登入/重新登入
@@ -581,18 +575,30 @@ class WorkoutBackgroundManager: NSObject {
                     continue
                 }
                 
-                // 獲取配速數據
-                let paceData = try await healthKitManager.fetchPaceData(for: workout)
+                // 獲取所有擴展數據
+                let speedData = try await healthKitManager.fetchSpeedData(for: workout)
+                let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
+                let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
+                let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
+                let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
                 
                 // 轉換為所需的 DataPoint 格式
                 let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-                let paces = paceData.map { DataPoint(time: $0.0, value: $0.1) }
+                let speeds = speedData.map { DataPoint(time: $0.0, value: $0.1) }
+                let strides = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let cadences = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let contactTimes = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
                 
                 // 上傳運動數據
                 try await workoutService.postWorkoutDetails(
                     workout: workout,
                     heartRates: heartRates,
-                    paces: paces
+                    speeds: speeds,
+                    strideLengths: strides,
+                    cadences: cadences,
+                    groundContactTimes: contactTimes,
+                    verticalOscillations: oscillations
                 )
                 
                 // 標記為已上傳且包含心率資料
@@ -633,18 +639,30 @@ class WorkoutBackgroundManager: NSObject {
                     continue
                 }
                 
-                // 獲取配速數據
-                let paceData = try await healthKitManager.fetchPaceData(for: workout)
+                // 獲取所有擴展數據
+                let speedData = try await healthKitManager.fetchSpeedData(for: workout)
+                let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
+                let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
+                let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
+                let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
                 
                 // 轉換為所需的 DataPoint 格式
                 let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-                let paces = paceData.map { DataPoint(time: $0.0, value: $0.1) }
+                let speeds = speedData.map { DataPoint(time: $0.0, value: $0.1) }
+                let strides = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let cadences = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let contactTimes = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
+                let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
                 
                 // 上傳運動數據
                 try await workoutService.postWorkoutDetails(
                     workout: workout,
                     heartRates: heartRates,
-                    paces: paces
+                    speeds: speeds,
+                    strideLengths: strides,
+                    cadences: cadences,
+                    groundContactTimes: contactTimes,
+                    verticalOscillations: oscillations
                 )
                 
                 // 標記為已上傳且有心率資料
@@ -653,11 +671,11 @@ class WorkoutBackgroundManager: NSObject {
                 
                 successCount += 1
                 
-                // 如果需要，發送單個上傳成功通知
-                // 注意：在大批量上傳時這裡已禁用，只會發送一個總結性通知
-                if sendIndividualNotifications && !isFirstLoginSync {
-                    // 只有當不是首次登入同步，且明確要求發送單個通知時才發送
-                    await sendIndividualWorkoutNotification(for: workout)
+                if successCount > 0 {
+                    // 收集成功上傳的記錄ID
+                    let successIds = workouts.prefix(successCount).map { $0.uuid.uuidString }
+                    // 使用 SyncNotificationManager 發送通知
+                    await SyncNotificationManager.shared.notifySyncCompletion(count: successCount, workoutIds: successIds)
                 }
                 
             } catch WorkoutUploadError.missingHeartRateData {
@@ -679,6 +697,7 @@ class WorkoutBackgroundManager: NSObject {
         
         return successCount
     }
+
     
     // 判斷是否為跑步相關的健身記錄
     private func isRunningWorkout(_ workout: HKWorkout) -> Bool {
@@ -694,52 +713,6 @@ class WorkoutBackgroundManager: NSObject {
             print("找到 \(retryIds.count) 筆需要重新嘗試獲取心率資料的運動記錄")
             
             // 不發送通知，只在控制台記錄
-        }
-    }
-    
-    // 發送個別運動記錄上傳成功通知（僅在非批量模式下使用）
-    private func sendIndividualWorkoutNotification(for workout: HKWorkout) async {
-        // 如果不應該發送通知，則直接返回
-        if !shouldSendNotification() {
-            return
-        }
-        
-        // 格式化日期和時間
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
-        let dateTimeString = dateFormatter.string(from: workout.startDate)
-        
-        // 格式化距離（如果有）
-        var distanceString = ""
-        if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-            if distance >= 1000 {
-                distanceString = String(format: "%.2f 公里", distance / 1000)
-            } else {
-                distanceString = String(format: "%.0f 公尺", distance)
-            }
-        }
-        
-        // 創建通知內容
-        let content = UNMutableNotificationContent()
-        content.title = "運動資料已同步"
-        content.body = "\(workout.workoutActivityType.name) (\(dateTimeString)) \(distanceString) 已成功上傳到雲端"
-        content.sound = UNNotificationSound.default
-        
-        // 創建請求
-        let request = UNNotificationRequest(
-            identifier: "workout-upload-success-\(workout.uuid.uuidString)",
-            content: content,
-            trigger: nil
-        )
-        
-        // 添加通知請求
-        do {
-            try await notificationCenter.add(request)
-            lastNotificationTime = Date()
-            print("已發送個別上傳成功通知")
-        } catch {
-            print("發送通知失敗: \(error.localizedDescription)")
         }
     }
 }

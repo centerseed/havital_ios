@@ -1,13 +1,6 @@
 import SwiftUI
 import HealthKit
 
-struct DataPoint: Identifiable {
-    let id = UUID()
-    let time: Date
-    let value: Double
-}
-
-@MainActor
 class WorkoutDetailViewModel: ObservableObject {
     @Published var heartRates: [DataPoint] = []
     @Published var paces: [DataPoint] = []
@@ -15,6 +8,9 @@ class WorkoutDetailViewModel: ObservableObject {
     @Published var error: String?
     @Published var zoneDistribution: [Int: TimeInterval] = [:]
     @Published var heartRateZones: [HealthKitManager.HeartRateZone] = []
+    
+    // 心率統計數據
+    @Published var averageHeartRate: Double?
     
     // HRR 心率區間相關
     @Published var hrrZones: [HeartRateZonesManager.HeartRateZone] = []
@@ -24,8 +20,8 @@ class WorkoutDetailViewModel: ObservableObject {
     @Published var isUploaded: Bool = false
     @Published var uploadTime: Date? = nil
     
-    private let workout: HKWorkout
-    private let healthKitManager: HealthKitManager
+    let workout: HKWorkout
+    let healthKitManager: HealthKitManager
     private var loadTask: Task<Void, Never>?
     
     var workoutId: UUID {
@@ -37,7 +33,6 @@ class WorkoutDetailViewModel: ObservableObject {
         self.healthKitManager = healthKitManager
         
         // 使用初始數據
-        // hear rate
         if !initialHeartRateData.isEmpty {
             self.heartRates = initialHeartRateData.map { timeAndValue in
                 DataPoint(time: timeAndValue.0, value: timeAndValue.1)
@@ -46,16 +41,9 @@ class WorkoutDetailViewModel: ObservableObject {
             self.paces = initialPaceData.map { timeAndValue in
                 DataPoint(time: timeAndValue.0, value: timeAndValue.1)
             }
-        } else {
-            // 如果沒有初始數據，則自動加載
-            loadHeartRateData()
-            loadPacesData()
-        }
-        // delay 2 sences for UI update
-        Task {
-            try await Task.sleep(nanoseconds: 2_000_000_000)
-            await postWorkoutData()
-            await calculateHRRZoneDistribution()
+            
+            // 檢查是否已上傳
+            checkUploadStatus()
         }
     }
     
@@ -86,14 +74,13 @@ class WorkoutDetailViewModel: ObservableObject {
     }
     
     var pace: String? {
-        let distance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
-        let duration = workout.duration
+        guard let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 else { return nil }
         
-        let paceSecondsPerMeter = duration / Double(distance)
+        let paceSecondsPerMeter = workout.duration / distance
         let paceInSecondsPerKm = paceSecondsPerMeter * 1000
         let paceMinutes = Int(paceInSecondsPerKm) / 60
         let paceRemainingSeconds = Int(paceInSecondsPerKm) % 60
-        return String(format: "%d:%02d min/km", paceMinutes, paceRemainingSeconds)
+        return String(format: "%d:%02d/km", paceMinutes, paceRemainingSeconds)
     }
     
     var maxHeartRate: String {
@@ -108,20 +95,24 @@ class WorkoutDetailViewModel: ObservableObject {
     
     var yAxisRange: (min: Double, max: Double) {
         let values = heartRates.map { $0.value }
-        let min = values.min() ?? 0
-        let max = values.max() ?? 200
-        let padding = (max - min) * 0.1
-        return (min - padding, max + padding)
+        let minVal = values.min() ?? 0
+        let maxVal = values.max() ?? 200
+        let padding = (maxVal - minVal) * 0.1
+        return (min: minVal - padding, max: maxVal + padding)
     }
 
     func loadPacesData() {
+        // 檢查是否已有配速數據
+        if !paces.isEmpty {
+            return
+        }
+        
         // 取消之前的任務
         loadTask?.cancel()
         
         // 創建新的任務
         loadTask = Task { @MainActor in
             isLoading = true
-            error = nil
             
             do {
                 let paceData = try await healthKitManager.fetchPaceData(for: workout)
@@ -141,19 +132,24 @@ class WorkoutDetailViewModel: ObservableObject {
         }
     }
     
-    private func postWorkoutData() async {
-        do {
-            try await WorkoutService.shared.postWorkoutDetails(
-                workout: workout,
-                heartRates: heartRates,
-                paces: paces
-            )
-        } catch {
-            self.error = error.localizedDescription
-        }
+    // 檢查上傳狀態
+    private func checkUploadStatus() {
+        isUploaded = WorkoutService.shared.isWorkoutUploaded(workout)
+        uploadTime = WorkoutService.shared.getWorkoutUploadTime(workout)
     }
     
     func loadHeartRateData() {
+        // 如果已經有心率數據, 但沒有心率區間分佈, 直接計算區間分佈
+        if !heartRates.isEmpty && zoneDistribution.isEmpty {
+            calculateHRRZoneDistribution()
+            return
+        }
+        
+        // 如果已經有心率數據和區間分佈，直接返回
+        if !heartRates.isEmpty && !zoneDistribution.isEmpty {
+            return
+        }
+        
         // 取消之前的任務
         loadTask?.cancel()
         
@@ -179,8 +175,21 @@ class WorkoutDetailViewModel: ObservableObject {
                 self.zoneDistribution = await healthKitManager.calculateZoneDistribution(heartRates: heartRateData)
                 self.heartRateZones = await healthKitManager.getHeartRateZones()
                 
+                // 計算平均心率
+                let sum = heartRatePoints.reduce(0.0) { $0 + $1.value }
+                self.averageHeartRate = heartRatePoints.isEmpty ? nil : sum / Double(heartRatePoints.count)
+                
                 // 計算HRR心率區間分佈
-                await calculateHRRZoneDistribution()
+                calculateHRRZoneDistribution()
+                
+                // 同時加載配速數據
+                if self.paces.isEmpty {
+                    let paceData = try await healthKitManager.fetchPaceData(for: workout)
+                    self.paces = paceData.map { DataPoint(time: $0.0, value: $0.1) }
+                }
+                
+                // 檢查上傳狀態
+                checkUploadStatus()
                 
                 self.isLoading = false
             } catch {
@@ -194,26 +203,14 @@ class WorkoutDetailViewModel: ObservableObject {
         }
     }
     
-    // 格式化時間區間
-    func formatZoneDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration / 60)
-        let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
-        return String(format: "%d:%02d", minutes, seconds)
-    }
-    
-    // 計算區間百分比
-    func calculateZonePercentage(_ duration: TimeInterval) -> Double {
-        let totalDuration = zoneDistribution.values.reduce(0, +)
-        guard totalDuration > 0 else { return 0 }
-        return duration / totalDuration * 100
-    }
-    
-    // 新增方法：計算HRR區間分佈
-    func calculateHRRZoneDistribution() async {
+    // 計算HRR區間分佈
+    func calculateHRRZoneDistribution() {
         isLoadingHRRZones = true
         
         // 確保心率區間已計算
-        await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+        Task {
+            await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
+        }
         
         do {
             // 獲取HRR心率區間
@@ -225,13 +222,34 @@ class WorkoutDetailViewModel: ObservableObject {
                 let heartRateData = heartRates.map { ($0.time, $0.value) }
                 
                 // 計算心率區間分佈
-                self.hrrZoneDistribution = await healthKitManager.calculateHRRZoneDistribution(heartRates: heartRateData)
+                Task {
+                    self.hrrZoneDistribution = await healthKitManager.calculateHRRZoneDistribution(heartRates: heartRateData)
+                }
             }
         } catch {
             print("計算HRR心率區間分佈時出錯: \(error)")
         }
         
         isLoadingHRRZones = false
+    }
+    
+    // 格式化時間區間
+    func formatZoneDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration / 60)
+        let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
+        
+        if minutes > 0 {
+            return String(format: "%d:%02d", minutes, seconds)
+        } else {
+            return String(format: "%ds", seconds)
+        }
+    }
+    
+    // 計算區間百分比
+    func calculateZonePercentage(_ duration: TimeInterval) -> Double {
+        let totalDuration = zoneDistribution.values.reduce(0, +)
+        guard totalDuration > 0 else { return 0 }
+        return duration / totalDuration * 100
     }
     
     // 計算HRR區間百分比

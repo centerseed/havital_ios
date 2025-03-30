@@ -299,94 +299,73 @@ class TrainingPlanService {
     }
     
     func createWeeklyPlan(targetWeek: Int? = nil) async throws -> WeeklyPlan {
-        var request = try await makeRequest(path: "/plan/race_run/weekly", method: "POST")
-            
-            // 如果指定了目標週數，將其添加到請求體中
-            if let targetWeek = targetWeek {
-                let requestBody: [String: Any] = ["week_of_training": targetWeek]
-                request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-                print("正在產生第 \(targetWeek) 週的訓練計劃")
-            }
-            
-            // 使用與其他方法相同的優化配置和重試機制
-            let configuration = URLSessionConfiguration.default
-            configuration.timeoutIntervalForRequest = 180
-            configuration.timeoutIntervalForResource = 180
-            configuration.waitsForConnectivity = true
-            let session = URLSession(configuration: configuration)
-            
-            // 實作重試機制
-            let maxRetries = 3
-            var currentRetry = 0
-            var lastError: Error? = nil
-            
-            while currentRetry < maxRetries {
-                do {
-                    // 使用withCheckedThrowingContinuation來處理取消
-                    let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(Data, URLResponse), Error>) in
-                        let task = session.dataTask(with: request) { data, response, error in
-                            if let error = error {
-                                continuation.resume(throwing: error)
-                                return
-                            }
-                            guard let data = data, let response = response else {
-                                continuation.resume(throwing: URLError(.unknown))
-                                return
-                            }
-                            continuation.resume(returning: (data, response))
-                        }
-                        task.resume()
-                    }
-                    
-                    guard let httpResponse = response as? HTTPURLResponse else {
-                        throw URLError(.badServerResponse)
-                    }
-                    
-                    print("產生週計劃 API 響應狀態碼: \(httpResponse.statusCode)")
-                    
-                    guard httpResponse.statusCode == 200 else {
-                        if let responseString = String(data: data, encoding: .utf8) {
-                            print("錯誤回應內容: \(responseString)")
-                        }
-                        throw URLError(.badServerResponse)
-                    }
-                    
-                    let decoder = JSONDecoder()
-                    let apiResponse = try decoder.decode(APIResponse<WeeklyPlan>.self, from: data)
-                    let plan = apiResponse.data
-                    
-                    // 保存到本地存儲
-                    TrainingPlanStorage.saveWeeklyPlan(plan)
-                    print("成功產生新的週訓練計劃")
-                    return plan
-                    
-                } catch {
-                    lastError = error
-                    currentRetry += 1
-                    
-                    // 檢查是否為取消錯誤
-                    if let urlError = error as? URLError {
-                        switch urlError.code {
-                        case .cancelled:
-                            print("產生週計劃請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
-                        case .timedOut:
-                            print("產生週計劃請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
-                        default:
-                            print("產生週計劃網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
-                        }
-                    } else {
-                        print("產生週計劃未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
-                    }
-                    
-                    if currentRetry < maxRetries {
-                        // 使用指數退避策略
-                        let delay = Double(pow(2.0, Double(currentRetry))) * 1.0
-                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                    }
-                }
-            }
-            
-            // 如果所有重試都失敗，拋出最後一個錯誤
-            throw lastError ?? URLError(.unknown)
+        print("=== createWeeklyPlan 開始，目標週數：\(String(describing: targetWeek)) ===")
+        
+        // 構建請求路徑和參數
+        let path = "/plan/race_run/weekly"
+        
+        // 準備請求體
+        var requestBody: [String: Any]? = nil
+        if let targetWeek = targetWeek {
+            requestBody = ["week_of_training": targetWeek]
+            print("設置請求體: week_of_training = \(targetWeek)")
         }
+        
+        // 使用請求體創建請求
+        var request = try await makeRequest(path: path, method: "POST")
+        
+        // 明確設置請求體和Content-Type
+        if let requestBody = requestBody {
+            let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
+            request.httpBody = jsonData
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                print("JSON請求體: \(jsonString)")
+            }
+        } else {
+            print("未設置請求體，使用後端默認值")
+        }
+        
+        // 檢查最終請求
+        print("最終請求路徑: \(request.url?.absoluteString ?? "unknown")")
+        print("請求方法: \(request.httpMethod ?? "unknown")")
+        print("請求頭: \(request.allHTTPHeaderFields ?? [:])")
+        if let httpBody = request.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
+            print("請求體: \(bodyString)")
+        } else {
+            print("請求體: nil")
+        }
+        
+        // 使用與其他方法相同的優化配置
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 180
+        configuration.timeoutIntervalForResource = 180
+        configuration.waitsForConnectivity = true
+        let session = URLSession(configuration: configuration)
+        
+        // 簡化的請求發送，暫時不使用重試機制以便調試
+        print("開始發送請求...")
+        let (data, response) = try await session.data(for: request)
+        
+        print("收到響應，狀態碼: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("響應內容: \(responseString.prefix(200))...")
+        }
+        
+        // 解析和處理響應
+        let decoder = JSONDecoder()
+        let apiResponse = try decoder.decode(APIResponse<WeeklyPlan>.self, from: data)
+        let plan = apiResponse.data
+        
+        // 保存到本地存儲
+        TrainingPlanStorage.saveWeeklyPlan(plan)
+        print("成功產生第 \(plan.weekOfPlan) 週的訓練計劃")
+        
+        // 記錄最後更新時間
+        UserDefaults.standard.set(Date(), forKey: "last_weekly_plan_update")
+        
+        return plan
+    }
+    
 }
