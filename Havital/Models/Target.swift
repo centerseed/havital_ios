@@ -1,6 +1,7 @@
 import Foundation
 
-struct Target: Codable {
+struct Target: Codable, Identifiable {
+    let id: String
     let type: String
     let name: String
     let distanceKm: Int
@@ -11,6 +12,7 @@ struct Target: Codable {
     let trainingWeeks: Int
     
     enum CodingKeys: String, CodingKey {
+        case id
         case type
         case name
         case distanceKm = "distance_km"
@@ -21,3 +23,4 @@ struct Target: Codable {
         case trainingWeeks = "training_weeks"
     }
 }
+

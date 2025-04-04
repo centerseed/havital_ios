@@ -42,6 +42,7 @@ class OnboardingViewModel: ObservableObject {
         
         do {
             let target = Target(
+                id: UUID().uuidString, 
                 type: "race_run",
                 name: raceName,
                 distanceKm: Int(Double(selectedDistance) ?? 42.195),
