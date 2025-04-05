@@ -1,10 +1,12 @@
 import SwiftUI
 
-
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false
+    @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
+    @State private var currentWeekDistance: Int = 0  // 新增當前週跑量
+    @State private var weeklyDistance: Int = 0
     
     var body: some View {
         List {
@@ -20,6 +22,38 @@ struct UserProfileView: View {
                     profileHeader(userData)
                 } else if let error = viewModel.error {
                     errorView(error)
+                }
+            }
+            
+            // 新增週跑量區塊 - 放在最前面的重要位置
+            if let userData = viewModel.userData {
+                Section(header: Text("訓練資訊")) {
+                    // 週跑量資訊與編輯按鈕
+                    HStack {
+                        Label("當前週跑量", systemImage: "figure.walk")
+                            .foregroundColor(.blue)
+                        Spacer()
+                        Text("\(userData.currentWeekDistance) 公里")
+                            .fontWeight(.medium)
+                    }
+                    
+                    // 編輯週跑量按鈕
+                    Button(action: {
+                        // 將字串轉換為 Double
+                        currentWeekDistance = Int(userData.currentWeekDistance)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            weeklyDistance = Int(userData.currentWeekDistance)
+                            showWeeklyDistanceEditor = true
+                        }
+                    }) {
+                        HStack {
+                            Text("編輯週跑量")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                    }
                 }
             }
             
@@ -114,6 +148,18 @@ struct UserProfileView: View {
         }
         .sheet(isPresented: $showZoneEditor) {
             HeartRateZoneInfoView()
+        }
+        // 新增週跑量編輯器
+        .sheet(isPresented: $showWeeklyDistanceEditor) {
+            WeeklyDistanceEditorView(
+                distance: $weeklyDistance,
+                onSave: { newDistance in
+                    Task {
+                        await viewModel.updateWeeklyDistance(distance: newDistance)
+                    }
+                }
+            )
+            
         }
     }
     

@@ -61,3 +61,34 @@ class UserProfileViewModel: ObservableObject {
         }
     }
 }
+
+extension UserProfileViewModel {
+    // 更新週跑量的方法
+    func updateWeeklyDistance(distance: Int) async {
+        isLoading = true
+        error = nil
+        
+        do {
+            let userData = [
+                "current_week_distance": distance
+            ] as [String: Any]
+            
+            try await UserService.shared.updateUserData(userData)
+            print("週跑量數據更新成功")
+            
+            // 重新載入用戶資料
+            await MainActor.run {
+                self.fetchUserProfile()
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error
+                print("更新週跑量失敗: \(error.localizedDescription)")
+            }
+        }
+        
+        await MainActor.run {
+            isLoading = false
+        }
+    }
+}

@@ -19,6 +19,7 @@ struct TrainingStage: Codable {
 }
 
 struct TrainingPlanOverview: Codable {
+    let id: String
     let targetEvaluate: String
     let totalWeeks: Int
     let trainingHighlight: String
@@ -27,6 +28,7 @@ struct TrainingPlanOverview: Codable {
     let createdAt: String
     
     enum CodingKeys: String, CodingKey {
+        case id = "id"
         case targetEvaluate = "target_evaluate"
         case totalWeeks = "total_weeks"
         case trainingHighlight = "training_hightlight"

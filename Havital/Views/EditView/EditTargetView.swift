@@ -1,12 +1,13 @@
 import SwiftUI
+import Combine
 
 struct EditTargetView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var targetModel: EditTargetViewModel
+    @StateObject private var targetModel: EditTargetViewModel
     
     init(target: Target) {
         // 將 Target 轉換為 ViewModel
-        _targetModel = State(initialValue: EditTargetViewModel(target: target))
+        _targetModel = StateObject(wrappedValue: EditTargetViewModel(target: target))
     }
     
     var body: some View {
@@ -82,8 +83,10 @@ struct EditTargetView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("儲存") {
                         Task {
-                            await targetModel.updateTarget()
-                            dismiss()
+                            if await targetModel.updateTarget() {
+                                NotificationCenter.default.post(name: .targetUpdated, object: nil)
+                                dismiss()
+                            }
                         }
                     }
                     .disabled(targetModel.raceName.isEmpty || targetModel.isLoading)
@@ -102,7 +105,6 @@ class EditTargetViewModel: ObservableObject {
     @Published var targetMinutes = 0
     @Published var isLoading = false
     @Published var error: String?
-    
     private let targetId: String
     
     let availableDistances = [
@@ -142,9 +144,10 @@ class EditTargetViewModel: ObservableObject {
         // 設置目標時間
         self.targetHours = target.targetTime / 3600
         self.targetMinutes = (target.targetTime % 3600) / 60
+        
     }
     
-    func updateTarget() async {
+    func updateTarget() async -> Bool {
         isLoading = true
         error = nil
         
@@ -164,11 +167,13 @@ class EditTargetViewModel: ObservableObject {
             // 更新目標賽事
             _ = try await TargetService.shared.updateTarget(id: targetId, target: target)
             print("賽事目標已更新")
+            return true
         } catch {
             self.error = error.localizedDescription
             print("更新賽事目標失敗: \(error.localizedDescription)")
+            isLoading = false
+            return false
         }
-        
         isLoading = false
     }
 }

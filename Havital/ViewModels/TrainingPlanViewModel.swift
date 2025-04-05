@@ -214,22 +214,54 @@ class TrainingPlanViewModel: ObservableObject {
             isLoading = true
         }
         
+        // 首先嘗試從本地加載數據
         if let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
-            // 儲存當前計劃的週數，用於後續檢測計劃變更
-            currentPlanWeek = savedPlan.weekOfPlan
-            
-            // 計算週日期資訊
-            calculateWeekDateInfo(for: savedPlan)
-            
+            // 立即更新UI
             await MainActor.run {
                 weeklyPlan = savedPlan
-                error = nil
+                currentPlanWeek = savedPlan.weekOfPlan
+                calculateWeekDateInfo(for: savedPlan)
                 isLoading = false
             }
+            
+            // 異步從API獲取最新數據
+            do {
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                // 檢查計劃是否有變更
+                let planChanged = savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
+                
+                await MainActor.run {
+                    weeklyPlan = newPlan
+                    currentPlanWeek = newPlan.weekOfPlan
+                    calculateWeekDateInfo(for: newPlan)
+                    
+                    // 如果計劃有變更，清除舊的訓練記錄
+                    if planChanged {
+                        workoutsByDay.removeAll()
+                        expandedDayIndices.removeAll()
+                    }
+                }
+            } catch {
+                // API失敗時已有本地數據，可以不做處理或僅記錄日誌
+                print("API加載計劃失敗，使用本地數據: \(error)")
+            }
         } else {
-            await MainActor.run {
-                error = NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法載入週訓練計劃"])
-                isLoading = false
+            // 本地無數據，必須等待API
+            do {
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                
+                await MainActor.run {
+                    weeklyPlan = newPlan
+                    currentPlanWeek = newPlan.weekOfPlan
+                    calculateWeekDateInfo(for: newPlan)
+                    error = nil
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error
+                    isLoading = false
+                }
             }
         }
     }
@@ -387,34 +419,34 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 修正的 loadTrainingOverview 方法
     func loadTrainingOverview() async {
-        print("開始載入訓練計劃概覽")
-        
-        // 將概覽加載任務隔離，避免影響其他操作
-        do {
-            // 直接嘗試從 API 獲取最新數據
-            let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
-            // "2025-03-27T03:10:15.031000+00:00"
+        // 首先從本地存儲加載
+        let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
+        if !savedOverview.trainingPlanName.isEmpty {
+            await MainActor.run {
+                self.trainingOverview = savedOverview
+            }
             
-            // 成功獲取後更新 UI
+            // 輸出當前訓練週數
+            logCurrentTrainingWeek()
+        }
+        
+        // 然後嘗試從API獲取最新數據
+        do {
+            let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
+            
+            // 成功獲取後更新UI
             await MainActor.run {
                 self.trainingOverview = overview
             }
             
             print("成功載入訓練計劃概覽")
+            print("Plan Overview id \(overview.id)")
             
             // 計算並輸出當前訓練週數
             logCurrentTrainingWeek()
         } catch {
-            print("載入訓練計劃概覽失敗: \(error)")
-            
-            // 如果 API 獲取失敗，嘗試從本地存儲加載
-            let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
-            if !savedOverview.trainingPlanName.isEmpty {
-                print("從本地存儲載入訓練計劃概覽")
-                await MainActor.run {
-                    self.trainingOverview = savedOverview
-                }
-            }
+            print("載入訓練計劃概覽從API失敗: \(error)")
+            // 已從本地加載，不需要額外處理
         }
     }
 

@@ -1,125 +1,243 @@
 import SwiftUI
 
 struct TrainingPlanOverviewDetailView: View {
-    let overview: TrainingPlanOverview
+    @State private var overview: TrainingPlanOverview
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var targetRace: Target? = nil
     @State private var showEditSheet = false
+    @State private var hasTargetSaved = false
+    
+    @State private var isUpdatingOverview = false
+    @State private var showUpdateStatus = false
+    @State private var updateStatusMessage = ""
+    @State private var isUpdateSuccessful = false
+    @State private var updatedOverview: TrainingPlanOverview?
+    
+    init(overview: TrainingPlanOverview) {
+        _overview = State(initialValue: overview)
+    }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Header with Plan Name
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(overview.trainingPlanName)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header with Plan Name
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(overview.trainingPlanName)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        Text("總週數: \(overview.totalWeeks)週")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 4)
                     
-                    Text("總週數: \(overview.totalWeeks)週")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.top, 4)
-                
-                // Target Race Card
-                if let target = targetRace {
-                    TargetRaceCard(target: target, onEditTap: {
-                        showEditSheet = true
-                    })
-                }
-                
-                // Goal Evaluation Section
-                SectionCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "目標評估", systemImage: "target")
-                        
-                        Text(overview.targetEvaluate)
-                            .font(.body)
-                            .lineLimit(nil)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                
-                // Training Highlight Section
-                SectionCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "計劃亮點", systemImage: "sparkles")
-                        
-                        Text(overview.trainingHighlight)
-                            .font(.body)
-                            .lineLimit(nil)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                
-                // Training Stages
-                SectionCard {
-                    VStack(alignment: .leading, spacing: 16) {
-                        SectionHeader(title: "訓練階段", systemImage: "chart.bar.fill")
-                        
-                        ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
-                            let stage = overview.trainingStageDescription[index]
-                            TrainingStageCard(stage: stage, index: index)
-                        }
-                    }
-                }
-            }
-            .padding(.vertical)
-            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
-        }
-        .overlay(alignment: .topTrailing) {
-            Button("完成") {
-                dismiss()
-            }
-            .foregroundColor(.blue)
-            .padding(.trailing, 16)
-            .padding(.top, 16)
-        }
-        .edgesIgnoringSafeArea(.bottom)
-        .navigationBarHidden(true)
-        .presentationDetents([.large])
-        .onAppear {
-            // 同步部分保持不變
-            self.targetRace = TargetStorage.shared.getMainTarget()
-            print("Get Main Target: \(String(describing: targetRace))")
-                
-            // 如果需要，啟動異步任務
-            if self.targetRace == nil {
-                Task {
-                    do {
-                        _ = try await TargetService.shared.getTargets()
-                        // 在主線程更新 UI
-                        await MainActor.run {
-                            self.targetRace = TargetStorage.shared.getMainTarget()
-                            print("再次獲取主要目標: \(String(describing: targetRace))")
-                        }
-                    } catch {
-                        print("從網路加載目標賽事失敗: \(error)")
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showEditSheet, onDismiss: {
-                    // 當編輯視圖關閉時重新載入目標賽事
-                    loadTargetRace()
-                }) {
+                    // Target Race Card
                     if let target = targetRace {
-                        EditTargetView(target: target)
+                        TargetRaceCard(target: target, onEditTap: {
+                            showEditSheet = true
+                        })
+                    }
+                    
+                    // Goal Evaluation Section
+                    SectionCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "目標評估", systemImage: "target")
+                            
+                            Text(overview.targetEvaluate)
+                                .font(.body)
+                                .lineLimit(nil)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    
+                    // Training Highlight Section
+                    SectionCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "計劃亮點", systemImage: "sparkles")
+                            
+                            Text(overview.trainingHighlight)
+                                .font(.body)
+                                .lineLimit(nil)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    
+                    // Training Stages
+                    SectionCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            SectionHeader(title: "訓練階段", systemImage: "chart.bar.fill")
+                            
+                            ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
+                                let stage = overview.trainingStageDescription[index]
+                                TrainingStageCard(stage: stage, index: index)
+                            }
+                        }
                     }
                 }
+                .padding(.vertical)
+                .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
+            }
+            .overlay(alignment: .topTrailing) {
+                Button("完成") {
+                    dismiss()
+                }
+                .foregroundColor(.blue)
+                .padding(.trailing, 16)
+                .padding(.top, 16)
+            }
+            .edgesIgnoringSafeArea(.bottom)
+            .navigationBarHidden(true)
+            .presentationDetents([.large])
+            .onAppear {
+                // 同步部分保持不變
+                self.targetRace = TargetStorage.shared.getMainTarget()
+                print("Get Main Target: \(String(describing: targetRace))")
+                
+                // 如果需要，啟動異步任務
+                if self.targetRace == nil {
+                    Task {
+                        do {
+                            _ = try await TargetService.shared.getTargets()
+                            // 在主線程更新 UI
+                            await MainActor.run {
+                                self.targetRace = TargetStorage.shared.getMainTarget()
+                                print("再次獲取主要目標: \(String(describing: targetRace))")
+                            }
+                        } catch {
+                            print("從網路加載目標賽事失敗: \(error)")
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showEditSheet, onDismiss: {
+                // 當編輯視圖關閉時重新載入目標賽事
+                loadTargetRace()
+                
+                // 只有在保存了目標後才更新overview
+                if hasTargetSaved {
+                    updateTrainingPlanOverview()
+                    // hasTargetSaved 的重置移到 updateTrainingPlanOverview 完成後
+                }
+            }) {
+                if let target = targetRace {
+                    EditTargetView(target: target)
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .targetUpdated)) { _ in
+                hasTargetSaved = true
+            }
+            
+            
+            // 加入更新中狀態提示
+            if isUpdatingOverview {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .edgesIgnoringSafeArea(.all)
+                                
+                                VStack(spacing: 16) {
+                                    ProgressView()
+                                        .scaleEffect(1.5)
+                                    
+                                    Text("正在更新訓練計劃...")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                                .padding(24)
+                                .background(Color.gray.opacity(0.8))
+                                .cornerRadius(12)
+                            }
+                            .transition(.opacity)
+                            .animation(.easeInOut, value: isUpdatingOverview)
+                        }
+                        
+                        // 加入更新完成狀態提示
+            if showUpdateStatus {
+                VStack {
+                    Spacer()
+                    
+                    HStack(spacing: 12) {
+                        Image(systemName: isUpdateSuccessful ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            .foregroundColor(isUpdateSuccessful ? .green : .red)
+                            .font(.title2)
+                        
+                        Text(updateStatusMessage)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        Button {
+                            showUpdateStatus = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.systemBackground))
+                            .shadow(color: Color.black.opacity(0.2), radius: 5)
+                    )
+                    .padding()
+                }
+                .transition(.move(edge: .bottom))
+                .animation(.easeInOut, value: showUpdateStatus)
+                .zIndex(100)
+            }
+        }
     }
     
     private func loadTargetRace() {
         // 從本地儲存獲取主要目標賽事
         self.targetRace = TargetStorage.shared.getMainTarget()
         print("Get Main Target: \(String(describing: targetRace))")
+    }
+    
+        private func updateTrainingPlanOverview() {
+        // 顯示更新中狀態
+        isUpdatingOverview = true
+        showUpdateStatus = false
+            
+        Task {
+            do {
+                // 更新訓練計劃概覽
+                let updatedOverview = try await TrainingPlanService.shared.updateTrainingPlanOverview(overviewId: overview.id)
+                    
+                await MainActor.run {
+                    self.overview = updatedOverview
+                    self.isUpdatingOverview = false
+                    self.showUpdateStatus = true
+                    self.updateStatusMessage = "訓練計劃已根據最新目標重新產生"
+                    self.isUpdateSuccessful = true
+                    self.hasTargetSaved = false  // 在更新完成後重置狀態
+                        
+                    // 5秒後自動隱藏成功提示
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        if self.isUpdateSuccessful {
+                            self.showUpdateStatus = false
+                        }
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isUpdatingOverview = false
+                    self.showUpdateStatus = true
+                    self.updateStatusMessage = "更新訓練計劃失敗：\(error.localizedDescription)"
+                    self.isUpdateSuccessful = false
+                }
+                print("更新訓練計劃概覽失敗: \(error)")
+            }
+        }
     }
 }
 
@@ -398,6 +516,7 @@ struct TrainingStageCard: View {
 struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
     static var previews: some View {
         TrainingPlanOverviewDetailView(overview: TrainingPlanOverview(
+            id: "",
             targetEvaluate: "根據您的目標和現況，這個計劃將幫助您安全且有效地達成目標。本計劃充分考慮了您的當前健康狀況和跑步經驗，精心設計了漸進式的訓練課程。",
             totalWeeks: 16,
             trainingHighlight: "本計劃的亮點在於其結合了長跑、間歇跑和恢復跑等多樣化訓練方式，並根據您的進展逐步調整強度。特別注重恢復和節奏控制，幫助您在提升成績的同時降低受傷風險。",

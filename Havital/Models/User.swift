@@ -17,6 +17,7 @@ struct UserProfileData: Codable {
     let relaxingHr: Int?
     let updatedAt: String
     let weekOfTraining: Int
+    let currentWeekDistance: Int
     let personalBest: [String: [RaceBest]]?
     
     enum CodingKeys: String, CodingKey {
@@ -33,6 +34,7 @@ struct UserProfileData: Codable {
         case updatedAt = "updated_at"
         case weekOfTraining = "week_of_training"
         case personalBest = "personal_best"
+        case currentWeekDistance = "current_week_distance"
     }
 }
 

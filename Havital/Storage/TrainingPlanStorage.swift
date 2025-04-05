@@ -46,6 +46,7 @@ class TrainingPlanStorage {
               let overview = try? JSONDecoder().decode(TrainingPlanOverview.self, from: data) else {
             print("無法讀取訓練計劃概覽，返回空的概覽")
             return TrainingPlanOverview(
+                id: "",
                 targetEvaluate: "",
                 totalWeeks: 0,
                 trainingHighlight: "",
