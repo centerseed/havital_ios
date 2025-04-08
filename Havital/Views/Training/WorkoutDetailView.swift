@@ -371,7 +371,6 @@ struct WorkoutDetailView: View {
         .shadow(radius: 2)
     }
     
-    // 配速圖表區塊
     private var paceChartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("配速變化")
@@ -429,33 +428,21 @@ struct WorkoutDetailView: View {
                             .interpolationMethod(.catmullRom)
                         }
                     }
-                    .chartYAxis {
-                        // 增加 Y 軸的標記密度，間接增加參考線
-                        AxisMarks(position: .leading, values: .stride(by: 10)) { value in
-                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
-                                .foregroundStyle(Color.gray.opacity(0.3))
-                            if let heartRate = value.as(Double.self) {
+                    .frame(height: 180)
+                    .chartYScale(domain: paceChartYRange)
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .minute, count: 10)) { value in
+                            if let date = value.as(Date.self) {
                                 AxisValueLabel {
-                                    Text("\(Int(heartRate))")
+                                    Text("\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))")
                                         .font(.caption)
                                 }
                             }
                         }
                     }
-                    .frame(height: 180)
-                    .chartYScale(domain: paceChartYRange)
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .minute, count: 10)) { value in
-                                if let date = value.as(Date.self) {
-                                    AxisValueLabel {
-                                        Text("\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))")
-                                                            .font(.caption)
-                                    }
-                                }
-                            }
-                    }
                     .chartYAxis {
-                        AxisMarks(position: .leading, values: .automatic) { value in
+                        // 修正部分：確保Y軸顯示正確格式的配速
+                        AxisMarks(position: .leading, values: .stride(by: 30)) { value in
                             if let paceInSeconds = value.as(Double.self) {
                                 AxisValueLabel {
                                     Text(formatPaceFromSeconds(paceInSeconds))
@@ -471,6 +458,36 @@ struct WorkoutDetailView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
+    }
+
+    // 確保格式化函數正確轉換配速
+    private func formatPaceFromSeconds(_ seconds: Double) -> String {
+        let totalSeconds = Int(seconds)
+        let minutes = totalSeconds / 60
+        let remainingSeconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
+    // 修正 Y 軸範圍計算，確保在適當範圍內顯示
+    private var paceChartYRange: ClosedRange<Double> {
+        if viewModel.paces.isEmpty {
+            return 300...600 // 默認範圍 (約 5:00-10:00 min/km)
+        }
+        
+        // 將速度 (m/s) 轉換為配速 (秒/km)
+        let paces = viewModel.paces.map { 1000 / $0.value }
+        
+        // 找出最快和最慢的配速
+        guard let min = paces.min(), let max = paces.max() else {
+            return 300...600
+        }
+        
+        // 加入一些邊距
+        let padding = (max - min) * 0.1
+        let lowerBound = Swift.max(min - padding, 0)
+        let upperBound = max + padding
+        
+        return lowerBound...upperBound
     }
     
     // 心率區間分佈區塊 - 簡化版
@@ -672,23 +689,7 @@ struct WorkoutDetailView: View {
         return viewModel.paces.map { $0.value }.min() ?? 0
     }
     
-    // 配速圖表的Y軸範圍
-    private var paceChartYRange: ClosedRange<Double> {
-        if viewModel.paces.isEmpty {
-            return 0...600 // 默認範圍
-        }
-        
-        // 將最快和最慢的配速轉換為秒/公里
-        let fastestPace = 1000 / getMaxPace() // 最小秒數（最快速度）
-        let slowestPace = 1000 / getMinPace() // 最大秒數（最慢速度）
-        
-        // 加入一些邊距
-        let padding = (slowestPace - fastestPace) * 0.1
-        let min = max(0, fastestPace - padding)
-        let max = slowestPace + padding
-        
-        return min...max
-    }
+   
     
     // 將 m/s 轉換為 min:ss/km 格式
     private func formatPaceFromMetersPerSecond(_ metersPerSecond: Double) -> String {
@@ -698,13 +699,5 @@ struct WorkoutDetailView: View {
         let secondsPerKm = 1000 / metersPerSecond
         
         return formatPaceFromSeconds(secondsPerKm)
-    }
-    
-    // 將秒數轉換為 min:ss 格式
-    private func formatPaceFromSeconds(_ seconds: Double) -> String {
-        let totalSeconds = Int(seconds)
-        let minutes = totalSeconds / 60
-        let remainingSeconds = totalSeconds % 60
-        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }
