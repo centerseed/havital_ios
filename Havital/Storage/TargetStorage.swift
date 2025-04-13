@@ -4,98 +4,79 @@ class TargetStorage {
     static let shared = TargetStorage()
     private let defaults = UserDefaults.standard
     
-    private let targetsKey = "user_targets"
-    private let mainTargetKey = "main_target"
+    // 只保留一個鍵，用於儲存所有目標的陣列
+    private let targetsKey = "user_targets_all" // 可以改個名字以示區別，或沿用舊名
     
     private init() {}
     
-    // 保存單一目標
+    // 保存單一目標到主列表
     func saveTarget(_ target: Target) {
-        do {
-            // 先檢查是否已有目標清單
-            var targets = getTargets()
-            
-            // 查找是否已存在此目標
-            if let index = targets.firstIndex(where: { $0.id == target.id }) {
-                // 更新現有目標
-                targets[index] = target
-            } else {
-                // 添加新目標
-                targets.append(target)
-            }
-            
-            // 保存更新後的目標清單
-            saveTargets(targets)
-            
-            // 如果是主要目標，則更新主要目標
-            if target.isMainRace {
-                saveMainTarget(target)
-            }
+        var targets = getTargets() // 獲取當前所有目標
+        
+        // 查找是否已存在此目標
+        if let index = targets.firstIndex(where: { $0.id == target.id }) {
+            // 更新現有目標
+            targets[index] = target
+        } else {
+            // 添加新目標
+            targets.append(target)
+        }
+        
+        // 保存更新後的完整列表
+        saveTargets(targets)
+        
+        // 發送通知，表示目標數據已更新 (可以根據需要決定是否保留或修改通知邏輯)
+        NotificationCenter.default.post(name: .targetUpdated, object: nil)
+        if !target.isMainRace {
+             NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
         }
     }
     
-    // 保存目標陣列
+    // 保存目標陣列 (這是核心的保存方法)
     func saveTargets(_ targets: [Target]) {
         do {
             let data = try JSONEncoder().encode(targets)
             defaults.set(data, forKey: targetsKey)
-            defaults.synchronize()
+            defaults.synchronize() // 確保立即寫入 UserDefaults (雖然通常不是絕對必要)
             
-            // 找出並更新主要目標
-            if let mainTarget = targets.first(where: { $0.isMainRace }) {
-                saveMainTarget(mainTarget)
-            }
+             // 發送通知，表示目標數據已更新
+            NotificationCenter.default.post(name: .targetUpdated, object: nil)
+            // 可選：如果需要區分主要和支援賽事更新，可以在此處添加更細緻的通知邏輯
+             if targets.contains(where: { !$0.isMainRace }) {
+                NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
+             }
+
         } catch {
             print("保存目標清單失敗: \(error)")
         }
     }
     
-    // 保存主要目標
-    func saveMainTarget(_ target: Target) {
-        do {
-            let data = try JSONEncoder().encode(target)
-            defaults.set(data, forKey: mainTargetKey)
-            defaults.synchronize()
-        } catch {
-            print("保存主要目標失敗: \(error)")
-        }
-    }
+    // (已移除) 不再需要單獨保存主要目標的方法
+    // func saveMainTarget(_ target: Target) { ... }
     
     // 獲取所有目標
     func getTargets() -> [Target] {
         guard let data = defaults.data(forKey: targetsKey) else {
-            return []
+            return [] // 如果沒有數據，返回空陣列
         }
         
         do {
+            // 從儲存的數據解碼回 [Target] 陣列
             return try JSONDecoder().decode([Target].self, from: data)
         } catch {
             print("獲取目標清單失敗: \(error)")
-            return []
+            return [] // 解碼失敗也返回空陣列
         }
     }
     
-    // 獲取主要目標
+    // 獲取主要目標 (從所有目標中查找)
     func getMainTarget() -> Target? {
-        guard let data = defaults.data(forKey: mainTargetKey) else {
-            // 如果沒有主要目標，嘗試從所有目標中找出主要目標
-            let targets = getTargets()
-            if let mainTarget = targets.first(where: { $0.isMainRace }) {
-                saveMainTarget(mainTarget)
-                return mainTarget
-            }
-            return nil
-        }
-        
-        do {
-            return try JSONDecoder().decode(Target.self, from: data)
-        } catch {
-            print("獲取主要目標失敗: \(error)")
-            return nil
-        }
+        let targets = getTargets()
+        // 直接在所有目標中查找第一個 isMainRace 為 true 的目標
+        return targets.first { $0.isMainRace }
     }
     
-    // 獲取特定目標
+    // 獲取特定目標 (從所有目標中查找)
     func getTarget(id: String) -> Target? {
         let targets = getTargets()
         return targets.first { $0.id == id }
@@ -104,27 +85,27 @@ class TargetStorage {
     // 移除特定目標
     func removeTarget(id: String) {
         var targets = getTargets()
+        let initialCount = targets.count
         targets.removeAll { $0.id == id }
         
-        // 重新保存更新後的目標清單
-        saveTargets(targets)
-        
-        // 如果移除的是主要目標，清除主要目標
-        if let mainTarget = getMainTarget(), mainTarget.id == id {
-            defaults.removeObject(forKey: mainTargetKey)
+        // 只有在實際移除了目標時才重新保存
+        if targets.count < initialCount {
+            saveTargets(targets) // 保存更新後的列表
             
-            // 嘗試從剩餘目標中找出新的主要目標
-            if let newMainTarget = targets.first(where: { $0.isMainRace }) {
-                saveMainTarget(newMainTarget)
-            }
+            // 發送通知
+            NotificationCenter.default.post(name: .targetUpdated, object: nil)
+            // 如果你關心被移除的是否為支援賽事，可以在這裡檢查並發送 supportingTargetUpdated
+            // (但通常移除就是更新，targetUpdated 可能就夠了)
         }
     }
     
-    // 清除所有目標
+    // 清除所有目標 (只需要移除一個鍵)
     func clearAllTargets() {
         defaults.removeObject(forKey: targetsKey)
-        defaults.removeObject(forKey: mainTargetKey)
         defaults.synchronize()
+        // 發送通知
+        NotificationCenter.default.post(name: .targetUpdated, object: nil)
+        NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil) // 清空也算支援賽事更新
     }
     
     // 檢查是否有目標
@@ -132,7 +113,7 @@ class TargetStorage {
         return !getTargets().isEmpty
     }
     
-    // 檢查是否有主要目標
+    // 檢查是否有主要目標 (基於查找結果)
     func hasMainTarget() -> Bool {
         return getMainTarget() != nil
     }
@@ -146,7 +127,7 @@ class TargetStorage {
         let upcomingTargets = targets
             .filter { $0.raceDate > Int(now) }
             .sorted { $0.raceDate < $1.raceDate }
-        
+            
         return upcomingTargets.first
     }
     
@@ -155,4 +136,38 @@ class TargetStorage {
         let targets = getTargets()
         return targets.sorted { $0.raceDate < $1.raceDate }
     }
+    
+    // 獲取所有支援賽事（非主要賽事） (基於查找結果)
+    func getSupportingTargets() -> [Target] {
+        let targets = getTargets()
+        return targets.filter { !$0.isMainRace }
+    }
+    
+    // 獲取所有支援賽事，並按日期排序（由近到遠） (基於查找結果)
+    func getSortedSupportingTargets() -> [Target] {
+        let supportingTargets = getSupportingTargets()
+        return supportingTargets.sorted { $0.raceDate < $1.raceDate }
+    }
+    
+    // 檢查是否有支援賽事 (基於查找結果)
+    func hasSupportingTargets() -> Bool {
+        return !getSupportingTargets().isEmpty
+    }
+    
+    // 獲取最近的支援賽事 (基於查找結果)
+    func getUpcomingSupportingTarget() -> Target? {
+        let now = Date().timeIntervalSince1970
+        
+        let upcomingTargets = getSupportingTargets()
+            .filter { $0.raceDate > Int(now) }
+            .sorted { $0.raceDate < $1.raceDate }
+            
+        return upcomingTargets.first
+    }
+}
+
+// 擴充 Notification.Name (保持不變，除非你有新的通知需求)
+extension Notification.Name {
+    static let targetUpdated = Notification.Name("targetUpdated")
+    static let supportingTargetUpdated = Notification.Name("supportingTargetUpdated") // 這個通知現在會在任何可能影響支援賽事列表的操作後發送
 }

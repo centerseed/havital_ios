@@ -72,7 +72,7 @@ struct WorkoutDetailView: View {
                     
                     // 基本信息卡片 - 對稱佈局
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("基本信息")
+                        Text("基本資訊")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)

@@ -8,7 +8,7 @@ struct UserProfileData: Codable {
     let activeTrainingId: String?
     let activeWeeklyPlanId: String?
     let displayName: String
-    let email: String
+    let email: String?
     let lastLogin: String
     let maxHr: Int?
     let photoUrl: String?
@@ -16,8 +16,8 @@ struct UserProfileData: Codable {
     let preferWeekDaysLongrun: [Int]
     let relaxingHr: Int?
     let updatedAt: String
-    let weekOfTraining: Int
-    let currentWeekDistance: Int
+    let weekOfTraining: Int?
+    let currentWeekDistance: Int?
     let personalBest: [String: [RaceBest]]?
     
     enum CodingKeys: String, CodingKey {

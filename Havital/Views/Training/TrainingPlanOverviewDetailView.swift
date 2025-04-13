@@ -5,7 +5,11 @@ struct TrainingPlanOverviewDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var targetRace: Target? = nil
+    @State private var supportingTargets: [Target] = []
     @State private var showEditSheet = false
+    @State private var showEditSupportingSheet = false
+    @State private var showAddSupportingSheet = false
+    @State private var selectedSupportingTarget: Target? = nil
     @State private var hasTargetSaved = false
     
     @State private var isUpdatingOverview = false
@@ -16,6 +20,11 @@ struct TrainingPlanOverviewDetailView: View {
     
     init(overview: TrainingPlanOverview) {
         _overview = State(initialValue: overview)
+    }
+    
+    // 給支援賽事排序 - 按照日期從近到遠
+    private var sortedSupportingTargets: [Target] {
+        return supportingTargets.sorted { $0.raceDate < $1.raceDate }
     }
     
     var body: some View {
@@ -42,6 +51,18 @@ struct TrainingPlanOverviewDetailView: View {
                             showEditSheet = true
                         })
                     }
+                    
+                    // Supporting Races Card - 使用排序後的支援賽事
+                    SupportingRacesCard(
+                        supportingTargets: sortedSupportingTargets,
+                        onAddTap: {
+                            showAddSupportingSheet = true
+                        },
+                        onEditTap: { target in
+                            selectedSupportingTarget = target
+                            showEditSupportingSheet = true
+                        }
+                    )
                     
                     // Goal Evaluation Section
                     SectionCard {
@@ -98,9 +119,13 @@ struct TrainingPlanOverviewDetailView: View {
             .navigationBarHidden(true)
             .presentationDetents([.large])
             .onAppear {
-                // 同步部分保持不變
+                // 載入主要賽事
                 self.targetRace = TargetStorage.shared.getMainTarget()
-                print("Get Main Target: \(String(describing: targetRace))")
+                print("獲取主要目標: \(String(describing: targetRace))")
+                
+                // 載入支援賽事
+                self.supportingTargets = TargetStorage.shared.getSupportingTargets()
+                print("已載入 \(supportingTargets.count) 個支援賽事")
                 
                 // 如果需要，啟動異步任務
                 if self.targetRace == nil {
@@ -110,7 +135,9 @@ struct TrainingPlanOverviewDetailView: View {
                             // 在主線程更新 UI
                             await MainActor.run {
                                 self.targetRace = TargetStorage.shared.getMainTarget()
+                                self.supportingTargets = TargetStorage.shared.getSupportingTargets()
                                 print("再次獲取主要目標: \(String(describing: targetRace))")
+                                print("再次獲取支援賽事: \(supportingTargets.count) 個")
                             }
                         } catch {
                             print("從網路加載目標賽事失敗: \(error)")
@@ -132,8 +159,28 @@ struct TrainingPlanOverviewDetailView: View {
                     EditTargetView(target: target)
                 }
             }
+            .sheet(isPresented: $showEditSupportingSheet, onDismiss: {
+                // 當編輯支援賽事視圖關閉時重新載入支援賽事
+                loadSupportingTargets()
+                // 注意：我們不會觸發訓練計劃概覽更新
+            }) {
+                if let target = selectedSupportingTarget {
+                    EditSupportingTargetView(target: target)
+                }
+            }
+            .sheet(isPresented: $showAddSupportingSheet, onDismiss: {
+                // 當添加支援賽事視圖關閉時重新載入支援賽事
+                loadSupportingTargets()
+                // 注意：我們不會觸發訓練計劃概覽更新
+            }) {
+                AddSupportingTargetView()
+            }
             .onReceive(NotificationCenter.default.publisher(for: .targetUpdated)) { _ in
                 hasTargetSaved = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
+                // 當支援賽事更新時，只重新載入支援賽事列表，不更新主要訓練計劃
+                loadSupportingTargets()
             }
             
             
@@ -142,24 +189,24 @@ struct TrainingPlanOverviewDetailView: View {
                 ZStack {
                     Color.black.opacity(0.4)
                         .edgesIgnoringSafeArea(.all)
-                                
-                                VStack(spacing: 16) {
-                                    ProgressView()
-                                        .scaleEffect(1.5)
-                                    
-                                    Text("正在更新訓練計劃...")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                }
-                                .padding(24)
-                                .background(Color.gray.opacity(0.8))
-                                .cornerRadius(12)
-                            }
-                            .transition(.opacity)
-                            .animation(.easeInOut, value: isUpdatingOverview)
-                        }
+                    
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
                         
-                        // 加入更新完成狀態提示
+                        Text("正在更新訓練計劃...")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(24)
+                    .background(Color.gray.opacity(0.8))
+                    .cornerRadius(12)
+                }
+                .transition(.opacity)
+                .animation(.easeInOut, value: isUpdatingOverview)
+            }
+            
+            // 加入更新完成狀態提示
             if showUpdateStatus {
                 VStack {
                     Spacer()
@@ -203,16 +250,22 @@ struct TrainingPlanOverviewDetailView: View {
         print("Get Main Target: \(String(describing: targetRace))")
     }
     
-        private func updateTrainingPlanOverview() {
+    private func loadSupportingTargets() {
+        // 從本地儲存獲取支援賽事
+        self.supportingTargets = TargetStorage.shared.getSupportingTargets()
+        print("已重新載入 \(supportingTargets.count) 個支援賽事")
+    }
+    
+    private func updateTrainingPlanOverview() {
         // 顯示更新中狀態
         isUpdatingOverview = true
         showUpdateStatus = false
-            
+        
         Task {
             do {
                 // 更新訓練計劃概覽
                 let updatedOverview = try await TrainingPlanService.shared.updateTrainingPlanOverview(overviewId: overview.id)
-                    
+                
                 await MainActor.run {
                     self.overview = updatedOverview
                     self.isUpdatingOverview = false
@@ -220,7 +273,7 @@ struct TrainingPlanOverviewDetailView: View {
                     self.updateStatusMessage = "訓練計劃已根據最新目標重新產生"
                     self.isUpdateSuccessful = true
                     self.hasTargetSaved = false  // 在更新完成後重置狀態
-                        
+                    
                     // 5秒後自動隱藏成功提示
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         if self.isUpdateSuccessful {
@@ -238,144 +291,6 @@ struct TrainingPlanOverviewDetailView: View {
                 print("更新訓練計劃概覽失敗: \(error)")
             }
         }
-    }
-}
-
-struct TargetRaceCard: View {
-    let target: Target
-    let onEditTap: () -> Void  // 添加一個回調函數
-    @Environment(\.colorScheme) private var colorScheme
-    
-    var body: some View {
-        SectionCard {
-            VStack(alignment: .leading, spacing: 16) {
-                // 標題與編輯按鈕
-                HStack {
-                    SectionHeader(title: "目標賽事", systemImage: "flag.filled.and.flag.crossed")
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        onEditTap()
-                    }) {
-                        Image(systemName: "pencil")
-                            .foregroundColor(.blue)
-                    }
-                }
-                
-                // 賽事基本資訊
-                VStack(alignment: .leading, spacing: 10) {
-                    // 名稱
-                    HStack(alignment: .center, spacing: 12) {
-                        Text(target.name)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        
-                        Spacer()
-                        
-                        // 計算賽事日期距今天數
-                        let daysRemaining = calculateDaysRemaining(raceDate: target.raceDate)
-                        Text("\(daysRemaining)天")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.blue.opacity(0.15))
-                            )
-                    }
-                    
-                    // 日期、距離和倒數天數在同一行
-                    HStack(alignment: .center, spacing: 12) {
-                        // 日期
-                        HStack {
-                            Image(systemName: "calendar")
-                                .foregroundColor(.blue)
-                            
-                            Text(formatDate(target.raceDate))
-                                .font(.subheadline)
-                        }
-                        
-                        Spacer()
-                        
-                        // 距離
-                        Text("\(target.distanceKm) 公里")
-                            .font(.subheadline)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color.green.opacity(0.15))
-                            )
-                        
-                    }
-                    
-                    // 目標完賽時間與配速
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("目標完賽時間")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(formatTime(target.targetTime))
-                                .font(.headline)
-                        }
-                        
-                        Divider()
-                            .frame(height: 30)
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("目標配速")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text("\(target.targetPace) /公里")
-                                .font(.headline)
-                        }
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(colorScheme == .dark ? Color(UIColor.systemGray5) : Color(UIColor.systemGray6).opacity(0.5))
-                    )
-                }
-            }
-        }
-    }
-    
-    // 格式化日期
-    private func formatDate(_ timestamp: Int) -> String {
-        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "zh_TW")
-        return formatter.string(from: date)
-    }
-    
-    // 格式化時間
-    private func formatTime(_ seconds: Int) -> String {
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        let remainingSeconds = seconds % 60
-        
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, remainingSeconds)
-        } else {
-            return String(format: "%d:%02d", minutes, remainingSeconds)
-        }
-    }
-    
-    // 計算賽事日期距今天數
-    private func calculateDaysRemaining(raceDate: Int) -> Int {
-        let raceDay = Date(timeIntervalSince1970: TimeInterval(raceDate))
-        let today = Date()
-        
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.day], from: today, to: raceDay)
-        
-        return max(components.day ?? 0, 0) // 確保不為負數
     }
 }
 
@@ -415,98 +330,6 @@ struct SectionCard<Content: View>: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         )
         .padding(.horizontal)
-    }
-}
-
-struct TrainingStageCard: View {
-    let stage: TrainingStage
-    let index: Int
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var stageColors: (Color, Color) {
-        let colors: [(Color, Color)] = [
-            (Color.blue, Color.blue.opacity(0.15)),
-            (Color.green, Color.green.opacity(0.15)),
-            (Color.orange, Color.orange.opacity(0.15)),
-            (Color.purple, Color.purple.opacity(0.15))
-        ]
-        
-        return colors[index % colors.count]
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 階段標題和週數
-            HStack {
-                Circle()
-                    .fill(stageColors.0)
-                    .frame(width: 30, height: 30)
-                    .overlay(
-                        Text("\(index + 1)")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                    )
-                
-                VStack(alignment: .leading) {
-                    Text(stage.stageName)
-                        .font(.headline)
-                        .foregroundColor(stageColors.0)
-                    
-                    if let weekEnd = stage.weekEnd {
-                        Text("第\(stage.weekStart)-\(weekEnd)週")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("第\(stage.weekStart)週開始")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            
-            // 階段描述，確保文字可以根據內容動態調整高度
-            Text(stage.stageDescription)
-                .font(.body)
-                .lineLimit(nil)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true) // 確保文字可以根據內容動態調整高度
-            
-            // 重點訓練部分
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(stageColors.0)
-                    Text("重點訓練:")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
-                
-                Text(stage.trainingFocus)
-                    .font(.subheadline)
-                    .foregroundColor(stageColors.0)
-                    .fontWeight(.semibold)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(stageColors.1)
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading) // 確保佔據最大寬度
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ? Color(UIColor.systemGray5) : Color(UIColor.systemGray6).opacity(0.5))
-        )
-        .padding(.vertical, 4)
     }
 }
 

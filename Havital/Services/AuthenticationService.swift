@@ -170,13 +170,13 @@ class AuthenticationService: ObservableObject {
     func signOut() throws {
         try Auth.auth().signOut()
         try GIDSignIn.sharedInstance.signOut()
-        UserPreferenceManager.shared.clearUserData()
         
         // 在登出時重置各種狀態
         appUser = nil
         hasCompletedOnboarding = false
         UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
         UserPreferenceManager.shared.clearUserData()
+        
     }
     
     // Get the current ID token

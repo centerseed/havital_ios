@@ -50,7 +50,7 @@ class TargetService {
         }
         
         print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
+        if httpResponse.statusCode > 201 {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("錯誤回應內容: \(responseString)")
             }
@@ -105,7 +105,7 @@ class TargetService {
         }
         
         print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
+        if httpResponse.statusCode > 201 {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("錯誤回應內容: \(responseString)")
             }
@@ -160,7 +160,7 @@ class TargetService {
         }
         
         print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
+        if httpResponse.statusCode > 201 {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("錯誤回應內容: \(responseString)")
             }
@@ -226,7 +226,7 @@ class TargetService {
         }
         
         print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
+        if httpResponse.statusCode > 201 {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("錯誤回應內容: \(responseString)")
             }
@@ -281,7 +281,7 @@ class TargetService {
         }
         
         print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
+        if httpResponse.statusCode > 201 {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("錯誤回應內容: \(responseString)")
             }

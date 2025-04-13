@@ -238,7 +238,7 @@ class UserService {
     
     // Updated to access nested user.data properties
     func syncUserPreferences(with user: User) {
-        userPreferenceManager.email = user.data.email
+        userPreferenceManager.email = user.data.email ?? ""
         userPreferenceManager.name = user.data.displayName
         userPreferenceManager.photoURL = user.data.photoUrl
         

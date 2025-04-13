@@ -40,9 +40,9 @@ struct UserProfileView: View {
                     // 編輯週跑量按鈕
                     Button(action: {
                         // 將字串轉換為 Double
-                        currentWeekDistance = Int(userData.currentWeekDistance)
+                        currentWeekDistance = Int(userData.currentWeekDistance ?? 0)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            weeklyDistance = Int(userData.currentWeekDistance)
+                            weeklyDistance = Int(userData.currentWeekDistance ?? 0)
                             showWeeklyDistanceEditor = true
                         }
                     }) {
@@ -214,7 +214,7 @@ struct UserProfileView: View {
                     .font(.title3)
                     .fontWeight(.semibold)
                 
-                Text(userData.email)
+                Text(userData.email ?? "")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
