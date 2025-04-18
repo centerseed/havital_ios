@@ -50,6 +50,12 @@ class UserProfileViewModel: ObservableObject {
         return "\(rate) bpm"
     }
     
+    /// 支援可選 HeartRate 顯示
+    func formatHeartRate(_ rate: Int?) -> String {
+        guard let r = rate else { return "-- bpm" }
+        return "\(r) bpm"
+    }
+    
     func zoneColor(for zone: Int) -> Color {
         switch zone {
         case 1: return .blue

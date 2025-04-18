@@ -182,47 +182,63 @@ struct DailyTrainingCard: View {
                         
                         // Show each training item
                         ForEach(trainingItems) { item in
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                // 標題及重複次數
                                 HStack {
                                     Text(item.name)
                                         .font(.subheadline)
                                         .fontWeight(day.type == .interval ? .medium : .regular)
                                         .foregroundColor(day.type == .interval ? .orange : .blue)
-                                    
                                     if day.type == .interval, let times = item.goals.times {
                                         Text("× \(times)")
                                             .font(.caption)
                                             .foregroundColor(.orange)
-                                            .padding(.leading, -4)
                                     }
                                     
+                                    if let pace = item.goals.pace {
+                                        Text(pace)
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    
+                                    if let hr = item.goals.heartRateRange {
+                                        Text("心率區間： \(hr.min)-\(hr.max)")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.green.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    if let distance = item.goals.distanceKm {
+                                        Text(String(format: "%.1fkm", distance))
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
                                     Spacer()
-                                    
-                                    // Show the pace and distance in a pill for all training types
-                                    HStack(spacing: 2) {
-                                        if let pace = item.goals.pace {
-                                            Text(pace)
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(day.type == .interval ? .orange : .blue)
-                                        }
-                                        if let distance = item.goals.distanceKm {
-                                            Text("/ \(String(format: "%.1f", distance)) km")
-                                                .font(.caption)
-                                                .foregroundColor(day.type == .interval ? .orange : .blue)
-                                        }
-                                    }
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
-                                    .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                    .cornerRadius(12)
-                                    .opacity((item.goals.pace != nil || item.goals.distanceKm != nil) ? 1 : 0)
                                 }
+                                // 度量指標pills
+                                HStack(spacing: 2) {}
+                                    
+                                // 說明文字
+                                Text(item.runDetails)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
-                            
-                            Text(item.runDetails)
-                                .font(.caption)
+                            .padding(.vertical, 8)
+                        }
+                        
+                        // 顯示提示
+                        if let tips = day.tips {
+                            Text("提示：\(tips)")
+                                .font(.caption2)
                                 .foregroundColor(.secondary)
+                                .padding(.top, 8)
                         }
                     }
                 }

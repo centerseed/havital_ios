@@ -96,13 +96,35 @@ struct TrainingDay: Codable, Identifiable {
     var trainingItems: [WeeklyTrainingItem]? {
         if let details = trainingDetails {
             switch type {
-            case .easyRun, .easy, .longRun, .tempo:
-                if let description = details.description, let distance = details.distanceKm, let pace = details.pace {
+            case .easyRun, .easy, .rest:
+                if let description = details.description, let distance = details.distanceKm {
                     let item = WeeklyTrainingItem(
-                        name: "輕鬆跑",
+                        name: type == .rest ? "休息" : "輕鬆跑",
                         runDetails: description,
                         durationMinutes: nil,
-                        goals: TrainingGoals(pace: pace, distanceKm: distance, heartRate: nil, times: nil)
+                        goals: TrainingGoals(
+                            pace: details.pace,
+                            distanceKm: distance,
+                            heartRateRange: details.heartRateRange,
+                            heartRate: nil,
+                            times: nil
+                        )
+                    )
+                    return [item]
+                }
+            case .longRun, .tempo:
+                if let description = details.description, let distance = details.distanceKm, let pace = details.pace {
+                    let item = WeeklyTrainingItem(
+                        name: type == .longRun ? "長距離跑" : "節奏跑",
+                        runDetails: description,
+                        durationMinutes: nil,
+                        goals: TrainingGoals(
+                            pace: pace,
+                            distanceKm: distance,
+                            heartRateRange: nil,
+                            heartRate: nil,
+                            times: nil
+                        )
                     )
                     return [item]
                 }
@@ -113,7 +135,7 @@ struct TrainingDay: Codable, Identifiable {
                         name: "間歇跑",
                         runDetails: work.description,
                         durationMinutes: nil,
-                        goals: TrainingGoals(pace: work.pace, distanceKm: work.distanceKm, heartRate: nil, times: repeats)
+                        goals: TrainingGoals(pace: work.pace, distanceKm: work.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(workItem)
                     
@@ -121,7 +143,7 @@ struct TrainingDay: Codable, Identifiable {
                         name: "恢復跑",
                         runDetails: recovery.description,
                         durationMinutes: nil,
-                        goals: TrainingGoals(pace: recovery.pace, distanceKm: recovery.distanceKm, heartRate: nil, times: repeats)
+                        goals: TrainingGoals(pace: recovery.pace, distanceKm: recovery.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(recoveryItem)
                     return items
@@ -134,6 +156,16 @@ struct TrainingDay: Codable, Identifiable {
     }
 }
 
+struct HeartRateRange: Codable {
+    let min: Int
+    let max: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case min
+        case max
+    }
+}
+
 struct TrainingDetails: Codable {
     let description: String?
     let distanceKm: Double?
@@ -141,6 +173,7 @@ struct TrainingDetails: Codable {
     let work: WorkoutSegment?
     let recovery: WorkoutSegment?
     let repeats: Int?
+    let heartRateRange: HeartRateRange?
     
     enum CodingKeys: String, CodingKey {
         case description
@@ -149,6 +182,7 @@ struct TrainingDetails: Codable {
         case work
         case recovery
         case repeats
+        case heartRateRange = "heart_rate_range"
     }
 }
 
@@ -186,6 +220,15 @@ struct WeeklyTrainingItem: Identifiable {
 struct TrainingGoals {
     let pace: String?
     let distanceKm: Double?
-    let heartRate: String?
+    let heartRateRange: HeartRateRange?
+    let heartRate: String? // 保留原本欄位，兼容舊資料
     let times: Int?
+    
+    init(pace: String?, distanceKm: Double?, heartRateRange: HeartRateRange?, heartRate: String?, times: Int?) {
+        self.pace = pace
+        self.distanceKm = distanceKm
+        self.heartRateRange = heartRateRange
+        self.heartRate = heartRate
+        self.times = times
+    }
 }

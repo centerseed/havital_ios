@@ -7,6 +7,8 @@ class HRVChartViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var selectedTimeRange: TimeRange = .week
+    @Published var diagnosticsText: String? = nil
+    @Published var readAuthStatus: HKAuthorizationRequestStatus? = nil
     private let healthKitManager: HealthKitManager
     
     init(healthKitManager: HealthKitManager) {
@@ -76,6 +78,46 @@ class HRVChartViewModel: ObservableObject {
         // 添加 10% 的 padding
         let padding = (max - min) * 0.1
         return (min - padding)...(max + padding)
+    }
+    
+    /// Diagnostic: fetch HRV authorization, sample count, and sources
+    func fetchDiagnostics() async {
+        diagnosticsText = nil
+        let now = Date()
+        // 計算起始日期與 loadHRVData 相同
+        let startDate: Date
+        switch selectedTimeRange {
+        case .week:
+            startDate = Calendar.current.date(byAdding: .day, value: -7, to: now)!
+        case .month:
+            startDate = Calendar.current.date(byAdding: .month, value: -1, to: now)!
+        case .threeMonths:
+            startDate = Calendar.current.date(byAdding: .month, value: -3, to: now)!
+        }
+        do {
+            // 檢查讀取授權
+            let readStatus = try await healthKitManager.checkHRVReadAuthorization()
+            // 取得 HRV 診斷
+            let diag = try await healthKitManager.fetchHRVDiagnostics(start: startDate, end: now)
+            let sources = diag.sources.joined(separator: ", ")
+            diagnosticsText = "讀取授權: \(readStatus); 原始樣本數: \(diag.rawSampleCount); 來源: [\(sources)]"
+        } catch {
+            diagnosticsText = "診斷失敗: \(error.localizedDescription)"
+        }
+    }
+    
+    /// 檢查 HRV 讀取授權狀態
+    func fetchReadAuthStatus() async {
+        readAuthStatus = nil
+        do {
+            let status = try await healthKitManager.checkHRVReadAuthorization()
+            readAuthStatus = status
+        } catch {
+            readAuthStatus = nil
+            // 捕捉任意錯誤並存到 error
+            let err = error
+            self.error = "讀取授權檢查失敗: \(err.localizedDescription)"
+        }
     }
     
     enum TimeRange: String, CaseIterable {

@@ -33,7 +33,7 @@ struct UserProfileView: View {
                         Label("當前週跑量", systemImage: "figure.walk")
                             .foregroundColor(.blue)
                         Spacer()
-                        Text("\(userData.currentWeekDistance) 公里")
+                        Text("\(userData.currentWeekDistance ?? 0) 公里")
                             .fontWeight(.medium)
                     }
                     
@@ -65,7 +65,7 @@ struct UserProfileView: View {
                         Label("最大心率", systemImage: "heart.fill")
                             .foregroundColor(.red)
                         Spacer()
-                        Text(viewModel.formatHeartRate(userData.maxHr ?? 0))
+                        Text(viewModel.formatHeartRate(userData.maxHr))
                             .fontWeight(.medium)
                     }
                     
@@ -73,7 +73,7 @@ struct UserProfileView: View {
                         Label("靜息心率", systemImage: "heart")
                             .foregroundColor(.blue)
                         Spacer()
-                        Text(viewModel.formatHeartRate(userData.relaxingHr ?? 0))
+                        Text(viewModel.formatHeartRate(userData.relaxingHr))
                             .fontWeight(.medium)
                     }
                     

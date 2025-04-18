@@ -285,7 +285,12 @@ class HealthKitManager: ObservableObject {
     // MARK: - 運動數據
     
     func fetchWorkoutsForDateRange(start: Date, end: Date) async throws -> [HKWorkout] {
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let predicate = HKQuery.predicateForSamples(
+            withStart: start,
+            end: end,
+            options: .strictStartDate
+        )
+        
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         let sampleType = HKObjectType.workoutType()
         
@@ -301,19 +306,12 @@ class HealthKitManager: ObservableObject {
                     return
                 }
                 
-                // Filter for running-related workouts only
-                let workouts = samples?.compactMap { $0 as? HKWorkout }
-                    .filter { workout in
-                        // Filter for running-related workout types
-                        let runningTypes: [HKWorkoutActivityType] = [
-                            .running,
-                            .trackAndField,
-                            .crossTraining,
-                            .mixedCardio,
-                            .highIntensityIntervalTraining
-                        ]
-                        return runningTypes.contains(workout.workoutActivityType)
-                    } ?? []
+                guard let quantitySamples = samples as? [HKSample] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                
+                let workouts = quantitySamples.compactMap { $0 as? HKWorkout }
                 
                 continuation.resume(returning: workouts)
             }
@@ -347,6 +345,10 @@ class HealthKitManager: ObservableObject {
             throw HealthError.typeNotAvailable
         }
         
+        // Diagnostic: print HRV authorization status
+        let hrvAuth = healthStore.authorizationStatus(for: hrvType)
+        print(" HRV authorization status: \(hrvAuth.rawValue)")
+
         return try await withCheckedThrowingContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
@@ -362,6 +364,11 @@ class HealthKitManager: ObservableObject {
                     return
                 }
                 
+                // Diagnostic: print raw HRV samples count and sources
+                let rawSamples = samples as? [HKQuantitySample] ?? []
+                let sources = Set(rawSamples.map { $0.sourceRevision.source.name })
+                print(" HRV raw samples count: \(rawSamples.count), sources: \(sources)")
+
                 let hrvValues = samples?.compactMap { sample -> (Date, Double)? in
                     guard let hrvSample = sample as? HKQuantitySample else { return nil }
                     return (hrvSample.startDate, hrvSample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli)))
@@ -686,7 +693,12 @@ class HealthKitManager: ObservableObject {
         
         // 獲取這段時間內的所有運動
         let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
-            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+            let predicate = HKQuery.predicateForSamples(
+                withStart: startDate,
+                end: endDate,
+                options: .strictStartDate
+            )
+            
             let query = HKSampleQuery(sampleType: .workoutType(),
                                     predicate: predicate,
                                     limit: HKObjectQueryNoLimit,
@@ -837,9 +849,53 @@ class HealthKitManager: ObservableObject {
             )
         }
     
-}
-
-// MARK: - 錯誤定義
+    // MARK: - HRV 診斷
+    /// Diagnostic: get HRV authorization status, raw sample count, and sources
+    func fetchHRVDiagnostics(start: Date, end: Date) async throws -> (authStatus: HKAuthorizationStatus, rawSampleCount: Int, sources: [String]) {
+        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
+            throw HealthError.typeNotAvailable
+        }
+        // 授權狀態
+        let authStatus = healthStore.authorizationStatus(for: hrvType)
+        return try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+            let query = HKSampleQuery(
+                sampleType: hrvType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let rawSamples = samples as? [HKQuantitySample] ?? []
+                let sources = Array(Set(rawSamples.map { $0.sourceRevision.source.name }))
+                continuation.resume(returning: (authStatus, rawSamples.count, sources))
+            }
+            healthStore.execute(query)
+        }
+    }
+    
+    // MARK: - HRV 讀取權限檢查
+    /// 檢查 HRV (SDNN) 讀取授權狀態，回傳 HKAuthorizationRequestStatus
+    func checkHRVReadAuthorization() async throws -> HKAuthorizationRequestStatus {
+        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
+            throw HealthError.typeNotAvailable
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            healthStore.getRequestStatusForAuthorization(toShare: [], read: [hrvType]) { status, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: status)
+                }
+            }
+        }
+    }
+} 
+    // MARK: - 錯誤定義
 
 extension HealthKitManager {
     enum HealthError: Error {
