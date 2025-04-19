@@ -7,6 +7,7 @@ struct UserProfileView: View {
     @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
     @State private var currentWeekDistance: Int = 0  // 新增當前週跑量
     @State private var weeklyDistance: Int = 0
+    @State private var showTrainingDaysEditor = false
     
     var body: some View {
         List {
@@ -105,6 +106,16 @@ struct UserProfileView: View {
                 // Training Days Section - More Compact
                 Section(header: Text("訓練日")) {
                     trainingDaysView(userData)
+                    // 編輯訓練日按鈕 (與編輯週跑量一致)
+                    Button(action: { showTrainingDaysEditor = true }) {
+                        HStack {
+                            Text("編輯訓練日")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                    }
                 }
             }
             
@@ -159,7 +170,19 @@ struct UserProfileView: View {
                     }
                 }
             )
-            
+        }
+        // 編輯訓練日編輯器
+        .sheet(isPresented: $showTrainingDaysEditor) {
+            if let ud = viewModel.userData {
+                EditTrainingDaysView(
+                    initialWeekdays: Set(ud.preferWeekDays),
+                    initialLongRunDay: ud.preferWeekDaysLongrun.first ?? 6
+                ) {
+                    viewModel.fetchUserProfile()
+                }
+            } else {
+                EmptyView()
+            }
         }
     }
     

@@ -28,9 +28,9 @@ class TrainingPlanService {
         do {
             let token = try await AuthenticationService.shared.getIdToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            print("成功添加授權令牌，長度: \(token.count)")
+            log("成功添加授權令牌，長度: \(token.count)")
         } catch {
-            print("獲取授權令牌失敗: \(error.localizedDescription)")
+            log("獲取授權令牌失敗: \(error.localizedDescription)")
             throw error // 關鍵改變: 如果無法獲取令牌，則拋出錯誤而不是繼續
         }
         
@@ -40,7 +40,7 @@ class TrainingPlanService {
     // 新增的 postTrainingPlanOverview 方法
     func postTrainingPlanOverview() async throws -> TrainingPlanOverview {
         let request = try await makeRequest(path: "/plan/race_run/overview", method: "POST")
-        print("生成訓練計劃概覽： /plan/race_run/overview")
+        log("生成訓練計劃概覽： /plan/race_run/overview")
         
         // 建立專用的URLSession配置，優化超時時間和請求設置
         let configuration = URLSessionConfiguration.default
@@ -78,11 +78,11 @@ class TrainingPlanService {
                     throw URLError(.badServerResponse)
                 }
                 
-                print("生成訓練計劃概覽 API 響應狀態碼: \(httpResponse.statusCode)")
+                log("生成訓練計劃概覽 API 響應狀態碼: \(httpResponse.statusCode)")
                 
                 guard httpResponse.statusCode == 200 else {
                     if let responseString = String(data: data, encoding: .utf8) {
-                        print("錯誤回應內容: \(responseString)")
+                        log("錯誤回應內容: \(responseString)")
                     }
                     throw URLError(.badServerResponse)
                 }
@@ -93,7 +93,7 @@ class TrainingPlanService {
                 // 保存到本地存儲
                 TrainingPlanStorage.saveTrainingPlanOverview(apiResponse.data)
                 
-                print("成功生成訓練計劃概覽")
+                log("成功生成訓練計劃概覽")
                 return apiResponse.data
                 
             } catch {
@@ -104,14 +104,14 @@ class TrainingPlanService {
                 if let urlError = error as? URLError {
                     switch urlError.code {
                     case .cancelled:
-                        print("訓練概覽請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("訓練概覽請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
                     case .timedOut:
-                        print("訓練概覽請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("訓練概覽請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
                     default:
-                        print("訓練概覽網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                        log("訓練概覽網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
                     }
                 } else {
-                    print("訓練概覽未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                    log("訓練概覽未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
                 }
                 
                 if currentRetry < maxRetries {
@@ -131,7 +131,7 @@ class TrainingPlanService {
     func updateTrainingPlanOverview(overviewId: String) async throws -> TrainingPlanOverview {
         // 確保路徑包含overview_id
         let path = "/plan/race_run/overview/\(overviewId)"
-        print("更新訓練計劃概覽： \(path)")
+        log("更新訓練計劃概覽： \(path)")
         
         // 創建PUT請求
         var request = try await makeRequest(path: path, method: "PUT")
@@ -176,11 +176,11 @@ class TrainingPlanService {
                     throw URLError(.badServerResponse)
                 }
                 
-                print("更新訓練計劃概覽 API 響應狀態碼: \(httpResponse.statusCode)")
+                log("更新訓練計劃概覽 API 響應狀態碼: \(httpResponse.statusCode)")
                 
                 guard httpResponse.statusCode == 200 else {
                     if let responseString = String(data: data, encoding: .utf8) {
-                        print("錯誤回應內容: \(responseString)")
+                        log("錯誤回應內容: \(responseString)")
                     }
                     throw URLError(.badServerResponse)
                 }
@@ -191,7 +191,7 @@ class TrainingPlanService {
                 // 保存到本地存儲
                 TrainingPlanStorage.saveTrainingPlanOverview(apiResponse.data)
                 
-                print("成功更新訓練計劃概覽")
+                log("成功更新訓練計劃概覽")
                 return apiResponse.data
                 
             } catch {
@@ -202,14 +202,14 @@ class TrainingPlanService {
                 if let urlError = error as? URLError {
                     switch urlError.code {
                     case .cancelled:
-                        print("更新訓練概覽請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("更新訓練概覽請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
                     case .timedOut:
-                        print("更新訓練概覽請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("更新訓練概覽請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
                     default:
-                        print("更新訓練概覽網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                        log("更新訓練概覽網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
                     }
                 } else {
-                    print("更新訓練概覽未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                    log("更新訓練概覽未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
                 }
                 
                 if currentRetry < maxRetries {
@@ -224,10 +224,67 @@ class TrainingPlanService {
         throw lastError ?? URLError(.unknown)
     }
     
+    // MARK: - Modifications APIs
+    /// 取得修改描述
+    func getModificationsDescription() async throws -> String {
+        let request = try await makeRequest(path: "/plan/modifications/description", method: "GET")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        let api = try JSONDecoder().decode(APIResponse<ModificationDescription>.self, from: data)
+        return api.data.description
+    }
+
+    /// 列出所有修改
+    func getModifications() async throws -> [Modification] {
+        let request = try await makeRequest(path: "/plan/modifications", method: "GET")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        let api = try JSONDecoder().decode(APIResponse<[Modification]>.self, from: data)
+        return api.data
+    }
+
+    /// 新增修改
+    func createModification(_ newMod: NewModification) async throws -> Modification {
+        var request = try await makeRequest(path: "/plan/modifications", method: "POST")
+        request.httpBody = try JSONEncoder().encode(newMod)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        let api = try JSONDecoder().decode(APIResponse<Modification>.self, from: data)
+        return api.data
+    }
+
+    /// 更新多筆修改
+    func updateModifications(_ mods: [Modification]) async throws -> [Modification] {
+        var request = try await makeRequest(path: "/plan/modifications", method: "PUT")
+        let payload = ModificationsUpdateRequest(modifications: mods)
+        request.httpBody = try JSONEncoder().encode(payload)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        let api = try JSONDecoder().decode(APIResponse<[Modification]>.self, from: data)
+        return api.data
+    }
+
+    /// 清空所有修改
+    func clearModifications() async throws {
+        let request = try await makeRequest(path: "/plan/modifications", method: "DELETE")
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+    }
+    
     // 修改後的 getTrainingPlanOverview 方法
     func getTrainingPlanOverview() async throws -> TrainingPlanOverview {
         let request = try await makeRequest(path: "/plan/race_run/overview", method: "GET")
-        print("取得訓練計劃概覽： /plan/race_run/overview")
+        log("取得訓練計劃概覽： /plan/race_run/overview")
         
         // 建立專用的URLSession配置，優化超時時間和請求設置
         let configuration = URLSessionConfiguration.default
@@ -265,11 +322,11 @@ class TrainingPlanService {
                     throw URLError(.badServerResponse)
                 }
                 
-                print("訓練計劃概覽 API 響應狀態碼: \(httpResponse.statusCode)")
+                log("訓練計劃概覽 API 響應狀態碼: \(httpResponse.statusCode)")
                 
                 guard httpResponse.statusCode == 200 else {
                     if let responseString = String(data: data, encoding: .utf8) {
-                        print("錯誤回應內容: \(responseString)")
+                        log("錯誤回應內容: \(responseString)")
                     }
                     throw URLError(.badServerResponse)
                 }
@@ -280,7 +337,7 @@ class TrainingPlanService {
                 // 保存到本地存儲
                 TrainingPlanStorage.saveTrainingPlanOverview(apiResponse.data)
                 
-                print("成功取得訓練計劃概覽")
+                log("成功取得訓練計劃概覽")
                 return apiResponse.data
                 
             } catch {
@@ -291,14 +348,14 @@ class TrainingPlanService {
                 if let urlError = error as? URLError {
                     switch urlError.code {
                     case .cancelled:
-                        print("訓練概覽請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("訓練概覽請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
                     case .timedOut:
-                        print("訓練概覽請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("訓練概覽請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
                     default:
-                        print("訓練概覽網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                        log("訓練概覽網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
                     }
                 } else {
-                    print("訓練概覽未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                    log("訓練概覽未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
                 }
                 
                 if currentRetry < maxRetries {
@@ -407,7 +464,7 @@ class TrainingPlanService {
     }
     
     func createWeeklyPlan(targetWeek: Int? = nil) async throws -> WeeklyPlan {
-        print("=== createWeeklyPlan 開始，目標週數：\(String(describing: targetWeek)) ===")
+        log("=== createWeeklyPlan 開始，目標週數：\(String(describing: targetWeek)) ===")
         
         // 構建請求路徑和參數
         let path = "/plan/race_run/weekly"
@@ -416,7 +473,7 @@ class TrainingPlanService {
         var requestBody: [String: Any]? = nil
         if let targetWeek = targetWeek {
             requestBody = ["week_of_training": targetWeek]
-            print("設置請求體: week_of_training = \(targetWeek)")
+            log("設置請求體: week_of_training = \(targetWeek)")
         }
         
         // 使用請求體創建請求
@@ -429,21 +486,11 @@ class TrainingPlanService {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
             if let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("JSON請求體: \(jsonString)")
+                log("JSON請求體: \(jsonString)")
             }
-        } else {
-            print("未設置請求體，使用後端默認值")
+            throw URLError(.badServerResponse)
         }
         
-        // 檢查最終請求
-        print("最終請求路徑: \(request.url?.absoluteString ?? "unknown")")
-        print("請求方法: \(request.httpMethod ?? "unknown")")
-        print("請求頭: \(request.allHTTPHeaderFields ?? [:])")
-        if let httpBody = request.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
-            print("請求體: \(bodyString)")
-        } else {
-            print("請求體: nil")
-        }
         
         // 使用與其他方法相同的優化配置
         let configuration = URLSessionConfiguration.default
@@ -458,7 +505,7 @@ class TrainingPlanService {
         
         print("收到響應，狀態碼: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
         if let responseString = String(data: data, encoding: .utf8) {
-            print("響應內容: \(responseString.prefix(200))...")
+            log("響應內容: \(responseString.prefix(200))...")
         }
         
         // 解析和處理響應
@@ -468,7 +515,7 @@ class TrainingPlanService {
         
         // 保存到本地存儲
         TrainingPlanStorage.saveWeeklyPlan(plan)
-        print("成功產生第 \(plan.weekOfPlan) 週的訓練計劃")
+        log("成功產生第 \(plan.weekOfPlan) 週的訓練計劃")
         
         // 記錄最後更新時間
         UserDefaults.standard.set(Date(), forKey: "last_weekly_plan_update")
