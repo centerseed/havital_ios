@@ -189,7 +189,7 @@ struct TrainingDetails: Codable {
 struct WorkoutSegment: Codable {
     let description: String
     let distanceKm: Double
-    let pace: String
+    let pace: String?  // Optional to handle missing pace
     
     enum CodingKeys: String, CodingKey {
         case description

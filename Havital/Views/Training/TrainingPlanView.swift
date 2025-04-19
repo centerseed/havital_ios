@@ -171,7 +171,7 @@ struct TrainingPlanView: View {
             }
         }
         .task {
-            await loadInitialData()
+            await viewModel.loadAllInitialData(healthKitManager: healthKitManager)
         }
         .onReceive(timer) { _ in
             refreshWorkouts()
@@ -188,7 +188,7 @@ struct TrainingPlanView: View {
             trainingOverviewSheet
         }
         .onAppear {
-            checkForUpdates()
+            // 初始載入與檢查移至 ViewModel
         }
     }
     
@@ -306,31 +306,6 @@ struct TrainingPlanView: View {
             .padding()
             .background(Color(.secondarySystemBackground))
             .cornerRadius(12)
-        }
-    }
-    
-    // 初始數據加載
-    private func loadInitialData() async {
-        await viewModel.loadWeeklyPlan()
-        await viewModel.loadTrainingOverview()
-        
-        // 檢查當前訓練週數與計劃週數
-        if let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek(),
-            let plan = viewModel.weeklyPlan {
-            // 如果計劃週數小於當前訓練週數，嘗試更新
-            if plan.weekOfPlan < currentTrainingWeek {
-                print("計劃週數(\(plan.weekOfPlan))小於當前訓練週數(\(currentTrainingWeek))，嘗試更新")
-                await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
-            }
-        }
-        
-        await viewModel.loadVDOTData()
-        await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
-        await viewModel.identifyTodayTraining()
-        
-        // 如果有計劃，獲取本週跑量
-        if let plan = viewModel.weeklyPlan, plan.totalDistance > 0 {
-            await viewModel.loadCurrentWeekDistance(healthKitManager: healthKitManager)
         }
     }
     

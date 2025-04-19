@@ -210,6 +210,7 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     func loadWeeklyPlan() async {
+        log("loadWeeklyPlan")
         await MainActor.run {
             isLoading = true
         }
@@ -225,8 +226,9 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
             // 異步從API獲取最新數據
+            log("loadWeeklyPlan API call: savedPlan branch")
             do {
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "loadWeeklyPlan")
                 // 檢查計劃是否有變更
                 let planChanged = savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
                 
@@ -247,8 +249,9 @@ class TrainingPlanViewModel: ObservableObject {
             }
         } else {
             // 本地無數據，必須等待API
+            log("loadWeeklyPlan API call: no savedPlan branch")
             do {
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "loadWeeklyPlan")
                 
                 await MainActor.run {
                     weeklyPlan = newPlan
@@ -306,7 +309,7 @@ class TrainingPlanViewModel: ObservableObject {
             // 如果是週一到週六創建的，找到當週的週一
             print("非週日產生的計劃，日期範圍從當週開始")
             let daysToSubtract = adjustedCreationWeekday - 1 // 週一不需要減
-            guard let currentMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: createdAt) else {
+            guard let currentMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAt)) else {
                 print("無法計算當週一日期")
                 currentWeekDateInfo = nil
                 return
@@ -351,7 +354,7 @@ class TrainingPlanViewModel: ObservableObject {
         let shortFormatter = DateFormatter()
         shortFormatter.dateFormat = "MM/dd (E)"
         for (dayIndex, date) in daysMap {
-            print("  星期\(["一", "二", "三", "四", "五", "六", "日"][dayIndex-1]): \(shortFormatter.string(from: date))")
+            print("星期\(["一", "二", "三", "四", "五", "六", "日"][dayIndex-1]): \(shortFormatter.string(from: date))")
         }
     }
     
@@ -471,7 +474,7 @@ class TrainingPlanViewModel: ObservableObject {
             
             // 產生成功後重新載入課表
             do {
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "generateNextWeekPlan")
                 
                 // 更新當前計劃週數
                 currentPlanWeek = newPlan.weekOfPlan
@@ -516,7 +519,31 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
+    // Flag to ensure initial data load only once
+    private var hasLoadedInitialData = false
+    
+    /// 只在第一次執行：載入週計劃、概覽、VDOT、記錄、距離等
+    func loadAllInitialData(healthKitManager: HealthKitManager) async {
+        log("loadAllInitialData")
+        guard !hasLoadedInitialData else { return }
+        hasLoadedInitialData = true
+        
+        // 先載入並顯示本地週計劃，再非阻塞方式刷新 API
+        Task { await loadWeeklyPlan() }
+        await loadTrainingOverview()
+        // 如果計劃週數落後，嘗試刷新一次
+        /*
+        if let currentWeek = calculateCurrentTrainingWeek(), let plan = weeklyPlan, plan.weekOfPlan < currentWeek {
+            await refreshWeeklyPlan(healthKitManager: healthKitManager)
+        }        await loadVDOTData()*/
+        await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+        if let plan = weeklyPlan, plan.totalDistance > 0 {
+            await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+        }
+    }
+
     func refreshWeeklyPlan(healthKitManager: HealthKitManager) async {
+        log("refreshWeeklyPlan")
         await MainActor.run {
             isLoading = true
             error = nil
@@ -528,9 +555,9 @@ class TrainingPlanViewModel: ObservableObject {
         while currentRetry < maxRetries {
             do {
                 print("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "refreshWeeklyPlan")
                 
-                // 檢查計劃週數是否變更
+                // 檢查計劃是否有變更
                 let planWeekChanged = currentPlanWeek != nil && currentPlanWeek != newPlan.weekOfPlan
                 
                 // 更新當前計劃週數
@@ -777,6 +804,10 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
+    // 輔助方法
+    private func log(_ message: String) {
+        print("TrainingPlanViewModel: \(message)")
+    }
     
     // 判斷是否應該顯示產生下週課表按鈕
     // 判斷是否應該顯示產生課表按鈕，並返回應該產生的週數

@@ -9,6 +9,11 @@ class TrainingPlanService {
     private let baseURL = "https://api-service-364865009192.asia-east1.run.app"
     private init() {}
     
+    // 日誌統一入口，便於 Xcode 過濾
+    private func log(_ message: String) {
+        print("[TrainingPlanService] \(message)")
+    }
+    
     private func makeRequest(path: String, method: String = "POST") async throws -> URLRequest {
         guard let url = URL(string: baseURL + path) else {
             throw URLError(.badURL)
@@ -309,9 +314,11 @@ class TrainingPlanService {
     }
     
     // 在 TrainingPlanService.swift 中修改解碼部分
-    func getWeeklyPlan() async throws -> WeeklyPlan {
+    // path: /plan/race_run/weekly
+    // caller: 來源方法名稱，用於追蹤調用者
+    func getWeeklyPlan(caller: String = #function) async throws -> WeeklyPlan {
+        log("getWeeklyPlan start: /plan/race_run/weekly from [\(caller)]")
         let request = try await makeRequest(path: "/plan/race_run/weekly", method: "GET")
-        print("取得週計畫： /plan/race_run/weekly")
         
         // 建立專用的URLSession配置，優化超時時間和請求設置
         let configuration = URLSessionConfiguration.default
@@ -349,18 +356,21 @@ class TrainingPlanService {
                     throw URLError(.badServerResponse)
                 }
                 
-                print("Weekly Plan API 響應狀態碼: \(httpResponse.statusCode)")
+                log("getWeeklyPlan statusCode: \(httpResponse.statusCode)")
+                
                 
                 guard httpResponse.statusCode == 200 else {
                     if let responseString = String(data: data, encoding: .utf8) {
-                        print("錯誤回應內容: \(responseString)")
+                        log("getWeeklyPlan error response: \(responseString)")
                     }
                     throw URLError(.badServerResponse)
                 }
+                //log("getWeeklyPlan: \(String(data: data, encoding: .utf8))")
                 
                 let decoder = JSONDecoder()
                 let apiResponse = try decoder.decode(APIResponse<WeeklyPlan>.self, from: data)
                 let plan = apiResponse.data
+                
                 
                 // 保存到本地存儲
                 TrainingPlanStorage.saveWeeklyPlan(plan)
@@ -374,14 +384,14 @@ class TrainingPlanService {
                 if let urlError = error as? URLError {
                     switch urlError.code {
                     case .cancelled:
-                        print("請求被取消，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("getWeeklyPlan retry \(currentRetry)/\(maxRetries) cancelled")
                     case .timedOut:
-                        print("請求超時，正在重試 (\(currentRetry)/\(maxRetries))")
+                        log("getWeeklyPlan retry \(currentRetry)/\(maxRetries) timed out")
                     default:
-                        print("網路錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                        log("getWeeklyPlan retry \(currentRetry)/\(maxRetries): \(error.localizedDescription)")
                     }
                 } else {
-                    print("未知錯誤，正在重試 (\(currentRetry)/\(maxRetries)): \(error.localizedDescription)")
+                    log("getWeeklyPlan retry \(currentRetry)/\(maxRetries) unknown error: \(error.localizedDescription)")
                 }
                 
                 if currentRetry < maxRetries {
