@@ -488,7 +488,6 @@ class TrainingPlanService {
             if let jsonString = String(data: jsonData, encoding: .utf8) {
                 log("JSON請求體: \(jsonString)")
             }
-            throw URLError(.badServerResponse)
         }
         
         

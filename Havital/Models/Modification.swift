@@ -11,7 +11,7 @@ struct Modification: Codable {
     private let createdAtString: String
     let expiresAt: String?
     let isOneTime: Bool
-    let applied: Bool
+    var applied: Bool
     let priority: Int
 
     // Computed property to parse created_at into Date
@@ -54,4 +54,3 @@ struct NewModification: Codable {
 struct ModificationsUpdateRequest: Codable {
     let modifications: [Modification]
 }
-

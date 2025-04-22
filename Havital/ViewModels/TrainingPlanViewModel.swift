@@ -44,6 +44,10 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
+    // Modifications data
+    @Published var modifications: [Modification] = []
+    @Published var modDescription: String = ""
+    
     // 獲取訓練回顧的方法
     func fetchWeeklySummary() async {
         await MainActor.run {
@@ -291,30 +295,12 @@ class TrainingPlanViewModel: ObservableObject {
         let adjustedCreationWeekday = creationWeekday == 1 ? 7 : creationWeekday - 1
         print("創建日期是週 \(adjustedCreationWeekday)")
         
-        // 步驟2: 決定要使用的週一日期
-        let isCreatedOnSunday = adjustedCreationWeekday == 7
-        
-        var targetWeekMonday: Date
-        
-        if isCreatedOnSunday {
-            // 如果是週日創建的，計算下一週的週一 (創建日期+1天)
-            print("週日產生的計劃，日期範圍從下週開始")
-            guard let nextMonday = calendar.date(byAdding: .day, value: 1, to: createdAt) else {
-                print("無法計算下週一日期")
-                currentWeekDateInfo = nil
-                return
-            }
-            targetWeekMonday = nextMonday
-        } else {
-            // 如果是週一到週六創建的，找到當週的週一
-            print("非週日產生的計劃，日期範圍從當週開始")
-            let daysToSubtract = adjustedCreationWeekday - 1 // 週一不需要減
-            guard let currentMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAt)) else {
-                print("無法計算當週一日期")
-                currentWeekDateInfo = nil
-                return
-            }
-            targetWeekMonday = currentMonday
+        // 步驟2: 計算當週的週一
+        let daysToSubtract = adjustedCreationWeekday - 1 // 週一不需要減
+        guard let targetWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAt)) else {
+            print("無法計算週一日期")
+            currentWeekDateInfo = nil
+            return
         }
         
         // 設置當天的開始時間為凌晨00:00:00
@@ -875,5 +861,59 @@ class TrainingPlanViewModel: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         return formatter.string(from: date)
+    }
+    
+    // Load all modifications
+    func loadModifications() async {
+        do {
+            let mods = try await TrainingPlanService.shared.getModifications()
+            await MainActor.run { self.modifications = mods }
+        } catch {
+            print("載入修改課表失敗: \(error)")
+        }
+    }
+
+    /// Load description of modifications
+    func loadModificationsDescription() async {
+        do {
+            let desc = try await TrainingPlanService.shared.getModificationsDescription()
+            await MainActor.run { self.modDescription = desc }
+        } catch {
+            print("載入修改描述失敗: \(error)")
+        }
+    }
+
+    /// Toggle applied state and update modifications
+    func toggleModificationApplied(at index: Int) async {
+        guard modifications.indices.contains(index) else { return }
+        var mods = modifications
+        mods[index].applied.toggle()
+        do {
+            let updated = try await TrainingPlanService.shared.updateModifications(mods)
+            await MainActor.run { self.modifications = updated }
+        } catch {
+            print("更新修改課表失敗: \(error)")
+        }
+    }
+
+    /// Add new modification
+    func addModification(content: String, expiresAt: String?, isOneTime: Bool, priority: Int) async {
+        let newMod = NewModification(content: content, expiresAt: expiresAt, isOneTime: isOneTime, priority: priority)
+        do {
+            let created = try await TrainingPlanService.shared.createModification(newMod)
+            await MainActor.run { self.modifications.append(created) }
+        } catch {
+            print("新增修改課表失敗: \(error)")
+        }
+    }
+
+    /// Clear all modifications
+    func clearAllModifications() async {
+        do {
+            try await TrainingPlanService.shared.clearModifications()
+            await MainActor.run { self.modifications.removeAll() }
+        } catch {
+            print("清空修改課表失敗: \(error)")
+        }
     }
 }

@@ -10,20 +10,28 @@ struct WeekPlanContentView: View {
     @EnvironmentObject private var healthKitManager: HealthKitManager
     
     var body: some View {
-        if plan.weekOfPlan < currentTrainingWeek {
-            // 顯示舊的週計劃
-            WeekOverviewCard(viewModel: viewModel, plan: plan)
-            
-            NewWeekPromptView(
-                viewModel: viewModel,
-                currentTrainingWeek: currentTrainingWeek
-            )
-        } else {
-            // 顯示當前週計劃
-            WeekOverviewCard(viewModel: viewModel, plan: plan)
-            
-            // 每日訓練區塊
-            DailyTrainingListView(viewModel: viewModel, plan: plan)
+        Group {
+            if currentTrainingWeek > plan.totalWeeks {
+                FinalWeekPromptView(viewModel: viewModel)
+            } else if plan.weekOfPlan < currentTrainingWeek {
+                // 顯示舊的週計劃
+                WeekOverviewCard(viewModel: viewModel, plan: plan)
+                
+                NewWeekPromptView(
+                    viewModel: viewModel,
+                    currentTrainingWeek: currentTrainingWeek
+                )
+            } else {
+                // 顯示當前週計劃
+                WeekOverviewCard(viewModel: viewModel, plan: plan)
+                
+                // 每日訓練區塊
+                DailyTrainingListView(viewModel: viewModel, plan: plan)
+            }
+        }
+        .onAppear {
+            // 除錯 log
+            print("[WeekPlan] plan.weekOfPlan=\(plan.weekOfPlan), currentTrainingWeek=\(currentTrainingWeek)")
         }
     }
 }
@@ -130,12 +138,63 @@ struct DailyTrainingListView: View {
     }
 }
 
+// 結束週回顧並重設 Onboarding 的視圖
+struct FinalWeekPromptView: View {
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("您的訓練週期已結束")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+
+            if viewModel.isLoadingWeeklySummary {
+                WeeklySummaryLoadingView()
+            } else if let error = viewModel.weeklySummaryError {
+                WeeklySummaryErrorView(error: error) {
+                    Task { await viewModel.fetchWeeklySummary() }
+                }
+            } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
+                WeeklySummaryView(
+                    summary: summary,
+                    weekNumber: viewModel.lastFetchedWeekNumber,
+                    isVisible: $viewModel.showWeeklySummary
+                ) {
+                    Task {
+                        viewModel.clearWeeklySummary()
+                        AuthenticationService.shared.resetOnboarding()
+                    }
+                }
+            } else {
+                Button(action: {
+                    Task { await viewModel.fetchWeeklySummary() }
+                }) {
+                    HStack {
+                        Image(systemName: "doc.text.magnifyingglass")
+                        Text("取得\(viewModel.getLastTwoWeeksRange())訓練回顧")
+                    }
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .disabled(viewModel.isLoading)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
 struct TrainingPlanView: View {
     @StateObject private var viewModel = TrainingPlanViewModel()
     @State private var showUserProfile = false
     @State private var showOnboardingConfirmation = false
     @State private var showTrainingOverview = false
     @State private var showDebugView = false
+    @State private var showModifications = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
     
@@ -187,6 +246,10 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }
+        .sheet(isPresented: $showModifications) {
+            ModificationsView(viewModel: viewModel)
+                .environmentObject(healthKitManager)
+        }
         .onAppear {
             // 初始載入與檢查移至 ViewModel
         }
@@ -234,11 +297,18 @@ struct TrainingPlanView: View {
                     }) {
                         Label("用戶資訊", systemImage: "person.circle")
                     }
+                    /*
+                    Button(action: {
+                        showModifications = true
+                    }) {
+                        Label("修改課表", systemImage: "slider.horizontal.3")
+                    }
+                    /* 測試onboarding再打開*/
                     Button(action: {
                         showOnboardingConfirmation = true
                     }) {
                         Label("重新OnBoarding", systemImage: "arrow.clockwise")
-                    }
+                    }*/
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
