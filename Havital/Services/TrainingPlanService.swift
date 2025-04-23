@@ -6,7 +6,8 @@ struct APIResponse<T: Decodable>: Decodable {
 
 class TrainingPlanService {
     static let shared = TrainingPlanService()
-    private let baseURL = "https://api-service-364865009192.asia-east1.run.app"
+    private init() {}
+    
     // 公用 URLSession, timeout & background config
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
@@ -18,8 +19,6 @@ class TrainingPlanService {
         return URLSession(configuration: config)
     }()
 
-    private init() {}
-    
     // 日誌統一入口，便於 Xcode 過濾
     private func log(_ message: String) {
         print("[TrainingPlanService] \(message)")
@@ -27,7 +26,8 @@ class TrainingPlanService {
     
     // 建立授權 & 基本 request
     private func makeRequest(path: String, method: String = "GET") async throws -> URLRequest {
-        guard let url = URL(string: baseURL + path) else {
+        let urlString = APIConfig.baseURL + path
+        guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
         var req = URLRequest(url: url, timeoutInterval: 60)
@@ -56,12 +56,15 @@ class TrainingPlanService {
         var lastError: Error?
         for attempt in 1...maxRetries {
             do {
-                // 獨立子 Task 執行，避免 parent Task 取消影響
-                let (data, resp) = try await Task.detached(priority: .userInitiated) {
-                    try await self.session.data(for: request)
-                }.value
-                guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
-                    throw URLError(.badServerResponse)
+                log("開始發送網路請求: \(method) \(path)")
+                let (data, resp) = try await URLSession.shared.data(for: request)
+                log("完成網路請求: \(method) \(path)")
+                // 打印 HTTP 狀態碼
+                if let http = resp as? HTTPURLResponse {
+                    log("\(method) \(path) status code: \(http.statusCode)")
+                    guard http.statusCode == 200 else {
+                        throw URLError(.badServerResponse)
+                    }
                 }
                 let api: APIResponse<T> = try decoder.decode(APIResponse<T>.self, from: data)
                 return api.data
@@ -79,12 +82,15 @@ class TrainingPlanService {
     // 無回傳的通用 DELETE 請求
     private func sendNoResponse(path: String, method: String = "DELETE") async throws {
         let request = try await makeRequest(path: path, method: method)
-        // 獨立子 Task 執行，避免 parent Task 取消影響
-        let (_, resp) = try await Task.detached(priority: .userInitiated) {
-            try await self.session.data(for: request)
-        }.value
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
-            throw URLError(.badServerResponse)
+        log("開始發送網路請求 (無回應): \(method) \(path)")
+        let (_, resp) = try await URLSession.shared.data(for: request)
+        log("完成網路請求 (無回應): \(method) \(path)")
+        // 打印 HTTP 狀態碼
+        if let http = resp as? HTTPURLResponse {
+            log("\(method) \(path) status code: \(http.statusCode)")
+            guard http.statusCode == 200 else {
+                throw URLError(.badServerResponse)
+            }
         }
     }
     

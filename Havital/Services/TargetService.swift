@@ -11,7 +11,7 @@ class TargetService {
     func createTarget(_ target: Target) async throws -> Target {
         print("開始建立賽事目標")
         
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/targets") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -77,7 +77,7 @@ class TargetService {
     func getTargets() async throws -> [Target] {
         print("開始獲取所有賽事目標")
         
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/targets") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -132,7 +132,7 @@ class TargetService {
     func getTarget(id: String) async throws -> Target {
         print("開始獲取賽事目標，ID: \(id)")
         
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets/\(id)") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/targets/\(id)") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -187,7 +187,7 @@ class TargetService {
     func updateTarget(id: String, target: Target) async throws -> Target {
         print("開始更新賽事目標，ID: \(id)")
         
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets/\(id)") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/targets/\(id)") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -253,7 +253,7 @@ class TargetService {
     func deleteTarget(id: String) async throws {
         print("開始刪除賽事目標，ID: \(id)")
         
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets/\(id)") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/targets/\(id)") else {
             print("URL 無效")
             throw URLError(.badURL)
         }

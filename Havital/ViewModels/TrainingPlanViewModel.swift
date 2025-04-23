@@ -564,9 +564,14 @@ class TrainingPlanViewModel: ObservableObject {
         guard !hasLoadedInitialData else { return }
         hasLoadedInitialData = true
         
-        // 先載入並顯示本地週計劃，再非阻塞方式刷新 API
-        Task { await loadWeeklyPlan() }
-        await loadTrainingOverview()
+        // 先載入並顯示本地週計劃，再獨立 Task 非阻塞刷新 API
+        Task.detached(priority: .userInitiated) { [weak self] in
+            await self?.loadWeeklyPlan()
+        }
+        // 非取消任務：獨立 Task 執行、非阻塞
+        Task.detached(priority: .userInitiated) { [weak self] in
+            await self?.loadTrainingOverview()
+        }
         // 如果計劃週數落後，嘗試刷新一次
         /*
         if let currentWeek = calculateCurrentTrainingWeek(), let plan = weeklyPlan, plan.weekOfPlan < currentWeek {
@@ -591,7 +596,10 @@ class TrainingPlanViewModel: ObservableObject {
         while currentRetry < maxRetries {
             do {
                 print("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "refreshWeeklyPlan")
+                // 使用獨立 Task 呼叫 Service，避免 Button 或 View 取消影響
+                let newPlan = try await Task.detached(priority: .userInitiated) {
+                    try await TrainingPlanService.shared.getWeeklyPlan(caller: "refreshWeeklyPlan")
+                }.value
                 
                 // 檢查計劃是否有變更
                 let planWeekChanged = currentPlanWeek != nil && currentPlanWeek != newPlan.weekOfPlan
@@ -615,8 +623,10 @@ class TrainingPlanViewModel: ObservableObject {
                 }
                 print("完成更新計劃")
                 
-                // 更新訓練計劃概覽
-                await loadTrainingOverview()
+                // 非取消任務：獨立 Task 載入訓練概覽
+                Task.detached(priority: .userInitiated) { [weak self] in
+                    await self?.loadTrainingOverview()
+                }
                 
                 // 在這裡也輸出訓練週數計算結果
                 logCurrentTrainingWeek()

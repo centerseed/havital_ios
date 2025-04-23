@@ -10,7 +10,7 @@ class UserService {
     
     func createTarget(_ target: Target) async throws {
         print("開始建立賽事目標")
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/targets") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/targets") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -63,7 +63,7 @@ class UserService {
    
     func updatePersonalBestData(_ performanceData: [String: Any]) async throws {
         print("開始更新用戶性能數據")
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user/pb/race_run") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user/pb/race_run") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -106,7 +106,7 @@ class UserService {
 
     func updateUserData(_ userData: [String: Any]) async throws {
         print("開始更新用戶資料")
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/user") else {
+        guard let url = URL(string: APIConfig.baseURL + "/user") else {
             print("URL 無效")
             throw URLError(.badURL)
         }
@@ -171,7 +171,7 @@ class UserService {
         print("嘗試使用 Google 登入，ID Token 長度: \(idToken.count)")
         
         // 確保請求正確的URL
-        guard let url = URL(string: "https://api-service-364865009192.asia-east1.run.app/login/google") else {
+        guard let url = URL(string: APIConfig.baseURL + "/login/google") else {
             throw URLError(.badURL)
         }
         

@@ -86,3 +86,23 @@ Additional layers:
 ## Conclusion
 
 This modular structure promotes separation of concerns, testability, and scalability. Each layer has a clear responsibility.
+
+## View-ViewModel-Service 呼叫流程
+
+1. **View 層 (SwiftUI)**
+   - 使用按鈕動作或 `.task` modifier 呼叫 ViewModel。
+   - 決定是否隨 UI 取消：
+     - 可取消: `Task { await viewModel.method() }` / `.task { await ... }`
+     - 不可取消: `Task.detached(priority: .userInitiated) { await viewModel.method() }`
+
+2. **ViewModel 層**
+   - 處理業務邏輯、狀態管理、重試與錯誤。
+   - 更新 UI 狀態透過 `await MainActor.run { ... }`。
+   - 隔離取消時包裝 Service 呼叫: `Task.detached { await Service.call() }`
+
+3. **Service 層**
+   - 純粹網路請求: 只用 `URLSession.data(for:)`，解析 `Decodable`。
+   - 包含重試機制與日誌（含 HTTP status code）。
+   - 不處理取消或 UI 生命週期。
+
+> 新增元件請依此分層呼叫流程，確保 Service 層純粹、取消邏輯集中於 ViewModel。

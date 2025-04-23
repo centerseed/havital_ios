@@ -8,7 +8,7 @@ class WeeklySummaryService {
     
     func fetchWeeklySummary(weekNumber: Int? = nil) async throws -> WeeklyTrainingSummary {
         // 構建 API URL
-        var urlString = "https://api-service-364865009192.asia-east1.run.app/summary/run_race/week"
+        var urlString = APIConfig.baseURL + "/summary/run_race/week"
         if let weekNumber = weekNumber {
             urlString += "/\(weekNumber)"
         }
