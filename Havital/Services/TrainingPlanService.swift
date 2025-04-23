@@ -463,6 +463,36 @@ class TrainingPlanService {
         throw lastError ?? URLError(.unknown)
     }
     
+    // 週計畫查詢錯誤
+    enum WeeklyPlanError: Error {
+        /// 指定週計畫不存在
+        case notFound
+    }
+    
+    /// 根據 planId 獲取已存在的週計畫
+    func getWeeklyPlanById(planId: String) async throws -> WeeklyPlan {
+        let path = "/plan/race_run/weekly/\(planId)"
+        let request = try await makeRequest(path: path, method: "GET")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        // 若無此週計畫
+        if http.statusCode == 404 {
+            throw WeeklyPlanError.notFound
+        }
+        guard http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        let decoder = JSONDecoder()
+        let apiResponse = try decoder.decode(APIResponse<WeeklyPlan>.self, from: data)
+        let plan = apiResponse.data
+        // 更新本地存儲
+        TrainingPlanStorage.saveWeeklyPlan(plan)
+        log("成功讀取週計畫 \(planId)")
+        return plan
+    }
+
     func createWeeklyPlan(targetWeek: Int? = nil) async throws -> WeeklyPlan {
         log("=== createWeeklyPlan 開始，目標週數：\(String(describing: targetWeek)) ===")
         

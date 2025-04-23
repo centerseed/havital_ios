@@ -629,13 +629,17 @@ class WorkoutBackgroundManager: NSObject {
                 
                 // 檢查心率數據是否足夠
                 if heartRateData.count < minHeartRateDataPoints {
-                    print("運動記錄 \(workout.uuid) 心率數據不足 (\(heartRateData.count)筆)，暫不上傳")
-                    
-                    // 標記為已嘗試但心率資料不足
-                    workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                    
-                    // 安排稍後重試
-                    scheduleHeartRateRetryIfNeeded()
+                    let elapsed = Date().timeIntervalSince(workout.endDate)
+                    if elapsed < 10 * 60 {
+                        print("運動記錄 \(workout.uuid) 心率資料尚未齊全，10分鐘內，稍後再試")
+                        // 10分鐘後重試上傳
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 10 * 60) {
+                            Task { await self.checkAndUploadPendingWorkouts() }
+                        }
+                    } else {
+                        print("運動記錄 \(workout.uuid) 心率資料仍不完整，超過10分鐘，標記為已上傳無心率")
+                        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
+                    }
                     continue
                 }
                 
@@ -680,15 +684,9 @@ class WorkoutBackgroundManager: NSObject {
                 
             } catch WorkoutUploadError.missingHeartRateData {
                 print("運動記錄 \(workout.uuid) 缺少心率數據，標記為待稍後處理")
-                workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
                 scheduleHeartRateRetryIfNeeded()
             } catch {
                 print("上傳運動記錄失敗: \(workout.startDate), 錯誤: \(error)")
-                
-                // 如果是因為缺少心率資料，則標記為待重試
-                if !workoutUploadTracker.isWorkoutUploaded(workout) {
-                    workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                }
             }
             
             // 在上傳之間添加小延遲以避免過度使用服務器

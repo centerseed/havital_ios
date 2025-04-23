@@ -119,9 +119,9 @@ struct TrainingPlanOverviewDetailView: View {
             .navigationBarHidden(true)
             .presentationDetents([.large])
             .onAppear {
-                // 載入主要賽事
-                self.targetRace = TargetStorage.shared.getMainTarget()
-                print("獲取主要目標: \(String(describing: targetRace))")
+                // 從 overview.mainRaceId 載入主要賽事
+                loadTargetRace()
+                print("從 Overview mainRaceId 獲取主要賽事: \(overview.mainRaceId)")
                 
                 // 載入支援賽事
                 self.supportingTargets = TargetStorage.shared.getSupportingTargets()
@@ -245,9 +245,18 @@ struct TrainingPlanOverviewDetailView: View {
     }
     
     private func loadTargetRace() {
-        // 從本地儲存獲取主要目標賽事
-        self.targetRace = TargetStorage.shared.getMainTarget()
-        print("Get Main Target: \(String(describing: targetRace))")
+        // 從 API 獲取主要賽事
+        Task {
+            do {
+                let fetched = try await TargetService.shared.getTarget(id: overview.mainRaceId)
+                await MainActor.run {
+                    self.targetRace = fetched
+                }
+                print("Loaded main target via mainRaceId: \(fetched)")
+            } catch {
+                print("從 API 獲取主要賽事失敗: \(error)")
+            }
+        }
     }
     
     private func loadSupportingTargets() {
@@ -340,6 +349,7 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
     static var previews: some View {
         TrainingPlanOverviewDetailView(overview: TrainingPlanOverview(
             id: "",
+            mainRaceId: "",
             targetEvaluate: "根據您的目標和現況，這個計劃將幫助您安全且有效地達成目標。本計劃充分考慮了您的當前健康狀況和跑步經驗，精心設計了漸進式的訓練課程。",
             totalWeeks: 16,
             trainingHighlight: "本計劃的亮點在於其結合了長跑、間歇跑和恢復跑等多樣化訓練方式，並根據您的進展逐步調整強度。特別注重恢復和節奏控制，幫助您在提升成績的同時降低受傷風險。",

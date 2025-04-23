@@ -11,21 +11,16 @@ struct WeekPlanContentView: View {
     
     var body: some View {
         Group {
-            if currentTrainingWeek > plan.totalWeeks {
+            let selected = plan.weekOfPlan
+            let current = currentTrainingWeek
+            if selected > plan.totalWeeks {
                 FinalWeekPromptView(viewModel: viewModel)
-            } else if plan.weekOfPlan < currentTrainingWeek {
-                // 顯示舊的週計劃
-                WeekOverviewCard(viewModel: viewModel, plan: plan)
-                
-                NewWeekPromptView(
-                    viewModel: viewModel,
-                    currentTrainingWeek: currentTrainingWeek
-                )
+            } else if selected > current && viewModel.noWeeklyPlanAvailable {
+                // 尚未生成且無課表，顯示產生新週提示
+                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: selected)
             } else {
-                // 顯示當前週計劃
+                // 已有課表：不論過去或當前週，顯示概覽與每日清單
                 WeekOverviewCard(viewModel: viewModel, plan: plan)
-                
-                // 每日訓練區塊
                 DailyTrainingListView(viewModel: viewModel, plan: plan)
             }
         }
@@ -262,6 +257,15 @@ struct TrainingPlanView: View {
                 ProgressView("載入訓練計劃中...")
                     .foregroundColor(.gray)
                     .frame(height: 200)
+            } else if viewModel.noWeeklyPlanAvailable {
+                VStack(spacing: 16) {
+                    Text("第 \(viewModel.selectedWeek) 週尚無課表").font(.headline)
+                        .multilineTextAlignment(.center)
+                    Text("若需產生此週計畫，請進行下一週訓練後再查看。")
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, minHeight: 200)
             } else if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
                 WeekPlanContentView(
                     viewModel: viewModel,

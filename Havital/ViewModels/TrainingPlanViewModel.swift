@@ -14,6 +14,19 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var workoutsByDay: [Int: [HKWorkout]] = [:]
     @Published var isLoadingWorkouts = false
     @Published var trainingOverview: TrainingPlanOverview? // 訓練計劃概覽
+    @Published var selectedWeek: Int = 1
+    /// 無對應週計畫時顯示
+    @Published var noWeeklyPlanAvailable: Bool = false
+    /// 當週尚無週計劃時顯示產生新週提示
+    @Published var showNewWeekPrompt: Bool = false
+
+    /// 可選過去週數範圍（不包含未來週）
+    var availableWeeks: [Int] {
+        if let currentWeek = calculateCurrentTrainingWeek() {
+            return Array(1...currentWeek)
+        }
+        return []
+    }
     
     // 週訓練回顧相關屬性
     @Published var weeklySummary: WeeklyTrainingSummary?
@@ -226,6 +239,7 @@ class TrainingPlanViewModel: ObservableObject {
                 weeklyPlan = savedPlan
                 currentPlanWeek = savedPlan.weekOfPlan
                 calculateWeekDateInfo(for: savedPlan)
+                selectedWeek = savedPlan.weekOfPlan
                 isLoading = false
             }
             
@@ -240,6 +254,7 @@ class TrainingPlanViewModel: ObservableObject {
                     weeklyPlan = newPlan
                     currentPlanWeek = newPlan.weekOfPlan
                     calculateWeekDateInfo(for: newPlan)
+                    selectedWeek = newPlan.weekOfPlan
                     
                     // 如果計劃有變更，清除舊的訓練記錄
                     if planChanged {
@@ -261,6 +276,7 @@ class TrainingPlanViewModel: ObservableObject {
                     weeklyPlan = newPlan
                     currentPlanWeek = newPlan.weekOfPlan
                     calculateWeekDateInfo(for: newPlan)
+                    selectedWeek = newPlan.weekOfPlan
                     error = nil
                     isLoading = false
                 }
@@ -272,7 +288,41 @@ class TrainingPlanViewModel: ObservableObject {
             }
         }
     }
-    
+
+    /// 依據指定週數產生對應週計劃
+    func fetchWeekPlan(week: Int, healthKitManager: HealthKitManager) async {
+        await MainActor.run { isLoading = true; error = nil; noWeeklyPlanAvailable = false; showNewWeekPrompt = false }
+        do {
+            // 僅使用 GET 查詢指定週計劃
+            guard let overviewId = trainingOverview?.id else { throw NSError() }
+            let plan = try await TrainingPlanService.shared.getWeeklyPlanById(planId: "\(overviewId)_\(week)")
+            
+            await MainActor.run {
+                weeklyPlan = plan
+                selectedWeek = week
+                calculateWeekDateInfo(for: plan)
+                isLoading = false
+            }
+            // 載入該週的健康資料
+            await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+            await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+            await identifyTodayTraining()
+        } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
+            // 404 錯誤：依週數區分提示
+            let currentWeek = calculateCurrentTrainingWeek() ?? 0
+            await MainActor.run {
+                if week == currentWeek {
+                    showNewWeekPrompt = true
+                } else {
+                    noWeeklyPlanAvailable = true
+                }
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run { self.error = error; isLoading = false }
+        }
+    }
+
     // 集中處理日期邏輯的核心方法
     private func calculateWeekDateInfo(for plan: WeeklyPlan) {
         let calendar = Calendar.current
@@ -578,7 +628,7 @@ class TrainingPlanViewModel: ObservableObject {
                 await loadVDOTData()
                 
                 // 重新載入訓練記錄
-                await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+                await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
                 await identifyTodayTraining()
                 
                 break // 成功後跳出重試迴圈

@@ -47,6 +47,7 @@ class TrainingPlanStorage {
             print("無法讀取訓練計劃概覽，返回空的概覽")
             return TrainingPlanOverview(
                 id: "",
+                mainRaceId: "",
                 targetEvaluate: "",
                 totalWeeks: 0,
                 trainingHighlight: "",

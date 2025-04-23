@@ -20,6 +20,8 @@ struct TrainingStage: Codable {
 
 struct TrainingPlanOverview: Codable {
     let id: String
+    /// 主要賽事 ID，對應 API 回傳的 main_race_id
+    let mainRaceId: String
     let targetEvaluate: String
     let totalWeeks: Int
     let trainingHighlight: String
@@ -29,6 +31,8 @@ struct TrainingPlanOverview: Codable {
     
     enum CodingKeys: String, CodingKey {
         case id = "id"
+        /// 對應 JSON 的 main_race_id
+        case mainRaceId = "main_race_id"
         case targetEvaluate = "target_evaluate"
         case totalWeeks = "total_weeks"
         case trainingHighlight = "training_hightlight"
