@@ -10,7 +10,6 @@ class VDOTChartViewModel: ObservableObject {
     @Published var yAxisRange: ClosedRange<Double> = 30...40
     @Published var needUpdatedHrRange: Bool = false
     
-    private let networkService = NetworkService.shared
     private let storage = VDOTStorage.shared
     private var cancellables = Set<AnyCancellable>()
     
@@ -94,15 +93,11 @@ class VDOTChartViewModel: ObservableObject {
         }
         
         do {
-            let endpoint = try Endpoint(
-                path: "/workout/vdots",
-                method: .get,
-                requiresAuth: true,
-                queryItems: [URLQueryItem(name: "limit", value: String(limit))]
-            )
-            
             print("從後端獲取VDOT數據...")
-            let response: VDOTResponse = try await networkService.request(endpoint)
+            // 使用 APIClient 取得 VDOT 資料，附加 limit 參數
+            let response: VDOTResponse = try await APIClient.shared.request(
+                VDOTResponse.self,
+                path: "/workout/vdots?limit=\(limit)")
             
             let vdotEntries = response.data.vdots
             let points = vdotEntries.map { entry in

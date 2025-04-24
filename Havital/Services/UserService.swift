@@ -3,161 +3,35 @@ import Combine
 
 class UserService {
     static let shared = UserService()
-    private let networkService = NetworkService.shared
     private let userPreferenceManager = UserPreferenceManager.shared
     
     private init() {}
     
     func createTarget(_ target: Target) async throws {
-        print("開始建立賽事目標")
-        guard let url = URL(string: APIConfig.baseURL + "/user/targets") else {
-            print("URL 無效")
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add auth token
-        do {
-            if let token = try await AuthenticationService.shared.user?.getIDToken() {
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                print("成功添加認證 token")
-            } else {
-                print("無法獲取認證 token")
-                throw URLError(.userAuthenticationRequired)
-            }
-        } catch {
-            print("獲取 token 時發生錯誤: \(error)")
-            throw error
-        }
-        
-        let encoder = JSONEncoder()
-        do {
-            request.httpBody = try encoder.encode(target)
-            print("成功編碼目標資料")
-        } catch {
-            print("編碼目標資料時發生錯誤: \(error)")
-            throw error
-        }
-        
-        print("開始發送請求")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("回應不是 HTTP 回應")
-            throw URLError(.badServerResponse)
-        }
-        
-        print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("錯誤回應內容: \(responseString)")
-            }
-            throw URLError(.badServerResponse)
-        }
-        
-        print("成功建立賽事目標")
+        // 使用 APIClient 建立賽事目標
+        try await APIClient.shared.requestNoResponse(
+            path: "/user/targets", method: "POST",
+            body: try JSONEncoder().encode(target))
     }
    
     func updatePersonalBestData(_ performanceData: [String: Any]) async throws {
-        print("開始更新用戶性能數據")
-        guard let url = URL(string: APIConfig.baseURL + "/user/pb/race_run") else {
-            print("URL 無效")
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add auth token
-        do {
-            let token = try await AuthenticationService.shared.getIdToken()
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            print("成功添加認證 token")
-        } catch {
-            print("獲取 token 時發生錯誤: \(error)")
-            throw error
-        }
-        
-        let jsonData = try JSONSerialization.data(withJSONObject: performanceData)
-        request.httpBody = jsonData
-        
-        print("開始發送請求")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("回應不是 HTTP 回應")
-            throw URLError(.badServerResponse)
-        }
-        
-        print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("錯誤回應內容: \(responseString)")
-            }
-            throw URLError(.badServerResponse)
-        }
-        
-        print("成功更新用戶性能數據")
+        try await APIClient.shared.requestNoResponse(
+            path: "/user/pb/race_run", method: "POST",
+            body: try JSONSerialization.data(withJSONObject: performanceData))
     }
 
     func updateUserData(_ userData: [String: Any]) async throws {
-        print("開始更新用戶資料")
-        guard let url = URL(string: APIConfig.baseURL + "/user") else {
-            print("URL 無效")
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add auth token
-        do {
-            let token = try await AuthenticationService.shared.getIdToken()
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            print("成功添加認證 token")
-        } catch {
-            print("獲取 token 時發生錯誤: \(error)")
-            throw error
-        }
-        
-        let jsonData = try JSONSerialization.data(withJSONObject: userData)
-        request.httpBody = jsonData
-        
-        print("開始發送請求")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("回應不是 HTTP 回應")
-            throw URLError(.badServerResponse)
-        }
-        
-        print("收到回應，狀態碼: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("錯誤回應內容: \(responseString)")
-            }
-            throw URLError(.badServerResponse)
-        }
-        
-        print("成功更新用戶資料")
+        try await APIClient.shared.requestNoResponse(
+            path: "/user", method: "PUT",
+            body: try JSONSerialization.data(withJSONObject: userData))
     }
     
     func getUserProfile() -> AnyPublisher<User, Error> {
+        // 使用 APIClient 取得用戶資料
         return Future<User, Error> { promise in
             Task {
                 do {
-                    let endpoint = try Endpoint(
-                        path: "/user",
-                        method: .get,
-                        requiresAuth: true
-                    )
-                    
-                    let user: User = try await self.networkService.request(endpoint)
+                    let user = try await APIClient.shared.request(User.self, path: "/user")
                     promise(.success(user))
                 } catch {
                     promise(.failure(error))
@@ -191,17 +65,17 @@ class UserService {
         
         guard let httpResponse = response as? HTTPURLResponse else {
             print("回應不是 HTTP 回應")
-            throw NetworkError.invalidResponse
+            throw URLError(.badServerResponse)
         }
         
         print("Google 登入回應狀態: \(httpResponse.statusCode)")
         
         // 檢查回應
         if httpResponse.statusCode >= 400 {
-            if let responseText = String(data: data, encoding: .utf8) {
-                print("登入錯誤回應: \(responseText)")
-            }
-            throw NetworkError.httpError(statusCode: httpResponse.statusCode)
+            let responseText = String(data: data, encoding: .utf8) ?? ""
+            print("登入錯誤回應: \(responseText)")
+            throw NSError(domain: "UserService", code: httpResponse.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: responseText])
         }
         
         // 解析回應數據

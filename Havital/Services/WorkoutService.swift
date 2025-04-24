@@ -3,7 +3,6 @@ import HealthKit
 
 class WorkoutService {
     static let shared = WorkoutService()
-    private let networkService = NetworkService.shared
     
     private init() {}
     
@@ -63,20 +62,11 @@ class WorkoutService {
             verticalOscillations: verticalOscillations?.map { VerticalOscillationData(time: $0.time.timeIntervalSince1970, value: $0.value) }
         )
         
-        let endpoint = try Endpoint(
-            path: "/workout",
-            method: .post,
-            requiresAuth: true,
-            body: workoutData
-        )
-        
-        do {
-            let _: EmptyResponse = try await networkService.request(endpoint)
-            print("成功上傳運動數據")
-        } catch {
-            print("上傳運動數據失敗: \(error)")
-            throw error
-        }
+        // 使用 APIClient 上傳運動數據
+        try await APIClient.shared.requestNoResponse(
+            path: "/workout", method: "POST",
+            body: try JSONEncoder().encode(workoutData))
+        print("成功上傳運動數據")
     }
     
     // WorkoutService.swift 中添加的方法
