@@ -76,6 +76,17 @@ Additional layers:
 
 ### Utils
 - Helper functions, date formatters, logging, miscellaneous tools.
+- Logger Utility
+  - Path: `Havital/Utils/Logger.swift`
+  - 日誌等級 (LogLevel): `debug`, `info`, `warn`, `error`
+  - Build Config:
+    - `#if DEBUG`: 輸出 `debug` 以上的日誌
+    - `#else`: 輸出 `warn` 以上的日誌
+  - 調用方式:
+    - `Logger.debug("訊息")`
+    - `Logger.info("訊息", tag: "Tag")`
+    - `Logger.warn("訊息")`
+    - `Logger.error("錯誤訊息")`
 
 ### Theme
 - Color scheme, font styles, layout constants.

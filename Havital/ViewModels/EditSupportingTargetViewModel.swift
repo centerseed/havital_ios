@@ -32,9 +32,12 @@ class EditSupportingTargetViewModel: BaseSupportingTargetViewModel {
             // 使用基礎類的方法創建 Target 對象
             let target = createTargetObject(id: targetId)
             
-            // 更新目標賽事
-            _ = try await TargetService.shared.updateTarget(id: targetId, target: target)
-            print("支援賽事已更新")
+            // 更新賽事於雲端
+            let updated = try await TargetService.shared.updateTarget(id: targetId, target: target)
+            // 同步本地儲存並通知更新
+            TargetStorage.shared.saveTarget(updated)
+            NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
+            print("支援賽事已更新並同步本地: \(updated.name)")
             isLoading = false
             return true
         } catch {
@@ -53,6 +56,13 @@ class EditSupportingTargetViewModel: BaseSupportingTargetViewModel {
             // 刪除目標賽事
             try await TargetService.shared.deleteTarget(id: targetId)
             print("支援賽事已刪除")
+            isLoading = false
+            return true
+        } catch let nsError as NSError where nsError.domain == "APIClient" && nsError.code == 404 {
+            // 雲端已不存在，從本地也刪除
+            TargetStorage.shared.removeTarget(id: targetId)
+            NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
+            print("支援賽事在雲端不存在，本地已刪除")
             isLoading = false
             return true
         } catch {

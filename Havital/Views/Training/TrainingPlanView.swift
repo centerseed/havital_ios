@@ -385,7 +385,7 @@ struct TrainingPlanView: View {
     
     // 刷新訓練記錄
     private func refreshWorkouts() {
-        print("刷新訓練記錄")
+        Logger.debug("刷新訓練記錄")
         Task {
             await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
         }

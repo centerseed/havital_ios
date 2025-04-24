@@ -88,7 +88,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
         } catch {
-            print("載入週訓練回顧失敗: \(error)")
+            Logger.error("載入週訓練回顧失敗: \(error)")
             
             await MainActor.run {
                 self.weeklySummaryError = error
@@ -138,7 +138,7 @@ class TrainingPlanViewModel: ObservableObject {
     func calculateCurrentTrainingWeek() -> Int? {
            guard let overview = trainingOverview,
                  !overview.createdAt.isEmpty else {
-               print("無法計算訓練週數: 缺少 overview 或建立時間")
+               Logger.debug("無法計算訓練週數: 缺少 overview 或建立時間")
                return nil
            }
            
@@ -149,7 +149,7 @@ class TrainingPlanViewModel: ObservableObject {
            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
            
            guard let createdAtDate = dateFormatter.date(from: createdAtString) else {
-               print("無法解析建立時間: \(createdAtString)")
+               Logger.debug("無法解析建立時間: \(createdAtString)")
                return nil
            }
            
@@ -161,23 +161,19 @@ class TrainingPlanViewModel: ObservableObject {
            debugFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss (EEEE)"
            debugFormatter.locale = Locale(identifier: "zh_TW")
            
-           print("當前日期: \(debugFormatter.string(from: today))")
-           print("訓練建立日期: \(debugFormatter.string(from: createdAtDate))")
-           
            // 找到 createdAt 所在週的週一 (週的開始)
            let createdAtWeekday = calendar.component(.weekday, from: createdAtDate)
            let adjustedCreatedAtWeekday = createdAtWeekday == 1 ? 7 : createdAtWeekday - 1 // 將週日=1轉換為週日=7
            
-           print("建立日期是星期 \(adjustedCreatedAtWeekday)")
+           Logger.debug("主要訓劃建立在：星期 \(adjustedCreatedAtWeekday)")
            
            // 計算建立日期所在週的週一日期
            let daysToSubtract = adjustedCreatedAtWeekday - 1
            guard let createdAtWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAtDate)) else {
-               print("無法計算建立日期所在週的週一")
+               Logger.debug("無法計算建立日期所在週的週一")
                return nil
            }
            
-           print("建立日期所在週的週一: \(debugFormatter.string(from: createdAtWeekMonday))")
            
            // 找到今天所在週的週一
            let todayWeekday = calendar.component(.weekday, from: today)
@@ -185,11 +181,9 @@ class TrainingPlanViewModel: ObservableObject {
            
            let todayDaysToSubtract = adjustedTodayWeekday - 1
            guard let todayWeekMonday = calendar.date(byAdding: .day, value: -todayDaysToSubtract, to: calendar.startOfDay(for: today)) else {
-               print("無法計算今天所在週的週一")
+               Logger.debug("無法計算今天所在週的週一")
                return nil
            }
-           
-           print("今天所在週的週一: \(debugFormatter.string(from: todayWeekMonday))")
            
            // 計算週數差異
            // 使用 Calendar 直接計算這兩個週一之間的週數差異
@@ -198,7 +192,6 @@ class TrainingPlanViewModel: ObservableObject {
            // 訓練週數 = 週數差異 + 1（含第一週）
            let trainingWeek = weekDiff + 1
            
-           print("週數差異: \(weekDiff), 當前訓練週數: \(trainingWeek)")
            
            return trainingWeek
        }
@@ -206,11 +199,9 @@ class TrainingPlanViewModel: ObservableObject {
         // 取得訓練週數並輸出日誌
         func logCurrentTrainingWeek() {
             if let week = calculateCurrentTrainingWeek() {
-                print("=== 訓練週數計算結果 ===")
-                print("當前是第 \(week) 週訓練")
-                print("=======================")
+                Logger.debug("當前是第 \(week) 週訓練")
             } else {
-                print("無法計算訓練週數")
+                Logger.debug("無法計算訓練週數")
             }
         }
     
@@ -227,7 +218,6 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     func loadWeeklyPlan() async {
-        log("loadWeeklyPlan")
         await MainActor.run {
             isLoading = true
         }
@@ -244,7 +234,6 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
             // 異步從API獲取最新數據
-            log("loadWeeklyPlan API call: savedPlan branch")
             do {
                 let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "loadWeeklyPlan")
                 // 檢查計劃是否有變更
@@ -264,11 +253,10 @@ class TrainingPlanViewModel: ObservableObject {
                 }
             } catch {
                 // API失敗時已有本地數據，可以不做處理或僅記錄日誌
-                print("API加載計劃失敗，使用本地數據: \(error)")
+                Logger.error("API加載計劃失敗，使用本地數據: \(error)")
             }
         } else {
             // 本地無數據，必須等待API
-            log("loadWeeklyPlan API call: no savedPlan branch")
             do {
                 let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(caller: "loadWeeklyPlan")
                 
@@ -329,7 +317,7 @@ class TrainingPlanViewModel: ObservableObject {
         
         // 如果沒有創建日期，無法計算
         guard let createdAt = plan.createdAt else {
-            print("計劃沒有創建日期，無法計算週日期範圍")
+            Logger.debug("計劃沒有創建日期，無法計算週日期範圍")
             currentWeekDateInfo = nil
             return
         }
@@ -337,18 +325,17 @@ class TrainingPlanViewModel: ObservableObject {
         // 調試輸出
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        print("計劃創建日期: \(formatter.string(from: createdAt))")
         
         // 步驟1: 確定創建日期是星期幾 (1=週一, 7=週日)
         let creationWeekday = calendar.component(.weekday, from: createdAt)
         // 將1-7(週日-週六)轉換為1-7(週一-週日)
         let adjustedCreationWeekday = creationWeekday == 1 ? 7 : creationWeekday - 1
-        print("創建日期是週 \(adjustedCreationWeekday)")
+        Logger.debug("週計劃創建日期: \(formatter.string(from: createdAt)), 週 \(adjustedCreationWeekday)")
         
         // 步驟2: 計算當週的週一
         let daysToSubtract = adjustedCreationWeekday - 1 // 週一不需要減
         guard let targetWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAt)) else {
-            print("無法計算週一日期")
+            Logger.debug("無法計算週一日期")
             currentWeekDateInfo = nil
             return
         }
@@ -359,7 +346,7 @@ class TrainingPlanViewModel: ObservableObject {
         // 步驟3: 計算該週的週日日期和結束時間
         guard let weekSunday = calendar.date(byAdding: .day, value: 6, to: startOfMonday),
               let endOfSunday = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: weekSunday) else {
-            print("無法計算週日日期")
+            Logger.debug("無法計算週日日期")
             currentWeekDateInfo = nil
             return
         }
@@ -383,15 +370,11 @@ class TrainingPlanViewModel: ObservableObject {
         self.currentWeekDateInfo = weekDateInfo
         
         // 輸出計算結果供除錯
-        print("計算的週日期範圍 - 開始: \(formatter.string(from: startOfMonday)), 結束: \(formatter.string(from: endOfSunday))")
+        Logger.debug("計算的週日期範圍 - 開始: \(formatter.string(from: startOfMonday)), 結束: \(formatter.string(from: endOfSunday))")
         
         // 額外檢查每天的日期
-        print("計算的日期映射:")
         let shortFormatter = DateFormatter()
         shortFormatter.dateFormat = "MM/dd (E)"
-        for (dayIndex, date) in daysMap {
-            print("星期\(["一", "二", "三", "四", "五", "六", "日"][dayIndex-1]): \(shortFormatter.string(from: date))")
-        }
     }
     
     // 獲取當前週的日期範圍 (用於獲取訓練記錄)
@@ -424,8 +407,6 @@ class TrainingPlanViewModel: ObservableObject {
         // 週日日期 (週一加6天)
         let endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
         let endOfDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endDate)!
-        
-        print("使用當前自然週範圍: \(startDate) - \(endOfDay)")
         
         return (startDate, endOfDay)
     }
@@ -478,13 +459,13 @@ class TrainingPlanViewModel: ObservableObject {
                 self.trainingOverview = overview
             }
             
-            print("成功載入訓練計劃概覽")
-            print("Plan Overview id \(overview.id)")
+            Logger.debug("成功載入訓練計劃概覽")
+            Logger.debug("Plan Overview id \(overview.id)")
             
             // 計算並輸出當前訓練週數
             logCurrentTrainingWeek()
         } catch {
-            print("載入訓練計劃概覽從API失敗: \(error)")
+            Logger.error("載入訓練計劃概覽從API失敗: \(error)")
             // 已從本地加載，不需要額外處理
         }
     }
@@ -505,7 +486,7 @@ class TrainingPlanViewModel: ObservableObject {
         }
         
         do {
-            print("開始產生第 \(targetWeek) 週課表...")
+            Logger.debug("開始產生第 \(targetWeek) 週課表...")
             _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
             
             // 產生成功後重新載入課表
@@ -528,22 +509,22 @@ class TrainingPlanViewModel: ObservableObject {
                 }
                 
                 // 重新載入訓練計劃概覽，確保獲取最新資訊
-                print("重新載入訓練計劃概覽")
+                Logger.debug("重新載入訓練計劃概覽")
                 await loadTrainingOverview()
                 
                 // 重新載入訓練記錄
                 await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
                 
-                print("成功產生第 \(targetWeek) 週課表並更新 UI")
+                Logger.debug("成功產生第 \(targetWeek) 週課表並更新 UI")
             } catch {
-                print("重新載入課表失敗: \(error)")
+                Logger.error("重新載入課表失敗: \(error)")
                 
                 await MainActor.run {
                     self.error = error
                 }
             }
         } catch {
-            print("產生第 \(targetWeek) 週課表失敗: \(error)")
+            Logger.error("產生第 \(targetWeek) 週課表失敗: \(error)")
             
             await MainActor.run {
                 self.error = error
@@ -560,7 +541,6 @@ class TrainingPlanViewModel: ObservableObject {
     
     /// 只在第一次執行：載入週計劃、概覽、VDOT、記錄、距離等
     func loadAllInitialData(healthKitManager: HealthKitManager) async {
-        log("loadAllInitialData")
         guard !hasLoadedInitialData else { return }
         hasLoadedInitialData = true
         
@@ -584,7 +564,6 @@ class TrainingPlanViewModel: ObservableObject {
     }
 
     func refreshWeeklyPlan(healthKitManager: HealthKitManager) async {
-        log("refreshWeeklyPlan")
         await MainActor.run {
             isLoading = true
             error = nil
@@ -595,7 +574,7 @@ class TrainingPlanViewModel: ObservableObject {
         
         while currentRetry < maxRetries {
             do {
-                print("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
+                Logger.debug("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
                 // 使用獨立 Task 呼叫 Service，避免 Button 或 View 取消影響
                 let newPlan = try await Task.detached(priority: .userInitiated) {
                     try await TrainingPlanService.shared.getWeeklyPlan(caller: "refreshWeeklyPlan")
@@ -616,12 +595,12 @@ class TrainingPlanViewModel: ObservableObject {
                     
                     // 如果計劃週數已變更，清除舊的訓練記錄和展開狀態
                     if planWeekChanged {
-                        print("偵測到計劃週數變更，清除舊的訓練記錄")
+                        Logger.debug("偵測到計劃週數變更，清除舊的訓練記錄")
                         workoutsByDay.removeAll()
                         expandedDayIndices.removeAll()
                     }
                 }
-                print("完成更新計劃")
+                Logger.debug("完成更新計劃")
                 
                 // 非取消任務：獨立 Task 載入訓練概覽
                 Task.detached(priority: .userInitiated) { [weak self] in
@@ -647,10 +626,10 @@ class TrainingPlanViewModel: ObservableObject {
                 if currentRetry >= maxRetries {
                     await MainActor.run {
                         self.error = error
-                        print("刷新訓練計劃失敗 (已重試 \(maxRetries) 次): \(error)")
+                        Logger.error("刷新訓練計劃失敗 (已重試 \(maxRetries) 次): \(error)")
                     }
                 } else {
-                    print("刷新訓練計劃失敗，準備重試: \(error)")
+                    Logger.error("刷新訓練計劃失敗，準備重試: \(error)")
                     try? await Task.sleep(nanoseconds: UInt64(1_000_000_000)) // 等待1秒後重試
                 }
             }
@@ -671,22 +650,15 @@ class TrainingPlanViewModel: ObservableObject {
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
-            print("載入週訓練記錄 - 週開始: \(formatDebugDate(weekStart)), 週結束: \(formatDebugDate(weekEnd))")
-            
             try await healthKitManager.requestAuthorization()
             let workouts = try await healthKitManager.fetchWorkoutsForDateRange(start: weekStart, end: weekEnd)
-            
-            print("獲取到 \(workouts.count) 條訓練記錄")
-            for (index, workout) in workouts.enumerated() {
-                print("記錄 \(index+1): 日期 \(formatDebugDate(workout.startDate)), 類型: \(workout.workoutActivityType.rawValue)")
-            }
             
             // 按日期分組
             let groupedWorkouts = groupWorkoutsByDay(workouts)
             
-            print("分組後的訓練記錄:")
+            Logger.debug("分組後的訓練記錄:")
             for (day, dayWorkouts) in groupedWorkouts {
-                print("星期\(["一", "二", "三", "四", "五", "六", "日"][day-1]): \(dayWorkouts.count) 條記錄")
+                Logger.debug("星期\(["一", "二", "三", "四", "五", "六", "日"][day-1]): \(dayWorkouts.count) 條記錄")
             }
             
             // 檢查今天的運動記錄
@@ -696,9 +668,9 @@ class TrainingPlanViewModel: ObservableObject {
             let todayIndex = todayWeekday == 1 ? 7 : todayWeekday - 1  // 轉換為1-7代表週一到週日
             
             if let todayWorkouts = groupedWorkouts[todayIndex], !todayWorkouts.isEmpty {
-                print("今天(星期\(["一", "二", "三", "四", "五", "六", "日"][todayIndex-1]))有 \(todayWorkouts.count) 條訓練記錄")
+                Logger.debug("今天(星期\(["一", "二", "三", "四", "五", "六", "日"][todayIndex-1]))有 \(todayWorkouts.count) 條訓練記錄")
             } else {
-                print("今天沒有訓練記錄")
+                Logger.debug("今天沒有訓練記錄")
             }
             
             // 更新 UI
@@ -708,7 +680,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
         } catch {
-            print("載入訓練記錄時出錯: \(error)")
+            Logger.error("載入訓練記錄時出錯: \(error)")
             
             await MainActor.run {
                 self.isLoadingWorkouts = false
@@ -789,7 +761,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
         } catch {
-            print("加載本週跑量時出錯: \(error)")
+            Logger.error("加載本週跑量時出錯: \(error)")
         }
         
         await MainActor.run {
@@ -811,7 +783,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
             // 從API獲取週訓練回顧數據
-            print("嘗試得到第\(currentWeek-1)週的週回顧")
+            Logger.debug("嘗試得到第\(currentWeek-1)週的週回顧")
             let summary = try await weeklySummaryService.fetchWeeklySummary(weekNumber: currentWeek-1)
             
             await MainActor.run {
@@ -820,7 +792,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
         } catch {
-            print("載入週訓練回顧失敗: \(error)")
+            Logger.error("載入週訓練回顧失敗: \(error)")
             
             await MainActor.run {
                 self.weeklySummaryError = error
@@ -848,11 +820,6 @@ class TrainingPlanViewModel: ObservableObject {
             self.targetVDOT = 45.0
             self.isLoadingVDOT = false
         }
-    }
-    
-    // 輔助方法
-    private func log(_ message: String) {
-        print("TrainingPlanViewModel: \(message)")
     }
     
     // 判斷是否應該顯示產生下週課表按鈕
@@ -929,7 +896,7 @@ class TrainingPlanViewModel: ObservableObject {
             let mods = try await TrainingPlanService.shared.getModifications()
             await MainActor.run { self.modifications = mods }
         } catch {
-            print("載入修改課表失敗: \(error)")
+            Logger.error("載入修改課表失敗: \(error)")
         }
     }
 
@@ -939,7 +906,7 @@ class TrainingPlanViewModel: ObservableObject {
             let desc = try await TrainingPlanService.shared.getModificationsDescription()
             await MainActor.run { self.modDescription = desc }
         } catch {
-            print("載入修改描述失敗: \(error)")
+            Logger.error("載入修改描述失敗: \(error)")
         }
     }
 
@@ -952,7 +919,7 @@ class TrainingPlanViewModel: ObservableObject {
             let updated = try await TrainingPlanService.shared.updateModifications(mods)
             await MainActor.run { self.modifications = updated }
         } catch {
-            print("更新修改課表失敗: \(error)")
+            Logger.error("更新修改課表失敗: \(error)")
         }
     }
 
@@ -963,7 +930,7 @@ class TrainingPlanViewModel: ObservableObject {
             let created = try await TrainingPlanService.shared.createModification(newMod)
             await MainActor.run { self.modifications.append(created) }
         } catch {
-            print("新增修改課表失敗: \(error)")
+            Logger.error("新增修改課表失敗: \(error)")
         }
     }
 
@@ -973,7 +940,7 @@ class TrainingPlanViewModel: ObservableObject {
             try await TrainingPlanService.shared.clearModifications()
             await MainActor.run { self.modifications.removeAll() }
         } catch {
-            print("清空修改課表失敗: \(error)")
+            Logger.error("清空修改課表失敗: \(error)")
         }
     }
 }

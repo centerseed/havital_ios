@@ -38,15 +38,20 @@ actor APIClient {
         guard let http = resp as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
-        print("[APIClient] \(method) \(path) status code: \(http.statusCode)")
+        Logger.debug("\(method) \(path) status code: \(http.statusCode)")
         guard (200...299).contains(http.statusCode) else {
             let bodyStr = String(data: data, encoding: .utf8) ?? ""
-            print("[APIClient] Error response body: \(bodyStr)")
+            Logger.error("Error response body: \(bodyStr)")
             throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
         }
         let decoder = JSONDecoder()
-        let wrapped = try decoder.decode(APIResponse<T>.self, from: data)
-        return wrapped.data
+        do {
+            let wrapped = try decoder.decode(APIResponse<T>.self, from: data)
+            return wrapped.data
+        } catch DecodingError.keyNotFound(let key, _) where key.stringValue == "data" {
+            // Fallback: parse raw T if data field missing
+            return try decoder.decode(T.self, from: data)
+        }
     }
 
     /// 通用無回傳請求
@@ -56,11 +61,11 @@ actor APIClient {
         guard let http = resp as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
-        print("[APIClient] \(method) \(path) status code: \(http.statusCode)")
+        Logger.debug("\(method) \(path) status code: \(http.statusCode)")
         guard (200...299).contains(http.statusCode) else {
             let bodyData = try await URLSession.shared.data(for: req).0
             let bodyStr = String(data: bodyData, encoding: .utf8) ?? ""
-            print("[APIClient] Error response body: \(bodyStr)")
+            Logger.error("Error response body: \(bodyStr)")
             throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
         }
     }

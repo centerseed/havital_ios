@@ -32,10 +32,29 @@ struct SupportingRacesCard: View {
                         Spacer()
                     }
                 } else {
-                    // 支援賽事列表 - 排序由近到遠
-                    ForEach(supportingTargets, id: \.id) { target in
-                        SupportingRaceRow(target: target) {
-                            onEditTap(target)
+                    // 分組：未來賽事與過去賽事
+                    let nowTS = Int(Date().timeIntervalSince1970)
+                    let upcoming = supportingTargets.filter { $0.raceDate >= nowTS }
+                    let past = supportingTargets.filter { $0.raceDate < nowTS }
+                    // 未來賽事
+                    if !upcoming.isEmpty {
+                        ForEach(upcoming, id: \.id) { target in
+                            SupportingRaceRow(target: target) {
+                                onEditTap(target)
+                            }
+                        }
+                    }
+                    // 分隔標題：之前的賽事
+                    if !past.isEmpty {
+                        Divider()
+                        Text("之前的賽事")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
+                        ForEach(past, id: \.id) { target in
+                            SupportingRaceRow(target: target) {
+                                onEditTap(target)
+                            }
                         }
                     }
                 }
@@ -96,13 +115,18 @@ struct SupportingRaceRow: View {
                         .foregroundColor(.gray)
                 }
                 
-                // 顯示剩餘天數 (如果小於等於 30 天則顯示)
-                let daysRemaining = calculateDaysRemaining(raceDate: target.raceDate)
-                if daysRemaining <= 30 {
-                    Text("剩餘 \(daysRemaining) 天")
-                        .font(.caption)
-                        .foregroundColor(daysRemaining <= 7 ? .red : .orange)
-                        .padding(.top, 2)
+                // 過去賽事顯示「之前的賽事」，否則顯示最近30天倒數
+                let nowTS = Int(Date().timeIntervalSince1970)
+                if target.raceDate < nowTS {
+                    
+                } else {
+                    let daysRemaining = calculateDaysRemaining(raceDate: target.raceDate)
+                    if daysRemaining <= 30 {
+                        Text("剩餘 \(daysRemaining) 天")
+                            .font(.caption)
+                            .foregroundColor(daysRemaining <= 7 ? .red : .orange)
+                            .padding(.top, 2)
+                    }
                 }
             }
             .padding(.vertical, 8)

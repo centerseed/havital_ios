@@ -36,14 +36,13 @@ class WorkoutService {
         verticalOscillations: [DataPoint]? = nil
     ) async throws {
         // 確保有心率數據
-        if heartRates.isEmpty || heartRates.count < 5 {
-            print("警告: 運動記錄心率數據不足 (\(heartRates.count) 筆)，不上傳")
+        if heartRates.isEmpty || heartRates.count < 1 {
+            Logger.warn("警告: 運動記錄心率數據不足 (\(heartRates.count) 筆)，不上傳")
             throw WorkoutUploadError.missingHeartRateData
         }
         
-        print("上傳運動記錄 - Workout Start Date:", workout.startDate)
-        print("上傳運動記錄 - Workout End Date:", workout.endDate)
-        print("上傳運動記錄 - Heart Rate Data Points:", heartRates.count)
+        Logger.debug("上傳運動記錄 - Workout End Date: \(workout.endDate)")
+        Logger.debug("上傳運動記錄 - Heart Rate Data Points: \(heartRates.count)")
         
         // 創建運動數據模型
         let workoutData = WorkoutData(
@@ -66,7 +65,7 @@ class WorkoutService {
         try await APIClient.shared.requestNoResponse(
             path: "/workout", method: "POST",
             body: try JSONEncoder().encode(workoutData))
-        print("成功上傳運動數據")
+        Logger.info("成功上傳運動數據")
     }
     
     // WorkoutService.swift 中添加的方法

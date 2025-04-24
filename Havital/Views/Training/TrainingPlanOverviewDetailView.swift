@@ -22,9 +22,10 @@ struct TrainingPlanOverviewDetailView: View {
         _overview = State(initialValue: overview)
     }
     
-    // 給支援賽事排序 - 按照日期從近到遠
+    // 給支援賽事排序 - 按照日期從新到舊，並限制最多五筆
     private var sortedSupportingTargets: [Target] {
-        return supportingTargets.sorted { $0.raceDate < $1.raceDate }
+        return Array(supportingTargets.sorted { $0.raceDate > $1.raceDate }
+                       .prefix(5))
     }
     
     var body: some View {
@@ -52,7 +53,7 @@ struct TrainingPlanOverviewDetailView: View {
                         })
                     }
                     
-                    // Supporting Races Card - 使用排序後的支援賽事
+                    // Supporting Races Card - 使用新到舊且最多五筆的支援賽事
                     SupportingRacesCard(
                         supportingTargets: sortedSupportingTargets,
                         onAddTap: {
@@ -127,23 +128,8 @@ struct TrainingPlanOverviewDetailView: View {
                 self.supportingTargets = TargetStorage.shared.getSupportingTargets()
                 print("已載入 \(supportingTargets.count) 個支援賽事")
                 
-                // 如果需要，啟動異步任務
-                if self.targetRace == nil {
-                    Task {
-                        do {
-                            _ = try await TargetService.shared.getTargets()
-                            // 在主線程更新 UI
-                            await MainActor.run {
-                                self.targetRace = TargetStorage.shared.getMainTarget()
-                                self.supportingTargets = TargetStorage.shared.getSupportingTargets()
-                                print("再次獲取主要目標: \(String(describing: targetRace))")
-                                print("再次獲取支援賽事: \(supportingTargets.count) 個")
-                            }
-                        } catch {
-                            print("從網路加載目標賽事失敗: \(error)")
-                        }
-                    }
-                }
+                // 雲端同步所有賽事並更新本地與 UI
+                fetchAndSyncTargets()
             }
             .sheet(isPresented: $showEditSheet, onDismiss: {
                 // 當編輯視圖關閉時重新載入目標賽事
@@ -160,18 +146,16 @@ struct TrainingPlanOverviewDetailView: View {
                 }
             }
             .sheet(isPresented: $showEditSupportingSheet, onDismiss: {
-                // 當編輯支援賽事視圖關閉時重新載入支援賽事
-                loadSupportingTargets()
-                // 注意：我們不會觸發訓練計劃概覽更新
+                // 編輯支援賽事關閉後同步雲端與本地資料
+                fetchAndSyncTargets()
             }) {
                 if let target = selectedSupportingTarget {
                     EditSupportingTargetView(target: target)
                 }
             }
             .sheet(isPresented: $showAddSupportingSheet, onDismiss: {
-                // 當添加支援賽事視圖關閉時重新載入支援賽事
-                loadSupportingTargets()
-                // 注意：我們不會觸發訓練計劃概覽更新
+                // 添加支援賽事關閉後同步雲端與本地資料
+                fetchAndSyncTargets()
             }) {
                 AddSupportingTargetView()
             }
@@ -298,6 +282,25 @@ struct TrainingPlanOverviewDetailView: View {
                     self.isUpdateSuccessful = false
                 }
                 print("更新訓練計劃概覽失敗: \(error)")
+            }
+        }
+    }
+    
+    // 雲端同步所有賽事並更新狀態
+    private func fetchAndSyncTargets() {
+        Task {
+            do {
+                let allTargets = try await TargetService.shared.getTargets()
+                TargetStorage.shared.saveTargets(allTargets)
+                let main = allTargets.first { $0.isMainRace }
+                let supporting = allTargets.filter { !$0.isMainRace }
+                await MainActor.run {
+                    self.targetRace = main
+                    self.supportingTargets = supporting.sorted { $0.raceDate < $1.raceDate }
+                }
+                print("同步完成：主賽事\(String(describing: main))，支援賽事\(supporting.count)")
+            } catch {
+                print("fetchAndSyncTargets 失敗: \(error)")
             }
         }
     }

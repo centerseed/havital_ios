@@ -14,7 +14,9 @@ class AddSupportingTargetViewModel: BaseSupportingTargetViewModel {
             
             // 創建目標賽事
             let createdTarget = try await TargetService.shared.createTarget(target)
-            print("支援賽事已建立: \(createdTarget.name)")
+            // 存儲到本地，以便後續顯示
+            TargetStorage.shared.saveTarget(createdTarget)
+            print("支援賽事已建立並保存: \(createdTarget.name)")
             isLoading = false
             return true
         } catch {
