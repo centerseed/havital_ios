@@ -679,6 +679,10 @@ class TrainingPlanViewModel: ObservableObject {
                 self.isLoadingWorkouts = false
             }
             
+            if let plan = weeklyPlan, plan.totalDistance > 0 {
+                await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+            }
+            
         } catch {
             Logger.error("載入訓練記錄時出錯: \(error)")
             

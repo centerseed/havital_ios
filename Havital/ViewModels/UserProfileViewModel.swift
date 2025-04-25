@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 
+@MainActor
 class UserProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: Error?
