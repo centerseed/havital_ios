@@ -35,6 +35,11 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var showWeeklySummary = false
     @Published var lastFetchedWeekNumber: Int?
     
+    // 週摘要列表
+    @Published var weeklySummaries: [WeeklySummaryItem] = []
+    @Published var isLoadingWeeklySummaries = false
+    @Published var weeklySummariesError: Error?
+    
     // 重用 TrainingRecordViewModel 的功能
     private let workoutService = WorkoutService.shared
     private let trainingRecordVM = TrainingRecordViewModel()
@@ -165,7 +170,7 @@ class TrainingPlanViewModel: ObservableObject {
            let createdAtWeekday = calendar.component(.weekday, from: createdAtDate)
            let adjustedCreatedAtWeekday = createdAtWeekday == 1 ? 7 : createdAtWeekday - 1 // 將週日=1轉換為週日=7
            
-           Logger.debug("主要訓劃建立在：星期 \(adjustedCreatedAtWeekday)")
+           Logger.debug("主要訓劃建立在：\(overview.createdAt), 星期 \(adjustedCreatedAtWeekday)")
            
            // 計算建立日期所在週的週一日期
            let daysToSubtract = adjustedCreatedAtWeekday - 1
@@ -220,6 +225,7 @@ class TrainingPlanViewModel: ObservableObject {
     func loadWeeklyPlan() async {
         await MainActor.run {
             isLoading = true
+            noWeeklyPlanAvailable = false
         }
         
         // 首先嘗試從本地加載數據
@@ -251,8 +257,14 @@ class TrainingPlanViewModel: ObservableObject {
                         expandedDayIndices.removeAll()
                     }
                 }
+            } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
+                // 404: 無週計劃
+                await MainActor.run {
+                    noWeeklyPlanAvailable = true
+                    isLoading = false
+                }
             } catch {
-                // API失敗時已有本地數據，可以不做處理或僅記錄日誌
+                // 其他錯誤: 使用本地數據並記錄
                 Logger.error("API加載計劃失敗，使用本地數據: \(error)")
             }
         } else {
@@ -266,6 +278,12 @@ class TrainingPlanViewModel: ObservableObject {
                     calculateWeekDateInfo(for: newPlan)
                     selectedWeek = newPlan.weekOfPlan
                     error = nil
+                    isLoading = false
+                }
+            } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
+                // 404: 無週計劃
+                await MainActor.run {
+                    noWeeklyPlanAvailable = true
                     isLoading = false
                 }
             } catch {
@@ -461,6 +479,9 @@ class TrainingPlanViewModel: ObservableObject {
             
             Logger.debug("成功載入訓練計劃概覽")
             Logger.debug("Plan Overview id \(overview.id)")
+            
+            // 將訓練計劃概覽存入本地緩存
+            TrainingPlanStorage.saveTrainingPlanOverview(overview)
             
             // 計算並輸出當前訓練週數
             logCurrentTrainingWeek()
@@ -743,6 +764,7 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     func loadCurrentWeekDistance(healthKitManager: HealthKitManager) async {
+        Logger.debug("載入週跑量中...")
         await MainActor.run {
             isLoadingDistance = true
         }
@@ -758,6 +780,8 @@ class TrainingPlanViewModel: ObservableObject {
             
             // 計算跑步距離總和
             let totalDistance = calculateTotalDistance(workouts)
+            
+            Logger.debug("在入週跑量完成，週跑量為\(totalDistance)公里")
             
             // 更新UI
             await MainActor.run {
@@ -823,6 +847,27 @@ class TrainingPlanViewModel: ObservableObject {
             self.currentVDOT = 40.0
             self.targetVDOT = 45.0
             self.isLoadingVDOT = false
+        }
+    }
+    
+    // 獲取週摘要列表的方法
+    func fetchWeeklySummaries() async {
+        await MainActor.run {
+            isLoadingWeeklySummaries = true
+            weeklySummariesError = nil
+        }
+        do {
+            let items = try await weeklySummaryService.fetchWeeklySummaries()
+            await MainActor.run {
+                weeklySummaries = items
+                isLoadingWeeklySummaries = false
+            }
+        } catch {
+            Logger.error("載入週摘要列表失敗: \(error)")
+            await MainActor.run {
+                weeklySummariesError = error
+                isLoadingWeeklySummaries = false
+            }
         }
     }
     
@@ -945,6 +990,31 @@ class TrainingPlanViewModel: ObservableObject {
             await MainActor.run { self.modifications.removeAll() }
         } catch {
             Logger.error("清空修改課表失敗: \(error)")
+        }
+    }
+    
+    // 獲取指定週訓練回顧的方法
+    func fetchWeeklySummary(weekNumber: Int) async {
+        await MainActor.run {
+            isLoadingWeeklySummary = true
+            weeklySummaryError = nil
+        }
+        do {
+            let summary = try await WeeklySummaryService.shared.fetchWeeklySummary(weekNumber: weekNumber)
+            Logger.info("fetchWeeklySummary for week : \(weekNumber)")
+            WeeklySummaryStorage.shared.saveWeeklySummary(summary, weekNumber: weekNumber)
+            await MainActor.run {
+                self.weeklySummary = summary
+                self.lastFetchedWeekNumber = weekNumber
+                self.showWeeklySummary = true
+                self.isLoadingWeeklySummary = false
+            }
+        } catch {
+            Logger.error("載入週訓練回顧(第 \(weekNumber) 週)失敗: \(error)")
+            await MainActor.run {
+                self.weeklySummaryError = error
+                self.isLoadingWeeklySummary = false
+            }
         }
     }
 }

@@ -13,4 +13,11 @@ class WeeklySummaryService {
         return try await APIClient.shared.request(WeeklyTrainingSummary.self,
             path: path, method: "POST")
     }
+    
+    /// 取得所有週訓練摘要列表
+    func fetchWeeklySummaries() async throws -> [WeeklySummaryItem] {
+        return try await APIClient.shared.request([WeeklySummaryItem].self,
+                                                  path: "/summary/weekly/",
+                                                  method: "GET")
+    }
 }

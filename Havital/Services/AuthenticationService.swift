@@ -198,6 +198,9 @@ class AuthenticationService: ObservableObject {
         // 清除相關的 onboarding 數據，但保留用戶登入狀態
         TrainingPlanStorage.shared.clearAll()
         
+        // 廣播 Onboarding 已重置／完成事件
+        NotificationCenter.default.post(name: .onboardingCompleted, object: nil)
+        
         print("已重置 onboarding 狀態")
     }
 }

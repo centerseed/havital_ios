@@ -92,3 +92,23 @@ struct TrainingModification: Codable {
 struct WeeklySummaryResponse: Codable {
     let data: WeeklyTrainingSummary
 }
+
+// 新增對應 /summary/weekly/ API 的模型
+struct WeeklySummaryItem: Codable {
+    let weekIndex: Int
+    let weekStart: String
+    let distanceKm: Double?
+    let weekPlan: String?
+    let weekSummary: String?
+    /// 本週完成百分比
+    let completionPercentage: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case weekIndex = "week_index"
+        case weekStart = "week_start"
+        case distanceKm = "distance_km"
+        case weekPlan = "week_plan"
+        case weekSummary = "week_summary"
+        case completionPercentage = "completion_percentage"
+    }
+}

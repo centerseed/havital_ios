@@ -15,9 +15,9 @@ struct WeekPlanContentView: View {
             let current = currentTrainingWeek
             if selected > plan.totalWeeks {
                 FinalWeekPromptView(viewModel: viewModel)
-            } else if selected > current && viewModel.noWeeklyPlanAvailable {
+            } else if selected < current {
                 // 尚未生成且無課表，顯示產生新週提示
-                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: selected)
+                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: current)
             } else {
                 // 已有課表：不論過去或當前週，顯示概覽與每日清單
                 WeekOverviewCard(viewModel: viewModel, plan: plan)
@@ -26,7 +26,7 @@ struct WeekPlanContentView: View {
         }
         .onAppear {
             // 除錯 log
-            print("[WeekPlan] plan.weekOfPlan=\(plan.weekOfPlan), currentTrainingWeek=\(currentTrainingWeek)")
+            Logger.info("current: \(currentTrainingWeek), selected: \(plan.weekOfPlan), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
         }
     }
 }
@@ -233,6 +233,10 @@ struct TrainingPlanView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             refreshWorkouts()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
+            Logger.debug("收到 onboardingCompleted 通知，刷新本週跑量")
+            refreshWorkouts()
+        }
         .sheet(isPresented: $showUserProfile) {
             NavigationView {
                 UserProfileView()
@@ -247,6 +251,10 @@ struct TrainingPlanView: View {
         }
         .onAppear {
             // 初始載入與檢查移至 ViewModel
+            if hasCompletedOnboarding {
+                Logger.debug("視圖 onAppear: 已完成 Onboarding，刷新本週跑量")
+                refreshWorkouts()
+            }
         }
     }
     
@@ -385,8 +393,9 @@ struct TrainingPlanView: View {
     
     // 刷新訓練記錄
     private func refreshWorkouts() {
-        Logger.debug("刷新訓練記錄")
+        Logger.debug("刷新訓練記錄與本週跑量")
         Task {
+            await viewModel.loadCurrentWeekDistance(healthKitManager: healthKitManager)
             await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
         }
     }
@@ -402,4 +411,8 @@ struct TrainingPlanView: View {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let onboardingCompleted = Notification.Name("onboardingCompleted")
 }
