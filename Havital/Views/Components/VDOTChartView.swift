@@ -25,7 +25,7 @@ struct VDOTChartView: View {
                 .alert("什麼是動態跑力？", isPresented: $showingInfo) {
                     Button("了解", role: .cancel) {}
                 } message: {
-                    Text("動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n它考慮了配速、距離以及儲備心率(HRR)區間，相比傳統VDOT值能更加準確地衡量您的訓練狀態。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。")
+                    Text("動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。\n\n加權跑力會參考您的目標賽事距離，做出適當的加權來計算一段時間內的動態跑力的加權平均值，更能反映當下對於目標賽事的跑力評估喔！")
                 }
                 
                 Spacer()
@@ -124,8 +124,14 @@ struct VDOTChartView: View {
                         Text("日期: \(dateFormatter.string(from: point.date))")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("VDOT: \(String(format: "%.2f", point.value))")
+                        Text("動態跑力: \(String(format: "%.2f", point.value))")
                             .font(.subheadline)
+                            .foregroundColor(.blue)
+                        if let weight = point.weightVdot {
+                            Text("加權跑力: \(String(format: "%.2f", weight))")
+                                .font(.subheadline)
+                                .foregroundColor(.orange)
+                        }
                     }
                     Spacer()
                     Button {
@@ -145,20 +151,45 @@ struct VDOTChartView: View {
             // Chart
             Chart {
                 ForEach(viewModel.vdotPoints) { point in
+                    // 動態跑力曲線
                     LineMark(
                         x: .value("日期", point.date),
                         y: .value("跑力", point.value)
                     )
-                    .foregroundStyle(.blue)
                     .interpolationMethod(.catmullRom)
+                    .foregroundStyle(by: .value("種類", "動態跑力"))
                     
+                    // 加權跑力曲線
+                    if let weight = point.weightVdot {
+                        LineMark(
+                            x: .value("日期", point.date),
+                            y: .value("跑力", weight)
+                        )
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(by: .value("種類", "加權跑力"))
+                    }
+                    
+                    // 動態跑力點
                     PointMark(
                         x: .value("日期", point.date),
                         y: .value("跑力", point.value)
                     )
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(by: .value("種類", "動態跑力"))
+                    
+                    // 加權跑力點
+                    if let weight = point.weightVdot {
+                        PointMark(
+                            x: .value("日期", point.date),
+                            y: .value("跑力", weight)
+                        )
+                        .foregroundStyle(by: .value("種類", "加權跑力"))
+                    }
                 }
             }
+            .chartForegroundStyleScale([
+                "動態跑力": Color.blue,
+                "加權跑力": Color.orange
+            ])
             .frame(height: 80)
             .chartYScale(domain: viewModel.yAxisRange)
             .chartXAxis(.hidden) // Hide X-axis
@@ -213,7 +244,7 @@ struct VDOTChartView: View {
             // Stats
             HStack(alignment: .top, spacing: 12) {
                 statsBox(
-                    title: "平均跑力",
+                    title: "加權跑力",
                     value: String(format: "%.2f", viewModel.averageVdot),
                     backgroundColor: Color.blue.opacity(0.15)
                 )

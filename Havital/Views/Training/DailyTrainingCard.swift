@@ -57,12 +57,15 @@ struct DailyTrainingCard: View {
                     Text({
                         switch day.type {
                         case .easyRun, .easy: return "輕鬆"
+                        case .recovery_run: return "恢復"
                         case .interval: return "間歇"
                         case .tempo: return "節奏"
                         case .longRun: return "長跑"
                         case .race: return "比賽"
                         case .rest: return "休息"
                         case .crossTraining: return "交叉訓練"
+                        case .lsd: return "長距離輕鬆跑"
+                        case .progression: return "漸速跑"
                         }
                     }())
                     .font(.subheadline)
@@ -70,22 +73,26 @@ struct DailyTrainingCard: View {
                     .padding(.vertical, 4)
                     .foregroundColor({
                         switch day.type {
-                        case .easyRun, .easy: return Color.green
+                        case .easyRun, .easy, .recovery_run: return Color.green
                         case .interval, .tempo: return Color.orange
                         case .longRun: return Color.blue
                         case .race: return Color.red
                         case .rest: return Color.gray
                         case .crossTraining: return Color.purple
+                        case .lsd: return Color.green
+                        case .progression: return Color.orange
                         }
                     }())
                     .background({
                         switch day.type {
-                        case .easyRun, .easy: return Color.green.opacity(0.2)
+                        case .easyRun, .easy, .recovery_run: return Color.green.opacity(0.2)
                         case .interval, .tempo: return Color.orange.opacity(0.2)
                         case .longRun: return Color.blue.opacity(0.2)
                         case .race: return Color.red.opacity(0.2)
                         case .rest: return Color.gray.opacity(0.2)
                         case .crossTraining: return Color.purple.opacity(0.2)
+                        case .lsd: return Color.green.opacity(0.2)
+                        case .progression: return Color.orange.opacity(0.2)
                         }
                     }())
                     .cornerRadius(8)

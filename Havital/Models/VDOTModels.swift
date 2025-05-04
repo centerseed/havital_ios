@@ -5,6 +5,7 @@ struct VDOTDataPoint: Identifiable, Hashable {
     let id = UUID()
     let date: Date
     let value: Double
+    let weightVdot: Double?
 }
 
 struct VDOTResponse: Codable {
@@ -24,9 +25,11 @@ struct VDOTData: Codable {
 struct VDOTEntry: Codable {
     let datetime: TimeInterval
     let dynamicVdot: Double
+    let weightVdot: Double
     
     enum CodingKeys: String, CodingKey {
         case datetime
         case dynamicVdot = "dynamic_vdot"
+        case weightVdot = "weight_vdot"
     }
 }

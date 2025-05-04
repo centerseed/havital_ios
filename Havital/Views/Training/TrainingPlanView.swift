@@ -13,7 +13,7 @@ struct WeekPlanContentView: View {
         Group {
             let selected = plan.weekOfPlan
             let current = currentTrainingWeek
-            if selected > plan.totalWeeks {
+            if current > plan.totalWeeks {
                 FinalWeekPromptView(viewModel: viewModel)
             } else if selected < current {
                 // 尚未生成且無課表，顯示產生新週提示
@@ -54,7 +54,7 @@ struct NewWeekPromptView: View {
                 // 加載失敗時顯示錯誤視圖
                 WeeklySummaryErrorView(error: error) {
                     Task {
-                        await viewModel.fetchWeeklySummary()
+                        await viewModel.createWeeklySummary()
                     }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
@@ -76,12 +76,12 @@ struct NewWeekPromptView: View {
                 // 未獲取回顧時，顯示取得回顧按鈕
                 Button(action: {
                     Task {
-                        await viewModel.fetchWeeklySummary()
+                        await viewModel.createWeeklySummary()
                     }
                 }) {
                     HStack {
                         Image(systemName: "warninglight")
-                        Text("取得\(viewModel.getLastTwoWeeksRange())訓練回顧")
+                        Text("取得\(viewModel.getLastWeekRangeString())訓練回顧")
                     }
                     .padding()
                     .background(Color.blue)
@@ -147,7 +147,7 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
                 WeeklySummaryErrorView(error: error) {
-                    Task { await viewModel.fetchWeeklySummary() }
+                    Task { await viewModel.createWeeklySummary() }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
                 WeeklySummaryView(
@@ -162,11 +162,11 @@ struct FinalWeekPromptView: View {
                 }
             } else {
                 Button(action: {
-                    Task { await viewModel.fetchWeeklySummary() }
+                    Task { await viewModel.createWeeklySummary() }
                 }) {
                     HStack {
                         Image(systemName: "doc.text.magnifyingglass")
-                        Text("取得\(viewModel.getLastTwoWeeksRange())訓練回顧")
+                        Text("取得\(viewModel.getLastWeekRangeString())訓練回顧")
                     }
                     .padding()
                     .background(Color.blue)
