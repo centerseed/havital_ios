@@ -15,7 +15,7 @@ struct WeekPlanContentView: View {
             let current = currentTrainingWeek
             if current > plan.totalWeeks {
                 FinalWeekPromptView(viewModel: viewModel)
-            } else if selected < current {
+            } else if selected < current  && viewModel.noWeeklyPlanAvailable{
                 // 尚未生成且無課表，顯示產生新週提示
                 NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: current)
             } else {
@@ -121,12 +121,12 @@ struct DailyTrainingListView: View {
             .padding(.horizontal, 4)
             
             // 顯示今天的訓練
-            if let todayTraining = plan.days.first(where: { viewModel.isToday(dayIndex: $0.dayIndex, planWeek: plan.weekOfPlan) }) {
+            if let todayTraining = plan.days.first(where: { viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) }) {
                 DailyTrainingCard(viewModel: viewModel, day: todayTraining, isToday: true)
             }
             
             // 顯示其他日的訓練
-            ForEach(plan.days.filter { !viewModel.isToday(dayIndex: $0.dayIndex, planWeek: plan.weekOfPlan) }) { day in
+            ForEach(plan.days.filter { !viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) }) { day in
                 DailyTrainingCard(viewModel: viewModel, day: day, isToday: false)
             }
         }
@@ -265,7 +265,7 @@ struct TrainingPlanView: View {
                 ProgressView("載入訓練計劃中...")
                     .foregroundColor(.gray)
                     .frame(height: 200)
-            } else if viewModel.noWeeklyPlanAvailable {
+            /*} else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek < viewModel.currentWeek {
                 VStack(spacing: 16) {
                     Text("第 \(viewModel.selectedWeek) 週尚無課表").font(.headline)
                         .multilineTextAlignment(.center)
@@ -273,7 +273,7 @@ struct TrainingPlanView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity, minHeight: 200)
+                .frame(maxWidth: .infinity, minHeight: 200)*/
             } else if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
                 WeekPlanContentView(
                     viewModel: viewModel,
@@ -315,12 +315,12 @@ struct TrainingPlanView: View {
                     }) {
                         Label("修改課表", systemImage: "slider.horizontal.3")
                     }
-                    /* 測試onboarding再打開*/
+                    /* 測試onboarding再打開*/*/
                     Button(action: {
                         showOnboardingConfirmation = true
                     }) {
                         Label("重新OnBoarding", systemImage: "arrow.clockwise")
-                    }*/
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
@@ -378,7 +378,7 @@ struct TrainingPlanView: View {
                 Text("載入失敗")
                     .font(.headline)
                     .foregroundColor(.primary)
-                Text(error.localizedDescription)
+                Text("")
                     .font(.body)
                     .foregroundColor(.red)
                 Button("重試", action: retryAction)

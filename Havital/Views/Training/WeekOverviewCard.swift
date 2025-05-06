@@ -194,6 +194,7 @@ struct WeekOverviewCard: View {
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                 }
+                                
                                 if item.weekPlan != nil {
                                     Button {
                                         Task { await viewModel.fetchWeekPlan(week: item.weekIndex, healthKitManager: healthKitManager) }
@@ -215,6 +216,7 @@ struct WeekOverviewCard: View {
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                 }
+                                
                             }
                         }
                         .padding(.vertical, 10)

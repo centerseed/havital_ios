@@ -107,7 +107,10 @@ struct VDOTChartView: View {
         .task {
             await viewModel.fetchVDOTData()
         }
-        .sheet(isPresented: $showingHeartRateZoneEditor) {
+        .sheet(isPresented: $showingHeartRateZoneEditor, onDismiss: {
+            viewModel.needUpdatedHrRange = false
+            UserDefaults.standard.set(false, forKey: "vdot_need_update_hr_range")
+        }) {
             HRRHeartRateZoneEditorView()
         }
         .refreshable {

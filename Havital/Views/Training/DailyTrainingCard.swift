@@ -15,26 +15,26 @@ struct DailyTrainingCard: View {
     @State private var isLoadingData = false
     
     var body: some View {
-        let isExpanded = isToday || viewModel.expandedDayIndices.contains(day.dayIndex)
+        let isExpanded = isToday || viewModel.expandedDayIndices.contains(day.dayIndexInt)
         
         VStack(alignment: .leading, spacing: 12) {
             // 點擊整個日期行可切換展開/摺疊狀態
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    if viewModel.expandedDayIndices.contains(day.dayIndex) {
-                        _ = viewModel.expandedDayIndices.remove(day.dayIndex)
+                    if viewModel.expandedDayIndices.contains(day.dayIndexInt) {
+                        _ = viewModel.expandedDayIndices.remove(day.dayIndexInt)
                     } else {
-                        _ = viewModel.expandedDayIndices.insert(day.dayIndex)
+                        _ = viewModel.expandedDayIndices.insert(day.dayIndexInt)
                     }
                 }
             }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 4) {
-                            Text(viewModel.weekdayName(for: day.dayIndex))
+                            Text(viewModel.weekdayName(for: day.dayIndexInt))
                                 .font(.headline)
                             // 添加具體日期顯示
-                            if let date = viewModel.getDateForDay(dayIndex: day.dayIndex) {
+                            if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
                                 Text(viewModel.formatShortDate(date))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -53,21 +53,8 @@ struct DailyTrainingCard: View {
                     
                     Spacer()
                     
-                    // 訓練類型標籤 - 確保休息日也顯示標籤
-                    Text({
-                        switch day.type {
-                        case .easyRun, .easy: return "輕鬆"
-                        case .recovery_run: return "恢復"
-                        case .interval: return "間歇"
-                        case .tempo: return "節奏"
-                        case .longRun: return "長跑"
-                        case .race: return "比賽"
-                        case .rest: return "休息"
-                        case .crossTraining: return "交叉訓練"
-                        case .lsd: return "長距離輕鬆跑"
-                        case .progression: return "漸速跑"
-                        }
-                    }())
+                    // 訓練類型標籤 - 使用 DayType.chineseName
+                    Text(day.type.chineseName)
                     .font(.subheadline)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -107,7 +94,7 @@ struct DailyTrainingCard: View {
             .buttonStyle(PlainButtonStyle())
             
             // 顯示該天的訓練記錄
-            if let workouts = viewModel.workoutsByDay[day.dayIndex], !workouts.isEmpty {
+            if let workouts = viewModel.workoutsByDay[day.dayIndexInt], !workouts.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     if !isExpanded {
                         Divider()
@@ -143,7 +130,7 @@ struct DailyTrainingCard: View {
                             } else {
                                 // 如果有多個訓練記錄，展開卡片
                                 withAnimation(.easeInOut(duration: 0.2)) {
-                                    _ = viewModel.expandedDayIndices.insert(day.dayIndex)
+                                    _ = viewModel.expandedDayIndices.insert(day.dayIndexInt)
                                 }
                             }
                         } label: {
@@ -166,81 +153,111 @@ struct DailyTrainingCard: View {
                     Text(day.dayTarget)
                         .font(.body)
                     
-                    if day.isTrainingDay, let trainingItems = day.trainingItems {
-                        // For interval training, show a special header with repeats info
-                        if day.type == .interval, trainingItems.count > 0, let repeats = trainingItems[0].goals.times {
-                            HStack {
-                                Text("間歇訓練")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.orange)
-                                Spacer()
-                                Text("\(repeats) × 重複")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.orange)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.orange.opacity(0.15))
-                                    .cornerRadius(12)
-                            }
-                            .padding(.top, 4)
-                        }
-                        
-                        // Show each training item
-                        ForEach(trainingItems) { item in
-                            VStack(alignment: .leading, spacing: 8) {
-                                // 標題及重複次數
-                                HStack {
-                                    Text(item.name)
-                                        .font(.subheadline)
-                                        .fontWeight(day.type == .interval ? .medium : .regular)
-                                        .foregroundColor(day.type == .interval ? .orange : .blue)
-                                    if day.type == .interval, let times = item.goals.times {
-                                        Text("× \(times)")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                    }
-                                    
-                                    if let pace = item.goals.pace {
-                                        Text(pace)
-                                            .font(.caption2)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                            .cornerRadius(12)
-                                    }
-                                    
-                                    if let hr = item.goals.heartRateRange {
-                                        Text("心率區間： \(hr.min)-\(hr.max)")
-                                            .font(.caption2)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.green.opacity(0.15))
-                                            .cornerRadius(12)
-                                    }
-                                    if let distance = item.goals.distanceKm {
-                                        Text(String(format: "%.1fkm", distance))
-                                            .font(.caption2)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                            .cornerRadius(12)
-                                    }
-                                    Spacer()
-                                }
-                                // 度量指標pills
-                                HStack(spacing: 2) {}
-                                    
-                                // 說明文字
-                                Text(item.runDetails)
+                    if day.isTrainingDay {
+                        // 對於無trainingItems的非間歇課表，顯示trainingDetails詳情
+                        if day.trainingItems == nil, let details = day.trainingDetails {
+                            // 描述文字
+                            if let desc = details.description {
+                                Text(desc)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
+                                    .padding(.vertical, 4)
                             }
-                            .padding(.vertical, 8)
+                            // 心率區間
+                            if let hr = details.heartRateRange {
+                                Text("心率區間：\(hr.min)-\(hr.max)")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.green.opacity(0.15))
+                                    .cornerRadius(12)
+                            }
+                            if let distance = details.distanceKm {
+                                Text(String(format: "%.1fkm", distance))
+                                    .font(.caption2)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                    .cornerRadius(12)
+                            }
                         }
                         
-                        // 顯示提示
+                        // For interval training, show a special header with repeats info
+                        if let trainingItems = day.trainingItems {
+                            if day.type == .interval, trainingItems.count > 0, let repeats = trainingItems[0].goals.times {
+                                HStack {
+                                    Text("間歇訓練")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.orange)
+                                    Spacer()
+                                    Text("\(repeats) × 重複")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.orange)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.orange.opacity(0.15))
+                                        .cornerRadius(12)
+                                }
+                                .padding(.top, 4)
+                            }
+                            
+                            // Show each training item
+                            ForEach(trainingItems) { item in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    // 標題及重複次數
+                                    HStack {
+                                        Text(item.name)
+                                            .font(.subheadline)
+                                            .fontWeight(day.type == .interval ? .medium : .regular)
+                                            .foregroundColor(day.type == .interval ? .orange : .blue)
+                                        if day.type == .interval, let times = item.goals.times {
+                                            Text("× \(times)")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                        }
+                                        
+                                        if let pace = item.goals.pace {
+                                            Text(pace)
+                                                .font(.caption2)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                                .cornerRadius(12)
+                                        }
+                                        
+                                        if let hr = item.goals.heartRateRange {
+                                            Text("心率區間： \(hr.min)-\(hr.max)")
+                                                .font(.caption2)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(Color.green.opacity(0.15))
+                                                .cornerRadius(12)
+                                        }
+                                        if let distance = item.goals.distanceKm {
+                                            Text(String(format: "%.1fkm", distance))
+                                                .font(.caption2)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                                .cornerRadius(12)
+                                        }
+                                        Spacer()
+                                    }
+                                    // 度量指標pills
+                                    HStack(spacing: 2) {}
+                                        
+                                    // 說明文字
+                                    Text(item.runDetails)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 8)
+                            }
+                        }
+                        
+                        // 提示（所有訓練日均顯示）
                         if let tips = day.tips {
                             Text("提示：\(tips)")
                                 .font(.caption2)
@@ -249,7 +266,7 @@ struct DailyTrainingCard: View {
                         }
                     }
                 }
-            } else if viewModel.workoutsByDay[day.dayIndex] == nil || viewModel.workoutsByDay[day.dayIndex]?.isEmpty == true {
+            } else if viewModel.workoutsByDay[day.dayIndexInt] == nil || viewModel.workoutsByDay[day.dayIndexInt]?.isEmpty == true {
                 // 摺疊時只顯示簡短的訓練目標摘要（當天無訓練記錄時）
                 Divider()
                     .padding(.vertical, 2)

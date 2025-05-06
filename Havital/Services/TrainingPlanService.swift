@@ -48,10 +48,11 @@ final class TrainingPlanService {
             path: "/plan/race_run/overview")
     }
     
+    /*
     func getWeeklyPlan(caller: String = #function) async throws -> WeeklyPlan {
         return try await APIClient.shared.request(WeeklyPlan.self,
             path: "/plan/race_run/weekly")
-    }
+    }*/
     
     /// 週計畫查詢錯誤
     enum WeeklyPlanError: Error {

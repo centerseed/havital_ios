@@ -68,6 +68,14 @@ class WorkoutService {
         Logger.info("成功上傳運動數據")
     }
     
+    // 新增 Workout Summary API 方法
+    func getWorkoutSummary(workoutId: String) async throws -> WorkoutSummary {
+        let path = "/workout/summary/\(workoutId)"
+        let response: WorkoutSummaryResponse = try await APIClient.shared.request(WorkoutSummaryResponse.self,
+            path: path, method: "GET")
+        return response.data.workout
+    }
+    
     // WorkoutService.swift 中添加的方法
 
     // 添加到 WorkoutService 類中

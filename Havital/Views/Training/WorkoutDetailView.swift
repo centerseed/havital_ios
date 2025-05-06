@@ -1,6 +1,6 @@
-import SwiftUI
-import HealthKit
 import Charts
+import HealthKit
+import SwiftUI
 
 struct WorkoutDetailView: View {
     @StateObject private var viewModel: WorkoutDetailViewModel
@@ -8,18 +8,24 @@ struct WorkoutDetailView: View {
     @State private var showHRZoneInfo = false
     @State private var dynamicVDOT: Double?
     @State private var isCalculatingVDOT = false
-    
+    @State private var summaryTypeChinese: String?
+    @State private var hrZonePct: ZonePct?
+
     private let vdotCalculator = VDOTCalculator()
-    
-    init(workout: HKWorkout, healthKitManager: HealthKitManager, initialHeartRateData: [(Date, Double)], initialPaceData: [(Date, Double)]) {
-        _viewModel = StateObject(wrappedValue: WorkoutDetailViewModel(
-            workout: workout,
-            healthKitManager: healthKitManager,
-            initialHeartRateData: initialHeartRateData,
-            initialPaceData: initialPaceData
-        ))
+
+    init(
+        workout: HKWorkout, healthKitManager: HealthKitManager,
+        initialHeartRateData: [(Date, Double)], initialPaceData: [(Date, Double)]
+    ) {
+        _viewModel = StateObject(
+            wrappedValue: WorkoutDetailViewModel(
+                workout: workout,
+                healthKitManager: healthKitManager,
+                initialHeartRateData: initialHeartRateData,
+                initialPaceData: initialPaceData
+            ))
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -29,26 +35,26 @@ struct WorkoutDetailView: View {
                     VStack(alignment: .center, spacing: 8) {
                         // 運動類型和日期
                         VStack(alignment: .center, spacing: 4) {
-                            Text(viewModel.workoutType)
+                            Text("\(summaryTypeChinese ?? viewModel.workoutType)")
                                 .font(.headline)
                                 .foregroundColor(.primary)
-                            
+
                             Text(formatDate(viewModel.workout.startDate))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        
+
                         Divider()
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                        
+
                         // 動態跑力標題和值，更美觀的佈局
                         Text("動態跑力")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.bottom, 2)
-                        
+
                         if isCalculatingVDOT {
                             ProgressView()
                                 .padding(.vertical, 12)
@@ -69,28 +75,28 @@ struct WorkoutDetailView: View {
                     .cornerRadius(12)
                     .shadow(radius: 2)
                     .frame(maxWidth: .infinity)
-                    
+
                     // 基本信息卡片 - 對稱佈局
                     VStack(alignment: .leading, spacing: 12) {
                         Text("基本資訊")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        
+
                         VStack(alignment: .leading, spacing: 12) {
                             // 時間與距離
                             HStack {
                                 Label(viewModel.duration, systemImage: "clock")
                                     .foregroundColor(.secondary)
                             }
-                            
+
                             if let distance = viewModel.distance {
                                 HStack {
                                     Label(distance, systemImage: "figure.walk")
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            
+
                             // 配速與卡路里
                             if let pace = viewModel.pace {
                                 HStack {
@@ -98,7 +104,7 @@ struct WorkoutDetailView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            
+
                             if let calories = viewModel.calories {
                                 HStack {
                                     Label(calories, systemImage: "flame.fill")
@@ -115,21 +121,21 @@ struct WorkoutDetailView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal)
-                
+
                 // 心率變化圖表
                 heartRateChartSection
                     .padding(.horizontal)
-                
+
                 // 配速變化圖表
                 if !viewModel.paces.isEmpty {
                     paceChartSection
                         .padding(.horizontal)
                 }
-                
+
                 // 心率區間分佈
                 heartRateZoneSection
                     .padding(.horizontal)
-                
+
                 // 同步狀態顯示
                 if viewModel.isUploaded, let uploadTime = viewModel.uploadTime {
                     uploadStatusSection(uploadTime)
@@ -163,7 +169,7 @@ struct WorkoutDetailView: View {
             HeartRateZoneInfoView()
         }
     }
-    
+
     private func uploadStatusSection(_ uploadTime: Date) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -183,12 +189,12 @@ struct WorkoutDetailView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     private var heartRateChartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("心率變化")
                 .font(.headline)
-            
+
             if viewModel.isLoading {
                 VStack {
                     ProgressView("載入心率數據中...")
@@ -217,13 +223,13 @@ struct WorkoutDetailView: View {
                         Text("最高心率")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text(viewModel.maxHeartRate.replacingOccurrences(of: " bpm", with: ""))
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.red)
-                            
+
                             Text("bpm")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
@@ -233,20 +239,20 @@ struct WorkoutDetailView: View {
                     .padding(.horizontal, 12)
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(8)
-                    
+
                     // 平均心率 (可選)
                     if let avgHR = viewModel.averageHeartRate {
                         VStack(alignment: .center, spacing: 4) {
                             Text("平均心率")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             HStack(alignment: .lastTextBaseline, spacing: 2) {
                                 Text("\(Int(avgHR))")
                                     .font(.title3)
                                     .fontWeight(.bold)
                                     .foregroundColor(.purple)
-                                
+
                                 Text("bpm")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
@@ -257,19 +263,19 @@ struct WorkoutDetailView: View {
                         .background(Color.purple.opacity(0.1))
                         .cornerRadius(8)
                     }
-                    
+
                     // 最低心率
                     VStack(alignment: .center, spacing: 4) {
                         Text("最低心率")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text(viewModel.minHeartRate.replacingOccurrences(of: " bpm", with: ""))
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
-                            
+
                             Text("bpm")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
@@ -282,7 +288,7 @@ struct WorkoutDetailView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 4)
-                
+
                 Chart {
                     ForEach(viewModel.heartRates) { point in
                         LineMark(
@@ -291,7 +297,7 @@ struct WorkoutDetailView: View {
                         )
                         .foregroundStyle(Color.red.gradient)
                         .interpolationMethod(.catmullRom)
-                        
+
                         AreaMark(
                             x: .value("時間", point.time),
                             y: .value("心率", point.value)
@@ -312,7 +318,12 @@ struct WorkoutDetailView: View {
                         // 在這裡可以自定義繪製格線
                         ZStack {
                             // 繪製水平格線
-                            ForEach(Array(stride(from: viewModel.yAxisRange.min, to: viewModel.yAxisRange.max, by: 20)), id: \.self) { yValue in
+                            ForEach(
+                                Array(
+                                    stride(
+                                        from: viewModel.yAxisRange.min,
+                                        to: viewModel.yAxisRange.max, by: 20)), id: \.self
+                            ) { yValue in
                                 if let yPosition = proxy.position(forY: yValue) {
                                     Rectangle()
                                         .fill(Color.gray.opacity(0.2))
@@ -341,15 +352,15 @@ struct WorkoutDetailView: View {
                 .chartYScale(domain: viewModel.yAxisRange.min...viewModel.yAxisRange.max)
                 .chartXAxis {
                     AxisMarks(values: .stride(by: .minute, count: 10)) { value in
-                            if let date = value.as(Date.self) {
-                                AxisValueLabel {
-                                    if let date = value.as(Date.self) {
-                                                    Text("\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))")
-                                                        .font(.caption)
-                                                }
-                                }
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel {
+                                Text(
+                                    "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
+                                )
+                                .font(.caption)
                             }
                         }
+                    }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .automatic) { value in
@@ -362,7 +373,7 @@ struct WorkoutDetailView: View {
                     }
                 }
                 .chartYScale(domain: viewModel.yAxisRange.min...(viewModel.yAxisRange.max + 10))
-                
+
             }
         }
         .padding()
@@ -370,12 +381,12 @@ struct WorkoutDetailView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     private var paceChartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("配速變化")
                 .font(.headline)
-            
+
             if viewModel.paces.isEmpty {
                 ContentUnavailableView(
                     "沒有配速數據",
@@ -396,9 +407,9 @@ struct WorkoutDetailView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.green)
                         }
-                        
+
                         Spacer()
-                        
+
                         HStack(spacing: 4) {
                             Text("最慢:")
                                 .font(.caption)
@@ -409,20 +420,20 @@ struct WorkoutDetailView: View {
                                 .foregroundColor(.orange)
                         }
                     }
-                    
+
                     Chart {
                         ForEach(viewModel.paces) { point in
                             // 將配速從 m/s 轉換為 min/km 用於顯示（越低越快，所以反向處理）
                             LineMark(
                                 x: .value("時間", point.time),
-                                y: .value("配速", 1000 / point.value) // 轉換為秒/公里
+                                y: .value("配速", 1000 / point.value)  // 轉換為秒/公里
                             )
                             .foregroundStyle(Color.green.gradient)
                             .interpolationMethod(.catmullRom)
-                            
+
                             AreaMark(
                                 x: .value("時間", point.time),
-                                y: .value("配速", 1000 / point.value) // 轉換為秒/公里
+                                y: .value("配速", 1000 / point.value)  // 轉換為秒/公里
                             )
                             .foregroundStyle(Color.green.opacity(0.1))
                             .interpolationMethod(.catmullRom)
@@ -434,8 +445,10 @@ struct WorkoutDetailView: View {
                         AxisMarks(values: .stride(by: .minute, count: 10)) { value in
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
-                                    Text("\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))")
-                                        .font(.caption)
+                                    Text(
+                                        "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
+                                    )
+                                    .font(.caption)
                                 }
                             }
                         }
@@ -471,112 +484,72 @@ struct WorkoutDetailView: View {
     // 修正 Y 軸範圍計算，確保在適當範圍內顯示
     private var paceChartYRange: ClosedRange<Double> {
         if viewModel.paces.isEmpty {
-            return 300...600 // 默認範圍 (約 5:00-10:00 min/km)
+            return 300...600  // 默認範圍 (約 5:00-10:00 min/km)
         }
-        
+
         // 將速度 (m/s) 轉換為配速 (秒/km)
         let paces = viewModel.paces.map { 1000 / $0.value }
-        
+
         // 找出最快和最慢的配速
         guard let min = paces.min(), let max = paces.max() else {
             return 300...600
         }
-        
+
         // 加入一些邊距
         let padding = (max - min) * 0.1
         let lowerBound = Swift.max(min - padding, 0)
         let upperBound = max + padding
-        
+
         return lowerBound...upperBound
     }
-    
-    // 心率區間分佈區塊 - 簡化版
+
+    // 心率區間分佈 (使用後端返回資料)
     private var heartRateZoneSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("心率區間分佈")
-                    .font(.headline)
-                
-                Text("(HRR)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(4)
-                
-                Spacer()
-                
-                // 新增：心率區間說明按鈕
-                Button {
-                    showHRZoneInfo = true
-                } label: {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            
-            if viewModel.isLoading {
-                ProgressView("載入數據中...")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-            } else if viewModel.heartRates.isEmpty {
-                Text("無心率數據")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-            } else {
-                if viewModel.isLoadingHRRZones {
-                    ProgressView("計算心率區間中...")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical)
-                } else {
-                    // 簡化的心率區間分佈展示
-                    VStack(spacing: 10) {
-                        // 首先顯示心率區間分佈圖表
-                        let sortedZones = viewModel.hrrZones.sorted(by: { $0.zone < $1.zone })
-                        
-                        // 使用條形圖顯示時間分佈
-                        Chart {
-                            ForEach(sortedZones, id: \.zone) { zone in
-                                let duration = viewModel.hrrZoneDistribution[zone.zone] ?? 0
-                                let minutes = duration / 60
-                                
-                                if minutes > 0 {
-                                    BarMark(
-                                        x: .value("區間", "區間 \(zone.zone)"),
-                                        y: .value("分鐘", minutes)
-                                    )
-                                    .foregroundStyle(zoneColor(for: zone.zone))
-                                    .annotation(position: .top) {
-                                        Text(viewModel.formatZoneDuration(duration))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("心率區間分佈")
+                .font(.headline)
+            if let pct = hrZonePct {
+                Chart {
+                    let order: [ZoneType] = [.recovery, .easy, .marathon, .threshold, .anaerobic, .interval]
+                    ForEach(order, id: \.self) { zone in
+                        let value: Double = {
+                            switch zone {
+                            case .anaerobic: return pct.anaerobic
+                            case .easy:      return pct.easy
+                            case .interval:  return pct.interval
+                            case .marathon:  return pct.marathon
+                            case .recovery:  return pct.recovery
+                            case .threshold: return pct.threshold
                             }
-                        }
-                        .frame(height: 150)
-                        .padding(.vertical, 8)
-                        
-                        // 區間顏色圖例
-                        HStack(spacing: 8) {
-                            ForEach(sortedZones, id: \.zone) { zone in
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(zoneColor(for: zone.zone))
-                                        .frame(width: 8, height: 8)
-                                    
-                                    Text("\(zone.zone): \(zone.name)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity)
+                        }()
+                        BarMark(
+                            x: .value("區間", zone.chineseName),
+                            y: .value("比例", value)
+                        )
+                        .foregroundStyle({
+                            switch zone {
+                            case .recovery:  return Color.gray
+                            case .easy:      return Color.blue
+                            case .marathon:  return Color.green
+                            case .threshold: return Color.yellow
+                            case .anaerobic: return Color.red
+                            case .interval:  return Color.purple
                             }
+                        }())
+                        .annotation(position: .top) {
+                            Text("\(Int(value))%")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.horizontal)
                     }
                 }
+                .frame(height: 150)
+            } else {
+                ContentUnavailableView(
+                    "無法獲取心率區間",
+                    systemImage: "heart.slash",
+                    description: Text("請稍後再試")
+                )
             }
         }
         .padding()
@@ -584,19 +557,20 @@ struct WorkoutDetailView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - 輔助函數
-    
+
     private func loadWorkoutData() {
         // 計算動態跑力
         isCalculatingVDOT = true
-        
+
         Task {
             do {
                 // 使用與WorkoutSummaryRow相同的過濾邏輯
-                let heartRateData = try await viewModel.healthKitManager.fetchHeartRateData(for: viewModel.workout)
+                let heartRateData = try await viewModel.healthKitManager.fetchHeartRateData(
+                    for: viewModel.workout)
                 var avgHR: Double = 0
-                
+
                 // 剔除首尾異常值
                 if heartRateData.count >= 3 {
                     let trimmedHeartRates = heartRateData[1..<(heartRateData.count - 1)]
@@ -611,32 +585,71 @@ struct WorkoutDetailView: View {
                     }
                     return
                 }
-                
+
                 // 獲取用戶的最大心率和靜息心率
                 let maxHR = UserPreferenceManager.shared.maxHeartRate ?? 180
                 let restingHR = UserPreferenceManager.shared.restingHeartRate ?? 60
-                
-                // 計算動態跑力
-                if let distance = viewModel.workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+
+                if let distance = viewModel.workout.totalDistance?.doubleValue(for: .meter()),
+                    distance > 0
+                {
+                    // 本地計算 VDOT
                     let distanceKm = distance / 1000
                     let paceInSeconds = viewModel.workout.duration / distance * 1000
                     let paceMinutes = Int(paceInSeconds) / 60
                     let paceSeconds = Int(paceInSeconds) % 60
                     let paceStr = String(format: "%d:%02d", paceMinutes, paceSeconds)
-                    
-                    // 使用VDOT計算器計算動態跑力
-                    let vdot = vdotCalculator.calculateDynamicVDOTFromPace(
+                    let localVdot = vdotCalculator.calculateDynamicVDOTFromPace(
                         distanceKm: distanceKm,
                         paceStr: paceStr,
                         hr: avgHR,
                         maxHR: Double(maxHR),
                         restingHR: Double(restingHR)
                     )
-                    
-                    await MainActor.run {
-                        self.dynamicVDOT = vdot
-                        viewModel.averageHeartRate = avgHR
-                        self.isCalculatingVDOT = false
+
+                    // 組合 workoutId: type_startTs_distM
+                    let type: String = {
+                        switch viewModel.workout.workoutActivityType {
+                        case .running, .walking, .trackAndField: return "run"
+                        case .cycling: return "cycling"
+                        case .swimming, .swimBikeRun: return "swim"
+                        case .highIntensityIntervalTraining, .crossTraining,
+                            .functionalStrengthTraining:
+                            return "hiit"
+                        case .traditionalStrengthTraining: return "strength"
+                        case .yoga, .mindAndBody: return "yoga"
+                        default: return "other"
+                        }
+                    }()
+                    let startTs = Int(viewModel.workout.startDate.timeIntervalSince1970)
+                    let distM = Int(distance)
+                    let workoutId = "\(type)_\(startTs)_\(distM)"
+
+                    // 試圖從後端獲取 summary，若失敗則使用 localVdot
+                    do {
+                        let summary = try await WorkoutService.shared.getWorkoutSummary(
+                            workoutId: workoutId)
+                        await MainActor.run {
+                            self.dynamicVDOT = summary.vdot
+                            viewModel.averageHeartRate = avgHR
+                            // 使用 DayType 擴充的中文名稱
+                            self.summaryTypeChinese =
+                                DayType(rawValue: summary.type)?.chineseName ?? summary.type
+                            self.hrZonePct = summary.hrZonePct
+                            self.isCalculatingVDOT = false
+                        }
+                    } catch {
+                        print("取得 workout summary 失敗: \(error)，使用 localVdot")
+                        await MainActor.run {
+                            self.dynamicVDOT = localVdot
+                            viewModel.averageHeartRate = avgHR
+                            // fallback 顯示原始 workoutType
+                            self.summaryTypeChinese =
+                                DayType(rawValue: viewModel.workoutType)?.chineseName
+                                ?? viewModel.workoutType
+                            self.hrZonePct = nil
+                            self.isCalculatingVDOT = false
+                        }
                     }
                 } else {
                     await MainActor.run {
@@ -651,19 +664,19 @@ struct WorkoutDetailView: View {
             }
         }
     }
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd HH:mm"
         return formatter.string(from: date)
     }
-    
+
     private func formatUploadTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd HH:mm"
         return formatter.string(from: date)
     }
-    
+
     private func zoneColor(for zone: Int) -> Color {
         switch zone {
         case 1: return .blue
@@ -674,30 +687,28 @@ struct WorkoutDetailView: View {
         default: return .gray
         }
     }
-    
+
     // 配速圖表相關函數
-    
+
     // 獲取最快配速（最大值）
     private func getMaxPace() -> Double {
         guard !viewModel.paces.isEmpty else { return 0 }
         return viewModel.paces.map { $0.value }.max() ?? 0
     }
-    
+
     // 獲取最慢配速（最小值）
     private func getMinPace() -> Double {
         guard !viewModel.paces.isEmpty else { return 0 }
         return viewModel.paces.map { $0.value }.min() ?? 0
     }
-    
-   
-    
+
     // 將 m/s 轉換為 min:ss/km 格式
     private func formatPaceFromMetersPerSecond(_ metersPerSecond: Double) -> String {
         guard metersPerSecond > 0 else { return "--:--" }
-        
+
         // 計算每公里秒數
         let secondsPerKm = 1000 / metersPerSecond
-        
+
         return formatPaceFromSeconds(secondsPerKm)
     }
 }

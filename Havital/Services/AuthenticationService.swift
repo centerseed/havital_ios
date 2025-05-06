@@ -43,8 +43,8 @@ class AuthenticationService: ObservableObject {
     // 新增一個方法來刷新週計劃
     private func refreshWeeklyPlanAfterLogin() async {
         do {
-            let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
-            TrainingPlanStorage.saveWeeklyPlan(newPlan)
+            //let newPlan = try await TrainingPlanService.shared.getWeeklyPlan()
+            //TrainingPlanStorage.saveWeeklyPlan(newPlan)
             print("登入後成功更新週訓練計劃")
         } catch {
             print("登入後更新週訓練計劃失敗: \(error)")

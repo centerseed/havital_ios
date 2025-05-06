@@ -72,8 +72,8 @@ struct WeeklyPlan: Codable {
 }
 
 struct TrainingDay: Codable, Identifiable {
-    var id: String { "\(dayIndex)" }
-    let dayIndex: Int
+    var id: String { dayIndex }
+    let dayIndex: String
     let dayTarget: String
     let reason: String?
     let tips: String?
@@ -89,12 +89,37 @@ struct TrainingDay: Codable, Identifiable {
         case trainingDetails = "training_details"
     }
     
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // 支援 String 或 Int 格式的 day_index
+        if let idx = try? container.decode(String.self, forKey: .dayIndex) {
+            dayIndex = idx
+        } else if let idxInt = try? container.decode(Int.self, forKey: .dayIndex) {
+            dayIndex = String(idxInt)
+        } else {
+            throw DecodingError.typeMismatch(String.self,
+              DecodingError.Context(codingPath: [CodingKeys.dayIndex],
+                debugDescription: "day_index 必須為 String 或 Int"))
+        }
+        dayTarget = try container.decode(String.self, forKey: .dayTarget)
+        reason = try container.decodeIfPresent(String.self, forKey: .reason)
+        tips = try container.decodeIfPresent(String.self, forKey: .tips)
+        trainingType = try container.decode(String.self, forKey: .trainingType)
+        trainingDetails = try container.decodeIfPresent(TrainingDetails.self, forKey: .trainingDetails)
+    }
+    
     var type: DayType {
         return DayType(rawValue: trainingType) ?? .rest
     }
     
     var isTrainingDay: Bool {
         return type != .rest
+    }
+    
+    // 將 dayIndex(String) 轉為 Int 用於 UI 判斷
+    var dayIndexInt: Int {
+        return Int(dayIndex) ?? 0
     }
     
     var trainingItems: [WeeklyTrainingItem]? {

@@ -11,6 +11,18 @@ struct WorkoutSummaryRow: View {
     @EnvironmentObject private var healthKitManager: HealthKitManager
     private let vdotCalculator = VDOTCalculator()
     
+    // 根據 workout type 選擇圖示
+    private var workoutIconName: String {
+        switch workout.workoutActivityType {
+        case .running: return "figure.run"
+        case .walking: return "figure.walk"
+        case .cycling: return "bicycle"
+        case .swimming: return "drop.fill"
+        case .hiking: return "figure.hiking"
+        default: return "questionmark"
+        }
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
             // 圓形圖標顯示運動類型
@@ -19,21 +31,27 @@ struct WorkoutSummaryRow: View {
                     .fill(Color.blue.opacity(0.2))
                     .frame(width: 36, height: 36)
                 
-                Image(systemName: "figure.run")
+                Image(systemName: workoutIconName)
                     .foregroundColor(.blue)
                     .font(.system(size: 16))
             }
             
             VStack(alignment: .leading, spacing: 4) {
                 // 顯示動態跑力 (Dynamic VDOT)
-                if isLoadingVDOT {
-                    Text("計算動態跑力中...")
-                        .font(.subheadline)
-                        .foregroundColor(.white)
-                } else if let vdot = dynamicVDOT {
-                    Text("動態跑力：\(String(format: "%.1f", vdot))")
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
+                if workout.workoutActivityType == .running {
+                    if isLoadingVDOT {
+                        Text("計算動態跑力中...")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                    } else if let vdot = dynamicVDOT {
+                        Text("動態跑力：\(String(format: "%.1f", vdot))")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                    } else {
+                        Text("動態跑力：--")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                    }
                 } else {
                     Text("動態跑力：--")
                         .font(.subheadline)

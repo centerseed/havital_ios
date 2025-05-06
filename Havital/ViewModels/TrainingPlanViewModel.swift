@@ -15,6 +15,7 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var isLoadingWorkouts = false
     @Published var trainingOverview: TrainingPlanOverview?  // 訓練計劃概覽
     @Published var selectedWeek: Int = 1
+    @Published var currentWeek: Int = 1
     /// 無對應週計畫時顯示
     @Published var noWeeklyPlanAvailable: Bool = false
     /// 當週尚無週計劃時顯示產生新週提示
@@ -65,6 +66,32 @@ class TrainingPlanViewModel: ObservableObject {
     // Modifications data
     @Published var modifications: [Modification] = []
     @Published var modDescription: String = ""
+
+    // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
+    init() {
+        // 從本地讀取概覽
+        let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
+        if !savedOverview.createdAt.isEmpty {
+            self.trainingOverview = savedOverview
+            self.currentWeek = calculateCurrentTrainingWeek() ?? 1
+        }
+        // 若本地無 createdAt，則非同步從 API 獲取並保存
+        Task {
+            if savedOverview.createdAt.isEmpty {
+                do {
+                    let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
+                    // 保存到本地
+                    TrainingPlanStorage.saveTrainingPlanOverview(overview)
+                    await MainActor.run {
+                        self.trainingOverview = overview
+                        self.currentWeek = calculateCurrentTrainingWeek() ?? 1
+                    }
+                } catch {
+                    Logger.error("初始化獲取訓練計劃概覽失敗: \(error)")
+                }
+            }
+        }
+    }
 
     // 獲取訓練回顧的方法
     func createWeeklySummary() async {
@@ -233,6 +260,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // 訓練週數 = 週數差異 + 1（含第一週）
         let trainingWeek = weekDiff + 1
+        Logger.info("當前為訓練計劃的第 \(trainingWeek) 週")
 
         return trainingWeek
     }
@@ -277,8 +305,11 @@ class TrainingPlanViewModel: ObservableObject {
 
             // 異步從API獲取最新數據
             do {
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(
-                    caller: "loadWeeklyPlan")
+                guard let overviewId = trainingOverview?.id else { throw NSError() }
+                Logger.info("Load weekly plan with planId: \(overviewId)_\(currentWeek).")
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                    planId: "\(overviewId)_\(self.currentWeek)")
+                
                 // 檢查計劃是否有變更
                 let planChanged =
                     savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
@@ -308,8 +339,12 @@ class TrainingPlanViewModel: ObservableObject {
         } else {
             // 本地無數據，必須等待API
             do {
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(
-                    caller: "loadWeeklyPlan")
+                guard let overviewId = trainingOverview?.id else { throw NSError() }
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                    planId: "\(overviewId)_\(self.currentWeek)")
+                
+                //let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(planId: plan)(
+                //    caller: "loadWeeklyPlan")
 
                 await MainActor.run {
                     weeklyPlan = newPlan
@@ -568,8 +603,12 @@ class TrainingPlanViewModel: ObservableObject {
 
             // 產生成功後重新載入課表
             do {
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(
-                    caller: "generateNextWeekPlan")
+                //let newPlan = try await TrainingPlanService.shared.getWeeklyPlan(
+                //    caller: "generateNextWeekPlan")
+                
+                guard let overviewId = trainingOverview?.id else { throw NSError() }
+                let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                    planId: "\(overviewId)_\(self.currentWeek)")
 
                 // 更新當前計劃週數
                 currentPlanWeek = newPlan.weekOfPlan
@@ -654,8 +693,12 @@ class TrainingPlanViewModel: ObservableObject {
             do {
                 Logger.debug("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
                 // 使用獨立 Task 呼叫 Service，避免 Button 或 View 取消影響
+                guard let overviewId = trainingOverview?.id else { throw NSError() }
+                let weekId = "\(overviewId)_\(self.currentWeek)"
+                Logger.info("Load weekly plan with planId: \(weekId).")
+                
                 let newPlan = try await Task.detached(priority: .userInitiated) {
-                    try await TrainingPlanService.shared.getWeeklyPlan(caller: "refreshWeeklyPlan")
+                    try await TrainingPlanService.shared.getWeeklyPlanById(planId: weekId)
                 }.value
 
                 // 檢查計劃是否有變更
@@ -818,8 +861,8 @@ class TrainingPlanViewModel: ObservableObject {
         if let plan = weeklyPlan {
             await MainActor.run {
                 for day in plan.days
-                where isToday(dayIndex: day.dayIndex, planWeek: plan.weekOfPlan) {
-                    expandedDayIndices.insert(day.dayIndex)
+                where isToday(dayIndex: day.dayIndexInt, planWeek: plan.weekOfPlan) {
+                    expandedDayIndices.insert(day.dayIndexInt)
                     break
                 }
             }
@@ -841,9 +884,10 @@ class TrainingPlanViewModel: ObservableObject {
             // 獲取指定時間範圍內的鍛煉
             let workouts = try await healthKitManager.fetchWorkoutsForDateRange(
                 start: weekStart, end: weekEnd)
-
+            // 過濾僅包含跑步類型的鍛煉
+            let runWorkouts = workouts.filter { $0.workoutActivityType == .running }
             // 計算跑步距離總和
-            let totalDistance = calculateTotalDistance(workouts)
+            let totalDistance = calculateTotalDistance(runWorkouts)
 
             Logger.debug("在入週跑量完成，週跑量為\(totalDistance)公里")
 
