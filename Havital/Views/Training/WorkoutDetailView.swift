@@ -29,96 +29,122 @@ struct WorkoutDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // 頂部卡片：動態跑力與基本信息
-                HStack(spacing: 12) {
-                    // 動態跑力卡片 - 改進版
-                    VStack(alignment: .center, spacing: 8) {
-                        // 運動類型和日期
-                        VStack(alignment: .center, spacing: 4) {
-                            Text("\(summaryTypeChinese ?? viewModel.workoutType)")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            Text(formatDate(viewModel.workout.startDate))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                // 頂部卡片：依照要求調整版型
+                VStack(spacing: 12) {
+                    
+                    
+                   
+                    
+                    // 動態跑力和訓練負荷 + 基本資訊
+                    HStack(spacing: 20) {
+                        // 左側：動態跑力和訓練負荷
+                        VStack(spacing: 20) {
+                            // 動態跑力
+                            VStack(alignment: .center, spacing: 4) {
+                                Text("動態跑力")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                if isCalculatingVDOT {
+                                    ProgressView()
+                                        .frame(height: 30)
+                                } else if let vdot = dynamicVDOT {
+                                    Text(String(format: "%.1f", vdot))
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.blue)
+                                } else {
+                                    Text("--")
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            // 訓練負荷
+                            if let trimp = viewModel.trainingLoad {
+                                VStack(alignment: .center, spacing: 4) {
+                                    Text("訓練負荷")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text(String(format: "%.1f", trimp))
+                                        .font(.system(size: 30, weight: .bold))
+                                        .foregroundColor(.blue)
+                                }
+                            }
                         }
                         .frame(maxWidth: .infinity)
-
-                        Divider()
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-
-                        // 動態跑力標題和值，更美觀的佈局
-                        Text("動態跑力")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.bottom, 2)
-
-                        if isCalculatingVDOT {
-                            ProgressView()
-                                .padding(.vertical, 12)
-                        } else if let vdot = dynamicVDOT {
-                            Text(String(format: "%.1f", vdot))
-                                .font(.system(size: 42, weight: .bold))
-                                .foregroundColor(.blue)
-                                .padding(.vertical, 4)
-                        } else {
-                            Text("--")
-                                .font(.system(size: 42, weight: .bold))
-                                .foregroundColor(.secondary)
-                                .padding(.vertical, 4)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(radius: 2)
-                    .frame(maxWidth: .infinity)
-
-                    // 基本信息卡片 - 對稱佈局
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("基本資訊")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        VStack(alignment: .leading, spacing: 12) {
-                            // 時間與距離
-                            HStack {
-                                Label(viewModel.duration, systemImage: "clock")
+                        
+                        // 右側：基本資訊
+                        VStack(alignment: .leading, spacing: 10) {
+                            // 訓練類型和日期
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("\(summaryTypeChinese ?? viewModel.workout.workoutActivityType.name)")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                    
+                                Text(formatDate(viewModel.workout.startDate))
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-
+                            
+                            // 分隔線
+                            Divider()
+                                .padding(.horizontal)
+                            
+                            // 距離
                             if let distance = viewModel.distance {
-                                HStack {
-                                    Label(distance, systemImage: "figure.walk")
-                                        .foregroundColor(.secondary)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "figure.walk")
+                                        .font(.subheadline)
+                                        .frame(width: 16)
+                                    Text(distance)
+                                        .font(.subheadline)
                                 }
+                                .foregroundColor(.secondary)
                             }
-
-                            // 配速與卡路里
+                            
+                            // 時間
+                            HStack(spacing: 6) {
+                                Image(systemName: "clock")
+                                    .font(.subheadline)
+                                    .frame(width: 16)
+                                Text(viewModel.duration)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(.secondary)
+                            
+                            // 配速
                             if let pace = viewModel.pace {
-                                HStack {
-                                    Label(pace, systemImage: "stopwatch")
-                                        .foregroundColor(.secondary)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "stopwatch")
+                                        .font(.subheadline)
+                                        .frame(width: 16)
+                                    Text(pace)
+                                        .font(.subheadline)
                                 }
+                                .foregroundColor(.secondary)
                             }
-
+                            
+                            // 卡路里
                             if let calories = viewModel.calories {
-                                HStack {
-                                    Label(calories, systemImage: "flame.fill")
-                                        .foregroundColor(.secondary)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "flame.fill")
+                                        .font(.subheadline)
+                                        .frame(width: 16)
+                                    Text(calories)
+                                        .font(.subheadline)
                                 }
+                                .foregroundColor(.secondary)
                             }
                         }
-                        .font(.subheadline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .padding(.horizontal)
                     .padding()
                     .background(Color(.systemBackground))
                     .cornerRadius(12)
                     .shadow(radius: 2)
-                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal)
 
@@ -423,7 +449,7 @@ struct WorkoutDetailView: View {
 
                     Chart {
                         ForEach(viewModel.paces) { point in
-                            // 將配速從 m/s 轉換為 min/km 用於顯示（越低越快，所以反向處理）
+                            // 將配速從 m/s 轉換為 min:ss/km 用於顯示（越低越快，所以反向處理）
                             LineMark(
                                 x: .value("時間", point.time),
                                 y: .value("配速", 1000 / point.value)  // 轉換為秒/公里
@@ -561,106 +587,62 @@ struct WorkoutDetailView: View {
     // MARK: - 輔助函數
 
     private func loadWorkoutData() {
-        // 計算動態跑力
+        // 開始載入動態跑力
         isCalculatingVDOT = true
-
         Task {
-            do {
-                // 使用與WorkoutSummaryRow相同的過濾邏輯
-                let heartRateData = try await viewModel.healthKitManager.fetchHeartRateData(
-                    for: viewModel.workout)
-                var avgHR: Double = 0
-
-                // 剔除首尾異常值
-                if heartRateData.count >= 3 {
-                    let trimmedHeartRates = heartRateData[1..<(heartRateData.count - 1)]
-                    let sum = trimmedHeartRates.reduce(0) { $0 + $1.1 }
-                    avgHR = sum / Double(trimmedHeartRates.count)
-                } else if !heartRateData.isEmpty {
-                    let sum = heartRateData.reduce(0) { $0 + $1.1 }
-                    avgHR = sum / Double(heartRateData.count)
-                } else {
-                    await MainActor.run {
-                        self.isCalculatingVDOT = false
-                    }
-                    return
-                }
-
-                // 獲取用戶的最大心率和靜息心率
-                let maxHR = UserPreferenceManager.shared.maxHeartRate ?? 180
-                let restingHR = UserPreferenceManager.shared.restingHeartRate ?? 60
-
-                if let distance = viewModel.workout.totalDistance?.doubleValue(for: .meter()),
-                    distance > 0
-                {
-                    // 本地計算 VDOT
-                    let distanceKm = distance / 1000
-                    let paceInSeconds = viewModel.workout.duration / distance * 1000
-                    let paceMinutes = Int(paceInSeconds) / 60
-                    let paceSeconds = Int(paceInSeconds) % 60
-                    let paceStr = String(format: "%d:%02d", paceMinutes, paceSeconds)
-                    let localVdot = vdotCalculator.calculateDynamicVDOTFromPace(
-                        distanceKm: distanceKm,
-                        paceStr: paceStr,
-                        hr: avgHR,
-                        maxHR: Double(maxHR),
-                        restingHR: Double(restingHR)
-                    )
-
-                    // 組合 workoutId: type_startTs_distM
-                    let type: String = {
-                        switch viewModel.workout.workoutActivityType {
-                        case .running, .walking, .trackAndField: return "run"
-                        case .cycling: return "cycling"
-                        case .swimming, .swimBikeRun: return "swim"
-                        case .highIntensityIntervalTraining, .crossTraining,
-                            .functionalStrengthTraining:
-                            return "hiit"
-                        case .traditionalStrengthTraining: return "strength"
-                        case .yoga, .mindAndBody: return "yoga"
-                        default: return "other"
-                        }
-                    }()
-                    let startTs = Int(viewModel.workout.startDate.timeIntervalSince1970)
-                    let distM = Int(distance)
-                    let workoutId = "\(type)_\(startTs)_\(distM)"
-
-                    // 試圖從後端獲取 summary，若失敗則使用 localVdot
-                    do {
-                        let summary = try await WorkoutService.shared.getWorkoutSummary(
-                            workoutId: workoutId)
-                        await MainActor.run {
-                            self.dynamicVDOT = summary.vdot
-                            viewModel.averageHeartRate = avgHR
-                            // 使用 DayType 擴充的中文名稱
-                            self.summaryTypeChinese =
-                                DayType(rawValue: summary.type)?.chineseName ?? summary.type
-                            self.hrZonePct = summary.hrZonePct
-                            self.isCalculatingVDOT = false
-                        }
-                    } catch {
-                        print("取得 workout summary 失敗: \(error)，使用 localVdot")
-                        await MainActor.run {
-                            self.dynamicVDOT = localVdot
-                            viewModel.averageHeartRate = avgHR
-                            // fallback 顯示原始 workoutType
-                            self.summaryTypeChinese =
-                                DayType(rawValue: viewModel.workoutType)?.chineseName
-                                ?? viewModel.workoutType
-                            self.hrZonePct = nil
-                            self.isCalculatingVDOT = false
-                        }
-                    }
-                } else {
-                    await MainActor.run {
-                        self.isCalculatingVDOT = false
-                    }
-                }
-            } catch {
-                print("計算動態跑力失敗: \(error)")
-                await MainActor.run {
+            defer {
+                Task { @MainActor in
                     self.isCalculatingVDOT = false
                 }
+            }
+            // 統一組 workoutId
+            let summaryId = WorkoutService.shared.makeWorkoutId(for: viewModel.workout)
+            // 嘗試快取
+            if let cached = WorkoutService.shared.getCachedWorkoutSummary(for: summaryId) {
+                await MainActor.run {
+                    self.dynamicVDOT = cached.vdot
+                    viewModel.averageHeartRate = cached.avgHR
+                    viewModel.trainingLoad = cached.trimp
+                    self.summaryTypeChinese = DayType(rawValue: cached.type)?.chineseName ?? cached.type
+                    self.hrZonePct = cached.hrZonePct
+                }
+                return
+            }
+            // 向後端請求
+            do {
+                let summary = try await WorkoutService.shared.getWorkoutSummary(workoutId: summaryId)
+                WorkoutService.shared.saveCachedWorkoutSummary(summary, for: summaryId)
+                await MainActor.run {
+                    self.dynamicVDOT = summary.vdot
+                    viewModel.averageHeartRate = summary.avgHR
+                    viewModel.trainingLoad = summary.trimp
+                    self.summaryTypeChinese = DayType(rawValue: summary.type)?.chineseName ?? summary.type
+                    self.hrZonePct = summary.hrZonePct
+                }
+            } catch {
+                // 計算未就緒或失敗，使用 local fallback
+                // 與原邏輯相同
+                do {
+                    let heartRateData = try await viewModel.healthKitManager.fetchHeartRateData(for: viewModel.workout)
+                    let hrCount = heartRateData.count
+                    let trimmed = hrCount >= 3 ? heartRateData[1..<(hrCount-1)] : heartRateData[0..<hrCount]
+                    let avgHR = trimmed.map{$0.1}.reduce(0,+)/Double(trimmed.count)
+                    let distance = viewModel.workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+                    var localVdot = 0.0
+                    if distance != 0 {
+                        localVdot = vdotCalculator.calculateDynamicVDOTFromPace(
+                            distanceKm: distance/1000,
+                            paceStr: String(format: "%d:%02d", Int((viewModel.workout.duration/distance*1000))/60, Int((viewModel.workout.duration/distance*1000))%60),
+                            hr: avgHR, maxHR: Double(UserPreferenceManager.shared.maxHeartRate ?? 180), restingHR: Double(UserPreferenceManager.shared.restingHeartRate ?? 60)
+                        )
+                    }
+                    await MainActor.run {
+                        self.dynamicVDOT = localVdot
+                        viewModel.averageHeartRate = avgHR
+                        self.summaryTypeChinese = DayType(rawValue: viewModel.workoutType)?.chineseName ?? viewModel.workoutType
+                        self.hrZonePct = nil
+                    }
+                } catch {}
             }
         }
     }

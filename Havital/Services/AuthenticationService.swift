@@ -176,7 +176,8 @@ class AuthenticationService: ObservableObject {
         hasCompletedOnboarding = false
         UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
         UserPreferenceManager.shared.clearUserData()
-        
+        // 登出時清除 WorkoutSummary 快取
+        WorkoutService.shared.clearWorkoutSummaryCache()
     }
     
     // Get the current ID token

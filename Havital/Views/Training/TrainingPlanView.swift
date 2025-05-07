@@ -315,12 +315,12 @@ struct TrainingPlanView: View {
                     }) {
                         Label("修改課表", systemImage: "slider.horizontal.3")
                     }
-                    /* 測試onboarding再打開*/*/
+                    /* 測試onboarding再打開*/
                     Button(action: {
                         showOnboardingConfirmation = true
                     }) {
                         Label("重新OnBoarding", systemImage: "arrow.clockwise")
-                    }
+                    }*/
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)

@@ -62,24 +62,24 @@ struct DailyTrainingCard: View {
                         switch day.type {
                         case .easyRun, .easy, .recovery_run: return Color.green
                         case .interval, .tempo: return Color.orange
-                        case .longRun: return Color.blue
+                        case .longRun, .hiking: return Color.blue
                         case .race: return Color.red
                         case .rest: return Color.gray
-                        case .crossTraining: return Color.purple
+                        case .crossTraining, .strength: return Color.purple
                         case .lsd: return Color.green
-                        case .progression: return Color.orange
+                        case .progression, .threshold: return Color.orange
                         }
                     }())
                     .background({
                         switch day.type {
                         case .easyRun, .easy, .recovery_run: return Color.green.opacity(0.2)
                         case .interval, .tempo: return Color.orange.opacity(0.2)
-                        case .longRun: return Color.blue.opacity(0.2)
+                        case .longRun, .hiking: return Color.blue.opacity(0.2)
                         case .race: return Color.red.opacity(0.2)
                         case .rest: return Color.gray.opacity(0.2)
-                        case .crossTraining: return Color.purple.opacity(0.2)
+                        case .crossTraining, .strength: return Color.purple.opacity(0.2)
                         case .lsd: return Color.green.opacity(0.2)
-                        case .progression: return Color.orange.opacity(0.2)
+                        case .progression, .threshold: return Color.orange.opacity(0.2)
                         }
                     }())
                     .cornerRadius(8)

@@ -11,7 +11,7 @@ struct WorkoutRowView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 HStack(spacing: 4) {
-                    Text(WorkoutUtils.workoutTypeString(for: workout.workoutActivityType))
+                    Text(workout.workoutActivityType.name)
                         .font(.headline)
                     
                     if isToday(date: workout.startDate) {

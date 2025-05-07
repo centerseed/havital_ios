@@ -9,21 +9,39 @@ class WorkoutService {
     // Helper method to determine workout type string
     private func getWorkoutTypeString(_ activityType: HKWorkoutActivityType) -> String {
         switch activityType {
-        case .running, .walking, .trackAndField:
+        case .running, .trackAndField:
             return "run"
-        case .cycling:
+        case .walking:
+            return "walk"
+        case .cycling, .handCycling:
             return "cycling"
         case .swimming, .swimBikeRun:
             return "swim"
-        case .highIntensityIntervalTraining, .crossTraining, .functionalStrengthTraining:
+        case .highIntensityIntervalTraining:
             return "hiit"
-        case .traditionalStrengthTraining:
+        case .crossTraining:
+            return "cross"
+        case .mixedCardio:
+            return "mixedCardio"
+        case .pilates:
+            return "pilates"
+        case .traditionalStrengthTraining, .functionalStrengthTraining:
             return "strength"
         case .yoga, .mindAndBody:
             return "yoga"
+        case .hiking:
+            return "hiking"
         default:
             return "other"
         }
+    }
+    
+    // 統一組 workoutId 的方法
+    func makeWorkoutId(for workout: HKWorkout) -> String {
+        let type = getWorkoutTypeString(workout.workoutActivityType)
+        let startTs = Int(workout.startDate.timeIntervalSince1970)
+        let distM = Int(workout.totalDistance?.doubleValue(for: .meter()) ?? 0)
+        return "\(type)_\(startTs)_\(distM)"
     }
     
     func postWorkoutDetails(
@@ -44,11 +62,15 @@ class WorkoutService {
         Logger.debug("上傳運動記錄 - Workout End Date: \(workout.endDate)")
         Logger.debug("上傳運動記錄 - Heart Rate Data Points: \(heartRates.count)")
         
+        // Debug: log original activityType and mapped type
+        let workoutType = getWorkoutTypeString(workout.workoutActivityType)
+        Logger.debug("原始 activityType：\(workout.workoutActivityType) rawValue: \(workout.workoutActivityType.rawValue) -> mapped to type: \(workoutType)")
+        
         // 創建運動數據模型
         let workoutData = WorkoutData(
             id: workout.uuid.uuidString,
             name: workout.workoutActivityType.name,
-            type: getWorkoutTypeString(workout.workoutActivityType),
+            type: workoutType,
             startDate: workout.startDate.timeIntervalSince1970,
             endDate: workout.endDate.timeIntervalSince1970,
             duration: workout.duration,
@@ -66,6 +88,17 @@ class WorkoutService {
             path: "/workout", method: "POST",
             body: try JSONEncoder().encode(workoutData))
         Logger.info("成功上傳運動數據")
+        
+        // 上傳成功後，嘗試同步拉取並快取動態跑力
+        do {
+            // 使用統一方法產生 workoutId
+            let summaryId = makeWorkoutId(for: workout)
+            let summary = try await getWorkoutSummary(workoutId: summaryId)
+            saveCachedWorkoutSummary(summary, for: summaryId)
+            Logger.info("已快取 WorkoutSummary for \(summaryId)")
+        } catch {
+            Logger.warn("快取 WorkoutSummary 失敗: \(error)")
+        }
     }
     
     // 新增 Workout Summary API 方法
@@ -76,6 +109,29 @@ class WorkoutService {
         return response.data.workout
     }
     
+    // MARK: - 快取 WorkoutSummary 方法
+    func saveCachedWorkoutSummary(_ summary: WorkoutSummary, for id: String) {
+        var dict = UserDefaults.standard.dictionary(forKey: "WorkoutSummaryCache") as? [String: Data] ?? [:]
+        if let data = try? JSONEncoder().encode(summary) {
+            dict[id] = data
+            UserDefaults.standard.set(dict, forKey: "WorkoutSummaryCache")
+        }
+    }
+    
+    func getCachedWorkoutSummary(for id: String) -> WorkoutSummary? {
+        guard let dict = UserDefaults.standard.dictionary(forKey: "WorkoutSummaryCache") as? [String: Data],
+              let data = dict[id],
+              let summary = try? JSONDecoder().decode(WorkoutSummary.self, from: data)
+        else { return nil }
+        return summary
+    }
+
+    // MARK: - Clear WorkoutSummaryCache
+    /// 清除儲存在 UserDefaults 的 WorkoutSummaryCache
+    func clearWorkoutSummaryCache() {
+        UserDefaults.standard.removeObject(forKey: "WorkoutSummaryCache")
+    }
+
     // WorkoutService.swift 中添加的方法
 
     // 添加到 WorkoutService 類中
@@ -152,28 +208,30 @@ struct EmptyResponse: Codable {}
 extension HKWorkoutActivityType {
     var name: String {
         switch self {
-        case .running:
+        case .running, .trackAndField:
             return "跑步"
-        case .cycling:
+        case .cycling, .handCycling:
             return "騎車"
         case .walking:
             return "步行"
-        case .swimming:
+        case .swimming, .swimBikeRun:
             return "游泳"
         case .highIntensityIntervalTraining:
             return "高強度間歇訓練"
-        case .traditionalStrengthTraining:
-            return "重量訓練"
-        case .functionalStrengthTraining:
-            return "功能性訓練"
         case .crossTraining:
             return "交叉訓練"
         case .mixedCardio:
             return "混合有氧"
-        case .yoga:
+        case .traditionalStrengthTraining:
+            return "重量訓練"
+        case .functionalStrengthTraining:
+            return "功能性訓練"
+        case .yoga, .mindAndBody:
             return "瑜伽"
         case .pilates:
             return "普拉提"
+        case .hiking:
+            return "健行"
         default:
             return "其他運動"
         }

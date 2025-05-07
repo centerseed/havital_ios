@@ -123,64 +123,47 @@ struct WorkoutSummaryRow: View {
     private func loadWorkoutData() async {
         isLoadingHeartRate = true
         isLoadingVDOT = true
-        
+
         defer {
             isLoadingHeartRate = false
             isLoadingVDOT = false
         }
-        
-        do {
-            let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-            var avgHR: Double = 0
-            
-            // 確保至少有3筆資料，才能剔除首尾
-            if heartRateData.count >= 3 {
-                // 剔除第一筆和最後一筆
-                let trimmedHeartRates = heartRateData[1..<(heartRateData.count - 1)]
-                
-                // 計算平均值
-                let sum = trimmedHeartRates.reduce(0) { $0 + $1.1 }
-                avgHR = sum / Double(trimmedHeartRates.count)
-            } else if !heartRateData.isEmpty {
-                // 如果資料不足3筆，則計算所有資料的平均值
-                let sum = heartRateData.reduce(0) { $0 + $1.1 }
-                avgHR = sum / Double(heartRateData.count)
-            } else {
-                return // 沒有心率數據，無法計算
+
+        // 組出與後端一致的 workoutId
+        let typeStr: String = {
+            switch workout.workoutActivityType {
+            case .running, .walking, .trackAndField: return "run"
+            case .cycling: return "cycling"
+            case .swimming, .swimBikeRun: return "swim"
+            case .highIntensityIntervalTraining, .crossTraining, .functionalStrengthTraining: return "hiit"
+            case .traditionalStrengthTraining: return "strength"
+            case .yoga, .mindAndBody: return "yoga"
+            default: return "other"
             }
-            
-            // 獲取用戶的最大心率和靜息心率
-            let maxHR = UserPreferenceManager.shared.maxHeartRate ?? 180
-            let restingHR = UserPreferenceManager.shared.restingHeartRate ?? 60
-            
-            // 計算動態跑力 (Dynamic VDOT)
-            if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
-                let distanceKm = distance / 1000
-                let paceInSeconds = workout.duration / distance * 1000
-                let paceMinutes = Int(paceInSeconds) / 60
-                let paceSeconds = Int(paceInSeconds) % 60
-                let paceStr = String(format: "%d:%02d", paceMinutes, paceSeconds)
-                
-                // 使用 VDOT 計算器計算動態跑力
-                let vdot = vdotCalculator.calculateDynamicVDOTFromPace(
-                    distanceKm: distanceKm,
-                    paceStr: paceStr,
-                    hr: avgHR,
-                    maxHR: Double(maxHR),
-                    restingHR: Double(restingHR)
-                )
-                
-                await MainActor.run {
-                    self.averageHeartRate = avgHR
-                    self.dynamicVDOT = vdot
-                }
-            } else {
-                await MainActor.run {
-                    self.averageHeartRate = avgHR
-                }
+        }()
+        let startTs = Int(workout.startDate.timeIntervalSince1970)
+        let distM = Int(workout.totalDistance?.doubleValue(for: .meter()) ?? 0)
+        let summaryId = "\(typeStr)_\(startTs)_\(distM)"
+
+        // 嘗試從快取讀取
+        if let cached = WorkoutService.shared.getCachedWorkoutSummary(for: summaryId) {
+            await MainActor.run {
+                self.dynamicVDOT = cached.vdot
+                self.averageHeartRate = cached.avgHR
+            }
+            return
+        }
+
+        // 否則向後端請求
+        do {
+            let summary = try await WorkoutService.shared.getWorkoutSummary(workoutId: summaryId)
+            WorkoutService.shared.saveCachedWorkoutSummary(summary, for: summaryId)
+            await MainActor.run {
+                self.dynamicVDOT = summary.vdot
+                self.averageHeartRate = summary.avgHR
             }
         } catch {
-            print("獲取心率數據失敗: \(error)")
+            // 計算未就緒或失敗，保持 placeholder
         }
     }
 }

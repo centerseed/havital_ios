@@ -117,3 +117,22 @@ This modular structure promotes separation of concerns, testability, and scalabi
    - 不處理取消或 UI 生命週期。
 
 > 新增元件請依此分層呼叫流程，確保 Service 層純粹、取消邏輯集中於 ViewModel。
+
+## 同步處理週計劃與選擇週次
+
+- **週計劃載入流程**：
+  1. View 透過 `.task` 或操作觸發 `loadAllInitialData(healthKitManager:)` 或 `loadWeeklyPlan()`；
+  2. ViewModel 先呼叫 `TrainingPlanStorage.loadWeeklyPlan()`，若本地有舊資料，立即更新 `weeklyPlan` 和 UI；
+  3. 同時在背景非同步呼叫 `TrainingPlanService.shared.getWeeklyPlan(caller:)` 獲取最新週計劃；
+  4. 若獲取成功，呼叫 `TrainingPlanStorage.saveWeeklyPlan(newPlan)` 並 `await MainActor.run` 更新 `weeklyPlan`、`currentPlanWeek`、`selectedWeek`，並重新計算週日期資訊。
+
+- **週次選擇邏輯**：
+  - `selectedWeek` 綁定於 UI 選單，下拉列表由 `availableWeeks` 動態產生，範圍為 `[1...currentTrainingWeek]`；
+  - 使用者切換 `selectedWeek`：
+    1. 若本地已有對應週資料，直接顯示；
+    2. 否則呼叫 `getWeeklyPlan(caller:)` 下載、儲存後更新。
+
+- **顯示週次與視圖切換**：
+  - 若 `currentTrainingWeek > plan.totalWeeks`，顯示 `FinalWeekPromptView`；
+  - 否則若 `selectedWeek < currentTrainingWeek` 且 `noWeeklyPlanAvailable == true`，顯示 `NewWeekPromptView`；
+  - 否則顯示 `WeekOverviewCard` 與 `DailyTrainingListView`，呈現週概覽與日訓練列表。

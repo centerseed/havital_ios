@@ -26,6 +26,7 @@ struct WorkoutSummary: Codable {
     let paceZonePct: ZonePct?
     let type: String
     let vdot: Double
+    let trimp: Double?
 
     enum CodingKeys: String, CodingKey {
         case avgHR = "avg_hr"
@@ -41,6 +42,7 @@ struct WorkoutSummary: Codable {
         case paceZonePct = "pace_zone_pct"
         case type
         case vdot
+        case trimp
     }
 
     /// 自訂解碼，避免 pace_zone_pct 缺少欄位導致錯誤
@@ -60,6 +62,7 @@ struct WorkoutSummary: Codable {
         paceZonePct = try? container.decode(ZonePct.self, forKey: .paceZonePct)
         type = try container.decode(String.self, forKey: .type)
         vdot = try container.decode(Double.self, forKey: .vdot)
+        trimp = try container.decodeIfPresent(Double.self, forKey: .trimp)
     }
 }
 

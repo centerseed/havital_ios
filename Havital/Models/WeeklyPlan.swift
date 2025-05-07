@@ -280,6 +280,9 @@ enum DayType: String, Codable {
     case rest = "rest"
     case recovery_run = "recovery_run"
     case crossTraining = "cross_training"
+    case threshold = "threshold"
+    case hiking = "hiking"
+    case strength = "strength"
 }
 
 struct WeeklyTrainingItem: Identifiable {

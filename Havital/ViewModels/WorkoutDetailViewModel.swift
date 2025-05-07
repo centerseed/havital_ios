@@ -11,6 +11,8 @@ class WorkoutDetailViewModel: ObservableObject {
     
     // 心率統計數據
     @Published var averageHeartRate: Double?
+    // 訓練負荷
+    @Published var trainingLoad: Double?
     
     // HRR 心率區間相關
     @Published var hrrZones: [HeartRateZonesManager.HeartRateZone] = []
