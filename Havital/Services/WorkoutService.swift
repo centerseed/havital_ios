@@ -68,7 +68,7 @@ class WorkoutService {
         
         // 創建運動數據模型
         let workoutData = WorkoutData(
-            id: workout.uuid.uuidString,
+            id: makeWorkoutId(for: workout),
             name: workout.workoutActivityType.name,
             type: workoutType,
             startDate: workout.startDate.timeIntervalSince1970,
@@ -83,22 +83,25 @@ class WorkoutService {
             verticalOscillations: verticalOscillations?.map { VerticalOscillationData(time: $0.time.timeIntervalSince1970, value: $0.value) }
         )
         
-        // 使用 APIClient 上傳運動數據
-        try await APIClient.shared.requestNoResponse(
+        // 使用 APIClient 上傳運動數據並檢查 HTTP 狀態碼
+        let http = try await APIClient.shared.requestWithStatus(
             path: "/workout", method: "POST",
             body: try JSONEncoder().encode(workoutData))
+        Logger.info("上傳運動數據 HTTP 狀態: \(http.statusCode)")
+        guard (200...299).contains(http.statusCode) else {
+            throw NSError(domain: "WorkoutService", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "上傳失敗，HTTP 狀態碼: \(http.statusCode)"])
+        }
         Logger.info("成功上傳運動數據")
         
-        // 上傳成功後，嘗試同步拉取並快取動態跑力
-        do {
-            // 使用統一方法產生 workoutId
-            let summaryId = makeWorkoutId(for: workout)
-            let summary = try await getWorkoutSummary(workoutId: summaryId)
-            saveCachedWorkoutSummary(summary, for: summaryId)
-            Logger.info("已快取 WorkoutSummary for \(summaryId)")
-        } catch {
-            Logger.warn("快取 WorkoutSummary 失敗: \(error)")
-        }
+        // 上傳成功後，嘗試同步拉取並快取動態跑力，若失敗則拋出
+        let summaryId = makeWorkoutId(for: workout)
+        let summary = try await getWorkoutSummary(workoutId: summaryId)
+        saveCachedWorkoutSummary(summary, for: summaryId)
+        Logger.info("已快取 WorkoutSummary for \(summaryId)")
+        
+        // 只有真正同步到後台再標記
+        markWorkoutAsUploaded(workout)
     }
     
     // 新增 Workout Summary API 方法

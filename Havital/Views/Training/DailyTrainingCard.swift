@@ -60,9 +60,9 @@ struct DailyTrainingCard: View {
                     .padding(.vertical, 4)
                     .foregroundColor({
                         switch day.type {
-                        case .easyRun, .easy, .recovery_run: return Color.green
+                        case .easyRun, .easy, .recovery_run, .yoga: return Color.green
                         case .interval, .tempo: return Color.orange
-                        case .longRun, .hiking: return Color.blue
+                        case .longRun, .hiking, .cycling: return Color.blue
                         case .race: return Color.red
                         case .rest: return Color.gray
                         case .crossTraining, .strength: return Color.purple
@@ -72,9 +72,9 @@ struct DailyTrainingCard: View {
                     }())
                     .background({
                         switch day.type {
-                        case .easyRun, .easy, .recovery_run: return Color.green.opacity(0.2)
+                        case .easyRun, .easy, .recovery_run, .yoga: return Color.green.opacity(0.2)
                         case .interval, .tempo: return Color.orange.opacity(0.2)
-                        case .longRun, .hiking: return Color.blue.opacity(0.2)
+                        case .longRun, .hiking, .cycling: return Color.blue.opacity(0.2)
                         case .race: return Color.red.opacity(0.2)
                         case .rest: return Color.gray.opacity(0.2)
                         case .crossTraining, .strength: return Color.purple.opacity(0.2)

@@ -102,6 +102,20 @@ class WorkoutUploadTracker {
         defaults.synchronize() // 確保立即保存
     }
     
+    /// 移除特定運動的上傳紀錄
+    func removeWorkoutRecord(_ workout: HKWorkout) {
+        let stableId = generateStableWorkoutId(workout)
+        var uploadedWorkouts = getUploadedWorkouts()
+        uploadedWorkouts.removeValue(forKey: stableId)
+        do {
+            let data = try JSONSerialization.data(withJSONObject: uploadedWorkouts)
+            defaults.set(data, forKey: uploadedWorkoutsKey)
+            defaults.synchronize()
+        } catch {
+            print("移除運動上傳紀錄時出錯: \(error)")
+        }
+    }
+    
     /// 獲取需要重試獲取心率數據的運動記錄ID列表
     func getWorkoutsNeedingHeartRateRetry(timeThreshold: TimeInterval = 3600) -> [String] {
         let uploadedWorkouts = getUploadedWorkouts()

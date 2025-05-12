@@ -18,12 +18,14 @@ extension DayType {
         case .progression: return "漸速跑"
         case .strength: return "重量訓練"
         case .hiking: return "健行"
+        case .yoga: return "瑜伽"
+        case .cycling: return "騎車"
         }
     }
     /// 標籤顏色
     var labelColor: Color {
         switch self {
-        case .easyRun, .easy, .recovery_run, .lsd:
+        case .easyRun, .easy, .recovery_run, .lsd, .yoga:
             return .green
         case .interval, .tempo, .threshold, .progression:
             return .orange
@@ -37,7 +39,7 @@ extension DayType {
             return .purple
         case .strength:
             return .purple
-        case .hiking:
+        case .hiking, .cycling:
             return .blue
         }
     }

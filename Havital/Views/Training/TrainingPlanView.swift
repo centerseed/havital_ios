@@ -265,15 +265,8 @@ struct TrainingPlanView: View {
                 ProgressView("載入訓練計劃中...")
                     .foregroundColor(.gray)
                     .frame(height: 200)
-            /*} else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek < viewModel.currentWeek {
-                VStack(spacing: 16) {
-                    Text("第 \(viewModel.selectedWeek) 週尚無課表").font(.headline)
-                        .multilineTextAlignment(.center)
-                    Text("若需產生此週計畫，請進行下一週訓練後再查看。")
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, minHeight: 200)*/
+            } else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek < viewModel.currentWeek {
+                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
             } else if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
                 WeekPlanContentView(
                     viewModel: viewModel,

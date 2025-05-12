@@ -624,6 +624,9 @@ class TrainingPlanViewModel: ObservableObject {
                     workoutsByDay.removeAll()
                     expandedDayIndices.removeAll()
                 }
+                await MainActor.run {
+                    noWeeklyPlanAvailable = false
+                }
 
                 // 重新載入訓練計劃概覽，確保獲取最新資訊
                 Logger.debug("重新載入訓練計劃概覽")

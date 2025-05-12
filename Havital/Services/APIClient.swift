@@ -69,4 +69,20 @@ actor APIClient {
             throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
         }
     }
+
+    /// 發送請求並返回 HTTP 狀態，供上層檢查
+    func requestWithStatus(path: String, method: String = "GET", body: Data? = nil) async throws -> HTTPURLResponse {
+        let req = try await makeRequest(path: path, method: method, body: body)
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        Logger.debug("\(method) \(path) status code: \(http.statusCode)")
+        guard (200...299).contains(http.statusCode) else {
+            let bodyStr = String(data: data, encoding: .utf8) ?? ""
+            Logger.error("Error response body: \(bodyStr)")
+            throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
+        }
+        return http
+    }
 }

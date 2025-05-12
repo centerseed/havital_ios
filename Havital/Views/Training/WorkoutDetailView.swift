@@ -167,6 +167,21 @@ struct WorkoutDetailView: View {
                     uploadStatusSection(uploadTime)
                         .padding(.horizontal)
                 }
+                // 重新上傳按鈕（非顯眼）
+                Button(action: {
+                    Task {
+                        _ = await WorkoutBackgroundUploader.shared.uploadPendingWorkouts(workouts: [viewModel.workout], force: true)
+                        await MainActor.run {
+                            viewModel.checkUploadStatus()
+                            loadWorkoutData()
+                        }
+                    }
+                }) {
+                    Text("重新上傳訓練紀錄")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
             }
             .padding(.vertical)
         }

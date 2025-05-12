@@ -18,7 +18,7 @@ class WorkoutBackgroundUploader {
     
     /// 上傳所有未上傳的運動記錄，考慮心率資料的可用性
     @discardableResult
-    func uploadPendingWorkouts(workouts: [HKWorkout], sendNotifications: Bool = false) async -> Int {
+    func uploadPendingWorkouts(workouts: [HKWorkout], sendNotifications: Bool = false, force: Bool = false) async -> Int {
         // 如果已經在上傳中，則直接返回
         guard !isUploading else {
             print("已有上傳任務在進行中，跳過本次請求")
@@ -29,33 +29,38 @@ class WorkoutBackgroundUploader {
         defer { isUploading = false }
         
         print("開始上傳未同步的運動記錄...")
+        print("force: \(force), 原始 workouts 數量: \(workouts.count)")
         
         // 篩選出需要上傳的運動記錄
         var workoutsToUpload: [HKWorkout] = []
         
         for workout in workouts {
-            // 如果已經上傳且有心率資料，則跳過
-            if workoutUploadTracker.isWorkoutUploaded(workout) &&
-               workoutUploadTracker.workoutHasHeartRate(workout) {
-                continue
-            }
-            
-            // 如果已上傳但沒有心率資料，且時間未超過1小時，則跳過
-            if workoutUploadTracker.isWorkoutUploaded(workout) &&
-               !workoutUploadTracker.workoutHasHeartRate(workout) {
-                if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout) {
-                    let timeElapsed = Date().timeIntervalSince(uploadTime)
-                    if timeElapsed < 3600 { // 1小時 = 3600秒
-                        // 還在等待期內，跳過
-                        continue
+            // 只有在非強制模式下才跳過已上傳的 workout
+            if !force {
+                // 已上傳且有心率資料，則跳過
+                if workoutUploadTracker.isWorkoutUploaded(workout) &&
+                   workoutUploadTracker.workoutHasHeartRate(workout) {
+                    continue
+                }
+                // 已上傳但缺少心率且在等待期內，跳過
+                if workoutUploadTracker.isWorkoutUploaded(workout) &&
+                   !workoutUploadTracker.workoutHasHeartRate(workout) {
+                    if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout) {
+                        let timeElapsed = Date().timeIntervalSince(uploadTime)
+                        if timeElapsed < 3600 {
+                            continue
+                        }
+                        print("運動記錄 \(workout.uuid.uuidString) 已上傳但缺少心率資料，且超過1小時，嘗試再次獲取")
                     }
-                    // 超過1小時，嘗試再次獲取心率資料並上傳
-                    print("運動記錄 \(workout.uuid.uuidString) 已上傳但缺少心率資料，且超過1小時，嘗試再次獲取")
                 }
             }
             
             workoutsToUpload.append(workout)
         }
+        
+        // 篩選結果
+        let stableIds = workoutsToUpload.map { workoutUploadTracker.generateStableWorkoutId($0) }
+        print("篩選後 workoutsToUpload 數量: \(workoutsToUpload.count)，stableIds: \(stableIds)")
         
         // 如果沒有需要上傳的記錄，直接返回
         if workoutsToUpload.isEmpty {
@@ -77,17 +82,20 @@ class WorkoutBackgroundUploader {
         for workout in workoutsToUpload {
             do {
                 // 獲取心率數據
-                let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                
-                // 檢查心率數據是否有效（至少有一定數量的數據點）
+                var heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
                 if heartRateData.isEmpty || heartRateData.count < 5 {
-                    print("運動記錄 \(workout.uuid.uuidString) 的心率數據不足，暫不上傳")
-                    
-                    // 如果之前沒有上傳過，標記為已嘗試但無心率資料
-                    if !workoutUploadTracker.isWorkoutUploaded(workout) {
-                        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
+                    print("心率資料尚未準備好，等待30秒後重試")
+                    try? await Task.sleep(nanoseconds: 30_000_000_000)
+                    heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+                }
+                
+                // 強制模式可跳過心率數據檢查
+                if !force {
+                    // 檢查心率數據是否有效（至少有一定數量的數據點）
+                    if heartRateData.isEmpty || heartRateData.count < 5 {
+                        print("運動記錄 \(workout.uuid.uuidString) 的心率數據不足，暫不上傳")
+                        continue
                     }
-                    continue
                 }
                 
                 // 獲取所有擴展數據
@@ -125,11 +133,6 @@ class WorkoutBackgroundUploader {
                 
             } catch {
                 print("上傳運動記錄失敗: \(workout.uuid.uuidString), 錯誤: \(error)")
-                
-                // 如果之前沒有上傳過，標記為已嘗試但無心率資料
-                if !workoutUploadTracker.isWorkoutUploaded(workout) {
-                    workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                }
             }
             
             // 添加小延遲避免請求過於頻繁

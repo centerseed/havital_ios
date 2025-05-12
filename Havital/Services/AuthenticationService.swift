@@ -178,6 +178,8 @@ class AuthenticationService: ObservableObject {
         UserPreferenceManager.shared.clearUserData()
         // 登出時清除 WorkoutSummary 快取
         WorkoutService.shared.clearWorkoutSummaryCache()
+        // 登出時清除目標賽事本地快取
+        TargetStorage.shared.clearAllTargets()
     }
     
     // Get the current ID token
