@@ -10,9 +10,9 @@ struct WeekPlanContentView: View {
     @EnvironmentObject private var healthKitManager: HealthKitManager
     
     var body: some View {
-        Group {
-            let selected = plan.weekOfPlan
-            let current = currentTrainingWeek
+        let selected = plan.weekOfPlan
+        let current = currentTrainingWeek
+        VStack {
             if current > plan.totalWeeks {
                 FinalWeekPromptView(viewModel: viewModel)
             } else if selected < current  && viewModel.noWeeklyPlanAvailable{
@@ -260,11 +260,15 @@ struct TrainingPlanView: View {
     
     // 拆分主內容視圖
     private var mainContentView: some View {
-        Group {
+        let selected = viewModel.selectedWeek
+        let current = viewModel.currentWeek
+        return VStack {
             if viewModel.isLoading {
                 ProgressView("載入訓練計劃中...")
                     .foregroundColor(.gray)
                     .frame(height: 200)
+            } else if viewModel.currentWeek > viewModel.trainingOverview?.totalWeeks ?? 1 {
+                FinalWeekPromptView(viewModel: viewModel)
             } else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek < viewModel.currentWeek {
                 NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
             } else if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
@@ -280,6 +284,10 @@ struct TrainingPlanView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            // 除錯 log
+            Logger.info("current: \(viewModel.currentWeek), selected: \(viewModel.selectedWeek), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
         }
     }
     

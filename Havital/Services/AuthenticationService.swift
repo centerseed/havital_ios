@@ -108,27 +108,16 @@ class AuthenticationService: ObservableObject {
         }
     }
     
-    private func syncUserWithBackend(idToken: String) async throws {
-        do {
-            print("正在與後端同步，使用 Firebase ID Token")
-            // 嘗試使用 Firebase Token 登入並獲取用戶數據
-            let user = try await UserService.shared.loginWithGoogle(idToken: idToken)
-            
-            await MainActor.run {
-                self.appUser = user
-            }
-            
-            // 判斷用戶是否已完成 onboarding
-            checkOnboardingStatus(user: user)
-            
-            // 同步用戶偏好
-            UserService.shared.syncUserPreferences(with: user)
-            
-            print("後端同步成功，已獲取用戶資料")
-        } catch {
-            print("與後端同步失敗: \(error.localizedDescription)")
-            throw error
+    internal func syncUserWithBackend(idToken: String) async throws {
+        // 使用 Firebase 登入後的 ID Token，由 APIClient 自動帶入 Authorization 標頭
+        // 從後端取得用戶資料
+        let user = try await APIClient.shared.request(User.self, path: "/user")
+        await MainActor.run {
+            self.appUser = user
         }
+        // 判斷及更新 onboarding 狀態與偏好設定
+        checkOnboardingStatus(user: user)
+        UserService.shared.syncUserPreferences(with: user)
     }
     
     // 檢查用戶是否已完成 onboarding
@@ -180,6 +169,23 @@ class AuthenticationService: ObservableObject {
         WorkoutService.shared.clearWorkoutSummaryCache()
         // 登出時清除目標賽事本地快取
         TargetStorage.shared.clearAllTargets()
+        
+        // 清除訓練計劃存儲
+        TrainingPlanStorage.shared.clearAll()
+        // 清除週訓練回顧
+        WeeklySummaryStorage.shared.clearSavedWeeklySummary()
+        // 清除 VDOT 資料
+        VDOTStorage.shared.clearVDOTData()
+        // 清除已上傳運動記錄
+        WorkoutUploadTracker.shared.clearUploadedWorkouts()
+        // 重置同步通知管理器
+        SyncNotificationManager.shared.reset()
+        
+        // 清除所有 UserDefaults 項
+        if let domain = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: domain)
+            UserDefaults.standard.synchronize()
+        }
     }
     
     // Get the current ID token

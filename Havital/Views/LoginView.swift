@@ -8,62 +8,81 @@ struct LoginView: View {
     @State private var errorMessage = ""
     
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
-            
-            // Title and Subtitle
-            VStack(spacing: 16) {
-                Text("Paceriz")
-                    .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(AppTheme.shared.primaryColor)
+        NavigationView {
+            VStack(spacing: 40) {
+                Spacer()
                 
-                Text("讓我們輕鬆踏上，運動健康之路")
-                    .font(.title2)
-                    .foregroundColor(AppTheme.TextColors.secondary)
-            }
-            
-            // Welcome Image
-            Image("welcome")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 250)
-                .padding(.horizontal)
-            
-            Spacer()
-            
-            // Login Button
-            VStack(spacing: 16) {
-                Button {
-                    Task {
-                        await authService.signInWithGoogle()
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "g.circle.fill")
-                            .font(.title2)
-                        Text("使用 Google 登入")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(authService.isLoading ? Color.gray : AppTheme.shared.primaryColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                // Title and Subtitle
+                VStack(spacing: 16) {
+                    Text("Paceriz")
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(AppTheme.shared.primaryColor)
+                    
+                    Text("讓我們輕鬆踏上，運動健康之路")
+                        .font(.title2)
+                        .foregroundColor(AppTheme.TextColors.secondary)
                 }
-                .disabled(authService.isLoading)
-                .overlay(
-                    Group {
-                        if authService.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                
+                // Welcome Image
+                Image("welcome")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 250)
+                    .padding(.horizontal)
+                
+                Spacer()
+                
+                // Login Button
+                VStack(spacing: 16) {
+                    Button {
+                        Task {
+                            await authService.signInWithGoogle()
                         }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "g.circle.fill")
+                                .font(.title2)
+                            Text("使用 Google 登入")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(authService.isLoading ? Color.gray : AppTheme.shared.primaryColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
                     }
-                )
+                    .disabled(authService.isLoading)
+                    .overlay(
+                        Group {
+                            if authService.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            }
+                        }
+                    )
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
+                
+                // Email Auth Navigation Links
+                VStack(spacing: 12) {
+                    NavigationLink("註冊帳號") { RegisterEmailView() }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(AppTheme.shared.primaryColor.opacity(0.1))
+                        .cornerRadius(8)
+                    NavigationLink("Email 登入") { EmailLoginView() }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(AppTheme.shared.primaryColor.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 48)
             }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 48)
         }
+        .navigationViewStyle(StackNavigationViewStyle())
         .background(Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.backgroundColor) : UIColor(AppTheme.shared.backgroundColor)
         }))
