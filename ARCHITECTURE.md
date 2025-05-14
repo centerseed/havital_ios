@@ -118,6 +118,18 @@ This modular structure promotes separation of concerns, testability, and scalabi
 
 > 新增元件請依此分層呼叫流程，確保 Service 層純粹、取消邏輯集中於 ViewModel。
 
+## 電子郵件註冊/登入流程
+
+1. **View**: `RegisterEmailView` 或 `EmailLoginView` 呼叫對應 ViewModel 的 `register()`／`login()`，並顯示載入狀態、錯誤訊息及重新發送驗證按鈕。
+2. **ViewModel**: 呼叫 `EmailAuthService.shared.register(email:password:)` 或 `login(email:password:)`。若 HTTP 回傳 401，轉為 `AuthError.emailNotVerified`；接著使用 FirebaseAuth 進行建立或登入，並取得 Firebase ID Token。
+3. **Service**: `EmailAuthService` 封裝後端 API 路徑：
+   - `POST /register/email` → `register(email:password:)`
+   - `POST /login/email` → `login(email:password:)`
+   - `POST /verify/email` → `verify(oobCode:)`
+   - `POST /resend/email` → `resendVerification(email:password:)`
+4. **AuthenticationService**: 以 `syncUserWithBackend(idToken:)` 呼叫 `GET /user` 取得完整用戶資料，更新 `appUser` 與 `hasCompletedOnboarding`。
+5. **導向邏輯**: 根據 `AuthenticationService.isAuthenticated` 與 `hasCompletedOnboarding` 決定顯示 `OnboardingView` 或主畫面。
+
 ## 同步處理週計劃與選擇週次
 
 - **週計劃載入流程**：

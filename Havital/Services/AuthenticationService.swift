@@ -109,13 +109,12 @@ class AuthenticationService: ObservableObject {
     }
     
     internal func syncUserWithBackend(idToken: String) async throws {
-        // 使用 Firebase 登入後的 ID Token，由 APIClient 自動帶入 Authorization 標頭
-        // 從後端取得用戶資料
+        // 從後端取得完整用戶資料
         let user = try await APIClient.shared.request(User.self, path: "/user")
         await MainActor.run {
             self.appUser = user
         }
-        // 判斷及更新 onboarding 狀態與偏好設定
+        // 更新 onboarding 與用戶偏好
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
     }
@@ -143,6 +142,11 @@ class AuthenticationService: ObservableObject {
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     print("無法獲取用戶資料: \(error)")
+                    // 若為解析錯誤，重置並導回登入
+                    if let self = self, error is DecodingError {
+                        self.appUser = nil
+                        self.isAuthenticated = false
+                    }
                 }
             } receiveValue: { [weak self] user in
                 self?.appUser = user
@@ -214,11 +218,17 @@ class AuthenticationService: ObservableObject {
     }
 }
 
+// 用於檢查 email 驗證狀態的結構
+struct EmailVerification: Decodable {
+    let email_verified: Bool
+}
+
 enum AuthError: Error {
     case missingClientId
     case presentationError
     case missingToken
     case notAuthenticated
+    case emailNotVerified
     
     var localizedDescription: String {
         switch self {
@@ -230,6 +240,8 @@ enum AuthError: Error {
             return "認證 token 不存在"
         case .notAuthenticated:
             return "用戶未登入"
+        case .emailNotVerified:
+            return "郵箱未驗證"
         }
     }
 }

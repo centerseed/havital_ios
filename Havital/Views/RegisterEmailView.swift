@@ -5,7 +5,7 @@ struct RegisterEmailView: View {
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
-    @State private var navigateToVerify = false
+    @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         VStack(spacing: 16) {
@@ -27,11 +27,11 @@ struct RegisterEmailView: View {
                     if let error = viewModel.errorMessage {
                         alertTitle = "註冊失敗"
                         alertMessage = error
-                        showAlert = true
                     } else {
-                        // 註冊成功，前往輸入驗證碼畫面
-                        navigateToVerify = true
+                        alertTitle = "註冊成功"
+                        alertMessage = "請至您的電子信箱點擊確認連結，完成驗證後返回此處登入。"
                     }
+                    showAlert = true
                 }
             }) {
                 if viewModel.isLoading {
@@ -51,15 +51,11 @@ struct RegisterEmailView: View {
             .disabled(viewModel.isLoading)
 
             Spacer()
-            // navigation link to verification
-            NavigationLink(destination: VerifyEmailView(), isActive: $navigateToVerify) {
-                EmptyView()
-            }
         }
         .padding()
         .navigationTitle("註冊帳號")
         .alert(alertTitle, isPresented: $showAlert) {
-            Button("確定", role: .cancel) { }
+            Button("確定", role: .cancel) { presentationMode.wrappedValue.dismiss() }
         } message: {
             Text(alertMessage)
         }

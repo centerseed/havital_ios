@@ -175,8 +175,8 @@ struct UserProfileView: View {
         .sheet(isPresented: $showTrainingDaysEditor) {
             if let ud = viewModel.userData {
                 EditTrainingDaysView(
-                    initialWeekdays: Set(ud.preferWeekDays),
-                    initialLongRunDay: ud.preferWeekDaysLongrun.first ?? 6
+                    initialWeekdays: Set(ud.preferWeekDays ?? []),
+                    initialLongRunDay: ud.preferWeekDaysLongrun?.first ?? 6
                 ) {
                     viewModel.fetchUserProfile()
                 }
@@ -233,7 +233,7 @@ struct UserProfileView: View {
             }
             
             VStack(alignment: .leading, spacing: 6) {
-                Text(userData.displayName)
+                Text(userData.displayName ?? "")
                     .font(.title3)
                     .fontWeight(.semibold)
                 
@@ -255,7 +255,7 @@ struct UserProfileView: View {
                 
                 Spacer()
                 
-                ForEach(userData.preferWeekDays.filter { !userData.preferWeekDaysLongrun.contains($0) }.sorted(), id: \.self) { day in
+                ForEach(userData.preferWeekDays?.filter { !(userData.preferWeekDaysLongrun?.contains($0) ?? false) }.sorted() ?? [], id: \.self) { day in
                     Text(viewModel.weekdayName(for: day).suffix(1))
                         .font(.caption)
                         .fontWeight(.medium)
@@ -267,7 +267,7 @@ struct UserProfileView: View {
             }
             
             // Long run days
-            if !userData.preferWeekDaysLongrun.isEmpty {
+            if !(userData.preferWeekDaysLongrun?.isEmpty ?? false) {
                 HStack {
                     Text("長跑日:")
                         .font(.subheadline)
@@ -275,7 +275,7 @@ struct UserProfileView: View {
                     
                     Spacer()
                     
-                    ForEach(userData.preferWeekDaysLongrun.sorted(), id: \.self) { day in
+                    ForEach(userData.preferWeekDaysLongrun?.sorted() ?? [], id: \.self) { day in
                         Text(viewModel.weekdayName(for: day).suffix(1))
                             .font(.caption)
                             .fontWeight(.medium)

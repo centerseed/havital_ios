@@ -83,7 +83,7 @@ class UserService {
             // 嘗試正常解析
             do {
                 let user = try JSONDecoder().decode(User.self, from: data)
-                print("成功解析用戶資料: \(user.data.displayName)")
+                print("成功解析用戶資料: \(user.data.displayName ?? "")")
                 return user
             } catch {
                 // 如果正常解析失敗，查看是否回應格式為 { data: User }
@@ -94,7 +94,7 @@ class UserService {
                     let dataJSON = try JSONSerialization.data(withJSONObject: responseData)
                     let userProfile = try JSONDecoder().decode(UserProfileData.self, from: dataJSON)
                     let user = User(data: userProfile)
-                    print("成功使用備用方法解析用戶資料: \(user.data.displayName)")
+                    print("成功使用備用方法解析用戶資料: \(user.data.displayName ?? "")")
                     return user
                 } else {
                     // 顯示原始 JSON 以便調試
@@ -113,7 +113,7 @@ class UserService {
     // Updated to access nested user.data properties
     func syncUserPreferences(with user: User) {
         userPreferenceManager.email = user.data.email ?? ""
-        userPreferenceManager.name = user.data.displayName
+        userPreferenceManager.name = user.data.displayName ?? ""
         userPreferenceManager.photoURL = user.data.photoUrl
         
         // Additionally, we can sync more user preferences if needed

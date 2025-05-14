@@ -8,61 +8,46 @@ actor EmailAuthService {
 
     /// 註冊帳號
     func register(email: String, password: String) async throws -> RegisterData {
-        let path = "/auth/register/email"
-        guard let url = URL(string: APIConfig.baseURL + path) else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body = ["email": email, "password": password]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            let msg = String(data: data, encoding: .utf8) ?? ""
-            throw NSError(domain: "EmailAuthService", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
-        }
-        let decoder = JSONDecoder()
-        let apiResponse = try decoder.decode(APIResponse<RegisterData>.self, from: data)
-        return apiResponse.data
+        let bodyData = try JSONEncoder().encode(body)
+        return try await APIClient.shared.request(RegisterData.self,
+                                                  path: "/register/email",
+                                                  method: "POST",
+                                                  body: bodyData)
     }
 
     /// Email 登入
     func login(email: String, password: String) async throws -> LoginData {
-        let path = "/auth/login/email"
-        guard let url = URL(string: APIConfig.baseURL + path) else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body = ["email": email, "password": password]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            let msg = String(data: data, encoding: .utf8) ?? ""
-            throw NSError(domain: "EmailAuthService", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
+        let bodyData = try JSONEncoder().encode(body)
+        do {
+            return try await APIClient.shared.request(LoginData.self,
+                                                      path: "/login/email",
+                                                      method: "POST",
+                                                      body: bodyData)
+        } catch let error as NSError where error.code == 401 {
+            // 未驗證
+            throw AuthError.emailNotVerified
         }
-        let decoder = JSONDecoder()
-        let apiResponse = try decoder.decode(APIResponse<LoginData>.self, from: data)
-        return apiResponse.data
     }
 
     /// 驗證 Email
     func verify(oobCode: String) async throws -> VerifyData {
-        let path = "/auth/verify/email"
-        guard let url = URL(string: APIConfig.baseURL + path) else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body = ["oobCode": oobCode]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let bodyData = try JSONEncoder().encode(body)
+        return try await APIClient.shared.request(VerifyData.self,
+                                                  path: "/verify/email",
+                                                  method: "POST",
+                                                  body: bodyData)
+    }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            let msg = String(data: data, encoding: .utf8) ?? ""
-            throw NSError(domain: "EmailAuthService", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
-        }
-        let decoder = JSONDecoder()
-        let apiResponse = try decoder.decode(APIResponse<VerifyData>.self, from: data)
-        return apiResponse.data
+    /// 重新發送驗證信
+    func resendVerification(email: String, password: String) async throws -> ResendData {
+        let body = ["email": email, "password": password]
+        let bodyData = try JSONEncoder().encode(body)
+        return try await APIClient.shared.request(ResendData.self,
+                                                 path: "/resend/email",
+                                                 method: "POST",
+                                                 body: bodyData)
     }
 }

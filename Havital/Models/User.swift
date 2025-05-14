@@ -7,15 +7,16 @@ struct User: Codable {
 struct UserProfileData: Codable {
     let activeTrainingId: String?
     let activeWeeklyPlanId: String?
-    let displayName: String
+    /// 顯示名稱可能為空
+    let displayName: String?
     let email: String?
     let lastLogin: String
     let maxHr: Int?
     let photoUrl: String?
-    let preferWeekDays: [Int]
-    let preferWeekDaysLongrun: [Int]
+    let preferWeekDays: [Int]?
+    let preferWeekDaysLongrun: [Int]?
     let relaxingHr: Int?
-    let updatedAt: String
+    let updatedAt: String?
     let weekOfTraining: Int?
     let currentWeekDistance: Int?
     let personalBest: [String: [RaceBest]]?
@@ -50,4 +51,3 @@ struct RaceBest: Codable {
 struct GoogleLoginRequest: Codable {
     let idToken: String
 }
-

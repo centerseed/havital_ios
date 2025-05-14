@@ -3,7 +3,9 @@ import SwiftUI
 struct EmailLoginView: View {
     @StateObject private var viewModel = EmailLoginViewModel()
     @State private var showAlert = false
+    @State private var showResendSuccess = false
     @State private var alertMessage = ""
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 16) {
@@ -25,6 +27,8 @@ struct EmailLoginView: View {
                     if let error = viewModel.errorMessage {
                         alertMessage = error
                         showAlert = true
+                    } else {
+                        dismiss()
                     }
                 }
             }) {
@@ -49,9 +53,23 @@ struct EmailLoginView: View {
         .padding()
         .navigationTitle("Email 登入")
         .alert("登入失敗", isPresented: $showAlert) {
+            // 僅 email 未驗證時顯示重新發送按鈕
+            if viewModel.canResendVerification {
+                Button("重新發送驗證信") {
+                    Task {
+                        await viewModel.resendVerification()
+                        showResendSuccess = true
+                    }
+                }
+            }
             Button("確定", role: .cancel) { }
         } message: {
             Text(alertMessage)
+        }
+        .alert("提示", isPresented: $showResendSuccess) {
+            Button("確定", role: .cancel) { }
+        } message: {
+            Text(viewModel.resendSuccessMessage ?? "")
         }
     }
 }

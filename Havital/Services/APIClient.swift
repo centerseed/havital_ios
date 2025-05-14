@@ -18,9 +18,11 @@ actor APIClient {
         var req = URLRequest(url: url, timeoutInterval: 60)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // Bearer Token
-        let token = try await AuthenticationService.shared.getIdToken()
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        // Bearer Token: include for all except login, verify, resend
+        if !(path.hasPrefix("/login/email") || path.hasPrefix("/verify/email") || path.hasPrefix("/resend/email") || path.hasPrefix("/register/email")) {
+            let token = try await AuthenticationService.shared.getIdToken()
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         // 將 request body 設置到 httpBody
         if let body = body {
             req.httpBody = body
