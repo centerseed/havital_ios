@@ -39,6 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Havital.xctestplan; sourceTree = "<group>"; };
 		CFB67CF02D07047500F672E3 /* Paceriz.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Paceriz.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D022D07047800F672E3 /* HavitalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D0C2D07047800F672E3 /* HavitalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -126,6 +127,7 @@
 		CFB67CE72D07047500F672E3 = {
 			isa = PBXGroup;
 			children = (
+				CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */,
 				CFB67CF22D07047500F672E3 /* Havital */,
 				CFB67D052D07047800F672E3 /* HavitalTests */,
 				CFB67D0F2D07047800F672E3 /* HavitalUITests */,
@@ -541,7 +543,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Havital.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Havital";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Paceriz.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Paceriz";
 			};
 			name = Debug;
 		};
@@ -560,7 +562,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Havital.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Havital";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Paceriz.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Paceriz";
 			};
 			name = Release;
 		};

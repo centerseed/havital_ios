@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "341649DB-4DAE-41EB-9294-6CBC6952E75C",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Havital.xcodeproj",
+      "identifier" : "CFB67CEF2D07047500F672E3",
+      "name" : "Havital"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Havital.xcodeproj",
+        "identifier" : "CFB67D012D07047800F672E3",
+        "name" : "HavitalTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Havital.xcodeproj",
+        "identifier" : "CFB67D0B2D07047800F672E3",
+        "name" : "HavitalUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

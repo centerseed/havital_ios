@@ -2,6 +2,7 @@ import Combine
 import HealthKit
 import SwiftUI
 
+@MainActor
 class TrainingPlanViewModel: ObservableObject {
     @Published var weeklyPlan: WeeklyPlan?
     @Published var isLoading = false
@@ -13,13 +14,16 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var isLoadingVDOT = false
     @Published var workoutsByDay: [Int: [HKWorkout]] = [:]
     @Published var isLoadingWorkouts = false
-    @Published var trainingOverview: TrainingPlanOverview?  // 訓練計劃概覽
+    @Published var trainingOverview: TrainingPlanOverview?
     @Published var selectedWeek: Int = 1
     @Published var currentWeek: Int = 1
+    @Published var weekDateInfo: WeekDateInfo?
     /// 無對應週計畫時顯示
     @Published var noWeeklyPlanAvailable: Bool = false
     /// 當週尚無週計劃時顯示產生新週提示
     @Published var showNewWeekPrompt: Bool = false
+    /// 當到新週但無計畫時提示
+    @Published var showFinalWeekPrompt: Bool = false
 
     /// 可選過去週數範圍（不包含未來週）
     var availableWeeks: [Int] {
@@ -52,20 +56,15 @@ class TrainingPlanViewModel: ObservableObject {
     // 添加屬性來追蹤當前計劃的週數，用於檢測計劃變更
     private var currentPlanWeek: Int?
 
-    // === 集中式日期處理部分 ===
-    private struct WeekDateInfo {
-        let startDate: Date  // 週一凌晨00:00:00
-        let endDate: Date  // 週日晚上23:59:59
-        let daysMap: [Int: Date]  // 日期索引映射（1-7 對應週一到週日）
-
-        func getDateForDayIndex(_ dayIndex: Int) -> Date? {
-            return daysMap[dayIndex]
-        }
-    }
-
     // Modifications data
     @Published var modifications: [Modification] = []
     @Published var modDescription: String = ""
+
+    // 添加 Combine cancellables
+    private var cancellables = Set<AnyCancellable>()
+
+    // 可注入的現在時間，預設為系統時間，便於測試
+    var now: () -> Date = { Date() }
 
     // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
     init() {
@@ -91,7 +90,34 @@ class TrainingPlanViewModel: ObservableObject {
                 }
             }
         }
+        // 監聽 overview 變化，自動計算週數並載入對應週計畫
+        $trainingOverview
+            .compactMap { $0 }
+            .sink { [weak self] overview in
+                guard let self = self else { return }
+                let week = self.calculateCurrentTrainingWeek() ?? 1
+                self.currentWeek = week
+                if let info = WeekDateService.weekDateInfo(createdAt: overview.createdAt, weekNumber: week) {
+                    self.weekDateInfo = info
+                }
+                Task { await self.loadWeeklyPlan() }
+            }
+            .store(in: &cancellables)
+        // 若初始化已讀取到 trainingOverview，立即載入週計劃
+        if trainingOverview != nil {
+            Task { await loadWeeklyPlan() }
+        }
     }
+
+    // MARK: - Plan display state
+    enum PlanStatus {
+        case loading
+        case noPlan   // 尚未生成本週計畫
+        case ready(WeeklyPlan)
+        case completed
+        case error(Error)
+    }
+    @Published var planStatus: PlanStatus = .loading
 
     // 獲取訓練回顧的方法
     func createWeeklySummary() async {
@@ -156,113 +182,61 @@ class TrainingPlanViewModel: ObservableObject {
 
     // 取得上兩週日期範圍的方法
     func getLastTwoWeeksRange() -> String {
-        let calendar = Calendar.current
-        let today = Date()
-
-        // 獲取兩週前的日期
-        guard let twoWeeksAgo = calendar.date(byAdding: .day, value: -14, to: today) else {
-            return ""
-        }
-
-        // 格式化日期
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-
-        return "\(formatter.string(from: twoWeeksAgo))-\(formatter.string(from: today))"
+        return WeekDateService.lastTwoWeeksRange()
     }
 
     /// 取得上週一到上週日的日期範圍字串（格式 MM/dd-MM/dd）
     func getLastWeekRangeString() -> String {
-        let calendar = Calendar(identifier: .gregorian)
-        let today = Date()
-        // 找到本週一
-        let weekday = calendar.component(.weekday, from: today)
-        let daysFromMonday = (weekday + 5) % 7  // 週日=1, 週一=2 ... 週六=7
-        guard let thisMonday = calendar.date(byAdding: .day, value: -daysFromMonday, to: today)
-        else {
-            return ""
-        }
-        // 上週一 = 本週一往前推7天
-        guard let lastMonday = calendar.date(byAdding: .day, value: -7, to: thisMonday) else {
-            return ""
-        }
-        // 上週日 = 上週一+6天
-        guard let lastSunday = calendar.date(byAdding: .day, value: 6, to: lastMonday) else {
-            return ""
-        }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return "\(formatter.string(from: lastMonday))-\(formatter.string(from: lastSunday))"
+        return WeekDateService.lastWeekRange()
     }
 
-    // 計算從訓練開始到當前的週數
+    // 計算從訓練開始到當前的週數（改進版）
     func calculateCurrentTrainingWeek() -> Int? {
-        guard let overview = trainingOverview,
-            !overview.createdAt.isEmpty
-        else {
+        guard let overview = trainingOverview, !overview.createdAt.isEmpty else {
             Logger.debug("無法計算訓練週數: 缺少 overview 或建立時間")
             return nil
         }
 
-        let createdAtString = overview.createdAt
-
-        // 解析 createdAt 字串為 Date 對象
-        let dateFormatter = ISO8601DateFormatter()
-        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        guard let createdAtDate = dateFormatter.date(from: createdAtString) else {
-            Logger.debug("無法解析建立時間: \(createdAtString)")
+        // 解析 createdAt，支持帶小數秒和不帶小數秒
+        var createdAtDate: Date?
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        createdAtDate = isoFormatter.date(from: overview.createdAt)
+        if createdAtDate == nil {
+            isoFormatter.formatOptions = [.withInternetDateTime]
+            createdAtDate = isoFormatter.date(from: overview.createdAt)
+        }
+        guard let startDate = createdAtDate else {
+            Logger.debug("無法解析建立時間: \(overview.createdAt)")
             return nil
         }
 
-        let calendar = Calendar.current
-        let today = Date()
-
-        // 輸出當前日期和建立日期，以便調試
-        let debugFormatter = DateFormatter()
-        debugFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss (EEEE)"
-        debugFormatter.locale = Locale(identifier: "zh_TW")
-
-        // 找到 createdAt 所在週的週一 (週的開始)
-        let createdAtWeekday = calendar.component(.weekday, from: createdAtDate)
-        let adjustedCreatedAtWeekday = createdAtWeekday == 1 ? 7 : createdAtWeekday - 1  // 將週日=1轉換為週日=7
-
-        Logger.debug("主要訓劃建立在：\(overview.createdAt), 星期 \(adjustedCreatedAtWeekday)")
-
-        // 計算建立日期所在週的週一日期
-        let daysToSubtract = adjustedCreatedAtWeekday - 1
-        guard
-            let createdAtWeekMonday = calendar.date(
-                byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAtDate))
-        else {
+        let calendar = Calendar(identifier: .gregorian)
+        // 計算建立日期所在週的週一
+        let createdWeekday = calendar.component(.weekday, from: startDate)
+        let createdIndex = (createdWeekday + 5) % 7  // Monday=0..Sunday=6
+        guard let createdMonday = calendar.date(byAdding: .day,
+                                               value: -createdIndex,
+                                               to: calendar.startOfDay(for: startDate)) else {
             Logger.debug("無法計算建立日期所在週的週一")
             return nil
         }
 
-        // 找到今天所在週的週一
+        // 計算今天所在週的週一
+        let today = now()
         let todayWeekday = calendar.component(.weekday, from: today)
-        let adjustedTodayWeekday = todayWeekday == 1 ? 7 : todayWeekday - 1  // 將週日=1轉換為週日=7
-
-        let todayDaysToSubtract: Int = adjustedTodayWeekday - 1
-        guard
-            let todayWeekMonday: Date = calendar.date(
-                byAdding: .day, value: -todayDaysToSubtract, to: calendar.startOfDay(for: today))
-        else {
+        let todayIndex = (todayWeekday + 5) % 7
+        guard let todayMonday = calendar.date(byAdding: .day,
+                                             value: -todayIndex,
+                                             to: calendar.startOfDay(for: today)) else {
             Logger.debug("無法計算今天所在週的週一")
             return nil
         }
 
-        // 計算週數差異
-        // 使用 Calendar 直接計算這兩個週一之間的週數差異
-        let weekDiff =
-            calendar.dateComponents([.weekOfYear], from: createdAtWeekMonday, to: todayWeekMonday)
-            .weekOfYear ?? 0
-
-        // 訓練週數 = 週數差異 + 1（含第一週）
-        let trainingWeek = weekDiff + 1
-        Logger.info("當前為訓練計劃的第 \(trainingWeek) 週")
-
-        return trainingWeek
+        // 計算週差並 +1
+        let seconds = todayMonday.timeIntervalSince(createdMonday)
+        let weekCount = Int(floor(seconds / (7 * 24 * 3600))) + 1
+        return max(weekCount, 1)
     }
 
     // 取得訓練週數並輸出日誌
@@ -274,9 +248,6 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
 
-    // 儲存當前計算好的週日期資訊
-    private var currentWeekDateInfo: WeekDateInfo?
-
     // 從 TrainingRecordViewModel 重用的方法
     func isWorkoutUploaded(_ workout: HKWorkout) -> Bool {
         return workoutService.isWorkoutUploaded(workout)
@@ -286,21 +257,43 @@ class TrainingPlanViewModel: ObservableObject {
         return workoutService.getWorkoutUploadTime(workout)
     }
 
-    func loadWeeklyPlan() async {
-        await MainActor.run {
-            isLoading = true
+    // 更新提示顯示狀態
+    internal func updatePromptViews() {
+        let cw = calculateCurrentTrainingWeek() ?? 0
+        let total = trainingOverview?.totalWeeks ?? 0
+        switch planStatus {
+        case .noPlan:
+            // 尚未生成本週計畫
+            showNewWeekPrompt = (selectedWeek == cw)
+            noWeeklyPlanAvailable = (selectedWeek < cw)
+            showFinalWeekPrompt = false
+        case .completed:
+            // 完成最後一週後提示
+            showFinalWeekPrompt = (selectedWeek == total)
+            showNewWeekPrompt = false
             noWeeklyPlanAvailable = false
+        default:
+            // 其他狀態不顯示提示
+            showNewWeekPrompt = false
+            noWeeklyPlanAvailable = false
+            showFinalWeekPrompt = false
         }
+    }
 
+    func loadWeeklyPlan() async {
+        planStatus = .loading
         // 首先嘗試從本地加載數據
         if let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
             // 立即更新UI
             await MainActor.run {
-                weeklyPlan = savedPlan
-                currentPlanWeek = savedPlan.weekOfPlan
-                calculateWeekDateInfo(for: savedPlan)
-                selectedWeek = savedPlan.weekOfPlan
-                isLoading = false
+                self.currentPlanWeek = savedPlan.weekOfPlan
+                if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: savedPlan.weekOfPlan) {
+                    self.weekDateInfo = info
+                }
+                self.selectedWeek = savedPlan.weekOfPlan
+                let cw = self.calculateCurrentTrainingWeek() ?? 0
+                self.planStatus = cw > savedPlan.totalWeeks ? .completed : .ready(savedPlan)
+                updatePromptViews()
             }
 
             // 異步從API獲取最新數據
@@ -315,26 +308,35 @@ class TrainingPlanViewModel: ObservableObject {
                     savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
 
                 await MainActor.run {
-                    weeklyPlan = newPlan
-                    currentPlanWeek = newPlan.weekOfPlan
-                    calculateWeekDateInfo(for: newPlan)
-                    selectedWeek = newPlan.weekOfPlan
+                    self.weeklyPlan = newPlan
+                    self.currentPlanWeek = newPlan.weekOfPlan
+                    if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
+                        self.weekDateInfo = info
+                    }
+                    self.selectedWeek = newPlan.weekOfPlan
 
                     // 如果計劃有變更，清除舊的訓練記錄
                     if planChanged {
-                        workoutsByDay.removeAll()
-                        expandedDayIndices.removeAll()
+                        self.workoutsByDay.removeAll()
+                        self.expandedDayIndices.removeAll()
                     }
+                    let cw = self.calculateCurrentTrainingWeek() ?? 0
+                    self.planStatus = cw > newPlan.totalWeeks ? .completed : .ready(newPlan)
+                    updatePromptViews()
                 }
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404: 無週計劃
                 await MainActor.run {
-                    noWeeklyPlanAvailable = true
-                    isLoading = false
+                    let cw = calculateCurrentTrainingWeek() ?? 0
+                    self.planStatus = .noPlan
+                    updatePromptViews()
                 }
             } catch {
                 // 其他錯誤: 使用本地數據並記錄
                 Logger.error("API加載計劃失敗，使用本地數據: \(error)")
+                await MainActor.run {
+                    self.planStatus = .error(error)
+                }
             }
         } else {
             // 本地無數據，必須等待API
@@ -343,27 +345,27 @@ class TrainingPlanViewModel: ObservableObject {
                 let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
                     planId: "\(overviewId)_\(self.currentWeek)")
                 
-                //let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(planId: plan)(
-                //    caller: "loadWeeklyPlan")
-
                 await MainActor.run {
-                    weeklyPlan = newPlan
-                    currentPlanWeek = newPlan.weekOfPlan
-                    calculateWeekDateInfo(for: newPlan)
-                    selectedWeek = newPlan.weekOfPlan
-                    error = nil
-                    isLoading = false
+                    self.weeklyPlan = newPlan
+                    self.currentPlanWeek = newPlan.weekOfPlan
+                    if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
+                        self.weekDateInfo = info
+                    }
+                    self.selectedWeek = newPlan.weekOfPlan
+                    let cw = self.calculateCurrentTrainingWeek() ?? 0
+                    self.planStatus = cw > newPlan.totalWeeks ? .completed : .ready(newPlan)
+                    updatePromptViews()
                 }
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404: 無週計劃
                 await MainActor.run {
-                    noWeeklyPlanAvailable = true
-                    isLoading = false
+                    let cw = calculateCurrentTrainingWeek() ?? 0
+                    self.planStatus = .noPlan
+                    updatePromptViews()
                 }
             } catch {
                 await MainActor.run {
-                    self.error = error
-                    isLoading = false
+                    self.planStatus = .error(error)
                 }
             }
         }
@@ -371,11 +373,9 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 依據指定週數產生對應週計劃
     func fetchWeekPlan(week: Int, healthKitManager: HealthKitManager) async {
+        planStatus = .loading
         await MainActor.run {
-            isLoading = true
             error = nil
-            noWeeklyPlanAvailable = false
-            showNewWeekPrompt = false
         }
         do {
             // 僅使用 GET 查詢指定週計劃
@@ -384,120 +384,51 @@ class TrainingPlanViewModel: ObservableObject {
                 planId: "\(overviewId)_\(week)")
 
             await MainActor.run {
-                weeklyPlan = plan
-                selectedWeek = week
-                calculateWeekDateInfo(for: plan)
-                isLoading = false
+                self.weeklyPlan = plan
+                self.selectedWeek = week
+                self.currentPlanWeek = plan.weekOfPlan
+                if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: plan.weekOfPlan) {
+                    self.weekDateInfo = info
+                }
+                let cw = self.calculateCurrentTrainingWeek() ?? 0
+                self.planStatus = cw > plan.totalWeeks ? .completed : .ready(plan)
+                updatePromptViews()
             }
             // 載入該週的健康資料
             await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
             await loadCurrentWeekDistance(healthKitManager: healthKitManager)
             await identifyTodayTraining()
-        } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
+
+        } catch let err as TrainingPlanService.WeeklyPlanError where err == .notFound {
             // 404 錯誤：依週數區分提示
-            let currentWeek = calculateCurrentTrainingWeek() ?? 0
             await MainActor.run {
-                if week == currentWeek {
-                    showNewWeekPrompt = true
-                } else {
-                    noWeeklyPlanAvailable = true
-                }
-                isLoading = false
+                let cw = calculateCurrentTrainingWeek() ?? 0
+                self.planStatus = cw == week ? .noPlan : .noPlan
+                updatePromptViews()
             }
         } catch {
             await MainActor.run {
-                self.error = error
-                isLoading = false
+                self.planStatus = .error(error)
             }
         }
     }
 
-    // 集中處理日期邏輯的核心方法
-    private func calculateWeekDateInfo(for plan: WeeklyPlan) {
-        let calendar = Calendar.current
+    // MARK: - New prompt display logic
+    /// 是否已完成所有週的訓練
+    var isFinalWeek: Bool {
+        guard let plan = weeklyPlan else { return false }
+        return currentWeek > plan.totalWeeks
+    }
 
-        // 如果沒有創建日期，無法計算
-        guard let createdAt = plan.createdAt else {
-            Logger.debug("計劃沒有創建日期，無法計算週日期範圍")
-            currentWeekDateInfo = nil
-            return
-        }
-
-        // 調試輸出
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-
-        // 步驟1: 確定創建日期是星期幾 (1=週一, 7=週日)
-        let creationWeekday = calendar.component(.weekday, from: createdAt)
-        // 將1-7(週日-週六)轉換為1-7(週一-週日)
-        let adjustedCreationWeekday = creationWeekday == 1 ? 7 : creationWeekday - 1
-        Logger.debug("週計劃創建日期: \(formatter.string(from: createdAt)), 週 \(adjustedCreationWeekday)")
-
-        // 步驟2: 計算當週的週一
-        let daysToSubtract = adjustedCreationWeekday - 1  // 週一不需要減
-        guard
-            let targetWeekMonday = calendar.date(
-                byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: createdAt))
-        else {
-            Logger.debug("無法計算週一日期")
-            currentWeekDateInfo = nil
-            return
-        }
-
-        // 設置當天的開始時間為凌晨00:00:00
-        let startOfMonday = calendar.startOfDay(for: targetWeekMonday)
-
-        // 步驟3: 計算該週的週日日期和結束時間
-        guard let weekSunday = calendar.date(byAdding: .day, value: 6, to: startOfMonday),
-            let endOfSunday = calendar.date(
-                bySettingHour: 23, minute: 59, second: 59, of: weekSunday)
-        else {
-            Logger.debug("無法計算週日日期")
-            currentWeekDateInfo = nil
-            return
-        }
-
-        // 步驟4: 生成所有日期的映射 (1-7 對應週一到週日)
-        var daysMap: [Int: Date] = [:]
-        for dayIndex in 1...7 {
-            if let date = calendar.date(byAdding: .day, value: dayIndex - 1, to: startOfMonday) {
-                daysMap[dayIndex] = date
-            }
-        }
-
-        // 創建週日期信息對象
-        let weekDateInfo = WeekDateInfo(
-            startDate: startOfMonday,
-            endDate: endOfSunday,
-            daysMap: daysMap
-        )
-
-        // 更新當前週日期信息
-        self.currentWeekDateInfo = weekDateInfo
-
-        // 輸出計算結果供除錯
-        Logger.debug(
-            "計算的週日期範圍 - 開始: \(formatter.string(from: startOfMonday)), 結束: \(formatter.string(from: endOfSunday))"
-        )
-
-        // 額外檢查每天的日期
-        let shortFormatter = DateFormatter()
-        shortFormatter.dateFormat = "MM/dd (E)"
+    /// 是否需要顯示「產生新週」提示
+    var isNewWeekPromptNeeded: Bool {
+        weeklyPlan == nil && selectedWeek == currentWeek
     }
 
     // 獲取當前週的日期範圍 (用於獲取訓練記錄)
     func getCurrentWeekDates() -> (Date, Date) {
-        // 如果已經計算過週日期信息，直接使用
-        if let dateInfo = currentWeekDateInfo {
-            return (dateInfo.startDate, dateInfo.endDate)
-        }
-
-        // 如果有課表但還沒計算過，重新計算
-        if let plan = weeklyPlan {
-            calculateWeekDateInfo(for: plan)
-            if let dateInfo = currentWeekDateInfo {
-                return (dateInfo.startDate, dateInfo.endDate)
-            }
+        if let info = weekDateInfo {
+            return (info.startDate, info.endDate)
         }
 
         // 默認情況：返回當前自然週的範圍
@@ -507,11 +438,10 @@ class TrainingPlanViewModel: ObservableObject {
         // 找到本週的週一
         let weekday = calendar.component(.weekday, from: today)
         let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
-        let daysToSubtract = adjustedWeekday - 1
 
         // 週一日期
         let startDate = calendar.date(
-            byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: today))!
+            byAdding: .day, value: -adjustedWeekday + 1, to: calendar.startOfDay(for: today))!
 
         // 週日日期 (週一加6天)
         let endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
@@ -522,18 +452,7 @@ class TrainingPlanViewModel: ObservableObject {
 
     // 獲取特定課表日的日期
     func getDateForDay(dayIndex: Int) -> Date? {
-        // 如果已經計算過週日期信息，直接從映射中獲取
-        if let dateInfo = currentWeekDateInfo {
-            return dateInfo.getDateForDayIndex(dayIndex)
-        }
-
-        // 如果有課表但還沒計算過，重新計算
-        if let plan = weeklyPlan {
-            calculateWeekDateInfo(for: plan)
-            return currentWeekDateInfo?.getDateForDayIndex(dayIndex)
-        }
-
-        return nil
+        return weekDateInfo?.daysMap[dayIndex]
     }
 
     // 判斷特定課表日是否為今天
@@ -593,9 +512,7 @@ class TrainingPlanViewModel: ObservableObject {
     // 在產生新週計劃時更新概覽
     // 產生指定週數的課表
     func generateNextWeekPlan(targetWeek: Int) async {
-        await MainActor.run {
-            isLoading = true
-        }
+        planStatus = .loading
 
         do {
             Logger.debug("開始產生第 \(targetWeek) 週課表...")
@@ -614,15 +531,20 @@ class TrainingPlanViewModel: ObservableObject {
                 currentPlanWeek = newPlan.weekOfPlan
 
                 // 重新計算週日期信息
-                calculateWeekDateInfo(for: newPlan)
+                if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
+                    self.weekDateInfo = info
+                }
 
                 await MainActor.run {
-                    weeklyPlan = newPlan
-                    error = nil
+                    self.weeklyPlan = newPlan
+                    self.error = nil
 
                     // 清除舊的訓練記錄和展開狀態
-                    workoutsByDay.removeAll()
-                    expandedDayIndices.removeAll()
+                    self.workoutsByDay.removeAll()
+                    self.expandedDayIndices.removeAll()
+                    let cw = self.calculateCurrentTrainingWeek() ?? 0
+                    self.planStatus = cw > newPlan.totalWeeks ? .completed : .ready(newPlan)
+                    updatePromptViews()
                 }
                 await MainActor.run {
                     noWeeklyPlanAvailable = false
@@ -651,9 +573,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
         }
 
-        await MainActor.run {
-            isLoading = false
-        }
+        planStatus = .loading
     }
 
     // Flag to ensure initial data load only once
@@ -684,10 +604,7 @@ class TrainingPlanViewModel: ObservableObject {
     }
 
     func refreshWeeklyPlan(healthKitManager: HealthKitManager) async {
-        await MainActor.run {
-            isLoading = true
-            error = nil
-        }
+        // 下拉刷新僅更新資料，不變更 planStatus
 
         let maxRetries = 3
         var currentRetry = 0
@@ -712,28 +629,32 @@ class TrainingPlanViewModel: ObservableObject {
                 currentPlanWeek = newPlan.weekOfPlan
 
                 // 重新計算週日期信息
-                calculateWeekDateInfo(for: newPlan)
+                if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
+                    self.weekDateInfo = info
+                }
 
                 await MainActor.run {
-                    weeklyPlan = newPlan
-                    error = nil
-
-                    // 如果計劃週數已變更，清除舊的訓練記錄和展開狀態
+                    // 更新計劃內容，不變動 planStatus
+                    withTransaction(Transaction(animation: nil)) {
+                        self.weeklyPlan = newPlan
+                    }
+                    self.error = nil
+                    // 若週數變更，再清除舊記錄
                     if planWeekChanged {
                         Logger.debug("偵測到計劃週數變更，清除舊的訓練記錄")
-                        workoutsByDay.removeAll()
-                        expandedDayIndices.removeAll()
+                        self.workoutsByDay.removeAll()
+                        self.expandedDayIndices.removeAll()
                     }
+                    let cw = self.calculateCurrentTrainingWeek() ?? 0
+                    self.planStatus = cw > newPlan.totalWeeks ? .completed : .ready(newPlan)
+                    updatePromptViews()
                 }
+
                 Logger.debug("完成更新計劃")
 
-                // 非取消任務：獨立 Task 載入訓練概覽
-                Task.detached(priority: .userInitiated) { [weak self] in
-                    await self?.loadTrainingOverview()
-                }
-
-                // 在這裡也輸出訓練週數計算結果
-                logCurrentTrainingWeek()
+                // 重新載入訓練記錄
+                await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
+                await identifyTodayTraining()
 
                 if newPlan.totalDistance > 0 {
                     await loadCurrentWeekDistance(healthKitManager: healthKitManager)
@@ -741,17 +662,9 @@ class TrainingPlanViewModel: ObservableObject {
 
                 await loadVDOTData()
 
-                // 重新載入訓練記錄
-                await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
-                await identifyTodayTraining()
-
                 break  // 成功後跳出重試迴圈
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404 時標記無週計劃並結束重試
-                await MainActor.run {
-                    noWeeklyPlanAvailable = true
-                    isLoading = false
-                }
                 break
             } catch {
                 currentRetry += 1
@@ -765,10 +678,6 @@ class TrainingPlanViewModel: ObservableObject {
                     try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))  // 等待1秒後重試
                 }
             }
-        }
-
-        await MainActor.run {
-            isLoading = false
         }
     }
 
@@ -1141,5 +1050,17 @@ class TrainingPlanViewModel: ObservableObject {
                 self.isLoadingWeeklySummary = false
             }
         }
+    }
+
+    /// 下拉刷新專用：僅更新訓練記錄、跑量與 VDOT，不觸發 planStatus 或 weeklyPlan 變動
+    func refreshData(healthKitManager: HealthKitManager) async {
+        // 讀取訓練記錄
+        await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+        // 讀取本週跑量
+        if let plan = weeklyPlan, plan.totalDistance > 0 {
+            await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+        }
+        // 讀取 VDOT
+        await loadVDOTData()
     }
 }

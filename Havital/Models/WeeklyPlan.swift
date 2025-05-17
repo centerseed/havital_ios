@@ -71,6 +71,19 @@ struct WeeklyPlan: Codable {
     }
 }
 
+extension WeeklyPlan {
+    init(id: String, purpose: String, weekOfPlan: Int, totalWeeks: Int, totalDistance: Double, designReason: [String]?, days: [TrainingDay]) {
+        self.id = id
+        self.purpose = purpose
+        self.weekOfPlan = weekOfPlan
+        self.totalWeeks = totalWeeks
+        self.totalDistance = totalDistance
+        self.designReason = designReason
+        self.days = days
+        self.createdAtString = nil
+    }
+}
+
 struct TrainingDay: Codable, Identifiable {
     var id: String { dayIndex }
     let dayIndex: String

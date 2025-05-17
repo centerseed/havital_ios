@@ -13,10 +13,9 @@ struct WeekPlanContentView: View {
         let selected = plan.weekOfPlan
         let current = currentTrainingWeek
         VStack {
-            if current > plan.totalWeeks {
+            if viewModel.isFinalWeek {
                 FinalWeekPromptView(viewModel: viewModel)
-            } else if selected < current  && viewModel.noWeeklyPlanAvailable{
-                // 尚未生成且無課表，顯示產生新週提示
+            } else if viewModel.isNewWeekPromptNeeded {
                 NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: current)
             } else {
                 // 已有課表：不論過去或當前週，顯示概覽與每日清單
@@ -204,8 +203,10 @@ struct TrainingPlanView: View {
                 }
                 .padding(.horizontal)
             }
+            .transaction { $0.disablesAnimations = true }
             .background(Color(UIColor.systemGroupedBackground))
             .refreshable {
+                // 下拉刷新：直接更新 weekPlan 資料
                 await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
             }
             .navigationTitle(viewModel.trainingPlanName)
@@ -259,35 +260,28 @@ struct TrainingPlanView: View {
     }
     
     // 拆分主內容視圖
-    private var mainContentView: some View {
-        let selected = viewModel.selectedWeek
-        let current = viewModel.currentWeek
-        return VStack {
-            if viewModel.isLoading {
-                ProgressView("載入訓練計劃中...")
-                    .foregroundColor(.gray)
-                    .frame(height: 200)
-            } else if viewModel.currentWeek > viewModel.trainingOverview?.totalWeeks ?? 1 {
-                FinalWeekPromptView(viewModel: viewModel)
-            } else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek <= viewModel.currentWeek {
-                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
-            } else if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
-                WeekPlanContentView(
-                    viewModel: viewModel,
-                    plan: plan,
-                    currentTrainingWeek: currentTrainingWeek
-                )
-            } else if let error = viewModel.error {
-                ErrorView(error: error) {
-                    Task {
-                        await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
-                    }
-                }
+    @ViewBuilder private var mainContentView: some View {
+        switch viewModel.planStatus {
+        case .loading:
+            ProgressView("載入訓練計劃中...")
+                .foregroundColor(.gray)
+                .frame(height: 200)
+        case .noPlan:
+            // 尚未生成本週計畫
+            NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
+        case .ready(let plan):
+            WeekPlanContentView(
+                viewModel: viewModel,
+                plan: plan,
+                currentTrainingWeek: viewModel.currentWeek
+            )
+            .id(viewModel.currentWeek)
+        case .completed:
+            FinalWeekPromptView(viewModel: viewModel)
+        case .error(let error):
+            ErrorView(error: error) {
+                Task { await viewModel.loadWeeklyPlan() }
             }
-        }
-        .onAppear {
-            // 除錯 log
-            Logger.info("current: \(viewModel.currentWeek), selected: \(viewModel.selectedWeek), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
         }
     }
     
