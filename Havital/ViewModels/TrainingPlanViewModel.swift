@@ -746,6 +746,13 @@ class TrainingPlanViewModel: ObservableObject {
                 await identifyTodayTraining()
 
                 break  // 成功後跳出重試迴圈
+            } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
+                // 404 時標記無週計劃並結束重試
+                await MainActor.run {
+                    noWeeklyPlanAvailable = true
+                    isLoading = false
+                }
+                break
             } catch {
                 currentRetry += 1
                 if currentRetry >= maxRetries {
@@ -1017,11 +1024,14 @@ class TrainingPlanViewModel: ObservableObject {
         return total
     }
 
-    // 格式化工具方法
-    func formatDistance(_ distance: Double) -> String {
-        return String(format: "%.2f km", distance)
+    func formatDistance(_ distance: Double, unit: String? = nil) -> String {
+        if let unit = unit {
+            return String(format: "%.2f \(unit)", distance)
+        } else {
+            return String(Int(distance))
+        }
     }
-
+    
     func formatShortDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"

@@ -269,7 +269,7 @@ struct TrainingPlanView: View {
                     .frame(height: 200)
             } else if viewModel.currentWeek > viewModel.trainingOverview?.totalWeeks ?? 1 {
                 FinalWeekPromptView(viewModel: viewModel)
-            } else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek < viewModel.currentWeek {
+            } else if viewModel.noWeeklyPlanAvailable && viewModel.selectedWeek <= viewModel.currentWeek {
                 NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
             } else if let plan = viewModel.weeklyPlan, let currentTrainingWeek = viewModel.calculateCurrentTrainingWeek() {
                 WeekPlanContentView(

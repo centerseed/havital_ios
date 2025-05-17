@@ -6,7 +6,7 @@ struct WeeklyPlan: Codable {
     let weekOfPlan: Int
     let totalWeeks: Int
     let totalDistance: Double
-    let totalDistanceReason: String
+    let designReason: [String]?
     let days: [TrainingDay]
     private let createdAtString: String?  // 原始字串，用於解碼
     
@@ -32,7 +32,7 @@ struct WeeklyPlan: Codable {
         case weekOfPlan = "week_of_plan"
         case totalWeeks = "total_weeks"
         case totalDistance = "total_distance_km"
-        case totalDistanceReason = "total_distance_reason"
+        case designReason = "design_reason"
         case days
         case createdAtString = "created_at"  // 對應 API 回傳欄位名稱
     }
@@ -49,7 +49,7 @@ struct WeeklyPlan: Codable {
             weekOfPlan = try nestedContainer.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try nestedContainer.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try nestedContainer.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
-            totalDistanceReason = try nestedContainer.decode(String.self, forKey: .totalDistanceReason)
+            designReason = try nestedContainer.decodeIfPresent([String].self, forKey: .designReason)
             days = try nestedContainer.decode([TrainingDay].self, forKey: .days)
             createdAtString = try nestedContainer.decodeIfPresent(String.self, forKey: .createdAtString)
         } else {
@@ -59,7 +59,7 @@ struct WeeklyPlan: Codable {
             weekOfPlan = try container.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try container.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try container.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
-            totalDistanceReason = try container.decode(String.self, forKey: .totalDistanceReason)
+            designReason = try container.decodeIfPresent([String].self, forKey: .designReason)
             days = try container.decode([TrainingDay].self, forKey: .days)
             createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAtString)
         }

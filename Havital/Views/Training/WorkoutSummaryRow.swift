@@ -65,7 +65,7 @@ struct WorkoutSummaryRow: View {
                             Image(systemName: "ruler")
                                 .font(.system(size: 10))
                                 .foregroundColor(.blue)
-                            Text("\(viewModel.formatDistance(distance/1000))")
+                            Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
@@ -183,7 +183,7 @@ struct CollapsedWorkoutSummary: View {
                                 Image(systemName: "ruler")
                                     .font(.system(size: 10))
                                     .foregroundColor(.blue)
-                                Text("\(viewModel.formatDistance(distance/1000))")
+                                Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
