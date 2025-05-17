@@ -246,10 +246,6 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }
-        .sheet(isPresented: $showModifications) {
-            ModificationsView(viewModel: viewModel)
-                .environmentObject(healthKitManager)
-        }
         .onAppear {
             // 初始載入與檢查移至 ViewModel
             if hasCompletedOnboarding {

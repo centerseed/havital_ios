@@ -15,22 +15,26 @@ final class TrainingPlanService {
     }
     
     // MARK: - Modifications APIs
+    /// 取得修改描述
     func getModificationsDescription() async throws -> String {
         return try await APIClient.shared.request(String.self,
             path: "/plan/modifications/description")
     }
     
+    /// 取得所有修改項目
     func getModifications() async throws -> [Modification] {
         return try await APIClient.shared.request([Modification].self,
             path: "/plan/modifications")
     }
     
+    /// 新增單筆修改
     func createModification(_ newMod: NewModification) async throws -> Modification {
         let body = try JSONEncoder().encode(newMod)
         return try await APIClient.shared.request(Modification.self,
             path: "/plan/modifications", method: "POST", body: body)
     }
     
+    /// 更新多筆修改
     func updateModifications(_ mods: [Modification]) async throws -> [Modification] {
         let payload = ModificationsUpdateRequest(modifications: mods)
         let data = try JSONEncoder().encode(payload)
@@ -38,6 +42,7 @@ final class TrainingPlanService {
             path: "/plan/modifications", method: "PUT", body: data)
     }
     
+    /// 清除所有修改
     func clearModifications() async throws {
         try await APIClient.shared.requestNoResponse(
             path: "/plan/modifications", method: "DELETE")
