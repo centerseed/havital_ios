@@ -1,0 +1,76 @@
+{
+  "purpose": "高原期第二週，強化耐力與速度訓練",
+  "week_of_plan": 9,
+  "days": [
+    {
+      "day_index": 1,
+      "training_type": "interval",
+      "day_target": "1200m x 4 間歇訓練",
+      "reason": "提升速度耐力與乳酸耐受度",
+      "training_details": {
+        "repeats": 4,
+        "work": {"distance_km": 1.2, "pace": "4:40", "description": "1200公尺高強度"},
+        "recovery": {"distance_km": 0.4, "time_minutes": 2.5, "pace": "7:30", "description": "400公尺慢跑恢復"}
+      }
+    },
+    {
+      "day_index": 2,
+      "training_type": "easy_run",
+      "day_target": "輕鬆跑10公里",
+      "reason": "間歇訓練後恢復",
+      "training_details": {"distance_km": 10.0, "time_minutes": 70, "pace": "7:00", "heart_rate_range": {"min": 140, "max": 160}, "description": "保持輕鬆配速"}
+    },
+    {
+      "day_index": 3,
+      "training_type": "tempo",
+      "day_target": "節奏跑12公里",
+      "reason": "提升乳酸閾值與節奏感",
+      "training_details": {"distance_km": 12.0, "time_minutes": 66, "pace": "5:30", "heart_rate_range": {"min": 165, "max": 180}, "description": "維持節奏配速"}
+    },
+    {
+      "day_index": 4,
+      "training_type": "rest",
+      "day_target": "休息日",
+      "reason": "讓身體充分恢復",
+      "training_details": {"description": "休息或輕度伸展"}
+    },
+    {
+      "day_index": 5,
+      "training_type": "progression",
+      "day_target": "漸進跑16公里",
+      "reason": "提升配速變化能力與耐力",
+      "training_details": {
+        "segments": [
+          {"distance_km": 5.0, "pace": "6:30"},
+          {"distance_km": 8.0, "pace": "5:45"},
+          {"distance_km": 3.0, "pace": "5:15"}
+        ],
+        "total_distance_km": 16.0,
+        "description": "漸進加速跑"
+      }
+    },
+    {
+      "day_index": 6,
+      "training_type": "long_run",
+      "day_target": "長跑24公里",
+      "reason": "提升有氧耐力",
+      "training_details": {"distance_km": 24.0, "time_minutes": 168, "pace": "7:00", "heart_rate_range": {"min": 140, "max": 160}, "description": "穩定配速長跑"}
+    },
+    {
+      "day_index": 7,
+      "training_type": "recovery_run",
+      "day_target": "恢復跑8公里",
+      "reason": "促進血液循環",
+      "training_details": {"distance_km": 8.0, "time_minutes": 56, "pace": "7:30", "heart_rate_range": {"min": 120, "max": 140}, "description": "輕鬆慢跑"}
+    }
+  ],
+  "total_distance_reason": "高原期第二週，總跑量86公里，著重耐力與速度平衡",
+  "total_distance_km": 86.0,
+  "design_reason": [
+    "加入1200公尺長間歇，提升速度耐力",
+    "增加節奏跑距離，強化乳酸閾值",
+    "漸進跑與長跑距離增加，提升有氧能力"
+  ],
+  "total_weeks": 12,
+  "intensity_total_minutes": {"low": 280, "medium": 66, "high": 40}
+}

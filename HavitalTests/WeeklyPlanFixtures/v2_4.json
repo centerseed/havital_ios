@@ -1,0 +1,156 @@
+{
+  "purpose": "基礎期第四週，調整週，恢復與鞏固訓練成果",
+  "week_of_plan": 4,
+  "days": [
+    {
+      "day_index": 1,
+      "training_type": "easy_run",
+      "day_target": "輕鬆完成5公里跑步，促進恢復",
+      "reason": "調整週的輕鬆跑，幫助身體恢復",
+      "training_details": {
+        "distance_km": 5.0,
+        "time_minutes": 33,
+        "pace": "6:35",
+        "heart_rate_range": {
+          "min": 135,
+          "max": 155
+        },
+        "description": "輕鬆跑，保持輕鬆的配速"
+      }
+    },
+    {
+      "day_index": 2,
+      "training_type": "progression",
+      "day_target": "變速跑訓練，提升速度變化能力",
+      "reason": "在調整週維持速度感，同時降低訓練強度",
+      "tips": "注意聆聽身體信號，適度調整強度",
+      "training_details": {
+        "segments": [
+          {
+            "distance_km": 1.0,
+            "pace": "6:30",
+            "description": "熱身"
+          },
+          {
+            "distance_km": 0.2,
+            "pace": "5:20",
+            "description": "快跑200公尺"
+          },
+          {
+            "distance_km": 0.2,
+            "pace": "6:30",
+            "description": "恢復跑200公尺"
+          },
+          {
+            "distance_km": 0.4,
+            "pace": "5:10",
+            "description": "快跑400公尺"
+          },
+          {
+            "distance_km": 0.4,
+            "pace": "6:30",
+            "description": "恢復跑400公尺"
+          },
+          {
+            "distance_km": 0.2,
+            "pace": "5:00",
+            "description": "衝刺200公尺"
+          },
+          {
+            "distance_km": 1.0,
+            "pace": "6:30",
+            "description": "緩和跑"
+          }
+        ],
+        "total_distance_km": 6.4,
+        "description": "法特雷克跑，變速訓練"
+      }
+    },
+    {
+      "day_index": 3,
+      "training_type": "easy_run",
+      "day_target": "輕鬆完成6公里跑步，鞏固有氧基礎",
+      "reason": "調整週的輕鬆跑，保持跑步感覺",
+      "training_details": {
+        "distance_km": 6.0,
+        "time_minutes": 40,
+        "pace": "6:40",
+        "heart_rate_range": {
+          "min": 135,
+          "max": 155
+        },
+        "description": "輕鬆跑，保持穩定配速"
+      }
+    },
+    {
+      "day_index": 4,
+      "training_type": "rest",
+      "day_target": "完全休息日，讓身體充分恢復",
+      "reason": "調整週的重要恢復日，促進身體修復",
+      "training_details": {
+        "description": "充分休息，可進行輕度拉伸或瑜伽"
+      }
+    },
+    {
+      "day_index": 5,
+      "training_type": "easy_run",
+      "day_target": "輕鬆完成5公里跑步，保持跑步感覺",
+      "reason": "調整週的輕鬆跑，保持跑步節奏",
+      "training_details": {
+        "distance_km": 5.0,
+        "time_minutes": 33,
+        "pace": "6:35",
+        "heart_rate_range": {
+          "min": 135,
+          "max": 155
+        },
+        "description": "輕鬆跑，保持穩定配速"
+      }
+    },
+    {
+      "day_index": 6,
+      "training_type": "long_run",
+      "day_target": "適度長跑，維持耐力基礎",
+      "reason": "調整週的長跑，減少距離和強度",
+      "training_details": {
+        "distance_km": 10.0,
+        "time_minutes": 70,
+        "pace": "7:00",
+        "heart_rate_range": {
+          "min": 135,
+          "max": 155
+        },
+        "description": "輕鬆長跑，享受跑步的樂趣"
+      }
+    },
+    {
+      "day_index": 7,
+      "training_type": "recovery_run",
+      "day_target": "恢復跑，促進血液循環",
+      "reason": "幫助身體從長跑中恢復，準備下週訓練",
+      "training_details": {
+        "distance_km": 4.0,
+        "time_minutes": 32,
+        "pace": "8:00",
+        "heart_rate_range": {
+          "min": 120,
+          "max": 140
+        },
+        "description": "恢復跑，輕鬆慢跑"
+      }
+    }
+  ],
+  "total_distance_reason": "基礎期第四週為調整週，總跑量減少至36公里，讓身體充分恢復",
+  "total_distance_km": 36.0,
+  "design_reason": [
+    "調整週減少訓練量和強度，促進身體恢復",
+    "加入法特雷克跑維持速度感，同時降低訓練壓力",
+    "適度減少長跑距離，為下週的訓練做好準備"
+  ],
+  "total_weeks": 12,
+  "intensity_total_minutes": {
+    "low": 210,
+    "medium": 15,
+    "high": 8
+  }
+}

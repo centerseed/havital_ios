@@ -1,0 +1,115 @@
+{
+  "total_distance_reason": "本週跑量設定為45公里，較上週增加10%，為全馬訓練做準備。",
+  "total_distance_km": 45.0,
+  "week_of_plan": 5,
+  "total_weeks": 16,
+  "purpose": "第五週增加跑量，引入漸速跑訓練，提升耐力與速度耐力。",
+  "days": [
+    {
+      "training_type": "rest",
+      "training_details": {
+        "description": "休息日，進行輕度伸展和滾筒放鬆。"
+      },
+      "day_target": "主動恢復",
+      "day_index": 1,
+      "reason": "讓身體從週末的長跑中恢復。"
+    },
+    {
+      "training_type": "easy_run",
+      "training_details": {
+        "distance_km": 8.0,
+        "heart_rate_range": {
+          "min": 140,
+          "max": 160
+        },
+        "description": "輕鬆跑，維持穩定的配速。",
+        "training_details": "一般訓練"
+      },
+      "day_target": "輕鬆跑8公里",
+      "day_index": 2,
+      "reason": "建立有氧基礎。"
+    },
+    {
+      "training_type": "progressive_run",
+      "training_details": {
+        "segments": [
+          {
+            "distance_km": 3.0,
+            "pace": "6:30",
+            "description": "熱身階段"
+          },
+          {
+            "distance_km": 5.0,
+            "pace": "5:45",
+            "description": "漸速階段"
+          },
+          {
+            "distance_km": 2.0,
+            "pace": "5:15",
+            "description": "衝刺階段"
+          }
+        ],
+        "total_distance_km": 10.0,
+        "description": "漸速跑訓練，逐步提高配速。",
+        "training_details": "漸速訓練"
+      },
+      "day_target": "漸速跑10公里",
+      "day_index": 3,
+      "reason": "提升速度耐力和配速變化能力。"
+    },
+    {
+      "training_type": "rest",
+      "training_details": {
+        "description": "休息日，放鬆身心。"
+      },
+      "day_target": "完全休息",
+      "day_index": 4,
+      "reason": "讓身體從強度訓練中恢復。"
+    },
+    {
+      "training_type": "easy_run",
+      "training_details": {
+        "distance_km": 8.0,
+        "heart_rate_range": {
+          "min": 140,
+          "max": 160
+        },
+        "description": "輕鬆跑，保持穩定的配速。",
+        "training_details": "一般訓練"
+      },
+      "day_target": "輕鬆跑8公里",
+      "day_index": 5,
+      "reason": "維持跑步頻率。"
+    },
+    {
+      "training_type": "long_run",
+      "training_details": {
+        "distance_km": 18.0,
+        "heart_rate_range": {
+          "min": 140,
+          "max": 160
+        },
+        "description": "長距離輕鬆跑，建立耐力。",
+        "training_details": "一般訓練"
+      },
+      "day_target": "長跑18公里",
+      "day_index": 6,
+      "reason": "逐步增加長跑距離。"
+    },
+    {
+      "training_type": "recovery_run",
+      "training_details": {
+        "distance_km": 5.0,
+        "heart_rate_range": {
+          "min": 130,
+          "max": 150
+        },
+        "description": "恢復跑，幫助身體恢復。",
+        "training_details": "一般訓練"
+      },
+      "day_target": "恢復跑5公里",
+      "day_index": 7,
+      "reason": "促進血液循環，加速恢復。"
+    }
+  ]
+}
