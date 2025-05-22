@@ -8,7 +8,18 @@ struct WeeklyPlan: Codable {
     let totalDistance: Double
     let designReason: [String]?
     let days: [TrainingDay]
+    let intensityTotalMinutes: IntensityTotalMinutes?
     private let createdAtString: String?  // 原始字串，用於解碼
+    
+    struct IntensityTotalMinutes: Codable {
+        let low: Int
+        let medium: Int
+        let high: Int
+        
+        var total: Int {
+            return low + medium + high
+        }
+    }
     
     // 計算屬性，將字串轉換為 Date 類型
     var createdAt: Date? {
@@ -34,6 +45,7 @@ struct WeeklyPlan: Codable {
         case totalDistance = "total_distance_km"
         case designReason = "design_reason"
         case days
+        case intensityTotalMinutes = "intensity_total_minutes"
         case createdAtString = "created_at"  // 對應 API 回傳欄位名稱
     }
     
@@ -49,6 +61,7 @@ struct WeeklyPlan: Codable {
             weekOfPlan = try nestedContainer.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try nestedContainer.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try nestedContainer.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
+            intensityTotalMinutes = try nestedContainer.decodeIfPresent(IntensityTotalMinutes.self, forKey: .intensityTotalMinutes)
             designReason = try nestedContainer.decodeIfPresent([String].self, forKey: .designReason)
             days = try nestedContainer.decode([TrainingDay].self, forKey: .days)
             createdAtString = try nestedContainer.decodeIfPresent(String.self, forKey: .createdAtString)
@@ -59,6 +72,7 @@ struct WeeklyPlan: Codable {
             weekOfPlan = try container.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try container.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try container.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
+            intensityTotalMinutes = try container.decodeIfPresent(IntensityTotalMinutes.self, forKey: .intensityTotalMinutes)
             designReason = try container.decodeIfPresent([String].self, forKey: .designReason)
             days = try container.decode([TrainingDay].self, forKey: .days)
             createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAtString)
@@ -72,7 +86,7 @@ struct WeeklyPlan: Codable {
 }
 
 extension WeeklyPlan {
-    init(id: String, purpose: String, weekOfPlan: Int, totalWeeks: Int, totalDistance: Double, designReason: [String]?, days: [TrainingDay]) {
+    init(id: String, purpose: String, weekOfPlan: Int, totalWeeks: Int, totalDistance: Double, designReason: [String]?, days: [TrainingDay], intensityTotalMinutes: IntensityTotalMinutes? = nil) {
         self.id = id
         self.purpose = purpose
         self.weekOfPlan = weekOfPlan
@@ -80,6 +94,7 @@ extension WeeklyPlan {
         self.totalDistance = totalDistance
         self.designReason = designReason
         self.days = days
+        self.intensityTotalMinutes = intensityTotalMinutes
         self.createdAtString = nil
     }
 }

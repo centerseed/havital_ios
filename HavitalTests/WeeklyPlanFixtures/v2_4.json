@@ -1,4 +1,5 @@
 {
+    "id": "test",
   "purpose": "基礎期第四週，調整週，恢復與鞏固訓練成果",
   "week_of_plan": 4,
   "days": [
@@ -151,6 +152,6 @@
   "intensity_total_minutes": {
     "low": 210,
     "medium": 15,
-    "high": 8
+    "high": 0
   }
 }

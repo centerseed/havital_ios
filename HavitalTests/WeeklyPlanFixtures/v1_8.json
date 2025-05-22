@@ -1,10 +1,10 @@
 {
     "id": "test",
-  "total_distance_reason": "本週跑量設定為50公里，較上週增加11%，為全馬訓練高峰期做準備。",
-  "total_distance_km": 50.0,
-  "week_of_plan": 8,
+  "total_distance_reason": "本週跑量設定為55公里，較上週增加10%，為全馬訓練高峰期。",
+  "total_distance_km": 55.0,
+  "week_of_plan": 10,
   "total_weeks": 16,
-  "purpose": "第八週為訓練高峰期，結合長距離跑和速度訓練，提升耐力與速度。",
+  "purpose": "第十週為訓練高峰期，增加長跑距離，提升耐力與心理素質。",
   "days": [
     {
       "training_type": "rest",
@@ -18,7 +18,7 @@
     {
       "training_type": "easy_run",
       "training_details": {
-        "distance_km": 8.0,
+        "distance_km": 10.0,
         "heart_rate_range": {
           "min": 140,
           "max": 160
@@ -26,7 +26,7 @@
         "description": "輕鬆跑，維持穩定的配速。",
         "training_details": "一般訓練"
       },
-      "day_target": "輕鬆跑8公里",
+      "day_target": "輕鬆跑10公里",
       "day_index": 2,
       "reason": "建立有氧基礎。"
     },
@@ -35,9 +35,9 @@
       "training_details": {
         "repeats": 6,
         "work": {
-          "distance_km": 1.0,
-          "pace": "5:40",
-          "description": "1000公尺間歇跑"
+          "distance_km": 1.2,
+          "pace": "5:45",
+          "description": "1200公尺間歇跑"
         },
         "recovery": {
           "distance_km": 0.4,
@@ -46,7 +46,7 @@
         },
         "training_details": "間歇訓練"
       },
-      "day_target": "間歇訓練：6x1000m",
+      "day_target": "間歇訓練：6x1200m",
       "day_index": 3,
       "reason": "提升速度耐力和乳酸門檻。"
     },
@@ -62,7 +62,7 @@
     {
       "training_type": "easy_run",
       "training_details": {
-        "distance_km": 10.0,
+        "distance_km": 12.0,
         "heart_rate_range": {
           "min": 140,
           "max": 160
@@ -70,14 +70,14 @@
         "description": "輕鬆跑，保持穩定的配速。",
         "training_details": "一般訓練"
       },
-      "day_target": "輕鬆跑10公里",
+      "day_target": "輕鬆跑12公里",
       "day_index": 5,
       "reason": "維持跑步頻率，累積跑量。"
     },
     {
       "training_type": "long_run",
       "training_details": {
-        "distance_km": 22.0,
+        "distance_km": 28.0,
         "heart_rate_range": {
           "min": 140,
           "max": 160
@@ -85,9 +85,9 @@
         "description": "長距離輕鬆跑，建立耐力。",
         "training_details": "一般訓練"
       },
-      "day_target": "長跑22公里",
+      "day_target": "長跑28公里",
       "day_index": 6,
-      "reason": "逐步增加長跑距離，模擬比賽後半段疲勞感。"
+      "reason": "模擬比賽後半段疲勞感，提升心理素質。"
     },
     {
       "training_type": "recovery_run",

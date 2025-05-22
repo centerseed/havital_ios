@@ -1,4 +1,5 @@
 {
+    "id": "test",
   "total_distance_reason": "本週跑量設定為20公里，較上週減少30%，進行賽前減量調整。",
   "total_distance_km": 20.0,
   "week_of_plan": 12,

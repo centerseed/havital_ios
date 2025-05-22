@@ -9,6 +9,10 @@ struct UserProfileView: View {
     @State private var weeklyDistance: Int = 0
     @State private var showTrainingDaysEditor = false
     
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+    
     var body: some View {
         List {
             // Profile Section
@@ -135,6 +139,17 @@ struct UserProfileView: View {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
                         Text("登出")
                     }
+                }
+            }
+            
+            // App Version Section
+            Section {
+                HStack {
+                    Spacer()
+                    Text("版本號 \(appVersion)")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    Spacer()
                 }
             }
         }

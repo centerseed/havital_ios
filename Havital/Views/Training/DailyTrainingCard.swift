@@ -182,9 +182,9 @@ struct DailyTrainingCard: View {
                             }
                         }
                         
-                        // For interval training, show a special header with repeats info
-                        if let trainingItems = day.trainingItems {
-                            if day.type == .interval, trainingItems.count > 0, let repeats = trainingItems[0].goals.times {
+                        // For interval or progression training, show a special header
+                        if let trainingItems = day.trainingItems, !trainingItems.isEmpty {
+                            if day.type == .interval, let repeats = trainingItems[0].goals.times {
                                 HStack {
                                     Text("間歇訓練")
                                         .font(.subheadline)
@@ -201,6 +201,82 @@ struct DailyTrainingCard: View {
                                         .cornerRadius(12)
                                 }
                                 .padding(.top, 4)
+                            } else if day.type == .progression, let segments = day.trainingDetails?.segments {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("間歇跑")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let totalDistance = day.trainingDetails?.totalDistanceKm {
+                                            Text(String(format: "%.1fkm", totalDistance))
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(Color.orange.opacity(0.15))
+                                                .cornerRadius(12)
+                                        }
+                                    }
+                                    .padding(.top, 4)
+                                    
+                                    // 分割線
+                                    Divider()
+                                        .background(Color.orange.opacity(0.3))
+                                        .padding(.vertical, 2)
+                                    
+                                    ForEach(segments.indices, id: \.self) { index in
+                                        let segment = segments[index]
+                                        HStack(spacing: 8) {
+                                            // 區段標號
+                                            Text("區段 \(index + 1)")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(8)
+                                            
+                                            // 區段描述
+                                            if let description = segment.description {
+                                                Text(description)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            // 區段距離
+                                            Text(String(format: "%.1fkm", segment.distanceKm))
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(8)
+                                            
+                                            // 區段配速
+                                            Text(segment.pace)
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.15))
+                                                .cornerRadius(8)
+                                        }
+                                        .padding(.vertical, 2)
+                                        
+                                        // 除了最後一個區段外，添加細分割線
+                                        if index < segments.count - 1 {
+                                            Divider()
+                                                .background(Color.orange.opacity(0.1))
+                                                .padding(.leading, 30)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 2)
                             }
                             
                             // Show each training item

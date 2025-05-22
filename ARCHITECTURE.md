@@ -133,10 +133,13 @@ This modular structure promotes separation of concerns, testability, and scalabi
 ## 同步處理週計劃與選擇週次
 
 - **週計劃載入流程**：
-  1. View 透過 `.task` 或操作觸發 `loadAllInitialData(healthKitManager:)` 或 `loadWeeklyPlan()`；
-  2. ViewModel 先呼叫 `TrainingPlanStorage.loadWeeklyPlan()`，若本地有舊資料，立即更新 `weeklyPlan` 和 UI；
-  3. 同時在背景非同步呼叫 `TrainingPlanService.shared.getWeeklyPlan(caller:)` 獲取最新週計劃；
-  4. 若獲取成功，呼叫 `TrainingPlanStorage.saveWeeklyPlan(newPlan)` 並 `await MainActor.run` 更新 `weeklyPlan`、`currentPlanWeek`、`selectedWeek`，並重新計算週日期資訊。
+  1. 正常啟動（已有 overview）：
+     - 先呼叫 `TrainingPlanStorage.loadWeeklyPlan()` 取本地快取並更新 UI。
+     - 非同步呼叫 `TrainingPlanService.getWeeklyPlanById(planId:)` 取得最新計劃，儲存後更新 UI。
+  2. 用戶手動刷新：
+     - 下拉或按鈕觸發 `refreshWeeklyPlan()`，呼叫 `TrainingPlanService.getWeeklyPlanById(planId:)` 並更新 UI。
+  3. 登出後重新登入：
+     - 本地緩存清空後，透過 `loadTrainingOverview()` 拿到 overview，若 `weeklyPlan == nil`，自動觸發 `loadWeeklyPlan()` 取得週計劃。
 
 - **週次選擇邏輯**：
   - `selectedWeek` 綁定於 UI 選單，下拉列表由 `availableWeeks` 動態產生，範圍為 `[1...currentTrainingWeek]`；

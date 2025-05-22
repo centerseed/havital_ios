@@ -1,20 +1,20 @@
 {
     "id": "test",
-  "purpose": "基礎期第二週，逐步增加跑量，強化有氧耐力",
-  "week_of_plan": 2,
+  "purpose": "基礎期第三週，強化速度耐力，提升跑步經濟性",
+  "week_of_plan": 3,
   "days": [
     {
       "day_index": 1,
       "training_type": "easy_run",
-      "day_target": "輕鬆完成6公里跑步，建立有氧基礎",
-      "reason": "基礎有氧訓練，為後續訓練打下基礎",
+      "day_target": "輕鬆完成6公里跑步，促進恢復",
+      "reason": "恢復性訓練，幫助身體從週末的長跑中恢復",
       "training_details": {
         "distance_km": 6.0,
         "time_minutes": 40,
         "pace": "6:40",
         "heart_rate_range": {
-          "min": 140,
-          "max": 160
+          "min": 138,
+          "max": 158
         },
         "description": "輕鬆跑，保持穩定配速"
       }
@@ -23,18 +23,18 @@
       "day_index": 2,
       "training_type": "interval",
       "day_target": "提升速度耐力，增強心肺功能",
-      "reason": "基礎期中期加入中距離間歇訓練，提升速度耐力",
-      "tips": "注意保持正確跑姿，避免過度用力",
+      "reason": "基礎期中期加入長距離間歇訓練，提升速度耐力",
+      "tips": "注意保持正確跑姿，控制恢復時間",
       "training_details": {
-        "repeats": 5,
+        "repeats": 4,
         "work": {
-          "distance_km": 0.6,
-          "pace": "5:25",
-          "description": "600公尺間歇跑"
+          "distance_km": 1.0,
+          "pace": "5:35",
+          "description": "1000公尺間歇跑"
         },
         "recovery": {
           "distance_km": 0.4,
-          "time_minutes": 2.5,
+          "time_minutes": 3.0,
           "pace": "7:30",
           "description": "400公尺輕鬆跑恢復"
         }
@@ -43,11 +43,11 @@
     {
       "day_index": 3,
       "training_type": "easy_run",
-      "day_target": "輕鬆完成7公里跑步，鞏固有氧基礎",
+      "day_target": "輕鬆完成8公里跑步，鞏固有氧基礎",
       "reason": "持續建立有氧耐力，促進恢復",
       "training_details": {
-        "distance_km": 7.0,
-        "time_minutes": 47,
+        "distance_km": 8.0,
+        "time_minutes": 54,
         "pace": "6:45",
         "heart_rate_range": {
           "min": 140,
@@ -71,8 +71,8 @@
       "day_target": "提高乳酸閾值，增強耐力",
       "reason": "提升中等強度下的持續奔跑能力",
       "training_details": {
-        "distance_km": 6.0,
-        "time_minutes": 35,
+        "distance_km": 7.0,
+        "time_minutes": 41,
         "pace": "5:50",
         "heart_rate_range": {
           "min": 160,
@@ -87,8 +87,8 @@
       "day_target": "增強有氧耐力，為後續訓練儲備能量",
       "reason": "長距離跑是基礎期重要的訓練內容，有助於提升有氧能力",
       "training_details": {
-        "distance_km": 12.0,
-        "time_minutes": 84,
+        "distance_km": 14.0,
+        "time_minutes": 98,
         "pace": "7:00",
         "heart_rate_range": {
           "min": 140,
@@ -103,8 +103,8 @@
       "day_target": "促進身體恢復，減輕肌肉酸痛",
       "reason": "幫助身體從長距離跑中恢復，避免過度疲勞",
       "training_details": {
-        "distance_km": 4.0,
-        "time_minutes": 32,
+        "distance_km": 5.0,
+        "time_minutes": 40,
         "pace": "8:00",
         "heart_rate_range": {
           "min": 120,
@@ -114,17 +114,17 @@
       }
     }
   ],
-  "total_distance_reason": "基礎期第二週，總跑量增加至42公里，維持有氧基礎訓練",
-  "total_distance_km": 42.0,
+  "total_distance_reason": "基礎期第三週，總跑量增加至48公里，重點強化速度耐力",
+  "total_distance_km": 48.0,
   "design_reason": [
-    "延續金字塔訓練模式，逐步增加訓練量",
-    "調整間歇訓練為中距離600公尺，提升速度耐力",
-    "長距離跑增加至12公里，持續強化有氧基礎"
+    "延續金字塔訓練模式，適度增加訓練量",
+    "調整間歇訓練為1000公尺長距離間歇，提升速度耐力",
+    "長距離跑增加至14公里，持續強化有氧基礎"
   ],
   "total_weeks": 12,
   "intensity_total_minutes": {
-    "low": 239,
-    "medium": 35,
-    "high": 15
+    "low": 252,
+    "medium": 0,
+    "high": 0
   }
 }

@@ -12,98 +12,166 @@ struct WeekOverviewCard: View {
             Text("本週概覽")
                 .font(.headline)
                 .padding(.horizontal, 4)
+            
+            // 卡片內容
+            VStack(spacing: 0) {
+                // 主要內容
+                VStack(spacing: 16) {
 
             VStack(spacing: 16) {
-                // 週進度水平時間條
-                VStack(spacing: 6) {
-                    HStack {
-                        Text("訓練進度")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("\(plan.weekOfPlan) / \(plan.totalWeeks) 週")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.primary)
-                    }
-                    
-                    WeekProgressBar(progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks))
-                        .frame(height: 12)
-                        .onTapGesture { showWeekSelector = true }
-                }.padding(.horizontal, 32)
-                    .padding(.vertical, 8)
-                
-                // 進度圓環與強度多環水平排列
-                GeometryReader { geometry in
-                    HStack(spacing: 0) {
-                        // 左側雙環進度 (45%)
-                        VStack(spacing: 16) {
-                            
-                            
-                            // 週跑量圓環
-                            CircleProgressView(
-                                progress: min(viewModel.currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
-                                distanceInfo: "\(viewModel.formatDistance(viewModel.currentWeekDistance))/\(viewModel.formatDistance(plan.totalDistance))",
-                                title: "本週跑量"
-                            )
-                            .frame(width: 100, height: 100)
+                // 當有強度數據時才顯示頂部進度條
+                if plan.intensityTotalMinutes != nil {
+                    VStack(spacing: 6) {
+                        HStack {
+                            Text("訓練進度")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(plan.weekOfPlan) / \(plan.totalWeeks) 週")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
                         }
-                        .frame(width: geometry.size.width * 0.45, alignment: .center)
                         
-                        // 右側水平進度條 (55%)
-                        VStack(spacing: 10) {
-                            HStack(spacing: 8) {
-                                Text("本週訓練負荷")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .frame(width: geometry.size.width * 0.6 - 16, alignment: .center)
-                            }
-                            
-                            VStack(spacing: 12) {
-                                HStack() {
-                                    Text("低強度")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 45, alignment: .leading)
-                                    
-                                    HorizontalProgressBar(value: 0.67, color: .blue)
-                                        .frame(height: 12)
-                                    
-                                    Text("60%")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .frame(width: 40, alignment: .trailing)
-                                }
-                                
-                                HStack() {
-                                    Text("中強度")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 45, alignment: .leading)
-                                    
-                                    HorizontalProgressBar(value: 0.3, color: .green)
-                                        .frame(height: 16)
-                                    
-                                    Text("30%")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .frame(width: 40, alignment: .trailing)
-                                }
-                                
-                                HStack() {
-                                    Text("高強度")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 45, alignment: .leading)
-                                    
-                                    HorizontalProgressBar(value: 0.1, color: .orange)
-                                        .frame(height: 16)
-                                    
-                                    Text("10%")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .frame(width: 40, alignment: .trailing)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 8)
-                        .frame(width: geometry.size.width * 0.55, alignment: .leading)
+                        WeekProgressBar(progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks))
+                            .frame(height: 12)
+                            .onTapGesture { showWeekSelector = true }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 4)
+                }
+
+                HStack(spacing: 8) {
+                    Text("本週跑量和訓練負荷")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                
+                // 進度圓環水平排列
+                GeometryReader { geometry in
+                    HStack(spacing: 16) {
+                        if let intensity = plan.intensityTotalMinutes {
+                            // 有強度數據時顯示：左側跑量環，右側強度進度條
+                            // 左側跑量環 (40%)
+                            VStack(spacing: 16) {
+                                CircleProgressView(
+                                    progress: min(viewModel.currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
+                                    distanceInfo: "\(viewModel.formatDistance(viewModel.currentWeekDistance))/\(viewModel.formatDistance(plan.totalDistance))",
+                                    title: "本週跑量"
+                                )
+                                .frame(width: 100, height: 100)
+                            }
+                            .frame(width: geometry.size.width * 0.45, alignment: .center)
+                            
+                            // 右側強度進度條 (60%)
+                            VStack(spacing: 10) {
+                                VStack(spacing: 12) {
+                                    let total = intensity.total > 0 ? intensity.total : 1
+                                    
+                                    // 低強度
+                                    VStack(spacing: 4) {
+                                        HStack(alignment: .center) {
+                                            Text("低強度")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                            
+                                            if intensity.low == 0 {
+                                                Image(systemName: "info.circle")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.secondary)
+                                                    .help("本週無建議低強度訓練")
+                                            }
+                                            
+                                            Spacer()
+                                            Text("\(intensity.low)分")
+                                                .font(.system(size: 14, weight: .medium))
+                                        }
+                                        HorizontalProgressBar(
+                                            progress: Double(intensity.low) / Double(total),
+                                            color: .blue,
+                                            showDashed: intensity.low == 0
+                                        )
+                                    }
+                                    
+                                    // 中強度
+                                    VStack(spacing: 4) {
+                                        HStack(alignment: .center) {
+                                            Text("中強度")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                            
+                                            if intensity.medium == 0 {
+                                                Image(systemName: "info.circle")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.secondary)
+                                                    .help("本週無建議中強度訓練")
+                                            }
+                                            
+                                            Spacer()
+                                            Text("\(intensity.medium)分")
+                                                .font(.system(size: 14, weight: .medium))
+                                        }
+                                        HorizontalProgressBar(
+                                            progress: Double(intensity.medium) / Double(total),
+                                            color: .green,
+                                            showDashed: intensity.medium == 0
+                                        )
+                                    }
+                                    
+                                    // 高強度
+                                    VStack(spacing: 4) {
+                                        HStack(alignment: .center) {
+                                            Text("高強度")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                            
+                                            if intensity.high == 0 {
+                                                Image(systemName: "info.circle")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.secondary)
+                                                    .help("本週無建議高強度訓練")
+                                            }
+                                            
+                                            Spacer()
+                                            Text("\(intensity.high)分")
+                                                .font(.system(size: 14, weight: .medium))
+                                        }
+                                        HorizontalProgressBar(
+                                            progress: Double(intensity.high) / Double(total),
+                                            color: .orange,
+                                            showDashed: intensity.high == 0
+                                        )
+                                    }                    
+                                }
+                            }
+                            .frame(width: geometry.size.width * 0.55 - 16, alignment: .leading)
+                        } else {
+                            // 沒有強度數據時顯示：左側週進度環，右側跑量環
+                            // 左側週進度環 (50%)
+                            VStack(spacing: 8) {
+                                CircleProgressView(
+                                    progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks),
+                                    distanceInfo: "\(plan.weekOfPlan)/\(plan.totalWeeks)",
+                                    title: "訓練進度",
+                                    unit: "週"
+                                )
+                                .frame(width: 100, height: 100)
+                                .onTapGesture { showWeekSelector = true }
+                            }
+                            .frame(width: geometry.size.width * 0.5, alignment: .center)
+                            
+                            // 右側跑量環 (50%)
+                            VStack(spacing: 8) {
+                                CircleProgressView(
+                                    progress: min(viewModel.currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
+                                    distanceInfo: "\(viewModel.formatDistance(viewModel.currentWeekDistance))/\(viewModel.formatDistance(plan.totalDistance))",
+                                    title: "本週跑量"
+                                )
+                                .frame(width: 100, height: 100)
+                            }
+                            .frame(width: geometry.size.width * 0.5, alignment: .center)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .frame(height: 120)
                 
@@ -119,9 +187,19 @@ struct WeekOverviewCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+                }
+                .padding(.top, 4)
+            }
             .padding()
-            .background(Color(UIColor.tertiarySystemBackground))
-            .cornerRadius(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.tertiarySystemBackground))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.1), lineWidth: 0.5)
+            )
         }
         .sheet(isPresented: $showWeekSelector) {
             NavigationView {
@@ -283,11 +361,13 @@ struct CircleProgressView: View {
     let progress: Double
     var distanceInfo: String
     var title: String
+    var unit: String?
     
-    init(progress: Double, distanceInfo: String, title: String = "") {
+    init(progress: Double, distanceInfo: String, title: String = "", unit: String? = nil) {
         self.progress = progress
         self.distanceInfo = distanceInfo
         self.title = title
+        self.unit = unit
     }
     
     var body: some View {
@@ -321,7 +401,7 @@ struct CircleProgressView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                         
-                    Text("km")
+                    Text(unit ?? "km")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -330,25 +410,41 @@ struct CircleProgressView: View {
     }
 }
 
-// 水平進度條元件
+// 水平進度條
 struct HorizontalProgressBar: View {
-    let value: CGFloat
-    let color: Color
+    var progress: Double
+    var color: Color
+    var height: CGFloat = 8
+    var showDashed: Bool = false
     
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                // 背景條
-                Capsule()
-                    .fill(color.opacity(0.2))
-                    .frame(width: geometry.size.width, height: geometry.size.height)
+                // 背景
+                RoundedRectangle(cornerRadius: height / 2)
+                    .frame(width: geometry.size.width, height: height)
+                    .foregroundColor(color.opacity(0.1))
                 
-                // 進度條
-                Capsule()
-                    .fill(color)
-                    .frame(width: max(geometry.size.width * value, 0), height: geometry.size.height)
+                if showDashed {
+                    // 虛線樣式
+                    HStack(spacing: 2) {
+                        ForEach(0..<Int(geometry.size.width / 6), id: \.self) { i in
+                            Rectangle()
+                                .frame(width: 4, height: height)
+                                .foregroundColor(color.opacity(0.6))
+                        }
+                    }
+                    .frame(width: geometry.size.width, alignment: .leading)
+                } else {
+                    // 實線樣式
+                    RoundedRectangle(cornerRadius: height / 2)
+                        .frame(width: min(progress * geometry.size.width, geometry.size.width), height: height)
+                        .foregroundColor(color)
+                        .animation(.linear, value: progress)
+                }
             }
         }
+        .frame(height: height)
     }
 }
 

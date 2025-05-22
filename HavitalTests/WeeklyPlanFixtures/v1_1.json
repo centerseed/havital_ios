@@ -1,4 +1,5 @@
 {
+    "id": "test",
   "total_distance_reason": "本週跑量設定為25公里，較上週增加10%，符合漸進式增加原則。",
   "total_distance_km": 25.0,
   "week_of_plan": 1,
