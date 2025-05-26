@@ -1,6 +1,19 @@
 import Foundation
 
 struct TrainingDateUtils {
+    private static let taipeiTimeZone = TimeZone(identifier: "Asia/Taipei")!
+    private static var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = taipeiTimeZone
+        return calendar
+    }
+    
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeZone = taipeiTimeZone
+        formatter.locale = Locale(identifier: "zh_TW")
+        return formatter
+    }()
     /// 計算從訓練開始到當前的週數（改進版）
     /// - Parameters:
     ///   - createdAt: ISO8601 字串，可帶小數秒或不帶
@@ -22,7 +35,7 @@ struct TrainingDateUtils {
             Logger.debug("無法解析建立時間: \(createdAt)")
             return nil
         }
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = Self.calendar
         let createdWeekday = calendar.component(.weekday, from: startDate)
         let createdIndex = (createdWeekday + 5) % 7  // Monday=0
         guard let createdMonday = calendar.date(byAdding: .day,
@@ -40,6 +53,15 @@ struct TrainingDateUtils {
             Logger.debug("無法計算今天所在週的週一")
             return nil
         }
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = Self.taipeiTimeZone
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        dateFormatter.locale = Locale(identifier: "zh_TW")
+        
+        Logger.debug("建立時間: \(dateFormatter.string(from: startDate)) (UTC+8)")
+        Logger.debug("今天時間: \(dateFormatter.string(from: today)) (UTC+8)")
+        Logger.debug("建立週一: \(dateFormatter.string(from: createdMonday)) (UTC+8)")
+        Logger.debug("今天週一: \(dateFormatter.string(from: todayMonday)) (UTC+8)")
         let seconds = todayMonday.timeIntervalSince(createdMonday)
         let weekCount = Int(floor(seconds / (7 * 24 * 3600))) + 1
         return max(weekCount, 1)

@@ -1,5 +1,24 @@
 import Foundation
 
+/// 訓練強度分鐘數
+struct IntensityMinutes: Codable, Equatable {
+    let low: Double
+    let medium: Double
+    let high: Double
+    
+    static var zero: IntensityMinutes {
+        return IntensityMinutes(low: 0, medium: 0, high: 0)
+    }
+    
+    static func + (lhs: IntensityMinutes, rhs: IntensityMinutes) -> IntensityMinutes {
+        return IntensityMinutes(
+            low: lhs.low + rhs.low,
+            medium: lhs.medium + rhs.medium,
+            high: lhs.high + rhs.high
+        )
+    }
+}
+
 /// Wrapper for workout summary API response
 typealias WorkoutSummaryResponse = WorkoutSummaryDataWrapper
 
@@ -27,6 +46,7 @@ struct WorkoutSummary: Codable {
     let type: String
     let vdot: Double
     let trimp: Double?
+    let intensityMinutes: IntensityMinutes?
 
     enum CodingKeys: String, CodingKey {
         case avgHR = "avg_hr"
@@ -43,6 +63,7 @@ struct WorkoutSummary: Codable {
         case type
         case vdot
         case trimp
+        case intensityMinutes = "intensity_minutes"
     }
 
     /// 自訂解碼，避免 pace_zone_pct 缺少欄位導致錯誤
@@ -63,6 +84,7 @@ struct WorkoutSummary: Codable {
         type = try container.decode(String.self, forKey: .type)
         vdot = try container.decode(Double.self, forKey: .vdot)
         trimp = try container.decodeIfPresent(Double.self, forKey: .trimp)
+        intensityMinutes = try container.decodeIfPresent(IntensityMinutes.self, forKey: .intensityMinutes)
     }
 }
 

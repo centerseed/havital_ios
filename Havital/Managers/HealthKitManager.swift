@@ -58,7 +58,7 @@ class HealthKitManager: ObservableObject {
     // 獲取速度數據
     func fetchSpeedData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let runningSpeedType = HKObjectType.quantityType(forIdentifier: .runningSpeed) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
 
         return try await fetchQuantitySamples(
@@ -71,7 +71,7 @@ class HealthKitManager: ObservableObject {
     // 獲取步幅數據
     func fetchStrideLengthData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let strideLengthType = HKObjectType.quantityType(forIdentifier: .runningStrideLength) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         return try await fetchQuantitySamples(
@@ -84,7 +84,7 @@ class HealthKitManager: ObservableObject {
     // 獲取觸地時間數據
     func fetchGroundContactTimeData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let groundContactTimeType = HKObjectType.quantityType(forIdentifier: .runningGroundContactTime) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         return try await fetchQuantitySamples(
@@ -97,7 +97,7 @@ class HealthKitManager: ObservableObject {
     // 獲取垂直振幅數據
     func fetchVerticalOscillationData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let verticalOscillationType = HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         return try await fetchQuantitySamples(
@@ -112,7 +112,7 @@ class HealthKitManager: ObservableObject {
     func fetchCadenceData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         // 獲取步數數據
         guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         let stepCounts = try await fetchQuantitySamples(
@@ -229,7 +229,7 @@ class HealthKitManager: ObservableObject {
 
     func fetchHeartRateData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         return try await fetchQuantitySamples(
@@ -245,7 +245,7 @@ class HealthKitManager: ObservableObject {
         let endTime = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: startOfDay)!
         
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endTime, options: .strictEndDate)
@@ -342,7 +342,7 @@ class HealthKitManager: ObservableObject {
     
     func fetchHRVData(start: Date, end: Date) async throws -> [(Date, Double)] {
         guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         // Diagnostic: print HRV authorization status
@@ -385,7 +385,7 @@ class HealthKitManager: ObservableObject {
     
     private func fetchSleepTimes(start: Date, end: Date) async throws -> [(Date, Date)] {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -420,7 +420,7 @@ class HealthKitManager: ObservableObject {
     
     private func fetchHeartRates(start: Date, end: Date) async throws -> [Double] {
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -452,7 +452,7 @@ class HealthKitManager: ObservableObject {
     
     func fetchPaceData(for workout: HKWorkout) async throws -> [(Date, Double)] {
         guard let runningSpeedType = HKObjectType.quantityType(forIdentifier: .runningSpeed) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -494,7 +494,7 @@ class HealthKitManager: ObservableObject {
     
     func fetchHeartRatesForWorkout(_ workout: HKWorkout) async throws -> [Double] {
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         
         let predicate = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate, options: .strictStartDate)
@@ -508,7 +508,7 @@ class HealthKitManager: ObservableObject {
                 }
                 
                 guard let heartRateSamples = samples as? [HKQuantitySample] else {
-                    continuation.resume(throwing: HealthError.noData)
+                    continuation.resume(throwing: HealthError.dataNotAvailable)
                     return
                 }
                 
@@ -853,7 +853,7 @@ class HealthKitManager: ObservableObject {
     /// Diagnostic: get HRV authorization status, raw sample count, and sources
     func fetchHRVDiagnostics(start: Date, end: Date) async throws -> (authStatus: HKAuthorizationStatus, rawSampleCount: Int, sources: [String]) {
         guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         // 授權狀態
         let authStatus = healthStore.authorizationStatus(for: hrvType)
@@ -882,7 +882,7 @@ class HealthKitManager: ObservableObject {
     /// 檢查 HRV (SDNN) 讀取授權狀態，回傳 HKAuthorizationRequestStatus
     func checkHRVReadAuthorization() async throws -> HKAuthorizationRequestStatus {
         guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
-            throw HealthError.typeNotAvailable
+            throw HealthError.notAvailable
         }
         return try await withCheckedThrowingContinuation { continuation in
             healthStore.getRequestStatusForAuthorization(toShare: [], read: [hrvType]) { status, error in
@@ -899,9 +899,9 @@ class HealthKitManager: ObservableObject {
 
 extension HealthKitManager {
     enum HealthError: Error {
-        case typeNotAvailable
-        case noData
-        case authorizationDenied
         case notAvailable
+        case authorizationDenied
+        case networkError
+        case dataNotAvailable
     }
 }
