@@ -84,6 +84,6 @@ final class TrainingPlanService {
             bodyData = nil
         }
         return try await APIClient.shared.request(WeeklyPlan.self,
-            path: "/plan/race_run/weekly", method: "POST", body: bodyData)
+            path: "/plan/race_run/weekly/v2", method: "POST", body: bodyData)
     }
 }

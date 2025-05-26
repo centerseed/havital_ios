@@ -421,6 +421,20 @@ class TrainingPlanViewModel: ObservableObject {
     // 在產生新週計劃時更新概覽
     // 產生指定週數的課表
     func generateNextWeekPlan(targetWeek: Int) async {
+        var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "CreateWeeklyPlan") { 
+            // Expiration handler
+            UIApplication.shared.endBackgroundTask(backgroundTaskID)
+            backgroundTaskID = .invalid
+        }
+        
+        // Defer ending the background task to ensure it's called
+        defer {
+            if backgroundTaskID != .invalid {
+                UIApplication.shared.endBackgroundTask(backgroundTaskID)
+                backgroundTaskID = .invalid
+            }
+        }
         planStatus = .loading
         
         do {
@@ -458,11 +472,8 @@ class TrainingPlanViewModel: ObservableObject {
             }
         } catch {
             Logger.error("產生第 \(targetWeek) 週課表失敗: \(error)")
-            
-            await updateWeeklyPlanUI(plan: nil, status: .error(error))
+            planStatus = .error(error)
         }
-        
-        planStatus = .loading
     }
     
     // Flag to ensure initial data load only once

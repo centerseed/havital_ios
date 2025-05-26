@@ -54,6 +54,7 @@ Additional layers:
 - HealthKitManager: handles HealthKit authorization, permissions, and data queries (workouts, heart rate, sleep metrics). Core entry point for any HealthKit-related feature.
 - WorkoutBackgroundManager: configures and manages background delivery of workout samples from HealthKit, schedules sync events.
 - HeartRateZonesManager & Bridge: processes raw heart rate samples to compute training zones and interval thresholds.
+- **TrainingIntensityManager**: 負責處理來自 `HealthKitManager` 的運動數據，計算使用者在不同心率強度區間（低、中、高）實際花費的時間。它包含 HRR 計算、區間定義及分鐘數累計的邏輯，是訓練負荷和強度分析功能的關鍵。
 
 ### Models
 - Plain data objects, often conforming to `Codable` for JSON mapping.
@@ -70,9 +71,11 @@ Additional layers:
 
 ### ViewModels
 - Combine-based publishers, form validation, data transformations.
+- **TrainingPlanViewModel**: 作為訓練計畫和進度顯示的核心協調者。它負責從 `TrainingPlanService`（或本地存儲）獲取計畫的活動和強度目標，並從 `TrainingIntensityManager` 及 `HealthKitManager` 獲取使用者的實際運動數據（如週跑量、實際強度分鐘數）。它將這些數據整合後，提供給如 `WeekOverviewCard` 等視圖使用。
 
 ### Views
 - SwiftUI screens and reusable components organized by feature (e.g., `UserProfileView`, `TrainingPlanView`).
+  複雜的 UI 區塊通常由多個小型、功能專一的視圖組合而成。例如，每週訓練負荷的顯示就涉及到 `WeekOverviewCard` 協調 `ProgressWithIntensitySection`，後者再利用 `IntensityProgressSection` 管理多個 `IntensityProgressView` 實例。理解這種組合關係有助於定位 UI 相關邏輯。
 
 ### Utils
 - Helper functions, date formatters, logging, miscellaneous tools.
@@ -97,6 +100,18 @@ Additional layers:
 ## Conclusion
 
 This modular structure promotes separation of concerns, testability, and scalability. Each layer has a clear responsibility.
+
+### 關鍵功能資料流程範例：每週強度進度顯示
+
+1.  **`WeeklyPlan` (Model)**: 提供選定週的低、中、高強度**目標**分鐘數 (透過 `TrainingPlanService` 獲取，由 `TrainingPlanViewModel` 管理)。
+2.  **`HealthKitManager` (Manager)**: 提供原始運動數據，包含心率樣本和時間戳。
+3.  **`TrainingIntensityManager` (Manager)**: 使用 `HealthKitManager` 的數據，計算當前/選定週在各強度區間的**實際**花費分鐘數。
+4.  **`TrainingPlanViewModel` (ViewModel)**: 從 `WeeklyPlan` 獲取目標強度，從 `TrainingIntensityManager` 獲取實際強度，整合後提供給相關視圖。
+5.  **`WeekOverviewCard` (View)**: 從 `TrainingPlanViewModel` 接收目標與實際強度數據。
+6.  **`ProgressWithIntensitySection` (View)**: `WeekOverviewCard` 內的子視圖，負責佈局跑量和整體強度區塊。
+7.  **`IntensityProgressSection` (View)**: 接收三區間的目標與實際強度數據，為低、中、高強度分別創建 `IntensityProgressView` 實例。
+8.  **`IntensityProgressView` (View)**: 根據其 `displayState` 邏輯，顯示單一強度區間的進度條、目標/實際分鐘數文字及相關圖示。
+
 
 ## View-ViewModel-Service 呼叫流程
 
@@ -140,6 +155,19 @@ This modular structure promotes separation of concerns, testability, and scalabi
      - 下拉或按鈕觸發 `refreshWeeklyPlan()`，呼叫 `TrainingPlanService.getWeeklyPlanById(planId:)` 並更新 UI。
   3. 登出後重新登入：
      - 本地緩存清空後，透過 `loadTrainingOverview()` 拿到 overview，若 `weeklyPlan == nil`，自動觸發 `loadWeeklyPlan()` 取得週計劃。
+
+- **產生新週課表流程** (主要由 `TrainingPlanViewModel.generateNextWeekPlan(targetWeek:)` 處理)：
+  1. **觸發時機**：通常在用戶完成當週回顧後，若系統檢測到當前週 (`calculateCurrentTrainingWeek`) 尚無課表，會提示並允許用戶產生新課表。
+  2. **設定目標週**：目前流程中，`targetWeek` 通常是 `calculateCurrentTrainingWeek` 計算出的當前週。
+  3. **開始背景任務**：呼叫 `UIApplication.shared.beginBackgroundTask` 以確保 API 請求在 App 短暫進入背景時仍能完成。
+  4. **更新狀態**：`planStatus` 更新為 `.loading`，UI 顯示載入指示。
+  5. **請求後端產生課表**：呼叫 `TrainingPlanService.createWeeklyPlan(targetWeek:)` 向後端發起產生指定週課表的請求。
+  6. **獲取新產生的課表**：若步驟 5 成功，則呼叫 `TrainingPlanService.getWeeklyPlanById(planId: "{overviewId}_{currentWeek}")` 來獲取剛產生的週課表內容。注意：此處的 `currentWeek` 在當前流程下與 `targetWeek` 一致。
+  7. **更新內部狀態**：更新 `currentPlanWeek`、`weekDateInfo` 等 ViewModel 內部狀態。
+  8. **更新UI**：呼叫 `updateWeeklyPlanUI` 使用新的課表數據刷新界面，並將 `planStatus` 更新為 `.ready(newPlan)`。
+  9. **重新載入關聯數據**：非同步重新載入 `trainingOverview` 和當週的訓練記錄 (`loadWorkoutsForCurrentWeek`)。
+  10. **結束背景任務**：無論成功或失敗，最終都會呼叫 `UIApplication.shared.endBackgroundTask`。
+  11. **錯誤處理**：在上述任一步驟失敗時，記錄錯誤並將 `planStatus` 更新為 `.error(error)`。
 
 - **週次選擇邏輯**：
   - `selectedWeek` 綁定於 UI 選單，下拉列表由 `availableWeeks` 動態產生，範圍為 `[1...currentTrainingWeek]`；
