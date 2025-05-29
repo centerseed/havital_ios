@@ -114,6 +114,13 @@ struct TrainingDaysSetupView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAlert = false
     @State private var scrollToBottom = false // 用於控制滾動到底部
+    @State private var isLoadingAnimation = false
+    private let loadingMessages = [
+        "分析您的訓練偏好...",
+        "計算最佳訓練強度...",
+        "為您準備專屬課表..."
+    ]
+    private let loadingDuration: Double = 20 // 加載動畫持續時間（秒）
     @State private var scrollProxy: ScrollViewProxy? = nil // 持有 ScrollViewProxy 的引用
     
     var body: some View {
@@ -184,9 +191,15 @@ struct TrainingDaysSetupView: View {
                         
                         if viewModel.canGenerateWeeklyPlan {
                             Button(action: {
+                                isLoadingAnimation = true
                                 Task {
                                     print("開始產生週計劃")
+                                    // 開始產生週計劃
                                     await viewModel.generateWeeklyPlan()
+                                    // 課表載入完成後關閉動畫
+                                    await MainActor.run {
+                                        isLoadingAnimation = false
+                                    }
                                 }
                             }) {
                                 if viewModel.isLoading {
@@ -199,7 +212,7 @@ struct TrainingDaysSetupView: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .padding(.top, 10)
-                            .disabled(viewModel.isLoading)
+                            .disabled(viewModel.isLoading || isLoadingAnimation)
                             .id("bottomButton") // 添加 ID 用於滾動定位
                         }
                     }
@@ -230,6 +243,11 @@ struct TrainingDaysSetupView: View {
         }
         .navigationTitle("設定訓練日")
         .navigationBarTitleDisplayMode(.inline)
+        .loadingAnimation(
+            isLoading: $isLoadingAnimation,
+            messages: loadingMessages,
+            totalDuration: loadingDuration
+        )
         .alert("提示", isPresented: $showAlert) {
             Button("確定") {}
         } message: {

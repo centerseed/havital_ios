@@ -187,6 +187,18 @@ struct TrainingPlanView: View {
     @State private var showUserProfile = false
     @State private var showTrainingOverview = false
     @State private var showDebugView = false
+    @State private var isLoadingAnimation = false
+    private let loadingMessages = [
+        "分析您的體能狀態...",
+        "計算最佳訓練強度...",
+        "為您準備客製化課表..."
+    ]
+    private let summaryLoadingMessages = [
+        "分析本週訓練數據...",
+        "計算訓練負荷與強度...",
+        "為您準備訓練回顧..."
+    ]
+    private let loadingDuration: Double = 20 // 加載動畫持續時間（秒）
     @State private var showModifications = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
@@ -233,6 +245,11 @@ struct TrainingPlanView: View {
                 UserProfileView()
             }
         }
+        .loadingAnimation(
+            isLoading: $isLoadingAnimation,
+            messages: loadingMessages,
+            totalDuration: loadingDuration
+        )
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }

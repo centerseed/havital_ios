@@ -33,7 +33,7 @@ struct TargetRaceCard: View {
                         Spacer()
                         
                         // 計算賽事日期距今天數
-                        let daysRemaining = calculateDaysRemaining(raceDate: target.raceDate)
+                        let daysRemaining = TrainingDateUtils.calculateDaysRemaining(raceDate: target.raceDate)
                         Text("\(daysRemaining)天")
                             .font(.headline)
                             .foregroundColor(.primary)
@@ -126,14 +126,5 @@ struct TargetRaceCard: View {
         }
     }
     
-    // 計算賽事日期距今天數
-    private func calculateDaysRemaining(raceDate: Int) -> Int {
-        let raceDay = Date(timeIntervalSince1970: TimeInterval(raceDate))
-        let today = Date()
-        
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.day], from: today, to: raceDay)
-        
-        return max(components.day ?? 0, 0) // 確保不為負數
-    }
+
 }

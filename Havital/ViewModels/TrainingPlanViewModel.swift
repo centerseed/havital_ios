@@ -1,6 +1,7 @@
 import Combine
 import HealthKit
 import SwiftUI
+import Firebase
 
 @MainActor
 class TrainingPlanViewModel: ObservableObject {
@@ -29,6 +30,7 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var selectedWeek: Int = 1
     @Published var currentWeek: Int = 1
     @Published var weekDateInfo: WeekDateInfo?
+    @Published var showSyncingSplash: Bool = false // 新增此行
     /// 無對應週計畫時顯示
     @Published var noWeeklyPlanAvailable: Bool = false
     /// 當週尚無週計劃時顯示產生新週提示
@@ -79,28 +81,60 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
     init() {
-        // 從本地讀取概覽
+        let onboardingCompleted = AuthenticationService.shared.hasCompletedOnboarding
         let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
+
+        if onboardingCompleted && savedOverview.createdAt.isEmpty {
+            self.showSyncingSplash = true
+        }
+
         if !savedOverview.createdAt.isEmpty {
             self.trainingOverview = savedOverview
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
+            // 如果是從本地載入，且已 onboarding，則不需要 splash
+            // 但 showSyncingSplash 的最終狀態由後續的 Task 決定，以處理 API call 的情況
         }
-        // 若本地無 createdAt，則非同步從 API 獲取並保存
+        
+        // 非同步任務處理 API 獲取和 UI 更新
         Task {
             if savedOverview.createdAt.isEmpty {
+                // 只有當本地 createdAt 為空時，才真正需要決定是否顯示 Splash 並從 API 獲取
+                if onboardingCompleted {
+                    // 已 onboarding 但本地無資料，此時 showSyncingSplash 應為 true (已在同步區塊設定)
+                } else {
+                    // 未 onboarding，無論本地是否有資料，都不應顯示此特定 splash
+                    // 確保 splash 關閉，因為這不是我們要處理的 splash case
+                    await MainActor.run {
+                        self.showSyncingSplash = false
+                    }
+                }
+
                 do {
                     let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
-                    // 保存到本地
-                    TrainingPlanStorage.saveTrainingPlanOverview(overview)
+                    TrainingPlanStorage.saveTrainingPlanOverview(overview) // 保存到本地
                     await MainActor.run {
                         self.trainingOverview = overview
                         self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
+                        self.showSyncingSplash = false // 成功獲取後關閉 splash
                     }
                 } catch {
                     Logger.error("初始化獲取訓練計劃概覽失敗: \(error)")
+                    await MainActor.run {
+                        self.showSyncingSplash = false // 獲取失敗也關閉 splash，避免卡住
+                    }
                 }
+            } else {
+                // 本地 savedOverview.createdAt 不是空的
+                // 如果已 onboarding，確保 splash 是關閉的
+                if onboardingCompleted {
+                    await MainActor.run {
+                        self.showSyncingSplash = false
+                    }
+                }
+                // 如果未 onboarding，splash 狀態不由這裡的邏輯控制，應保持預設或由其他邏輯處理
             }
-            Task { await self.loadWeeklyPlan() }
+            // 無論如何，最後都要嘗試載入週計劃
+            await self.loadWeeklyPlan()
         }
     }
     

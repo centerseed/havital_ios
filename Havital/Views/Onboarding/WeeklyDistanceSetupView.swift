@@ -42,7 +42,7 @@ class WeeklyDistanceViewModel: ObservableObject {
         
         do {
             // 使用預設的週跑量值
-            let defaultWeeklyDistance = min(targetDistance / 2, maxSuggestedDistance)
+            let defaultWeeklyDistance = Int(min(targetDistance / 2, maxSuggestedDistance).rounded())
             let userData = [
                 "current_week_distance": defaultWeeklyDistance
             ] as [String: Any]
