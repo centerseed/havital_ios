@@ -115,11 +115,22 @@ class EditTargetViewModel: ObservableObject {
     ]
     
     var remainingWeeks: Int {
-        let calendar = Calendar.current
-        let weeks = calendar.dateComponents([.weekOfYear],
-                                          from: Date(),
-                                          to: raceDate).weekOfYear ?? 0
-        return max(weeks, 1) // 至少返回1週
+        let isoFormatter = ISO8601DateFormatter()
+        // 設定格式選項以包含日期、時間和時區資訊，以及可選的毫秒數
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let currentDateISO = isoFormatter.string(from: Date())
+
+        // 使用 TrainingDateUtils 中的方法計算週數
+        // createdAt 設定為當前時間, now 設定為比賽日期 (raceDate)
+        if let calculatedWeeks = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: currentDateISO, now: self.raceDate) {
+            // TrainingDateUtils.calculateCurrentTrainingWeek 已經確保結果至少為 1
+            return calculatedWeeks
+        } else {
+            // 若計算失敗（理論上 currentDateISO 應該總是有效的），提供一個備用值
+            // 這裡可以加入日誌記錄錯誤
+            print("Error: Could not calculate remaining weeks using TrainingDateUtils. Defaulting to 1.")
+            return 1
+        }
     }
     
     var targetPace: String {

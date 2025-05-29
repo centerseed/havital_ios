@@ -185,7 +185,6 @@ struct FinalWeekPromptView: View {
 struct TrainingPlanView: View {
     @StateObject private var viewModel = TrainingPlanViewModel()
     @State private var showUserProfile = false
-    @State private var showOnboardingConfirmation = false
     @State private var showTrainingOverview = false
     @State private var showDebugView = false
     @State private var showModifications = false
@@ -214,15 +213,6 @@ struct TrainingPlanView: View {
             .foregroundColor(.primary)
             .toolbar {
                 toolbarContent
-            }
-            .confirmationDialog(
-                "確定要重新開始OnBoarding流程嗎？",
-                isPresented: $showOnboardingConfirmation,
-                titleVisibility: .visible
-            ) {
-                dialogButtons
-            } message: {
-                Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。")
             }
         }
         .task {
@@ -306,27 +296,12 @@ struct TrainingPlanView: View {
                     }) {
                         Label("修改課表", systemImage: "slider.horizontal.3")
                     }
-                    /* 測試onboarding再打開*/
-                    Button(action: {
-                        showOnboardingConfirmation = true
-                    }) {
-                        Label("重新OnBoarding", systemImage: "arrow.clockwise")
-                    }*/
+                    */
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
                 }
             }
-        }
-    }
-    
-    // 對話框按鈕
-    private var dialogButtons: some View {
-        Group {
-            Button("確定", role: .destructive) {
-                AuthenticationService.shared.resetOnboarding()
-            }
-            Button("取消", role: .cancel) {}
         }
     }
     

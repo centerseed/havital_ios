@@ -240,7 +240,8 @@ class HealthKitManager: ObservableObject {
     }
     
     func fetchSleepHeartRateAverage(for date: Date) async throws -> Double? {
-        let calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZoneManager.shared.getCurrentTimeZone()
         let startOfDay = calendar.startOfDay(for: date)
         let endTime = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: startOfDay)!
         

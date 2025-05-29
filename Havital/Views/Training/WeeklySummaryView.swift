@@ -109,16 +109,16 @@ struct WeeklySummaryView: View {
                     .foregroundColor(.red)
                 
                 HStack {
-                    Text("平均: \(Int(summary.trainingAnalysis.heartRate.average)) bpm")
+                    Text("平均: \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
                         .font(.caption)
                     
                     Spacer()
                     
-                    Text("最高: \(Int(summary.trainingAnalysis.heartRate.max)) bpm")
+                    Text("最高: \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
                         .font(.caption)
                 }
                 
-                Text(summary.trainingAnalysis.heartRate.evaluation)
+                Text(summary.trainingAnalysis.heartRate.evaluation ?? "")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -142,7 +142,7 @@ struct WeeklySummaryView: View {
                         .font(.caption)
                 }
                 
-                Text(summary.trainingAnalysis.pace.evaluation)
+                Text(summary.trainingAnalysis.pace.evaluation ?? "")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -157,7 +157,7 @@ struct WeeklySummaryView: View {
                     .foregroundColor(.blue)
                 
                 HStack {
-                    Text("總距離: \(String(format: "%.1f", summary.trainingAnalysis.distance.total)) km")
+                    Text("總距離: \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
                         .font(.caption)
                     
                     Spacer()
@@ -166,7 +166,7 @@ struct WeeklySummaryView: View {
                         .font(.caption)
                 }
                 
-                Text(summary.trainingAnalysis.distance.evaluation)
+                Text(summary.trainingAnalysis.distance.evaluation ?? "")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

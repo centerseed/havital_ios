@@ -186,7 +186,8 @@ class TrainingIntensityManager {
     
     /// 計算指定週的訓練強度總和
     func calculateWeeklyIntensity(weekStartDate: Date, healthKitManager: HealthKitManager) async -> TrainingIntensityManager.IntensityMinutes {
-        let calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZoneManager.shared.getCurrentTimeZone()
         guard let weekEndDate = calendar.date(byAdding: .day, value: 7, to: weekStartDate) else {
             return .zero
         }

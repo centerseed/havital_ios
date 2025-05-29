@@ -8,6 +8,7 @@ struct UserProfileView: View {
     @State private var currentWeekDistance: Int = 0  // 新增當前週跑量
     @State private var weeklyDistance: Int = 0
     @State private var showTrainingDaysEditor = false
+    @State private var showOnboardingConfirmation = false  // 重新 OnBoarding 確認對話框狀態
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -125,6 +126,16 @@ struct UserProfileView: View {
             
             // Logout Section
             Section {
+                // 在登出按鈕上方加入重新 OnBoarding 按鈕
+                Button(action: {
+                    showOnboardingConfirmation = true
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("重新 OnBoarding")
+                    }
+                }
+                
                 Button(role: .destructive) {
                     Task {
                         do {
@@ -198,6 +209,19 @@ struct UserProfileView: View {
             } else {
                 EmptyView()
             }
+        }
+        // 重新 OnBoarding 確認對話框
+        .confirmationDialog(
+            "確定要重新開始 OnBoarding 流程嗎？",
+            isPresented: $showOnboardingConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("確定", role: .destructive) {
+                AuthenticationService.shared.resetOnboarding()
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。")
         }
     }
     

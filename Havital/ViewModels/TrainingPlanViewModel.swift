@@ -253,11 +253,13 @@ class TrainingPlanViewModel: ObservableObject {
         // 僅在已有 trainingOverview.id 時才載入週計劃，避免無 overview 時報錯
         guard let overview = trainingOverview, !overview.id.isEmpty else { return }
         planStatus = .loading
+        let cw = calculateCurrentTrainingWeek() ?? 0
         // 首先嘗試從本地加載數據
         if let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
             // 立即更新UI
-            let cw = calculateCurrentTrainingWeek() ?? 0
-            let status: PlanStatus = cw > savedPlan.totalWeeks ? .completed : .ready(savedPlan)
+            Logger.debug("overview.totalWeeks: \(overview.totalWeeks)")
+            Logger.debug("cw: \(cw)")
+            let status: PlanStatus = cw > overview.totalWeeks ? .completed : .ready(savedPlan)
             await updateWeeklyPlanUI(plan: savedPlan, status: status)
             
             // 異步從API獲取最新數據
@@ -285,10 +287,16 @@ class TrainingPlanViewModel: ObservableObject {
             // 本地無數據，必須等待API
             do {
                 guard let overviewId = trainingOverview?.id else { throw NSError() }
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                    planId: "\(overviewId)_\(self.currentWeek)")
-                
-                await updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
+                Logger.debug("overview.totalWeeks: \(overview.totalWeeks)")
+                Logger.debug("cw: \(cw)")
+                if (cw > overview.totalWeeks) {
+                    await updateWeeklyPlanUI(plan: nil, status: .completed)
+                } else {
+                    let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                        planId: "\(overviewId)_\(self.currentWeek)")
+                    
+                    await updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
+                }
                 
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404: 無週計劃

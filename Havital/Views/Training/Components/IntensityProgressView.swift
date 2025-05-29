@@ -8,23 +8,25 @@ struct IntensityProgressView: View {
 
     // MARK: - Computed Properties for PDD Logic
 
-    private var displayState: (text: String, showIcon: Bool, progressValue: Double, barColor: Color, valueColor: Color) {
+    private var displayState: (mainText: String, annotationText: String?, showIcon: Bool, progressValue: Double, barColor: Color, valueColor: Color) {
         let currentMinutes = Int(round(current))
 
         if target == 0 {
             if currentMinutes > 0 {
                 // 狀況: 目標為 0，實際 > 0
                 return (
-                    text: "本週未安排，已完成 \(currentMinutes) 分鐘",
-                    showIcon: false, // PDD 建議直接文字提示
-                    progressValue: 0.05, // 顯示 5% 進度條
+                    mainText: "\(currentMinutes) 分鐘",
+                    annotationText: "(未安排)",
+                    showIcon: false,
+                    progressValue: 1.0, // 顯示完整進度條以表示活動量
                     barColor: .gray,     // 灰底
                     valueColor: .secondary // 提示文字顏色
                 )
             } else {
                 // 狀況: 目標為 0，實際 = 0
                 return (
-                    text: "未安排", // 或 "無預計訓練"
+                    mainText: "未安排", // 或 "無預計訓練"
+                    annotationText: nil,
                     showIcon: false,
                     progressValue: 0.0,
                     barColor: .gray, // 維持與「目標0，實際>0」時一致的灰色背景提示
@@ -36,7 +38,8 @@ struct IntensityProgressView: View {
             if currentMinutes == 0 {
                 // 狀況: 實際 = 0 (目標 > 0)
                 return (
-                    text: "0 / \(target) 分鐘",
+                    mainText: "0 / \(target) 分鐘",
+                    annotationText: nil,
                     showIcon: false,
                     progressValue: 0.0,
                     barColor: originalColor,
@@ -45,16 +48,18 @@ struct IntensityProgressView: View {
             } else if current > Double(target) {
                 // 狀況: 進度 > 100%
                 return (
-                    text: "\(currentMinutes) / \(target) 分鐘",
+                    mainText: "\(currentMinutes) / \(target) 分鐘",
+                    annotationText: nil,
                     showIcon: true, // 顯示 ⓘ 圖示
                     progressValue: 1.0, // 顯示至 100%
                     barColor: originalColor,
-                    valueColor: .primary // PDD 未指定顏色，暫用 primary，或可選 .green
+                    valueColor: .primary
                 )
             } else {
                 // 狀況: 實際 < 目標 (或等於目標)
                 return (
-                    text: "\(currentMinutes) / \(target) 分鐘",
+                    mainText: "\(currentMinutes) / \(target) 分鐘",
+                    annotationText: nil,
                     showIcon: false,
                     progressValue: current / Double(target),
                     barColor: originalColor,
@@ -71,12 +76,27 @@ struct IntensityProgressView: View {
                 Text(title)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
                 
                 Spacer()
                 
-                Text(state.text)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(state.valueColor)
+                HStack(spacing: 4) { // A small spacing between main text and annotation
+                    Text(state.mainText)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(state.valueColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9) // scaling for mainText
+                        .layoutPriority(1) // Give priority to mainText
+
+                    if let annotation = state.annotationText {
+                        Text(annotation)
+                            .font(.system(size: 13, weight: .regular)) // Slightly smaller and regular weight
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7) // Allow annotation to shrink
+                    }
+                }
+                .layoutPriority(1) // Give this whole group priority in the outer HStack
                 
                 if state.showIcon {
                     Image(systemName: "info.circle.fill") // 使用 fill 版本更明顯
