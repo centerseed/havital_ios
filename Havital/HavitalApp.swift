@@ -5,6 +5,15 @@ import FirebaseAppCheck
 import BackgroundTasks
 import UserNotifications
 
+/// 判斷當前是否為 Debug 建置
+private var isDebugBuild: Bool {
+    #if DEBUG
+    return true
+    #else
+    return false
+    #endif
+}
+
 @main
 struct HavitalApp: App {
     // 不再使用 AppStorage 來儲存 onboarding 狀態，而是使用 AuthenticationService 提供的狀態
@@ -14,12 +23,42 @@ struct HavitalApp: App {
     @StateObject private var authService = AuthenticationService.shared
     
     init() {
-        // Configure Firebase
-        FirebaseApp.configure()
+        // 1. 先嘗試從 Bundle 載入 Firebase 設定檔
+        var firebaseConfigPath: String?
+        
+        // 先檢查是否已經有複製的 GoogleService-Info.plist
+        if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
+            firebaseConfigPath = path
+            print("ℹ️ 找到 Firebase 設定檔: \(path)")
+        }
+        // 如果沒有，嘗試直接載入特定環境的設定檔
+        else if let path = Bundle.main.path(forResource: "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod"), ofType: "plist") {
+            firebaseConfigPath = path
+            print("ℹ️ 找到環境特定的 Firebase 設定檔: \(path)")
+        }
+        
+        // 2. 初始化 Firebase
+        if let path = firebaseConfigPath, let options = FirebaseOptions(contentsOfFile: path) {
+            FirebaseApp.configure(options: options)
+            print("✅ Firebase 初始化成功 - 使用: \(path)")
+        } else {
+            // 如果所有方法都失敗，嘗試使用預設初始化（會讀取預設位置的 GoogleService-Info.plist）
+            print("⚠️ 無法載入 Firebase 設定檔，嘗試預設初始化...")
+            FirebaseApp.configure()
+        }
+        
+        // 3. 設定其他 Firebase 服務
         FirebaseLogConfigurator.setup()
         
-        // 只在這裡註冊一次背景任務處理器
+        // 4. 註冊背景任務處理器
         registerBackgroundTasks()
+        
+        // 5. 檢查 Firebase 初始化狀態
+        if FirebaseApp.app() == nil {
+            print("❌ Firebase 初始化失敗！")
+        } else {
+            print("✅ Firebase 已成功初始化")
+        }
     }
     
     var body: some Scene {

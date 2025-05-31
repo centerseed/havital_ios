@@ -621,7 +621,6 @@ struct WorkoutDetailView: View {
                     self.summaryTypeChinese = DayType(rawValue: cached.type)?.chineseName ?? cached.type
                     self.hrZonePct = cached.hrZonePct
                 }
-                return
             }
             // 向後端請求
             do {
