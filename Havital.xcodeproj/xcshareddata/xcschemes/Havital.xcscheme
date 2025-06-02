@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CFB67CEF2D07047500F672E3"
-               BuildableName = "Paceriz.app"
+               BuildableName = "paceriz.app"
                BlueprintName = "Havital"
                ReferencedContainer = "container:Havital.xcodeproj">
             </BuildableReference>
@@ -74,7 +74,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CFB67CEF2D07047500F672E3"
-            BuildableName = "Paceriz.app"
+            BuildableName = "paceriz.app"
             BlueprintName = "Havital"
             ReferencedContainer = "container:Havital.xcodeproj">
          </BuildableReference>
@@ -91,7 +91,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CFB67CEF2D07047500F672E3"
-            BuildableName = "Paceriz.app"
+            BuildableName = "paceriz.app"
             BlueprintName = "Havital"
             ReferencedContainer = "container:Havital.xcodeproj">
          </BuildableReference>

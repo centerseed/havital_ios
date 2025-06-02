@@ -10,7 +10,7 @@ struct UserProfileData: Codable {
     /// 顯示名稱可能為空
     let displayName: String?
     let email: String?
-    let lastLogin: String
+    let lastLogin: String?
     let maxHr: Int?
     let photoUrl: String?
     let preferWeekDays: [Int]?

@@ -116,11 +116,6 @@ class UserService {
         userPreferenceManager.name = user.data.displayName ?? ""
         userPreferenceManager.photoURL = user.data.photoUrl
         
-        // Additionally, we can sync more user preferences if needed
-        if let age = calculateAge(from: user.data.lastLogin) {
-            userPreferenceManager.age = age
-        }
-        
         userPreferenceManager.maxHeartRate = user.data.maxHr
         
         // Update week of training if available

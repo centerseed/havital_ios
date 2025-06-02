@@ -69,6 +69,9 @@ class TrainingPlanViewModel: ObservableObject {
     // 添加屬性來追蹤當前計劃的週數，用於檢測計劃變更
     private var currentPlanWeek: Int?
     
+    // 控制 loading 動畫顯示
+    @Published var isLoadingAnimation = false
+    
     // Modifications data
     @Published var modifications: [Modification] = []
     @Published var modDescription: String = ""
@@ -152,7 +155,15 @@ class TrainingPlanViewModel: ObservableObject {
     func createWeeklySummary() async {
         await MainActor.run {
             isLoadingWeeklySummary = true
+            isLoadingAnimation = true
             weeklySummaryError = nil
+        }
+        
+        // 確保在函數結束時關閉 loading 動畫
+        defer {
+            Task { @MainActor in
+                self.isLoadingAnimation = false
+            }
         }
         
         do {
@@ -163,9 +174,6 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
             // 從API獲取週訓練回顧數據
-            // let summary = try await weeklySummaryService.createWeeklySummary(weekNumber: currentWeek)
-            // 當前cloud將item.weekIndex -1來處理。未來cloud不會做這樣的偏移，之後要改成weekNumber: currentWeek - 1
-            // app段不帶週數，或者帶當前週數-1代表產生前一週的summary
             let summary = try await weeklySummaryService.createWeeklySummary()
             
             // 保存到本地儲存
@@ -463,6 +471,10 @@ class TrainingPlanViewModel: ObservableObject {
     // 在產生新週計劃時更新概覽
     // 產生指定週數的課表
     func generateNextWeekPlan(targetWeek: Int) async {
+        await MainActor.run {
+            isLoadingAnimation = true
+        }
+        
         var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
         backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "CreateWeeklyPlan") { 
             // Expiration handler
@@ -470,12 +482,17 @@ class TrainingPlanViewModel: ObservableObject {
             backgroundTaskID = .invalid
         }
         
-        // Defer ending the background task to ensure it's called
-        defer {
+        // 在 defer 區塊外定義一個函數來結束背景任務
+        func endBackgroundTask() {
             if backgroundTaskID != .invalid {
                 UIApplication.shared.endBackgroundTask(backgroundTaskID)
                 backgroundTaskID = .invalid
             }
+        }
+        
+        // Defer ending the background task to ensure it's called
+        defer {
+            endBackgroundTask()
         }
         planStatus = .loading
         
@@ -485,6 +502,9 @@ class TrainingPlanViewModel: ObservableObject {
             
             // 產生成功後重新載入課表
             do {
+                await MainActor.run {
+                    isLoadingAnimation = false
+                }
                 guard let overviewId = trainingOverview?.id else { throw NSError() }
                 let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
                     planId: "\(overviewId)_\(self.currentWeek)")
@@ -517,7 +537,7 @@ class TrainingPlanViewModel: ObservableObject {
             planStatus = .error(error)
         }
     }
-    
+
     // Flag to ensure initial data load only once
     private var hasLoadedInitialData = false
     
