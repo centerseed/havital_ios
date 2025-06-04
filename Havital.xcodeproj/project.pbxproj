@@ -46,6 +46,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CF049FC02DF04174004CD623 /* Exceptions for "Havital" folder in "HavitalTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				PreviewHelpers/simple.swift,
+			);
+			target = CFB67D012D07047800F672E3 /* HavitalTests */;
+		};
 		CFF5177E2D15691B00CF284A /* Exceptions for "Havital" folder in "Havital" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -71,6 +78,7 @@
 			exceptions = (
 				CFF5177E2D15691B00CF284A /* Exceptions for "Havital" folder in "Havital" target */,
 				CF1573872D2E5BAE00DF73B5 /* Exceptions for "Havital" folder in "Compile Sources" phase from "Havital" target */,
+				CF049FC02DF04174004CD623 /* Exceptions for "Havital" folder in "HavitalTests" target */,
 			);
 			path = Havital;
 			sourceTree = "<group>";
@@ -449,7 +457,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 55;
+				CURRENT_PROJECT_VERSION = 61;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -468,7 +476,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.1;
+				MARKETING_VERSION = 0.9.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -595,7 +603,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.1;
+				MARKETING_VERSION = 0.9.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -766,7 +774,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 55;
+				CURRENT_PROJECT_VERSION = 61;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -785,7 +793,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.1;
+				MARKETING_VERSION = 0.9.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -820,7 +828,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.1;
+				MARKETING_VERSION = 0.9.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -913,7 +921,7 @@
 				CF3CDD552DEAFEB700B6AE66 /* Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Dev;
 		};
 		CFB67D162D07047800F672E3 /* Build configuration list for PBXNativeTarget "Havital" */ = {
 			isa = XCConfigurationList;
@@ -924,7 +932,7 @@
 				CF3CDD562DEAFEB700B6AE66 /* Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Dev;
 		};
 		CFB67D192D07047800F672E3 /* Build configuration list for PBXNativeTarget "HavitalTests" */ = {
 			isa = XCConfigurationList;
@@ -935,7 +943,7 @@
 				CF3CDD572DEAFEB700B6AE66 /* Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Dev;
 		};
 		CFB67D1C2D07047800F672E3 /* Build configuration list for PBXNativeTarget "HavitalUITests" */ = {
 			isa = XCConfigurationList;
@@ -946,7 +954,7 @@
 				CF3CDD582DEAFEB700B6AE66 /* Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Dev;
 		};
 /* End XCConfigurationList section */
 
