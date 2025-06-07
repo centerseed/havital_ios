@@ -114,6 +114,9 @@ class WorkoutBackgroundUploader {
                 let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
                             
                 
+                // 獲取來源裝置資訊
+                let (source, device) = await getWorkoutSourceAndDevice(workout)
+                
                 // 上傳運動數據
                 try await workoutService.postWorkoutDetails(
                                 workout: workout,
@@ -122,7 +125,9 @@ class WorkoutBackgroundUploader {
                                 strideLengths: strides,
                                 cadences: cadences,
                                 groundContactTimes: contactTimes,
-                                verticalOscillations: oscillations
+                                verticalOscillations: oscillations,
+                                source: source,
+                                device: device
                             )
                 
                 // 標記為已上傳且包含心率資料
@@ -153,5 +158,88 @@ class WorkoutBackgroundUploader {
         
         print("運動記錄上傳完成，成功: \(successCount), 總計: \(workoutsToUpload.count)")
         return successCount
+    }
+    
+    // 獲取運動記錄的來源和裝置資訊
+    private func getWorkoutSourceAndDevice(_ workout: HKWorkout) async -> (source: String, device: String?) {
+        // 預設值
+        var source = "apple_health"
+        var deviceBrand: String? = nil
+        
+        // 檢查 metadata 中的裝置資訊
+        if let metadata = workout.metadata {
+            // 1. 先檢查是否有製造商資訊
+            if let manufacturer = metadata[HKMetadataKeyDeviceManufacturerName] as? String {
+                let lowercased = manufacturer.lowercased()
+                if lowercased.contains("apple") {
+                    source = "apple_watch"
+                    deviceBrand = "Apple"
+                } else if lowercased.contains("garmin") {
+                    source = "garmin"
+                    deviceBrand = "Garmin"
+                } else if lowercased.contains("polar") {
+                    source = "polar"
+                    deviceBrand = "Polar"
+                } else if lowercased.contains("suunto") {
+                    source = "suunto"
+                    deviceBrand = "Suunto"
+                } else if lowercased.contains("coros") {
+                    source = "coros"
+                    deviceBrand = "Coros"
+                } else if lowercased.contains("huawei") || lowercased.contains("honor") {
+                    source = "huawei"
+                    deviceBrand = "Huawei"
+                } else if lowercased.contains("samsung") || lowercased.contains("galaxy") {
+                    source = "samsung"
+                    deviceBrand = "Samsung"
+                } else if lowercased.contains("fitbit") {
+                    source = "fitbit"
+                    deviceBrand = "Fitbit"
+                } else {
+                    // 其他未列出的製造商
+                    deviceBrand = manufacturer
+                }
+            }
+            
+            // 2. 如果有裝置名稱，且尚未識別出品牌，則從裝置名稱中嘗試識別
+            if deviceBrand == nil, let deviceName = metadata[HKMetadataKeyDeviceName] as? String {
+                let lowercased = deviceName.lowercased()
+                
+                if deviceBrand == nil {
+                    // 檢查常見品牌
+                    let brandMappings: [(String, String)] = [
+                        ("apple", "Apple"),
+                        ("garmin", "Garmin"),
+                        ("polar", "Polar"),
+                        ("suunto", "Suunto"),
+                        ("coros", "Coros"),
+                        ("huawei", "Huawei"),
+                        ("honor", "Huawei"),
+                        ("samsung", "Samsung"),
+                        ("galaxy", "Samsung"),
+                        ("fitbit", "Fitbit")
+                    ]
+                    
+                    for (keyword, brand) in brandMappings {
+                        if lowercased.contains(keyword) {
+                            deviceBrand = brand
+                            break
+                        }
+                    }
+                }
+                
+                // 如果還是無法識別品牌，但有名稱，則使用名稱
+                if deviceBrand == nil {
+                    deviceBrand = deviceName
+                }
+            }
+        }
+        
+        // 如果無法識別品牌，但已經有來源，則使用來源作為品牌
+        if deviceBrand == nil && source != "apple_health" {
+            deviceBrand = source.capitalized
+        }
+        
+        return (source, deviceBrand)
     }
 }

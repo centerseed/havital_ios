@@ -121,22 +121,18 @@ struct HeartRateChartView: View {
 
                         AreaMark(
                             x: .value("時間", point.time),
-                            y: .value("心率", point.value)
+                            yStart: .value("心率", yAxisRange.min),
+                            yEnd: .value("心率", point.value)
                         )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.red.opacity(0.1), Color.red.opacity(0.0)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .foregroundStyle(Color.red.opacity(0.1))
                         .interpolationMethod(.catmullRom)
                     }
                 }
-                .chartYScale(domain: yAxisRange.min...(yAxisRange.max))
+                .chartYScale(domain: yAxisRange.min...yAxisRange.max)
                 .chartOverlay { proxy in
                     GeometryReader { geometry in
                         ZStack {
+                            // 繪製水平格線
                             ForEach(
                                 Array(
                                     stride(
@@ -167,7 +163,6 @@ struct HeartRateChartView: View {
                     }
                 }
                 .frame(height: 180)
-                .chartYScale(domain: yAxisRange.min...yAxisRange.max)
                 .chartXAxis {
                     AxisMarks(values: .stride(by: .minute, count: 10)) { value in
                         if let date = value.as(Date.self) {
@@ -180,17 +175,6 @@ struct HeartRateChartView: View {
                         }
                     }
                 }
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic) { value in
-                        if let heartRate = value.as(Double.self) {
-                            AxisValueLabel {
-                                Text("\(Int(heartRate))")
-                                    .font(.caption)
-                            }
-                        }
-                    }
-                }
-                .chartYScale(domain: yAxisRange.min...(yAxisRange.max + 10))
             }
         }
         .padding()

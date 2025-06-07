@@ -63,10 +63,15 @@ struct HavitalApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if !authService.isAuthenticated {
+            // 優先檢查是否處於重新 Onboarding 模式
+            if authService.isReonboardingMode {
+                OnboardingIntroView()
+                    .environmentObject(appViewModel)
+                    // 當 OnboardingIntroView 完成其使命後，isReonboardingMode 會在 AuthenticationService 的 checkOnboardingStatus 中被重設
+            } else if !authService.isAuthenticated {
                 LoginView()
                     .environmentObject(appViewModel)
-            } else if !authService.hasCompletedOnboarding {
+            } else if !authService.hasCompletedOnboarding { // 如果不是重新 Onboarding，且未完成，則顯示 OnboardingView
                 OnboardingView()
                    .environmentObject(appViewModel)
             } else {

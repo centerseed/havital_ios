@@ -11,6 +11,7 @@ class AuthenticationService: ObservableObject {
     @Published var isLoading = false
     @Published var loginError: Error?
     @Published var hasCompletedOnboarding = false
+    @Published var isReonboardingMode = false // 新增：標識是否處於重新 Onboarding 模式
     
     static let shared = AuthenticationService()
     private var cancellables = Set<AnyCancellable>()
@@ -38,6 +39,7 @@ class AuthenticationService: ObservableObject {
         
         // 從 UserDefaults 讀取 hasCompletedOnboarding
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        // 注意：isReonboardingMode 不需要持久化，它是一個臨時狀態
     }
 
     // 新增一個方法來刷新週計劃
@@ -120,6 +122,7 @@ class AuthenticationService: ObservableObject {
     }
     
     // 檢查用戶是否已完成 onboarding
+    // 檢查用戶是否已完成 onboarding，並在完成時重設 isReonboardingMode
     private func checkOnboardingStatus(user: User) {
         // 如果用戶有 active_weekly_plan_id，則表示已完成 onboarding
         let completed = user.data.activeWeeklyPlanId != nil
@@ -128,9 +131,12 @@ class AuthenticationService: ObservableObject {
         Task { @MainActor in
             self.hasCompletedOnboarding = completed
             UserDefaults.standard.set(completed, forKey: "hasCompletedOnboarding")
+            if completed {
+                self.isReonboardingMode = false // 如果 Onboarding 完成，結束重新 Onboarding 模式
+            }
         }
         
-        print("用戶 onboarding 狀態: \(completed ? "已完成" : "未完成")")
+        print("用戶 onboarding 狀態: \(completed ? "已完成" : "未完成"), isReonboardingMode: \(isReonboardingMode)")
     }
     
     func fetchUserProfile() {
@@ -192,6 +198,34 @@ class AuthenticationService: ObservableObject {
         }
     }
     
+    // Get the current ID token
+    // MARK: - Reonboarding Logic
+
+    func startReonboarding() {
+        Task { @MainActor in
+            // 1. 標記 Onboarding 未完成
+            self.hasCompletedOnboarding = false
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            
+            // 2. 進入重新 Onboarding 模式
+            self.isReonboardingMode = true
+            
+            // 3. 清除可能影響重新 Onboarding 的舊狀態 (例如：activeWeeklyPlanId)
+            // 這部分可能需要與後端協調，或在 Onboarding 流程中處理
+            // 例如，在 UserService 中增加一個 clearActivePlanId 的方法，然後在這裡呼叫
+            // await UserService.shared.clearActivePlanId()
+            // 或者，更簡單的方式是讓後續的 Onboarding 流程覆蓋舊資料
+            
+            // 4. 清除本地與訓練計畫相關的緩存，確保重新 Onboarding 時是乾淨的狀態
+            TrainingPlanStorage.shared.clearAll()
+            WeeklySummaryStorage.shared.clearSavedWeeklySummary()
+            // VDOTStorage.shared.clearVDOTData() // VDOT 可能基於賽事目標，看是否需要清除
+            // UserPreferenceManager.shared.clearTrainingPreferences() // 清除用戶訓練偏好，讓他們重新設定
+            
+            print("AuthenticationService: 開始重新 Onboarding 流程。 hasCompletedOnboarding: \(self.hasCompletedOnboarding), isReonboardingMode: \(self.isReonboardingMode)")
+        }
+    }
+
     // Get the current ID token
     func getIdToken() async throws -> String {
         guard let user = Auth.auth().currentUser else {

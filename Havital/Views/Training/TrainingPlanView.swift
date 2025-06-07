@@ -139,7 +139,7 @@ struct FinalWeekPromptView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("您的訓練週期已結束")
+            Text("辛苦了！您的訓練週期已結束。別忘了在訓練回顧後，設定下一個訓練目標喔！！")
                 .font(.headline)
                 .multilineTextAlignment(.center)
 
@@ -153,13 +153,28 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryView(
                     summary: summary,
                     weekNumber: viewModel.lastFetchedWeekNumber,
-                    isVisible: $viewModel.showWeeklySummary
-                ) {
+                    isVisible: $viewModel.showWeeklySummary,
+                    onGenerateNextWeek: nil // 移除 WeeklySummaryView 內部的按鈕
+                )
+
+                // 新增「設定新目標」按鈕
+                Button(action: {
                     Task {
-                        viewModel.clearWeeklySummary()
-                        AuthenticationService.shared.resetOnboarding()
+                        viewModel.clearWeeklySummary() // 清除當前回顧狀態
+                        AuthenticationService.shared.startReonboarding() // 觸發重新 Onboarding
                     }
+                }) {
+                    HStack {
+                        Image(systemName: "target") // 可以換一個更合適的圖示
+                        Text("設定新目標")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green) // 使用醒目的顏色
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
                 }
+                .padding(.vertical)
             } else {
                 Button(action: {
                     Task { await viewModel.createWeeklySummary() }

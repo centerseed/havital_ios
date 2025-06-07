@@ -202,20 +202,28 @@ struct PaceChartView: View {
 
 
                     Chart {
+                        // 使用 ForEach 和 LineMark 繪製折線
                         ForEach(paces) { point in
-                            // 將配速從 m/s 轉換為 min:ss/km 用於顯示（越低越快，所以反向處理）
                             LineMark(
                                 x: .value("時間", point.time),
-                                y: .value("速度", point.value)  // 直接使用速度 (m/s)
+                                y: .value("速度", point.value)
                             )
                             .foregroundStyle(Color.green.gradient)
                             .interpolationMethod(.catmullRom)
-
+                        }
+                        
+                        // 單獨繪製填色區域，確保底部邊界正確
+                        ForEach(Array(paces.enumerated()), id: \.element.id) { index, point in
                             AreaMark(
                                 x: .value("時間", point.time),
-                                y: .value("速度", point.value)  // 直接使用速度 (m/s)
+                                yStart: .value("速度", speedChartYRange.lowerBound), // 使用圖表範圍的下限作為填色底部
+                                yEnd: .value("速度", point.value)
                             )
-                            .foregroundStyle(Color.green.opacity(0.1))
+                            .foregroundStyle(LinearGradient(
+                                colors: [.green.opacity(0.3), .green.opacity(0.05)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ))
                             .interpolationMethod(.catmullRom)
                         }
                     }

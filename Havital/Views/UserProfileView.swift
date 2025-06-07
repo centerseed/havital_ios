@@ -140,9 +140,9 @@ struct UserProfileView: View {
                     Task {
                         do {
                             try AuthenticationService.shared.signOut()
-                            dismiss()
-                        } catch {
-                            print("登出失敗: \(error)")
+                        dismiss()
+                    } catch {
+                        print("登出失敗: \(error)")
                         }
                     }
                 } label: {
@@ -217,11 +217,11 @@ struct UserProfileView: View {
             titleVisibility: .visible
         ) {
             Button("確定", role: .destructive) {
-                AuthenticationService.shared.resetOnboarding()
+                AuthenticationService.shared.startReonboarding() // 改為呼叫新的方法
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。")
+            Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。目前的訓練計畫將會被清除，且無法復原。")
         }
     }
     

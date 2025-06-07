@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 class OnboardingViewModel: ObservableObject {
+    // ... (ViewModel 內容保持不變) ...
     @Published var raceName = ""
     @Published var raceDate = Date()
     @Published var selectedDistance = "42.195" // 預設全馬
@@ -9,7 +10,7 @@ class OnboardingViewModel: ObservableObject {
     @Published var targetMinutes = 0
     @Published var isLoading = false
     @Published var error: String?
-    @Published var navigateToTrainingDays = false
+    // @Published var navigateToTrainingDays = false // 這個狀態似乎沒有直接在這個 View 中使用來導航，而是 createTarget 成功後，間接觸發 showPersonalBest
     
     let availableDistances = [
         "5": "5公里",
@@ -36,15 +37,15 @@ class OnboardingViewModel: ObservableObject {
     }
     
     @MainActor
-    func createTarget() async {
+    func createTarget() async -> Bool { // 返回 Bool 表示是否成功
         isLoading = true
         error = nil
         
         do {
             let target = Target(
-                id: UUID().uuidString, 
-                type: "race_run",
-                name: raceName,
+                id: UUID().uuidString,
+                type: "race_run", // 或許可以考慮增加 "personal_goal" 類型
+                name: raceName.isEmpty ? "我的訓練目標" : raceName, // 如果名稱為空，給一個預設值
                 distanceKm: Int(Double(selectedDistance) ?? 42.195),
                 targetTime: targetHours * 3600 + targetMinutes * 60,
                 targetPace: targetPace,
@@ -54,13 +55,14 @@ class OnboardingViewModel: ObservableObject {
             )
             
             try await UserService.shared.createTarget(target)
-            print("賽事目標已建立")
-            navigateToTrainingDays = true
+            print("訓練目標已建立")
+            isLoading = false
+            return true
         } catch {
             self.error = error.localizedDescription
+            isLoading = false
+            return false
         }
-        
-        isLoading = false
     }
 }
 
@@ -68,17 +70,17 @@ struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showPersonalBest = false
-    @StateObject private var authService = AuthenticationService.shared
-    
+    // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
+
     var body: some View {
-        NavigationView {
+        // NavigationView REMOVED
             ZStack {
                 Form {
-                    Section(header: Text("賽事資訊")) {
-                        TextField("賽事名稱", text: $viewModel.raceName)
+                    Section(header: Text("您的跑步目標"), footer: Text("如果您沒有特定賽事，可以為自己設定一個挑戰目標，例如「完成第一個5公里」或「提升10公里速度」。")) {
+                        TextField("目標名稱 (例如：台北馬拉松 或 我的5K挑戰)", text: $viewModel.raceName)
                             .textContentType(.name)
                         
-                        DatePicker("賽事日期",
+                        DatePicker("目標日期",
                                   selection: $viewModel.raceDate,
                                   in: Date()...,
                                   displayedComponents: .date)
@@ -97,7 +99,7 @@ struct OnboardingView: View {
                         .pickerStyle(.menu)
                     }
                     
-                    Section(header: Text("目標完賽時間")) {
+                    Section(header: Text("目標完賽時間"), footer: Text("設定一個您期望達成的時間。")) {
                         HStack {
                             Picker("時", selection: $viewModel.targetHours) {
                                 ForEach(0...6, id: \.self) { hour in
@@ -132,18 +134,14 @@ struct OnboardingView: View {
                         }
                     }
                 }
-                .navigationTitle("設定賽事目標")
+                .navigationTitle("設定訓練目標")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: {
-                            // 離開 Onboarding 流程
-                            // 但不標記為已完成，以便下次仍可進入
-                            if let window = UIApplication.shared.windows.first {
-                                window.rootViewController?.dismiss(animated: true, completion: nil)
-                            }
+                            dismiss() // 修改為 dismiss
                         }) {
-                            Text("離開")
+                            Text("返回") // 修改按鈕文字
                         }
                     }
                     
@@ -153,11 +151,8 @@ struct OnboardingView: View {
                             Task {
                                 print("開始執行 createTarget")
                                 do {
-                                    await viewModel.createTarget()
-                                    print("完成執行 createTarget，準備導航")
-                                    await MainActor.run {
+                                    if await viewModel.createTarget() {
                                         showPersonalBest = true
-                                        print("已設置 showPersonalBest = true")
                                     }
                                 } catch {
                                     print("執行 createTarget 時發生錯誤: \(error)")
@@ -170,13 +165,23 @@ struct OnboardingView: View {
                                 Text("下一步")
                             }
                         }
-                        .disabled(viewModel.raceName.isEmpty || viewModel.isLoading)
+                        .disabled(viewModel.isLoading)
                     }
                 }
-                NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195), isActive: $showPersonalBest) {
+                NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195).navigationBarBackButtonHidden(true), isActive: $showPersonalBest) {
                     EmptyView()
                 }
             }
+        }
+        // NavigationView REMOVED
+    
+}
+
+struct OnboardingView_Previews: PreviewProvider {
+    static var previews: some View {
+        // 若要在預覽中測試，需要包裝在 NavigationView 中
+        NavigationView {
+            OnboardingView()
         }
     }
 }

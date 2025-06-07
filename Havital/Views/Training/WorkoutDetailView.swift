@@ -232,316 +232,33 @@ struct WorkoutDetailView: View {
     }
 
     private var heartRateChartSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("心率變化")
-                .font(.headline)
+        HeartRateChartView(
+            heartRates: viewModel.heartRates,
+            maxHeartRate: maxHeartRateString,
+            averageHeartRate: viewModel.averageHeartRate,
+            minHeartRate: minHeartRateString,
+            yAxisRange: viewModel.yAxisRange,
+            isLoading: viewModel.isLoading,
+            error: viewModel.error
+        )
+    }
 
-            if viewModel.isLoading {
-                VStack {
-                    ProgressView("載入心率數據中...")
-                }
-                .frame(height: 200)
-                .frame(maxWidth: .infinity)
-            } else if let error = viewModel.error {
-                ContentUnavailableView(
-                    error,
-                    systemImage: "heart.slash",
-                    description: Text("請稍後再試")
-                )
-                .frame(height: 200)
-            } else if viewModel.heartRates.isEmpty {
-                ContentUnavailableView(
-                    "沒有心率數據",
-                    systemImage: "heart.slash",
-                    description: Text("無法獲取此次訓練的心率數據")
-                )
-                .frame(height: 200)
-            } else {
-                // 心率範圍信息區塊 - 改進版
-                HStack(spacing: 16) {
-                    // 最高心率
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("最高心率")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+    private var maxHeartRateString: String {
+        guard let max = viewModel.heartRates.map({ $0.value }).max(), !viewModel.heartRates.isEmpty else { return "--" }
+        return "\(Int(max)) bpm"
+    }
 
-                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text(viewModel.maxHeartRate.replacingOccurrences(of: " bpm", with: ""))
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.red)
-
-                            Text("bpm")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-
-                    // 平均心率 (可選)
-                    if let avgHR = viewModel.averageHeartRate {
-                        VStack(alignment: .center, spacing: 4) {
-                            Text("平均心率")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                Text("\(Int(avgHR))")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.purple)
-
-                                Text("bpm")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color.purple.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-
-                    // 最低心率
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("最低心率")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text(viewModel.minHeartRate.replacingOccurrences(of: " bpm", with: ""))
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-
-                            Text("bpm")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-
-                Chart {
-                    ForEach(viewModel.heartRates) { point in
-                        LineMark(
-                            x: .value("時間", point.time),
-                            y: .value("心率", point.value)
-                        )
-                        .foregroundStyle(Color.red.gradient)
-                        .interpolationMethod(.catmullRom)
-
-                        AreaMark(
-                            x: .value("時間", point.time),
-                            y: .value("心率", point.value)
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.red.opacity(0.1), Color.red.opacity(0.0)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .interpolationMethod(.catmullRom)
-                    }
-                }
-                .chartYScale(domain: viewModel.yAxisRange.min...(viewModel.yAxisRange.max))
-                .chartOverlay { proxy in
-                    GeometryReader { geometry in
-                        // 在這裡可以自定義繪製格線
-                        ZStack {
-                            // 繪製水平格線
-                            ForEach(
-                                Array(
-                                    stride(
-                                        from: viewModel.yAxisRange.min,
-                                        to: viewModel.yAxisRange.max, by: 20)), id: \.self
-                            ) { yValue in
-                                if let yPosition = proxy.position(forY: yValue) {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.2))
-                                        .frame(height: 1)
-                                        .position(x: geometry.size.width / 2, y: yPosition)
-                                        .frame(width: geometry.size.width)
-                                }
-                            }
-                        }
-                    }
-                }
-                .chartYAxis {
-                    // 增加 Y 軸的標記密度，間接增加參考線
-                    AxisMarks(position: .leading, values: .stride(by: 10)) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
-                            .foregroundStyle(Color.gray.opacity(0.3))
-                        if let heartRate = value.as(Double.self) {
-                            AxisValueLabel {
-                                Text("\(Int(heartRate))")
-                                    .font(.caption)
-                            }
-                        }
-                    }
-                }
-                .frame(height: 180)
-                .chartYScale(domain: viewModel.yAxisRange.min...viewModel.yAxisRange.max)
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .minute, count: 10)) { value in
-                        if let date = value.as(Date.self) {
-                            AxisValueLabel {
-                                Text(
-                                    "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
-                                )
-                                .font(.caption)
-                            }
-                        }
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic) { value in
-                        if let heartRate = value.as(Double.self) {
-                            AxisValueLabel {
-                                Text("\(Int(heartRate))")
-                                    .font(.caption)
-                            }
-                        }
-                    }
-                }
-                .chartYScale(domain: viewModel.yAxisRange.min...(viewModel.yAxisRange.max + 10))
-
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
+    private var minHeartRateString: String {
+        guard let min = viewModel.heartRates.map({ $0.value }).min(), !viewModel.heartRates.isEmpty else { return "--" }
+        return "\(Int(min)) bpm"
     }
 
     private var paceChartSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("配速變化")
-                .font(.headline)
-
-            if viewModel.paces.isEmpty {
-                ContentUnavailableView(
-                    "沒有配速數據",
-                    systemImage: "figure.walk.motion",
-                    description: Text("無法獲取此次訓練的配速數據")
-                )
-                .frame(height: 180)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    // 配速圖表範圍和標籤
-                    HStack {
-                        HStack(spacing: 4) {
-                            Text("最快:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(formatPaceFromMetersPerSecond(getMaxPace()))
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.green)
-                        }
-
-                        Spacer()
-
-                        HStack(spacing: 4) {
-                            Text("最慢:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(formatPaceFromMetersPerSecond(getMinPace()))
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.orange)
-                        }
-                    }
-
-                    Chart {
-                        ForEach(viewModel.paces) { point in
-                            // 將配速從 m/s 轉換為 min:ss/km 用於顯示（越低越快，所以反向處理）
-                            LineMark(
-                                x: .value("時間", point.time),
-                                y: .value("配速", 1000 / point.value)  // 轉換為秒/公里
-                            )
-                            .foregroundStyle(Color.green.gradient)
-                            .interpolationMethod(.catmullRom)
-
-                            AreaMark(
-                                x: .value("時間", point.time),
-                                y: .value("配速", 1000 / point.value)  // 轉換為秒/公里
-                            )
-                            .foregroundStyle(Color.green.opacity(0.1))
-                            .interpolationMethod(.catmullRom)
-                        }
-                    }
-                    .frame(height: 180)
-                    .chartYScale(domain: paceChartYRange)
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .minute, count: 10)) { value in
-                            if let date = value.as(Date.self) {
-                                AxisValueLabel {
-                                    Text(
-                                        "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
-                                    )
-                                    .font(.caption)
-                                }
-                            }
-                        }
-                    }
-                    .chartYAxis {
-                        // 修正部分：確保Y軸顯示正確格式的配速
-                        AxisMarks(position: .leading, values: .stride(by: 30)) { value in
-                            if let paceInSeconds = value.as(Double.self) {
-                                AxisValueLabel {
-                                    Text(formatPaceFromSeconds(paceInSeconds))
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-    }
-
-    // 確保格式化函數正確轉換配速
-    private func formatPaceFromSeconds(_ seconds: Double) -> String {
-        let totalSeconds = Int(seconds)
-        let minutes = totalSeconds / 60
-        let remainingSeconds = totalSeconds % 60
-        return String(format: "%d:%02d", minutes, remainingSeconds)
-    }
-
-    // 修正 Y 軸範圍計算，確保在適當範圍內顯示
-    private var paceChartYRange: ClosedRange<Double> {
-        if viewModel.paces.isEmpty {
-            return 300...600  // 默認範圍 (約 5:00-10:00 min/km)
-        }
-
-        // 將速度 (m/s) 轉換為配速 (秒/km)
-        let paces = viewModel.paces.map { 1000 / $0.value }
-
-        // 找出最快和最慢的配速
-        guard let min = paces.min(), let max = paces.max() else {
-            return 300...600
-        }
-
-        // 加入一些邊距
-        let padding = (max - min) * 0.1
-        let lowerBound = Swift.max(min - padding, 0)
-        let upperBound = max + padding
-
-        return lowerBound...upperBound
+        PaceChartView(
+            paces: viewModel.paces,
+            isLoading: viewModel.isLoading,
+            error: nil
+        )
     }
 
     // 心率區間分佈 (使用後端返回資料)
@@ -706,5 +423,12 @@ struct WorkoutDetailView: View {
         let secondsPerKm = 1000 / metersPerSecond
 
         return formatPaceFromSeconds(secondsPerKm)
+    }
+
+    private func formatPaceFromSeconds(_ seconds: Double) -> String {
+        let totalSeconds = Int(seconds)
+        let minutes = totalSeconds / 60
+        let remainingSeconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }

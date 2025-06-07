@@ -605,6 +605,7 @@ class TrainingPlanViewModel: ObservableObject {
                 break  // 成功後跳出重試迴圈
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404 時標記無週計劃並結束重試
+                await updateWeeklyPlanUI(plan: nil, status: .noPlan)
                 break
             } catch {
                 currentRetry += 1

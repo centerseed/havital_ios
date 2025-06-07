@@ -8,6 +8,7 @@ struct TrainingRecordView: View {
     @State private var showingWorkoutDetail = false
     @State private var heartRateData: [(Date, Double)] = []
     @State private var paceData: [(Date, Double)] = []
+    @State private var showInfoSheet = false
     
     var body: some View {
         NavigationStack {
@@ -19,6 +20,18 @@ struct TrainingRecordView: View {
                 }
             }
             .navigationTitle("訓練記錄")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showInfoSheet = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                }
+            }
+            .sheet(isPresented: $showInfoSheet) {
+                DeviceInfoSheetView()
+            }
             .sheet(item: $selectedWorkout) { workout in
                 NavigationStack {
                     WorkoutDetailView(

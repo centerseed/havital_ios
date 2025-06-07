@@ -51,7 +51,9 @@ class WorkoutService {
         strideLengths: [DataPoint]? = nil,
         cadences: [DataPoint]? = nil,
         groundContactTimes: [DataPoint]? = nil,
-        verticalOscillations: [DataPoint]? = nil
+        verticalOscillations: [DataPoint]? = nil,
+        source: String = "apple_health",
+        device: String? = nil
     ) async throws {
         // 確保有心率數據
         if heartRates.isEmpty || heartRates.count < 1 {
@@ -80,7 +82,9 @@ class WorkoutService {
             strideLengths: strideLengths?.map { StrideData(time: $0.time.timeIntervalSince1970, value: $0.value) },
             cadences: cadences?.map { CadenceData(time: $0.time.timeIntervalSince1970, value: $0.value) },
             groundContactTimes: groundContactTimes?.map { GroundContactTimeData(time: $0.time.timeIntervalSince1970, value: $0.value) },
-            verticalOscillations: verticalOscillations?.map { VerticalOscillationData(time: $0.time.timeIntervalSince1970, value: $0.value) }
+            verticalOscillations: verticalOscillations?.map { VerticalOscillationData(time: $0.time.timeIntervalSince1970, value: $0.value) },
+            source: source,
+            device: device
         )
         
         // 使用 APIClient 上傳運動數據並檢查 HTTP 狀態碼
@@ -173,6 +177,8 @@ struct WorkoutData: Codable {
     let cadences: [CadenceData]?             // 步頻
     let groundContactTimes: [GroundContactTimeData]? // 觸地時間
     let verticalOscillations: [VerticalOscillationData]? // 垂直振幅
+    let source: String?                       // 資料來源 (如: apple_health, garmin, polar 等)
+    let device: String?                       // 裝置型號 (如: Apple Watch Series 7, Garmin Forerunner 945 等)
 }
 
 struct HeartRateData: Codable {
