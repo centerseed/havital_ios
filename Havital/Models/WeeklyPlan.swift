@@ -12,11 +12,11 @@ struct WeeklyPlan: Codable {
     private let createdAtString: String?  // 原始字串，用於解碼
     
     struct IntensityTotalMinutes: Codable {
-        let low: Int
-        let medium: Int
-        let high: Int
+        let low: Double
+        let medium: Double
+        let high: Double
         
-        var total: Int {
+        var total: Double {
             return low + medium + high
         }
     }

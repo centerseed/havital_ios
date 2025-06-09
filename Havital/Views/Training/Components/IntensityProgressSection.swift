@@ -10,7 +10,7 @@ struct IntensityProgressSection: View {
             IntensityProgressView(
                 title: "低強度",
                 current: actualIntensity.low,
-                target: planIntensity.low,
+                target: Int(planIntensity.low),
                 originalColor: .blue
             )
             
@@ -18,7 +18,7 @@ struct IntensityProgressSection: View {
             IntensityProgressView(
                 title: "中強度",
                 current: actualIntensity.medium,
-                target: planIntensity.medium,
+                target: Int(planIntensity.medium),
                 originalColor: .green
             )
             
@@ -26,7 +26,7 @@ struct IntensityProgressSection: View {
             IntensityProgressView(
                 title: "高強度",
                 current: actualIntensity.high,
-                target: planIntensity.high,
+                target: Int(planIntensity.high),
                 originalColor: .orange
             )
         }

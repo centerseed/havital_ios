@@ -85,76 +85,88 @@ struct PersonalBestView: View {
     }
     
     var body: some View {
-        Form {
-            Section(
-                header: Text("您的跑步經驗").padding(.top, 10),
-                footer: Text("告訴我們您最近或最快的跑步成績，能幫助 Havital 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。")
-            ) {
-                Toggle("我有個人最佳成績", isOn: $viewModel.hasPersonalBest)
-            }
+        ZStack {
+            Form {
+                Section(
+                    header: Text("您的跑步經驗").padding(.top, 10),
+                    footer: Text("告訴我們您最近或最快的跑步成績，能幫助 Havital 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。")
+                ) {
+                    Toggle("我有個人最佳成績", isOn: $viewModel.hasPersonalBest)
+                }
 
-            if viewModel.hasPersonalBest {
-                Section(header: Text("最佳成績詳情")) {
-                    Text("請選擇您近期跑出最佳成績的距離與時間。")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 5)
-                    
-                    Picker("選擇距離", selection: $viewModel.selectedDistance) {
-                        ForEach(Array(viewModel.availableDistances.keys.sorted(by: { Double($0)! < Double($1)! })), id: \.self) { key in
-                            Text(viewModel.availableDistances[key] ?? key)
-                                .tag(key)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    
-                    HStack {
-                        Picker("時", selection: $viewModel.targetHours) {
-                            ForEach(0...6, id: \.self) { hour in
-                                Text("\(hour)")
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-                        Text("時")
+                if viewModel.hasPersonalBest {
+                    Section(header: Text("最佳成績詳情")) {
+                        Text("請選擇您近期跑出最佳成績的距離與時間。")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 5)
                         
-                        Picker("分", selection: $viewModel.targetMinutes) {
-                            ForEach(0...59, id: \.self) { minute in
-                                Text("\(minute)")
+                        Picker("選擇距離", selection: $viewModel.selectedDistance) {
+                            ForEach(Array(viewModel.availableDistances.keys.sorted(by: { Double($0)! < Double($1)! })), id: \.self) { key in
+                                Text(viewModel.availableDistances[key] ?? key)
+                                    .tag(key)
                             }
                         }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-                        Text("分")
-                    }
-                    .padding(.vertical, 8)
-                    
-                    if !viewModel.currentPace.isEmpty {
+                        .pickerStyle(.menu)
+                        
                         HStack {
-                            Text("平均配速")
-                            Spacer()
-                            Text("\(viewModel.currentPace) /公里")
+                            Picker("時", selection: $viewModel.targetHours) {
+                                ForEach(0...6, id: \.self) { hour in
+                                    Text("\(hour)")
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(maxWidth: .infinity)
+                            Text("時")
+                            
+                            Picker("分", selection: $viewModel.targetMinutes) {
+                                ForEach(0...59, id: \.self) { minute in
+                                    Text("\(minute)")
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(maxWidth: .infinity)
+                            Text("分")
                         }
-                        .foregroundColor(.secondary)
-                    } else if viewModel.hasPersonalBest && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0 {
-                        Text("請輸入有效的時間以計算配速。")
-                            .font(.caption)
-                            .foregroundColor(.orange)
+                        .padding(.vertical, 8)
+                        
+                        if !viewModel.currentPace.isEmpty {
+                            HStack {
+                                Text("平均配速")
+                                Spacer()
+                                Text("\(viewModel.currentPace) /公里")
+                            }
+                            .foregroundColor(.secondary)
+                        } else if viewModel.hasPersonalBest && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0 {
+                            Text("請輸入有效的時間以計算配速。")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                } else {
+                    Section(header: Text("跳過個人最佳成績")) {
+                        Text("沒問題！Havital 會根據您的目標和後續設定，提供一個合適的起點。")
+                            .foregroundColor(.secondary)
                     }
                 }
-            } else {
-                Section(header: Text("跳過個人最佳成績")) {
-                    Text("沒問題！Havital 會根據您的目標和後續設定，提供一個合適的起點。")
-                        .foregroundColor(.secondary)
+                
+                if let error = viewModel.error {
+                    Section {
+                        Text(error)
+                            .foregroundColor(.red)
+                    }
                 }
             }
             
-            if let error = viewModel.error {
-                Section {
-                    Text(error)
-                        .foregroundColor(.red)
-                }
+            // 隱藏導航用的 NavigationLink
+            NavigationLink(
+                destination: WeeklyDistanceSetupView(targetDistance: viewModel.targetDistance)
+                    .navigationBarBackButtonHidden(true),
+                isActive: $viewModel.navigateToWeeklyDistance
+            ) {
+                EmptyView()
             }
+            .hidden()
         }
         .navigationTitle("個人最佳成績")
         .navigationBarTitleDisplayMode(.inline)
@@ -181,15 +193,9 @@ struct PersonalBestView: View {
                     }
                 }
                 // 更新禁用邏輯
-                .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && viewModel.currentPace.isEmpty && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0) || (viewModel.hasPersonalBest && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0) )
+                .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && viewModel.currentPace.isEmpty && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0))
             }
         }
-        .background(
-            // 加上 .navigationBarBackButtonHidden(true)
-            NavigationLink(destination: WeeklyDistanceSetupView(targetDistance: viewModel.targetDistance).navigationBarBackButtonHidden(true), isActive: $viewModel.navigateToWeeklyDistance) {
-                EmptyView()
-            }
-        )
     }
 }
 

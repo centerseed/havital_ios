@@ -27,25 +27,27 @@ class TrainingDaysViewModel: ObservableObject {
     }
 
     func updateButtonStates() {
-        // 至少選擇 recommendedMinTrainingDays 且長跑日不在普通訓練日中（如果普通訓練日已選）
-        // 或者如果只選了長跑日，也可以
+        // 至少選擇 recommendedMinTrainingDays
         let hasEnoughDays = selectedWeekdays.count >= recommendedMinTrainingDays
-        let isLongRunDayValid = !selectedWeekdays.contains(selectedLongRunDay) || selectedWeekdays.isEmpty 
-                                // ^ 如果選了普通訓練日，長跑日不能衝突；如果沒選普通日，長跑日單獨有效
-
+        
+        // 長跑日必須是選擇的訓練日之一
+        let isLongRunDayValid = selectedWeekdays.contains(selectedLongRunDay) || selectedWeekdays.isEmpty
+        
         // 初始按鈕：用於獲取概覽
-        // 條件：已選擇足夠的訓練日 (或至少一個長跑日)，且概覽尚未顯示，且最終計畫按鈕也未顯示
-        canShowPlanOverviewButton = (hasEnoughDays || selectedWeekdays.count + (selectedLongRunDay > 0 ? 1 : 0) >= 1) && isLongRunDayValid && !showOverview && !canGenerateFinalPlanButton
+        // 條件：已選擇足夠的訓練日，且長跑日是訓練日之一，且概覽尚未顯示，且最終計畫按鈕也未顯示
+        canShowPlanOverviewButton = hasEnoughDays && isLongRunDayValid && !showOverview && !canGenerateFinalPlanButton
     }
 
 
     func savePreferencesAndGetOverview() async { // 原 savePreferences
-        guard !selectedWeekdays.isEmpty || selectedLongRunDay > 0 else {
-            error = "請至少選擇一個訓練日或長跑日。"
+        guard !selectedWeekdays.isEmpty else {
+            error = "請至少選擇一個訓練日。"
             return
         }
-        if selectedWeekdays.count > 0 && selectedWeekdays.contains(selectedLongRunDay) {
-            error = "長跑日不應與普通訓練日重疊。請重新選擇。"
+        
+        // 確保長跑日是選擇的訓練日之一
+        if !selectedWeekdays.contains(selectedLongRunDay) {
+            error = "長跑日必須是您選擇的訓練日之一。請重新選擇。"
             return
         }
 
@@ -86,18 +88,32 @@ class TrainingDaysViewModel: ObservableObject {
     func generateFinalPlanAndCompleteOnboarding() async { // 原 generateWeeklyPlan
         isLoading = true
         error = nil
+        var planSuccessfullyCreated = false
         
         do {
-            let _ = try await TrainingPlanService.shared.createWeeklyPlan() // API 回傳的 plan 暫存到 weeklyPlan
-            // weeklyPlan = plan // 如果需要，可以儲存起來
-            
-            authService.hasCompletedOnboarding = true // 標記 Onboarding 完成
-            // UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding") // authService 內部應處理持久化
-            
+            print("[TrainingDaysViewModel] Attempting to create weekly plan...") // 新增日誌
+            let _ = try await TrainingPlanService.shared.createWeeklyPlan()
+            print("[TrainingDaysViewModel] Weekly plan created successfully.") // 新增日誌
+            planSuccessfullyCreated = true
         } catch {
-            self.error = error.localizedDescription
+            // 特別處理任務取消錯誤，但也記錄其他錯誤
+            if error is CancellationError {
+                print("[TrainingDaysViewModel] Task to create weekly plan was cancelled.")
+                self.error = "課表產生任務被取消，請重試。"
+            } else {
+                print("[TrainingDaysViewModel] Error generating weekly plan: \(error) - Localized: \(error.localizedDescription)") // 詳細錯誤日誌
+                self.error = "產生課表失敗：\(error.localizedDescription)"
+            }
         }
+        
+        // 確保 isLoading 在所有情況下都會被重置
         isLoading = false
+        
+        if planSuccessfullyCreated {
+            // 只有成功才標記完成並觸發導航
+            print("[TrainingDaysViewModel] Setting hasCompletedOnboarding to true.")
+            authService.hasCompletedOnboarding = true
+        }
     }
 
     // Helper for init and saving preferences
@@ -112,10 +128,9 @@ class TrainingDaysViewModel: ObservableObject {
 
 struct TrainingDaysSetupView: View {
     @StateObject private var viewModel = TrainingDaysViewModel()
-    @Environment(\.dismiss) private var dismiss
+
     
     // For loading animation after final plan generation
-    @State private var showLoadingAnimationForFinalPlan = false
     private let loadingMessages = [
         "分析您的訓練偏好...",
         "計算最佳訓練強度...",
@@ -154,18 +169,31 @@ struct TrainingDaysSetupView: View {
                 
                 Section(
                     header: Text("設定您的長跑日"),
-                    footer: Text("長跑是提升耐力的關鍵。通常建議安排在週末或您有較充裕時間的日子，以便身體有足夠時間恢復。請選擇一天作為您的主要長跑日。")
+                    footer: Text("長跑是提升耐力的關鍵。請從您選擇的訓練日中挑選一天作為長跑日。通常建議安排在週末或您有較充裕時間的日子，以便身體有足夠時間恢復。")
                 ) {
+                    // 只有在有選擇訓練日時，提供長跑日選項
+                    let longRunOptions = viewModel.selectedWeekdays.isEmpty ? [viewModel.selectedLongRunDay] : Array(viewModel.selectedWeekdays).sorted()
                     Picker("選擇長跑日", selection: $viewModel.selectedLongRunDay) {
-                        ForEach(1..<8, id: \.self) { weekday in
+                        ForEach(longRunOptions, id: \.self) { weekday in
                             Text(getWeekdayName(weekday)).tag(weekday)
                         }
+                    }
+                    .disabled(viewModel.selectedWeekdays.isEmpty) // 尚未選擇訓練日時禁用
+                    .onChange(of: viewModel.selectedWeekdays) { _ in
+                        // 訓練日變更時，若原長跑日不在其中，則設為首選
+                        if !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay), let first = viewModel.selectedWeekdays.sorted().first {
+                            viewModel.selectedLongRunDay = first
+                        }
+                        viewModel.updateButtonStates()
                     }
                     .onChange(of: viewModel.selectedLongRunDay) { _ in
                         viewModel.updateButtonStates()
                     }
-                }
-                
+                    // 如果長跑日不在已選的訓練日中，顯示提示
+                    if !viewModel.selectedWeekdays.isEmpty && !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay) {
+                        Text("長跑日必須是您選擇的訓練日之一").foregroundColor(.red)
+                    }
+                }              
                 if let error = viewModel.error {
                     Section {
                         Text(error).foregroundColor(.red)
@@ -206,28 +234,19 @@ struct TrainingDaysSetupView: View {
                             Text("訓練重點").font(.headline).padding(.top, 5)
                             Text(overview.trainingHighlight).font(.body).foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 5)
-                    }
-                    .id("overviewSection") // ID for scrolling
-
-                    if viewModel.canGenerateFinalPlanButton {
-                        Section {
+                        if viewModel.canGenerateFinalPlanButton {
                             Button(action: {
-                                showLoadingAnimationForFinalPlan = true // 觸發全螢幕載入動畫
                                 Task {
                                     await viewModel.generateFinalPlanAndCompleteOnboarding()
-                                    // 動畫由 loadingAnimation 修飾器自動處理關閉
                                 }
                             }) {
                                 HStack {
                                     Spacer()
-                                    // 這個按鈕的 loading 由全螢幕動畫處理，故此處不放 ProgressView
                                     Text("完成設定並查看第一週課表")
                                     Spacer()
                                 }
                             }
-                            // 此按鈕的 isLoading 由 showLoadingAnimationForFinalPlan 控制
-                            .disabled(showLoadingAnimationForFinalPlan)
+                            .disabled(viewModel.isLoading)
                         }
                     }
                 }
@@ -239,16 +258,16 @@ struct TrainingDaysSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("返回") { dismiss() }
+                    Button("返回") { }
                 }
             }
-            // 全螢幕載入動畫，僅在產生最終計畫時顯示
-            .loadingAnimation(
-                isLoading: $showLoadingAnimationForFinalPlan,
-                messages: loadingMessages,
-                totalDuration: loadingDuration
-            )
         } // ScrollViewReader End
+        .fullScreenCover(isPresented: Binding(
+            get: { viewModel.isLoading && viewModel.showOverview },
+            set: { _ in }
+        )) {
+            LoadingAnimationView(messages: loadingMessages, totalDuration: loadingDuration)
+        }
     }
     
     private func getWeekdayName(_ weekday: Int) -> String { // 保持 View 內的 helper

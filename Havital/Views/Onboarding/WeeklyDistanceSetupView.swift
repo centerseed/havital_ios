@@ -24,12 +24,14 @@ class WeeklyDistanceViewModel: ObservableObject {
         error = nil
         
         do {
+            // 將週跑量轉換為整數
+            let weeklyDistanceInt = Int(weeklyDistance.rounded())
             let userData = [
-                "current_week_distance": weeklyDistance
+                "current_week_distance": weeklyDistanceInt
             ] as [String: Any]
             
             try await UserService.shared.updateUserData(userData)
-            print("週跑量數據 (\(weeklyDistance)km) 上傳成功，準備導航到訓練日設置頁面")
+            print("週跑量數據 (\(weeklyDistanceInt)km) 上傳成功，準備導航到訓練日設置頁面")
             navigateToTrainingDays = true
         } catch {
             self.error = error.localizedDescription
@@ -43,9 +45,8 @@ class WeeklyDistanceViewModel: ObservableObject {
         error = nil
         
         do {
-            // 如果略過，將週跑量設為0或一個特定的標記值，這裡我們設為0
-            // 或者，也可以沿用 init 中的預設值，但使用者選擇略過，可能意味著他們不確定或目前沒有跑量
-            let skippedWeeklyDistance = 0.0
+            // 如果略過，將週跑量設為0（整數）
+            let skippedWeeklyDistance = 0
             let userData = [
                 "current_week_distance": skippedWeeklyDistance
             ] as [String: Any]

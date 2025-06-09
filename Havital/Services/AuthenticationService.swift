@@ -127,16 +127,23 @@ class AuthenticationService: ObservableObject {
         // 如果用戶有 active_weekly_plan_id，則表示已完成 onboarding
         let completed = user.data.activeWeeklyPlanId != nil
         
+        print("🔍 檢查 onboarding 狀態 - activeWeeklyPlanId: \(String(describing: user.data.activeWeeklyPlanId))")
+        print("🔍 當前 hasCompletedOnboarding: \(hasCompletedOnboarding), 新值: \(completed)")
+        
         // 在主線程更新狀態並儲存到 UserDefaults
         Task { @MainActor in
+            print("🔄 更新 onboarding 狀態: \(completed)")
             self.hasCompletedOnboarding = completed
             UserDefaults.standard.set(completed, forKey: "hasCompletedOnboarding")
             if completed {
+                print("✅ 用戶已完成 onboarding")
                 self.isReonboardingMode = false // 如果 Onboarding 完成，結束重新 Onboarding 模式
+            } else {
+                print("⏳ 用戶未完成 onboarding")
             }
         }
         
-        print("用戶 onboarding 狀態: \(completed ? "已完成" : "未完成"), isReonboardingMode: \(isReonboardingMode)")
+        print("📝 用戶 onboarding 狀態: \(completed ? "已完成" : "未完成"), isReonboardingMode: \(isReonboardingMode)")
     }
     
     func fetchUserProfile() {

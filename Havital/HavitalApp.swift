@@ -63,55 +63,17 @@ struct HavitalApp: App {
     
     var body: some Scene {
         WindowGroup {
-            // 優先檢查是否處於重新 Onboarding 模式
-            if authService.isReonboardingMode {
-                OnboardingIntroView()
-                    .environmentObject(appViewModel)
-                    // 當 OnboardingIntroView 完成其使命後，isReonboardingMode 會在 AuthenticationService 的 checkOnboardingStatus 中被重設
-            } else if !authService.isAuthenticated {
-                LoginView()
-                    .environmentObject(appViewModel)
-            } else if !authService.hasCompletedOnboarding { // 如果不是重新 Onboarding，且未完成，則顯示 OnboardingView
-                OnboardingView()
-                   .environmentObject(appViewModel)
-            } else {
-                TabView {
-                    TrainingPlanView()
-                        .environmentObject(healthKitManager)
-                        .tabItem {
-                            Image(systemName: "figure.run")
-                            Text("訓練計劃")
-                        }
-                    
-                    TrainingRecordView()
-                        .environmentObject(healthKitManager)
-                        .tabItem {
-                            Image(systemName: "chart.line.text.clipboard")
-                            Text("訓練紀錄")
-                        }
-                    
-                    MyAchievementView()
-                        .environmentObject(healthKitManager)
-                        .tabItem {
-                            Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                            Text("表現數據")
-                        }
-                }
+            ContentView() // 使用 ContentView 作為根視圖
+                .environmentObject(authService)       // 注入 AuthenticationService
+                .environmentObject(healthKitManager)  // 注入 HealthKitManager
+                .environmentObject(appViewModel)      // 注入 AppViewModel
                 .onAppear {
-                    // 當主畫面出現時，一次性請求所有必要權限並設置背景處理
-                    setupAllPermissionsAndBackgroundProcessing()
+                    // 當 ContentView (即整個 App UI) 出現時，可以執行一些全局的 onAppear 邏輯
+                    // 例如，原先 TabView 上的 onAppear 內容可以考慮移到 ContentView 或保留在主 App 內容視圖中
+                    // 這裡我們保留 setupAllPermissionsAndBackgroundProcessing 給 ContentView 內部的主 App 內容去觸發
+                    // 如果 ContentView 決定顯示 TabView，TabView 的 onAppear 仍會被呼叫
                 }
-                .alert("需要健康資料權限", isPresented: $appViewModel.showHealthKitAlert) {
-                    Button("前往設定", role: .none) {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
-                    }
-                    Button("取消", role: .cancel) { }
-                } message: {
-                    Text(appViewModel.healthKitAlertMessage)
-                }
-            }
+                // alert 也可以考慮移到 ContentView 或其內部的主 App 內容視圖
         }
         // 添加應用程式生命週期事件處理
         .onChange(of: UIApplication.shared.applicationState) { state in

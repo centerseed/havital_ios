@@ -46,13 +46,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		CF049FC02DF04174004CD623 /* Exceptions for "Havital" folder in "HavitalTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				PreviewHelpers/simple.swift,
-			);
-			target = CFB67D012D07047800F672E3 /* HavitalTests */;
-		};
 		CFF5177E2D15691B00CF284A /* Exceptions for "Havital" folder in "Havital" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -78,7 +71,6 @@
 			exceptions = (
 				CFF5177E2D15691B00CF284A /* Exceptions for "Havital" folder in "Havital" target */,
 				CF1573872D2E5BAE00DF73B5 /* Exceptions for "Havital" folder in "Compile Sources" phase from "Havital" target */,
-				CF049FC02DF04174004CD623 /* Exceptions for "Havital" folder in "HavitalTests" target */,
 			);
 			path = Havital;
 			sourceTree = "<group>";

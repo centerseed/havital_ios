@@ -4,7 +4,7 @@ import SwiftUI
 class OnboardingViewModel: ObservableObject {
     // ... (ViewModel 內容保持不變) ...
     @Published var raceName = ""
-    @Published var raceDate = Date()
+    @Published var raceDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()  // 預設為一個月後
     @Published var selectedDistance = "42.195" // 預設全馬
     @Published var targetHours = 4
     @Published var targetMinutes = 0
@@ -73,8 +73,7 @@ struct OnboardingView: View {
     // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
 
     var body: some View {
-        // NavigationView REMOVED
-            ZStack {
+        ZStack(alignment: .bottom) {
                 Form {
                     Section(header: Text("您的跑步目標"), footer: Text("如果您沒有特定賽事，可以為自己設定一個挑戰目標，例如「完成第一個5公里」或「提升10公里速度」。")) {
                         TextField("目標名稱 (例如：台北馬拉松 或 我的5K挑戰)", text: $viewModel.raceName)
@@ -134,47 +133,61 @@ struct OnboardingView: View {
                         }
                     }
                 }
-                .navigationTitle("設定訓練目標")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: {
-                            dismiss() // 修改為 dismiss
-                        }) {
-                            Text("返回") // 修改按鈕文字
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            print("按下下一步按鈕")
-                            Task {
-                                print("開始執行 createTarget")
-                                do {
-                                    if await viewModel.createTarget() {
-                                        showPersonalBest = true
-                                    }
-                                } catch {
-                                    print("執行 createTarget 時發生錯誤: \(error)")
-                                }
-                            }
-                        }) {
-                            if viewModel.isLoading {
-                                ProgressView()
-                            } else {
-                                Text("下一步")
+                // 在表單底部添加固定的按鈕
+                Section {
+                    Button(action: {
+                        Task {
+                            if await viewModel.createTarget() {
+                                showPersonalBest = true
                             }
                         }
-                        .disabled(viewModel.isLoading)
+                    }) {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Text("下一步")
+                                .frame(maxWidth: .infinity)
+                        }
                     }
+                    .disabled(viewModel.isLoading)
                 }
-                NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195).navigationBarBackButtonHidden(true), isActive: $showPersonalBest) {
+                
+                NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
+                    .navigationBarBackButtonHidden(true),
+                               isActive: $showPersonalBest) {
                     EmptyView()
                 }
             }
+            .navigationTitle("設定訓練目標")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("返回") {
+                        dismiss()
+                    }
+                }
+                
+                // 右上角「下一步」按鈕
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        Task {
+                            if await viewModel.createTarget() {
+                                showPersonalBest = true
+                            }
+                        }
+                    }) {
+                        if viewModel.isLoading {
+                            ProgressView()
+                        } else {
+                            Text("下一步")
+                        }
+                    }
+                    .disabled(viewModel.isLoading)
+                }
+            }
         }
-        // NavigationView REMOVED
-    
+
 }
 
 struct OnboardingView_Previews: PreviewProvider {
