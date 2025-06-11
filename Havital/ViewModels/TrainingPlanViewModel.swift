@@ -78,12 +78,23 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 添加 Combine cancellables
     private var cancellables = Set<AnyCancellable>()
+    private let healthKitManager = HealthKitManager()
     
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }
     
     // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
     init() {
+        // 監聽 workouts 更新通知
+        NotificationCenter.default.publisher(for: .workoutsDidUpdate)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                print("收到 workoutsDidUpdate 通知，重新加載訓練強度...")
+                Task {
+                    await self.loadCurrentWeekIntensity(healthKitManager: self.healthKitManager)
+                }
+            }
+            .store(in: &cancellables)
         let onboardingCompleted = AuthenticationService.shared.hasCompletedOnboarding
         let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
 
@@ -748,10 +759,7 @@ class TrainingPlanViewModel: ObservableObject {
             
             // 確保在主線程上更新 UI
             await MainActor.run {
-                // 使用實際計算出的強度值
                 self._currentWeekIntensity = intensity
-                
-                // 強制引發 UI 刷新
                 self.objectWillChange.send()
                 self.isLoadingIntensity = false
                 

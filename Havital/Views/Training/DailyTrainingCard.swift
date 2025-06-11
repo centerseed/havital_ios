@@ -156,35 +156,137 @@ struct DailyTrainingCard: View {
                     if day.isTrainingDay {
                         // 對於無trainingItems的非間歇課表，顯示trainingDetails詳情
                         if day.trainingItems == nil, let details = day.trainingDetails {
-                            // 描述文字
-                            if let desc = details.description {
-                                Text(desc)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding(.vertical, 4)
-                            }
-                            // 心率區間
-                            if let hr = details.heartRateRange {
-                                Text("心率區間：\(hr.min)-\(hr.max)")
-                                    .font(.caption2)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.green.opacity(0.15))
-                                    .cornerRadius(12)
-                            }
-                            if let distance = details.distanceKm {
-                                Text(String(format: "%.1fkm", distance))
-                                    .font(.caption2)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                    .cornerRadius(12)
+                            // 若定義了 segments，顯示各段落
+                            if let segments = details.segments, !segments.isEmpty, let total = details.totalDistanceKm {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(day.type.chineseName)
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        Text(String(format: "%.1fkm", total))
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.orange.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    .padding(.top, 4)
+                                    Divider()
+                                        .background(Color.orange.opacity(0.3))
+                                        .padding(.vertical, 2)
+                                    ForEach(segments.indices, id: \.self) { idx in
+                                        let seg = segments[idx]
+                                        HStack(spacing: 8) {
+                                            Text("區段 \(idx + 1)")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(8)
+                                            Spacer()
+                                            Text(String(format: "%.1fkm", seg.distanceKm))
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(8)
+                                            Text(seg.pace)
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.15))
+                                                .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                            } else {
+                                // 單一描述 + 心率 + 距離
+                                if let desc = details.description {
+                                    Text(desc)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.vertical, 4)
+                                }
+                                if let hr = details.heartRateRange {
+                                    Text("心率區間：\(hr.min)-\(hr.max)")
+                                        .font(.caption2)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.green.opacity(0.15))
+                                        .cornerRadius(12)
+                                }
+                                if let distance = details.distanceKm {
+                                    Text(String(format: "%.1fkm", distance))
+                                        .font(.caption2)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                        .cornerRadius(12)
+                                }
                             }
                         }
                         
                         // For interval or progression training, show a special header
                         if let trainingItems = day.trainingItems, !trainingItems.isEmpty {
-                            if day.type == .interval, let repeats = trainingItems[0].goals.times {
+                            if (day.type == .progression || day.type == .threshold), let segments = day.trainingDetails?.segments {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(day.type.chineseName)
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let total = day.trainingDetails?.totalDistanceKm {
+                                            Text(String(format: "%.1fkm", total))
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(Color.orange.opacity(0.15))
+                                                .cornerRadius(12)
+                                        }
+                                    }
+                                    .padding(.top, 4)
+                                    Divider()
+                                        .background(Color.orange.opacity(0.3))
+                                        .padding(.vertical, 2)
+                                    ForEach(segments.indices, id: \.self) { idx in
+                                        let seg = segments[idx]
+                                        HStack(spacing: 8) {
+                                            Text("區段 \(idx + 1)")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(8)
+                                            Spacer()
+                                            Text(String(format: "%.1fkm", seg.distanceKm))
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(8)
+                                            Text(seg.pace)
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.15))
+                                                .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                            } else if day.type == .interval, let repeats = trainingItems[0].goals.times {
                                 HStack {
                                     Text("間歇訓練")
                                         .font(.subheadline)
@@ -201,82 +303,6 @@ struct DailyTrainingCard: View {
                                         .cornerRadius(12)
                                 }
                                 .padding(.top, 4)
-                            } else if day.type == .progression, let segments = day.trainingDetails?.segments {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("間歇跑")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.orange)
-                                        Spacer()
-                                        if let totalDistance = day.trainingDetails?.totalDistanceKm {
-                                            Text(String(format: "%.1fkm", totalDistance))
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.orange)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.orange.opacity(0.15))
-                                                .cornerRadius(12)
-                                        }
-                                    }
-                                    .padding(.top, 4)
-                                    
-                                    // 分割線
-                                    Divider()
-                                        .background(Color.orange.opacity(0.3))
-                                        .padding(.vertical, 2)
-                                    
-                                    ForEach(segments.indices, id: \.self) { index in
-                                        let segment = segments[index]
-                                        HStack(spacing: 8) {
-                                            // 區段標號
-                                            Text("區段 \(index + 1)")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.1))
-                                                .cornerRadius(8)
-                                            
-                                            // 區段描述
-                                            if let description = segment.description {
-                                                Text(description)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            
-                                            Spacer()
-                                            
-                                            // 區段距離
-                                            Text(String(format: "%.1fkm", segment.distanceKm))
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.1))
-                                                .cornerRadius(8)
-                                            
-                                            // 區段配速
-                                            Text(segment.pace)
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.15))
-                                                .cornerRadius(8)
-                                        }
-                                        .padding(.vertical, 2)
-                                        
-                                        // 除了最後一個區段外，添加細分割線
-                                        if index < segments.count - 1 {
-                                            Divider()
-                                                .background(Color.orange.opacity(0.1))
-                                                .padding(.leading, 30)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 2)
                             }
                             
                             // Show each training item
@@ -284,10 +310,6 @@ struct DailyTrainingCard: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     // 標題及重複次數
                                     HStack {
-                                        Text(item.name)
-                                            .font(.subheadline)
-                                            .fontWeight(day.type == .interval ? .medium : .regular)
-                                            .foregroundColor(day.type == .interval ? .orange : .blue)
                                         if day.type == .interval, let times = item.goals.times {
                                             Text("× \(times)")
                                                 .font(.caption)

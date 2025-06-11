@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import FirebaseAuth
 
 @MainActor
 class UserProfileViewModel: ObservableObject {
@@ -96,6 +97,22 @@ extension UserProfileViewModel {
         
         await MainActor.run {
             isLoading = false
+        }
+    }
+    
+    // 刪除帳戶
+    func deleteAccount() async throws {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 0, userInfo: [NSLocalizedDescriptionKey: "無法獲取當前用戶ID"])
+        }
+        
+        do {
+            try await UserService.shared.deleteUser(userId: userId)
+            // 登出並清除本地資料
+            try AuthenticationService.shared.signOut()
+        } catch {
+            print("刪除帳戶失敗: \(error.localizedDescription)")
+            throw error
         }
     }
 }

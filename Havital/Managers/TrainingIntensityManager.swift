@@ -25,12 +25,21 @@ class TrainingIntensityManager {
     
     /// 計算指定時間範圍內的訓練強度
     func calculateIntensity(for workouts: [HKWorkout], healthKitManager: HealthKitManager) async -> TrainingIntensityManager.IntensityMinutes {
-        guard let maxHRInt = UserPreferenceManager.shared.maxHeartRate,
-              let restingHRInt = UserPreferenceManager.shared.restingHeartRate,
-              maxHRInt > 0, restingHRInt > 0, maxHRInt > restingHRInt else {
-            print("TrainingIntensityManager: 無效的最大心率 (\(UserPreferenceManager.shared.maxHeartRate ?? -1)) 或靜息心率 (\(UserPreferenceManager.shared.restingHeartRate ?? -1))。無法計算強度。")
-            return .zero
+        // 設定預設值
+        let defaultMaxHR = 180
+        let defaultRestingHR = 60
+        
+        // 使用預設值或使用者設定的值，並確保數值合理
+        var maxHRInt = UserPreferenceManager.shared.maxHeartRate ?? defaultMaxHR
+        var restingHRInt = UserPreferenceManager.shared.restingHeartRate ?? defaultRestingHR
+        
+        // 驗證心率值是否合理，如果無效則使用預設值
+        if !(maxHRInt > 0 && restingHRInt > 0 && maxHRInt > restingHRInt) {
+            print("TrainingIntensityManager: 無效的心率設定 - 最大心率: \(maxHRInt), 靜息心率: \(restingHRInt)。使用預設值 (180/60)。")
+            maxHRInt = defaultMaxHR
+            restingHRInt = defaultRestingHR
         }
+        
         let maxHR = Double(maxHRInt)
         let restingHR = Double(restingHRInt)
         var totalLowIntensity: Double = 0

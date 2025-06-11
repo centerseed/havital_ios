@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.havital.workout-sync</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
@@ -16,48 +20,6 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
-	<string>Havital 需要存取健康記錄，以提供更完整的健康分析</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Havital 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議，並自動同步您的健身記錄</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Havital 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Havital 需要行事曆權限來同步您的訓練計劃</string>
-	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
-	<string>Havital 需要行事曆寫入權限來同步您的訓練計劃</string>
-	<key>NSUserNotificationUsageDescription</key>
-	<string>Havital 需要通知權限以告知您運動數據已成功同步</string>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-		<key>UISceneConfigurations</key>
-		<dict/>
-	</dict>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UILaunchScreen</key>
-	<dict/>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -70,22 +32,57 @@
 			<string>Editor</string>
 		</dict>
 	</array>
-	<!-- 背景處理模式 -->
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Havital 需要行事曆權限來同步您的訓練計劃</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Havital 需要行事曆寫入權限來同步您的訓練計劃</string>
+	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+	<string>Havital 需要存取健康記錄，以提供更完整的健康分析</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Havital 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議，並自動同步您的健身記錄</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Havital 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Havital 需要通知權限以告知您運動數據已成功同步</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict/>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
-	<!-- 背景任務識別符 -->
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.havital.workout-sync</string>
-	</array>
-	<!-- 需要的裝置能力 -->
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>healthkit</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>
 </plist>

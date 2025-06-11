@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
@@ -9,6 +10,8 @@ struct UserProfileView: View {
     @State private var weeklyDistance: Int = 0
     @State private var showTrainingDaysEditor = false
     @State private var showOnboardingConfirmation = false  // 重新 OnBoarding 確認對話框狀態
+    @State private var showDeleteAccountConfirmation = false  // 刪除帳戶確認對話框狀態
+    @State private var isDeletingAccount = false  // 刪除帳戶加載狀態
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -162,6 +165,22 @@ struct UserProfileView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                 }
+                
+                // 刪除帳戶按鈕
+                Button(role: .destructive) {
+                    showDeleteAccountConfirmation = true
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("刪除帳戶")
+                        if isDeletingAccount {
+                            Spacer()
+                            ProgressView()
+                                .padding(.leading, 8)
+                        }
+                    }
+                }
+                .disabled(isDeletingAccount)
             }
         }
         .navigationTitle("個人資料")
@@ -198,6 +217,23 @@ struct UserProfileView: View {
             )
         }
         // 編輯訓練日編輯器
+        .alert("確認刪除帳戶", isPresented: $showDeleteAccountConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("刪除", role: .destructive) {
+                Task {
+                    isDeletingAccount = true
+                    do {
+                        try await viewModel.deleteAccount()
+                        // 刪除成功後會自動登出並導航到登入畫面
+                    } catch {
+                        print("刪除帳戶失敗: \(error.localizedDescription)")
+                        isDeletingAccount = false
+                    }
+                }
+            }
+        } message: {
+            Text("此操作無法復原，所有資料將被永久刪除。確定要繼續嗎？")
+        }
         .sheet(isPresented: $showTrainingDaysEditor) {
             if let ud = viewModel.userData {
                 EditTrainingDaysView(
@@ -225,6 +261,50 @@ struct UserProfileView: View {
         }
     }
     
+    // 使用者頭像與名稱標頭
+    @ViewBuilder
+    private func profileHeader(_ userData: UserProfileData) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            if let urlString = userData.photoUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable().scaledToFill().opacity(0.3)
+                    }
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable().scaledToFill()
+                    .frame(width: 64, height: 64)
+                    .foregroundColor(.gray)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(userData.displayName ?? "用戶")
+                    .font(.title2).bold()
+                
+                // 檢查是否為 Apple 登入且 email 為空或匿名
+                if let providerData = Auth.auth().currentUser?.providerData.first,
+                   providerData.providerID == "apple.com" && 
+                   (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
+                    Text("Apple 用戶")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text(userData.email ?? Auth.auth().currentUser?.email ?? "")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+        }
+        .padding(.vertical)
+    }
+    
     private var heartRateZonesView: some View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(viewModel.heartRateZones, id: \.zone) { zone in
@@ -245,43 +325,6 @@ struct UserProfileView: View {
             }
         }
         .padding(.vertical, 6)
-    }
-    
-    private func profileHeader(_ userData: UserProfileData) -> some View {
-        HStack(spacing: 16) {
-            if let photoURL = userData.photoUrl,
-               let url = URL(string: photoURL) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    ProgressView()
-                }
-                .frame(width: 70, height: 70)
-                .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 2)
-                )
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 70, height: 70)
-                    .foregroundColor(.blue.opacity(0.6))
-            }
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text(userData.displayName ?? "")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                
-                Text(userData.email ?? "")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 8)
     }
     
     private func trainingDaysView(_ userData: UserProfileData) -> some View {

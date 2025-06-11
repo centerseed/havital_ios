@@ -112,10 +112,11 @@ struct LoadingAnimationView: View {
             progress = 1.0
         }
         
-        // 每 6 秒切換一次訊息
+        // 平均分配每則訊息的顯示時間
         let messageCount = messages.count
         if messageCount > 1 {
-            Timer.scheduledTimer(withTimeInterval: min(6.0, totalDuration / Double(messageCount)), repeats: true) { timer in
+            let interval = totalDuration / Double(messageCount)
+            Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { timer in
                 withAnimation {
                     messageIndex = (messageIndex + 1) % messageCount
                     

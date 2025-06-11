@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FirebaseAuth
 
 class UserService {
     static let shared = UserService()
@@ -112,9 +113,11 @@ class UserService {
     
     // Updated to access nested user.data properties
     func syncUserPreferences(with user: User) {
-        userPreferenceManager.email = user.data.email ?? ""
-        userPreferenceManager.name = user.data.displayName ?? ""
-        userPreferenceManager.photoURL = user.data.photoUrl
+        // 若後端未提供，從 Firebase 使用者檔案取得 Email/Name/Photo
+        let firebaseUser = Auth.auth().currentUser
+        userPreferenceManager.email = user.data.email ?? firebaseUser?.email ?? ""
+        userPreferenceManager.name = user.data.displayName ?? firebaseUser?.displayName ?? ""
+        userPreferenceManager.photoURL = user.data.photoUrl ?? firebaseUser?.photoURL?.absoluteString
         
         userPreferenceManager.maxHeartRate = user.data.maxHr
         
@@ -127,5 +130,13 @@ class UserService {
         // This is just a placeholder - you would implement proper age calculation
         // based on your actual data structure
         return nil
+    }
+    
+    // 刪除用戶帳戶
+    func deleteUser(userId: String) async throws {
+        try await APIClient.shared.requestNoResponse(
+            path: "/user/\(userId)", 
+            method: "DELETE"
+        )
     }
 }

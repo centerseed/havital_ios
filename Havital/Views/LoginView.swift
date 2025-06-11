@@ -32,7 +32,7 @@ struct LoginView: View {
                 
                 Spacer()
                 
-                // Login Button
+                // Login Buttons
                 VStack(spacing: 16) {
                     Button {
                         Task {
@@ -61,25 +61,37 @@ struct LoginView: View {
                             }
                         }
                     )
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 16)
-                
-                // Email Auth Navigation Links
-                VStack(spacing: 12) {
-                    NavigationLink("註冊帳號") { RegisterEmailView() }
+                    
+                    Button {
+                        Task {
+                            await authService.signInWithApple()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "apple.logo")
+                                .font(.title2)
+                            Text("使用 Apple 登入")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                        }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(AppTheme.shared.primaryColor.opacity(0.1))
-                        .cornerRadius(8)
-                    NavigationLink("Email 登入") { EmailLoginView() }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppTheme.shared.primaryColor.opacity(0.1))
-                        .cornerRadius(8)
+                        .background(authService.isLoading ? Color.gray : Color.black) // Apple's branding is typically black or white
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .disabled(authService.isLoading)
+                    .overlay(
+                        Group {
+                            if authService.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            }
+                        }
+                    )
                 }
                 .padding(.horizontal, 32)
-                .padding(.bottom, 48)
+                .padding(.bottom, 48) // 增加底部間距，讓按鈕不會太靠近底部
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())

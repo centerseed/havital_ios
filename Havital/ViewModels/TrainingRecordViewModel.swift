@@ -2,6 +2,10 @@ import SwiftUI
 import HealthKit
 import UserNotifications
 
+extension Notification.Name {
+    static let workoutsDidUpdate = Notification.Name("workoutsDidUpdate")
+}
+
 class TrainingRecordViewModel: ObservableObject {
     @Published var workouts: [HKWorkout] = []
     @Published var isLoading = false
@@ -121,6 +125,9 @@ class TrainingRecordViewModel: ObservableObject {
             // 更新 UI
             await MainActor.run {
                 self.workouts = fetchedWorkouts.sorted(by: { $0.startDate > $1.startDate })
+                // 發送通知
+                NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+                print("已發送 workoutsDidUpdate 通知")
             }
         } catch {
             print("刷新訓練記錄時出錯: \(error)")

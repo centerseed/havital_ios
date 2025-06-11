@@ -82,6 +82,8 @@ struct HavitalApp: App {
                 print("應用進入前景")
                 Task {
                     await checkForPendingHealthUpdates()
+                    // 同時也觸發我們新增的兩個月 workout 同步邏輯
+                    await AuthenticationService.shared.syncRecentWorkouts()
                 }
             }
         }

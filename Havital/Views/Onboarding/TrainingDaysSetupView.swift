@@ -4,6 +4,7 @@ import SwiftUI
 class TrainingDaysViewModel: ObservableObject {
     @Published var selectedWeekdays = Set<Int>()
     @Published var selectedLongRunDay: Int = 6 // 預設週六 (1=週一, 7=週日)
+    @Published var showLongRunDayAlert = false // 用於控制是否顯示長跑日提示
     @Published var isLoading = false
     @Published var error: String?
     @Published var trainingPlanOverview: TrainingPlanOverview?
@@ -95,12 +96,14 @@ class TrainingDaysViewModel: ObservableObject {
             let _ = try await TrainingPlanService.shared.createWeeklyPlan()
             print("[TrainingDaysViewModel] Weekly plan created successfully.") // 新增日誌
             planSuccessfullyCreated = true
+            
+            // 直接更新 UserDefaults 中的 hasCompletedOnboarding 值
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            print("[TrainingDaysViewModel] Updated hasCompletedOnboarding in UserDefaults to true")
+            
         } catch {
             // 特別處理任務取消錯誤，但也記錄其他錯誤
-            if error is CancellationError {
-                print("[TrainingDaysViewModel] Task to create weekly plan was cancelled.")
-                self.error = "課表產生任務被取消，請重試。"
-            } else {
+            if (error as NSError).code != NSURLErrorCancelled {
                 print("[TrainingDaysViewModel] Error generating weekly plan: \(error) - Localized: \(error.localizedDescription)") // 詳細錯誤日誌
                 self.error = "產生課表失敗：\(error.localizedDescription)"
             }
@@ -132,18 +135,18 @@ struct TrainingDaysSetupView: View {
     
     // For loading animation after final plan generation
     private let loadingMessages = [
-        "分析您的訓練偏好...",
-        "計算最佳訓練強度...",
-        "為您準備專屬課表..."
+        "正在分析您的訓練偏好...",
+        "計算最佳訓練強度中...",
+        "就要完成了！正在為您準備專屬課表..."
     ]
-    private let loadingDuration: Double = 3 // 調整載入動畫持續時間
+    private let loadingDuration: Double = 20 // 調整載入動畫持續時間
     
     var body: some View {
         ScrollViewReader { proxy in
             Form {
                 Section(
                     header: Text("選擇您方便的訓練日"),
-                    footer: Text("請選擇您一週內通常可以安排跑步訓練的日子。Havital 會根據您的目標和體能狀況，在這些日子裡安排不同類型的跑步課表。建議至少選擇 \(viewModel.recommendedMinTrainingDays) 天。")
+                    footer: Text("請選擇您一週內通常可以安排跑步訓練的日子。Paceriz會根據您的目標和體能狀況，在這些日子裡安排不同類型的跑步課表。建議至少選擇 \(viewModel.recommendedMinTrainingDays) 天。")
                 ) {
                     ForEach(1..<8, id: \.self) { weekday in // 週一到週日
                         Button(action: {
@@ -172,16 +175,28 @@ struct TrainingDaysSetupView: View {
                     footer: Text("長跑是提升耐力的關鍵。請從您選擇的訓練日中挑選一天作為長跑日。通常建議安排在週末或您有較充裕時間的日子，以便身體有足夠時間恢復。")
                 ) {
                     // 只有在有選擇訓練日時，提供長跑日選項
-                    let longRunOptions = viewModel.selectedWeekdays.isEmpty ? [viewModel.selectedLongRunDay] : Array(viewModel.selectedWeekdays).sorted()
+                    let longRunOptions = viewModel.selectedWeekdays.isEmpty ? [6] : Array(viewModel.selectedWeekdays).sorted()
                     Picker("選擇長跑日", selection: $viewModel.selectedLongRunDay) {
                         ForEach(longRunOptions, id: \.self) { weekday in
                             Text(getWeekdayName(weekday)).tag(weekday)
                         }
                     }
                     .disabled(viewModel.selectedWeekdays.isEmpty) // 尚未選擇訓練日時禁用
-                    .onChange(of: viewModel.selectedWeekdays) { _ in
-                        // 訓練日變更時，若原長跑日不在其中，則設為首選
-                        if !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay), let first = viewModel.selectedWeekdays.sorted().first {
+                    .onAppear {
+                        // 預設選擇週六（6）作為長跑日
+                        if viewModel.selectedWeekdays.contains(6) {
+                            viewModel.selectedLongRunDay = 6
+                        } else if let first = viewModel.selectedWeekdays.sorted().first {
+                            viewModel.selectedLongRunDay = first
+                        }
+                    }
+                    .onChange(of: viewModel.selectedWeekdays) { newWeekdays in
+                        // 如果週六在選擇的訓練日中，則設為長跑日
+                        if newWeekdays.contains(6) {
+                            viewModel.selectedLongRunDay = 6
+                        } 
+                        // 如果當前長跑日不在新選擇的訓練日中，則選擇第一個訓練日
+                        else if !newWeekdays.contains(viewModel.selectedLongRunDay), let first = newWeekdays.sorted().first {
                             viewModel.selectedLongRunDay = first
                         }
                         viewModel.updateButtonStates()
@@ -190,8 +205,10 @@ struct TrainingDaysSetupView: View {
                         viewModel.updateButtonStates()
                     }
                     // 如果長跑日不在已選的訓練日中，顯示提示
-                    if !viewModel.selectedWeekdays.isEmpty && !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay) {
+                    if !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay) {
                         Text("長跑日必須是您選擇的訓練日之一").foregroundColor(.red)
+                    } else if !viewModel.selectedWeekdays.contains(6) && !viewModel.showOverview {
+                        Text("建議將週六設為長跑日，以便有充分時間進行長距離訓練。").foregroundColor(.orange)
                     }
                 }              
                 if let error = viewModel.error {

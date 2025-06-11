@@ -40,6 +40,7 @@ class WorkoutBackgroundManager: NSObject {
     
     // 使用中的觀察查詢
     private var activeObserverQuery: HKObserverQuery?
+    private var isObservingWorkouts = false
     
     // 跑步相關的活動類型
     private let runningActivityTypes: [HKWorkoutActivityType] = [
@@ -73,16 +74,7 @@ class WorkoutBackgroundManager: NSObject {
             // 1. 請求授權
             try await requestAuthorizations()
             
-            // 2. 如果已有活動觀察查詢，則先取消
-            if let query = activeObserverQuery {
-                healthStore.stop(query)
-                activeObserverQuery = nil
-            }
-            
-            // 3. 創建新的觀察查詢
-            let query = createWorkoutObserverQuery()
-            
-            // 4. 啟用健康資料更新背景傳遞
+            // 2. 啟用健康資料更新背景傳遞
             let status = await withCheckedContinuation { continuation in
                 healthStore.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .immediate) { success, error in
                     if let error = error {
@@ -95,11 +87,9 @@ class WorkoutBackgroundManager: NSObject {
             }
             
             if status {
+                // 3. 啟動觀察者查詢
+                startObservingWorkouts()
                 print("已成功設置背景健身記錄觀察器")
-                
-                // 保存查詢引用並執行
-                activeObserverQuery = query
-                healthStore.execute(query)
                 
                 // 運行一次上傳邏輯，處理已存在但尚未上傳的記錄
                 await checkAndUploadPendingWorkouts()
@@ -422,8 +412,14 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 創建觀察者查詢 - 修正版
-    private func createWorkoutObserverQuery() -> HKObserverQuery {
+    // 創建並啟動觀察者查詢
+    func startObservingWorkouts() {
+        // 如果已經在觀察中，則不重複啟動
+        guard !isObservingWorkouts else { return }
+        
+        // 確保沒有現有的查詢
+        stopObservingWorkouts()
+        
         let query = HKObserverQuery(sampleType: HKObjectType.workoutType(), predicate: nil) { [weak self] (query, completionHandler, error) in
             guard let self = self else {
                 completionHandler()
@@ -459,18 +455,23 @@ class WorkoutBackgroundManager: NSObject {
                     backgroundTask = .invalid
                 }
                 
-                // 回調完成
-                completionHandler()
-                
                 // 在後台模式下，主動請求更多背景處理時間
                 if UIApplication.shared.applicationState == .background {
                     // 安排後台任務以繼續處理
                     self.scheduleBackgroundTask()
                 }
             }
+            
+            completionHandler()
         }
         
-        return query
+        // 保存查詢引用
+        activeObserverQuery = query
+        isObservingWorkouts = true
+        
+        // 執行查詢
+        healthStore.execute(query)
+        print("已開始監聽健身記錄變化")
     }
     
     // 設置背景刷新
@@ -508,6 +509,21 @@ class WorkoutBackgroundManager: NSObject {
         Task {
             await checkAndUploadPendingWorkouts()
         }
+    }
+    
+    // 停止監聽健身記錄變化
+    func stopObservingWorkouts() {
+        if let query = activeObserverQuery {
+            healthStore.stop(query)
+            activeObserverQuery = nil
+            isObservingWorkouts = false
+            print("已停止監聽健身記錄變化")
+        }
+    }
+    
+    deinit {
+        // 在對象銷毀時停止監聽
+        stopObservingWorkouts()
     }
     
     // 安排背景任務
