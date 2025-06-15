@@ -84,9 +84,11 @@ class WorkoutBackgroundUploader {
                 // 獲取心率數據
                 var heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
                 if heartRateData.isEmpty || heartRateData.count < 5 {
-                    print("心率資料尚未準備好，等待30秒後重試")
-                    try? await Task.sleep(nanoseconds: 30_000_000_000)
+                    print("心率資料尚未準備好，等待5秒後重試")
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    print("開始重試獲取心率數據")
                     heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+                    print("重試後心率數據數量: \(heartRateData.count)")
                 }
                 
                 // 強制模式可跳過心率數據檢查

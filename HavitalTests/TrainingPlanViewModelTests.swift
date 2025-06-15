@@ -119,4 +119,18 @@ final class TrainingPlanViewModelTests: XCTestCase {
         XCTAssertFalse(vm.noWeeklyPlanAvailable)
         XCTAssertFalse(vm.showFinalWeekPrompt)
     }
+
+    // 測試在載入中時，不應顯示任何提示
+    func testIsNewWeekPromptNeeded_whileLoading_isFalse() {
+        let vm = TrainingPlanViewModel()
+        vm.now = { self.isoFormatter.date(from: "2025-03-11T12:00:00Z")! }
+        vm.trainingOverview = makeOverview()
+        let cw = vm.calculateCurrentTrainingWeek()!
+        vm.selectedWeek = cw
+        // 模擬正在載入的狀態
+        vm.planStatus = .loading
+        // 即使課表為 nil 且在當前週，也不該顯示提示
+        vm.weeklyPlan = nil
+        XCTAssertFalse(vm.isNewWeekPromptNeeded, "當 planStatus 為 loading 時，isNewWeekPromptNeeded 應為 false")
+    }
 }

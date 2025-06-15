@@ -647,10 +647,13 @@ class WorkoutBackgroundManager: NSObject {
                 if heartRateData.count < minHeartRateDataPoints {
                     let elapsed = Date().timeIntervalSince(workout.endDate)
                     if elapsed < 10 * 60 {
-                        print("運動記錄 \(workout.uuid) 心率資料尚未齊全，30稍後再試")
-                        // 10分鐘後重試上傳
-                        DispatchQueue.global().asyncAfter(deadline: .now() + 30) {
-                            Task { await self.checkAndUploadPendingWorkouts() }
+                        print("運動記錄 \(workout.uuid) 心率資料尚未齊全，5秒後重試")
+                        // 5秒後重試上傳
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                            Task { 
+                                print("開始重試上傳運動記錄 \(workout.uuid)")
+                                await self.checkAndUploadPendingWorkouts() 
+                            }
                         }
                     } else {
                         print("運動記錄 \(workout.uuid) 心率資料仍不完整，超過10分鐘，標記為已上傳無心率")

@@ -48,8 +48,8 @@ class TrainingIntensityManager {
         
         print("開始計算訓練強度，獲取到 \(workouts.count) 個訓練")
         
-        // 處理每個訓練
-        for workout in workouts where workout.workoutActivityType == .running {
+        // 處理每個訓練 (包含跑步、單車和游泳)
+        for workout in workouts where [.running, .cycling, .swimming].contains(workout.workoutActivityType) {
             let duration = workout.duration / 60 // 轉換為分鐘
             print("處理訓練: \(workout.startDate) 至 \(workout.endDate), 持續 \(duration) 分鐘")
             

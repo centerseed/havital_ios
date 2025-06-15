@@ -83,6 +83,90 @@ class TrainingPlanViewModel: ObservableObject {
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }
     
+    // 本地緩存相關
+    private let userDefaults = UserDefaults.standard
+    private let weeklySummariesCacheKey = "cached_weekly_summaries"
+    private let lastUpdateTimeKey = "last_weekly_summaries_update"
+    private let cacheExpirationInterval: TimeInterval = 24 * 60 * 60 // 24小時
+    
+    // 檢查是否需要更新緩存
+    private var shouldUpdateCache: Bool {
+        guard let lastUpdate = userDefaults.object(forKey: lastUpdateTimeKey) as? Date else {
+            return true
+        }
+        return Date().timeIntervalSince(lastUpdate) > cacheExpirationInterval
+    }
+    
+    // 從本地緩存加載數據
+    private func loadCachedWeeklySummaries() {
+        if let data = userDefaults.data(forKey: weeklySummariesCacheKey),
+           let summaries = try? JSONDecoder().decode([WeeklySummaryItem].self, from: data) {
+            self.weeklySummaries = summaries
+        }
+    }
+    
+    // 保存數據到本地緩存
+    private func cacheWeeklySummaries(_ summaries: [WeeklySummaryItem]) {
+        if let data = try? JSONEncoder().encode(summaries) {
+            userDefaults.set(data, forKey: weeklySummariesCacheKey)
+            userDefaults.set(Date(), forKey: lastUpdateTimeKey)
+        }
+    }
+    
+    // 更新週摘要列表
+    @MainActor
+    func fetchWeeklySummaries() async {
+        // 如果不需要更新緩存且有緩存數據，直接使用緩存
+        if !shouldUpdateCache && !weeklySummaries.isEmpty {
+            return
+        }
+        
+        isLoadingWeeklySummaries = true
+        defer { isLoadingWeeklySummaries = false }
+        
+        do {
+            let summaries = try await weeklySummaryService.fetchWeeklySummaries()
+            // 按照週數從新到舊排序
+            self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
+            // 更新緩存
+            cacheWeeklySummaries(self.weeklySummaries)
+        } catch {
+            Logger.error("Failed to fetch weekly summaries: \(error.localizedDescription)")
+            // 如果獲取失敗但有緩存，使用緩存數據
+            if weeklySummaries.isEmpty {
+                loadCachedWeeklySummaries()
+            }
+        }
+    }
+    
+    // 強制更新週摘要列表（用於產生新課表或週回顧後）
+    @MainActor
+    func forceUpdateWeeklySummaries() async {
+        do {
+            let summaries = try await weeklySummaryService.fetchWeeklySummaries()
+            // 按照週數從新到舊排序
+            self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
+            // 更新緩存
+            cacheWeeklySummaries(self.weeklySummaries)
+        } catch {
+            Logger.error("Failed to force update weekly summaries: \(error.localizedDescription)")
+        }
+    }
+    
+    // 在產生新課表後調用
+    func onNewPlanGenerated() {
+        Task {
+            await forceUpdateWeeklySummaries()
+        }
+    }
+    
+    // 在產生週回顧後調用
+    func onWeeklySummaryGenerated() {
+        Task {
+            await forceUpdateWeeklySummaries()
+        }
+    }
+    
     // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
     init() {
         // 監聽 workouts 更新通知
@@ -153,32 +237,48 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     // MARK: - Plan display state
-    enum PlanStatus {
+    enum PlanStatus: Equatable {
         case loading
-        case noPlan   // 尚未生成本週計畫
+        case noPlan
         case ready(WeeklyPlan)
         case completed
         case error(Error)
+        
+        static func == (lhs: PlanStatus, rhs: PlanStatus) -> Bool {
+            switch (lhs, rhs) {
+            case (.loading, .loading),
+                 (.noPlan, .noPlan),
+                 (.completed, .completed):
+                return true
+            case (.ready(let lhsPlan), .ready(let rhsPlan)):
+                return lhsPlan.id == rhsPlan.id
+            case (.error(let lhsError), .error(let rhsError)):
+                return lhsError.localizedDescription == rhsError.localizedDescription
+            default:
+                return false
+            }
+        }
     }
     @Published var planStatus: PlanStatus = .loading
     
     // 獲取訓練回顧的方法
+    @MainActor
     func createWeeklySummary() async {
         await MainActor.run {
+            isLoadingAnimation = true // 顯示 Loading 動畫
             isLoadingWeeklySummary = true
-            isLoadingAnimation = true
             weeklySummaryError = nil
         }
         
-        // 確保在函數結束時關閉 loading 動畫
         defer {
+            // 無論成功或失敗，最後都關閉動畫
             Task { @MainActor in
-                self.isLoadingAnimation = false
+                isLoadingAnimation = false // 隱藏 Loading 動畫
             }
         }
         
         do {
-            // 獲取當前訓練週數
+            // 計算當前訓練週數
             guard let currentWeek = calculateCurrentTrainingWeek() else {
                 throw NSError(
                     domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
@@ -196,6 +296,9 @@ class TrainingPlanViewModel: ObservableObject {
                 self.showWeeklySummary = true
                 self.isLoadingWeeklySummary = false
             }
+            
+            // 更新訓練進度
+            await forceUpdateWeeklySummaries()
             
         } catch {
             Logger.error("載入週訓練回顧失敗: \(error)")
@@ -303,46 +406,51 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     func loadWeeklyPlan() async {
+        // 修正：在載入計畫前，務必先重新計算當前週數，確保資料最新
+        if let overview = trainingOverview, !overview.createdAt.isEmpty {
+            self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
+        }
+        
         // 僅在已有 trainingOverview.id 時才載入週計劃，避免無 overview 時報錯
         guard let overview = trainingOverview, !overview.id.isEmpty else { return }
-        planStatus = .loading
-        let cw = calculateCurrentTrainingWeek() ?? 0
-        // 首先嘗試從本地加載數據
+        
+        // 先檢查本地緩存
         if let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
-            // 立即更新UI
-            Logger.debug("overview.totalWeeks: \(overview.totalWeeks)")
-            Logger.debug("cw: \(cw)")
+            // 立即使用緩存數據更新 UI，不顯示 loading 狀態
+            let cw = calculateCurrentTrainingWeek() ?? 0
             let status: PlanStatus = cw > overview.totalWeeks ? .completed : .ready(savedPlan)
             await updateWeeklyPlanUI(plan: savedPlan, status: status)
             
-            // 異步從API獲取最新數據
-            do {
-                guard let overviewId = trainingOverview?.id else { throw NSError() }
-                Logger.info("Load weekly plan with planId: \(overviewId)_\(currentWeek).")
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                    planId: "\(overviewId)_\(self.currentWeek)")
-                
-                // 檢查計劃是否有變更
-                let planChanged =
-                savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
-                
-                await updateWeeklyPlanUI(plan: newPlan, planChanged: planChanged, status: .ready(newPlan))
-                
-            } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
-                // 404: 無週計劃
-                await updateWeeklyPlanUI(plan: nil, status: .noPlan)
-            } catch {
-                // 其他錯誤: 使用本地數據並記錄
-                Logger.error("API加載計劃失敗，使用本地數據: \(error)")
-                await updateWeeklyPlanUI(plan: nil, status: .error(error))
+            // 在背景更新最新數據
+            Task {
+                do {
+                    guard let overviewId = trainingOverview?.id else { throw NSError() }
+                    Logger.info("Load weekly plan with planId: \(overviewId)_\(currentWeek).")
+                    let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                        planId: "\(overviewId)_\(self.currentWeek)")
+                    
+                    // 檢查計劃是否有變更
+                    let planChanged = savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
+                    
+                    await updateWeeklyPlanUI(plan: newPlan, planChanged: planChanged, status: .ready(newPlan))
+                    
+                } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
+                    // 404: 無週計劃
+                    await updateWeeklyPlanUI(plan: nil, status: .noPlan)
+                } catch {
+                    // 其他錯誤: 保持使用本地數據
+                    Logger.error("API加載計劃失敗，保持使用本地數據: \(error)")
+                }
             }
         } else {
-            // 本地無數據，必須等待API
+            // 本地無數據時才顯示 loading 狀態
+            planStatus = .loading
+            
             do {
                 guard let overviewId = trainingOverview?.id else { throw NSError() }
                 Logger.debug("overview.totalWeeks: \(overview.totalWeeks)")
-                Logger.debug("cw: \(cw)")
-                if (cw > overview.totalWeeks) {
+                Logger.debug("cw: \(calculateCurrentTrainingWeek() ?? 0)")
+                if (calculateCurrentTrainingWeek() ?? 0 > overview.totalWeeks) {
                     await updateWeeklyPlanUI(plan: nil, status: .completed)
                 } else {
                     let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
@@ -397,7 +505,10 @@ class TrainingPlanViewModel: ObservableObject {
     
     /// 是否需要顯示「產生新週」提示
     var isNewWeekPromptNeeded: Bool {
-        weeklyPlan == nil && selectedWeek == currentWeek
+        if planStatus == .loading {
+            return false
+        }
+        return weeklyPlan == nil && selectedWeek == currentWeek
     }
     
     // 獲取當前週的日期範圍 (用於獲取訓練記錄)
@@ -481,16 +592,17 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 在產生新週計劃時更新概覽
     // 產生指定週數的課表
+    @MainActor
     func generateNextWeekPlan(targetWeek: Int) async {
-        await MainActor.run {
-            isLoadingAnimation = true
-        }
-        
+        isLoadingAnimation = true // 開始時顯示動畫
         var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "CreateWeeklyPlan") { 
-            // Expiration handler
-            UIApplication.shared.endBackgroundTask(backgroundTaskID)
-            backgroundTaskID = .invalid
+        
+        // 開始背景任務
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask {
+            if backgroundTaskID != .invalid {
+                UIApplication.shared.endBackgroundTask(backgroundTaskID)
+                backgroundTaskID = .invalid
+            }
         }
         
         // 在 defer 區塊外定義一個函數來結束背景任務
@@ -504,6 +616,9 @@ class TrainingPlanViewModel: ObservableObject {
         // Defer ending the background task to ensure it's called
         defer {
             endBackgroundTask()
+            Task { @MainActor in
+                isLoadingAnimation = false // 結束時隱藏動畫
+            }
         }
         planStatus = .loading
         
@@ -514,7 +629,8 @@ class TrainingPlanViewModel: ObservableObject {
             // 產生成功後重新載入課表
             do {
                 await MainActor.run {
-                    isLoadingAnimation = false
+                    isLoading = true
+                    error = nil
                 }
                 guard let overviewId = trainingOverview?.id else { throw NSError() }
                 let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
@@ -534,18 +650,16 @@ class TrainingPlanViewModel: ObservableObject {
                 Logger.debug("重新載入訓練計劃概覽")
                 await loadTrainingOverview()
                 
-                // 重新載入訓練記錄
-                await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
+                // 更新訓練進度
+                await forceUpdateWeeklySummaries()
                 
-                Logger.debug("成功產生第 \(targetWeek) 週課表並更新 UI")
             } catch {
                 Logger.error("重新載入課表失敗: \(error)")
-                
-                await updateWeeklyPlanUI(plan: nil, status: .error(error))
+                throw error
             }
         } catch {
-            Logger.error("產生第 \(targetWeek) 週課表失敗: \(error)")
-            planStatus = .error(error)
+            Logger.error("產生課表失敗: \(error)")
+            await updateWeeklyPlanUI(plan: nil, status: .error(error))
         }
     }
 
@@ -572,6 +686,11 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     func refreshWeeklyPlan(healthKitManager: HealthKitManager) async {
+        // 修正：在刷新計畫前，務必先重新計算當前週數，確保資料最新
+        if let overview = trainingOverview, !overview.createdAt.isEmpty {
+            self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
+        }
+        
         // 下拉刷新僅更新資料，不變更 planStatus
         
         let maxRetries = 3
@@ -609,13 +728,18 @@ class TrainingPlanViewModel: ObservableObject {
                 await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
                 await identifyTodayTraining()
                 
-                if newPlan.totalDistance > 0 {
-                    await loadCurrentWeekDistance(healthKitManager: healthKitManager)
-                }
+                // 修正：無條件重新載入週跑量，確保跨週時能正確歸零
+                await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+                // 同時重新載入訓練強度
+                await loadCurrentWeekIntensity(healthKitManager: healthKitManager)
                 
                 break  // 成功後跳出重試迴圈
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404 時標記無週計劃並結束重試
+                // 修正：手動將 weeklyPlan 設為 nil，確保狀態一致性
+                await MainActor.run {
+                    self.weeklyPlan = nil
+                }
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
                 break
             } catch {
@@ -854,27 +978,6 @@ class TrainingPlanViewModel: ObservableObject {
                 await MainActor.run {
                     self.weeklySummary = savedSummary
                 }
-            }
-        }
-    }
-    
-    // 獲取週摘要列表的方法
-    func fetchWeeklySummaries() async {
-        await MainActor.run {
-            isLoadingWeeklySummaries = true
-            weeklySummariesError = nil
-        }
-        do {
-            let items = try await weeklySummaryService.fetchWeeklySummaries()
-            await MainActor.run {
-                weeklySummaries = items
-                isLoadingWeeklySummaries = false
-            }
-        } catch {
-            Logger.error("載入週摘要列表失敗: \(error)")
-            await MainActor.run {
-                weeklySummariesError = error
-                isLoadingWeeklySummaries = false
             }
         }
     }

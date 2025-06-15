@@ -207,6 +207,7 @@ struct TrainingPlanView: View {
     @State private var showModifications = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
+    @State private var showWeekSelector = false
     
     // 添加一個計時器來刷新訓練記錄
     let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -215,7 +216,21 @@ struct TrainingPlanView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    mainContentView
+                    // 使用 ZStack 來疊加 loading 狀態
+                    ZStack {
+                        mainContentView
+                            .opacity(viewModel.planStatus == .loading ? 0.3 : 1.0)
+                        
+                        if viewModel.planStatus == .loading {
+                            ProgressView("載入訓練計劃中...")
+                                .foregroundColor(.gray)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color(UIColor.systemBackground).opacity(0.8))
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+                        }
+                    }
+                    .frame(minHeight: 200)
                 }
                 .padding(.horizontal)
             }
@@ -231,9 +246,14 @@ struct TrainingPlanView: View {
             .toolbar {
                 toolbarContent
             }
+            .sheet(isPresented: $showWeekSelector) {
+                WeekSelectorSheet(viewModel: viewModel, isPresented: $showWeekSelector)
+            }
         }
         .task {
-            await viewModel.loadAllInitialData(healthKitManager: healthKitManager)
+            if hasCompletedOnboarding {
+                await viewModel.loadAllInitialData(healthKitManager: healthKitManager)
+            }
         }
         .onReceive(timer) { _ in
             refreshWorkouts()
@@ -263,7 +283,6 @@ struct TrainingPlanView: View {
             trainingOverviewSheet
         }
         .onAppear {
-            // 初始載入與檢查移至 ViewModel
             if hasCompletedOnboarding {
                 Logger.debug("視圖 onAppear: 已完成 Onboarding，刷新本週跑量")
                 refreshWorkouts()
@@ -274,13 +293,11 @@ struct TrainingPlanView: View {
     // 拆分主內容視圖
     @ViewBuilder private var mainContentView: some View {
         switch viewModel.planStatus {
-        case .loading:
-            ProgressView("載入訓練計劃中...")
-                .foregroundColor(.gray)
-                .frame(height: 200)
         case .noPlan:
             // 尚未生成本週計畫
             NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
         case .ready(let plan):
             WeekPlanContentView(
                 viewModel: viewModel,
@@ -288,12 +305,21 @@ struct TrainingPlanView: View {
                 currentTrainingWeek: viewModel.currentWeek
             )
             .id(viewModel.currentWeek)
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
         case .completed:
             FinalWeekPromptView(viewModel: viewModel)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
         case .error(let error):
             ErrorView(error: error) {
                 Task { await viewModel.loadWeeklyPlan() }
             }
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+        case .loading:
+            // 空的佔位視圖，實際的 loading 狀態在 ZStack 中處理
+            EmptyView()
         }
     }
     

@@ -1,6 +1,6 @@
 import Foundation
 
-struct WeeklyPlan: Codable {
+struct WeeklyPlan: Codable, Equatable {
     let id: String
     let purpose: String
     let weekOfPlan: Int
@@ -11,7 +11,7 @@ struct WeeklyPlan: Codable {
     let intensityTotalMinutes: IntensityTotalMinutes?
     private let createdAtString: String?  // 原始字串，用於解碼
     
-    struct IntensityTotalMinutes: Codable {
+    struct IntensityTotalMinutes: Codable, Equatable {
         let low: Double
         let medium: Double
         let high: Double
@@ -83,6 +83,15 @@ struct WeeklyPlan: Codable {
     enum DataCodingKeys: String, CodingKey {
         case data
     }
+    
+    static func == (lhs: WeeklyPlan, rhs: WeeklyPlan) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.weekOfPlan == rhs.weekOfPlan &&
+               lhs.totalWeeks == rhs.totalWeeks &&
+               lhs.totalDistance == rhs.totalDistance &&
+               lhs.days == rhs.days &&
+               lhs.intensityTotalMinutes == rhs.intensityTotalMinutes
+    }
 }
 
 extension WeeklyPlan {
@@ -99,7 +108,7 @@ extension WeeklyPlan {
     }
 }
 
-struct TrainingDay: Codable, Identifiable {
+struct TrainingDay: Codable, Identifiable, Equatable {
     var id: String { dayIndex }
     let dayIndex: String
     let dayTarget: String
@@ -107,6 +116,15 @@ struct TrainingDay: Codable, Identifiable {
     let tips: String?
     let trainingType: String
     let trainingDetails: TrainingDetails?
+    
+    static func == (lhs: TrainingDay, rhs: TrainingDay) -> Bool {
+        return lhs.dayIndex == rhs.dayIndex &&
+               lhs.dayTarget == rhs.dayTarget &&
+               lhs.reason == rhs.reason &&
+               lhs.tips == rhs.tips &&
+               lhs.trainingType == rhs.trainingType &&
+               lhs.trainingDetails == rhs.trainingDetails
+    }
     
     enum CodingKeys: String, CodingKey {
         case dayIndex = "day_index"
@@ -238,7 +256,7 @@ struct TrainingDay: Codable, Identifiable {
     }
 }
 
-struct HeartRateRange: Codable {
+struct HeartRateRange: Codable, Equatable {
     let min: Int
     let max: Int
     
@@ -248,7 +266,7 @@ struct HeartRateRange: Codable {
     }
 }
 
-struct TrainingDetails: Codable {
+struct TrainingDetails: Codable, Equatable {
     let description: String?
     let distanceKm: Double?
     let totalDistanceKm: Double?
@@ -258,6 +276,18 @@ struct TrainingDetails: Codable {
     let repeats: Int?
     let heartRateRange: HeartRateRange?
     let segments: [ProgressionSegment]?
+    
+    static func == (lhs: TrainingDetails, rhs: TrainingDetails) -> Bool {
+        return lhs.description == rhs.description &&
+               lhs.distanceKm == rhs.distanceKm &&
+               lhs.totalDistanceKm == rhs.totalDistanceKm &&
+               lhs.pace == rhs.pace &&
+               lhs.work == rhs.work &&
+               lhs.recovery == rhs.recovery &&
+               lhs.repeats == rhs.repeats &&
+               lhs.heartRateRange == rhs.heartRateRange &&
+               lhs.segments == rhs.segments
+    }
     
     enum CodingKeys: String, CodingKey {
         case description
@@ -272,10 +302,10 @@ struct TrainingDetails: Codable {
     }
 }
 
-struct WorkoutSegment: Codable {
+struct WorkoutSegment: Codable, Equatable {
     let description: String
     let distanceKm: Double
-    let pace: String?  // Optional to handle missing pace
+    let pace: String?
     
     enum CodingKeys: String, CodingKey {
         case description
@@ -284,7 +314,7 @@ struct WorkoutSegment: Codable {
     }
 }
 
-struct ProgressionSegment: Codable {
+struct ProgressionSegment: Codable, Equatable {
     let distanceKm: Double
     let pace: String
     let description: String?
