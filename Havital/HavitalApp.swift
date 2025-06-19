@@ -73,6 +73,10 @@ struct HavitalApp: App {
                     // 這裡我們保留 setupAllPermissionsAndBackgroundProcessing 給 ContentView 內部的主 App 內容去觸發
                     // 如果 ContentView 決定顯示 TabView，TabView 的 onAppear 仍會被呼叫
                 }
+                // 處理深度連結
+                .onOpenURL { url in
+                    handleDeepLink(url: url)
+                }
                 // alert 也可以考慮移到 ContentView 或其內部的主 App 內容視圖
         }
         // 添加應用程式生命週期事件處理
@@ -201,6 +205,31 @@ struct HavitalApp: App {
         }
         
         print("已註冊背景任務: \(taskIdentifier)")
+    }
+    
+    // MARK: - 深度連結處理
+    
+    /// 處理深度連結
+    private func handleDeepLink(url: URL) {
+        print("🔗 收到深度連結: \(url)")
+        print("🔗 URL 組件分析:")
+        print("  - scheme: \(url.scheme ?? "nil")")
+        print("  - host: \(url.host ?? "nil")")
+        print("  - path: \(url.path)")
+        print("  - query: \(url.query ?? "nil")")
+        
+        // 檢查是否為 Garmin OAuth 回調
+        if url.scheme?.lowercased() == "paceriz" && url.host == "callback" && url.path == "/garmin" {
+            print("✅ 識別為 Garmin OAuth 回調，開始處理")
+            Task {
+                await GarminManager.shared.handleCallback(url: url)
+            }
+        } else {
+            print("❌ 未知的深度連結:")
+            print("  - 期望 scheme: paceriz，實際: \(url.scheme ?? "nil")")
+            print("  - 期望 host: callback，實際: \(url.host ?? "nil")")
+            print("  - 期望 path: /garmin，實際: \(url.path)")
+        }
     }
 }
 

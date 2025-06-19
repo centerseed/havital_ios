@@ -3,6 +3,7 @@ import FirebaseAuth
 
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
+    @StateObject private var garminManager = GarminManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false
     @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
@@ -12,6 +13,8 @@ struct UserProfileView: View {
     @State private var showOnboardingConfirmation = false  // 重新 OnBoarding 確認對話框狀態
     @State private var showDeleteAccountConfirmation = false  // 刪除帳戶確認對話框狀態
     @State private var isDeletingAccount = false  // 刪除帳戶加載狀態
+    @State private var showDataSourceSwitchConfirmation = false  // 數據源切換確認對話框
+    @State private var pendingDataSourceType: DataSourceType?  // 待切換的數據源類型
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -65,6 +68,9 @@ struct UserProfileView: View {
                     }
                 }
             }
+            
+            // 數據來源設定區塊
+            dataSourceSection
             
             // Heart Rate Zones Section
             if let userData = viewModel.userData {
@@ -380,6 +386,168 @@ struct UserProfileView: View {
                 .foregroundColor(.red)
         }
         .padding()
+    }
+    
+    private var dataSourceSection: some View {
+        Section(header: Text("數據來源")) {
+            VStack(spacing: 12) {
+                // Apple Health 選項
+                dataSourceRow(
+                    type: .appleHealth,
+                    icon: "heart.fill",
+                    title: "Apple Health",
+                    subtitle: "使用 iPhone 和 Apple Watch 的健康資料"
+                )
+                
+                Divider()
+                
+                // Garmin 選項
+                dataSourceRow(
+                    type: .garmin,
+                    icon: "clock.arrow.circlepath",
+                    title: "Garmin",
+                    subtitle: "同步您的 Garmin 帳號活動"
+                )
+                
+                // Garmin連接錯誤提示
+                if let error = garminManager.connectionError {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Garmin連接失敗: \(error)")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Spacer()
+                    }
+                    .padding(.leading, 32)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .alert("切換數據來源", isPresented: $showDataSourceSwitchConfirmation) {
+            Button("取消", role: .cancel) {
+                pendingDataSourceType = nil
+            }
+            Button("確認切換") {
+                if let newDataSource = pendingDataSourceType {
+                    switchDataSource(to: newDataSource)
+                    pendingDataSourceType = nil
+                }
+            }
+        } message: {
+            if let pendingType = pendingDataSourceType {
+                if pendingType == .garmin {
+                    Text("切換到 Garmin 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin 載入。")
+                } else {
+                    Text("切換到 \(pendingType.displayName) 後，您的訓練紀錄將從新的數據源載入。目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func dataSourceRow(
+        type: DataSourceType,
+        icon: String,
+        title: String,
+        subtitle: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                // 圖示
+                Image(systemName: icon)
+                    .foregroundColor(UserPreferenceManager.shared.dataSourcePreference == type ? .blue : .secondary)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.headline)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // 選擇狀態
+                if UserPreferenceManager.shared.dataSourcePreference == type {
+                    Text("使用中")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                
+                // Garmin連接狀態指示器
+                if type == .garmin && garminManager.isConnecting {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .frame(width: 20, height: 20)
+                }
+            }
+            
+            // 數據源選擇按鈕
+            HStack {
+                Text("選為主要數據源")
+                    .font(.subheadline)
+                
+                Spacer()
+                
+                let isCurrentSource = UserPreferenceManager.shared.dataSourcePreference == type
+                let isGarminConnecting = type == .garmin && garminManager.isConnecting
+                
+                Button(action: {
+                    // 如果已經是當前數據源，不需要切換
+                    if isCurrentSource {
+                        return
+                    }
+                    
+                    // 如果Garmin正在連接中，不允許切換
+                    if isGarminConnecting {
+                        return
+                    }
+                    
+                    // 顯示確認對話框
+                    pendingDataSourceType = type
+                    showDataSourceSwitchConfirmation = true
+                }) {
+                    Image(systemName: isCurrentSource ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isCurrentSource ? .blue : .secondary)
+                }
+                .disabled(isCurrentSource || isGarminConnecting)
+            }
+            .padding(.leading, 32)
+        }
+    }
+    
+    // 處理數據源切換邏輯
+    private func switchDataSource(to newDataSource: DataSourceType) {
+        Task {
+            switch newDataSource {
+            case .appleHealth:
+                // 切換到Apple Health時，斷開Garmin連接
+                if garminManager.isConnected {
+                    await garminManager.disconnect()
+                }
+                UserPreferenceManager.shared.dataSourcePreference = .appleHealth
+                
+                // 同步到後端
+                do {
+                    try await UserService.shared.updateDataSource(newDataSource.rawValue)
+                    print("數據源設定已同步到後端: \(newDataSource.displayName)")
+                } catch {
+                    print("同步數據源設定到後端失敗: \(error.localizedDescription)")
+                }
+                
+            case .garmin:
+                // 切換到Garmin時，總是啟動OAuth流程
+                // 這樣可以確保連接狀態是最新的，並且處理token過期的情況
+                await garminManager.startConnection()
+                // 注意：數據源的更新會在OAuth成功後在GarminManager中處理
+            }
+        }
     }
 }
 

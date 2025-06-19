@@ -27,6 +27,16 @@ class UserService {
             body: try JSONSerialization.data(withJSONObject: userData))
     }
     
+    /// 更新數據源設定到後端
+    func updateDataSource(_ dataSource: String) async throws {
+        let userData = [
+            "data_source": dataSource
+        ] as [String: Any]
+        
+        try await updateUserData(userData)
+        print("數據源設定已同步到後端: \(dataSource)")
+    }
+    
     func getUserProfile() -> AnyPublisher<User, Error> {
         // 使用 APIClient 取得用戶資料
         return Future<User, Error> { promise in
@@ -123,6 +133,22 @@ class UserService {
         
         // Update week of training if available
         userPreferenceManager.weekOfTraining = user.data.weekOfTraining
+        
+        // 同步數據源設定
+        if let dataSourceString = user.data.dataSource,
+           let dataSourceType = DataSourceType(rawValue: dataSourceString) {
+            userPreferenceManager.dataSourcePreference = dataSourceType
+            print("從後端恢復數據源設定: \(dataSourceType.displayName)")
+        } else {
+            // 如果後端沒有數據源設定，使用當前本地設定並同步到後端
+            Task {
+                do {
+                    try await updateDataSource(userPreferenceManager.dataSourcePreference.rawValue)
+                } catch {
+                    print("同步本地數據源設定到後端失敗: \(error.localizedDescription)")
+                }
+            }
+        }
     }
     
     // Helper function to calculate age (placeholder implementation)

@@ -20,6 +20,7 @@ struct UserProfileData: Codable {
     let weekOfTraining: Int?
     let currentWeekDistance: Int?
     let personalBest: [String: [RaceBest]]?
+    let dataSource: String?
     
     // 自定義解碼方法處理可能的型別轉換
     init(from decoder: Decoder) throws {
@@ -71,6 +72,7 @@ struct UserProfileData: Codable {
         }
         
         personalBest = try container.decodeIfPresent([String: [RaceBest]].self, forKey: .personalBest)
+        dataSource = try container.decodeIfPresent(String.self, forKey: .dataSource)
     }
     
     enum CodingKeys: String, CodingKey {
@@ -88,6 +90,7 @@ struct UserProfileData: Codable {
         case weekOfTraining = "week_of_training"
         case personalBest = "personal_best"
         case currentWeekDistance = "current_week_distance"
+        case dataSource = "data_source"
     }
 }
 

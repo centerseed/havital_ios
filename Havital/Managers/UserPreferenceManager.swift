@@ -1,8 +1,47 @@
 import Foundation
 import Combine
 
+// MARK: - 數據來源類型定義
+/// 定義 App 的數據來源類型
+enum DataSourceType: String, CaseIterable, Identifiable {
+    case appleHealth = "apple_health"
+    case garmin = "garmin"
+
+    var id: String { self.rawValue }
+
+    var displayName: String {
+        switch self {
+        case .appleHealth:
+            return "Apple Health"
+        case .garmin:
+            return "Garmin"
+        }
+    }
+}
+
 class UserPreferenceManager: ObservableObject {
     static let shared = UserPreferenceManager()
+    
+    private static let dataSourceKey = "data_source_preference"
+
+    // MARK: - 數據來源偏好
+    /// 使用者選擇的數據來源
+    @Published var dataSourcePreference: DataSourceType {
+        didSet {
+            // 當值改變時，儲存到 UserDefaults
+            UserDefaults.standard.set(dataSourcePreference.rawValue, forKey: Self.dataSourceKey)
+            print("數據來源已切換為: \(dataSourcePreference.displayName)")
+            
+            // 數據源更改通知，讓UI層處理後端同步
+            NotificationCenter.default.post(
+                name: NSNotification.Name("DataSourceDidChange"), 
+                object: dataSourcePreference.rawValue
+            )
+            
+            // 在這裡可以發布通知，觸發全局數據刷新
+            // NotificationCenter.default.post(name: .dataSourceDidChange, object: nil)
+        }
+    }
     
     // 原有屬性
     @Published var email: String = UserDefaults.standard.string(forKey: "user_email") ?? "" {
@@ -83,6 +122,14 @@ class UserPreferenceManager: ObservableObject {
     }
     
     private init() {
+        // 載入保存的數據來源偏好，如果未設定，則預設為 Apple Health
+        if let savedSource = UserDefaults.standard.string(forKey: Self.dataSourceKey),
+           let source = DataSourceType(rawValue: savedSource) {
+            self.dataSourcePreference = source
+        } else {
+            self.dataSourcePreference = .appleHealth
+        }
+        
         // 載入保存的值
         self.name = UserDefaults.standard.string(forKey: "user_name")
         self.photoURL = UserDefaults.standard.string(forKey: "user_photo_url")
@@ -123,7 +170,9 @@ class UserPreferenceManager: ObservableObject {
             "training_plan", "training_plan_overview", "weekly_plan",
             "user_email", "user_name", "age", "max_heart_rate",
             "current_pace", "current_distance", "prefer_week_days",
-            "prefer_week_days_longrun", "week_of_training", "user_photo_url"
+            "prefer_week_days_longrun", "week_of_training", "user_photo_url",
+            // 登出時清除數據來源設定，確保多用戶環境下的數據隔離
+            Self.dataSourceKey
         ]
         
         for key in keysToRemove {
@@ -139,8 +188,6 @@ class UserPreferenceManager: ObservableObject {
                maxHeartRate! > 0 &&
                restingHeartRate! > 0
     }
-    
-    // MARK: - 心率區間相關功能
     
     /// 同步心率數據
     func syncHeartRateData(from user: User?) {

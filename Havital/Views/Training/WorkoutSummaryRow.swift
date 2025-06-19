@@ -130,20 +130,7 @@ struct WorkoutSummaryRow: View {
         }
 
         // 組出與後端一致的 workoutId
-        let typeStr: String = {
-            switch workout.workoutActivityType {
-            case .running, .walking, .trackAndField: return "run"
-            case .cycling: return "cycling"
-            case .swimming, .swimBikeRun: return "swim"
-            case .highIntensityIntervalTraining, .crossTraining, .functionalStrengthTraining: return "hiit"
-            case .traditionalStrengthTraining: return "strength"
-            case .yoga, .mindAndBody: return "yoga"
-            default: return "other"
-            }
-        }()
-        let startTs = Int(workout.startDate.timeIntervalSince1970)
-        let distM = Int(workout.totalDistance?.doubleValue(for: .meter()) ?? 0)
-        let summaryId = "\(typeStr)_\(startTs)_\(distM)"
+        let summaryId = WorkoutService.shared.makeWorkoutId(for: workout)
 
         // 嘗試從快取讀取
         if let cached = WorkoutService.shared.getCachedWorkoutSummary(for: summaryId) {
