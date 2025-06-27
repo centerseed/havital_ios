@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 更新的心率區間編輯視圖，使用心率儲備計算法
+/// 簡化的心率區間編輯視圖，使用心率儲備計算法
 struct HRRHeartRateZoneEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var maxHeartRate: String = ""
@@ -8,9 +8,8 @@ struct HRRHeartRateZoneEditorView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    
-    // 用於計算預估最大心率的年齡
-    @State private var age: String = ""
+    @State private var showingMaxHRInfo = false
+    @State private var showingRestingHRInfo = false
     
     private let userPreferenceManager = UserPreferenceManager.shared
     
@@ -18,56 +17,52 @@ struct HRRHeartRateZoneEditorView: View {
         NavigationView {
             Form {
                 Section(header: Text("心率區間設定")) {
-                    Text("心率區間使用心率儲備（HRR）方法計算，這提供了更個人化的訓練強度區間。計算公式為：區間心率 = 靜息心率 + (最大心率 - 靜息心率) × 區間百分比")
+                    Text("心率區間使用心率儲備（HRR）方法計算，提供更個人化的訓練強度區間。")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .padding(.vertical, 8)
                 }
                 
                 Section(header: Text("最大心率")) {
-                    TextField("最大心率 (bpm)", text: $maxHeartRate)
-                        .onAppear {
-                            if let maxHR = userPreferenceManager.maxHeartRate, maxHR > 0 {
-                                maxHeartRate = "\(maxHR)"
-                            } else {
-                                maxHeartRate = "190"
-                            }
-                        }
-                        .keyboardType(.numberPad)
-                    
-                    Text("最大心率是您在極限運動時能達到的最高心率。如果不確定，可以使用 220-年齡 的公式來估算。")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                    
-                    // 年齡輸入
                     HStack {
-                        Text("年齡")
-                        Spacer()
-                        TextField("年齡", text: $age)
+                        TextField("最大心率 (bpm)", text: $maxHeartRate)
                             .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 60)
+                        
+                        Button(action: {
+                            showingMaxHRInfo = true
+                        }) {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                        }
                     }
-                    
-                    Button("根據年齡計算") {
-                        calculateMaxHRFromAge()
+                    .onAppear {
+                        if let maxHR = userPreferenceManager.maxHeartRate, maxHR > 0 {
+                            maxHeartRate = "\(maxHR)"
+                        } else {
+                            maxHeartRate = "190"
+                        }
                     }
                 }
                 
                 Section(header: Text("靜息心率")) {
-                    TextField("靜息心率 (bpm)", text: $restingHeartRate)
-                        .onAppear {
-                            if let restingHR = userPreferenceManager.restingHeartRate, restingHR > 0 {
-                                restingHeartRate = "\(restingHR)"
-                            } else {
-                                restingHeartRate = "60"
-                            }
+                    HStack {
+                        TextField("靜息心率 (bpm)", text: $restingHeartRate)
+                            .keyboardType(.numberPad)
+                        
+                        Button(action: {
+                            showingRestingHRInfo = true
+                        }) {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
                         }
-                        .keyboardType(.numberPad)
-                    
-                    Text("靜息心率是您完全放鬆時（如剛起床時）測量到的心率。一般成人的靜息心率在 60-100 bpm 之間，運動員可能更低。")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                    }
+                    .onAppear {
+                        if let restingHR = userPreferenceManager.restingHeartRate, restingHR > 0 {
+                            restingHeartRate = "\(restingHR)"
+                        } else {
+                            restingHeartRate = "60"
+                        }
+                    }
                 }
                 
                 // 心率區間預覽
@@ -118,20 +113,17 @@ struct HRRHeartRateZoneEditorView: View {
             } message: {
                 Text(alertMessage)
             }
+            .alert("最大心率", isPresented: $showingMaxHRInfo) {
+                Button("了解", role: .cancel) { }
+            } message: {
+                Text("最大心率是您在極限運動時能達到的最高心率。\n\n一般可以使用 220-年齡 的公式來估算，但實際值可能因人而異。\n\n建議範圍：100-220 bpm")
+            }
+            .alert("靜息心率", isPresented: $showingRestingHRInfo) {
+                Button("了解", role: .cancel) { }
+            } message: {
+                Text("靜息心率是您完全放鬆時（如剛起床時）測量到的心率。\n\n一般成人的靜息心率在 50-80 bpm 之間，運動員可能更低。\n\n建議範圍：30-80 bpm")
+            }
         }
-    }
-    
-    // 根據年齡計算最大心率
-    private func calculateMaxHRFromAge() {
-        guard let ageValue = Int(age), ageValue > 0, ageValue < 120 else {
-            alertMessage = "請輸入有效的年齡（1-120）"
-            showingAlert = true
-            return
-        }
-        
-        // 使用 220-年齡 公式
-        let calculatedMaxHR = 220 - ageValue
-        maxHeartRate = "\(calculatedMaxHR)"
     }
     
     private func saveHeartRateZones() {
@@ -154,8 +146,8 @@ struct HRRHeartRateZoneEditorView: View {
             return
         }
         
-        if restingHR < 30 || restingHR > 120 {
-            alertMessage = "靜息心率應在 30-120 bpm 之間"
+        if restingHR < 30 || restingHR > 100 {
+            alertMessage = "靜息心率應在 30-100 bpm 之間"
             showingAlert = true
             return
         }

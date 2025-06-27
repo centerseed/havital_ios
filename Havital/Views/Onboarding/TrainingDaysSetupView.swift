@@ -131,6 +131,7 @@ class TrainingDaysViewModel: ObservableObject {
 
 struct TrainingDaysSetupView: View {
     @StateObject private var viewModel = TrainingDaysViewModel()
+    @Environment(\.dismiss) private var dismiss
 
     
     // For loading animation after final plan generation
@@ -140,6 +141,14 @@ struct TrainingDaysSetupView: View {
         "就要完成了！正在為您準備專屬課表..."
     ]
     private let loadingDuration: Double = 20 // 調整載入動畫持續時間
+    
+    // 新增：用於預覽計劃的載入消息
+    private let previewLoadingMessages = [
+        "正在評估您的目標賽事",
+        "正在計算訓練強度",
+        "產生訓練概覽中"
+    ]
+    private let previewLoadingDuration: Double = 15 // 預覽載入動畫持續時間
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -275,10 +284,18 @@ struct TrainingDaysSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("返回") { }
+                    Button("返回") {
+                        dismiss()
+                    }
                 }
             }
         } // ScrollViewReader End
+        .fullScreenCover(isPresented: Binding(
+            get: { viewModel.isLoading && !viewModel.showOverview },
+            set: { _ in }
+        )) {
+            LoadingAnimationView(messages: previewLoadingMessages, totalDuration: previewLoadingDuration)
+        }
         .fullScreenCover(isPresented: Binding(
             get: { viewModel.isLoading && viewModel.showOverview },
             set: { _ in }

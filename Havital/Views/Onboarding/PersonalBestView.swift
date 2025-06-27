@@ -145,7 +145,7 @@ struct PersonalBestView: View {
                     }
                 } else {
                     Section(header: Text("跳過個人最佳成績")) {
-                        Text("沒問題！Havital 會根據您的目標和後續設定，提供一個合適的起點。")
+                        Text("沒問題！Paceriz 會根據您的訓練狀況調整課表強度")
                             .foregroundColor(.secondary)
                     }
                 }

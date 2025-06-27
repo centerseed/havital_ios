@@ -10,6 +10,7 @@ struct WorkoutDetailView: View {
     @State private var isCalculatingVDOT = false
     @State private var summaryTypeChinese: String?
     @State private var hrZonePct: ZonePct?
+    @State private var isReuploading = false
 
     private let vdotCalculator = VDOTCalculator()
 
@@ -170,17 +171,20 @@ struct WorkoutDetailView: View {
                 // 重新上傳按鈕（非顯眼）
                 Button(action: {
                     Task {
-                        _ = await WorkoutBackgroundUploader.shared.uploadPendingWorkouts(workouts: [viewModel.workout], force: true)
-                        await MainActor.run {
-                            viewModel.checkUploadStatus()
-                            loadWorkoutData()
-                        }
+                        await reuploadWorkout()
                     }
                 }) {
-                    Text("重新上傳訓練紀錄")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        if isReuploading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                        Text(isReuploading ? "上傳中..." : "重新上傳訓練紀錄")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .disabled(isReuploading)
 
             }
             .padding(.vertical)
@@ -430,5 +434,37 @@ struct WorkoutDetailView: View {
         let minutes = totalSeconds / 60
         let remainingSeconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
+    private func reuploadWorkout() async {
+        await MainActor.run {
+            self.isReuploading = true
+        }
+        
+        defer {
+            Task { @MainActor in
+                self.isReuploading = false
+            }
+        }
+        
+        do {
+            // 確認 workout_id 一致性
+            let workoutId = WorkoutService.shared.makeWorkoutId(for: viewModel.workout)
+            print("重新上傳 workout_id: \(workoutId)")
+            
+            // 執行重新上傳
+            let uploadResult = await WorkoutBackgroundUploader.shared.uploadPendingWorkouts(workouts: [viewModel.workout], force: true)
+            
+            await MainActor.run {
+                viewModel.checkUploadStatus()
+                // 重新載入資料，使用相同的 workout_id
+                loadWorkoutData()
+            }
+            
+            print("重新上傳完成，結果: \(uploadResult)")
+        } catch {
+            print("重新上傳失敗: \(error)")
+            // 可以在這裡添加錯誤提示
+        }
     }
 }
