@@ -95,10 +95,6 @@ class HealthKitManager {
 // 使用 Workout V2 API 上傳
 func uploadAppleHealthWorkout(_ workout: HKWorkout) async throws {
     let workoutData = [
-        "source_info": [
-            "name": "apple_health",
-            "import_method": "app_sdk"
-        ],
         "activity_profile": [
             "type": mapActivityType(workout.workoutActivityType),
             "start_time_utc": ISO8601DateFormatter().string(from: workout.startDate),
@@ -279,10 +275,6 @@ const showWorkoutDetail = async (workoutId: string) => {
   "data": {
     "id": "running_1750679253_5",
     "schema_version": "2.0",
-    "source_info": {
-      "name": "garmin",
-      "original_id": "1234567890"
-    },
     "activity_profile": {
       "type": "running",
       "start_time_utc": "2024-12-25T06:00:00Z",

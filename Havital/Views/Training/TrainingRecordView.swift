@@ -4,7 +4,7 @@ import HealthKit
 struct TrainingRecordView: View {
     @StateObject private var viewModel = TrainingRecordViewModel()
     @EnvironmentObject private var healthKitManager: HealthKitManager
-    @State private var selectedWorkout: HKWorkout?
+    @State private var selectedWorkout: WorkoutV2?
     @State private var showingWorkoutDetail = false
     @State private var heartRateData: [(Date, Double)] = []
     @State private var paceData: [(Date, Double)] = []
@@ -33,14 +33,7 @@ struct TrainingRecordView: View {
                 DeviceInfoSheetView()
             }
             .sheet(item: $selectedWorkout) { workout in
-                NavigationStack {
-                    WorkoutDetailView(
-                        workout: workout,
-                        healthKitManager: healthKitManager,
-                        initialHeartRateData: heartRateData,
-                        initialPaceData: paceData
-                    )
-                }
+                WorkoutDetailViewV2(workout: workout)
             }
             .task {
                 await viewModel.loadWorkouts(healthKitManager: healthKitManager)
@@ -48,16 +41,12 @@ struct TrainingRecordView: View {
             .refreshable {
                 await viewModel.loadWorkouts(healthKitManager: healthKitManager)
             }
-            .onDisappear {
-                // 在視圖消失時停止觀察者
-                viewModel.stopWorkoutObserver(healthKitManager: healthKitManager)
-            }
         }
     }
     
     private var workoutList: some View {
         List {
-            ForEach(viewModel.workouts, id: \.uuid) { workout in
+            ForEach(viewModel.workouts, id: \.id) { workout in
                 workoutRow(workout)
             }
         }
@@ -72,30 +61,16 @@ struct TrainingRecordView: View {
         }
     }
     
-    private func workoutRow(_ workout: HKWorkout) -> some View {
+    private func workoutRow(_ workout: WorkoutV2) -> some View {
         Button {
-            Task {
-                // 預先加載心率數據
-                do {
-                    heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                } catch {
-                    print("加載心率數據時出錯: \(error)")
-                    heartRateData = []
-                }
-                selectedWorkout = workout
-                
-                do {
-                    paceData = try await healthKitManager.fetchPaceData(for: workout)
-                } catch {
-                    print("加載配速數據時出錯: \(error)")
-                    paceData = []
-                }
-            }
+            // 對於 V2 API 數據，心率數據已經包含在 workout 中
+            // 這裡可以根據需要處理數據顯示
+            selectedWorkout = workout
         } label: {
-            WorkoutRowView(
+            WorkoutV2RowView(
                 workout: workout,
-                isUploaded: viewModel.isWorkoutUploaded(workout),
-                uploadTime: viewModel.getWorkoutUploadTime(workout)
+                isUploaded: true, // V2 API 數據都已經在後端
+                uploadTime: workout.startDate
             )
         }
         .buttonStyle(.plain)

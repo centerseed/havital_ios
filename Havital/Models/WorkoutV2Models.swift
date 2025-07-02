@@ -38,6 +38,46 @@ struct WorkoutV2: Codable, Identifiable {
         case schemaVersion = "schema_version"
         case storagePath = "storage_path"
     }
+    
+    // MARK: - Convenience Properties
+    
+    var startDate: Date {
+        if let startTimeUtc = startTimeUtc {
+            let formatter = ISO8601DateFormatter()
+            return formatter.date(from: startTimeUtc) ?? Date()
+        }
+        return Date()
+    }
+    
+    var endDate: Date {
+        if let endTimeUtc = endTimeUtc {
+            let formatter = ISO8601DateFormatter()
+            return formatter.date(from: endTimeUtc) ?? Date()
+        }
+        return startDate.addingTimeInterval(TimeInterval(durationSeconds))
+    }
+    
+    var duration: TimeInterval {
+        return TimeInterval(durationSeconds)
+    }
+    
+    var distance: Double? {
+        return distanceMeters
+    }
+    
+    var calories: Double? {
+        return basicMetrics?.caloriesKcal.map { Double($0) }
+    }
+    
+    // MARK: - Advanced Properties
+    
+    var dynamicVdot: Double? {
+        return advancedMetrics?.dynamicVdot
+    }
+    
+    var trainingType: String? {
+        return advancedMetrics?.trainingType
+    }
 }
 
 struct BasicMetrics: Codable {
@@ -106,67 +146,256 @@ struct WorkoutDetailResponse: Codable {
 
 struct WorkoutV2Detail: Codable {
     let id: String
+    let provider: String
+    let activityType: String
+    let sportType: String
+    let startTime: String
+    let endTime: String
+    let userId: String
     let schemaVersion: String
-    let sourceInfo: SourceInfo
-    let activityProfile: ActivityProfile
-    let summaryMetrics: SummaryMetrics
-    let advancedMetrics: AdvancedMetrics?
-    let timeSeriesStreams: TimeSeriesStreams?
-    let routeData: RouteData?
+    let source: String
+    let storagePath: String
+    let createdAt: String?
+    let updatedAt: String?
+    let originalId: String
+    let providerUserId: String
+    let garminUserId: String?
+    let webhookStoragePath: String?
+    let basicMetrics: V2BasicMetrics?
+    let advancedMetrics: V2AdvancedMetrics?
+    let timeSeries: V2TimeSeries?
+    let routeData: V2RouteData?
+    let deviceInfo: V2DeviceInfo?
+    let environment: V2Environment?
+    let metadata: V2Metadata?
     
     enum CodingKeys: String, CodingKey {
-        case id
+        case id, provider, source
+        case activityType = "activity_type"
+        case sportType = "sport_type"
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case userId = "user_id"
         case schemaVersion = "schema_version"
-        case sourceInfo = "source_info"
-        case activityProfile = "activity_profile"
-        case summaryMetrics = "summary_metrics"
-        case advancedMetrics = "advanced_metrics"
-        case timeSeriesStreams = "time_series_streams"
-        case routeData = "route_data"
-    }
-}
-
-struct SourceInfo: Codable {
-    let name: String
-    let originalId: String?
-    let importMethod: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case name
+        case storagePath = "storage_path"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
         case originalId = "original_id"
-        case importMethod = "import_method"
+        case providerUserId = "provider_user_id"
+        case garminUserId = "garmin_user_id"
+        case webhookStoragePath = "webhook_storage_path"
+        case basicMetrics = "basic_metrics"
+        case advancedMetrics = "advanced_metrics"
+        case timeSeries = "time_series"
+        case routeData = "route_data"
+        case deviceInfo = "device_info"
+        case environment = "environment"
+        case metadata = "metadata"
     }
 }
 
-struct ActivityProfile: Codable {
-    let type: String
-    let startTimeUtc: String?
-    let endTimeUtc: String?
-    let durationTotalSeconds: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case type
-        case startTimeUtc = "start_time_utc"
-        case endTimeUtc = "end_time_utc"
-        case durationTotalSeconds = "duration_total_seconds"
-    }
-}
+// MARK: - V2 API Detail Models
 
-struct SummaryMetrics: Codable {
-    let distanceMeters: Double?
+struct V2BasicMetrics: Codable {
+    let maxSpeedMPerS: Double?
+    let avgCadenceSpm: Int?
+    let minHeartRateBpm: Int?
+    let normalizedPowerW: Double?
+    let totalDescentM: Double?
+    let trainingLoad: Double?
+    let caloriesKcal: Int?
+    let totalAscentM: Double?
+    let maxPowerW: Double?
     let avgHeartRateBpm: Int?
+    let avgAltitudeM: Double?
+    let avgPaceSPerKm: Double?
+    let movingDurationS: Int?
+    let avgPowerW: Double?
+    let avgSpeedMPerS: Double?
     let maxHeartRateBpm: Int?
-    let activeCaloriesKcal: Double?
-    let avgPaceSPerKm: Int?
+    let totalDistanceM: Double?
+    let totalDurationS: Int?
+    let avgStrideLengthM: Double?
     
     enum CodingKeys: String, CodingKey {
-        case distanceMeters = "distance_meters"
+        case maxSpeedMPerS = "max_speed_m_per_s"
+        case avgCadenceSpm = "avg_cadence_spm"
+        case minHeartRateBpm = "min_heart_rate_bpm"
+        case normalizedPowerW = "normalized_power_w"
+        case totalDescentM = "total_descent_m"
+        case trainingLoad = "training_load"
+        case caloriesKcal = "calories_kcal"
+        case totalAscentM = "total_ascent_m"
+        case maxPowerW = "max_power_w"
         case avgHeartRateBpm = "avg_heart_rate_bpm"
-        case maxHeartRateBpm = "max_heart_rate_bpm"
-        case activeCaloriesKcal = "active_calories_kcal"
+        case avgAltitudeM = "avg_altitude_m"
         case avgPaceSPerKm = "avg_pace_s_per_km"
+        case movingDurationS = "moving_duration_s"
+        case avgPowerW = "avg_power_w"
+        case avgSpeedMPerS = "avg_speed_m_per_s"
+        case maxHeartRateBpm = "max_heart_rate_bpm"
+        case totalDistanceM = "total_distance_m"
+        case totalDurationS = "total_duration_s"
+        case avgStrideLengthM = "avg_stride_length_m"
     }
 }
+
+struct V2AdvancedMetrics: Codable {
+    let rpe: Double?
+    let intensityMinutes: V2IntensityMinutes?
+    let avgHrTop20Percent: Double?
+    let tss: Double?
+    let hrZoneDistribution: V2ZoneDistribution?
+    let trainingType: String?
+    let intervalCount: Int?
+    let paceZoneDistribution: V2ZoneDistribution?
+    let dynamicVdot: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case rpe
+        case intensityMinutes = "intensity_minutes"
+        case avgHrTop20Percent = "avg_hr_top20_percent"
+        case tss
+        case hrZoneDistribution = "hr_zone_distribution"
+        case trainingType = "training_type"
+        case intervalCount = "interval_count"
+        case paceZoneDistribution = "pace_zone_distribution"
+        case dynamicVdot = "dynamic_vdot"
+    }
+}
+
+struct V2IntensityMinutes: Codable {
+    let high: Double?
+    let low: Double?
+    let medium: Double?
+}
+
+struct V2ZoneDistribution: Codable {
+    let marathon: Double?
+    let interval: Double?
+    let recovery: Double?
+    let threshold: Double?
+    let anaerobic: Double?
+    let easy: Double?
+}
+
+struct V2TimeSeries: Codable {
+    let cadencesSpm: [Int?]?
+    let speedsMPerS: [Double?]?
+    let altitudesM: [Double?]?
+    let heartRatesBpm: [Int?]?
+    let sampleRateHz: Double?
+    let totalSamples: Int?
+    let temperaturesC: [Double?]?
+    let timestampsS: [Int?]?
+    let distancesM: [Double?]?
+    let powersW: [Double?]?
+    let pacesSPerKm: [Double?]?
+    
+    enum CodingKeys: String, CodingKey {
+        case cadencesSpm = "cadences_spm"
+        case speedsMPerS = "speeds_m_per_s"
+        case altitudesM = "altitudes_m"
+        case heartRatesBpm = "heart_rates_bpm"
+        case sampleRateHz = "sample_rate_hz"
+        case totalSamples = "total_samples"
+        case temperaturesC = "temperatures_c"
+        case timestampsS = "timestamps_s"
+        case distancesM = "distances_m"
+        case powersW = "powers_w"
+        case pacesSPerKm = "paces_s_per_km"
+    }
+}
+
+struct V2RouteData: Codable {
+    let horizontalAccuracyM: Double?
+    let totalPoints: Int?
+    let timestamps: [String?]?
+    let verticalAccuracyM: Double?
+    let longitudes: [Double?]?
+    let altitudes: [Double?]?
+    let latitudes: [Double?]?
+    
+    enum CodingKeys: String, CodingKey {
+        case horizontalAccuracyM = "horizontal_accuracy_m"
+        case totalPoints = "total_points"
+        case timestamps
+        case verticalAccuracyM = "vertical_accuracy_m"
+        case longitudes
+        case altitudes
+        case latitudes
+    }
+}
+
+struct V2DeviceInfo: Codable {
+    let firmwareVersion: String?
+    let hasBarometer: Bool?
+    let deviceName: String?
+    let hasGps: Bool?
+    let hasAccelerometer: Bool?
+    let hasHeartRate: Bool?
+    let deviceModel: String?
+    let deviceManufacturer: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case firmwareVersion = "firmware_version"
+        case hasBarometer = "has_barometer"
+        case deviceName = "device_name"
+        case hasGps = "has_gps"
+        case hasAccelerometer = "has_accelerometer"
+        case hasHeartRate = "has_heart_rate"
+        case deviceModel = "device_model"
+        case deviceManufacturer = "device_manufacturer"
+    }
+}
+
+struct V2Environment: Codable {
+    let temperatureC: Double?
+    let windSpeedMPerS: Double?
+    let windDirectionDeg: Double?
+    let humidityPercent: Double?
+    let timezone: String?
+    let locationName: String?
+    let weatherCondition: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case temperatureC = "temperature_c"
+        case windSpeedMPerS = "wind_speed_m_per_s"
+        case windDirectionDeg = "wind_direction_deg"
+        case humidityPercent = "humidity_percent"
+        case timezone
+        case locationName = "location_name"
+        case weatherCondition = "weather_condition"
+    }
+}
+
+struct V2Metadata: Codable {
+    let processedSampleCount: Int?
+    let hasPowerData: Bool?
+    let hasGpsData: Bool?
+    let samplingMethod: String?
+    let adapterVersion: String?
+    let originalSampleCount: Int?
+    let rawDataPath: String?
+    let hasHeartRateData: Bool?
+    let rawDataSizeBytes: Int?
+    let processedAt: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case processedSampleCount = "processed_sample_count"
+        case hasPowerData = "has_power_data"
+        case hasGpsData = "has_gps_data"
+        case samplingMethod = "sampling_method"
+        case adapterVersion = "adapter_version"
+        case originalSampleCount = "original_sample_count"
+        case rawDataPath = "raw_data_path"
+        case hasHeartRateData = "has_heart_rate_data"
+        case rawDataSizeBytes = "raw_data_size_bytes"
+        case processedAt = "processed_at"
+    }
+}
+
+// MARK: - Legacy V1 API Models (Keep for backwards compatibility)
 
 struct AdvancedMetrics: Codable {
     let dynamicVdot: Double?
@@ -207,20 +436,6 @@ struct APIIntensityMinutes: Codable {
     let high: Double?
 }
 
-struct TimeSeriesStreams: Codable {
-    let timestampsSecondsOffset: [Int]?
-    let heartRateBpm: [Int]?
-    let latitudeDeg: [Double]?
-    let longitudeDeg: [Double]?
-    
-    enum CodingKeys: String, CodingKey {
-        case timestampsSecondsOffset = "timestamps_seconds_offset"
-        case heartRateBpm = "heart_rate_bpm"
-        case latitudeDeg = "latitude_deg"
-        case longitudeDeg = "longitude_deg"
-    }
-}
-
 struct RouteData: Codable {
     let totalPoints: Int
     let coordinates: [Coordinate]?
@@ -252,6 +467,8 @@ struct UploadWorkoutRequest: Codable {
         case timeSeriesStreams = "time_series_streams"
     }
 }
+
+
 
 struct UploadSourceInfo: Codable {
     let name: String
@@ -398,41 +615,49 @@ struct ConnectionInfo: Codable {
 
 extension WorkoutV2Detail {
     var startDate: Date? {
-        guard let endTimeUtc = activityProfile.startTimeUtc else { return nil }
-        return ISO8601DateFormatter().date(from: endTimeUtc)
+        return ISO8601DateFormatter().date(from: startTime)
     }
     
     var endDate: Date? {
-        guard let endTimeUtc = activityProfile.endTimeUtc else { return nil }
-        return ISO8601DateFormatter().date(from: endTimeUtc)
+        return ISO8601DateFormatter().date(from: endTime)
     }
     
     var duration: TimeInterval {
-        TimeInterval(activityProfile.durationTotalSeconds)
+        guard let basicMetrics = basicMetrics,
+              let totalDurationS = basicMetrics.totalDurationS else {
+            // 計算基於開始和結束時間的持續時間
+            if let start = startDate, let end = endDate {
+                return end.timeIntervalSince(start)
+            }
+            return 0
+        }
+        return TimeInterval(totalDurationS)
     }
     
     var distance: Double? {
-        summaryMetrics.distanceMeters
+        return basicMetrics?.totalDistanceM
+    }
+    
+    var averageHeartRate: Int? {
+        return basicMetrics?.avgHeartRateBpm
+    }
+    
+    var maxHeartRate: Int? {
+        return basicMetrics?.maxHeartRateBpm
+    }
+    
+    var calories: Int? {
+        return basicMetrics?.caloriesKcal
+    }
+    
+    var dynamicVdot: Double? {
+        return advancedMetrics?.dynamicVdot
+    }
+    
+    var trainingType: String? {
+        return advancedMetrics?.trainingType
     }
 }
 
-extension WorkoutV2 {
-    var startDate: Date? {
-        guard let startTimeUtc = startTimeUtc else { return nil }
-        return ISO8601DateFormatter().date(from: startTimeUtc)
-    }
-    
-    var endDate: Date? {
-        guard let endTimeUtc = endTimeUtc else { return nil }
-        return ISO8601DateFormatter().date(from: endTimeUtc)
-    }
-    
-    var duration: TimeInterval {
-        TimeInterval(durationSeconds)
-    }
-    
-    var distance: Double? {
-        return distanceMeters
-    }
-} 
+
 

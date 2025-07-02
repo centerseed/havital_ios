@@ -248,9 +248,8 @@ class WorkoutV2Service {
                 ],
                             jsonPayload: [
                 "workout_id": workoutId,
-                "provider": response.data.sourceInfo.name,
-                "activity_type": response.data.activityProfile.type,
-                "duration_seconds": response.data.activityProfile.durationTotalSeconds
+                "activity_type": response.data.activityType,
+                "duration_seconds": Int(response.data.duration)
             ]
             )
             

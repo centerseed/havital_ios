@@ -95,17 +95,29 @@ struct HavitalApp: App {
     /// 一次性請求所有必要的權限並設置背景處理
     private func setupAllPermissionsAndBackgroundProcessing() {
         Task {
-            // 1. 請求 HealthKit 授權
-            await requestHealthKitAuthorization()
+            // 檢查當前數據來源設定
+            let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+            print("App 啟動 - 當前數據來源: \(dataSourcePreference.displayName)")
             
-            // 2. 請求通知授權（這是 WorkoutBackgroundManager 需要的）
-            await requestNotificationAuthorization()
-            
-            // 3. 設置背景健身記錄同步（包括觀察者）
-            await setupWorkoutBackgroundProcessing()
-            
-            // 4. 檢查是否有待處理的健身記錄
-            await checkForPendingHealthUpdates()
+            // 只有 Apple Health 用戶才需要設置 HealthKit 相關功能
+            if dataSourcePreference == .appleHealth {
+                // 1. 請求 HealthKit 授權
+                await requestHealthKitAuthorization()
+                
+                // 2. 請求通知授權（這是 WorkoutBackgroundManager 需要的）
+                await requestNotificationAuthorization()
+                
+                // 3. 設置背景健身記錄同步（包括觀察者）
+                await setupWorkoutBackgroundProcessing()
+                
+                // 4. 檢查是否有待處理的健身記錄
+                await checkForPendingHealthUpdates()
+            } else {
+                print("數據來源為 Garmin，跳過 HealthKit 相關設置")
+                
+                // 對於 Garmin 用戶，只需要請求通知授權（用於其他功能）
+                await requestNotificationAuthorization()
+            }
         }
     }
     
@@ -152,7 +164,7 @@ struct HavitalApp: App {
         print("設置健身記錄觀察者...")
         await WorkoutBackgroundManager.shared.setupWorkoutObserver()
         
-        // 安排背景工作
+        // 安排背景工作 (scheduleBackgroundWorkoutSync 內部會檢查數據來源)
         scheduleBackgroundWorkoutSync()
     }
     
@@ -160,6 +172,13 @@ struct HavitalApp: App {
     private func checkForPendingHealthUpdates() async {
         // 確保用戶已登入且完成引導
         guard authService.isAuthenticated && authService.hasCompletedOnboarding else {
+            return
+        }
+        
+        // 再次確認數據來源（WorkoutBackgroundManager 內部也會檢查）
+        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        guard dataSourcePreference == .appleHealth else {
+            print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據檢查")
             return
         }
         
@@ -189,6 +208,14 @@ struct HavitalApp: App {
                 // 確保用戶已登入
                 guard AuthenticationService.shared.isAuthenticated else {
                     (task as? BGProcessingTask)?.setTaskCompleted(success: false)
+                    return
+                }
+                
+                // 確認當前數據來源是 Apple Health
+                let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+                guard dataSourcePreference == .appleHealth else {
+                    print("背景任務 - 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 同步")
+                    (task as? BGProcessingTask)?.setTaskCompleted(success: true)
                     return
                 }
                 
@@ -235,6 +262,13 @@ struct HavitalApp: App {
 // MARK: - 背景任務排程
 
 func scheduleBackgroundWorkoutSync() {
+    // 只有 Apple Health 用戶才需要背景同步任務
+    let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+    guard dataSourcePreference == .appleHealth else {
+        print("數據來源為 \(dataSourcePreference.displayName)，跳過背景同步任務排程")
+        return
+    }
+    
     let taskIdentifier = "com.havital.workout-sync"
     
     let request = BGProcessingTaskRequest(identifier: taskIdentifier)

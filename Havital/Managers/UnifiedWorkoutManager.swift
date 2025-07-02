@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import BackgroundTasks
 
 /// 統一運動數據管理器
 /// 負責協調 Apple Health 和 Garmin 的資料流程，實現統一的 V2 API 資料架構
@@ -20,6 +21,9 @@ class UnifiedWorkoutManager: ObservableObject {
     
     private var healthKitObserver: HKObserverQuery?
     private var isObserving = false
+    
+    // 任務管理
+    private var currentLoadTask: Task<Void, Never>?
     
     private init() {
         setupNotificationObservers()
@@ -53,6 +57,19 @@ class UnifiedWorkoutManager: ObservableObject {
     
     /// 載入運動記錄（統一介面）
     func loadWorkouts() async {
+        // 取消之前的載入任務
+        currentLoadTask?.cancel()
+        
+        // 創建新的載入任務
+        currentLoadTask = Task {
+            await performLoadWorkouts()
+        }
+        
+        await currentLoadTask?.value
+    }
+    
+    /// 執行實際的載入邏輯
+    private func performLoadWorkouts() async {
         // 防止重複調用
         if await MainActor.run(body: { self.isLoading }) {
             print("UnifiedWorkoutManager: 正在載入中，跳過重複調用")
@@ -65,17 +82,25 @@ class UnifiedWorkoutManager: ObservableObject {
         }
         
         do {
+            // 檢查是否被取消
+            try Task.checkCancellation()
+            
             // 先嘗試從快取載入
             if let cachedWorkouts = cacheManager.getCachedWorkoutList(), !cachedWorkouts.isEmpty {
                 await MainActor.run {
                     self.workouts = cachedWorkouts
-                    self.isLoading = false
                 }
                 print("從快取載入了 \(cachedWorkouts.count) 筆運動記錄")
             }
             
+            // 檢查是否被取消
+            try Task.checkCancellation()
+            
             // 從 V2 API 獲取最新數據
             let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50)
+            
+            // 檢查是否被取消
+            try Task.checkCancellation()
             
             // 快取數據
             cacheManager.cacheWorkoutList(fetchedWorkouts)
@@ -99,6 +124,11 @@ class UnifiedWorkoutManager: ObservableObject {
                 ]
             )
             
+        } catch is CancellationError {
+            print("UnifiedWorkoutManager: 載入任務被取消")
+            await MainActor.run {
+                self.isLoading = false
+            }
         } catch {
             await MainActor.run {
                 self.syncError = error.localizedDescription
@@ -187,6 +217,12 @@ class UnifiedWorkoutManager: ObservableObject {
     private func setupAppleHealthWorkflow() async {
         print("設置 Apple Health 工作流程")
         
+        // 再次確認當前數據來源（防止競態條件）
+        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
+            print("數據來源已切換，取消 Apple Health 工作流程設置")
+            return
+        }
+        
         do {
             // 請求 HealthKit 授權
             try await healthKitManager.requestAuthorization()
@@ -194,7 +230,7 @@ class UnifiedWorkoutManager: ObservableObject {
             // 啟動 HealthKit 觀察者
             await startHealthKitObserver()
             
-            // 設置背景管理器
+            // 設置背景管理器 (WorkoutBackgroundManager 內部會再次檢查數據來源)
             await workoutBackgroundManager.setupWorkoutObserver()
             
             // 檢查並上傳待處理的運動記錄
@@ -253,6 +289,12 @@ class UnifiedWorkoutManager: ObservableObject {
     }
     
     private func handleNewAppleHealthWorkout() async {
+        // 確認當前數據來源是 Apple Health
+        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
+            print("數據來源已切換為 Garmin，忽略 Apple Health 運動記錄更新")
+            return
+        }
+        
         // 獲取最新的運動記錄
         do {
             let now = Date()
@@ -274,6 +316,12 @@ class UnifiedWorkoutManager: ObservableObject {
     
     private func checkAndUploadPendingAppleHealthWorkouts() async {
         print("檢查待上傳的 Apple Health 運動記錄")
+        
+        // 確認當前數據來源是 Apple Health
+        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
+            print("數據來源不是 Apple Health，跳過運動記錄上傳")
+            return
+        }
         
         do {
             let now = Date()
@@ -347,6 +395,10 @@ class UnifiedWorkoutManager: ObservableObject {
     // MARK: - Private Methods
     
     private func stopCurrentWorkflow() async {
+        // 取消當前載入任務
+        currentLoadTask?.cancel()
+        currentLoadTask = nil
+        
         // 停止 HealthKit 觀察者
         if let observer = healthKitObserver {
             healthKitManager.healthStore.stop(observer)
@@ -362,6 +414,10 @@ class UnifiedWorkoutManager: ObservableObject {
         
         // 停止背景管理器
         workoutBackgroundManager.stopAndCleanupObserving()
+        
+        // 取消所有背景任務
+        BGTaskScheduler.shared.cancelAllTaskRequests()
+        print("已取消所有背景同步任務")
     }
     
     private func setupNotificationObservers() {
@@ -377,6 +433,7 @@ class UnifiedWorkoutManager: ObservableObject {
     }
     
     deinit {
+        currentLoadTask?.cancel()
         NotificationCenter.default.removeObserver(self)
     }
 }
@@ -393,7 +450,7 @@ extension UnifiedWorkoutManager {
     /// 獲取指定日期範圍的運動記錄
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] {
         return workouts.filter { workout in
-            guard let workoutStartDate = workout.startDate else { return false }
+            let workoutStartDate = workout.startDate
             return workoutStartDate >= startDate && workoutStartDate <= endDate
         }
     }
