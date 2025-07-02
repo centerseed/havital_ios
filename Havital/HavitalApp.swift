@@ -68,10 +68,10 @@ struct HavitalApp: App {
                 .environmentObject(healthKitManager)  // 注入 HealthKitManager
                 .environmentObject(appViewModel)      // 注入 AppViewModel
                 .onAppear {
-                    // 當 ContentView (即整個 App UI) 出現時，可以執行一些全局的 onAppear 邏輯
-                    // 例如，原先 TabView 上的 onAppear 內容可以考慮移到 ContentView 或保留在主 App 內容視圖中
-                    // 這裡我們保留 setupAllPermissionsAndBackgroundProcessing 給 ContentView 內部的主 App 內容去觸發
-                    // 如果 ContentView 決定顯示 TabView，TabView 的 onAppear 仍會被呼叫
+                    // App 啟動時初始化統一工作流程
+                    Task {
+                        await appViewModel.initializeApp()
+                    }
                 }
                 // 處理深度連結
                 .onOpenURL { url in
@@ -82,12 +82,11 @@ struct HavitalApp: App {
         // 添加應用程式生命週期事件處理
         .onChange(of: UIApplication.shared.applicationState) { state in
             if state == .active {
-                // 應用進入前景
+                // 應用進入前景，使用統一的數據刷新
                 print("應用進入前景")
                 Task {
-                    await checkForPendingHealthUpdates()
-                    // 同時也觸發我們新增的兩個月 workout 同步邏輯
-                    await AuthenticationService.shared.syncRecentWorkouts()
+                    await appViewModel.onAppBecameActive()
+                    // 注意：舊的 Auth 同步邏輯已移除，統一使用 UnifiedWorkoutManager
                 }
             }
         }

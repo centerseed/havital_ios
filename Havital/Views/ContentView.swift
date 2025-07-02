@@ -77,6 +77,19 @@ struct ContentView: View {
         } message: {
             Text(appViewModel.healthKitAlertMessage)
         }
+        .alert("Garmin 連接已中斷", isPresented: $appViewModel.showGarminMismatchAlert) {
+            Button("重新綁定 Garmin") {
+                appViewModel.reconnectGarmin()
+            }
+            Button("切換到 Apple Health") {
+                appViewModel.switchToAppleHealth()
+            }
+            Button("稍後處理", role: .cancel) {
+                appViewModel.showGarminMismatchAlert = false
+            }
+        } message: {
+            Text("您的帳戶設定為使用 Garmin 數據，但目前尚未連接到您的 Garmin 帳號。請選擇重新綁定 Garmin 或切換回 Apple Health。")
+        }
     }
 
 

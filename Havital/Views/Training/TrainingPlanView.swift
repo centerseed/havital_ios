@@ -414,7 +414,7 @@ struct TrainingPlanView: View {
         Logger.debug("刷新訓練記錄與本週跑量")
         Task {
             await viewModel.loadCurrentWeekDistance(healthKitManager: healthKitManager)
-            await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+            await viewModel.loadWorkoutsForCurrentWeek()
         }
     }
     

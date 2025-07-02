@@ -58,9 +58,9 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var isLoadingWeeklySummaries = false
     @Published var weeklySummariesError: Error?
     
-    // 重用 TrainingRecordViewModel 的功能
+    // 統一使用 UnifiedWorkoutManager
+    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
     private let workoutService = WorkoutService.shared
-    private let trainingRecordVM = TrainingRecordViewModel()
     private let weeklySummaryService = WeeklySummaryService.shared
     
     // 追蹤哪些日子被展開的狀態
@@ -175,7 +175,7 @@ class TrainingPlanViewModel: ObservableObject {
                 guard let self = self else { return }
                 print("收到 workoutsDidUpdate 通知，重新加載訓練強度...")
                 Task {
-                    await self.loadCurrentWeekIntensity(healthKitManager: self.healthKitManager)
+                    await self.loadCurrentWeekIntensity()
                 }
             }
             .store(in: &cancellables)
@@ -483,9 +483,9 @@ class TrainingPlanViewModel: ObservableObject {
             await updateWeeklyPlanUI(plan: plan, status: .ready(plan))
             
             // 載入該週的健康資料
-            await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
-            await loadCurrentWeekDistance(healthKitManager: healthKitManager)
-            await loadCurrentWeekIntensity(healthKitManager: healthKitManager) // 新增強度加載
+            await loadWorkoutsForCurrentWeek()
+            await loadCurrentWeekDistance()
+            await loadCurrentWeekIntensity() // 新增強度加載
             await identifyTodayTraining()
             
         } catch let err as TrainingPlanService.WeeklyPlanError where err == .notFound {
@@ -669,7 +669,7 @@ class TrainingPlanViewModel: ObservableObject {
     /// 只在第一次執行：先載入概覽，再載入週計劃、VDOT、記錄、距離等
     func loadAllInitialData(healthKitManager: HealthKitManager) async {
         // 並行加載數據
-        async let _ = loadCurrentWeekIntensity(healthKitManager: healthKitManager)
+                    async let _ = loadCurrentWeekIntensity()
         guard !hasLoadedInitialData else { return }
         hasLoadedInitialData = true
         
@@ -679,9 +679,9 @@ class TrainingPlanViewModel: ObservableObject {
             await loadWeeklyPlan()
         }
         
-        await loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+        await loadWorkoutsForCurrentWeek()
         if let plan = weeklyPlan, plan.totalDistance > 0 {
-            await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+            await loadCurrentWeekDistance()
         }
     }
     
@@ -725,13 +725,13 @@ class TrainingPlanViewModel: ObservableObject {
                 Logger.debug("完成更新計劃")
                 
                 // 重新載入訓練記錄
-                await loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager())
+                await loadWorkoutsForCurrentWeek()
                 await identifyTodayTraining()
                 
                 // 修正：無條件重新載入週跑量，確保跨週時能正確歸零
-                await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+                await loadCurrentWeekDistance()
                 // 同時重新載入訓練強度
-                await loadCurrentWeekIntensity(healthKitManager: healthKitManager)
+                await loadCurrentWeekIntensity()
                 
                 break  // 成功後跳出重試迴圈
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
@@ -755,8 +755,8 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
-    // 修正的載入當前週訓練記錄方法
-    func loadWorkoutsForCurrentWeek(healthKitManager: HealthKitManager) async {
+    // 修正的載入當前週訓練記錄方法（使用統一的數據來源）
+    func loadWorkoutsForCurrentWeek() async {
         await MainActor.run {
             isLoadingWorkouts = true
         }
@@ -765,12 +765,14 @@ class TrainingPlanViewModel: ObservableObject {
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
-            try await healthKitManager.requestAuthorization()
-            let workouts = try await healthKitManager.fetchWorkoutsForDateRange(
-                start: weekStart, end: weekEnd)
+            // 從 UnifiedWorkoutManager 獲取該週的運動記錄
+            let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
+                startDate: weekStart,
+                endDate: weekEnd
+            )
             
-            // 按日期分組
-            let groupedWorkouts = groupWorkoutsByDay(workouts)
+            // 轉換為 HealthKit 格式進行分組（暫時保持相容性）
+            let groupedWorkouts = groupWorkoutsByDayFromV2(weekWorkouts)
             
             Logger.debug("分組後的訓練記錄:")
             for (day, dayWorkouts) in groupedWorkouts {
@@ -799,7 +801,7 @@ class TrainingPlanViewModel: ObservableObject {
             }
             
             if let plan = weeklyPlan, plan.totalDistance > 0 {
-                await loadCurrentWeekDistance(healthKitManager: healthKitManager)
+                await loadCurrentWeekDistance()
             }
             
         } catch {
@@ -849,6 +851,13 @@ class TrainingPlanViewModel: ObservableObject {
         return grouped
     }
     
+    // 從 V2 API 數據按日期分組（轉換為 HealthKit 格式以保持相容性）
+    private func groupWorkoutsByDayFromV2(_ workouts: [WorkoutV2]) -> [Int: [HKWorkout]] {
+        // 目前暫時返回空字典，因為 UI 需要逐步遷移到 V2 格式
+        // 未來應該將 workoutsByDay 改為 [Int: [WorkoutV2]] 格式
+        return [:]
+    }
+    
     // 識別並自動展開當天的訓練
     func identifyTodayTraining() async {
         if let plan = weeklyPlan {
@@ -863,23 +872,26 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     // 載入本週訓練強度分鐘數
-    func loadCurrentWeekIntensity(healthKitManager: HealthKitManager) async {
+    func loadCurrentWeekIntensity(healthKitManager: HealthKitManager? = nil) async {
         Logger.debug("載入本週訓練強度...")
         await MainActor.run {
             isLoadingIntensity = true
         }
         
         do {
-            let (weekStart, _) = getCurrentWeekDates()
+            let (weekStart, weekEnd) = getCurrentWeekDates()
             Logger.debug("計算 \(formatDate(weekStart)) 開始的週訓練強度...")
             
-            // 使用 TrainingIntensityManager 計算訓練強度
-            let intensity = await intensityManager.calculateWeeklyIntensity(
-                weekStartDate: weekStart,
-                healthKitManager: healthKitManager
+            // 從 UnifiedWorkoutManager 獲取該週的運動記錄
+            let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
+                startDate: weekStart,
+                endDate: weekEnd
             )
             
-            Logger.debug("訓練強度計算完成 - 低: \(intensity.low), 中: \(intensity.medium), 高: \(intensity.high)")
+            // 直接使用 API 提供的 intensity_minutes 數據
+            let intensity = aggregateIntensityFromV2Workouts(weekWorkouts)
+            
+            Logger.debug("訓練強度聚合完成 - 低: \(intensity.low), 中: \(intensity.medium), 高: \(intensity.high)")
             
             // 確保在主線程上更新 UI
             await MainActor.run {
@@ -905,27 +917,57 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
-    func loadCurrentWeekDistance(healthKitManager: HealthKitManager) async {
+    // 聚合 V2 API 提供的 intensity_minutes 數據
+    private func aggregateIntensityFromV2Workouts(_ workouts: [WorkoutV2]) -> TrainingIntensityManager.IntensityMinutes {
+        var totalLow: Double = 0
+        var totalMedium: Double = 0
+        var totalHigh: Double = 0
+        
+        for workout in workouts {
+            // 直接使用 API 提供的 intensity_minutes 數據
+            if let intensityMinutes = workout.advancedMetrics?.intensityMinutes {
+                totalLow += intensityMinutes.low ?? 0.0
+                totalMedium += intensityMinutes.medium ?? 0.0
+                totalHigh += intensityMinutes.high ?? 0.0
+                
+                Logger.debug("運動 \(workout.id): 低=\(intensityMinutes.low ?? 0), 中=\(intensityMinutes.medium ?? 0), 高=\(intensityMinutes.high ?? 0)")
+            } else {
+                Logger.debug("運動 \(workout.id) 沒有 intensity_minutes 數據")
+            }
+        }
+        
+        return TrainingIntensityManager.IntensityMinutes(
+            low: totalLow,
+            medium: totalMedium,
+            high: totalHigh
+        )
+    }
+    
+    func loadCurrentWeekDistance(healthKitManager: HealthKitManager? = nil) async {
         Logger.debug("載入週跑量中...")
         await MainActor.run {
             isLoadingDistance = true
         }
         
         do {
-            try await healthKitManager.requestAuthorization()
-            
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
-            // 獲取指定時間範圍內的鍛煉
-            let workouts = try await healthKitManager.fetchWorkoutsForDateRange(
-                start: weekStart, end: weekEnd)
-            // 過濾僅包含跑步類型的鍛煉
-            let runWorkouts = workouts.filter { $0.workoutActivityType == .running }
-            // 計算跑步距離總和
-            let totalDistance = ViewModelUtils.calculateTotalDistance(runWorkouts)
+            // 從 UnifiedWorkoutManager 獲取該週的運動記錄
+            let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
+                startDate: weekStart,
+                endDate: weekEnd
+            )
             
-            Logger.debug("在入週跑量完成，週跑量為\(totalDistance)公里")
+            // 過濾僅包含跑步類型的鍛煉
+            let runWorkouts = weekWorkouts.filter { $0.activityType == "running" }
+            
+            // 計算跑步距離總和（從 V2 數據）
+            let totalDistance = runWorkouts.compactMap { workout in
+                workout.distance
+            }.reduce(0, +) / 1000.0 // 轉換為公里
+            
+            Logger.debug("載入週跑量完成，週跑量為\(totalDistance)公里")
             
             // 更新UI
             await MainActor.run {

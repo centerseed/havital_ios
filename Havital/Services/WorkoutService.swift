@@ -1,8 +1,17 @@
 import Foundation
 import HealthKit
 
+// MARK: - 錯誤類型定義
+enum WorkoutUploadError: Error {
+    case missingHeartRateData
+    case serverError
+}
+
 class WorkoutService {
     static let shared = WorkoutService()
+    
+    private let healthKitManager = HealthKitManager()
+    private let workoutUploadTracker = WorkoutUploadTracker.shared
     
     private init() {}
     
@@ -44,6 +53,149 @@ class WorkoutService {
         return "\(type)_\(startTs)_\(distM)"
     }
     
+    // MARK: - 統一的 Workout 上傳方法
+    
+    /// 統一的 workout 上傳方法，包含數據獲取和上傳邏輯
+    /// - Parameters:
+    ///   - workout: 要上傳的運動記錄
+    ///   - force: 是否強制上傳（跳過心率數據檢查）
+    ///   - retryHeartRate: 是否重試獲取心率數據
+    ///   - source: 數據來源
+    ///   - device: 設備型號
+    /// - Returns: 上傳結果
+    func uploadWorkout(
+        _ workout: HKWorkout,
+        force: Bool = false,
+        retryHeartRate: Bool = false,
+        source: String = "apple_health",
+        device: String? = nil
+    ) async throws -> UploadResult {
+        
+        // 獲取心率數據
+        var heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+        
+        // 如果需要重試且心率數據不足，等待後重試
+        if retryHeartRate && (heartRateData.isEmpty || heartRateData.count < 5) {
+            Logger.info("心率資料尚未準備好，等待5秒後重試")
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+            Logger.info("重試後心率數據數量: \(heartRateData.count)")
+        }
+        
+        // 檢查心率數據是否足夠（除非強制模式）
+        if !force {
+            if heartRateData.isEmpty || heartRateData.count < 5 {
+                let elapsed = Date().timeIntervalSince(workout.endDate)
+                if elapsed < 10 * 60 {
+                    // 運動結束不到10分鐘，可能是數據還沒準備好
+                    Logger.warn("運動記錄 \(workout.uuid) 心率資料尚未齊全，稍後重試")
+                    throw WorkoutUploadError.missingHeartRateData
+                } else {
+                    // 超過10分鐘仍無心率數據，標記為已上傳但無心率
+                    Logger.warn("運動記錄 \(workout.uuid) 心率資料仍不完整，超過10分鐘，標記為已上傳無心率")
+                    workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
+                    return UploadResult.success(hasHeartRate: false)
+                }
+            }
+        }
+        
+        // 獲取所有擴展數據
+        let speedData = try await healthKitManager.fetchSpeedData(for: workout)
+        let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
+        let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
+        let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
+        let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
+        
+        // 轉換為所需的 DataPoint 格式
+        let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
+        let speeds = speedData.map { DataPoint(time: $0.0, value: $0.1) }
+        let strides = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let cadences = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let contactTimes = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
+        
+        // 上傳運動數據
+        try await postWorkoutDetails(
+            workout: workout,
+            heartRates: heartRates,
+            speeds: speeds,
+            strideLengths: strides,
+            cadences: cadences,
+            groundContactTimes: contactTimes,
+            verticalOscillations: oscillations,
+            source: source,
+            device: device
+        )
+        
+        // 標記為已上傳且包含心率資料
+        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)
+        Logger.info("成功上傳運動記錄: \(workout.workoutActivityType.name), 心率數據: \(heartRates.count)筆")
+        
+        return UploadResult.success(hasHeartRate: true)
+    }
+    
+    /// 批量上傳 workout
+    /// - Parameters:
+    ///   - workouts: 要上傳的運動記錄列表
+    ///   - force: 是否強制上傳
+    ///   - retryHeartRate: 是否重試獲取心率數據
+    /// - Returns: 上傳結果統計
+    func uploadWorkouts(
+        _ workouts: [HKWorkout],
+        force: Bool = false,
+        retryHeartRate: Bool = false
+    ) async -> UploadBatchResult {
+        
+        var successCount = 0
+        var failedCount = 0
+        var failedWorkouts: [FailedWorkout] = []
+        
+        for workout in workouts {
+            do {
+                _ = try await uploadWorkout(workout, force: force, retryHeartRate: retryHeartRate)
+                successCount += 1
+                
+                // 添加小延遲避免請求過於頻繁
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+                
+            } catch {
+                failedCount += 1
+                failedWorkouts.append(FailedWorkout(workout: workout, error: error))
+                
+                // 記錄失敗到 Firebase Cloud Logging
+                Logger.firebase(
+                    "批量上傳運動記錄失敗",
+                    level: .error,
+                    labels: [
+                        "module": "WorkoutService",
+                        "action": "batch_upload",
+                        "failure_reason": "upload_error"
+                    ],
+                    jsonPayload: [
+                        "workout_id": workout.uuid.uuidString,
+                        "user_id": AuthenticationService.shared.user?.uid ?? "unknown",
+                        "error_type": String(describing: type(of: error)),
+                        "error_message": error.localizedDescription,
+                        "workout_type": workout.workoutActivityType.name,
+                        "workout_start_date": workout.startDate.timeIntervalSince1970,
+                        "workout_end_date": workout.endDate.timeIntervalSince1970,
+                        "is_force_upload": force,
+                        "retry_heart_rate": retryHeartRate
+                    ]
+                )
+            }
+        }
+        
+        return UploadBatchResult(
+            total: workouts.count,
+            success: successCount,
+            failed: failedCount,
+            failedWorkouts: failedWorkouts
+        )
+    }
+    
+    // MARK: - 原有的 postWorkoutDetails 方法（現在是內部方法）
+    
     func postWorkoutDetails(
         workout: HKWorkout,
         heartRates: [DataPoint],
@@ -58,6 +210,28 @@ class WorkoutService {
         // 確保有心率數據
         if heartRates.isEmpty || heartRates.count < 1 {
             Logger.warn("警告: 運動記錄心率數據不足 (\(heartRates.count) 筆)，不上傳")
+            
+            // 記錄到 Firebase Cloud Logging
+            Logger.firebase(
+                "運動記錄上傳失敗：心率數據不足",
+                level: .warn,
+                labels: [
+                    "module": "WorkoutService",
+                    "action": "upload",
+                    "failure_reason": "insufficient_heart_rate_data"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.uuid.uuidString,
+                    "user_id": AuthenticationService.shared.user?.uid ?? "unknown",
+                    "heart_rate_count": heartRates.count,
+                    "workout_type": workout.workoutActivityType.name,
+                    "workout_start_date": workout.startDate.timeIntervalSince1970,
+                    "workout_end_date": workout.endDate.timeIntervalSince1970,
+                    "source": source,
+                    "device": device ?? "unknown"
+                ]
+            )
+            
             throw WorkoutUploadError.missingHeartRateData
         }
         
@@ -87,26 +261,104 @@ class WorkoutService {
             device: device
         )
         
-        // 使用 APIClient 上傳運動數據並檢查 HTTP 狀態碼
-        let http = try await APIClient.shared.requestWithStatus(
-            path: "/workout", method: "POST",
-            body: try JSONEncoder().encode(workoutData))
-        Logger.info("上傳運動數據 HTTP 狀態: \(http.statusCode)")
-        guard (200...299).contains(http.statusCode) else {
-            throw NSError(domain: "WorkoutService", code: http.statusCode,
-                          userInfo: [NSLocalizedDescriptionKey: "上傳失敗，HTTP 狀態碼: \(http.statusCode)"])
+        do {
+            // 使用 APIClient 上傳運動數據並檢查 HTTP 狀態碼
+            let http = try await APIClient.shared.requestWithStatus(
+                path: "/workout", method: "POST",
+                body: try JSONEncoder().encode(workoutData))
+            Logger.info("上傳運動數據 HTTP 狀態: \(http.statusCode)")
+            guard (200...299).contains(http.statusCode) else {
+                let errorMessage = "上傳失敗，HTTP 狀態碼: \(http.statusCode)"
+                
+                // 記錄到 Firebase Cloud Logging
+                Logger.firebase(
+                    "運動記錄上傳失敗：HTTP錯誤",
+                    level: .error,
+                    labels: [
+                        "module": "WorkoutService",
+                        "action": "upload",
+                        "failure_reason": "http_error"
+                    ],
+                    jsonPayload: [
+                        "workout_id": workout.uuid.uuidString,
+                        "user_id": AuthenticationService.shared.user?.uid ?? "unknown",
+                        "http_status_code": http.statusCode,
+                        "workout_type": workout.workoutActivityType.name,
+                        "workout_start_date": workout.startDate.timeIntervalSince1970,
+                        "workout_end_date": workout.endDate.timeIntervalSince1970,
+                        "source": source,
+                        "device": device ?? "unknown",
+                        "heart_rate_count": heartRates.count,
+                        "speed_count": speeds.count
+                    ]
+                )
+                
+                throw NSError(domain: "WorkoutService", code: http.statusCode,
+                              userInfo: [NSLocalizedDescriptionKey: errorMessage])
+            }
+            Logger.info("成功上傳運動數據")
+            
+            // 上傳成功後，嘗試同步拉取並快取動態跑力，若失敗則拋出
+            let summaryId = makeWorkoutId(for: workout)
+            let summary = try await getWorkoutSummary(workoutId: summaryId)
+            saveCachedWorkoutSummary(summary, for: summaryId)
+            Logger.info("已快取 WorkoutSummary for \(summaryId)")
+            
+            // 只有真正同步到後台再標記
+            markWorkoutAsUploaded(workout)
+            
+        } catch {
+            // 記錄到 Firebase Cloud Logging
+            Logger.firebase(
+                "運動記錄上傳失敗：\(error.localizedDescription)",
+                level: .error,
+                labels: [
+                    "module": "WorkoutService",
+                    "action": "upload",
+                    "failure_reason": "api_error"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.uuid.uuidString,
+                    "user_id": AuthenticationService.shared.user?.uid ?? "unknown",
+                    "error_type": String(describing: type(of: error)),
+                    "error_message": error.localizedDescription,
+                    "workout_type": workout.workoutActivityType.name,
+                    "workout_start_date": workout.startDate.timeIntervalSince1970,
+                    "workout_end_date": workout.endDate.timeIntervalSince1970,
+                    "source": source,
+                    "device": device ?? "unknown",
+                    "heart_rate_count": heartRates.count,
+                    "speed_count": speeds.count
+                ]
+            )
+            
+            throw error
         }
-        Logger.info("成功上傳運動數據")
-        
-        // 上傳成功後，嘗試同步拉取並快取動態跑力，若失敗則拋出
-        let summaryId = makeWorkoutId(for: workout)
-        let summary = try await getWorkoutSummary(workoutId: summaryId)
-        saveCachedWorkoutSummary(summary, for: summaryId)
-        Logger.info("已快取 WorkoutSummary for \(summaryId)")
-        
-        // 只有真正同步到後台再標記
-        markWorkoutAsUploaded(workout)
     }
+    
+    // MARK: - 結果類型定義
+    
+    /// 單個 workout 上傳結果
+    enum UploadResult {
+        case success(hasHeartRate: Bool)
+        case failure(error: Error)
+    }
+    
+    /// 批量上傳結果
+    struct UploadBatchResult {
+        let total: Int
+        let success: Int
+        let failed: Int
+        let failedWorkouts: [FailedWorkout]
+    }
+    
+    /// 失敗的 workout 資訊
+    struct FailedWorkout {
+        let workout: HKWorkout
+        let error: Error
+    }
+    
+    // MARK: - 其他方法保持不變
     
     // 新增 Workout Summary API 方法
     func getWorkoutSummary(workoutId: String) async throws -> WorkoutSummary {

@@ -170,4 +170,5 @@ class TargetStorage {
 extension Notification.Name {
     static let targetUpdated = Notification.Name("targetUpdated")
     static let supportingTargetUpdated = Notification.Name("supportingTargetUpdated") // 這個通知現在會在任何可能影響支援賽事列表的操作後發送
+    static let garminDataSourceMismatch = Notification.Name("garminDataSourceMismatch") // 當後端數據源是 Garmin 但本地未連接時發送
 }

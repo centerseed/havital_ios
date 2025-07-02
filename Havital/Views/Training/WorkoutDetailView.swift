@@ -170,10 +170,14 @@ struct WorkoutDetailView: View {
                 // 重新上傳按鈕（非顯眼）
                 Button(action: {
                     Task {
-                        _ = await WorkoutBackgroundUploader.shared.uploadPendingWorkouts(workouts: [viewModel.workout], force: true)
-                        await MainActor.run {
-                            viewModel.checkUploadStatus()
-                            loadWorkoutData()
+                        do {
+                            let result = try await WorkoutService.shared.uploadWorkout(viewModel.workout, force: true)
+                            await MainActor.run {
+                                viewModel.checkUploadStatus()
+                                loadWorkoutData()
+                            }
+                        } catch {
+                            print("手動上傳失敗: \(error)")
                         }
                     }
                 }) {

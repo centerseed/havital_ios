@@ -8,28 +8,32 @@ class TargetService {
     
     /// 創建新的賽事目標
     func createTarget(_ target: Target) async throws -> Target {
-        return try await APIClient.shared.request(Target.self,
+        let response = try await APIClient.shared.request(TargetResponse.self,
             path: "/user/targets", method: "POST",
             body: try JSONEncoder().encode(target))
+        return response.data
     }
     
     /// 獲取所有賽事目標
     func getTargets() async throws -> [Target] {
-        return try await APIClient.shared.request([Target].self,
+        let response = try await APIClient.shared.request(TargetsResponse.self,
             path: "/user/targets")
+        return response.data
     }
     
     /// 獲取特定賽事目標詳情
     func getTarget(id: String) async throws -> Target {
-        return try await APIClient.shared.request(Target.self,
+        let response = try await APIClient.shared.request(TargetResponse.self,
             path: "/user/targets/\(id)")
+        return response.data
     }
     
     /// 更新特定賽事目標
     func updateTarget(id: String, target: Target) async throws -> Target {
-        return try await APIClient.shared.request(Target.self,
+        let response = try await APIClient.shared.request(TargetResponse.self,
             path: "/user/targets/\(id)", method: "PUT",
             body: try JSONEncoder().encode(target))
+        return response.data
     }
     
     /// 刪除特定賽事目標
@@ -70,11 +74,11 @@ class TargetService {
 }
 
 // 單一目標回應結構
-struct TargetResponse: Decodable {
+struct TargetResponse: Codable {
     let data: Target
 }
 
 // 多個目標回應結構
-struct TargetsResponse: Decodable {
+struct TargetsResponse: Codable {
     let data: [Target]
 }

@@ -1,8 +1,21 @@
 import Foundation
 
 /// 通用 API 回應結構
-struct APIResponse<T: Decodable>: Decodable {
+// MARK: - API Response Base
+struct APIResponse<T: Codable>: Codable {
+    let success: Bool
     let data: T
+    let message: String?
+}
+
+struct APIErrorResponse: Codable {
+    let success: Bool
+    let error: APIError
+    
+    struct APIError: Codable {
+        let code: String
+        let message: String
+    }
 }
 
 /// 通用 API 客戶端，管理請求、認證與解碼
@@ -31,7 +44,7 @@ actor APIClient {
     }
 
     /// 通用請求並解碼 APIResponse 包裝的資料
-    func request<T: Decodable>(_ type: T.Type,
+    func request<T: Codable>(_ type: T.Type,
                                 path: String,
                                 method: String = "GET",
                                 body: Data? = nil) async throws -> T {
@@ -53,6 +66,27 @@ actor APIClient {
         } catch DecodingError.keyNotFound(let key, _) where key.stringValue == "data" {
             // Fallback: parse raw T if data field missing
             return try decoder.decode(T.self, from: data)
+        } catch DecodingError.keyNotFound(let key, _) where key.stringValue == "success" {
+            // Fallback: parse raw T if success field missing (API doesn't use APIResponse wrapper)
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            // If APIResponse parsing fails, try parsing raw T directly
+            do {
+                return try decoder.decode(T.self, from: data)
+            } catch let finalError {
+                // 輸出原始 API 回應到 console 以便 debug
+                let responseString = String(data: data, encoding: .utf8) ?? "無法解析回應內容"
+                print("🚨 [APIClient] JSON 解析失敗")
+                print("🔍 請求路徑: \(path)")
+                print("🔍 期望類型: \(String(describing: T.self))")
+                print("🔍 原始 API 回應:")
+                print(responseString)
+                print("🔍 解析錯誤: \(finalError)")
+                print("=====================================")
+                
+                // If both fail, throw the original APIResponse parsing error
+                throw finalError
+            }
         }
     }
 

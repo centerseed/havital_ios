@@ -3,14 +3,14 @@ import Foundation
 // Models for Email Authentication API Responses
 
 /// 註冊回傳資料
-struct RegisterData: Decodable {
+struct RegisterData: Codable {
     let uid: String
     let email: String
     let message: String
 }
 
 /// 登入回傳用戶資料
-struct LoginDataUser: Decodable {
+struct LoginDataUser: Codable {
     let uid: String
     let email: String
     /// 從 JSON 的 email_verified 解析，可能不存在
@@ -23,19 +23,19 @@ struct LoginDataUser: Decodable {
 }
 
 /// 登入回傳資料
-struct LoginData: Decodable {
+struct LoginData: Codable {
     let token: String
     let user: LoginDataUser
 }
 
 /// 驗證 Email 回傳資料
-struct VerifyData: Decodable {
+struct VerifyData: Codable {
     let uid: String
     let message: String
 }
 
 /// 重發驗證信的回傳資料
-struct ResendData: Decodable {
+struct ResendData: Codable {
     let email: String
     let message: String
 }

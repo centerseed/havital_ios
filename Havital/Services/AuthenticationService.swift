@@ -256,6 +256,13 @@ class AuthenticationService: NSObject, ObservableObject {
     }
     
     func signOut() throws {
+        // 先解除 Garmin 綁定（如果已連接）
+        Task {
+            if GarminManager.shared.isConnected {
+                await GarminManager.shared.disconnect()
+            }
+        }
+        
         try Auth.auth().signOut()
         try GIDSignIn.sharedInstance.signOut()
         
