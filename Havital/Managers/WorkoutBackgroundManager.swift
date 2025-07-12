@@ -9,7 +9,7 @@ class WorkoutBackgroundManager: NSObject {
     static let shared = WorkoutBackgroundManager()
     
     private let healthStore = HKHealthStore()
-    private let workoutService = WorkoutService.shared
+    private let workoutService = WorkoutV2Service.shared
     private let workoutUploadTracker = WorkoutUploadTracker.shared
     private let notificationCenter = UNUserNotificationCenter.current()
     private let healthKitManager = HealthKitManager()

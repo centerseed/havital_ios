@@ -16,8 +16,7 @@ class WorkoutV2CacheManager {
     private let cacheMetadataKey = "workout_v2_cache_metadata"
     
     // Cache Configuration
-    private let cacheExpiryDuration: TimeInterval = 3600 // 1 hour
-    private let maxWorkoutListSize = 500 // 最多快取 500 筆運動記錄
+    private let maxWorkoutListSize = 1000 // 增加最多快取運動記錄數量
     
     private init() {
         // 建立快取目錄
@@ -67,12 +66,11 @@ class WorkoutV2CacheManager {
         }
     }
     
-    /// 獲取快取的運動列表
-    /// - Returns: 快取的運動列表，如果過期或不存在則返回 nil
+    /// 獲取快取的運動列表（永久緩存，不會過期）
+    /// - Returns: 快取的運動列表，如果不存在則返回 nil
     func getCachedWorkoutList() -> [WorkoutV2]? {
         guard let data = userDefaults.data(forKey: workoutListCacheKey),
-              let workouts = try? JSONDecoder().decode([WorkoutV2].self, from: data),
-              !isCacheExpired(for: .workoutList) else {
+              let workouts = try? JSONDecoder().decode([WorkoutV2].self, from: data) else {
             return nil
         }
         
@@ -250,15 +248,6 @@ class WorkoutV2CacheManager {
     
     // MARK: - Cache Management
     
-    /// 檢查快取是否過期
-    /// - Parameter cacheType: 快取類型
-    /// - Returns: 是否過期
-    func isCacheExpired(for cacheType: CacheType) -> Bool {
-        let lastSyncTime = userDefaults.double(forKey: lastSyncTimestampKey)
-        let currentTime = Date().timeIntervalSince1970
-        return (currentTime - lastSyncTime) > cacheExpiryDuration
-    }
-    
     /// 清除所有快取
     func clearAllCache() {
         // 清除 UserDefaults 快取
@@ -345,6 +334,84 @@ class WorkoutV2CacheManager {
         }
         
         return totalSize
+    }
+    
+    /// 檢查是否有緩存的運動記錄
+    /// - Returns: 是否有緩存數據
+    func hasCachedWorkouts() -> Bool {
+        guard let data = userDefaults.data(forKey: workoutListCacheKey),
+              let workouts = try? JSONDecoder().decode([WorkoutV2].self, from: data) else {
+            return false
+        }
+        return !workouts.isEmpty
+    }
+    
+    /// 獲取緩存的運動記錄數量
+    /// - Returns: 緩存中的運動記錄數量
+    func getCachedWorkoutsCount() -> Int {
+        return getCachedWorkoutList()?.count ?? 0
+    }
+    
+    /// 獲取最後同步時間
+    /// - Returns: 最後同步時間
+    func getLastSyncTime() -> Date? {
+        let timestamp = userDefaults.double(forKey: lastSyncTimestampKey)
+        return timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
+    }
+    
+    /// 檢查緩存是否需要刷新（基於時間）
+    /// - Parameter intervalSinceLastSync: 距離上次同步的最小間隔（秒），預設 300 秒（5 分鐘）
+    /// - Returns: 是否需要刷新
+    func shouldRefreshCache(intervalSinceLastSync: TimeInterval = 300) -> Bool {
+        guard let lastSync = getLastSyncTime() else {
+            return true // 沒有同步記錄，需要刷新
+        }
+        return Date().timeIntervalSince(lastSync) > intervalSinceLastSync
+    }
+    
+    /// 合併新的運動記錄到現有緩存
+    /// - Parameter newWorkouts: 新的運動記錄
+    /// - Returns: 合併後的運動記錄數量
+    @discardableResult
+    func mergeWorkoutsToCache(_ newWorkouts: [WorkoutV2]) -> Int {
+        var existingWorkouts = getCachedWorkoutList() ?? []
+        var mergedCount = 0
+        
+        // 去重並合併新的運動記錄
+        for newWorkout in newWorkouts {
+            if !existingWorkouts.contains(where: { $0.id == newWorkout.id }) {
+                existingWorkouts.append(newWorkout)
+                mergedCount += 1
+            }
+        }
+        
+        if mergedCount > 0 {
+            // 按時間排序並限制數量
+            existingWorkouts.sort { workout1, workout2 in
+                (workout1.startDate ?? Date.distantPast) > (workout2.startDate ?? Date.distantPast)
+            }
+            
+            if existingWorkouts.count > maxWorkoutListSize {
+                existingWorkouts = Array(existingWorkouts.prefix(maxWorkoutListSize))
+            }
+            
+            cacheWorkoutList(existingWorkouts)
+            
+            Logger.firebase(
+                "合併運動記錄到緩存",
+                level: .info,
+                labels: [
+                    "module": "WorkoutV2CacheManager",
+                    "action": "merge_workouts"
+                ],
+                jsonPayload: [
+                    "new_workouts": mergedCount,
+                    "total_workouts": existingWorkouts.count
+                ]
+            )
+        }
+        
+        return mergedCount
     }
     
     // MARK: - Private Methods

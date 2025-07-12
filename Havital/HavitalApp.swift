@@ -16,6 +16,8 @@ private var isDebugBuild: Bool {
 
 @main
 struct HavitalApp: App {
+    // 注入 AppDelegate 以處理推播與 FCM token
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     // 不再使用 AppStorage 來儲存 onboarding 狀態，而是使用 AuthenticationService 提供的狀態
     @AppStorage("isHealthKitAuthorized") private var isHealthKitAuthorized = false
     @StateObject private var healthKitManager = HealthKitManager()

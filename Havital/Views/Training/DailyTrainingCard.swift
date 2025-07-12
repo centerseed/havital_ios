@@ -4,14 +4,11 @@ import HealthKit
 struct DailyTrainingCard: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject private var healthKitManager: HealthKitManager
     let day: TrainingDay
     let isToday: Bool
     
-    // 使用可選的HKWorkout作為sheet的item
-    @State private var selectedWorkout: HKWorkout?
-    @State private var heartRateData: [(Date, Double)] = []
-    @State private var paceData: [(Date, Double)] = []
+    // 使用可選的WorkoutV2作為sheet的item
+    @State private var selectedWorkout: WorkoutV2?
     @State private var isLoadingData = false
     
     var body: some View {
@@ -93,8 +90,8 @@ struct DailyTrainingCard: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            // 顯示該天的訓練記錄
-            if let workouts = viewModel.workoutsByDay[day.dayIndexInt], !workouts.isEmpty {
+            // 顯示該天的訓練記錄（使用 V2 數據）
+            if let workouts = viewModel.workoutsByDayV2[day.dayIndexInt], !workouts.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     if !isExpanded {
                         Divider()
@@ -102,14 +99,14 @@ struct DailyTrainingCard: View {
                     }
                     
                     if isExpanded {
-                        ForEach(workouts, id: \.uuid) { workout in
+                        ForEach(workouts, id: \.id) { workout in
                             Button {
-                                loadWorkoutData(workout)
+                                selectedWorkout = workout
                             } label: {
-                                WorkoutSummaryRow(workout: workout, viewModel: viewModel)
+                                WorkoutV2SummaryRow(workout: workout, viewModel: viewModel)
                                     .overlay(
                                         Group {
-                                            if isLoadingData && selectedWorkout?.uuid == workout.uuid {
+                                            if isLoadingData && selectedWorkout?.id == workout.id {
                                                 ProgressView()
                                                     .scaleEffect(0.8)
                                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -126,7 +123,7 @@ struct DailyTrainingCard: View {
                         Button {
                             if workouts.count == 1 {
                                 // 如果只有一個訓練記錄，直接顯示詳情
-                                loadWorkoutData(workouts[0])
+                                selectedWorkout = workouts[0]
                             } else {
                                 // 如果有多個訓練記錄，展開卡片
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -134,7 +131,7 @@ struct DailyTrainingCard: View {
                                 }
                             }
                         } label: {
-                            CollapsedWorkoutSummary(workouts: workouts, viewModel: viewModel)
+                            CollapsedWorkoutV2Summary(workouts: workouts, viewModel: viewModel)
                         }
                         .buttonStyle(PlainButtonStyle())
                         .disabled(isLoadingData)
@@ -364,7 +361,7 @@ struct DailyTrainingCard: View {
                         }
                     }
                 }
-            } else if viewModel.workoutsByDay[day.dayIndexInt] == nil || viewModel.workoutsByDay[day.dayIndexInt]?.isEmpty == true {
+            } else if viewModel.workoutsByDayV2[day.dayIndexInt] == nil || viewModel.workoutsByDayV2[day.dayIndexInt]?.isEmpty == true {
                 // 摺疊時只顯示簡短的訓練目標摘要（當天無訓練記錄時）
                 Divider()
                     .padding(.vertical, 2)
@@ -386,77 +383,14 @@ struct DailyTrainingCard: View {
                          : Color(UIColor.systemBlue).opacity(0.1))
                       : Color(UIColor.tertiarySystemBackground))
         )
-        // 使用item參數而不是isPresented
+        // 使用 WorkoutDetailViewV2 顯示 WorkoutV2 數據
         .sheet(item: $selectedWorkout) { workout in
             NavigationStack {
-                WorkoutDetailView(
-                    workout: workout,
-                    healthKitManager: healthKitManager,
-                    initialHeartRateData: heartRateData,
-                    initialPaceData: paceData
-                )
+                WorkoutDetailViewV2(workout: workout)
             }
         }
     }
-    
-    // 抽取數據加載邏輯到獨立函數
-    private func loadWorkoutData(_ workout: HKWorkout) {
-        // 先設置選中的訓練記錄為nil，避免使用舊的數據
-        selectedWorkout = nil
-        isLoadingData = true
-        
-        // 清空舊數據
-        heartRateData = []
-        paceData = []
-        
-        print("正在加載訓練記錄數據: \(workout.uuid)")
-        
-        Task {
-            // 並行獲取心率和配速數據
-            async let heartRateTask = loadHeartRateData(workout)
-            async let paceTask = loadPaceData(workout)
-            
-            do {
-                // 等待所有數據加載完成
-                let (hr, pace) = try await (heartRateTask, paceTask)
-                heartRateData = hr
-                paceData = pace
-                
-                print("數據加載完成 - 心率數據: \(hr.count)個點, 配速數據: \(pace.count)個點")
-                
-                // 設置選中的訓練記錄，觸發sheet顯示
-                await MainActor.run {
-                    selectedWorkout = workout
-                    isLoadingData = false
-                }
-            } catch {
-                print("加載訓練記錄數據出錯: \(error)")
-                await MainActor.run {
-                    isLoadingData = false
-                }
-            }
-        }
-    }
-    
-    // 加載心率數據
-    private func loadHeartRateData(_ workout: HKWorkout) async -> [(Date, Double)] {
-        do {
-            return try await healthKitManager.fetchHeartRateData(for: workout)
-        } catch {
-            print("加載心率數據時出錯: \(error)")
-            return []
-        }
-    }
-    
-    // 加載配速數據
-    private func loadPaceData(_ workout: HKWorkout) async -> [(Date, Double)] {
-        do {
-            return try await healthKitManager.fetchPaceData(for: workout)
-        } catch {
-            print("加載配速數據時出錯: \(error)")
-            return []
-        }
-    }
+
     
     // 格式化時間為簡短格式（只顯示時:分）
     private func formatShortTime(_ date: Date) -> String {

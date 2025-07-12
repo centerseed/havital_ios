@@ -130,17 +130,16 @@ actor FirebaseLoggingService {
             userId: userId
         )
         
-        do {
-            try await saveLogToFirestore(logEntry)
-            
-            // 同時記錄到 Firebase Analytics（用於事件追蹤）
-            if level == .error || level == .critical {
-                await logToAnalytics(logEntry)
-            }
-            
-        } catch {
-            // 如果上傳失敗，至少在本機記錄
-            Logger.error("Firebase Logging 上傳失敗: \(error.localizedDescription)", tag: "FirebaseLogging")
+        // 暫時禁用 Cloud Logging 上傳，等後端端點準備好再啟用
+        // do {
+        //     try await sendLogToCloudLogging(logEntry)
+        // } catch {
+        //     Logger.error("Firebase Logging 上傳失敗: \(error.localizedDescription)", tag: "FirebaseLogging")
+        // }
+        
+        // 記錄到 Firebase Analytics（用於事件追蹤）
+        if level == .error || level == .critical {
+            await logToAnalytics(logEntry)
         }
     }
     
@@ -217,17 +216,17 @@ actor FirebaseLoggingService {
     
     // MARK: - Private Methods
     
-    private func saveLogToFirestore(_ logEntry: LogEntry) async throws {
+    private func sendLogToCloudLogging(_ logEntry: LogEntry) async throws {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .secondsSince1970
-        
-        let data = try encoder.encode(logEntry)
-        let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        
-        // 根據環境選擇不同的集合
-        let collectionName = APIConfig.isDevelopment ? "logs_dev" : "logs_prod"
-        
-        try await db.collection(collectionName).document(logEntry.id).setData(dict)
+        encoder.dateEncodingStrategy = .iso8601
+        let bodyData = try encoder.encode(logEntry)
+
+        // 假設後端提供 /internal/cloud-logging 端點接收 JSON
+        let path = "/internal/cloud-logging"
+        _ = try await APIClient.shared.request(EmptyResponse.self,
+                                              path: path,
+                                              method: "POST",
+                                              body: bodyData)
     }
     
     private func logToAnalytics(_ logEntry: LogEntry) async {

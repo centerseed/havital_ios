@@ -47,11 +47,26 @@ class GarminManager: NSObject, ObservableObject {
     private func loadConnectionStatus() {
         // 從 UserDefaults 讀取連接狀態
         isConnected = UserDefaults.standard.bool(forKey: "garmin_connected")
+        
+        // 如果已經連接，清除任何舊的錯誤信息
+        if isConnected {
+            connectionError = nil
+            Logger.firebase("Garmin 連接狀態已載入，清除舊錯誤信息", level: .info, labels: [
+                "module": "GarminManager",
+                "action": "loadConnectionStatus",
+                "isConnected": "true"
+            ])
+        }
     }
     
     private func saveConnectionStatus(_ connected: Bool) {
         UserDefaults.standard.set(connected, forKey: "garmin_connected")
         isConnected = connected
+    }
+    
+    /// 清除連接錯誤信息
+    func clearConnectionError() {
+        connectionError = nil
     }
     
     // MARK: - OAuth 2.0 PKCE 流程
@@ -160,8 +175,16 @@ class GarminManager: NSObject, ObservableObject {
                 saveConnectionStatus(true)
                 clearStoredCredentials()
                 isConnecting = false
+                connectionError = nil  // 清除之前的錯誤信息
                 
                 print("✅ Garmin 連接成功")
+                
+                // 記錄連接成功和錯誤清除
+                Logger.firebase("Garmin 連接成功，錯誤信息已清除", level: .info, labels: [
+                    "module": "GarminManager",
+                    "action": "handleCallback",
+                    "result": "success"
+                ])
                 
                 // 連接成功後自動切換到Garmin數據源
                 UserPreferenceManager.shared.dataSourcePreference = .garmin
@@ -182,12 +205,24 @@ class GarminManager: NSObject, ObservableObject {
     }
     
     /// 中斷 Garmin 連接
-    func disconnect() async {
+    /// - Parameter remote: 是否呼叫後端 API。預設 true；若已在其他地方成功解除綁定，可傳入 false 僅做本地狀態清理。
+    func disconnect(remote: Bool = true) async {
         await MainActor.run {
             isConnecting = true
             connectionError = nil
         }
         
+        // 若僅需本地清理，直接更新狀態並返回
+        guard remote else {
+            await MainActor.run {
+                saveConnectionStatus(false)
+                clearStoredCredentials()
+                isConnecting = false
+                print("Garmin 本地連接狀態已重置")
+            }
+            return
+        }
+
         do {
             // 呼叫後端 API 移除連接 (使用 RESTful 標準)
             let response = try await APIClient.shared.requestWithStatus(

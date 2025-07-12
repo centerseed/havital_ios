@@ -25,6 +25,7 @@ class TrainingPlanViewModel: ObservableObject {
     }
     @Published var isLoadingDistance = false
     @Published var workoutsByDay: [Int: [HKWorkout]] = [:]
+    @Published var workoutsByDayV2: [Int: [WorkoutV2]] = [:]
     @Published var isLoadingWorkouts = false
     @Published var trainingOverview: TrainingPlanOverview?
     @Published var selectedWeek: Int = 1
@@ -60,7 +61,7 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 統一使用 UnifiedWorkoutManager
     private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
-    private let workoutService = WorkoutService.shared
+    private let workoutService = WorkoutV2Service.shared
     private let weeklySummaryService = WeeklySummaryService.shared
     
     // 追蹤哪些日子被展開的狀態
@@ -78,7 +79,6 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 添加 Combine cancellables
     private var cancellables = Set<AnyCancellable>()
-    private let healthKitManager = HealthKitManager()
     
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }
@@ -469,7 +469,7 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     /// 依據指定週數產生對應週計劃
-    func fetchWeekPlan(week: Int, healthKitManager: HealthKitManager) async {
+    func fetchWeekPlan(week: Int) async {
         planStatus = .loading
         await MainActor.run {
             error = nil
@@ -667,11 +667,17 @@ class TrainingPlanViewModel: ObservableObject {
     private var hasLoadedInitialData = false
     
     /// 只在第一次執行：先載入概覽，再載入週計劃、VDOT、記錄、距離等
-    func loadAllInitialData(healthKitManager: HealthKitManager) async {
-        // 並行加載數據
-                    async let _ = loadCurrentWeekIntensity()
+    func loadAllInitialData() async {
         guard !hasLoadedInitialData else { return }
         hasLoadedInitialData = true
+        
+        // 首先確保 UnifiedWorkoutManager 被正確初始化和載入數據
+        Logger.debug("初始化 UnifiedWorkoutManager...")
+        await unifiedWorkoutManager.initialize()
+        
+        // 載入運動記錄（優先使用緩存）
+        await unifiedWorkoutManager.loadWorkouts()
+        Logger.debug("UnifiedWorkoutManager 載入完成，共有 \(unifiedWorkoutManager.workouts.count) 筆運動記錄")
         
         // 依序載入 overview，再載入 weeklyPlan
         await loadTrainingOverview()
@@ -679,17 +685,23 @@ class TrainingPlanViewModel: ObservableObject {
             await loadWeeklyPlan()
         }
         
-        await loadWorkoutsForCurrentWeek()
+        // 並行加載其他數據
+        async let _ = loadWorkoutsForCurrentWeek()
+        async let _ = loadCurrentWeekIntensity()
+        
         if let plan = weeklyPlan, plan.totalDistance > 0 {
             await loadCurrentWeekDistance()
         }
     }
     
-    func refreshWeeklyPlan(healthKitManager: HealthKitManager) async {
+    func refreshWeeklyPlan() async {
         // 修正：在刷新計畫前，務必先重新計算當前週數，確保資料最新
         if let overview = trainingOverview, !overview.createdAt.isEmpty {
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
         }
+        
+        // 刷新 UnifiedWorkoutManager 的數據
+        await unifiedWorkoutManager.refreshWorkouts()
         
         // 下拉刷新僅更新資料，不變更 planStatus
         
@@ -762,6 +774,12 @@ class TrainingPlanViewModel: ObservableObject {
         }
         
         do {
+            // 確保 UnifiedWorkoutManager 有數據
+            if !unifiedWorkoutManager.hasWorkouts {
+                Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
+                await unifiedWorkoutManager.loadWorkouts()
+            }
+            
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
@@ -771,11 +789,11 @@ class TrainingPlanViewModel: ObservableObject {
                 endDate: weekEnd
             )
             
-            // 轉換為 HealthKit 格式進行分組（暫時保持相容性）
-            let groupedWorkouts = groupWorkoutsByDayFromV2(weekWorkouts)
+            // 使用 V2 格式進行分組
+            let groupedWorkoutsV2 = groupWorkoutsByDayFromV2(weekWorkouts)
             
             Logger.debug("分組後的訓練記錄:")
-            for (day, dayWorkouts) in groupedWorkouts {
+            for (day, dayWorkouts) in groupedWorkoutsV2 {
                 Logger.debug(
                     "星期\(["一", "二", "三", "四", "五", "六", "日"][day-1]): \(dayWorkouts.count) 條記錄")
             }
@@ -786,7 +804,7 @@ class TrainingPlanViewModel: ObservableObject {
             let todayWeekday = calendar.component(.weekday, from: today)
             let todayIndex = todayWeekday == 1 ? 7 : todayWeekday - 1  // 轉換為1-7代表週一到週日
             
-            if let todayWorkouts = groupedWorkouts[todayIndex], !todayWorkouts.isEmpty {
+            if let todayWorkouts = groupedWorkoutsV2[todayIndex], !todayWorkouts.isEmpty {
                 Logger.debug(
                     "今天(星期\(["一", "二", "三", "四", "五", "六", "日"][todayIndex-1]))有 \(todayWorkouts.count) 條訓練記錄"
                 )
@@ -796,7 +814,7 @@ class TrainingPlanViewModel: ObservableObject {
             
             // 更新 UI
             await MainActor.run {
-                self.workoutsByDay = groupedWorkouts
+                self.workoutsByDayV2 = groupedWorkoutsV2
                 self.isLoadingWorkouts = false
             }
             
@@ -851,11 +869,36 @@ class TrainingPlanViewModel: ObservableObject {
         return grouped
     }
     
-    // 從 V2 API 數據按日期分組（轉換為 HealthKit 格式以保持相容性）
-    private func groupWorkoutsByDayFromV2(_ workouts: [WorkoutV2]) -> [Int: [HKWorkout]] {
-        // 目前暫時返回空字典，因為 UI 需要逐步遷移到 V2 格式
-        // 未來應該將 workoutsByDay 改為 [Int: [WorkoutV2]] 格式
-        return [:]
+    // 從 V2 API 數據按日期分組
+    private func groupWorkoutsByDayFromV2(_ workouts: [WorkoutV2]) -> [Int: [WorkoutV2]] {
+        let calendar = Calendar.current
+        var grouped: [Int: [WorkoutV2]] = [:]
+        
+        // 定義跑步相關的活動類型
+        let runningActivityTypes = ["running", "walking", "hiking", "cross_training"]
+        
+        for workout in workouts {
+            // 只處理跑步相關的鍛煉
+            guard runningActivityTypes.contains(workout.activityType) else {
+                continue
+            }
+            
+            let weekday = calendar.component(.weekday, from: workout.startDate)
+            // 轉換 weekday 為 1-7（週一到週日）
+            let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
+            
+            if grouped[adjustedWeekday] == nil {
+                grouped[adjustedWeekday] = []
+            }
+            grouped[adjustedWeekday]?.append(workout)
+        }
+        
+        // 對每天的運動記錄按日期排序（最新的在前面）
+        for (day, dayWorkouts) in grouped {
+            grouped[day] = dayWorkouts.sorted { $0.startDate > $1.startDate }
+        }
+        
+        return grouped
     }
     
     // 識別並自動展開當天的訓練
@@ -872,13 +915,19 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     // 載入本週訓練強度分鐘數
-    func loadCurrentWeekIntensity(healthKitManager: HealthKitManager? = nil) async {
+    func loadCurrentWeekIntensity() async {
         Logger.debug("載入本週訓練強度...")
         await MainActor.run {
             isLoadingIntensity = true
         }
         
         do {
+            // 確保 UnifiedWorkoutManager 有數據
+            if !unifiedWorkoutManager.hasWorkouts {
+                Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
+                await unifiedWorkoutManager.loadWorkouts()
+            }
+            
             let (weekStart, weekEnd) = getCurrentWeekDates()
             Logger.debug("計算 \(formatDate(weekStart)) 開始的週訓練強度...")
             
@@ -911,10 +960,6 @@ class TrainingPlanViewModel: ObservableObject {
                 self.isLoadingIntensity = false
             }
         }
-        
-        await MainActor.run {
-            isLoadingIntensity = false
-        }
     }
     
     // 聚合 V2 API 提供的 intensity_minutes 數據
@@ -943,13 +988,19 @@ class TrainingPlanViewModel: ObservableObject {
         )
     }
     
-    func loadCurrentWeekDistance(healthKitManager: HealthKitManager? = nil) async {
+    func loadCurrentWeekDistance() async {
         Logger.debug("載入週跑量中...")
         await MainActor.run {
             isLoadingDistance = true
         }
         
         do {
+            // 確保 UnifiedWorkoutManager 有數據
+            if !unifiedWorkoutManager.hasWorkouts {
+                Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
+                await unifiedWorkoutManager.loadWorkouts()
+            }
+            
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
@@ -1101,5 +1152,10 @@ class TrainingPlanViewModel: ObservableObject {
                 self.weeklySummaryError = error
             }
         }
+    }
+    
+    // 刷新運動數據（供外部調用）
+    func refreshWorkoutData() async {
+        await unifiedWorkoutManager.refreshWorkouts()
     }
 }

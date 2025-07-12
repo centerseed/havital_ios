@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CF80A8742E1ECF15001B36D9 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */; };
 		CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683762D5B33B5008A8242 /* FirebaseAnalytics */; };
 		CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683782D5B33B5008A8242 /* FirebaseAppCheck */; };
 		CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CFD6837A2D5B33B5008A8242 /* FirebaseAuth */; };
@@ -92,6 +93,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF80A8742E1ECF15001B36D9 /* FirebaseMessaging in Frameworks */,
 				CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */,
 				CFD6837D2D5B33B5008A8242 /* FirebaseCore in Frameworks */,
 				CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */,
@@ -178,6 +180,7 @@
 				CFD683842D5B3440008A8242 /* FirebaseAnalytics */,
 				CFD683872D5B353F008A8242 /* GoogleSignIn */,
 				CFD683892D5B353F008A8242 /* GoogleSignInSwift */,
+				CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */,
 			);
 			productName = Havital;
 			productReference = CFB67CF02D07047500F672E3 /* paceriz_dev.app */;
@@ -766,7 +769,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Havital/HavitalDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
@@ -982,6 +985,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseMessaging;
+		};
 		CFD683762D5B33B5008A8242 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseAnalytics;

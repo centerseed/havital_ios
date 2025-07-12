@@ -328,145 +328,7 @@ class WorkoutV2Service {
         return response
     }
     
-    // MARK: - Upload Apple Health Workout
-    
-    /// 上傳 Apple Health 運動數據到 V2 API
-    /// - Parameters:
-    ///   - workout: HealthKit 運動記錄
-    ///   - heartRateData: 心率數據
-    ///   - includeTimeSeries: 是否包含時間序列數據
-    /// - Returns: 上傳回應
-    func uploadAppleHealthWorkout(
-        _ workout: HKWorkout,
-        heartRateData: [(Date, Double)] = [],
-        includeTimeSeries: Bool = true
-    ) async throws -> UploadWorkoutResponse {
-        
-        // 如果需要心率數據但沒有提供，則獲取
-        var finalHeartRateData = heartRateData
-        if finalHeartRateData.isEmpty {
-            finalHeartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-        }
-        
-        let uploadRequest = try buildUploadRequest(
-            from: workout,
-            heartRateData: finalHeartRateData,
-            includeTimeSeries: includeTimeSeries
-        )
-        
-        let requestData = try JSONEncoder().encode(uploadRequest)
-        
-        let response: UploadWorkoutResponse = try await apiClient.request(
-            UploadWorkoutResponse.self,
-            path: "/v2/workouts",
-            method: "POST",
-            body: requestData
-        )
-        
-        Logger.firebase(
-            "Apple Health Workout 上傳成功",
-            level: .info,
-            labels: [
-                "module": "WorkoutV2Service",
-                "action": "upload_apple_health"
-            ],
-            jsonPayload: [
-                "workout_id": response.id,
-                "workout_type": workout.workoutActivityType.name,
-                "duration_seconds": Int(workout.duration),
-                "heart_rate_data_points": finalHeartRateData.count,
-                "has_advanced_metrics": response.advancedMetrics != nil
-            ]
-        )
-        
-        return response
-    }
-    
-    // MARK: - Private Helper Methods
-    
-    /// 建立上傳請求結構
-    private func buildUploadRequest(
-        from workout: HKWorkout,
-        heartRateData: [(Date, Double)],
-        includeTimeSeries: Bool
-    ) throws -> UploadWorkoutRequest {
-        
-        let iso8601Formatter = ISO8601DateFormatter()
-        
-        // 建立來源資訊
-        let sourceInfo = UploadSourceInfo(
-            name: "apple_health",
-            importMethod: "app_sdk"
-        )
-        
-        // 建立活動資料
-        let activityProfile = UploadActivityProfile(
-            type: mapWorkoutActivityType(workout.workoutActivityType),
-            startTimeUtc: iso8601Formatter.string(from: workout.startDate),
-            endTimeUtc: iso8601Formatter.string(from: workout.endDate),
-            durationTotalSeconds: Int(workout.duration)
-        )
-        
-        // 建立摘要指標
-        let summaryMetrics = UploadSummaryMetrics(
-            distanceMeters: workout.totalDistance?.doubleValue(for: .meter()),
-            activeCaloriesKcal: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
-            avgHeartRateBpm: heartRateData.isEmpty ? nil : Int(heartRateData.map(\.1).reduce(0, +) / Double(heartRateData.count)),
-            maxHeartRateBpm: heartRateData.isEmpty ? nil : Int(heartRateData.map(\.1).max() ?? 0)
-        )
-        
-        // 建立時間序列數據（如果需要且有心率數據）
-        var timeSeriesStreams: UploadTimeSeriesStreams? = nil
-        if includeTimeSeries && !heartRateData.isEmpty {
-            let startTime = workout.startDate
-            let timestamps = heartRateData.map { data in
-                Int(data.0.timeIntervalSince(startTime))
-            }
-            let heartRates = heartRateData.map { Int($0.1) }
-            
-            timeSeriesStreams = UploadTimeSeriesStreams(
-                timestampsSecondsOffset: timestamps,
-                heartRateBpm: heartRates
-            )
-        }
-        
-        return UploadWorkoutRequest(
-            sourceInfo: sourceInfo,
-            activityProfile: activityProfile,
-            summaryMetrics: summaryMetrics,
-            timeSeriesStreams: timeSeriesStreams
-        )
-    }
-    
-    /// 映射 HealthKit 運動類型到 API 格式
-    private func mapWorkoutActivityType(_ activityType: HKWorkoutActivityType) -> String {
-        switch activityType {
-        case .running, .trackAndField:
-            return "running"
-        case .walking:
-            return "walking"
-        case .cycling, .handCycling:
-            return "cycling"
-        case .swimming, .swimBikeRun:
-            return "swimming"
-        case .hiking:
-            return "hiking"
-        case .yoga, .mindAndBody:
-            return "yoga"
-        case .traditionalStrengthTraining, .functionalStrengthTraining:
-            return "strength_training"
-        case .highIntensityIntervalTraining:
-            return "hiit"
-        case .crossTraining:
-            return "cross_training"
-        case .mixedCardio:
-            return "mixed_cardio"
-        case .pilates:
-            return "pilates"
-        default:
-            return "other"
-        }
-    }
+
 }
 
 // MARK: - Convenience Methods
@@ -525,6 +387,139 @@ extension WorkoutV2Service {
         
         return response.data.workouts
     }
+    
+    // MARK: - Garmin Historical Data Processing
+    
+    /// 觸發 Garmin 歷史數據處理
+    /// - Parameter daysBack: 處理天數，預設 30 天
+    /// - Returns: 歷史數據處理回應
+    func triggerGarminHistoricalDataProcessing(daysBack: Int = 30) async throws -> GarminHistoricalDataResponse {
+        let requestBody = GarminHistoricalDataRequest(daysBack: daysBack)
+        
+        do {
+            // 將請求體編碼為 JSON Data
+            let bodyData = try JSONEncoder().encode(requestBody)
+            
+            let response: GarminHistoricalDataResponse = try await apiClient.request(
+                GarminHistoricalDataResponse.self,
+                path: "/connect/garmin/process-historical-data",
+                method: "POST",
+                body: bodyData
+            )
+            
+            Logger.firebase(
+                "Garmin 歷史數據處理觸發成功",
+                level: .info,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "trigger_garmin_historical_data"
+                ],
+                jsonPayload: [
+                    "days_back": daysBack,
+                    "estimated_duration": response.data.estimatedDuration
+                ]
+            )
+            
+            return response
+            
+        } catch {
+            Logger.firebase(
+                "Garmin 歷史數據處理觸發失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "trigger_garmin_historical_data"
+                ],
+                jsonPayload: [
+                    "days_back": daysBack
+                ]
+            )
+            throw error
+        }
+    }
+    
+    /// 查詢 Garmin 數據處理狀態
+    /// - Returns: 處理狀態回應
+    func getGarminProcessingStatus() async throws -> GarminProcessingStatusResponse {
+        do {
+            Logger.firebase(
+                "🔍 開始查詢 Garmin 處理狀態",
+                level: .debug,
+                labels: ["module": "WorkoutV2Service", "action": "get_garmin_processing_status_start"]
+            )
+            
+            let response: GarminProcessingStatusResponse = try await apiClient.request(
+                GarminProcessingStatusResponse.self,
+                path: "/connect/garmin/processing-status",
+                method: "GET"
+            )
+            
+            Logger.firebase(
+                "Garmin 處理狀態查詢成功",
+                level: .info,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "get_garmin_processing_status"
+                ],
+                jsonPayload: [
+                    "response_success": response.success,
+                    "in_progress": response.data.processingStatus.inProgress,
+                    "processed_count": response.data.processingStatus.processedCount ?? 0,
+                    "total_count": response.data.processingStatus.totalCount ?? 0,
+                    "progress_percentage": response.data.processingStatus.progressPercentage ?? 0.0,
+                    "current_item": response.data.processingStatus.currentItem ?? "",
+                    "start_time": response.data.processingStatus.startTime ?? "",
+                    "recent_results_count": response.data.recentResults.count
+                ]
+            )
+            
+            return response
+            
+        } catch let decodingError as DecodingError {
+            
+            // 詳細記錄 JSON 解析錯誤
+            let errorDetail = getDecodingErrorDetail(decodingError)
+            
+            // 輸出詳細錯誤信息到 console 以便 debug
+            print("🚨 [WorkoutV2Service] Garmin 處理狀態 JSON 解析失敗")
+            print("🔍 錯誤詳情:")
+            print("  - 字段: \(errorDetail.missingField ?? "unknown")")
+            print("  - 路徑: \(errorDetail.codingPath)")
+            print("  - 描述: \(errorDetail.description)")
+            print("  - Debug: \(errorDetail.debugDescription)")
+            
+            Logger.firebase(
+                "Garmin 處理狀態 JSON 解析失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "get_garmin_processing_status",
+                    "error_type": "decoding_error"
+                ],
+                jsonPayload: [
+                    "error_description": errorDetail.description,
+                    "missing_field": errorDetail.missingField ?? "unknown",
+                    "coding_path": errorDetail.codingPath,
+                    "debug_description": errorDetail.debugDescription
+                ]
+            )
+            
+            throw WorkoutV2Error.decodingFailed(errorDetail.description)
+            
+        } catch {
+            Logger.firebase(
+                "Garmin 處理狀態查詢失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "get_garmin_processing_status"
+                ]
+            )
+            throw error
+        }
+    }
+    
+
 }
 
 // MARK: - Error Handling
@@ -546,5 +541,157 @@ enum WorkoutV2ServiceError: Error, LocalizedError {
         case .networkError(let error):
             return "網路錯誤: \(error.localizedDescription)"
         }
+    }
+}
+
+
+
+// MARK: - Garmin Historical Data Models
+
+struct GarminHistoricalDataRequest: Codable {
+    let daysBack: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case daysBack = "days_back"
+    }
+}
+
+struct GarminHistoricalDataResponse: Codable {
+    let success: Bool  // 保持一致，使用 "success"
+    let data: GarminHistoricalDataData
+}
+
+struct GarminHistoricalDataData: Codable {
+    let message: String
+    let provider: String
+    let daysBack: Int
+    let estimatedDuration: String
+    let statusCheckEndpoint: String
+    
+    enum CodingKeys: String, CodingKey {
+        case message
+        case provider
+        case daysBack = "days_back"
+        case estimatedDuration = "estimated_duration"
+        case statusCheckEndpoint = "status_check_endpoint"
+    }
+}
+
+struct GarminProcessingStatusResponse: Codable {
+    let success: Bool  // 實際API使用 "success": true，不是 "status"
+    let data: GarminProcessingStatusData
+}
+
+struct GarminProcessingStatusData: Codable {
+    let processingStatus: GarminProcessingStatus
+    let recentResults: [GarminProcessingResult]
+    
+    enum CodingKeys: String, CodingKey {
+        case processingStatus = "processing_status"
+        case recentResults = "recent_results"
+    }
+}
+
+struct GarminProcessingStatus: Codable {
+    let inProgress: Bool
+    let startTime: String?
+    let processedCount: Int?
+    let totalCount: Int?
+    let progressPercentage: Double?
+    let currentItem: String?
+    let lastUpdated: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case inProgress = "in_progress"
+        case startTime = "start_time"
+        case processedCount = "processed_count"
+        case totalCount = "total_count"
+        case progressPercentage = "progress_percentage"
+        case currentItem = "current_item"
+        case lastUpdated = "last_updated"
+    }
+}
+
+struct GarminProcessingResult: Codable {
+    let id: String
+    let type: String
+    let status: String?  // API 中可能為 null
+    let createdAt: String
+    let summary: GarminProcessingSummary?  // 失敗時可能為 null
+    let error: String?  // 錯誤信息
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case status
+        case createdAt = "created_at"
+        case summary
+        case error
+    }
+}
+
+struct GarminProcessingSummary: Codable {
+    let processedCount: Int
+    let errorCount: Int
+    let totalFiles: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case processedCount = "processed_count"
+        case errorCount = "error_count"
+        case totalFiles = "total_files"
+    }
+}
+
+// MARK: - Apple Health Upload Wrappers
+extension WorkoutV2Service {
+    typealias UploadResult = AppleHealthWorkoutUploadService.UploadResult
+    typealias UploadBatchResult = AppleHealthWorkoutUploadService.UploadBatchResult
+
+    // 基本工具
+    func makeWorkoutId(for workout: HKWorkout) -> String {
+        AppleHealthWorkoutUploadService.shared.makeWorkoutId(for: workout)
+    }
+    
+    // 單筆上傳（僅當資料來源為 Apple Health）
+    func uploadWorkout(_ workout: HKWorkout,
+                       force: Bool = false,
+                       retryHeartRate: Bool = false) async throws -> UploadResult {
+        try await AppleHealthWorkoutUploadService.shared.uploadWorkout(workout,
+                                                                      force: force,
+                                                                      retryHeartRate: retryHeartRate)
+    }
+    
+    // 批次上傳
+    func uploadWorkouts(_ workouts: [HKWorkout],
+                        force: Bool = false,
+                        retryHeartRate: Bool = false) async -> UploadBatchResult {
+        await AppleHealthWorkoutUploadService.shared.uploadWorkouts(workouts,
+                                                                   force: force,
+                                                                   retryHeartRate: retryHeartRate)
+    }
+    
+    // Summary 快取相關
+    func getWorkoutSummary(workoutId: String) async throws -> WorkoutSummary {
+        try await AppleHealthWorkoutUploadService.shared.getWorkoutSummary(workoutId: workoutId)
+    }
+    func saveCachedWorkoutSummary(_ summary: WorkoutSummary, for id: String) {
+        AppleHealthWorkoutUploadService.shared.saveCachedWorkoutSummary(summary, for: id)
+    }
+    func getCachedWorkoutSummary(for id: String) -> WorkoutSummary? {
+        AppleHealthWorkoutUploadService.shared.getCachedWorkoutSummary(for: id)
+    }
+    func clearWorkoutSummaryCache() {
+        AppleHealthWorkoutUploadService.shared.clearWorkoutSummaryCache()
+    }
+    
+    // Upload tracker helpers
+    func isWorkoutUploaded(_ workout: HKWorkout) -> Bool {
+        AppleHealthWorkoutUploadService.shared.isWorkoutUploaded(workout)
+    }
+    func workoutHasHeartRate(_ workout: HKWorkout) -> Bool {
+        AppleHealthWorkoutUploadService.shared.workoutHasHeartRate(workout)
+    }
+    func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? {
+        AppleHealthWorkoutUploadService.shared.getWorkoutUploadTime(workout)
     }
 } 

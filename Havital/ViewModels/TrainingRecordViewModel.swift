@@ -12,7 +12,7 @@ class TrainingRecordViewModel: ObservableObject {
     
     // 統一使用 UnifiedWorkoutManager
     private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
-    private let workoutService = WorkoutService.shared
+    private let workoutService = WorkoutV2Service.shared
     
     // 初始設置 - 統一使用 UnifiedWorkoutManager
     func setup() {

@@ -80,6 +80,22 @@ class AppViewModel: ObservableObject {
         isHandlingGarminMismatch = true
         Task {
             do {
+                // 先解除Garmin綁定
+                if GarminManager.shared.isConnected {
+                    do {
+                        try await GarminDisconnectService.shared.disconnectGarmin()
+                        print("Garmin解除綁定成功")
+                        
+                        // 本地斷開Garmin連接（不再呼叫後端）
+                        await GarminManager.shared.disconnect(remote: false)
+                        
+                    } catch {
+                        print("Garmin解除綁定失敗: \(error.localizedDescription)")
+                        // 即使解除綁定失敗，也繼續本地斷開連接
+                        await GarminManager.shared.disconnect(remote: false)
+                    }
+                }
+                
                 // 先同步到後端
                 try await UserService.shared.updateDataSource(DataSourceType.appleHealth.rawValue)
                 

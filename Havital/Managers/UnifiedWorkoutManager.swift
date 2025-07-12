@@ -85,19 +85,27 @@ class UnifiedWorkoutManager: ObservableObject {
             // 檢查是否被取消
             try Task.checkCancellation()
             
-            // 先嘗試從快取載入
+            // 優先從緩存載入（永久緩存）
             if let cachedWorkouts = cacheManager.getCachedWorkoutList(), !cachedWorkouts.isEmpty {
                 await MainActor.run {
                     self.workouts = cachedWorkouts
+                    self.isLoading = false
                 }
-                print("從快取載入了 \(cachedWorkouts.count) 筆運動記錄")
+                print("從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
+                
+                // 檢查是否需要背景更新（但不阻塞 UI）
+                if cacheManager.shouldRefreshCache(intervalSinceLastSync: 300) { // 5 分鐘
+                    print("背景更新運動記錄...")
+                    Task.detached { [weak self] in
+                        await self?.backgroundUpdateWorkouts()
+                    }
+                }
+                return
             }
             
-            // 檢查是否被取消
-            try Task.checkCancellation()
-            
-            // 從 V2 API 獲取最新數據
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50)
+            // 如果沒有緩存，從 API 獲取數據
+            print("沒有緩存數據，從 API 載入運動記錄...")
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
             
             // 檢查是否被取消
             try Task.checkCancellation()
@@ -112,11 +120,11 @@ class UnifiedWorkoutManager: ObservableObject {
             }
             
             Logger.firebase(
-                "運動記錄載入成功",
+                "運動記錄首次載入成功",
                 level: .info,
                 labels: [
                     "module": "UnifiedWorkoutManager",
-                    "action": "load_workouts"
+                    "action": "initial_load_workouts"
                 ],
                 jsonPayload: [
                     "workouts_count": fetchedWorkouts.count,
@@ -135,12 +143,12 @@ class UnifiedWorkoutManager: ObservableObject {
                 self.isLoading = false
             }
             
-            // 如果 API 失敗，使用快取數據
+            // 如果 API 失敗，嘗試使用緩存數據
             if let cachedWorkouts = cacheManager.getCachedWorkoutList() {
                 await MainActor.run {
                     self.workouts = cachedWorkouts
                 }
-                print("API 失敗，使用快取數據")
+                print("API 失敗，使用緩存數據，共 \(cachedWorkouts.count) 筆記錄")
             }
             
             Logger.firebase(
@@ -154,9 +162,110 @@ class UnifiedWorkoutManager: ObservableObject {
         }
     }
     
-    /// 刷新運動記錄
+    /// 刷新運動記錄（強制從 API 更新）
     func refreshWorkouts() async {
-        await loadWorkouts()
+        await forceRefreshFromAPI()
+    }
+    
+    /// 強制從 API 刷新運動記錄
+    func forceRefreshFromAPI() async {
+        await MainActor.run {
+            isLoading = true
+            syncError = nil
+        }
+        
+        do {
+            print("強制刷新：從 API 獲取最新運動記錄...")
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
+            
+            // 直接覆寫緩存，確保與後端保持一致
+            cacheManager.cacheWorkoutList(fetchedWorkouts)
+            await MainActor.run {
+                self.workouts = fetchedWorkouts
+                self.lastSyncTime = Date()
+                self.isLoading = false
+            }
+            Logger.firebase(
+                "強制刷新運動記錄完成 (覆寫方式)",
+                level: .info,
+                labels: [
+                    "module": "UnifiedWorkoutManager",
+                    "action": "force_refresh"
+                ],
+                jsonPayload: [
+                    "total_workouts": fetchedWorkouts.count
+                ]
+            )
+            
+        } catch {
+            await MainActor.run {
+                self.syncError = error.localizedDescription
+                self.isLoading = false
+            }
+            
+            print("強制刷新失敗: \(error.localizedDescription)")
+            Logger.firebase(
+                "強制刷新運動記錄失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: [
+                    "module": "UnifiedWorkoutManager",
+                    "action": "force_refresh"
+                ]
+            )
+        }
+    }
+    
+    /// 背景更新運動記錄（不阻塞 UI）
+    private func backgroundUpdateWorkouts() async {
+        do {
+            print("背景更新：從 API 獲取最新運動記錄...")
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
+            
+            // 合併到緩存
+            let mergedCount = cacheManager.mergeWorkoutsToCache(fetchedWorkouts)
+            
+            if mergedCount > 0 {
+                // 有新數據，更新 UI
+                if let updatedWorkouts = cacheManager.getCachedWorkoutList() {
+                    await MainActor.run {
+                        self.workouts = updatedWorkouts
+                        self.lastSyncTime = Date()
+                    }
+                    print("背景更新完成：新增 \(mergedCount) 筆記錄")
+                }
+            } else {
+                // 沒有新數據，只更新同步時間
+                cacheManager.cacheWorkoutList(self.workouts) // 更新同步時間戳
+                await MainActor.run {
+                    self.lastSyncTime = Date()
+                }
+                print("背景更新完成：沒有新數據")
+            }
+            
+            Logger.firebase(
+                "背景更新運動記錄完成",
+                level: .info,
+                labels: [
+                    "module": "UnifiedWorkoutManager",
+                    "action": "background_update"
+                ],
+                jsonPayload: [
+                    "new_workouts": mergedCount,
+                    "total_workouts": self.workouts.count
+                ]
+            )
+            
+        } catch {
+            print("背景更新失敗: \(error.localizedDescription)")
+            Logger.firebase(
+                "背景更新運動記錄失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: [
+                    "module": "UnifiedWorkoutManager",
+                    "action": "background_update"
+                ]
+            )
+        }
     }
     
     /// 切換數據來源
@@ -177,14 +286,8 @@ class UnifiedWorkoutManager: ObservableObject {
         // 停止當前工作流程
         await stopCurrentWorkflow()
         
-        // 清除快取
-        cacheManager.clearAllCache()
-        
-        // 清空當前數據
-        await MainActor.run {
-            workouts = []
-            syncError = nil
-        }
+        // 清除所有本地資料
+        await clearAllLocalData()
         
         // 更新偏好設定
         UserPreferenceManager.shared.dataSourcePreference = newDataSource
@@ -194,6 +297,45 @@ class UnifiedWorkoutManager: ObservableObject {
         
         // 載入新數據
         await loadWorkouts()
+    }
+    
+    /// 清除所有本地資料
+    @MainActor
+    func clearAllLocalData() {
+        // 清除 Workout V2 快取
+        cacheManager.clearAllCache()
+        
+        // 清空當前數據
+        workouts = []
+        lastSyncTime = nil
+        syncError = nil
+        
+        // 清除 WorkoutV2Service 快取
+        WorkoutV2Service.shared.clearWorkoutSummaryCache()
+        
+        // 清除 TrainingPlan 相關快取
+        TrainingPlanStorage.shared.clearAll()
+        
+        // 清除 WeeklySummary 快取
+        WeeklySummaryStorage.shared.clearSavedWeeklySummary()
+        
+        // 清除 Workout 上傳追蹤
+        WorkoutUploadTracker.shared.clearUploadedWorkouts()
+        
+        // 清除 VDOTStorage 快取
+        VDOTStorage.shared.clearVDOTData()
+        
+        // 清除 TargetStorage 快取
+        TargetStorage.shared.clearAllTargets()
+        
+        Logger.firebase(
+            "所有本地資料已清除",
+            level: .info,
+            labels: [
+                "module": "UnifiedWorkoutManager",
+                "action": "clear_all_local_data"
+            ]
+        )
     }
     
     /// 獲取運動統計數據
@@ -342,7 +484,7 @@ class UnifiedWorkoutManager: ObservableObject {
     
     private func uploadAppleHealthWorkoutToV2API(_ workout: HKWorkout) async {
         do {
-            let response = try await workoutV2Service.uploadAppleHealthWorkout(workout)
+            let result = try await workoutV2Service.uploadWorkout(workout)
             
             Logger.firebase(
                 "Apple Health 運動記錄上傳到 V2 API 成功",
@@ -352,7 +494,6 @@ class UnifiedWorkoutManager: ObservableObject {
                     "action": "upload_apple_health_to_v2"
                 ],
                 jsonPayload: [
-                    "workout_id": response.id,
                     "workout_type": workout.workoutActivityType.name,
                     "duration_seconds": Int(workout.duration)
                 ]
@@ -475,5 +616,25 @@ extension UnifiedWorkoutManager {
     /// 獲取最新的運動記錄
     var latestWorkout: WorkoutV2? {
         return workouts.first
+    }
+    
+    /// 獲取緩存統計資訊
+    func getCacheStats() -> CacheStats {
+        return cacheManager.getCacheStats()
+    }
+    
+    /// 檢查是否有緩存數據
+    var hasCachedData: Bool {
+        return cacheManager.hasCachedWorkouts()
+    }
+    
+    /// 獲取最後同步時間
+    var lastCacheSync: Date? {
+        return cacheManager.getLastSyncTime()
+    }
+    
+    /// 檢查緩存是否需要刷新
+    func shouldRefreshCache() -> Bool {
+        return cacheManager.shouldRefreshCache()
     }
 } 

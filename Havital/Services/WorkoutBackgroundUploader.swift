@@ -4,13 +4,13 @@ import HealthKit
 class WorkoutBackgroundUploader {
     static let shared = WorkoutBackgroundUploader()
     
-    private let workoutService: WorkoutService
+    private let workoutService: WorkoutV2Service
     private let workoutUploadTracker: WorkoutUploadTracker
     private let notificationManager = SyncNotificationManager.shared
     private var isUploading = false // 防止多個上傳過程同時運行
     
     private init() {
-        self.workoutService = WorkoutService.shared
+        self.workoutService = WorkoutV2Service.shared
         self.workoutUploadTracker = WorkoutUploadTracker.shared
     }
     

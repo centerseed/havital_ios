@@ -171,7 +171,7 @@ struct WorkoutDetailView: View {
                 Button(action: {
                     Task {
                         do {
-                            let result = try await WorkoutService.shared.uploadWorkout(viewModel.workout, force: true)
+                            let result = try await WorkoutV2Service.shared.uploadWorkout(viewModel.workout, force: true)
                             await MainActor.run {
                                 viewModel.checkUploadStatus()
                                 loadWorkoutData()
@@ -332,9 +332,9 @@ struct WorkoutDetailView: View {
                 }
             }
             // 統一組 workoutId
-            let summaryId = WorkoutService.shared.makeWorkoutId(for: viewModel.workout)
+            let summaryId = WorkoutV2Service.shared.makeWorkoutId(for: viewModel.workout)
             // 嘗試快取
-            if let cached = WorkoutService.shared.getCachedWorkoutSummary(for: summaryId) {
+            if let cached = WorkoutV2Service.shared.getCachedWorkoutSummary(for: summaryId) {
                 await MainActor.run {
                     self.dynamicVDOT = cached.vdot
                     viewModel.averageHeartRate = cached.avgHR
@@ -345,8 +345,8 @@ struct WorkoutDetailView: View {
             }
             // 向後端請求
             do {
-                let summary = try await WorkoutService.shared.getWorkoutSummary(workoutId: summaryId)
-                WorkoutService.shared.saveCachedWorkoutSummary(summary, for: summaryId)
+                let summary = try await WorkoutV2Service.shared.getWorkoutSummary(workoutId: summaryId)
+                WorkoutV2Service.shared.saveCachedWorkoutSummary(summary, for: summaryId)
                 await MainActor.run {
                     self.dynamicVDOT = summary.vdot
                     viewModel.averageHeartRate = summary.avgHR

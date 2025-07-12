@@ -7,7 +7,6 @@ struct WeekPlanContentView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
     let currentTrainingWeek: Int
-    @EnvironmentObject private var healthKitManager: HealthKitManager
     
     var body: some View {
         let selected = plan.weekOfPlan
@@ -238,7 +237,7 @@ struct TrainingPlanView: View {
             .background(Color(UIColor.systemGroupedBackground))
             .refreshable {
                 // 下拉刷新：直接更新 weekPlan 資料
-                await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
+                await viewModel.refreshWeeklyPlan()
             }
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
@@ -252,7 +251,7 @@ struct TrainingPlanView: View {
         }
         .task {
             if hasCompletedOnboarding {
-                await viewModel.loadAllInitialData(healthKitManager: healthKitManager)
+                await viewModel.loadAllInitialData()
             }
         }
         .onReceive(timer) { _ in
@@ -413,7 +412,10 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("刷新訓練記錄與本週跑量")
         Task {
-            await viewModel.loadCurrentWeekDistance(healthKitManager: healthKitManager)
+            // 確保 UnifiedWorkoutManager 數據是最新的
+            await viewModel.refreshWorkoutData()
+            
+            await viewModel.loadCurrentWeekDistance()
             await viewModel.loadWorkoutsForCurrentWeek()
         }
     }
@@ -424,7 +426,7 @@ struct TrainingPlanView: View {
             let hoursSinceLastUpdate = Calendar.current.dateComponents([.hour], from: lastUpdateTime, to: Date()).hour ?? 0
             if hoursSinceLastUpdate >= 1 {
                 Task {
-                    await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
+                    await viewModel.refreshWeeklyPlan()
                 }
             }
         }

@@ -895,8 +895,29 @@ class HealthKitManager: ObservableObject {
             }
         }
     }
-} 
-    // MARK: - 錯誤定義
+    
+    // MARK: - 卡路里數據
+    
+    func fetchCaloriesData(for workout: HKWorkout) async throws -> Double {
+        // 直接從workout獲取總卡路里
+        let totalCalories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+        return totalCalories
+    }
+    
+    func fetchCaloriesDataPoints(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        guard let caloriesType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) else {
+            throw HealthError.notAvailable
+        }
+        
+        return try await fetchQuantitySamples(
+            sampleType: caloriesType,
+            workout: workout,
+            unit: HKUnit.kilocalorie()
+        )
+    }
+}
+
+// MARK: - 錯誤定義
 
 extension HealthKitManager {
     enum HealthError: Error {

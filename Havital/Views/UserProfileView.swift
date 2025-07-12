@@ -4,6 +4,7 @@ import FirebaseAuth
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
     @StateObject private var garminManager = GarminManager.shared
+    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false
     @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
@@ -15,6 +16,8 @@ struct UserProfileView: View {
     @State private var isDeletingAccount = false  // 刪除帳戶加載狀態
     @State private var showDataSourceSwitchConfirmation = false  // 數據源切換確認對話框
     @State private var pendingDataSourceType: DataSourceType?  // 待切換的數據源類型
+    @State private var showDataSyncView = false  // 顯示數據同步畫面
+    @State private var syncDataSource: DataSourceType?  // 需要同步的數據源
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -195,6 +198,13 @@ struct UserProfileView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("完成") {
                     dismiss()
+                }
+            }
+        }
+        .sheet(isPresented: $showDataSyncView) {
+            if let syncDataSource = syncDataSource {
+                NavigationStack {
+                    DataSyncView(dataSource: syncDataSource)
                 }
             }
         }
@@ -409,18 +419,7 @@ struct UserProfileView: View {
                     subtitle: "同步您的 Garmin 帳號活動"
                 )
                 
-                // Garmin連接錯誤提示
-                if let error = garminManager.connectionError {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("Garmin連接失敗: \(error)")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                        Spacer()
-                    }
-                    .padding(.leading, 32)
-                }
+                // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }
             .padding(.vertical, 4)
         }
@@ -439,7 +438,7 @@ struct UserProfileView: View {
                 if pendingType == .garmin {
                     Text("切換到 Garmin 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin 載入。")
                 } else {
-                    Text("切換到 \(pendingType.displayName) 後，您的訓練紀錄將從新的數據源載入。目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
+                    Text("切換到 \(pendingType.displayName) 將會解除您的 Garmin 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從新的數據源載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
                 }
             }
         }
@@ -456,7 +455,7 @@ struct UserProfileView: View {
             HStack {
                 // 圖示
                 Image(systemName: icon)
-                    .foregroundColor(UserPreferenceManager.shared.dataSourcePreference == type ? .blue : .secondary)
+                    .foregroundColor(userPreferenceManager.dataSourcePreference == type ? .blue : .secondary)
                     .frame(width: 24)
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -470,7 +469,7 @@ struct UserProfileView: View {
                 Spacer()
                 
                 // 選擇狀態
-                if UserPreferenceManager.shared.dataSourcePreference == type {
+                if userPreferenceManager.dataSourcePreference == type {
                     Text("使用中")
                         .font(.caption)
                         .foregroundColor(.blue)
@@ -495,7 +494,7 @@ struct UserProfileView: View {
                 
                 Spacer()
                 
-                let isCurrentSource = UserPreferenceManager.shared.dataSourcePreference == type
+                let isCurrentSource = userPreferenceManager.dataSourcePreference == type
                 let isGarminConnecting = type == .garmin && garminManager.isConnecting
                 
                 Button(action: {
@@ -527,16 +526,38 @@ struct UserProfileView: View {
         Task {
             switch newDataSource {
             case .appleHealth:
-                // 切換到Apple Health時，斷開Garmin連接
+                // 切換到Apple Health時，先解除Garmin綁定
                 if garminManager.isConnected {
-                    await garminManager.disconnect()
+                    do {
+                        // 調用後端API解除Garmin綁定
+                        let disconnectResult = try await GarminDisconnectService.shared.disconnectGarmin()
+                        print("Garmin解除綁定成功: \(disconnectResult.message)")
+                        
+                        // 本地斷開Garmin連接
+                        await garminManager.disconnect()
+                        
+                    } catch {
+                        print("Garmin解除綁定失敗: \(error.localizedDescription)")
+                        // 即使解除綁定失敗，也繼續本地斷開連接
+                        await garminManager.disconnect()
+                    }
                 }
-                UserPreferenceManager.shared.dataSourcePreference = .appleHealth
+                
+                // 清除本地資料
+                await UnifiedWorkoutManager.shared.clearAllLocalData()
+                
+                userPreferenceManager.dataSourcePreference = .appleHealth
                 
                 // 同步到後端
                 do {
                     try await UserService.shared.updateDataSource(newDataSource.rawValue)
                     print("數據源設定已同步到後端: \(newDataSource.displayName)")
+                    
+                    // 顯示同步畫面
+                    await MainActor.run {
+                        syncDataSource = newDataSource
+                        showDataSyncView = true
+                    }
                 } catch {
                     print("同步數據源設定到後端失敗: \(error.localizedDescription)")
                 }
@@ -545,6 +566,32 @@ struct UserProfileView: View {
                 // 切換到Garmin時，總是啟動OAuth流程
                 // 這樣可以確保連接狀態是最新的，並且處理token過期的情況
                 await garminManager.startConnection()
+                
+                // 等待 OAuth 流程完成
+                // 監聽連接狀態變化，最多等待 30 秒
+                let maxWaitTime = 30.0 // 30 秒
+                let startTime = Date()
+                
+                while garminManager.isConnecting && Date().timeIntervalSince(startTime) < maxWaitTime {
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 秒
+                }
+                
+                if garminManager.isConnected {
+                    // OAuth 成功，清除本地資料
+                    await UnifiedWorkoutManager.shared.clearAllLocalData()
+                    
+                    // 顯示同步畫面（數據源已在GarminManager中更新）
+                    await MainActor.run {
+                        syncDataSource = newDataSource
+                        showDataSyncView = true
+                    }
+                } else if !garminManager.isConnecting {
+                    // OAuth 流程已結束但未成功連接
+                    print("Garmin OAuth 失敗或用戶取消，未顯示同步畫面")
+                } else {
+                    // 超時
+                    print("Garmin OAuth 超時，未顯示同步畫面")
+                }
                 // 注意：數據源的更新會在OAuth成功後在GarminManager中處理
             }
         }

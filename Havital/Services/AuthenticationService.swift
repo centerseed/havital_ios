@@ -5,6 +5,7 @@ import GoogleSignIn
 import Combine
 import AuthenticationServices
 import CryptoKit // For SHA256 nonce
+import FirebaseMessaging // For FCM token
 
 class AuthenticationService: NSObject, ObservableObject {
     @Published var user: FirebaseAuth.User?
@@ -32,6 +33,17 @@ class AuthenticationService: NSObject, ObservableObject {
             if user != nil {
                 // If user is authenticated with Firebase, fetch their profile from backend
                 self.fetchUserProfile()
+                // 嘗試同步當前 FCM token
+                if let token = Messaging.messaging().fcmToken {
+                    Task {
+                        do {
+                            try await UserService.shared.updateUserData(["fcm_token": token])
+                            print("✅ 已於登入後同步 FCM token 到後端")
+                        } catch {
+                            print("⚠️ 登入後同步 FCM token 失敗: \(error.localizedDescription)")
+                        }
+                    }
+                }
                 
                 // 同時觸發週計劃更新
                 Task {
@@ -279,7 +291,8 @@ class AuthenticationService: NSObject, ObservableObject {
         
         // 清除所有本地存儲
         UserPreferenceManager.shared.clearUserData()
-        WorkoutService.shared.clearWorkoutSummaryCache()
+        WorkoutV2CacheManager.shared.clearAllCache()
+        WorkoutV2Service.shared.clearWorkoutSummaryCache()
         TargetStorage.shared.clearAllTargets()
         TrainingPlanStorage.shared.clearAll()
         WeeklySummaryStorage.shared.clearSavedWeeklySummary()
