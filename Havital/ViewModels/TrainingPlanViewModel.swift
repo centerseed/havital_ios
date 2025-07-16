@@ -3,6 +3,31 @@ import HealthKit
 import SwiftUI
 import Firebase
 
+// 導入APINetworkError以便在錯誤處理中使用
+// 這需要確保APIClient.swift中的APINetworkError是public的
+// 如果不是，我們需要在這裡創建一個映射
+
+// 網路錯誤類型
+enum NetworkError: Error, LocalizedError {
+    case noConnection
+    case timeout
+    case serverError
+    case badResponse
+    
+    var errorDescription: String? {
+        switch self {
+        case .noConnection:
+            return "無法連接到網路，請檢查網路連線"
+        case .timeout:
+            return "網路連線超時，請稍後再試"
+        case .serverError:
+            return "伺服器錯誤，請稍後再試"
+        case .badResponse:
+            return "伺服器回應異常，請稍後再試"
+        }
+    }
+}
+
 @MainActor
 class TrainingPlanViewModel: ObservableObject {
     @Published var weeklyPlan: WeeklyPlan?
@@ -54,6 +79,10 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var showWeeklySummary = false
     @Published var lastFetchedWeekNumber: Int?
     
+    // 網路錯誤處理
+    @Published var networkError: NetworkError?
+    @Published var showNetworkErrorAlert = false
+    
     // 週摘要列表
     @Published var weeklySummaries: [WeeklySummaryItem] = []
     @Published var isLoadingWeeklySummaries = false
@@ -82,6 +111,50 @@ class TrainingPlanViewModel: ObservableObject {
     
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }
+    
+    // MARK: - Network Error Handling
+    
+    /// 處理網路錯誤
+    private func handleNetworkError(_ error: Error) -> NetworkError? {
+        // 檢查是否為APINetworkError
+        if let apiError = error as? APINetworkError {
+            switch apiError {
+            case .noConnection:
+                return .noConnection
+            case .timeout:
+                return .timeout
+            case .serverError:
+                return .serverError
+            case .badResponse:
+                return .badResponse
+            }
+        }
+        
+        // 檢查是否為URLError
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost:
+                return .noConnection
+            case .timedOut:
+                return .timeout
+            case .badServerResponse:
+                return .badResponse
+            default:
+                return nil
+            }
+        }
+        
+        return nil
+    }
+    
+    /// 重試網路請求
+    func retryNetworkRequest() async {
+        networkError = nil
+        showNetworkErrorAlert = false
+        
+        // 重新載入週計劃
+        await loadWeeklyPlan()
+    }
     
     // 本地緩存相關
     private let userDefaults = UserDefaults.standard
@@ -438,8 +511,16 @@ class TrainingPlanViewModel: ObservableObject {
                     // 404: 無週計劃
                     await updateWeeklyPlanUI(plan: nil, status: .noPlan)
                 } catch {
-                    // 其他錯誤: 保持使用本地數據
-                    Logger.error("API加載計劃失敗，保持使用本地數據: \(error)")
+                    // 其他錯誤: 檢查是否為網路問題
+                    if let networkError = self.handleNetworkError(error) {
+                        await MainActor.run {
+                            self.networkError = networkError
+                            self.showNetworkErrorAlert = true
+                        }
+                    } else {
+                        // 其他錯誤: 保持使用本地數據
+                        Logger.error("API加載計劃失敗，保持使用本地數據: \(error)")
+                    }
                 }
             }
         } else {
@@ -463,7 +544,15 @@ class TrainingPlanViewModel: ObservableObject {
                 // 404: 無週計劃
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
             } catch {
-                await updateWeeklyPlanUI(plan: nil, status: .error(error))
+                // 處理網路錯誤
+                if let networkError = self.handleNetworkError(error) {
+                    await MainActor.run {
+                        self.networkError = networkError
+                        self.showNetworkErrorAlert = true
+                    }
+                } else {
+                    await updateWeeklyPlanUI(plan: nil, status: .error(error))
+                }
             }
         }
     }

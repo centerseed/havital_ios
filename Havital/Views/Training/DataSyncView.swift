@@ -244,6 +244,8 @@ class DataSyncViewModel: ObservableObject {
                 await syncAppleHealthData()
             case .garmin:
                 await syncGarminData()
+            case .unbound:
+                print("DataSyncViewModel: 尚未綁定數據源")
             }
         } catch {
             await MainActor.run {

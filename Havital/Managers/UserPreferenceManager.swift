@@ -4,6 +4,7 @@ import Combine
 // MARK: - 數據來源類型定義
 /// 定義 App 的數據來源類型
 enum DataSourceType: String, CaseIterable, Identifiable {
+    case unbound = "unbound"
     case appleHealth = "apple_health"
     case garmin = "garmin"
 
@@ -11,6 +12,8 @@ enum DataSourceType: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
+        case .unbound:
+            return "尚未綁定"
         case .appleHealth:
             return "Apple Health"
         case .garmin:
@@ -122,12 +125,12 @@ class UserPreferenceManager: ObservableObject {
     }
     
     private init() {
-        // 載入保存的數據來源偏好，如果未設定，則預設為 Apple Health
+        // 載入保存的數據來源偏好，如果未設定，則預設為尚未綁定
         if let savedSource = UserDefaults.standard.string(forKey: Self.dataSourceKey),
            let source = DataSourceType(rawValue: savedSource) {
             self.dataSourcePreference = source
         } else {
-            self.dataSourcePreference = .appleHealth
+            self.dataSourcePreference = .unbound
         }
         
         // 載入保存的值

@@ -52,7 +52,10 @@ class UnifiedWorkoutManager: ObservableObject {
             await setupAppleHealthWorkflow()
         case .garmin:
             await setupGarminWorkflow()
+        case .unbound:
+            print("UnifiedWorkoutManager: 尚未綁定數據源")
         }
+
     }
     
     /// 載入運動記錄（統一介面）

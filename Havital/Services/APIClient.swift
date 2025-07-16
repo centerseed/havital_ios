@@ -1,4 +1,29 @@
 import Foundation
+import Network
+
+// 網路錯誤類型 - 與TrainingPlanViewModel中的NetworkError保持一致
+enum APINetworkError: Error {
+    case noConnection
+    case timeout
+    case serverError
+    case badResponse
+}
+
+// 網路狀態監測
+class NetworkMonitor {
+    static let shared = NetworkMonitor()
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "NetworkMonitor")
+    
+    var isConnected: Bool = true
+    
+    private init() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            self?.isConnected = path.status == .satisfied
+        }
+        monitor.start(queue: queue)
+    }
+}
 
 /// 通用 API 回應結構
 // MARK: - API Response Base
@@ -49,15 +74,36 @@ actor APIClient {
                                 method: String = "GET",
                                 body: Data? = nil) async throws -> T {
         let req = try await makeRequest(path: path, method: method, body: body)
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
+        
+        // 檢查網路連接狀態
+        if !NetworkMonitor.shared.isConnected {
+            throw APINetworkError.noConnection
         }
+        
+        let (data, resp): (Data, URLResponse)
+        
+        do {
+            (data, resp) = try await URLSession.shared.data(for: req)
+        } catch let urlError as URLError {
+            // 處理URLError錯誤
+            throw self.classifyURLError(urlError)
+        } catch {
+            // 其他錯誤直接拋出
+            throw error
+        }
+        
+        guard let http = resp as? HTTPURLResponse else {
+            throw APINetworkError.badResponse
+        }
+        
         Logger.debug("\(method) \(path) status code: \(http.statusCode)")
         guard (200...299).contains(http.statusCode) else {
             let bodyStr = String(data: data, encoding: .utf8) ?? ""
             Logger.error("Error response body: \(bodyStr)")
-            throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
+            
+            // 根據狀態碼判斷錯誤類型
+            let error = self.classifyError(statusCode: http.statusCode, responseBody: bodyStr)
+            throw error
         }
         let decoder = JSONDecoder()
         do {
@@ -93,14 +139,13 @@ actor APIClient {
     /// 通用無回傳請求
     func requestNoResponse(path: String, method: String = "DELETE", body: Data? = nil) async throws {
         let req = try await makeRequest(path: path, method: method, body: body)
-        let (_, resp) = try await URLSession.shared.data(for: req)
+        let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
         Logger.debug("\(method) \(path) status code: \(http.statusCode)")
         guard (200...299).contains(http.statusCode) else {
-            let bodyData = try await URLSession.shared.data(for: req).0
-            let bodyStr = String(data: bodyData, encoding: .utf8) ?? ""
+            let bodyStr = String(data: data, encoding: .utf8) ?? ""
             Logger.error("Error response body: \(bodyStr)")
             throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
         }
@@ -120,5 +165,36 @@ actor APIClient {
             throw NSError(domain: "APIClient", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: bodyStr])
         }
         return http
+    }
+    
+    // MARK: - Error Classification
+    
+    /// 根據狀態碼分類錯誤
+    private func classifyError(statusCode: Int, responseBody: String) -> Error {
+        switch statusCode {
+        case 404:
+            // 404錯誤保持原來的NSError格式，不改變現有流程
+            return NSError(domain: "APIClient", code: statusCode, userInfo: [NSLocalizedDescriptionKey: responseBody])
+        case 500...599:
+            return APINetworkError.serverError
+        case 408:
+            return APINetworkError.timeout
+        default:
+            return NSError(domain: "APIClient", code: statusCode, userInfo: [NSLocalizedDescriptionKey: responseBody])
+        }
+    }
+    
+    /// 根據URLError分類錯誤
+    private func classifyURLError(_ error: URLError) -> Error {
+        switch error.code {
+        case .notConnectedToInternet, .networkConnectionLost:
+            return APINetworkError.noConnection
+        case .timedOut:
+            return APINetworkError.timeout
+        case .badServerResponse:
+            return APINetworkError.badResponse
+        default:
+            return error
+        }
     }
 }

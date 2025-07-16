@@ -1,10 +1,12 @@
 import SwiftUI
 import FirebaseAuth
+import HealthKit
 
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var healthKitManager = HealthKitManager()
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false
     @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
@@ -18,6 +20,7 @@ struct UserProfileView: View {
     @State private var pendingDataSourceType: DataSourceType?  // 待切換的數據源類型
     @State private var showDataSyncView = false  // 顯示數據同步畫面
     @State private var syncDataSource: DataSourceType?  // 需要同步的數據源
+    @State private var showGarminAlreadyBoundAlert = false
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -275,6 +278,16 @@ struct UserProfileView: View {
         } message: {
             Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。目前的訓練計畫將會被清除，且無法復原。")
         }
+        .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
+            showGarminAlreadyBoundAlert = (msg != nil)
+        }
+        .alert("Garmin 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
+            Button("我知道了", role: .cancel) {
+                garminManager.garminAlreadyBoundMessage = nil
+            }
+        } message: {
+            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin 綁定後，再用本帳號進行連接。")
+        }
     }
     
     // 使用者頭像與名稱標頭
@@ -435,10 +448,13 @@ struct UserProfileView: View {
             }
         } message: {
             if let pendingType = pendingDataSourceType {
-                if pendingType == .garmin {
+                switch pendingType {
+                case .garmin:
                     Text("切換到 Garmin 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin 載入。")
-                } else {
-                    Text("切換到 \(pendingType.displayName) 將會解除您的 Garmin 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從新的數據源載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
+                case .appleHealth:
+                    Text("切換到 Apple Health 將會解除您的 Garmin 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從 Apple Health 載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
+                case .unbound:
+                    Text("切換到尚未綁定狀態將會清除所有本地運動數據。您稍後可以在個人資料頁面中重新選擇和連接數據來源。")
                 }
             }
         }
@@ -525,6 +541,21 @@ struct UserProfileView: View {
     private func switchDataSource(to newDataSource: DataSourceType) {
         Task {
             switch newDataSource {
+            case .unbound:
+                // 切換到尚未綁定狀態
+                // 清除本地資料
+                await UnifiedWorkoutManager.shared.clearAllLocalData()
+                
+                userPreferenceManager.dataSourcePreference = .unbound
+                
+                // 同步到後端
+                do {
+                    try await UserService.shared.updateDataSource(newDataSource.rawValue)
+                    print("數據源設定已同步到後端: \(newDataSource.displayName)")
+                } catch {
+                    print("同步數據源設定到後端失敗: \(error.localizedDescription)")
+                }
+                
             case .appleHealth:
                 // 切換到Apple Health時，先解除Garmin綁定
                 if garminManager.isConnected {
@@ -541,6 +572,15 @@ struct UserProfileView: View {
                         // 即使解除綁定失敗，也繼續本地斷開連接
                         await garminManager.disconnect()
                     }
+                }
+                
+                // 請求 HealthKit 權限
+                do {
+                    try await healthKitManager.requestAuthorization()
+                    print("Apple Health 權限請求成功")
+                } catch {
+                    print("Apple Health 權限請求失敗: \(error.localizedDescription)")
+                    // 即使權限請求失敗，也繼續切換數據源
                 }
                 
                 // 清除本地資料

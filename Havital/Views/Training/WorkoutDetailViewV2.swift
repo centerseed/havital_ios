@@ -25,7 +25,7 @@ struct WorkoutDetailViewV2: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                LazyVStack(spacing: 16) {
+                VStack(spacing: 16) {
                     // 基本資訊卡片
                     basicInfoCard
                     
@@ -65,7 +65,7 @@ struct WorkoutDetailViewV2: View {
                 .padding()
             }
             .navigationTitle("運動詳情")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("關閉") {

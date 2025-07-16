@@ -281,6 +281,18 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }
+        .alert("網路連接問題", isPresented: $viewModel.showNetworkErrorAlert) {
+            Button("重試") {
+                Task {
+                    await viewModel.retryNetworkRequest()
+                }
+            }
+            Button("稍後再試", role: .cancel) {
+                viewModel.showNetworkErrorAlert = false
+            }
+        } message: {
+            Text(viewModel.networkError?.localizedDescription ?? "網路連接異常，請稍後再試")
+        }
         .onAppear {
             if hasCompletedOnboarding {
                 Logger.debug("視圖 onAppear: 已完成 Onboarding，刷新本週跑量")

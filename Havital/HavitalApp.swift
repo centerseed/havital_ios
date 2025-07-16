@@ -73,6 +73,8 @@ struct HavitalApp: App {
                     // App 啟動時初始化統一工作流程
                     Task {
                         await appViewModel.initializeApp()
+                        // 設置權限和背景處理
+                        setupAllPermissionsAndBackgroundProcessing()
                     }
                 }
                 // 處理深度連結
@@ -95,7 +97,7 @@ struct HavitalApp: App {
     }
     
     /// 一次性請求所有必要的權限並設置背景處理
-    private func setupAllPermissionsAndBackgroundProcessing() {
+    func setupAllPermissionsAndBackgroundProcessing() {
         Task {
             // 檢查當前數據來源設定
             let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference

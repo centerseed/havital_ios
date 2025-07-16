@@ -9,6 +9,8 @@ class GarminManager: NSObject, ObservableObject {
     @Published var isConnecting = false
     @Published var connectionError: String?
     @Published var isConnected = false
+    @Published var pendingForceReplace: (state: String, existingUserId: String, errorDescription: String)?
+    @Published var garminAlreadyBoundMessage: String? = nil
     
     // OAuth 2.0 PKCE 參數
     private var codeVerifier: String?
@@ -71,9 +73,21 @@ class GarminManager: NSObject, ObservableObject {
     
     // MARK: - OAuth 2.0 PKCE 流程
     
+    // 產生 state 字串（JSON encode + base64）
+    private func buildState(forceReplace: Bool, customState: String?) -> String {
+        var stateDict: [String: Any] = [
+            "pkce_state": customState ?? generateState()
+        ]
+        if forceReplace {
+            stateDict["force_replace"] = true
+        }
+        let stateData = try! JSONSerialization.data(withJSONObject: stateDict)
+        return stateData.base64EncodedString()
+    }
+
     /// 開始 Garmin 連接流程
-    func startConnection() async {
-        print("🔧 GarminManager: 開始連接流程")
+    func startConnection(force: Bool = false, state: String? = nil) async {
+        print("🔧 GarminManager: 開始連接流程 (force: \(force), state: \(state ?? "nil"))")
         
         await MainActor.run {
             isConnecting = true
@@ -87,21 +101,22 @@ class GarminManager: NSObject, ObservableObject {
             // 生成 PKCE 參數
             let verifier = generateCodeVerifier()
             let challenge = generateCodeChallenge(from: verifier)
-            let stateValue = generateState()
+            // 用 buildState 產生 stateString
+            let stateString = buildState(forceReplace: force, customState: state)
             
             print("🔧 GarminManager: 生成 PKCE 參數")
             print("  - Code Verifier: \(verifier)")
             print("  - Code Challenge: \(challenge)")
-            print("  - State: \(stateValue)")
+            print("  - State: \(stateString)")
             
             // 儲存參數以供後續使用
             codeVerifier = verifier
-            state = stateValue
+            self.state = stateString
             
             // 建構授權 URL
             let authURL = try buildAuthorizationURL(
                 codeChallenge: challenge,
-                state: stateValue
+                state: stateString
             )
             
             print("🔧 GarminManager: 完整授權 URL: \(authURL)")
@@ -147,9 +162,26 @@ class GarminManager: NSObject, ObservableObject {
         }
         
         // 提取參數 - 現在是從後端傳來的結果
-        let success = queryItems.first { $0.name == "success" }?.value
-        let receivedState = queryItems.first { $0.name == "state" }?.value
         let error = queryItems.first { $0.name == "error" }?.value
+        let errorDescription = queryItems.first { $0.name == "error_description" }?.value ?? "該 Garmin 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin 綁定後，再用本帳號進行連接。"
+        let canForceReplace = queryItems.first { $0.name == "can_force_replace" }?.value
+        let state = queryItems.first { $0.name == "state" }?.value
+        let existingUserId = queryItems.first { $0.name == "existing_user_id" }?.value
+        
+        // 檢查是否需要強制綁定
+        if error == "account_already_connected" {
+            if canForceReplace == "true", let state = state, let existingUserId = existingUserId {
+                await MainActor.run {
+                    self.pendingForceReplace = (state, existingUserId, errorDescription)
+                }
+            } else {
+                await MainActor.run {
+                    self.garminAlreadyBoundMessage = errorDescription
+                    self.pendingForceReplace = nil
+                }
+            }
+            return
+        }
         
         // 檢查是否有錯誤
         if let error = error {
@@ -158,8 +190,8 @@ class GarminManager: NSObject, ObservableObject {
         }
         
         // 驗證 state 參數（如果後端有提供的話）
-        if let receivedState = receivedState {
-            guard receivedState == state else {
+        if let receivedState = state {
+            guard receivedState == self.state else {
                 await handleConnectionError("安全驗證失敗")
                 return
             }
@@ -168,7 +200,8 @@ class GarminManager: NSObject, ObservableObject {
             print("⚠️ 後端未提供 state 參數，跳過驗證（建議後端補上）")
         }
         
-        // 檢查是否成功
+        // 原有的 success/failure 處理
+        let success = queryItems.first { $0.name == "success" }?.value
         if success == "true" {
             // 後端已經處理完成，直接更新狀態
             await MainActor.run {

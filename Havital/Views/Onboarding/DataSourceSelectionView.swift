@@ -1,0 +1,269 @@
+import SwiftUI
+import HealthKit
+
+struct DataSourceSelectionView: View {
+    @StateObject private var healthKitManager = HealthKitManager()
+    @StateObject private var garminManager = GarminManager.shared
+    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    
+    @State private var selectedDataSource: DataSourceType?
+    @State private var isProcessing = false
+    @State private var showError = false
+    @State private var errorMessage = ""
+    @State private var navigateToNextStep = false
+    @State private var showGarminAlreadyBoundAlert = false
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 標題區塊
+                        VStack(spacing: 16) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.accentColor)
+                            
+                            Text("選擇您的數據來源")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("選擇您希望從哪個平台同步您的運動數據")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, 20)
+                        
+                        // 數據源選項
+                        VStack(spacing: 16) {
+                            // Apple Health 選項
+                            dataSourceCard(
+                                type: .appleHealth,
+                                icon: "heart.fill",
+                                title: "Apple Health",
+                                subtitle: "使用 iPhone 和 Apple Watch 的健康資料",
+                                description: "同步您的 Apple Health 數據，包括運動記錄、心率、步數等健康資訊。"
+                            )
+                            
+                            // Garmin 選項
+                            dataSourceCard(
+                                type: .garmin,
+                                icon: "clock.arrow.circlepath",
+                                title: "Garmin",
+                                subtitle: "同步您的 Garmin 帳號活動",
+                                description: "連接您的 Garmin 帳號，同步運動手錶、手環等設備的活動數據。"
+                            )
+                        }
+                        .padding(.horizontal)
+                        
+                        Spacer()
+                        
+                        // 繼續按鈕
+                        Button(action: {
+                            handleDataSourceSelection()
+                        }) {
+                            HStack {
+                                if isProcessing {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                }
+                                Text(isProcessing ? "處理中..." : "繼續")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
+                            .cornerRadius(10)
+                        }
+                        .disabled(selectedDataSource == nil || isProcessing)
+                        .padding(.horizontal, 40)
+                        .padding(.bottom, 30)
+                    }
+                    .padding()
+                }
+                
+                // 隱藏的 NavigationLink
+                NavigationLink(
+                    destination: OnboardingView()
+                        .navigationBarBackButtonHidden(true),
+                    isActive: $navigateToNextStep
+                ) {
+                    EmptyView()
+                }
+            }
+            .navigationBarHidden(true)
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .alert("Garmin 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
+            Button("我知道了", role: .cancel) {
+                garminManager.garminAlreadyBoundMessage = nil
+            }
+        } message: {
+            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin 綁定後，再用本帳號進行連接。")
+        }
+        .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
+            showGarminAlreadyBoundAlert = (msg != nil)
+        }
+        .alert("錯誤", isPresented: $showError) {
+            Button("確定", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    @ViewBuilder
+    private func dataSourceCard(
+        type: DataSourceType,
+        icon: String,
+        title: String,
+        subtitle: String,
+        description: String
+    ) -> some View {
+        Button(action: {
+            selectedDataSource = type
+        }) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(selectedDataSource == type ? .accentColor : .secondary)
+                        .frame(width: 30)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // 選擇狀態指示器
+                    if selectedDataSource == type {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.accentColor)
+                            .font(.title2)
+                    } else {
+                        Image(systemName: "circle")
+                            .foregroundColor(.secondary)
+                            .font(.title2)
+                    }
+                }
+                
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(selectedDataSource == type ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(selectedDataSource == type ? Color.accentColor : Color.clear, lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func handleDataSourceSelection() {
+        guard let selectedSource = selectedDataSource else { return }
+        
+        isProcessing = true
+        
+        Task {
+            do {
+                switch selectedSource {
+                case .appleHealth:
+                    try await handleAppleHealthSelection()
+                case .garmin:
+                    await handleGarminSelection()
+                case .unbound:
+                    // 不應該到達這裡，因為 UI 中沒有提供 unbound 選項
+                    print("DataSourceSelectionView: 意外的 unbound 選擇")
+                }
+                
+                await MainActor.run {
+                    isProcessing = false
+                    navigateToNextStep = true
+                }
+                
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
+    }
+    
+    private func handleAppleHealthSelection() async throws {
+        Logger.firebase("開始 Apple Health 權限請求", level: .info, labels: [
+            "module": "DataSourceSelectionView",
+            "action": "appleHealthSelection",
+            "step": "start"
+        ])
+        
+        // 請求 HealthKit 權限
+        try await healthKitManager.requestAuthorization()
+        
+        // 設置數據源偏好
+        userPreferenceManager.dataSourcePreference = .appleHealth
+        
+        // 同步到後端
+        try await UserService.shared.updateDataSource(DataSourceType.appleHealth.rawValue)
+        
+        Logger.firebase("Apple Health 權限請求成功", level: .info, labels: [
+            "module": "DataSourceSelectionView",
+            "action": "appleHealthSelection",
+            "result": "success"
+        ])
+    }
+    
+    private func handleGarminSelection() async {
+        Logger.firebase("開始 Garmin OAuth 流程", level: .info, labels: [
+            "module": "DataSourceSelectionView",
+            "action": "garminSelection",
+            "step": "start"
+        ])
+        
+        // 設置數據源偏好為 Garmin
+        userPreferenceManager.dataSourcePreference = .garmin
+        
+        // 同步到後端
+        do {
+            try await UserService.shared.updateDataSource(DataSourceType.garmin.rawValue)
+        } catch {
+            print("同步 Garmin 數據源設定到後端失敗: \(error.localizedDescription)")
+        }
+        
+        // 開始 Garmin OAuth 流程（不等待完成）
+        await garminManager.startConnection()
+        
+        Logger.firebase("Garmin OAuth 流程已啟動", level: .info, labels: [
+            "module": "DataSourceSelectionView",
+            "action": "garminSelection",
+            "result": "oauth_started"
+        ])
+        
+        // 不等待 OAuth 完成，直接繼續到下一步
+        // OAuth 流程會在後台進行，用戶可以稍後在設置中完成連接
+    }
+}
+
+struct DataSourceSelectionView_Previews: PreviewProvider {
+    static var previews: some View {
+        DataSourceSelectionView()
+    }
+} 
