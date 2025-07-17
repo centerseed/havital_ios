@@ -60,8 +60,11 @@ class UnifiedWorkoutManager: ObservableObject {
     
     /// 載入運動記錄（統一介面）
     func loadWorkouts() async {
-        // 取消之前的載入任務
-        currentLoadTask?.cancel()
+        // 如果已經在載入中，不要取消，而是等待完成
+        if let existingTask = currentLoadTask {
+            await existingTask.value
+            return
+        }
         
         // 創建新的載入任務
         currentLoadTask = Task {
@@ -69,6 +72,7 @@ class UnifiedWorkoutManager: ObservableObject {
         }
         
         await currentLoadTask?.value
+        currentLoadTask = nil
     }
     
     /// 執行實際的載入邏輯
@@ -167,7 +171,16 @@ class UnifiedWorkoutManager: ObservableObject {
     
     /// 刷新運動記錄（強制從 API 更新）
     func refreshWorkouts() async {
-        await forceRefreshFromAPI()
+        // 取消之前的載入任務，因為刷新需要強制更新
+        currentLoadTask?.cancel()
+        
+        // 創建新的刷新任務
+        currentLoadTask = Task {
+            await forceRefreshFromAPI()
+        }
+        
+        await currentLoadTask?.value
+        currentLoadTask = nil
     }
     
     /// 強制從 API 刷新運動記錄
@@ -178,8 +191,14 @@ class UnifiedWorkoutManager: ObservableObject {
         }
         
         do {
+            // 檢查是否被取消
+            try Task.checkCancellation()
+            
             print("強制刷新：從 API 獲取最新運動記錄...")
             let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
+            
+            // 再次檢查是否被取消
+            try Task.checkCancellation()
             
             // 直接覆寫緩存，確保與後端保持一致
             cacheManager.cacheWorkoutList(fetchedWorkouts)
@@ -200,6 +219,11 @@ class UnifiedWorkoutManager: ObservableObject {
                 ]
             )
             
+        } catch is CancellationError {
+            print("UnifiedWorkoutManager: 強制刷新任務被取消")
+            await MainActor.run {
+                self.isLoading = false
+            }
         } catch {
             await MainActor.run {
                 self.syncError = error.localizedDescription

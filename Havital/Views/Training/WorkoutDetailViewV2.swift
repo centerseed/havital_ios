@@ -23,59 +23,64 @@ struct WorkoutDetailViewV2: View {
     }
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // 基本資訊卡片
-                    basicInfoCard
-                    
-                    // 高級指標卡片
-                    if viewModel.workout.advancedMetrics != nil {
-                        advancedMetricsCard
-                    }
-                    
-                    // 心率變化圖表
-                    heartRateChartSection
-                    
-                    // 配速變化圖表
-                    if !viewModel.paces.isEmpty {
-                        paceChartSection
-                    }
-                    
-                    // 區間分佈卡片（合併顯示）
-                    if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
-                       let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
-                        combinedZoneDistributionCard(hrZones: convertToV2ZoneDistribution(hrZones), paceZones: convertToV2ZoneDistribution(paceZones))
-                    } else if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution {
-                        heartRateZoneCard(convertToV2ZoneDistribution(hrZones))
-                    } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
-                        paceZoneCard(convertToV2ZoneDistribution(paceZones))
-                    }
-                    
-                    // 載入狀態或錯誤訊息
-                    if viewModel.isLoading {
-                        loadingView
-                    } else if let error = viewModel.error {
-                        errorView(error)
-                    }
-                    
-                    // 數據來源和設備信息卡片（移到最底下）
-                    sourceInfoCard
+        ScrollView {
+            VStack(spacing: 16) {
+                // 基本資訊卡片（始終顯示）
+                basicInfoCard
+                
+                // 高級指標卡片
+                if viewModel.workout.advancedMetrics != nil {
+                    advancedMetricsCard
                 }
-                .padding()
-            }
-            .navigationTitle("運動詳情")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("關閉") {
-                        dismiss()
+                
+                // 載入狀態或錯誤訊息
+                if viewModel.isLoading {
+                    loadingView
+                } else if let error = viewModel.error {
+                    errorView(error)
+                } else {
+                    // 只有在非載入狀態且無錯誤時顯示圖表
+                    LazyVStack(spacing: 16) {
+                        // 心率變化圖表
+                        heartRateChartSection
+                        
+                        // 配速變化圖表
+                        if !viewModel.paces.isEmpty {
+                            paceChartSection
+                        }
+                        
+                        // 區間分佈卡片（合併顯示）
+                        if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
+                           let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
+                            combinedZoneDistributionCard(hrZones: convertToV2ZoneDistribution(hrZones), paceZones: convertToV2ZoneDistribution(paceZones))
+                        } else if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution {
+                            heartRateZoneCard(convertToV2ZoneDistribution(hrZones))
+                        } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
+                            paceZoneCard(convertToV2ZoneDistribution(paceZones))
+                        }
                     }
+                }
+                
+                // 數據來源和設備信息卡片（移到最底下）
+                sourceInfoCard
+            }
+            .padding()
+        }
+        .navigationTitle("運動詳情")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("關閉") {
+                    dismiss()
                 }
             }
         }
-        .onAppear {
-            viewModel.loadWorkoutDetail()
+        .task {
+            await viewModel.loadWorkoutDetail()
+        }
+        .onDisappear {
+            // 確保在 View 消失時取消任務
+            viewModel.cancelLoadingTasks()
         }
     }
     
@@ -169,23 +174,43 @@ struct WorkoutDetailViewV2: View {
     // MARK: - 圖表區塊
     
     private var heartRateChartSection: some View {
-        HeartRateChartView(
-            heartRates: viewModel.heartRates,
-            maxHeartRate: viewModel.maxHeartRateString,
-            averageHeartRate: viewModel.chartAverageHeartRate,
-            minHeartRate: viewModel.minHeartRateString,
-            yAxisRange: viewModel.yAxisRange,
-            isLoading: viewModel.isLoading,
-            error: viewModel.error
-        )
+        Group {
+            if !viewModel.heartRates.isEmpty {
+                HeartRateChartView(
+                    heartRates: viewModel.heartRates,
+                    maxHeartRate: viewModel.maxHeartRateString,
+                    averageHeartRate: viewModel.chartAverageHeartRate,
+                    minHeartRate: viewModel.minHeartRateString,
+                    yAxisRange: viewModel.yAxisRange,
+                    isLoading: viewModel.isLoading,
+                    error: viewModel.error
+                )
+            } else {
+                // 簡化的空狀態顯示
+                VStack {
+                    Text("心率數據")
+                        .font(.headline)
+                    Text("無心率數據")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(12)
+            }
+        }
     }
     
     private var paceChartSection: some View {
-        PaceChartView(
-            paces: viewModel.paces,
-            isLoading: viewModel.isLoading,
-            error: viewModel.error
-        )
+        Group {
+            if !viewModel.paces.isEmpty {
+                PaceChartView(
+                    paces: viewModel.paces,
+                    isLoading: viewModel.isLoading,
+                    error: viewModel.error
+                )
+            }
+        }
     }
     
     // MARK: - 高級指標卡片

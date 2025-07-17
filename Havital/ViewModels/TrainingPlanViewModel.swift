@@ -109,6 +109,9 @@ class TrainingPlanViewModel: ObservableObject {
     // 添加 Combine cancellables
     private var cancellables = Set<AnyCancellable>()
     
+    // 任務管理
+    private var refreshTask: Task<Void, Never>?
+    
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }
     
@@ -478,7 +481,7 @@ class TrainingPlanViewModel: ObservableObject {
         updatePromptViews()
     }
     
-    func loadWeeklyPlan() async {
+    func loadWeeklyPlan(skipCache: Bool = false) async {
         // 修正：在載入計畫前，務必先重新計算當前週數，確保資料最新
         if let overview = trainingOverview, !overview.createdAt.isEmpty {
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
@@ -487,8 +490,11 @@ class TrainingPlanViewModel: ObservableObject {
         // 僅在已有 trainingOverview.id 時才載入週計劃，避免無 overview 時報錯
         guard let overview = trainingOverview, !overview.id.isEmpty else { return }
         
-        // 先檢查本地緩存
-        if let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
+        // 檢查是否應該跳過快取
+        let shouldSkipCache = skipCache || shouldBypassCacheForWeeklyPlan()
+        
+        // 先檢查本地緩存（除非被要求跳過）
+        if !shouldSkipCache, let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
             // 立即使用緩存數據更新 UI，不顯示 loading 狀態
             let cw = calculateCurrentTrainingWeek() ?? 0
             let status: PlanStatus = cw > overview.totalWeeks ? .completed : .ready(savedPlan)
@@ -524,7 +530,7 @@ class TrainingPlanViewModel: ObservableObject {
                 }
             }
         } else {
-            // 本地無數據時才顯示 loading 狀態
+            // 本地無數據或跳過快取時顯示 loading 狀態
             planStatus = .loading
             
             do {
@@ -555,6 +561,23 @@ class TrainingPlanViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    /// 判斷是否應該跳過週課表快取
+    private func shouldBypassCacheForWeeklyPlan() -> Bool {
+        // 如果是新的一週開始，需要跳過快取以確保週回顧按鈕正確顯示
+        guard let overview = trainingOverview,
+              let currentWeek = calculateCurrentTrainingWeek() else {
+            return false
+        }
+        
+        // 檢查是否有本地快取的週課表
+        guard let savedPlan = TrainingPlanStorage.loadWeeklyPlan() else {
+            return false // 沒有快取，不需要跳過
+        }
+        
+        // 如果當前週數大於快取的週數，可能需要顯示週回顧按鈕
+        return currentWeek > savedPlan.weekOfPlan
     }
     
     /// 依據指定週數產生對應週計劃
@@ -783,14 +806,43 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
     
-    func refreshWeeklyPlan() async {
+    func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
+        // 取消之前的刷新任務
+        refreshTask?.cancel()
+        
+        // 創建新的刷新任務
+        refreshTask = Task {
+            await performRefreshWeeklyPlan(isManualRefresh: isManualRefresh)
+        }
+        
+        await refreshTask?.value
+        refreshTask = nil
+    }
+    
+    /// 執行實際的刷新邏輯
+    private func performRefreshWeeklyPlan(isManualRefresh: Bool) async {
+        // 檢查是否被取消
+        guard !Task.isCancelled else { return }
+        
         // 修正：在刷新計畫前，務必先重新計算當前週數，確保資料最新
         if let overview = trainingOverview, !overview.createdAt.isEmpty {
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
         }
         
+        // 檢查是否被取消
+        guard !Task.isCancelled else { return }
+        
         // 刷新 UnifiedWorkoutManager 的數據
         await unifiedWorkoutManager.refreshWorkouts()
+        
+        // 檢查是否被取消
+        guard !Task.isCancelled else { return }
+        
+        // 手動刷新時跳過快取，直接從 API 獲取最新數據
+        if isManualRefresh {
+            await loadWeeklyPlan(skipCache: true)
+            return
+        }
         
         // 下拉刷新僅更新資料，不變更 planStatus
         
@@ -798,6 +850,9 @@ class TrainingPlanViewModel: ObservableObject {
         var currentRetry = 0
         
         while currentRetry < maxRetries {
+            // 檢查是否被取消
+            guard !Task.isCancelled else { return }
+            
             do {
                 Logger.debug("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
                 // 使用獨立 Task 呼叫 Service，避免 Button 或 View 取消影響
@@ -808,6 +863,9 @@ class TrainingPlanViewModel: ObservableObject {
                 let newPlan = try await Task.detached(priority: .userInitiated) {
                     try await TrainingPlanService.shared.getWeeklyPlanById(planId: weekId)
                 }.value
+                
+                // 檢查是否被取消
+                guard !Task.isCancelled else { return }
                 
                 // 檢查計劃是否有變更
                 let planWeekChanged =
@@ -825,12 +883,26 @@ class TrainingPlanViewModel: ObservableObject {
                 
                 Logger.debug("完成更新計劃")
                 
+                // 檢查是否被取消
+                guard !Task.isCancelled else { return }
+                
                 // 重新載入訓練記錄
                 await loadWorkoutsForCurrentWeek()
+                
+                // 檢查是否被取消
+                guard !Task.isCancelled else { return }
+                
                 await identifyTodayTraining()
+                
+                // 檢查是否被取消
+                guard !Task.isCancelled else { return }
                 
                 // 修正：無條件重新載入週跑量，確保跨週時能正確歸零
                 await loadCurrentWeekDistance()
+                
+                // 檢查是否被取消
+                guard !Task.isCancelled else { return }
+                
                 // 同時重新載入訓練強度
                 await loadCurrentWeekIntensity()
                 

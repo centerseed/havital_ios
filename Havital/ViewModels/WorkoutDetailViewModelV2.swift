@@ -292,6 +292,12 @@ class WorkoutDetailViewModelV2: ObservableObject {
     
     deinit {
         loadTask?.cancel()
+        // 確保所有異步任務都被取消
+        heartRates.removeAll()
+        paces.removeAll()
+        speeds.removeAll()
+        altitudes.removeAll()
+        cadences.removeAll()
     }
     
     // MARK: - 時間序列數據處理
@@ -323,7 +329,8 @@ class WorkoutDetailViewModelV2: ObservableObject {
                 }
             }
             
-            self.heartRates = heartRatePoints
+            // 數據降採樣以提升效能
+            self.heartRates = downsampleData(heartRatePoints, maxPoints: 500)
         }
         
         // 直接使用 API 提供的配速數據
@@ -342,14 +349,34 @@ class WorkoutDetailViewModelV2: ObservableObject {
                 }
             }
             
-            self.paces = pacePoints
+            // 數據降採樣以提升效能
+            self.paces = downsampleData(pacePoints, maxPoints: 500)
         }
+    }
+    
+    /// 數據降採樣以提升圖表效能
+    private func downsampleData(_ dataPoints: [DataPoint], maxPoints: Int) -> [DataPoint] {
+        guard dataPoints.count > maxPoints else { return dataPoints }
+        
+        let step = dataPoints.count / maxPoints
+        var sampledPoints: [DataPoint] = []
+        
+        for i in stride(from: 0, to: dataPoints.count, by: step) {
+            sampledPoints.append(dataPoints[i])
+        }
+        
+        // 確保包含最後一個點
+        if let lastPoint = dataPoints.last, sampledPoints.last != lastPoint {
+            sampledPoints.append(lastPoint)
+        }
+        
+        return sampledPoints
     }
     
     // MARK: - 數據載入
     
     /// 載入運動詳細資料（只載入一次，不支援刷新）
-    func loadWorkoutDetail() {
+    func loadWorkoutDetail() async {
         // 如果已經載入過，直接返回
         if workoutDetail != nil {
             return
@@ -358,10 +385,14 @@ class WorkoutDetailViewModelV2: ObservableObject {
         // 取消之前的任務
         loadTask?.cancel()
         
-        // 創建新的載入任務
-        loadTask = Task { @MainActor in
-            await performLoadWorkoutDetail()
-        }
+        // 直接執行載入邏輯
+        await performLoadWorkoutDetail()
+    }
+    
+    /// 取消載入任務
+    func cancelLoadingTasks() {
+        loadTask?.cancel()
+        loadTask = nil
     }
     
     @MainActor
@@ -370,16 +401,28 @@ class WorkoutDetailViewModelV2: ObservableObject {
         error = nil
         
         do {
-            // 首先檢查快取
-            if let cachedDetail = cacheManager.getCachedWorkoutDetail(workoutId: workout.id) {
-                // 轉換快取的數據到實際格式
+            // 首先檢查快取（30 分鐘 TTL）
+            if let cachedDetail = cacheManager.getCachedWorkoutDetail(workoutId: workout.id, maxAge: 30 * 60) {
                 Logger.firebase(
                     "從快取載入運動詳情",
                     level: .info,
                     labels: ["module": "WorkoutDetailViewModelV2", "action": "load_cached"]
                 )
-                // 注意：這裡需要處理數據格式轉換，因為快取的格式可能和實際格式不同
-                // 暫時跳過，直接從 API 獲取
+                
+                // 處理快取的時間序列數據
+                self.processTimeSeriesData(from: cachedDetail)
+                
+                // 設置心率 Y 軸範圍
+                if !heartRates.isEmpty {
+                    let hrValues = heartRates.map { $0.value }
+                    let minHR = hrValues.min() ?? 60
+                    let maxHR = hrValues.max() ?? 180
+                    let margin = (maxHR - minHR) * 0.1
+                    self.yAxisRange = (max(minHR - margin, 50), min(maxHR + margin, 220))
+                }
+                
+                self.isLoading = false
+                return // 使用快取數據，不需要 API 呼叫
             }
             
             // 檢查任務是否被取消
@@ -406,7 +449,7 @@ class WorkoutDetailViewModelV2: ObservableObject {
                 self.yAxisRange = (max(minHR - margin, 50), min(maxHR + margin, 220))
             }
             
-                            Logger.firebase(
+            Logger.firebase(
                 "運動詳情載入成功",
                 level: .info,
                 labels: ["module": "WorkoutDetailViewModelV2", "action": "load_detail"],

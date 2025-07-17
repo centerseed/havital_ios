@@ -99,6 +99,8 @@ View 層完全由 SwiftUI 構建。
 
 ## 5. 資料流 (Data Flow)
 
+> 📋 **詳細資料流程架構**: 請參考 [data_flow_architecture.md](./data_flow_architecture.md) 獲取完整的資料流程分析，包括快取策略、任務管理和潛在問題分析。
+
 graph TD
     A[TrainingProgressView] --> B[TrainingPlanViewModel]
     B --> C[UnifiedWorkoutManager]

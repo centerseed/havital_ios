@@ -33,7 +33,9 @@ struct TrainingRecordView: View {
                 DeviceInfoSheetView()
             }
             .sheet(item: $selectedWorkout) { workout in
-                WorkoutDetailViewV2(workout: workout)
+                NavigationStack {
+                    WorkoutDetailViewV2(workout: workout)
+                }
             }
             .task {
                 await viewModel.loadWorkouts(healthKitManager: healthKitManager)

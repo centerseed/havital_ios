@@ -208,8 +208,6 @@ struct TrainingPlanView: View {
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var showWeekSelector = false
     
-    // 添加一個計時器來刷新訓練記錄
-    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
         NavigationStack {
@@ -236,8 +234,8 @@ struct TrainingPlanView: View {
             .transaction { $0.disablesAnimations = true }
             .background(Color(UIColor.systemGroupedBackground))
             .refreshable {
-                // 下拉刷新：直接更新 weekPlan 資料
-                await viewModel.refreshWeeklyPlan()
+                // 下拉刷新：手動刷新，跳過所有快取
+                await viewModel.refreshWeeklyPlan(isManualRefresh: true)
             }
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
@@ -253,9 +251,6 @@ struct TrainingPlanView: View {
             if hasCompletedOnboarding {
                 await viewModel.loadAllInitialData()
             }
-        }
-        .onReceive(timer) { _ in
-            refreshWorkouts()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             refreshWorkouts()
@@ -427,22 +422,14 @@ struct TrainingPlanView: View {
             // 確保 UnifiedWorkoutManager 數據是最新的
             await viewModel.refreshWorkoutData()
             
+            // 檢查週課表狀態
+            await viewModel.loadWeeklyPlan()
+            
             await viewModel.loadCurrentWeekDistance()
             await viewModel.loadWorkoutsForCurrentWeek()
         }
     }
     
-    // 檢查更新
-    private func checkForUpdates() {
-        if let lastUpdateTime = UserDefaults.standard.object(forKey: "last_weekly_plan_update") as? Date {
-            let hoursSinceLastUpdate = Calendar.current.dateComponents([.hour], from: lastUpdateTime, to: Date()).hour ?? 0
-            if hoursSinceLastUpdate >= 1 {
-                Task {
-                    await viewModel.refreshWeeklyPlan()
-                }
-            }
-        }
-    }
 }
 
 extension Notification.Name {
