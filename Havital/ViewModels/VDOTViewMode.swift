@@ -65,7 +65,7 @@ class VDOTChartViewModel: ObservableObject {
         }
     }
 
-    func fetchVDOTData(limit: Int = 30, forceFetch: Bool = false) async {
+    func fetchVDOTData(limit: Int = 14, forceFetch: Bool = false) async {
         // 如果本地有數據，延遲顯示loading狀態
         let shouldShowLoading = vdotPoints.isEmpty
 
@@ -77,11 +77,11 @@ class VDOTChartViewModel: ObservableObject {
         }
 
         // 檢查是否需要從後端獲取數據
-        // 如果30秒內已獲取過數據且不是強制刷新，則使用本地緩存
-        if !needUpdatedHrRange && !forceFetch && !storage.shouldRefreshData(cacheTimeInSeconds: 10)
+        // 如果30分鐘內已獲取過數據且不是強制刷新，則使用本地緩存
+        if !needUpdatedHrRange && !forceFetch && !storage.shouldRefreshData(cacheTimeInSeconds: 1800)
             && !vdotPoints.isEmpty
         {
-            print("使用30秒內的本地緩存VDOT數據")
+            print("使用30分鐘內的本地緩存VDOT數據")
 
             if shouldShowLoading {
                 await MainActor.run {
@@ -97,7 +97,7 @@ class VDOTChartViewModel: ObservableObject {
             // 使用 APIClient 取得 VDOT 資料，附加 limit 參數
             let response: VDOTResponse = try await APIClient.shared.request(
                 VDOTResponse.self,
-                path: "/workout/vdots?limit=\(limit)")
+                path: "/v2/workouts/vdots?limit=\(limit)")
 
             let vdotEntries = response.data.vdots
             let points = vdotEntries.map { entry in

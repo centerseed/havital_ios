@@ -4,7 +4,7 @@ import BackgroundTasks
 
 /// 統一運動數據管理器
 /// 負責協調 Apple Health 和 Garmin 的資料流程，實現統一的 V2 API 資料架構
-class UnifiedWorkoutManager: ObservableObject {
+class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     static let shared = UnifiedWorkoutManager()
     
     // 依賴服務
@@ -22,8 +22,8 @@ class UnifiedWorkoutManager: ObservableObject {
     private var healthKitObserver: HKObserverQuery?
     private var isObserving = false
     
-    // 任務管理
-    private var currentLoadTask: Task<Void, Never>?
+    // 任務管理 - 使用 TaskManageable 協議
+    var activeTasks: [String: Task<Void, Never>] = [:]
     
     private init() {
         setupNotificationObservers()
@@ -60,19 +60,9 @@ class UnifiedWorkoutManager: ObservableObject {
     
     /// 載入運動記錄（統一介面）
     func loadWorkouts() async {
-        // 如果已經在載入中，不要取消，而是等待完成
-        if let existingTask = currentLoadTask {
-            await existingTask.value
-            return
+        await executeTask(id: "load_workouts") {
+            await self.performLoadWorkouts()
         }
-        
-        // 創建新的載入任務
-        currentLoadTask = Task {
-            await performLoadWorkouts()
-        }
-        
-        await currentLoadTask?.value
-        currentLoadTask = nil
     }
     
     /// 執行實際的載入邏輯
@@ -172,15 +162,11 @@ class UnifiedWorkoutManager: ObservableObject {
     /// 刷新運動記錄（強制從 API 更新）
     func refreshWorkouts() async {
         // 取消之前的載入任務，因為刷新需要強制更新
-        currentLoadTask?.cancel()
+        cancelTask(id: "load_workouts")
         
-        // 創建新的刷新任務
-        currentLoadTask = Task {
-            await forceRefreshFromAPI()
+        await executeTask(id: "refresh_workouts") {
+            await self.forceRefreshFromAPI()
         }
-        
-        await currentLoadTask?.value
-        currentLoadTask = nil
     }
     
     /// 強制從 API 刷新運動記錄
@@ -563,9 +549,8 @@ class UnifiedWorkoutManager: ObservableObject {
     // MARK: - Private Methods
     
     private func stopCurrentWorkflow() async {
-        // 取消當前載入任務
-        currentLoadTask?.cancel()
-        currentLoadTask = nil
+        // 取消所有任務
+        cancelAllTasks()
         
         // 停止 HealthKit 觀察者
         if let observer = healthKitObserver {
@@ -601,7 +586,7 @@ class UnifiedWorkoutManager: ObservableObject {
     }
     
     deinit {
-        currentLoadTask?.cancel()
+        cancelAllTasks()
         NotificationCenter.default.removeObserver(self)
     }
 }

@@ -164,6 +164,27 @@ class TargetStorage {
             
         return upcomingTargets.first
     }
+    
+    func getCacheSize() -> Int {
+        // 計算 UserDefaults 中快取項目的大小
+        if let data = defaults.data(forKey: targetsKey) {
+            return data.count
+        }
+        return 0
+    }
+}
+
+// MARK: - Cacheable 協議實作
+extension TargetStorage: Cacheable {
+    var cacheIdentifier: String { "targets" }
+    
+    func clearCache() {
+        clearAllTargets()
+    }
+    
+    func isExpired() -> Bool {
+        return false // 目標不自動過期
+    }
 }
 
 // 擴充 Notification.Name (保持不變，除非你有新的通知需求)

@@ -7,7 +7,7 @@ import AuthenticationServices
 import CryptoKit // For SHA256 nonce
 import FirebaseMessaging // For FCM token
 
-class AuthenticationService: NSObject, ObservableObject {
+class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     @Published var user: FirebaseAuth.User?
     @Published var appUser: User?
     @Published var isAuthenticated = false
@@ -19,6 +19,9 @@ class AuthenticationService: NSObject, ObservableObject {
     static let shared = AuthenticationService()
     private var cancellables = Set<AnyCancellable>()
     private var currentNonce: String?
+    
+    // TaskManageable 協議實作
+    var activeTasks: [String: Task<Void, Never>] = [:]
     
     override private init() {
         super.init() // Call super.init() first
@@ -97,6 +100,12 @@ class AuthenticationService: NSObject, ObservableObject {
     }
     
     func signInWithGoogle() async {
+        await executeTask(id: "sign_in_google") {
+            await self.performGoogleSignIn()
+        }
+    }
+    
+    private func performGoogleSignIn() async {
         await MainActor.run {
             isLoading = true
             loginError = nil
@@ -167,8 +176,16 @@ class AuthenticationService: NSObject, ObservableObject {
 
     @MainActor // Ensure UI updates are on the main thread
     func signInWithApple() async {
-        isLoading = true
-        loginError = nil
+        await executeTask(id: "sign_in_apple") {
+            await self.performAppleSignIn()
+        }
+    }
+    
+    private func performAppleSignIn() async {
+        await MainActor.run {
+            isLoading = true
+            loginError = nil
+        }
 
         let nonce = randomNonceString()
         currentNonce = nonce
@@ -185,6 +202,12 @@ class AuthenticationService: NSObject, ObservableObject {
     }
     
     internal func syncUserWithBackend(idToken: String) async throws {
+        _ = await executeTask(id: "sync_user_backend") {
+            try await self.performUserSync(idToken: idToken)
+        }
+    }
+    
+    private func performUserSync(idToken: String) async throws {
         // 從後端取得完整用戶資料
         var user = try await APIClient.shared.request(User.self, path: "/user")
         // 若後端未返回名稱或頭像，使用 Firebase 資料更新後端
@@ -267,6 +290,11 @@ class AuthenticationService: NSObject, ObservableObject {
             .store(in: &cancellables)
     }
     
+    deinit {
+        cancelAllTasks()
+        cancellables.removeAll()
+    }
+    
     func signOut() throws {
         // 先解除 Garmin 綁定（如果已連接）
         Task {
@@ -289,14 +317,12 @@ class AuthenticationService: NSObject, ObservableObject {
             UserDefaults.standard.synchronize()
         }
         
-        // 清除所有本地存儲
+        // 使用 CacheEventBus 統一清除所有快取
+        CacheEventBus.shared.invalidateCache(for: .userLogout)
+        
+        // 清除非快取相關的本地存儲
         UserPreferenceManager.shared.clearUserData()
-        WorkoutV2CacheManager.shared.clearAllCache()
         WorkoutV2Service.shared.clearWorkoutSummaryCache()
-        TargetStorage.shared.clearAllTargets()
-        TrainingPlanStorage.shared.clearAll()
-        WeeklySummaryStorage.shared.clearSavedWeeklySummary()
-        VDOTStorage.shared.clearVDOTData()
         WorkoutUploadTracker.shared.clearUploadedWorkouts()
         SyncNotificationManager.shared.reset()
         
@@ -337,8 +363,7 @@ class AuthenticationService: NSObject, ObservableObject {
             // 或者，更簡單的方式是讓後續的 Onboarding 流程覆蓋舊資料
             
             // 4. 清除本地與訓練計畫相關的緩存，確保重新 Onboarding 時是乾淨的狀態
-            TrainingPlanStorage.shared.clearAll()
-            WeeklySummaryStorage.shared.clearSavedWeeklySummary()
+            CacheEventBus.shared.invalidateCache(for: .dataChanged(.trainingPlan))
             // VDOTStorage.shared.clearVDOTData() // VDOT 可能基於賽事目標，看是否需要清除
             // UserPreferenceManager.shared.clearTrainingPreferences() // 清除用戶訓練偏好，讓他們重新設定
             
@@ -348,6 +373,12 @@ class AuthenticationService: NSObject, ObservableObject {
 
     // Get the current ID token
     public func syncRecentWorkouts() async {
+        await executeTask(id: "sync_recent_workouts") {
+            await self.performRecentWorkoutsSync()
+        }
+    }
+    
+    private func performRecentWorkoutsSync() async {
         guard isAuthenticated, appUser != nil else {
             print("使用者未登入，跳過同步最近 workout")
             return

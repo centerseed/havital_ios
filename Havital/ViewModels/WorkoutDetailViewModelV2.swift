@@ -262,7 +262,7 @@ struct Metadata: Codable {
     }
 }
 
-class WorkoutDetailViewModelV2: ObservableObject {
+class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     @Published var workoutDetail: WorkoutDetailV2?
     @Published var isLoading = false
     @Published var error: String?
@@ -284,14 +284,16 @@ class WorkoutDetailViewModelV2: ObservableObject {
     let workout: WorkoutV2
     private let workoutV2Service = WorkoutV2Service.shared
     private let cacheManager = WorkoutV2CacheManager.shared
-    private var loadTask: Task<Void, Never>?
+    
+    // TaskManageable 協議實作
+    var activeTasks: [String: Task<Void, Never>] = [:]
     
     init(workout: WorkoutV2) {
         self.workout = workout
     }
     
     deinit {
-        loadTask?.cancel()
+        cancelAllTasks()
         // 確保所有異步任務都被取消
         heartRates.removeAll()
         paces.removeAll()
@@ -382,17 +384,14 @@ class WorkoutDetailViewModelV2: ObservableObject {
             return
         }
         
-        // 取消之前的任務
-        loadTask?.cancel()
-        
-        // 直接執行載入邏輯
-        await performLoadWorkoutDetail()
+        await executeTask(id: "load_workout_detail") {
+            await self.performLoadWorkoutDetail()
+        }
     }
     
     /// 取消載入任務
     func cancelLoadingTasks() {
-        loadTask?.cancel()
-        loadTask = nil
+        cancelAllTasks()
     }
     
     @MainActor

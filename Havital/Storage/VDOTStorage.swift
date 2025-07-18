@@ -69,7 +69,7 @@ class VDOTStorage {
         return nil
     }
 
-    func shouldRefreshData(cacheTimeInSeconds: Double = 30) -> Bool {
+    func shouldRefreshData(cacheTimeInSeconds: Double = 1800) -> Bool {
         guard let lastFetchTime = getLastFetchTime() else {
             // 如果沒有上次獲取時間，應該刷新
             return true
@@ -78,7 +78,7 @@ class VDOTStorage {
         let currentTime = Date()
         let timeSinceLastFetch = currentTime.timeIntervalSince(lastFetchTime)
 
-        // 如果距離上次獲取時間超過指定分鐘數，應該刷新
+        // 如果距離上次獲取時間超過指定秒數，應該刷新
         return timeSinceLastFetch > cacheTimeInSeconds
     }
 

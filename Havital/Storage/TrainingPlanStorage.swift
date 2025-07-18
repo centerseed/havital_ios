@@ -12,6 +12,9 @@ class TrainingPlanStorage {
     static func saveWeeklyPlan(_ plan: WeeklyPlan) {
         do {
             let data = try JSONEncoder().encode(plan)
+            let weekKey = "\(shared.weeklyPlanKey)_week_\(plan.weekOfPlan)"
+            UserDefaults.standard.set(data, forKey: weekKey)
+            // Also save with the generic key for backward compatibility
             UserDefaults.standard.set(data, forKey: shared.weeklyPlanKey)
         } catch {
             print("Error saving weekly plan: \(error)")
@@ -27,6 +30,20 @@ class TrainingPlanStorage {
             return try JSONDecoder().decode(WeeklyPlan.self, from: data)
         } catch {
             print("Error loading weekly plan: \(error)")
+            return nil
+        }
+    }
+    
+    static func loadWeeklyPlan(forWeek week: Int) -> WeeklyPlan? {
+        let weekKey = "\(shared.weeklyPlanKey)_week_\(week)"
+        guard let data = UserDefaults.standard.data(forKey: weekKey) else {
+            return nil
+        }
+        
+        do {
+            return try JSONDecoder().decode(WeeklyPlan.self, from: data)
+        } catch {
+            print("Error loading weekly plan for week \(week): \(error)")
             return nil
         }
     }
@@ -68,5 +85,51 @@ class TrainingPlanStorage {
         defaults.removeObject(forKey: planKey)
         defaults.removeObject(forKey: planOverviewKey)
         defaults.removeObject(forKey: weeklyPlanKey)
+        
+        // Clear all week-specific caches
+        let allKeys = defaults.dictionaryRepresentation().keys
+        for key in allKeys {
+            if key.hasPrefix(weeklyPlanKey + "_week_") {
+                defaults.removeObject(forKey: key)
+            }
+        }
+    }
+    
+    func getCacheSize() -> Int {
+        var totalSize = 0
+        
+        // 計算 UserDefaults 中各個快取項目的大小
+        if let data = defaults.data(forKey: planKey) {
+            totalSize += data.count
+        }
+        if let data = defaults.data(forKey: planOverviewKey) {
+            totalSize += data.count
+        }
+        if let data = defaults.data(forKey: weeklyPlanKey) {
+            totalSize += data.count
+        }
+        
+        // 計算所有週課表快取的大小
+        let allKeys = defaults.dictionaryRepresentation().keys
+        for key in allKeys {
+            if key.hasPrefix(weeklyPlanKey + "_week_"), let data = defaults.data(forKey: key) {
+                totalSize += data.count
+            }
+        }
+        
+        return totalSize
+    }
+}
+
+// MARK: - Cacheable 協議實作
+extension TrainingPlanStorage: Cacheable {
+    var cacheIdentifier: String { "training_plan" }
+    
+    func clearCache() {
+        clearAll()
+    }
+    
+    func isExpired() -> Bool {
+        return false // 訓練計劃不自動過期
     }
 }

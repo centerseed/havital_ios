@@ -29,7 +29,7 @@ enum NetworkError: Error, LocalizedError {
 }
 
 @MainActor
-class TrainingPlanViewModel: ObservableObject {
+class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var weeklyPlan: WeeklyPlan?
     @Published var isLoading = false
     @Published var error: Error?
@@ -109,8 +109,8 @@ class TrainingPlanViewModel: ObservableObject {
     // 添加 Combine cancellables
     private var cancellables = Set<AnyCancellable>()
     
-    // 任務管理
-    private var refreshTask: Task<Void, Never>?
+    // 任務管理 (使用 TaskManageable 協議)
+    var activeTasks: [String: Task<Void, Never>] = [:]
     
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }
@@ -197,20 +197,36 @@ class TrainingPlanViewModel: ObservableObject {
             return
         }
         
-        isLoadingWeeklySummaries = true
-        defer { isLoadingWeeklySummaries = false }
+        await executeTask(id: "fetch_weekly_summaries") {
+            await self.performFetchWeeklySummaries()
+        }
+    }
+    
+    private func performFetchWeeklySummaries() async {
+        await MainActor.run {
+            isLoadingWeeklySummaries = true
+        }
+        defer { 
+            Task { @MainActor in
+                isLoadingWeeklySummaries = false
+            }
+        }
         
         do {
             let summaries = try await weeklySummaryService.fetchWeeklySummaries()
-            // 按照週數從新到舊排序
-            self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
-            // 更新緩存
-            cacheWeeklySummaries(self.weeklySummaries)
+            await MainActor.run {
+                // 按照週數從新到舊排序
+                self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
+                // 更新緩存
+                cacheWeeklySummaries(self.weeklySummaries)
+            }
         } catch {
             Logger.error("Failed to fetch weekly summaries: \(error.localizedDescription)")
-            // 如果獲取失敗但有緩存，使用緩存數據
-            if weeklySummaries.isEmpty {
-                loadCachedWeeklySummaries()
+            await MainActor.run {
+                // 如果獲取失敗但有緩存，使用緩存數據
+                if weeklySummaries.isEmpty {
+                    loadCachedWeeklySummaries()
+                }
             }
         }
     }
@@ -218,12 +234,20 @@ class TrainingPlanViewModel: ObservableObject {
     // 強制更新週摘要列表（用於產生新課表或週回顧後）
     @MainActor
     func forceUpdateWeeklySummaries() async {
+        await executeTask(id: "force_update_weekly_summaries") {
+            await self.performForceUpdateWeeklySummaries()
+        }
+    }
+    
+    private func performForceUpdateWeeklySummaries() async {
         do {
             let summaries = try await weeklySummaryService.fetchWeeklySummaries()
-            // 按照週數從新到舊排序
-            self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
-            // 更新緩存
-            cacheWeeklySummaries(self.weeklySummaries)
+            await MainActor.run {
+                // 按照週數從新到舊排序
+                self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
+                // 更新緩存
+                cacheWeeklySummaries(self.weeklySummaries)
+            }
         } catch {
             Logger.error("Failed to force update weekly summaries: \(error.localizedDescription)")
         }
@@ -265,6 +289,11 @@ class TrainingPlanViewModel: ObservableObject {
         if !savedOverview.createdAt.isEmpty {
             self.trainingOverview = savedOverview
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
+            // Initialize selectedWeek to currentWeek to avoid showing incorrect week selection
+            self.selectedWeek = self.currentWeek
+            
+            // Note: Cache clearing removed - backend confirmed they will fix the API issue
+            
             // 如果是從本地載入，且已 onboarding，則不需要 splash
             // 但 showSyncingSplash 的最終狀態由後續的 Task 決定，以處理 API call 的情況
         }
@@ -289,6 +318,8 @@ class TrainingPlanViewModel: ObservableObject {
                     await MainActor.run {
                         self.trainingOverview = overview
                         self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
+                        // Initialize selectedWeek to currentWeek to avoid showing incorrect week selection
+                        self.selectedWeek = self.currentWeek
                         self.showSyncingSplash = false // 成功獲取後關閉 splash
                     }
                 } catch {
@@ -340,6 +371,12 @@ class TrainingPlanViewModel: ObservableObject {
     // 獲取訓練回顧的方法
     @MainActor
     func createWeeklySummary() async {
+        await executeTask(id: "create_weekly_summary") {
+            await self.performCreateWeeklySummary()
+        }
+    }
+    
+    private func performCreateWeeklySummary() async {
         await MainActor.run {
             isLoadingAnimation = true // 顯示 Loading 動畫
             isLoadingWeeklySummary = true
@@ -466,22 +503,39 @@ class TrainingPlanViewModel: ObservableObject {
     // Consolidated UI updater for weekly plan
     @MainActor private func updateWeeklyPlanUI(plan: WeeklyPlan?, planChanged: Bool = false, status: PlanStatus) {
         if let plan = plan {
+            Logger.debug("updateWeeklyPlanUI: 更新週計劃 - 週數=\(plan.weekOfPlan), ID=\(plan.id)")
+            Logger.debug("updateWeeklyPlanUI: 更新前 selectedWeek=\(self.selectedWeek)")
+            
             self.weeklyPlan = plan
             self.currentPlanWeek = plan.weekOfPlan
             if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: plan.weekOfPlan) {
                 self.weekDateInfo = info
             }
             self.selectedWeek = plan.weekOfPlan
+            
+            Logger.debug("updateWeeklyPlanUI: 更新後 selectedWeek=\(self.selectedWeek)")
+            
+            // Save the plan to cache when updating UI
+            TrainingPlanStorage.saveWeeklyPlan(plan)
             if planChanged {
                 self.workoutsByDay.removeAll()
                 self.expandedDayIndices.removeAll()
             }
+        } else {
+            Logger.debug("updateWeeklyPlanUI: 週計劃為 nil")
         }
         self.planStatus = status
         updatePromptViews()
     }
     
     func loadWeeklyPlan(skipCache: Bool = false) async {
+        await executeTask(id: "load_weekly_plan") {
+            await self.performLoadWeeklyPlan(skipCache: skipCache)
+        }
+    }
+    
+    /// 執行實際的載入邏輯
+    private func performLoadWeeklyPlan(skipCache: Bool = false) async {
         // 修正：在載入計畫前，務必先重新計算當前週數，確保資料最新
         if let overview = trainingOverview, !overview.createdAt.isEmpty {
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
@@ -494,7 +548,7 @@ class TrainingPlanViewModel: ObservableObject {
         let shouldSkipCache = skipCache || shouldBypassCacheForWeeklyPlan()
         
         // 先檢查本地緩存（除非被要求跳過）
-        if !shouldSkipCache, let savedPlan = TrainingPlanStorage.loadWeeklyPlan() {
+        if !shouldSkipCache, let savedPlan = TrainingPlanStorage.loadWeeklyPlan(forWeek: currentWeek) {
             // 立即使用緩存數據更新 UI，不顯示 loading 狀態
             let cw = calculateCurrentTrainingWeek() ?? 0
             let status: PlanStatus = cw > overview.totalWeeks ? .completed : .ready(savedPlan)
@@ -531,18 +585,26 @@ class TrainingPlanViewModel: ObservableObject {
             }
         } else {
             // 本地無數據或跳過快取時顯示 loading 狀態
-            planStatus = .loading
+            // 但只有在目前沒有任何計劃時才顯示 loading，避免閃爍
+            if weeklyPlan == nil {
+                planStatus = .loading
+            }
             
             do {
                 guard let overviewId = trainingOverview?.id else { throw NSError() }
                 Logger.debug("overview.totalWeeks: \(overview.totalWeeks)")
                 Logger.debug("cw: \(calculateCurrentTrainingWeek() ?? 0)")
+                Logger.debug("self.currentWeek: \(self.currentWeek)")
+                Logger.debug("self.selectedWeek: \(self.selectedWeek)")
+                Logger.debug("準備載入週計劃 ID: \(overviewId)_\(self.currentWeek)")
+                
                 if (calculateCurrentTrainingWeek() ?? 0 > overview.totalWeeks) {
                     await updateWeeklyPlanUI(plan: nil, status: .completed)
                 } else {
                     let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
                         planId: "\(overviewId)_\(self.currentWeek)")
                     
+                    Logger.debug("成功載入週計劃: 週數=\(newPlan.weekOfPlan), ID=\(newPlan.id)")
                     await updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
                 }
                 
@@ -572,7 +634,7 @@ class TrainingPlanViewModel: ObservableObject {
         }
         
         // 檢查是否有本地快取的週課表
-        guard let savedPlan = TrainingPlanStorage.loadWeeklyPlan() else {
+        guard let savedPlan = TrainingPlanStorage.loadWeeklyPlan(forWeek: currentWeek) else {
             return false // 沒有快取，不需要跳過
         }
         
@@ -807,16 +869,9 @@ class TrainingPlanViewModel: ObservableObject {
     }
     
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
-        // 取消之前的刷新任務
-        refreshTask?.cancel()
-        
-        // 創建新的刷新任務
-        refreshTask = Task {
-            await performRefreshWeeklyPlan(isManualRefresh: isManualRefresh)
+        await executeTask(id: "refresh_weekly_plan") {
+            await self.performRefreshWeeklyPlan(isManualRefresh: isManualRefresh)
         }
-        
-        await refreshTask?.value
-        refreshTask = nil
     }
     
     /// 執行實際的刷新邏輯
@@ -1318,5 +1373,9 @@ class TrainingPlanViewModel: ObservableObject {
     // 刷新運動數據（供外部調用）
     func refreshWorkoutData() async {
         await unifiedWorkoutManager.refreshWorkouts()
+    }
+    
+    deinit {
+        cancelAllTasks()
     }
 }

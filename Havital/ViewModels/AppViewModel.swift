@@ -43,8 +43,24 @@ class AppViewModel: ObservableObject {
     
     /// App 啟動時的初始化
     func initializeApp() async {
+        // 註冊所有快取管理器到 CacheEventBus
+        registerCacheManagers()
+        
         await unifiedWorkoutManager.initialize()
         await unifiedWorkoutManager.loadWorkouts()
+    }
+    
+    /// 註冊所有快取管理器到快取事件總線
+    private func registerCacheManagers() {
+        CacheEventBus.shared.register(WorkoutV2CacheManager.shared)
+        CacheEventBus.shared.register(TrainingPlanStorage.shared)
+        CacheEventBus.shared.register(TargetStorage.shared)
+        CacheEventBus.shared.register(WeeklySummaryStorage.shared)
+        
+        Logger.firebase("所有快取管理器已註冊到 CacheEventBus", level: .info, labels: [
+            "module": "AppViewModel",
+            "action": "register_cache_managers"
+        ])
     }
     
     /// App 回到前台時刷新數據

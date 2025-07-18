@@ -18,6 +18,12 @@ class WorkoutV2CacheManager {
     // Cache Configuration
     private let maxWorkoutListSize = 1000 // 增加最多快取運動記錄數量
     
+    // TTL Configuration
+    private let workoutListTTL: TimeInterval = 7 * 24 * 60 * 60 // 7天
+    private let workoutDetailTTL: TimeInterval = 24 * 60 * 60   // 24小時
+    private let workoutStatsTTL: TimeInterval = 6 * 60 * 60     // 6小時
+    private let maxDataRetentionMonths = 3                      // 3個月
+    
     private init() {
         // 建立快取目錄
         let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -28,9 +34,10 @@ class WorkoutV2CacheManager {
             try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
         }
         
-        // 在背景清理過期快取（30 分鐘 TTL）
+        // 在背景清理過期快取
         DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.cleanupExpiredWorkoutDetailCache(maxAge: 30 * 60)
+            self?.cleanupExpiredWorkoutDetailCache(maxAge: self?.workoutDetailTTL ?? 24 * 60 * 60)
+            self?.cleanupOldWorkoutData()
         }
     }
     
@@ -71,9 +78,14 @@ class WorkoutV2CacheManager {
         }
     }
     
-    /// 獲取快取的運動列表（永久緩存，不會過期）
-    /// - Returns: 快取的運動列表，如果不存在則返回 nil
+    /// 獲取快取的運動列表
+    /// - Returns: 快取的運動列表，如果過期或不存在則返回 nil
     func getCachedWorkoutList() -> [WorkoutV2]? {
+        // 檢查是否過期
+        if isWorkoutListExpired() {
+            return nil
+        }
+        
         guard let data = userDefaults.data(forKey: workoutListCacheKey),
               let workouts = try? JSONDecoder().decode([WorkoutV2].self, from: data) else {
             return nil
@@ -171,9 +183,10 @@ class WorkoutV2CacheManager {
     /// 獲取快取的運動詳細資料
     /// - Parameters:
     ///   - workoutId: 運動 ID
-    ///   - maxAge: 最大快取時間（秒），預設 1800 秒（30 分鐘）
+    ///   - maxAge: 最大快取時間（秒），預設使用 workoutDetailTTL（24 小時）
     /// - Returns: 快取的運動詳細資料，如果過期或不存在則返回 nil
-    func getCachedWorkoutDetail(workoutId: String, maxAge: TimeInterval = 1800) -> WorkoutV2Detail? {
+    func getCachedWorkoutDetail(workoutId: String, maxAge: TimeInterval? = nil) -> WorkoutV2Detail? {
+        let actualMaxAge = maxAge ?? workoutDetailTTL
         let fileName = "\(workoutDetailCachePrefix)\(workoutId).json"
         let fileURL = cacheDirectory.appendingPathComponent(fileName)
         
@@ -185,7 +198,7 @@ class WorkoutV2CacheManager {
         // 嘗試使用新的快取格式（含時間戳）
         if let cacheData = try? JSONDecoder().decode(WorkoutDetailCacheData.self, from: data) {
             // 檢查是否過期
-            if Date().timeIntervalSince(cacheData.cachedAt) > maxAge {
+            if Date().timeIntervalSince(cacheData.cachedAt) > actualMaxAge {
                 // 快取已過期，清除檔案
                 try? fileManager.removeItem(at: fileURL)
                 return nil
@@ -268,12 +281,13 @@ class WorkoutV2CacheManager {
     }
     
     /// 獲取快取的運動統計數據
-    /// - Parameter maxAge: 最大快取時間（秒），預設 1800 秒（30 分鐘）
+    /// - Parameter maxAge: 最大快取時間（秒），預設使用 workoutStatsTTL（6 小時）
     /// - Returns: 快取的運動統計數據，如果過期或不存在則返回 nil
-    func getCachedWorkoutStats(maxAge: TimeInterval = 1800) -> WorkoutStatsResponse? {
+    func getCachedWorkoutStats(maxAge: TimeInterval? = nil) -> WorkoutStatsResponse? {
+        let actualMaxAge = maxAge ?? workoutStatsTTL
         guard let data = userDefaults.data(forKey: workoutStatsCacheKey),
               let cacheData = try? JSONDecoder().decode(WorkoutStatsCacheData.self, from: data),
-              Date().timeIntervalSince(cacheData.cachedAt) < maxAge else {
+              Date().timeIntervalSince(cacheData.cachedAt) < actualMaxAge else {
             return nil
         }
         
@@ -352,8 +366,9 @@ class WorkoutV2CacheManager {
     }
     
     /// 清除所有過期的運動詳情快取
-    /// - Parameter maxAge: 最大快取時間（秒），預設 1800 秒（30 分鐘）
-    func cleanupExpiredWorkoutDetailCache(maxAge: TimeInterval = 1800) {
+    /// - Parameter maxAge: 最大快取時間（秒），預設使用 workoutDetailTTL（24 小時）
+    func cleanupExpiredWorkoutDetailCache(maxAge: TimeInterval? = nil) {
+        let actualMaxAge = maxAge ?? workoutDetailTTL
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil)
             var expiredCount = 0
@@ -365,7 +380,7 @@ class WorkoutV2CacheManager {
                     
                     // 檢查是否為新格式（含時間戳）
                     if let cacheData = try? JSONDecoder().decode(WorkoutDetailCacheData.self, from: data) {
-                        if Date().timeIntervalSince(cacheData.cachedAt) > maxAge {
+                        if Date().timeIntervalSince(cacheData.cachedAt) > actualMaxAge {
                             try fileManager.removeItem(at: fileURL)
                             expiredCount += 1
                         }
@@ -510,6 +525,51 @@ class WorkoutV2CacheManager {
     
     // MARK: - Private Methods
     
+    /// 檢查運動列表是否過期
+    /// - Returns: 是否過期
+    private func isWorkoutListExpired() -> Bool {
+        guard let lastSync = getLastSyncTime() else {
+            return true // 沒有同步記錄，視為過期
+        }
+        return Date().timeIntervalSince(lastSync) > workoutListTTL
+    }
+    
+    /// 清理超過保留期限的舊運動數據
+    private func cleanupOldWorkoutData() {
+        let cutoffDate = Calendar.current.date(byAdding: .month, value: -maxDataRetentionMonths, to: Date()) ?? Date()
+        
+        // 直接從 UserDefaults 讀取，避免觸發過期檢查
+        guard let data = userDefaults.data(forKey: workoutListCacheKey),
+              var workouts = try? JSONDecoder().decode([WorkoutV2].self, from: data) else {
+            return
+        }
+        
+        let originalCount = workouts.count
+        
+        // 移除超過保留期限的運動記錄
+        workouts = workouts.filter { workout in
+            return workout.startDate > cutoffDate
+        }
+        
+        if workouts.count < originalCount {
+            cacheWorkoutList(workouts)
+            
+            Logger.firebase(
+                "清理舊運動數據",
+                level: .info,
+                labels: [
+                    "module": "WorkoutV2CacheManager",
+                    "action": "cleanup_old_workout_data"
+                ],
+                jsonPayload: [
+                    "removed_count": originalCount - workouts.count,
+                    "remaining_count": workouts.count,
+                    "cutoff_date": cutoffDate.timeIntervalSince1970
+                ]
+            )
+        }
+    }
+    
     /// 更新快取元數據
     private func updateCacheMetadata(for cacheType: CacheType, count: Int) {
         var metadata = getCacheMetadata()
@@ -585,9 +645,9 @@ extension WorkoutV2CacheManager {
     /// 檢查特定運動詳情是否已快取且未過期
     /// - Parameters:
     ///   - workoutId: 運動 ID
-    ///   - maxAge: 最大快取時間（秒），預設 1800 秒（30 分鐘）
+    ///   - maxAge: 最大快取時間（秒），預設使用 workoutDetailTTL（24 小時）
     /// - Returns: 是否已快取且未過期
-    func isWorkoutDetailCached(workoutId: String, maxAge: TimeInterval = 1800) -> Bool {
+    func isWorkoutDetailCached(workoutId: String, maxAge: TimeInterval? = nil) -> Bool {
         return getCachedWorkoutDetail(workoutId: workoutId, maxAge: maxAge) != nil
     }
     
@@ -615,4 +675,17 @@ struct CacheStats {
     var totalSizeMB: Double {
         Double(totalSizeBytes) / (1024 * 1024)
     }
-} 
+}
+
+// MARK: - Cacheable 協議實作
+extension WorkoutV2CacheManager: Cacheable {
+    var cacheIdentifier: String { "workouts_v2" }
+    
+    func clearCache() {
+        clearAllCache()
+    }
+    
+    func isExpired() -> Bool {
+        return isWorkoutListExpired()
+    }
+}

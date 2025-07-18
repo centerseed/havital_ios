@@ -24,7 +24,7 @@ struct WeekPlanContentView: View {
         }
         .onAppear {
             // 除錯 log
-            Logger.info("current: \(currentTrainingWeek), selected: \(plan.weekOfPlan), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
+            Logger.info("current: \(currentTrainingWeek), selected: \(viewModel.selectedWeek), planWeek: \(plan.weekOfPlan), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
         }
     }
 }
@@ -290,8 +290,11 @@ struct TrainingPlanView: View {
         }
         .onAppear {
             if hasCompletedOnboarding {
-                Logger.debug("視圖 onAppear: 已完成 Onboarding，刷新本週跑量")
-                refreshWorkouts()
+                Logger.debug("視圖 onAppear: 已完成 Onboarding")
+                // 只在數據尚未載入時才刷新，避免不必要的重新載入
+                if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
+                    refreshWorkouts()
+                }
             }
         }
     }
@@ -310,7 +313,6 @@ struct TrainingPlanView: View {
                 plan: plan,
                 currentTrainingWeek: viewModel.currentWeek
             )
-            .id(viewModel.currentWeek)
             .transition(.opacity)
             .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
         case .completed:
@@ -422,8 +424,10 @@ struct TrainingPlanView: View {
             // 確保 UnifiedWorkoutManager 數據是最新的
             await viewModel.refreshWorkoutData()
             
-            // 檢查週課表狀態
-            await viewModel.loadWeeklyPlan()
+            // 只有當沒有週課表時才載入，避免不必要的重新載入
+            if viewModel.weeklyPlan == nil {
+                await viewModel.loadWeeklyPlan()
+            }
             
             await viewModel.loadCurrentWeekDistance()
             await viewModel.loadWorkoutsForCurrentWeek()
