@@ -35,4 +35,5 @@ enum DataType {
     case weeklySummary
     case targets
     case user
+    case healthData
 }

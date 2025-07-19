@@ -198,3 +198,43 @@ actor APIClient {
         }
     }
 }
+
+// MARK: - Health Daily API Extension
+extension APIClient {
+    /// 獲取每日健康數據
+    func fetchHealthDaily(limit: Int = 7) async throws -> HealthDailyResponse {
+        let path = "/v2/workouts/health_daily?limit=\(limit)"
+        return try await request(HealthDailyResponse.self, path: path)
+    }
+}
+
+// MARK: - Health Data Models
+struct HealthRecord: Codable {
+    let date: String
+    let dailyCalories: Int?
+    let hrvLastNightAvg: Double?
+    let restingHeartRate: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case date
+        case dailyCalories = "daily_calories"
+        case hrvLastNightAvg = "hrv_last_night_avg"
+        case restingHeartRate = "resting_heart_rate"
+    }
+}
+
+struct HealthDailyResponse: Codable {
+    let success: Bool
+    let data: HealthDailyData
+}
+
+struct HealthDailyData: Codable {
+    let healthData: [HealthRecord]
+    let count: Int
+    let limit: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case healthData = "health_data"
+        case count, limit
+    }
+}

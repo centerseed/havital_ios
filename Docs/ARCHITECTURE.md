@@ -151,3 +151,125 @@ Havital 的資料流遵循單向流動的原則，確保了狀態的可預測性
 4.  **進入 Onboarding**: 如果使用者尚未完成初始設定，App 會引導至 Onboarding 流程，收集必要的個人資訊（如目標、訓練天數等）。
 5.  **完成 Onboarding**: 完成後，狀態被儲存到後端，`hasCompletedOnboarding` 在本地被設為 `true`。
 6.  **進入主畫面**: `ContentView` 偵測到使用者已登入且已完成 Onboarding，顯示 `TrainingPlanView`。
+
+---
+
+## 8. API 整合強制規範 (2025-07-19)
+
+### ⚠️ 強制性要求
+
+**ALL新的 API 整合必須遵循以下模式:**
+
+1. **Manager/Service 類別必須實現 `TaskManageable` 和 `Cacheable`**
+2. **必須註冊到 `CacheEventBus`**
+3. **所有 API 調用必須使用 `executeTask()`**
+4. **實現適當的 TTL 緩存機制**
+
+### 標準實作模板
+
+```swift
+class YourAPIManager: ObservableObject, TaskManageable, Cacheable {
+    static let shared = YourAPIManager()
+    
+    // 必要屬性
+    var activeTasks: [String: Task<Void, Never>] = [:]
+    var cacheIdentifier: String { "YourAPIManager" }
+    
+    private let userDefaults = UserDefaults.standard
+    private let apiClient = APIClient.shared
+    private let cacheMaxAge: TimeInterval = 1800 // 30分鐘
+    
+    private init() {
+        // 強制要求：註冊到 CacheEventBus
+        CacheEventBus.shared.register(self)
+    }
+    
+    // 強制要求：清理任務
+    deinit {
+        cancelAllTasks()
+    }
+    
+    // 公開方法：必須使用 executeTask
+    func getData(params: Parameters) async -> [DataModel] {
+        return await executeTask(id: "get_data_\(params.id)") {
+            await self.performGetData(params: params)
+        } ?? []
+    }
+    
+    // 私有實作：實際邏輯
+    private func performGetData(params: Parameters) async -> [DataModel] {
+        // 1. 檢查緩存
+        if let cached = getCachedData(params: params) {
+            return cached
+        }
+        
+        // 2. API 調用
+        do {
+            let response = try await apiClient.fetchData(params)
+            cacheData(response.data, params: params)
+            return response.data
+        } catch {
+            Logger.firebase("API failed: \(error)", level: .error)
+            return []
+        }
+    }
+}
+
+// 必要：實現 Cacheable 協議
+extension YourAPIManager {
+    func clearCache() {
+        // 清除所有緩存資料
+    }
+    
+    func getCacheSize() -> Int {
+        // 返回緩存大小
+    }
+    
+    func isExpired() -> Bool {
+        // 檢查緩存是否過期
+    }
+}
+```
+
+### 圖表優化模式
+
+對於數據變化小的圖表，使用動態 Y 軸範圍：
+
+```swift
+private var dynamicYAxisDomain: ClosedRange<Double> {
+    let values = data.compactMap { $0.value }
+    guard !values.isEmpty else { return 0...100 }
+    
+    let min = values.min() ?? 0
+    let max = values.max() ?? 100
+    let range = max - min
+    
+    // 小變化時擴展範圍
+    if range < threshold {
+        let center = (min + max) / 2
+        return (center - expansion)...(center + expansion)
+    }
+    
+    let margin = range * 0.2
+    return (min - margin)...(max + margin)
+}
+```
+
+### 成功範例
+
+- **HealthDataUploadManager**: 完整的 TaskManageable + Cacheable 實作，包含 HealthKit 回退
+- **UnifiedWorkoutManager**: 任務管理與緩存協調
+- **WorkoutV2CacheManager**: 複雜的 TTL 緩存策略
+
+### 檢查清單
+
+提交程式碼前確認：
+- ✅ 實現 TaskManageable？
+- ✅ 實現 Cacheable？
+- ✅ 註冊到 CacheEventBus？
+- ✅ 使用 executeTask() 進行 API 調用？
+- ✅ 有適當的緩存 TTL？
+- ✅ 在 deinit 中清理任務？
+- ✅ 編譯成功？
+
+詳細的實作指引請參考主要的 CLAUDE.md 文件。

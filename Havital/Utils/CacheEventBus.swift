@@ -86,6 +86,8 @@ class CacheEventBus {
             return ["targets", "training_plan"] // 目標影響訓練計劃
         case .user:
             return Set(cacheables.map { $0.cacheIdentifier }) // 用戶變更影響所有
+        case .healthData:
+            return ["HealthDataUploadManager"] // 健康數據獨立緩存
         }
     }
     
