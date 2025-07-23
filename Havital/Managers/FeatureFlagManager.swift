@@ -1,15 +1,14 @@
 import Foundation
-// TODO: 需要在 Xcode 專案中加入 FirebaseRemoteConfig 依賴
-// import FirebaseRemoteConfig
+import FirebaseRemoteConfig
 import Combine
 
 /// 集中管理應用程式的 Feature Flags
-/// 臨時實作：使用 UserDefaults，待加入 FirebaseRemoteConfig 依賴後升級
+/// 使用 Firebase Remote Config 實現動態功能開關
 class FeatureFlagManager: ObservableObject {
     static let shared = FeatureFlagManager()
     
-    // 臨時解決方案：使用 UserDefaults 替代 Remote Config
-    private let userDefaults = UserDefaults.standard
+    private var remoteConfig: RemoteConfig
+    private let userDefaults = UserDefaults.standard // 保留作為 fallback
     
     // MARK: - Feature Flag Keys
     private enum FeatureKeys: String {
@@ -23,36 +22,99 @@ class FeatureFlagManager: ObservableObject {
     @Published var isGarminEnabled: Bool = false
     
     private init() {
-        // 初始化預設值
-        setupDefaultValues()
-        updateFeatureFlags()
+        remoteConfig = RemoteConfig.remoteConfig()
+        setupRemoteConfig()
+        fetchRemoteConfig()
     }
     
     // MARK: - Setup
-    private func setupDefaultValues() {
-        // 設定預設值（只有在沒有設定過的情況下）
-        if userDefaults.object(forKey: FeatureKeys.garminIntegration.rawValue) == nil {
-            userDefaults.set(false, forKey: FeatureKeys.garminIntegration.rawValue)
-        }
+    private func setupRemoteConfig() {
+        // 設定 Remote Config 預設值
+        let defaults: [String: NSObject] = [
+            FeatureKeys.garminIntegration.rawValue: false as NSObject
+        ]
         
-        Logger.firebase("FeatureFlagManager 初始化完成 (UserDefaults 模式)", level: .info, labels: [
+        remoteConfig.setDefaults(defaults)
+        
+        // 設定開發環境的更新頻率（正式環境建議 12 小時以上）
+        let settings = RemoteConfigSettings()
+        #if DEBUG
+        settings.minimumFetchInterval = 0 // 開發環境立即更新
+        #else
+        settings.minimumFetchInterval = 3600 // 正式環境 1 小時更新一次
+        #endif
+        
+        remoteConfig.configSettings = settings
+        
+        Logger.firebase("FeatureFlagManager 初始化完成 (Firebase Remote Config)", level: .info, labels: [
             "module": "FeatureFlagManager",
             "action": "setup",
-            "mode": "userdefaults"
+            "mode": "firebase_remote_config"
         ])
+    }
+    
+    // MARK: - Fetch Remote Config
+    private func fetchRemoteConfig() {
+        remoteConfig.fetch { [weak self] status, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                Logger.firebase("Remote Config 獲取失敗", level: .error, labels: [
+                    "module": "FeatureFlagManager",
+                    "error": error.localizedDescription
+                ])
+                // 使用預設值
+                self.updateFeatureFlags()
+                return
+            }
+            
+            Logger.firebase("Remote Config 獲取成功", level: .info, labels: [
+                "module": "FeatureFlagManager",
+                "status": "\(status.rawValue)"
+            ])
+            
+            // 啟用獲取到的配置
+            self.remoteConfig.activate { [weak self] changed, error in
+                DispatchQueue.main.async {
+                    self?.updateFeatureFlags()
+                }
+                
+                if let error = error {
+                    Logger.firebase("Remote Config 啟用失敗", level: .error, labels: [
+                        "module": "FeatureFlagManager",
+                        "error": error.localizedDescription
+                    ])
+                } else {
+                    Logger.firebase("Remote Config 啟用成功", level: .info, labels: [
+                        "module": "FeatureFlagManager",
+                        "changed": "\(changed)"
+                    ])
+                }
+            }
+        }
     }
     
     // MARK: - Update Feature Flags
     private func updateFeatureFlags() {
-        let newGarminEnabled = userDefaults.bool(forKey: FeatureKeys.garminIntegration.rawValue)
+        let newGarminEnabled = remoteConfig.configValue(forKey: FeatureKeys.garminIntegration.rawValue).boolValue
         
-        // 只有在值改變時才更新，避免不必要的 UI 刷新
-        if newGarminEnabled != isGarminEnabled {
-            isGarminEnabled = newGarminEnabled
-            
-            Logger.firebase("Feature Flag 更新", level: .info, labels: [
+        Logger.firebase("Feature Flag 讀取", level: .info, labels: [
+            "module": "FeatureFlagManager",
+            "key": FeatureKeys.garminIntegration.rawValue,
+            "value_from_remote_config": "\(newGarminEnabled)",
+            "current_published_value": "\(isGarminEnabled)",
+            "remote_config_source": "\(remoteConfig.configValue(forKey: FeatureKeys.garminIntegration.rawValue).source.rawValue)"
+        ])
+        
+        // 更新值（初始化時也要更新）
+        let valueChanged = newGarminEnabled != isGarminEnabled
+        isGarminEnabled = newGarminEnabled
+        
+        if valueChanged {
+            Logger.firebase("Feature Flag 值已變更", level: .info, labels: [
                 "module": "FeatureFlagManager",
-                "garmin_enabled": "\(isGarminEnabled)"
+                "garmin_enabled": "\(isGarminEnabled)",
+                "change_trigger": "remote_config_update"
             ])
             
             // 發送通知讓其他組件知道 feature flag 改變了
@@ -61,41 +123,77 @@ class FeatureFlagManager: ObservableObject {
                 object: nil,
                 userInfo: ["garmin_enabled": isGarminEnabled]
             )
+        } else {
+            Logger.firebase("Feature Flag 值未變更", level: .info, labels: [
+                "module": "FeatureFlagManager",
+                "garmin_enabled": "\(isGarminEnabled)"
+            ])
         }
     }
     
     // MARK: - Public Methods
     
-    /// 手動重新載入設定（臨時實作，用於測試）
+    /// 手動重新獲取 Remote Config（用於測試或特殊情況）
     func refreshConfig() async {
-        updateFeatureFlags()
+        await withCheckedContinuation { continuation in
+            remoteConfig.fetch { [weak self] status, error in
+                if error == nil {
+                    self?.remoteConfig.activate { [weak self] _, _ in
+                        DispatchQueue.main.async {
+                            self?.updateFeatureFlags()
+                        }
+                        continuation.resume()
+                    }
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
     }
     
     /// 檢查特定 feature flag 是否啟用
     func isFeatureEnabled(_ feature: String) -> Bool {
-        return userDefaults.bool(forKey: feature)
+        return remoteConfig.configValue(forKey: feature).boolValue
     }
     
-    /// 獲取設定的字串值
+    /// 獲取 Remote Config 的字串值
     func stringValue(forKey key: String) -> String {
-        return userDefaults.string(forKey: key) ?? ""
+        return remoteConfig.configValue(forKey: key).stringValue ?? ""
     }
     
-    /// 獲取設定的數值
+    /// 獲取 Remote Config 的數值
     func numberValue(forKey key: String) -> NSNumber {
-        return NSNumber(value: userDefaults.double(forKey: key))
+        return remoteConfig.configValue(forKey: key).numberValue
     }
     
-    /// 手動設定 feature flag 值（臨時實作，正式版應透過 Firebase Console）
+    /// 手動設定 feature flag 值（開發環境專用，正式版應透過 Firebase Console）
     func setFeatureFlag(_ key: String, value: Bool) {
-        userDefaults.set(value, forKey: key)
-        updateFeatureFlags()
-        
-        Logger.firebase("手動設定 Feature Flag", level: .info, labels: [
+        #if DEBUG
+        Logger.firebase("開發環境：手動覆蓋 Feature Flag", level: .info, labels: [
             "module": "FeatureFlagManager",
             "key": key,
-            "value": "\(value)"
+            "override_value": "\(value)",
+            "warning": "此設定僅在開發環境有效"
         ])
+        
+        // 在開發環境中，臨時覆蓋 Remote Config 預設值
+        let overrideDefaults: [String: NSObject] = [key: value as NSObject]
+        remoteConfig.setDefaults(overrideDefaults)
+        
+        updateFeatureFlags()
+        
+        Logger.firebase("開發環境 Feature Flag 覆蓋完成", level: .info, labels: [
+            "module": "FeatureFlagManager",
+            "key": key,
+            "final_published_value": "\(isGarminEnabled)"
+        ])
+        #else
+        Logger.firebase("正式環境：無法手動設定 Feature Flag", level: .warning, labels: [
+            "module": "FeatureFlagManager",
+            "key": key,
+            "message": "請使用 Firebase Console 設定"
+        ])
+        #endif
     }
 }
 
@@ -104,11 +202,18 @@ extension FeatureFlagManager {
     /// Garmin 整合功能是否啟用
     /// 考慮 Remote Config + Client ID 有效性
     var isGarminIntegrationAvailable: Bool {
-        // Remote Config 控制功能開關
-        guard isGarminEnabled else { return false }
+        let featureFlagEnabled = isGarminEnabled
+        let clientIDValid = GarminManager.shared.isClientIDValid
+        let result = featureFlagEnabled && clientIDValid
         
-        // 還需要檢查 Client ID 是否有效
-        return GarminManager.shared.isClientIDValid
+        Logger.firebase("檢查 Garmin 整合可用性", level: .info, labels: [
+            "module": "FeatureFlagManager",
+            "feature_flag_enabled": "\(featureFlagEnabled)",
+            "client_id_valid": "\(clientIDValid)",
+            "final_result": "\(result)"
+        ])
+        
+        return result
     }
 }
 
@@ -123,10 +228,31 @@ extension FeatureFlagManager {
     
     /// 開發環境專用：列出所有 feature flags
     func debugPrintAllFlags() {
-        print("🚧 DEBUG: Feature Flags 狀態 (UserDefaults 模式)")
-        print("  - garmin_integration_enabled: \(isGarminEnabled)")
-        print("  - client_id_valid: \(GarminManager.shared.isClientIDValid)")
-        print("  - final_garmin_available: \(isGarminIntegrationAvailable)")
+        let key = FeatureKeys.garminIntegration.rawValue
+        let remoteConfigValue = remoteConfig.configValue(forKey: key)
+        let publishedValue = isGarminEnabled
+        let clientIDValid = GarminManager.shared.isClientIDValid
+        let finalAvailable = isGarminIntegrationAvailable
+        
+        print("🚧 DEBUG: Feature Flags 完整狀態 (Firebase Remote Config 模式)")
+        print("  - Key: \(key)")
+        print("  - Remote Config Value: \(remoteConfigValue.boolValue)")
+        print("  - Remote Config Source: \(remoteConfigValue.source.rawValue)")
+        print("  - Published Value: \(publishedValue)")
+        print("  - Client ID Valid: \(clientIDValid)")
+        print("  - Final Available: \(finalAvailable)")
+        print("  - APIConfig.isGarminEnabled: \(APIConfig.isGarminEnabled)")
+        
+        // 也記錄到 Firebase 日誌
+        Logger.firebase("DEBUG: 完整 Feature Flag 狀態", level: .info, labels: [
+            "module": "FeatureFlagManager",
+            "remote_config_value": "\(remoteConfigValue.boolValue)",
+            "remote_config_source": "\(remoteConfigValue.source.rawValue)",
+            "published_value": "\(publishedValue)",
+            "client_id_valid": "\(clientIDValid)",
+            "final_available": "\(finalAvailable)",
+            "apiconfig_enabled": "\(APIConfig.isGarminEnabled)"
+        ])
     }
     
     /// 開發環境專用：快速啟用 Garmin 功能
@@ -137,10 +263,22 @@ extension FeatureFlagManager {
     
     /// 開發環境專用：重置所有 feature flags
     func resetAllFlags() {
-        userDefaults.removeObject(forKey: FeatureKeys.garminIntegration.rawValue)
-        setupDefaultValues()
+        // 重新設定預設值
+        let defaults: [String: NSObject] = [
+            FeatureKeys.garminIntegration.rawValue: false as NSObject
+        ]
+        remoteConfig.setDefaults(defaults)
         updateFeatureFlags()
-        print("🚧 DEBUG: 所有 Feature Flags 已重置")
+        print("🚧 DEBUG: 所有 Feature Flags 已重置到預設值")
+    }
+    
+    /// 開發環境專用：強制重新獲取 Remote Config
+    func forceRefreshRemoteConfig() {
+        print("🚧 DEBUG: 強制重新獲取 Remote Config")
+        Task {
+            await refreshConfig()
+            debugPrintAllFlags()
+        }
     }
 }
 #endif

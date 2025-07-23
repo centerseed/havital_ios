@@ -71,14 +71,25 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     /// 開始定期健康數據同步
     func startHealthDataSync() async {
-        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
-            print("數據源不是 Apple Health，跳過健康數據同步")
+        let dataSource = UserPreferenceManager.shared.dataSourcePreference
+        print("開始健康數據同步 - 數據源: \(dataSource.displayName)")
+        
+        switch dataSource {
+        case .appleHealth:
+            // Apple Health: 上傳本地數據 + 設置觀察者
+            await uploadPendingHealthData()
+            setupHealthKitObserver()
+            scheduleBackgroundSync()
+            
+        case .garmin:
+            // Garmin: 只設置定期 API 刷新
+            setupGarminDataRefresh()
+            scheduleBackgroundSync()
+            
+        case .unbound:
+            print("數據源未綁定，跳過健康數據同步")
             return
         }
-        
-        await uploadPendingHealthData()
-        scheduleBackgroundSync()
-        setupHealthKitObserver()
     }
     
     /// 設置 HealthKit 觀察者，監聽新數據
@@ -92,6 +103,9 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
                 // HRV 數據更新，等待一段時間後上傳（讓數據穩定）
                 try? await Task.sleep(nanoseconds: 30 * 60 * 1_000_000_000) // 等待30分鐘
                 await self?.uploadRecentHealthData()
+                
+                // 通知 UI 刷新數據
+                await self?.notifyAppleHealthDataRefresh()
             }
         }
         
@@ -101,6 +115,9 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
             Task {
                 // 靜息心率更新，立即嘗試上傳
                 await self?.uploadRecentHealthData()
+                
+                // 通知 UI 刷新數據
+                await self?.notifyAppleHealthDataRefresh()
             }
         }
         
@@ -657,12 +674,77 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
         }
         
         Task {
-            // 專門重試昨天和今天的 HRV 數據
-            await uploadRecentHealthData()
+            let dataSource = UserPreferenceManager.shared.dataSourcePreference
+            
+            switch dataSource {
+            case .appleHealth:
+                // Apple Health: 專門重試昨天和今天的 HRV 數據
+                await uploadRecentHealthData()
+                
+            case .garmin:
+                // Garmin: 強制刷新 API 數據
+                await refreshGarminHealthData()
+                
+            case .unbound:
+                print("數據源未綁定，跳過 HRV 重試同步")
+            }
+            
             task.setTaskCompleted(success: true)
             
             // 安排下一次 HRV 重試同步
             scheduleHRVRetrySync()
+        }
+    }
+    
+    /// 設置 Garmin 數據刷新機制
+    private func setupGarminDataRefresh() {
+        print("設置 Garmin 數據定期刷新機制")
+        
+        // 立即刷新一次數據
+        Task {
+            await refreshGarminHealthData()
+        }
+    }
+    
+    /// 刷新 Garmin 健康數據
+    private func refreshGarminHealthData() async {
+        print("刷新 Garmin 健康數據")
+        
+        // 清除緩存並重新獲取數據
+        clearHealthDataCache()
+        
+        // 通知 SharedHealthDataManager 刷新數據
+        await notifyGarminDataRefresh()
+        
+        Logger.firebase(
+            "Garmin 健康數據刷新完成",
+            level: .info,
+            labels: [
+                "module": "HealthDataUploadManager",
+                "action": "refresh_garmin_data"
+            ]
+        )
+    }
+    
+    /// 通知 SharedHealthDataManager 刷新數據
+    private func notifyGarminDataRefresh() async {
+        // 發送通知給 UI 層刷新數據
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .garminHealthDataRefresh,
+                object: nil
+            )
+        }
+    }
+    
+    /// 通知 Apple Health 數據更新
+    private func notifyAppleHealthDataRefresh() async {
+        // 發送通知給 UI 層刷新數據
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .appleHealthDataRefresh,
+                object: nil
+            )
         }
     }
     

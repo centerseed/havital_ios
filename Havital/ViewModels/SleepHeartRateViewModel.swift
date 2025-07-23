@@ -7,19 +7,62 @@ class SleepHeartRateViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var selectedTimeRange: TimeRange = .week
-    private let healthKitManager: HealthKitManager
     
-    init(healthKitManager: HealthKitManager) {
-        self.healthKitManager = healthKitManager
+    // 透過外部設定的管理器
+    var healthKitManager: HealthKitManager?
+    var sharedHealthDataManager: SharedHealthDataManager?
+    
+    init() {
+        setupNotificationObservers()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    /// 設置通知監聽
+    private func setupNotificationObservers() {
+        // 監聽 Garmin 數據刷新通知
+        NotificationCenter.default.addObserver(
+            forName: .garminHealthDataRefresh,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.loadHeartRateData()
+            }
+        }
+        
+        // 監聽 Apple Health 數據刷新通知
+        NotificationCenter.default.addObserver(
+            forName: .appleHealthDataRefresh,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.loadHeartRateData()
+            }
+        }
+        
+        // 監聽數據源切換通知
+        NotificationCenter.default.addObserver(
+            forName: .dataSourceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.loadHeartRateData()
+            }
+        }
     }
     
     func loadHeartRateData() async {
         isLoading = true
         error = nil
         
+        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        
         do {
-            try await healthKitManager.requestAuthorization()
-            
             let now = Date()
             let startDate: Date
             
@@ -33,13 +76,49 @@ class SleepHeartRateViewModel: ObservableObject {
             }
             
             var points: [(Date, Double)] = []
-            var currentDate = startDate
             
-            while currentDate <= now {
-                if let heartRate = try await healthKitManager.fetchSleepHeartRateAverage(for: currentDate) {
-                    points.append((currentDate, heartRate))
+            switch dataSourcePreference {
+            case .appleHealth:
+                // 從 HealthKit 獲取數據
+                guard let healthKit = healthKitManager else {
+                    self.error = "HealthKit 管理器未初始化"
+                    isLoading = false
+                    return
                 }
-                currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate)!
+                
+                try await healthKit.requestAuthorization()
+                
+                var currentDate = startDate
+                while currentDate <= now {
+                    if let heartRate = try await healthKit.fetchSleepHeartRateAverage(for: currentDate) {
+                        points.append((currentDate, heartRate))
+                    }
+                    currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate)!
+                }
+                
+            case .garmin:
+                // 從 API 獲取數據
+                if let sharedDataManager = sharedHealthDataManager {
+                    await sharedDataManager.loadHealthDataIfNeeded()
+                    
+                    let healthData = sharedDataManager.healthData
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd"
+                    
+                    for record in healthData {
+                        if let date = dateFormatter.date(from: record.date),
+                           date >= startDate && date <= now,
+                           let restingHeartRate = record.restingHeartRate {
+                            points.append((date, Double(restingHeartRate)))
+                        }
+                    }
+                } else {
+                    print("SharedHealthDataManager 未提供，無法載入 Garmin 數據")
+                    self.error = "無法載入 Garmin 心率數據"
+                }
+                
+            case .unbound:
+                self.error = "請先選擇數據來源"
             }
             
             heartRateData = points.sorted { $0.0 < $1.0 }

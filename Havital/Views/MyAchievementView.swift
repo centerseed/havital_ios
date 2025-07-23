@@ -174,10 +174,9 @@ struct RestingHeartRateChartSection: View {
                     .padding()
                 
             case .garmin:
-                // Garmin: 使用共享的健康數據
-                SharedHealthDataChartView(chartType: .restingHeartRate, fallbackToHealthKit: false)
+                // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
+                SleepHeartRateChartViewWithGarmin(sharedHealthDataManager: sharedHealthDataManager)
                     .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
                     .padding()
                 
             case .unbound:
@@ -203,14 +202,65 @@ class SharedHealthDataManager: ObservableObject {
     private let healthDataUploadManager = HealthDataUploadManager.shared
     private var hasLoaded = false
     
+    init() {
+        setupNotificationObservers()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    /// 設置通知監聽
+    private func setupNotificationObservers() {
+        // 監聽 Garmin 數據刷新通知
+        NotificationCenter.default.addObserver(
+            forName: .garminHealthDataRefresh,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.forceRefreshData()
+            }
+        }
+        
+        // 監聽數據源切換通知
+        NotificationCenter.default.addObserver(
+            forName: .dataSourceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.forceRefreshData()
+            }
+        }
+    }
+    
     func loadHealthDataIfNeeded() async {
-        if hasLoaded { return }
+        // 檢查是否需要強制刷新（緩存過期或從未載入）
+        if hasLoaded && !isCacheExpired() { 
+            return 
+        }
         
         // 第一步：先嘗試載入緩存數據
         await loadCachedDataFirst()
         
         // 第二步：背景更新API數據
         await refreshDataFromAPI()
+    }
+    
+    /// 檢查緩存是否過期
+    private func isCacheExpired() -> Bool {
+        let keys = ["7", "14", "30"].map { "health_data_cache_time_\($0)" }
+        return keys.allSatisfy { key in
+            guard let cacheTime = UserDefaults.standard.object(forKey: key) as? Date else { return true }
+            return Date().timeIntervalSince(cacheTime) >= 1800 // 30分鐘
+        }
+    }
+    
+    /// 強制刷新數據（忽略已載入狀態）
+    func forceRefreshData() async {
+        hasLoaded = false
+        await loadHealthDataIfNeeded()
     }
     
     /// 先載入緩存數據（如果有的話）

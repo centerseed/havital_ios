@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CF702E6F2E30D9E400249A65 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF702E6E2E30D9E400249A65 /* FirebaseRemoteConfig */; };
 		CF80A8742E1ECF15001B36D9 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */; };
 		CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683762D5B33B5008A8242 /* FirebaseAnalytics */; };
 		CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683782D5B33B5008A8242 /* FirebaseAppCheck */; };
@@ -103,6 +104,7 @@
 				CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */,
 				CFD683832D5B3428008A8242 /* FirebaseCore in Frameworks */,
 				CFD6837F2D5B33B5008A8242 /* FirebaseFirestore in Frameworks */,
+				CF702E6F2E30D9E400249A65 /* FirebaseRemoteConfig in Frameworks */,
 				CFD683852D5B3440008A8242 /* FirebaseAnalytics in Frameworks */,
 				CFD6838A2D5B353F008A8242 /* GoogleSignInSwift in Frameworks */,
 			);
@@ -126,6 +128,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CF702E6D2E30D9E400249A65 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		CFB67CE72D07047500F672E3 = {
 			isa = PBXGroup;
 			children = (
@@ -133,6 +142,7 @@
 				CFB67CF22D07047500F672E3 /* Havital */,
 				CFB67D052D07047800F672E3 /* HavitalTests */,
 				CFB67D0F2D07047800F672E3 /* HavitalUITests */,
+				CF702E6D2E30D9E400249A65 /* Frameworks */,
 				CFB67CF12D07047500F672E3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -181,6 +191,7 @@
 				CFD683872D5B353F008A8242 /* GoogleSignIn */,
 				CFD683892D5B353F008A8242 /* GoogleSignInSwift */,
 				CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */,
+				CF702E6E2E30D9E400249A65 /* FirebaseRemoteConfig */,
 			);
 			productName = Havital;
 			productReference = CFB67CF02D07047500F672E3 /* paceriz_dev.app */;
@@ -985,6 +996,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CF702E6E2E30D9E400249A65 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
 		CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseMessaging;

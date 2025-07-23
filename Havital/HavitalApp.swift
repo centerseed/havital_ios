@@ -2,8 +2,7 @@ import SwiftUI
 import HealthKit
 import FirebaseCore
 import FirebaseAppCheck
-// TODO: 在 Xcode 專案中添加 FirebaseRemoteConfig 依賴後取消註解
-// import FirebaseRemoteConfig
+import FirebaseRemoteConfig
 import BackgroundTasks
 import UserNotifications
 
@@ -126,7 +125,16 @@ struct HavitalApp: App {
                 // 對於 Garmin 用戶，只需要請求通知授權（用於其他功能）
                 await requestNotificationAuthorization()
             }
+            
+            // 5. 啟動健康數據同步 (支援所有數據源)
+            await startHealthDataSync()
         }
+    }
+    
+    /// 啟動健康數據同步
+    private func startHealthDataSync() async {
+        print("啟動健康數據同步...")
+        await HealthDataUploadManager.shared.startHealthDataSync()
     }
     
     /// 請求 HealthKit 授權

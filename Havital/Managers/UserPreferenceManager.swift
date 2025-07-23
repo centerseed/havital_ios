@@ -41,8 +41,11 @@ class UserPreferenceManager: ObservableObject {
                 object: dataSourcePreference.rawValue
             )
             
-            // 在這裡可以發布通知，觸發全局數據刷新
-            // NotificationCenter.default.post(name: .dataSourceDidChange, object: nil)
+            // 發送數據源切換通知，觸發健康數據刷新
+            NotificationCenter.default.post(
+                name: .dataSourceChanged, 
+                object: dataSourcePreference
+            )
         }
     }
     
