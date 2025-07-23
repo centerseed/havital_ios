@@ -19,29 +19,54 @@ class GarminManager: NSObject, ObservableObject {
     
     // Garmin OAuth 配置
     private let garminAuthURL = "https://connect.garmin.com/oauth2Confirm"
-    private let redirectURI = "https://api-service-364865009192.asia-east1.run.app/connect/garmin/redirect"
     private let scope = "activity_read"
     
-    // 從配置文件讀取 client_id
+    // 環境相關配置
     private let clientID: String
+    private let redirectURI: String
     
     override init() {
-        // 從 APIKeys.plist 讀取 Garmin client ID
+        // 根據環境讀取對應的 Garmin Client ID
         if let path = Bundle.main.path(forResource: "APIKeys", ofType: "plist"),
-           let plist = NSDictionary(contentsOfFile: path),
-           let garminClientID = plist["GarminClientID"] as? String,
-           garminClientID != "YOUR_GARMIN_CLIENT_ID" {
-            self.clientID = garminClientID
-            print("✅ GarminManager: 成功讀取 Garmin Client ID: \(garminClientID)")
+           let plist = NSDictionary(contentsOfFile: path) {
+            
+            // 根據 build configuration 選擇對應的 Client ID
+            let clientIDKey: String
+            #if DEBUG
+            clientIDKey = "GarminClientID_Dev"
+            #else
+            clientIDKey = "GarminClientID_Prod"
+            #endif
+            
+            if let garminClientID = plist[clientIDKey] as? String,
+               !garminClientID.isEmpty {
+                self.clientID = garminClientID
+                print("✅ GarminManager: 成功讀取 \(clientIDKey): \(garminClientID)")
+            } else {
+                // 如果正式環境的 Client ID 為空，使用佔位符
+                self.clientID = "GARMIN_CLIENT_ID_NOT_SET"
+                print("⚠️ 警告：\(clientIDKey) 未設定或為空，Garmin 功能將不可用")
+            }
         } else {
-            // 如果無法讀取配置文件，使用佔位符並輸出警告
-            self.clientID = "YOUR_GARMIN_CLIENT_ID"
-            print("⚠️ 警告：無法從 APIKeys.plist 讀取有效的 GarminClientID，使用預設值")
+            self.clientID = "GARMIN_CLIENT_ID_NOT_SET"
+            print("❌ 錯誤：無法讀取 APIKeys.plist")
         }
+        
+        // 根據環境設定重定向 URI
+        #if DEBUG
+        self.redirectURI = "https://api-service-364865009192.asia-east1.run.app/connect/garmin/redirect"
+        #else
+        self.redirectURI = "https://api-service-163961347598.asia-east1.run.app/connect/garmin/redirect"
+        #endif
         
         super.init()
         // 檢查連接狀態
         loadConnectionStatus()
+    }
+    
+    /// 檢查 Client ID 是否有效（不為空且不是佔位符）
+    var isClientIDValid: Bool {
+        return !clientID.isEmpty && clientID != "GARMIN_CLIENT_ID_NOT_SET"
     }
     
     // MARK: - 連接狀態管理
@@ -88,6 +113,15 @@ class GarminManager: NSObject, ObservableObject {
     /// 開始 Garmin 連接流程
     func startConnection(force: Bool = false, state: String? = nil) async {
         print("🔧 GarminManager: 開始連接流程 (force: \(force), state: \(state ?? "nil"))")
+        
+        // 檢查 Client ID 是否有效
+        guard isClientIDValid else {
+            await MainActor.run {
+                connectionError = "Garmin 功能暫時不可用，請稍後再試"
+                print("❌ GarminManager: Client ID 無效，無法啟動連接流程")
+            }
+            return
+        }
         
         await MainActor.run {
             isConnecting = true

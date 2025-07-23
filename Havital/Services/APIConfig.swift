@@ -21,4 +21,10 @@ struct APIConfig {
         return false
         #endif
     }
+    
+    /// Garmin 功能開關
+    /// 使用 Firebase Remote Config 動態控制功能開放
+    static var isGarminEnabled: Bool {
+        return FeatureFlagManager.shared.isGarminIntegrationAvailable
+    }
 }

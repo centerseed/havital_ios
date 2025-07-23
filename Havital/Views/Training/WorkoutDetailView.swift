@@ -78,7 +78,7 @@ struct WorkoutDetailView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             // 訓練類型和日期
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("\(summaryTypeChinese ?? viewModel.workout.workoutActivityType.name)")
+                                Text("\(summaryTypeChinese ?? viewModel.workout.workoutActivityType.name.workoutTypeDisplayName())")
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)

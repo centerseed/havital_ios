@@ -90,6 +90,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 }
                 print("從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
                 
+                // 發送運動數據更新通知（首次載入緩存數據）
+                NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+                
                 // 檢查是否需要背景更新（但不阻塞 UI）
                 if cacheManager.shouldRefreshCache(intervalSinceLastSync: 300) { // 5 分鐘
                     print("背景更新運動記錄...")
@@ -115,6 +118,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 self.isLoading = false
                 self.lastSyncTime = Date()
             }
+            
+            // 發送運動數據更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
             
             Logger.firebase(
                 "運動記錄首次載入成功",
@@ -161,9 +167,6 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 刷新運動記錄（強制從 API 更新）
     func refreshWorkouts() async {
-        // 取消之前的載入任務，因為刷新需要強制更新
-        cancelTask(id: "load_workouts")
-        
         await executeTask(id: "refresh_workouts") {
             await self.forceRefreshFromAPI()
         }
@@ -177,14 +180,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         }
         
         do {
-            // 檢查是否被取消
-            try Task.checkCancellation()
-            
             print("強制刷新：從 API 獲取最新運動記錄...")
             let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
-            
-            // 再次檢查是否被取消
-            try Task.checkCancellation()
             
             // 直接覆寫緩存，確保與後端保持一致
             cacheManager.cacheWorkoutList(fetchedWorkouts)
@@ -193,6 +190,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 self.lastSyncTime = Date()
                 self.isLoading = false
             }
+            
+            // 發送運動數據更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
             Logger.firebase(
                 "強制刷新運動記錄完成 (覆寫方式)",
                 level: .info,
@@ -245,6 +245,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                         self.lastSyncTime = Date()
                     }
                     print("背景更新完成：新增 \(mergedCount) 筆記錄")
+                    
+                    // 發送運動數據更新通知
+                    NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
                 }
             } else {
                 // 沒有新數據，只更新同步時間
@@ -463,6 +466,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             
             // 重新載入統一的運動記錄
             await loadWorkouts()
+            
+            // 發送運動數據更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
             
         } catch {
             print("處理新的 Apple Health 運動記錄失敗: \(error.localizedDescription)")

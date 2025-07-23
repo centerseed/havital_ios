@@ -56,6 +56,7 @@ extension View {
 
 struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
+    @StateObject private var sharedHealthDataManager = SharedHealthDataManager()
     
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -85,10 +86,12 @@ struct MyAchievementView: View {
                     // HRV 趨勢圖 - 根據數據源選擇顯示方式
                     HRVChartSection()
                         .environmentObject(healthKitManager)
+                        .environmentObject(sharedHealthDataManager)
                     
                     // 睡眠靜息心率圖 - 根據數據源選擇顯示方式
                     RestingHeartRateChartSection()
                         .environmentObject(healthKitManager)
+                        .environmentObject(sharedHealthDataManager)
                 }
                 .padding(.vertical)
             }
@@ -102,6 +105,7 @@ struct MyAchievementView: View {
 // MARK: - HRV Chart Section
 struct HRVChartSection: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
     
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -119,14 +123,16 @@ struct HRVChartSection: View {
             switch dataSourcePreference {
             case .appleHealth:
                 // Apple Health: 優先使用 API，失敗時回退到 HealthKit
-                APIBasedHRVChartView(fallbackToHealthKit: true)
+                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
                     .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
                     .padding()
                 
             case .garmin:
                 // Garmin: 僅使用 API 數據
-                APIBasedHRVChartView(fallbackToHealthKit: false)
+                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
                     .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
                     .padding()
                 
             case .unbound:
@@ -145,6 +151,7 @@ struct HRVChartSection: View {
 // MARK: - Resting Heart Rate Chart Section
 struct RestingHeartRateChartSection: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
     
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -167,8 +174,10 @@ struct RestingHeartRateChartSection: View {
                     .padding()
                 
             case .garmin:
-                // Garmin: 使用 API 數據（待實現）
-                APIBasedRestingHeartRateChartView()
+                // Garmin: 使用共享的健康數據
+                SharedHealthDataChartView(chartType: .restingHeartRate, fallbackToHealthKit: false)
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
                     .padding()
                 
             case .unbound:
@@ -184,13 +193,305 @@ struct RestingHeartRateChartSection: View {
     }
 }
 
-// MARK: - API Based Chart Views with Fallback
+// MARK: - Shared Health Data Manager
+class SharedHealthDataManager: ObservableObject {
+    @Published var healthData: [HealthRecord] = []
+    @Published var isLoading = false
+    @Published var error: String?
+    @Published var isRefreshing = false // 新增：區分初始載入和刷新
+    
+    private let healthDataUploadManager = HealthDataUploadManager.shared
+    private var hasLoaded = false
+    
+    func loadHealthDataIfNeeded() async {
+        if hasLoaded { return }
+        
+        // 第一步：先嘗試載入緩存數據
+        await loadCachedDataFirst()
+        
+        // 第二步：背景更新API數據
+        await refreshDataFromAPI()
+    }
+    
+    /// 先載入緩存數據（如果有的話）
+    private func loadCachedDataFirst() async {
+        // 檢查是否有緩存數據
+        let cachedData = await getCachedHealthData(days: 14)
+        
+        await MainActor.run {
+            if !cachedData.isEmpty {
+                self.healthData = cachedData
+                self.error = nil
+                print("顯示緩存的健康數據，共 \(cachedData.count) 筆記錄")
+            } else {
+                // 沒有緩存數據時才顯示載入指示器
+                self.isLoading = true
+                self.error = nil
+            }
+        }
+    }
+    
+    /// 從API刷新數據
+    private func refreshDataFromAPI() async {
+        hasLoaded = true
+        
+        await MainActor.run {
+            if !self.healthData.isEmpty {
+                // 有緩存數據時，使用刷新指示器而不是載入指示器
+                self.isRefreshing = true
+            } else {
+                // 沒有緩存數據時，使用載入指示器
+                self.isLoading = true
+            }
+        }
+        
+        let newHealthData = await healthDataUploadManager.getHealthData(days: 14)
+        
+        await MainActor.run {
+            if !newHealthData.isEmpty {
+                self.healthData = newHealthData
+                self.error = nil
+            } else if self.healthData.isEmpty {
+                self.error = "無法載入健康數據"
+            }
+            self.isLoading = false
+            self.isRefreshing = false
+        }
+    }
+    
+    /// 獲取緩存的健康數據
+    private func getCachedHealthData(days: Int) async -> [HealthRecord] {
+        // 直接調用 HealthDataUploadManager 的緩存檢查邏輯
+        let cacheKey = "cached_health_daily_data_\(days)"
+        let timeKey = "health_data_cache_time_\(days)"
+        
+        guard let cacheTime = UserDefaults.standard.object(forKey: timeKey) as? Date,
+              Date().timeIntervalSince(cacheTime) < 1800 else { // 30分鐘有效期
+            return []
+        }
+        
+        guard let data = UserDefaults.standard.data(forKey: cacheKey),
+              let cachedData = try? JSONDecoder().decode([HealthRecord].self, from: data) else {
+            return []
+        }
+        
+        return cachedData
+    }
+    
+    /// 手動刷新數據
+    func refreshData() async {
+        await MainActor.run {
+            self.isRefreshing = true
+            self.error = nil
+        }
+        
+        let newHealthData = await healthDataUploadManager.refreshHealthData(days: 14)
+        
+        await MainActor.run {
+            self.healthData = newHealthData
+            self.isRefreshing = false
+            if newHealthData.isEmpty {
+                self.error = "無法載入健康數據"
+            }
+        }
+    }
+}
+
+// MARK: - Chart Type Enum
+enum HealthChartType {
+    case hrv
+    case restingHeartRate
+}
+
+// MARK: - Shared Health Data Chart View
+struct SharedHealthDataChartView: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
+    
+    let chartType: HealthChartType
+    let fallbackToHealthKit: Bool
+    
+    @State private var usingFallback = false
+    
+    var body: some View {
+        VStack {
+            if sharedHealthDataManager.isLoading {
+                ProgressView(loadingMessage)
+                    .frame(maxWidth: .infinity, minHeight: 100)
+            } else if let error = sharedHealthDataManager.error, !usingFallback {
+                if fallbackToHealthKit && chartType == .hrv {
+                    // HRV 可以回退到 HealthKit
+                    VStack(spacing: 8) {
+                        HStack {
+                            Image(systemName: "wifi.exclamationmark")
+                                .foregroundColor(.orange)
+                            Text("使用本地數據")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        HRVTrendChartView()
+                            .environmentObject(healthKitManager)
+                    }
+                } else {
+                    VStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                        Text("載入失敗")
+                            .font(.headline)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                }
+            } else if sharedHealthDataManager.healthData.isEmpty {
+                VStack {
+                    Image(systemName: chartIcon)
+                        .foregroundColor(.gray)
+                    Text(noDataMessage)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 100)
+            } else {
+                chartView
+            }
+        }
+        .task {
+            await sharedHealthDataManager.loadHealthDataIfNeeded()
+        }
+    }
+    
+    private var loadingMessage: String {
+        switch chartType {
+        case .hrv: return "載入 HRV 數據中..."
+        case .restingHeartRate: return "載入靜息心率數據中..."
+        }
+    }
+    
+    private var noDataMessage: String {
+        switch chartType {
+        case .hrv: return "無 HRV 數據"
+        case .restingHeartRate: return "無靜息心率數據"
+        }
+    }
+    
+    private var chartIcon: String {
+        switch chartType {
+        case .hrv: return "heart.text.square"
+        case .restingHeartRate: return "heart"
+        }
+    }
+    
+    @ViewBuilder
+    private var chartView: some View {
+        VStack {
+            // 狀態指示器
+            HStack {
+                if sharedHealthDataManager.isRefreshing {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("更新中...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else if usingFallback {
+                    Image(systemName: "wifi.exclamationmark")
+                        .foregroundColor(.orange)
+                    Text("使用本地數據")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            
+            Chart {
+                ForEach(sharedHealthDataManager.healthData.indices, id: \.self) { index in
+                    let record = sharedHealthDataManager.healthData[index]
+                    switch chartType {
+                    case .hrv:
+                        if let hrv = record.hrvLastNightAvg {
+                            LineMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("HRV", hrv)
+                            )
+                            .foregroundStyle(.blue)
+                            .symbol(Circle())
+                        }
+                    case .restingHeartRate:
+                        if let rhr = record.restingHeartRate {
+                            LineMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("靜息心率", rhr)
+                            )
+                            .foregroundStyle(.red)
+                        }
+                    }
+                }
+            }
+            .frame(height: 150)
+            .chartYAxis {
+                AxisMarks(position: .leading)
+            }
+            .chartYScale(domain: yAxisDomain)
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day)) { _ in
+                    AxisValueLabel(format: .dateTime.month().day())
+                }
+            }
+        }
+    }
+    
+    private var yAxisDomain: ClosedRange<Double> {
+        switch chartType {
+        case .hrv:
+            let hrvValues = sharedHealthDataManager.healthData.compactMap { $0.hrvLastNightAvg }
+            guard !hrvValues.isEmpty else { return 0...100 }
+            
+            let minValue = hrvValues.min() ?? 0
+            let maxValue = hrvValues.max() ?? 100
+            let range = maxValue - minValue
+            
+            if range < 10 {
+                let center = (minValue + maxValue) / 2
+                return (center - 15)...(center + 15)
+            } else {
+                let margin = range * 0.2
+                return (minValue - margin)...(maxValue + margin)
+            }
+            
+        case .restingHeartRate:
+            let hrValues = sharedHealthDataManager.healthData.compactMap { $0.restingHeartRate }.map { Double($0) }
+            guard !hrValues.isEmpty else { return 40...100 }
+            
+            let minValue = hrValues.min() ?? 40
+            let maxValue = hrValues.max() ?? 100
+            let range = maxValue - minValue
+            
+            if range < 5 {
+                let center = (minValue + maxValue) / 2
+                return (center - 10)...(center + 10)
+            } else {
+                let margin = range * 0.2
+                return (minValue - margin)...(maxValue + margin)
+            }
+        }
+    }
+    
+    
+    private func formatDateForChart(_ dateString: String) -> Date {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: dateString) ?? Date()
+    }
+}
+
+// MARK: - Legacy API Based Chart Views (保留以防需要)
 struct APIBasedHRVChartView: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     let fallbackToHealthKit: Bool
     
     @State private var healthData: [HealthRecord] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
     @State private var usingFallback = false
     
@@ -301,26 +602,46 @@ struct APIBasedHRVChartView: View {
                 }
             }
         }
-        .task {
-            loadTask?.cancel()
-            loadTask = Task {
-                await loadHealthData()
+        .onAppear {
+            // 如果沒有數據且不在載入中，才載入
+            if healthData.isEmpty && !isLoading {
+                loadTask?.cancel()
+                loadTask = Task {
+                    await loadHealthData()
+                }
             }
         }
         .onDisappear {
-            loadTask?.cancel()
+            // 不取消任務，讓數據保持可用
+            // loadTask?.cancel()
         }
     }
     
     private func loadHealthData() async {
+        // 檢查是否已經在載入中，避免重複調用
+        if isLoading {
+            return
+        }
+        
         isLoading = true
         usingFallback = false
         
         // 優先嘗試從 API 獲取數據
-        healthData = await HealthDataUploadManager.shared.getHealthData(days: 14)
-        error = nil
+        let newHealthData = await HealthDataUploadManager.shared.getHealthData(days: 14)
         
-        isLoading = false
+        // 無論如何都要更新 loading 狀態
+        defer {
+            isLoading = false
+        }
+        
+        // 只有在獲取到數據時才更新，避免 TaskManageable 跳過時清空現有數據
+        if !newHealthData.isEmpty {
+            healthData = newHealthData
+            error = nil
+        } else if healthData.isEmpty {
+            // 只有在沒有現有數據時才設為錯誤狀態
+            error = "無法載入 HRV 數據"
+        }
     }
     
     private func getLocalHRVData() async -> [HealthRecord] {

@@ -2,6 +2,8 @@ import SwiftUI
 import HealthKit
 import FirebaseCore
 import FirebaseAppCheck
+// TODO: 在 Xcode 專案中添加 FirebaseRemoteConfig 依賴後取消註解
+// import FirebaseRemoteConfig
 import BackgroundTasks
 import UserNotifications
 
@@ -23,6 +25,7 @@ struct HavitalApp: App {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var appViewModel = AppViewModel()
     @StateObject private var authService = AuthenticationService.shared
+    @StateObject private var featureFlagManager = FeatureFlagManager.shared
     
     init() {
         // 1. 先嘗試從 Bundle 載入 Firebase 設定檔
@@ -69,6 +72,7 @@ struct HavitalApp: App {
                 .environmentObject(authService)       // 注入 AuthenticationService
                 .environmentObject(healthKitManager)  // 注入 HealthKitManager
                 .environmentObject(appViewModel)      // 注入 AppViewModel
+                .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
                 .onAppear {
                     // App 啟動時初始化統一工作流程
                     Task {

@@ -90,7 +90,7 @@ struct WorkoutDetailViewV2: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading) {
-                    Text(viewModel.workoutType)
+                    Text(viewModel.workoutType.workoutTypeDisplayName())
                         .font(.title2)
                         .fontWeight(.semibold)
                 }
@@ -160,7 +160,7 @@ struct WorkoutDetailViewV2: View {
                     Text("活動類型")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(viewModel.workout.activityType)
+                    Text(viewModel.workout.activityType.workoutTypeDisplayName())
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }

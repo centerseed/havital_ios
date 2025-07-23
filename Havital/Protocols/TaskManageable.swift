@@ -19,39 +19,41 @@ extension TaskManageable {
         id: String,
         operation: @escaping () async throws -> T
     ) async -> T? {
-        // 先取消同 ID 的現有任務
-        if let existingTask = activeTasks[id] {
-            existingTask.cancel()
-            activeTasks.removeValue(forKey: id)
-        }
-        
-        // 創建新任務並執行操作
-        let task = Task<Void, Never> {
-            // 空的 Task 只用於追蹤和取消
-        }
-        
-        activeTasks[id] = task
-        
-        // 執行操作
-        do {
-            // 檢查任務是否已被取消
-            try Task.checkCancellation()
-            
-            let result = try await operation()
-            activeTasks.removeValue(forKey: id)
-            return result
-        } catch is CancellationError {
-            activeTasks.removeValue(forKey: id)
-            Logger.firebase("任務被取消", level: .info, jsonPayload: ["task_id": id])
-            return nil
-        } catch {
-            activeTasks.removeValue(forKey: id)
-            Logger.firebase("任務執行失敗", level: .error, jsonPayload: [
-                "task_id": id,
-                "error": error.localizedDescription
-            ])
+        // 檢查是否有相同 ID 的任務正在執行
+        if activeTasks[id] != nil {
+            Logger.firebase("任務已在執行中，跳過重複請求", level: .info, jsonPayload: ["task_id": id])
             return nil
         }
+        
+        // 創建真正的執行任務
+        let task = Task<T?, Never> {
+            do {
+                let result = try await operation()
+                Logger.firebase("任務執行成功", level: .info, jsonPayload: ["task_id": id])
+                return result
+            } catch is CancellationError {
+                Logger.firebase("任務被取消", level: .info, jsonPayload: ["task_id": id])
+                return nil
+            } catch {
+                Logger.firebase("任務執行失敗", level: .error, jsonPayload: [
+                    "task_id": id,
+                    "error": error.localizedDescription
+                ])
+                return nil
+            }
+        }
+        
+        // 創建 Void 包裝任務以符合 activeTasks 類型
+        let voidTask = Task<Void, Never> {
+            _ = await task.value
+        }
+        
+        activeTasks[id] = voidTask
+        
+        // 等待任務完成並清理
+        let result = await task.value
+        activeTasks.removeValue(forKey: id)
+        return result
     }
     
     func cancelTask(id: String) {

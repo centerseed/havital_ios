@@ -9,50 +9,62 @@ struct WorkoutV2RowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             
-            // 訓練類型和 VDOT 資訊
-            if workout.trainingType != nil || workout.dynamicVdot != nil {
-                HStack {
-                    // 訓練類型
-                    if let trainingType = workout.trainingType {
-                        HStack(spacing: 4) {
-                            Image(systemName: "figure.run")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            Text(formatTrainingType(trainingType))
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)
-                    }
-                    if isToday(date: workout.startDate) {
-                        Text("今天")
+            // 運動類型和訓練類型資訊
+            HStack {
+                // 運動類型
+                HStack(spacing: 4) {
+                    Image(systemName: getActivityTypeIcon(workout.activityType))
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    Text(workout.activityType.workoutTypeDisplayName())
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(6)
+                
+                // 訓練類型
+                if let trainingType = workout.trainingType {
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.run")
                             .font(.caption)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.blue)
-                            .cornerRadius(4)
+                            .foregroundColor(.blue)
+                        Text(formatTrainingType(trainingType))
+                            .font(.caption)
+                            .foregroundColor(.blue)
                     }
-                    Spacer()
-                    
-                    // 動態 VDOT
-                    if let dynamicVdot = workout.dynamicVdot {
-                        HStack(spacing: 4) {
-                            Image(systemName: "speedometer")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            Text(String(format: "VDOT %.1f", dynamicVdot))
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(6)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(6)
+                }
+                if isToday(date: workout.startDate) {
+                    Text("今天")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue)
+                        .cornerRadius(4)
+                }
+                Spacer()
+                
+                // 動態 VDOT
+                if let dynamicVdot = workout.dynamicVdot {
+                    HStack(spacing: 4) {
+                        Image(systemName: "speedometer")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Text(String(format: "VDOT %.1f", dynamicVdot))
+                            .font(.caption)
+                            .foregroundColor(.orange)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(6)
                 }
             }
             
@@ -184,6 +196,28 @@ struct WorkoutV2RowView: View {
             return "休息"
         default:
             return trainingType
+        }
+    }
+    
+    private func getActivityTypeIcon(_ activityType: String) -> String {
+        let type = activityType.lowercased()
+        
+        if type.contains("cycling") || type.contains("bike") || type.contains("ride") {
+            return "bicycle"
+        } else if type.contains("running") || type.contains("run") {
+            return "figure.run"
+        } else if type.contains("swimming") || type.contains("swim") {
+            return "figure.pool.swim"
+        } else if type.contains("walking") || type.contains("walk") {
+            return "figure.walk"
+        } else if type.contains("hiking") || type.contains("hike") {
+            return "figure.hiking"
+        } else if type.contains("strength") || type.contains("weight") {
+            return "dumbbell"
+        } else if type.contains("yoga") {
+            return "figure.yoga"
+        } else {
+            return "figure.strengthtraining.traditional"
         }
     }
 }

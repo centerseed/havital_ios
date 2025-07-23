@@ -273,9 +273,10 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         NotificationCenter.default.publisher(for: .workoutsDidUpdate)
             .sink { [weak self] _ in
                 guard let self = self else { return }
-                print("收到 workoutsDidUpdate 通知，重新加載訓練強度...")
+                print("收到 workoutsDidUpdate 通知，重新加載週跑量和訓練強度...")
                 Task {
-                    await self.loadCurrentWeekIntensity()
+                    // 使用統一方法同時更新週跑量和訓練強度
+                    await self.loadCurrentWeekData()
                 }
             }
             .store(in: &cancellables)
@@ -658,8 +659,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             
             // 載入該週的健康資料
             await loadWorkoutsForCurrentWeek()
-            await loadCurrentWeekDistance()
-            await loadCurrentWeekIntensity() // 新增強度加載
+            await loadCurrentWeekData()
             await identifyTodayTraining()
             
         } catch let err as TrainingPlanService.WeeklyPlanError where err == .notFound {
@@ -859,13 +859,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             await loadWeeklyPlan()
         }
         
-        // 並行加載其他數據
-        async let _ = loadWorkoutsForCurrentWeek()
-        async let _ = loadCurrentWeekIntensity()
-        
-        if let plan = weeklyPlan, plan.totalDistance > 0 {
-            await loadCurrentWeekDistance()
-        }
+        // 確保基礎數據載入（簡單直接的方式）
+        await loadWorkoutsForCurrentWeek()
+        await loadCurrentWeekData()
     }
     
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
@@ -952,14 +948,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 // 檢查是否被取消
                 guard !Task.isCancelled else { return }
                 
-                // 修正：無條件重新載入週跑量，確保跨週時能正確歸零
-                await loadCurrentWeekDistance()
-                
-                // 檢查是否被取消
-                guard !Task.isCancelled else { return }
-                
-                // 同時重新載入訓練強度
-                await loadCurrentWeekIntensity()
+                // 修正：無條件重新載入週數據，確保跨週時能正確歸零
+                await loadCurrentWeekData()
                 
                 break  // 成功後跳出重試迴圈
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
@@ -991,10 +981,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         
         do {
             // 確保 UnifiedWorkoutManager 有數據
-            if !unifiedWorkoutManager.hasWorkouts {
-                Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
-                await unifiedWorkoutManager.loadWorkouts()
-            }
+            await ensureWorkoutDataLoaded()
             
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
@@ -1034,8 +1021,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 self.isLoadingWorkouts = false
             }
             
+            // 載入週數據（距離和強度）
             if let plan = weeklyPlan, plan.totalDistance > 0 {
-                await loadCurrentWeekDistance()
+                await loadCurrentWeekData()
             }
             
         } catch {
@@ -1130,19 +1118,42 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
     
+    // 統一載入週數據（距離和強度）
+    func loadCurrentWeekData() async {
+        await loadCurrentWeekDistance()
+        await loadCurrentWeekIntensity()
+    }
+    
+    // 確保運動數據已載入
+    private func ensureWorkoutDataLoaded() async {
+        if !unifiedWorkoutManager.hasWorkouts {
+            Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
+            await unifiedWorkoutManager.loadWorkouts()
+        }
+    }
+    
     // 載入本週訓練強度分鐘數
     func loadCurrentWeekIntensity() async {
+        await executeTask(id: "load_current_week_intensity") {
+            await self.performLoadCurrentWeekIntensity()
+        }
+    }
+    
+    private func performLoadCurrentWeekIntensity() async {
         Logger.debug("載入本週訓練強度...")
         await MainActor.run {
             isLoadingIntensity = true
         }
         
+        defer {
+            Task { @MainActor in
+                isLoadingIntensity = false
+            }
+        }
+        
         do {
             // 確保 UnifiedWorkoutManager 有數據
-            if !unifiedWorkoutManager.hasWorkouts {
-                Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
-                await unifiedWorkoutManager.loadWorkouts()
-            }
+            await ensureWorkoutDataLoaded()
             
             let (weekStart, weekEnd) = getCurrentWeekDates()
             Logger.debug("計算 \(formatDate(weekStart)) 開始的週訓練強度...")
@@ -1162,7 +1173,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             await MainActor.run {
                 self._currentWeekIntensity = intensity
                 self.objectWillChange.send()
-                self.isLoadingIntensity = false
                 
                 // 記錄完成的強度值
                 Logger.debug("已更新強度值 - 低: \(intensity.low), 中: \(intensity.medium), 高: \(intensity.high)")
@@ -1170,11 +1180,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             
         } catch {
             Logger.error("加載本週訓練強度時出錯: \(error)")
-            
-            // 確保在發生錯誤時也重置載入狀態
-            await MainActor.run {
-                self.isLoadingIntensity = false
-            }
         }
     }
     
@@ -1205,17 +1210,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     func loadCurrentWeekDistance() async {
+        await executeTask(id: "load_current_week_distance") {
+            await self.performLoadCurrentWeekDistance()
+        }
+    }
+    
+    private func performLoadCurrentWeekDistance() async {
         Logger.debug("載入週跑量中...")
         await MainActor.run {
             isLoadingDistance = true
         }
         
+        defer {
+            Task { @MainActor in
+                isLoadingDistance = false
+            }
+        }
+        
         do {
             // 確保 UnifiedWorkoutManager 有數據
-            if !unifiedWorkoutManager.hasWorkouts {
-                Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
-                await unifiedWorkoutManager.loadWorkouts()
-            }
+            await ensureWorkoutDataLoaded()
             
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
@@ -1243,10 +1257,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             
         } catch {
             Logger.error("加載本週跑量時出錯: \(error)")
-        }
-        
-        await MainActor.run {
-            isLoadingDistance = false
         }
     }
     

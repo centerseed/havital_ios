@@ -7,6 +7,7 @@ struct UserProfileView: View {
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
+    @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false
     @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
@@ -422,15 +423,18 @@ struct UserProfileView: View {
                     subtitle: "使用 iPhone 和 Apple Watch 的健康資料"
                 )
                 
-                Divider()
-                
-                // Garmin 選項
-                dataSourceRow(
-                    type: .garmin,
-                    icon: "clock.arrow.circlepath",
-                    title: "Garmin",
-                    subtitle: "同步您的 Garmin 帳號活動"
-                )
+                // 只有當 Garmin 功能啟用時才顯示
+                if featureFlagManager.isGarminIntegrationAvailable {
+                    Divider()
+                    
+                    // Garmin 選項
+                    dataSourceRow(
+                        type: .garmin,
+                        icon: "clock.arrow.circlepath",
+                        title: "Garmin",
+                        subtitle: "同步您的 Garmin 帳號活動"
+                    )
+                }
                 
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }

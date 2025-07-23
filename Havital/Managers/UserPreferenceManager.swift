@@ -125,12 +125,21 @@ class UserPreferenceManager: ObservableObject {
     }
     
     private init() {
-        // 載入保存的數據來源偏好，如果未設定，則預設為尚未綁定
+        // 載入保存的數據來源偏好
         if let savedSource = UserDefaults.standard.string(forKey: Self.dataSourceKey),
            let source = DataSourceType(rawValue: savedSource) {
             self.dataSourcePreference = source
         } else {
             self.dataSourcePreference = .unbound
+        }
+        
+        // 監聽 Feature Flag 變化
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("FeatureFlagDidChange"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleFeatureFlagChange(notification)
         }
         
         // 載入保存的值
@@ -148,9 +157,68 @@ class UserPreferenceManager: ObservableObject {
         if let restingHR = self.restingHeartRate, restingHR == 0 {
             self.restingHeartRate = nil
         }
+        
+        // 初始化時檢查並調整數據源
+        validateAndAdjustDataSource()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Feature Flag 處理
+    
+    /// 處理 Feature Flag 變化
+    private func handleFeatureFlagChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let garminEnabled = userInfo["garmin_enabled"] as? Bool else {
+            return
+        }
+        
+        Logger.firebase("Feature Flag 變化通知收到", level: .info, labels: [
+            "module": "UserPreferenceManager",
+            "garmin_enabled": "\(garminEnabled)",
+            "current_data_source": dataSourcePreference.rawValue
+        ])
+        
+        // 如果 Garmin 功能被關閉且當前數據源是 Garmin，自動切換到 Apple Health
+        if !garminEnabled && dataSourcePreference == .garmin {
+            Logger.firebase("Garmin 功能關閉，自動切換數據源到 Apple Health", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "auto_switch_to_apple_health"
+            ])
+            
+            dataSourcePreference = .appleHealth
+        }
+    }
+    
+    /// 驗證並調整數據源設定
+    private func validateAndAdjustDataSource() {
+        // 確保在 Garmin 功能關閉時不使用 Garmin 數據源
+        if dataSourcePreference == .garmin && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
+            Logger.firebase("初始化時發現 Garmin 功能關閉，切換到 Apple Health", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "validate_and_adjust"
+            ])
+            
+            dataSourcePreference = .appleHealth
+        }
+        
+        // 如果是首次使用（unbound）且 Garmin 功能關閉，預設設為 Apple Health
+        if dataSourcePreference == .unbound && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
+            Logger.firebase("首次使用且 Garmin 功能關閉，預設設為 Apple Health", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "set_default_apple_health"
+            ])
+            
+            dataSourcePreference = .appleHealth
+        }
     }
     
     func clearUserData() {
+        // 移除 NotificationCenter 觀察者
+        NotificationCenter.default.removeObserver(self)
+        
         // 清除基本用戶資訊
         email = ""
         name = nil

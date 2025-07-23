@@ -5,6 +5,7 @@ struct DataSourceSelectionView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     
     @State private var selectedDataSource: DataSourceType?
     @State private var isProcessing = false
@@ -49,14 +50,16 @@ struct DataSourceSelectionView: View {
                                 description: "同步您的 Apple Health 數據，包括運動記錄、心率、步數等健康資訊。"
                             )
                             
-                            // Garmin 選項
-                            dataSourceCard(
-                                type: .garmin,
-                                icon: "clock.arrow.circlepath",
-                                title: "Garmin",
-                                subtitle: "同步您的 Garmin 帳號活動",
-                                description: "連接您的 Garmin 帳號，同步運動手錶、手環等設備的活動數據。"
-                            )
+                            // Garmin 選項 - 根據 Feature Flag 顯示
+                            if featureFlagManager.isGarminIntegrationAvailable {
+                                dataSourceCard(
+                                    type: .garmin,
+                                    icon: "clock.arrow.circlepath",
+                                    title: "Garmin",
+                                    subtitle: "同步您的 Garmin 帳號活動",
+                                    description: "連接您的 Garmin 帳號，同步運動手錶、手環等設備的活動數據。"
+                                )
+                            }
                         }
                         .padding(.horizontal)
                         
@@ -114,6 +117,27 @@ struct DataSourceSelectionView: View {
             Button("確定", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .onAppear {
+            // 當 Garmin 功能關閉時，自動選擇 Apple Health
+            if !featureFlagManager.isGarminIntegrationAvailable && selectedDataSource == nil {
+                selectedDataSource = .appleHealth
+                Logger.firebase("Garmin 功能關閉，自動選擇 Apple Health", level: .info, labels: [
+                    "module": "DataSourceSelectionView",
+                    "action": "auto_select_apple_health"
+                ])
+            }
+        }
+        .onReceive(featureFlagManager.$isGarminEnabled) { isEnabled in
+            // 當 Feature Flag 動態改變時的處理
+            if !isEnabled && selectedDataSource == .garmin {
+                // 如果當前選擇 Garmin 但功能被關閉，自動切換到 Apple Health
+                selectedDataSource = .appleHealth
+                Logger.firebase("Garmin 功能被關閉，自動切換到 Apple Health", level: .info, labels: [
+                    "module": "DataSourceSelectionView",
+                    "action": "switch_to_apple_health"
+                ])
+            }
         }
     }
     
