@@ -2,10 +2,6 @@ import SwiftUI
 import HealthKit
 import UserNotifications
 
-extension Notification.Name {
-    static let workoutsDidUpdate = Notification.Name("workoutsDidUpdate")
-}
-
 class TrainingRecordViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var uploadStatus: String? = nil

@@ -36,4 +36,6 @@ enum DataType {
     case targets
     case user
     case healthData
+    case hrv
+    case vdot
 }

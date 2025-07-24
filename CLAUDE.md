@@ -51,6 +51,42 @@ This is the Havital iOS app, a fitness tracking application that integrates with
 - Implement proper loading states
 - Cache frequently accessed data
 
+## Unified Data Flow Architecture
+
+### Core Pattern
+```
+HealthKit/Garmin → Backend API → Frontend (WorkoutV2/UserProfileData) → UI
+```
+
+**CRITICAL: Never convert API data back to HealthKit objects. Always API-first.**
+
+### Implementation Standards
+
+#### Manager Layer (`*Manager.swift`)
+- Implement `DataManageable` protocol
+- Use `executeDataLoadingTask(id:)` for API calls
+- Always `self.` in closures
+- `deinit { cancelAllTasks() }`
+
+#### ViewModel Layer (`*ViewModelV2.swift`) 
+- Extend `BaseDataViewModel<DataType, ManagerType>`
+- Use `executeWithErrorHandling` for user actions
+- `@MainActor` for UI updates
+
+#### Service Layer (`*Service.swift`)
+- Handle API communication
+- Return API models (WorkoutV2, UserProfileData)
+
+#### Cache Layer (`*CacheManager.swift`)
+- Use `BaseCacheManagerTemplate<DataType>`
+- Register with `CacheEventBus`
+
+### Architecture Examples
+- **Training Plans**: `TrainingPlanManager` + `TrainingPlanViewModelV2`
+- **User Data**: `UserManager` + `UserProfileViewModelV2` 
+- **HRV Data**: `HRVManager` + `HRVChartViewModelV2`
+- **Workouts**: `UnifiedWorkoutManager` (reference implementation)
+
 ### Testing Commands
 ```bash
 # Clean build to test changes

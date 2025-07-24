@@ -77,17 +77,21 @@ class CacheEventBus {
     private func getRelatedCacheIdentifiers(for dataType: DataType) -> Set<String> {
         switch dataType {
         case .workouts:
-            return ["workouts_v2"]
+            return ["workouts_v2", "workout_cache", "UnifiedWorkoutManager"]
         case .trainingPlan:
-            return ["training_plan", "weekly_summary"] // 訓練計劃影響週總結
+            return ["training_plan", "weekly_summary", "TrainingPlanManager"] // 訓練計劃影響週總結
         case .weeklySummary:
-            return ["weekly_summary"]
+            return ["weekly_summary", "WeeklySummaryManager"]
         case .targets:
-            return ["targets", "training_plan"] // 目標影響訓練計劃
+            return ["targets", "training_plan", "TargetManager"] // 目標影響訓練計劃
         case .user:
             return Set(cacheables.map { $0.cacheIdentifier }) // 用戶變更影響所有
         case .healthData:
-            return ["HealthDataUploadManager"] // 健康數據獨立緩存
+            return ["HealthDataUploadManager", "hrv_cache", "HRVManager", "health_data"] // 健康數據及相關緩存
+        case .hrv:
+            return ["hrv_cache", "HRVManager", "health_data"]
+        case .vdot:
+            return ["vdot_cache", "VDOTManager", "VDOT"]
         }
     }
     
