@@ -8,7 +8,8 @@ class AppViewModel: ObservableObject {
     @Published var showGarminMismatchAlert = false
     @Published var isHandlingGarminMismatch = false
     
-    // 統一的運動數據管理器
+    // 使用新的狀態管理中心
+    private let appStateManager = AppStateManager.shared
     private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
     
     init() {
@@ -41,13 +42,17 @@ class AppViewModel: ObservableObject {
     
     // MARK: - App 生命週期管理
     
-    /// App 啟動時的初始化
+    /// App 啟動時的初始化 - 委託給 AppStateManager
     func initializeApp() async {
-        // 註冊所有快取管理器到 CacheEventBus
+        print("📱 AppViewModel: 開始委託 AppStateManager 初始化")
+        
+        // 註冊所有快取管理器
         registerCacheManagers()
         
-        await unifiedWorkoutManager.initialize()
-        await unifiedWorkoutManager.loadWorkouts()
+        // 委託給 AppStateManager 進行完整初始化
+        await appStateManager.initializeApp()
+        
+        print("✅ AppViewModel: 初始化委託完成")
     }
     
     /// 註冊所有快取管理器到快取事件總線
@@ -65,11 +70,23 @@ class AppViewModel: ObservableObject {
     
     /// App 回到前台時刷新數據
     func onAppBecameActive() async {
+        // 只有在 App 就緒狀態才執行刷新
+        guard await appStateManager.currentState.isReady else {
+            print("⚠️ AppViewModel: App 未就緒，跳過前台刷新")
+            return
+        }
+        
         await unifiedWorkoutManager.refreshWorkouts()
     }
     
     /// 手動刷新數據（下拉刷新等）
     func refreshData() async {
+        // 只有在 App 就緒狀態才執行刷新
+        guard await appStateManager.currentState.isReady else {
+            print("⚠️ AppViewModel: App 未就緒，跳過手動刷新")
+            return
+        }
+        
         await unifiedWorkoutManager.refreshWorkouts()
     }
     

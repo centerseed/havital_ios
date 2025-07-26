@@ -448,8 +448,12 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     private func handleNewAppleHealthWorkout() async {
         // 確認當前數據來源是 Apple Health
-        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
-            print("數據來源已切換為 Garmin，忽略 Apple Health 運動記錄更新")
+        let currentDataSource = UserPreferenceManager.shared.dataSourcePreference
+        print("🚨 [觀察者調試] Apple Health 觀察者被觸發")
+        print("🚨 [觀察者調試] 當前數據源設置: \(currentDataSource.rawValue)")
+        
+        guard currentDataSource == .appleHealth else {
+            print("🚨 [觀察者調試] 數據來源已切換為 \(currentDataSource.rawValue)，忽略 Apple Health 運動記錄更新")
             return
         }
         
@@ -502,6 +506,18 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     }
     
     private func uploadAppleHealthWorkoutToV2API(_ workout: HKWorkout) async {
+        // 添加調試：檢查當前數據源設置
+        let currentDataSource = UserPreferenceManager.shared.dataSourcePreference
+        print("🚨 [上傳調試] 嘗試上傳 Apple Health workout")
+        print("🚨 [上傳調試] 當前數據源設置: \(currentDataSource.rawValue)")
+        print("🚨 [上傳調試] Workout ID: \(workout.uuid.uuidString)")
+        
+        // 如果當前數據源不是 Apple Health，應該停止上傳
+        guard currentDataSource == .appleHealth else {
+            print("🚨 [上傳調試] 數據源不是 Apple Health，停止上傳")
+            return
+        }
+        
         do {
             let result = try await workoutV2Service.uploadWorkout(workout)
             
@@ -555,31 +571,42 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     // MARK: - Private Methods
     
     private func stopCurrentWorkflow() async {
+        print("🛑 UnifiedWorkoutManager: 開始停止當前工作流程")
+        
         // 取消所有任務
         cancelAllTasks()
         
         // 停止 HealthKit 觀察者
         if let observer = healthKitObserver {
+            print("🛑 停止 UnifiedWorkoutManager 的 HealthKit 觀察者")
             healthKitManager.healthStore.stop(observer)
             healthKitManager.healthStore.disableBackgroundDelivery(for: HKObjectType.workoutType()) { success, error in
                 if !success, let error = error {
                     print("無法禁用 Apple Health 背景傳遞: \(error.localizedDescription)")
+                } else {
+                    print("✅ Apple Health 背景傳遞已禁用")
                 }
             }
             healthKitObserver = nil
             isObserving = false
-            print("Apple Health 觀察者已停止")
+            print("✅ UnifiedWorkoutManager 的 Apple Health 觀察者已停止")
+        } else {
+            print("ℹ️ UnifiedWorkoutManager 沒有活躍的 HealthKit 觀察者")
         }
         
-        // 停止背景管理器
+        // 強制停止背景管理器 - 確保清理所有觀察者
+        print("🛑 強制停止 WorkoutBackgroundManager")
         workoutBackgroundManager.stopAndCleanupObserving()
         
         // 取消所有背景任務
         BGTaskScheduler.shared.cancelAllTaskRequests()
-        print("已取消所有背景同步任務")
+        print("🛑 已取消所有背景同步任務")
+        
+        print("✅ UnifiedWorkoutManager: 工作流程停止完成")
     }
     
     private func setupNotificationObservers() {
+        // 監聽運動數據更新
         NotificationCenter.default.addObserver(
             forName: .workoutsDidUpdate,
             object: nil,
@@ -589,6 +616,42 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 await self?.refreshWorkouts()
             }
         }
+        
+        // 監聽數據源變更 - 修復觀察者未及時停止的問題
+        NotificationCenter.default.addObserver(
+            forName: .dataSourceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task {
+                print("🔄 UnifiedWorkoutManager: 收到數據源變更通知")
+                if let newDataSource = notification.object as? DataSourceType {
+                    print("🔄 數據源切換到: \(newDataSource.rawValue)")
+                    await self?.handleDataSourceChange(to: newDataSource)
+                }
+            }
+        }
+    }
+    
+    /// 處理數據源變更
+    private func handleDataSourceChange(to newDataSource: DataSourceType) async {
+        print("🔄 UnifiedWorkoutManager: 處理數據源變更到 \(newDataSource.rawValue)")
+        
+        // 強制停止當前所有工作流程
+        await stopCurrentWorkflow()
+        
+        // 清除本地數據
+        await MainActor.run {
+            clearAllLocalData()
+        }
+        
+        // 根據新數據源重新初始化
+        await initialize()
+        
+        // 重新載入數據
+        await loadWorkouts()
+        
+        print("✅ UnifiedWorkoutManager: 數據源切換完成")
     }
     
     deinit {

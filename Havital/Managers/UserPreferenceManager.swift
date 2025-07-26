@@ -184,37 +184,54 @@ class UserPreferenceManager: ObservableObject {
             "current_data_source": dataSourcePreference.rawValue
         ])
         
-        // 如果 Garmin 功能被關閉且當前數據源是 Garmin，自動切換到 Apple Health
+        // 🚨 重要：絕對不要自動改變用戶的數據源選擇！
+        // 如果 Garmin 功能被關閉，應該顯示錯誤訊息或禁用功能，而不是偷偷切換
         if !garminEnabled && dataSourcePreference == .garmin {
-            Logger.firebase("Garmin 功能關閉，自動切換數據源到 Apple Health", level: .info, labels: [
+            Logger.firebase("⚠️ Garmin 功能已關閉，但用戶選擇了 Garmin 數據源", level: .info, labels: [
                 "module": "UserPreferenceManager",
-                "action": "auto_switch_to_apple_health"
+                "action": "garmin_disabled_warning"
             ])
             
-            dataSourcePreference = .appleHealth
+            // 發送通知讓 UI 處理這個狀況，而不是偷偷切換
+            NotificationCenter.default.post(
+                name: NSNotification.Name("GarminFeatureDisabled"), 
+                object: nil
+            )
         }
     }
     
-    /// 驗證並調整數據源設定
+    /// 驗證數據源設定（但絕不自動更改用戶選擇）
     private func validateAndAdjustDataSource() {
-        // 確保在 Garmin 功能關閉時不使用 Garmin 數據源
+        // 🚨 重要修復：絕對不要因為功能標誌就改變用戶的數據源選擇！
+        
+        // 如果用戶選擇了 Garmin 但功能被關閉，記錄警告但不改變設置
         if dataSourcePreference == .garmin && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
-            Logger.firebase("初始化時發現 Garmin 功能關閉，切換到 Apple Health", level: .info, labels: [
+            Logger.firebase("⚠️ 初始化時發現 Garmin 功能關閉，但用戶選擇了 Garmin", level: .info, labels: [
                 "module": "UserPreferenceManager",
-                "action": "validate_and_adjust"
+                "action": "garmin_disabled_user_choice_respected"
             ])
             
-            dataSourcePreference = .appleHealth
+            // 發送通知讓 UI 處理，而不是偷偷切換
+            NotificationCenter.default.post(
+                name: NSNotification.Name("GarminFeatureDisabled"), 
+                object: nil
+            )
         }
         
-        // 如果是首次使用（unbound）且 Garmin 功能關閉，預設設為 Apple Health
-        if dataSourcePreference == .unbound && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
-            Logger.firebase("首次使用且 Garmin 功能關閉，預設設為 Apple Health", level: .info, labels: [
-                "module": "UserPreferenceManager",
-                "action": "set_default_apple_health"
-            ])
-            
-            dataSourcePreference = .appleHealth
+        // 只有在真正未綁定的情況下，才設置預設值
+        if dataSourcePreference == .unbound {
+            if FeatureFlagManager.shared.isGarminIntegrationAvailable {
+                Logger.firebase("首次使用，Garmin 功能可用，保持 unbound 狀態讓用戶選擇", level: .info, labels: [
+                    "module": "UserPreferenceManager",
+                    "action": "keep_unbound_for_user_choice"
+                ])
+            } else {
+                Logger.firebase("首次使用且 Garmin 功能關閉，預設設為 Apple Health", level: .info, labels: [
+                    "module": "UserPreferenceManager",
+                    "action": "set_default_apple_health"
+                ])
+                dataSourcePreference = .appleHealth
+            }
         }
     }
     

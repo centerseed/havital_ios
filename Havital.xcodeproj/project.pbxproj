@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CF702E6F2E30D9E400249A65 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF702E6E2E30D9E400249A65 /* FirebaseRemoteConfig */; };
-		CF80A8742E1ECF15001B36D9 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */; };
 		CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683762D5B33B5008A8242 /* FirebaseAnalytics */; };
 		CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683782D5B33B5008A8242 /* FirebaseAppCheck */; };
 		CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CFD6837A2D5B33B5008A8242 /* FirebaseAuth */; };
@@ -94,7 +92,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CF80A8742E1ECF15001B36D9 /* FirebaseMessaging in Frameworks */,
 				CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */,
 				CFD6837D2D5B33B5008A8242 /* FirebaseCore in Frameworks */,
 				CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */,
@@ -104,7 +101,6 @@
 				CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */,
 				CFD683832D5B3428008A8242 /* FirebaseCore in Frameworks */,
 				CFD6837F2D5B33B5008A8242 /* FirebaseFirestore in Frameworks */,
-				CF702E6F2E30D9E400249A65 /* FirebaseRemoteConfig in Frameworks */,
 				CFD683852D5B3440008A8242 /* FirebaseAnalytics in Frameworks */,
 				CFD6838A2D5B353F008A8242 /* GoogleSignInSwift in Frameworks */,
 			);
@@ -128,13 +124,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		CF702E6D2E30D9E400249A65 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		CFB67CE72D07047500F672E3 = {
 			isa = PBXGroup;
 			children = (
@@ -142,7 +131,6 @@
 				CFB67CF22D07047500F672E3 /* Havital */,
 				CFB67D052D07047800F672E3 /* HavitalTests */,
 				CFB67D0F2D07047800F672E3 /* HavitalUITests */,
-				CF702E6D2E30D9E400249A65 /* Frameworks */,
 				CFB67CF12D07047500F672E3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -190,8 +178,6 @@
 				CFD683842D5B3440008A8242 /* FirebaseAnalytics */,
 				CFD683872D5B353F008A8242 /* GoogleSignIn */,
 				CFD683892D5B353F008A8242 /* GoogleSignInSwift */,
-				CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */,
-				CF702E6E2E30D9E400249A65 /* FirebaseRemoteConfig */,
 			);
 			productName = Havital;
 			productReference = CFB67CF02D07047500F672E3 /* paceriz_dev.app */;
@@ -463,7 +449,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -482,7 +468,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.7;
+				MARKETING_VERSION = 0.9.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -591,7 +577,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -610,7 +596,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.7;
+				MARKETING_VERSION = 0.9.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -780,9 +766,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Havital/HavitalDebug.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -801,7 +787,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.7;
+				MARKETING_VERSION = 0.9.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -818,7 +804,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -837,7 +823,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.7;
+				MARKETING_VERSION = 0.9.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -996,15 +982,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		CF702E6E2E30D9E400249A65 /* FirebaseRemoteConfig */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseRemoteConfig;
-		};
-		CF80A8732E1ECF15001B36D9 /* FirebaseMessaging */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = FirebaseMessaging;
-		};
 		CFD683762D5B33B5008A8242 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseAnalytics;

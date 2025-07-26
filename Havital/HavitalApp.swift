@@ -73,11 +73,17 @@ struct HavitalApp: App {
                 .environmentObject(appViewModel)      // 注入 AppViewModel
                 .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
                 .onAppear {
-                    // App 啟動時初始化統一工作流程
+                    // App 啟動時使用新的狀態管理進行序列化初始化
                     Task {
+                        print("🚀 HavitalApp: 開始序列化初始化流程")
+                        
+                        // Step 1: App 核心初始化（用戶狀態優先）
                         await appViewModel.initializeApp()
-                        // 設置權限和背景處理
-                        setupAllPermissionsAndBackgroundProcessing()
+                        
+                        // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
+                        await setupPermissionsBasedOnUserState()
+                        
+                        print("✅ HavitalApp: 初始化流程完成")
                     }
                 }
                 // 處理深度連結
@@ -99,35 +105,61 @@ struct HavitalApp: App {
         }
     }
     
-    /// 一次性請求所有必要的權限並設置背景處理
-    func setupAllPermissionsAndBackgroundProcessing() {
-        Task {
-            // 檢查當前數據來源設定
-            let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
-            print("App 啟動 - 當前數據來源: \(dataSourcePreference.displayName)")
-            
-            // 只有 Apple Health 用戶才需要設置 HealthKit 相關功能
-            if dataSourcePreference == .appleHealth {
+    /// 基於已確定用戶狀態的權限設置
+    func setupPermissionsBasedOnUserState() async {
+        print("🔐 HavitalApp: 開始基於用戶狀態設置權限")
+        
+        // 獲取用戶狀態
+        let appStateManager = AppStateManager.shared
+        let isAuthenticated = appStateManager.isUserAuthenticated
+        let dataSource = appStateManager.userDataSource
+        
+        print("🔐 用戶認證狀態: \(isAuthenticated)")
+        print("🔐 數據源: \(dataSource.rawValue)")
+        
+        if isAuthenticated {
+            // 已認證用戶的權限設置
+            switch dataSource {
+            case .appleHealth:
+                print("🍎 設置 Apple Health 用戶權限")
                 // 1. 請求 HealthKit 授權
                 await requestHealthKitAuthorization()
                 
-                // 2. 請求通知授權（這是 WorkoutBackgroundManager 需要的）
+                // 2. 請求通知授權
                 await requestNotificationAuthorization()
                 
-                // 3. 設置背景健身記錄同步（包括觀察者）
+                // 3. 設置背景健身記錄同步
                 await setupWorkoutBackgroundProcessing()
                 
-                // 4. 檢查是否有待處理的健身記錄
+                // 4. 檢查待處理的健身記錄
                 await checkForPendingHealthUpdates()
-            } else {
-                print("數據來源為 Garmin，跳過 HealthKit 相關設置")
                 
-                // 對於 Garmin 用戶，只需要請求通知授權（用於其他功能）
+            case .garmin:
+                print("⌚ 設置 Garmin 用戶權限")
+                // 只需要通知授權
+                await requestNotificationAuthorization()
+                
+            case .unbound:
+                print("🔓 用戶未綁定數據源，設置基本權限")
                 await requestNotificationAuthorization()
             }
             
-            // 5. 啟動健康數據同步 (支援所有數據源)
+            // 啟動健康數據同步（支援所有數據源）
             await startHealthDataSync()
+            
+        } else {
+            print("👤 訪客用戶，設置基本權限")
+            // 訪客模式只需要基本通知權限
+            await requestNotificationAuthorization()
+        }
+        
+        print("✅ HavitalApp: 權限設置完成")
+    }
+    
+    /// 一次性請求所有必要的權限並設置背景處理（舊方法，保留作為備用）
+    func setupAllPermissionsAndBackgroundProcessing() {
+        Task {
+            await setupPermissionsBasedOnUserState()
         }
     }
     

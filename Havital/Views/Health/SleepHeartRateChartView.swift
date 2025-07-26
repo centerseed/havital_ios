@@ -117,8 +117,8 @@ struct SleepHeartRateChartViewWithGarmin: View {
     @StateObject private var viewModel: SleepHeartRateViewModel
     private let sharedHealthDataManager: SharedHealthDataManager
     
-    init(sharedHealthDataManager: SharedHealthDataManager) {
-        self.sharedHealthDataManager = sharedHealthDataManager
+    init() {
+        self.sharedHealthDataManager = SharedHealthDataManager.shared
         _viewModel = StateObject(wrappedValue: SleepHeartRateViewModel())
     }
     
@@ -206,7 +206,6 @@ struct SleepHeartRateChartViewWithGarmin: View {
         .onAppear {
             // 設定 ViewModel 的管理器
             viewModel.healthKitManager = healthKitManager
-            viewModel.sharedHealthDataManager = sharedHealthDataManager
         }
         .task {
             await viewModel.loadHeartRateData()

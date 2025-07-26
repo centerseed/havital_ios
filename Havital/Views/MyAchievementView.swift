@@ -56,7 +56,7 @@ extension View {
 
 struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
-    @StateObject private var sharedHealthDataManager = SharedHealthDataManager()
+    @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
     
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -175,7 +175,7 @@ struct RestingHeartRateChartSection: View {
                 
             case .garmin:
                 // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
-                SleepHeartRateChartViewWithGarmin(sharedHealthDataManager: sharedHealthDataManager)
+                SleepHeartRateChartViewWithGarmin()
                     .environmentObject(healthKitManager)
                     .padding()
                 
@@ -193,7 +193,12 @@ struct RestingHeartRateChartSection: View {
 }
 
 // MARK: - Shared Health Data Manager
-class SharedHealthDataManager: ObservableObject {
+class SharedHealthDataManager: ObservableObject, TaskManageable {
+    // MARK: - Singleton
+    static let shared = SharedHealthDataManager()
+    
+    // MARK: - TaskManageable Properties
+    var activeTasks: [String: Task<Void, Never>] = [:]
     @Published var healthData: [HealthRecord] = []
     @Published var isLoading = false
     @Published var error: String?
@@ -202,11 +207,12 @@ class SharedHealthDataManager: ObservableObject {
     private let healthDataUploadManager = HealthDataUploadManager.shared
     private var hasLoaded = false
     
-    init() {
+    private init() {
         setupNotificationObservers()
     }
     
     deinit {
+        cancelAllTasks()
         NotificationCenter.default.removeObserver(self)
     }
     
@@ -236,6 +242,39 @@ class SharedHealthDataManager: ObservableObject {
     }
     
     func loadHealthDataIfNeeded() async {
+        // 如果正在載入中，等待當前載入完成而不是跳過
+        if isLoading {
+            // 創建一個輪詢機制，等待載入完成
+            while isLoading {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒
+            }
+            return
+        }
+        
+        let taskId = "load_health_data"
+        
+        await executeTask(id: taskId, operation: {
+            return try await self.performLoadHealthDataIfNeeded()
+        })
+        
+        // 確保數據載入完成後再返回
+        while isLoading || isRefreshing {
+            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05秒
+        }
+    }
+    
+    private func performLoadHealthDataIfNeeded() async throws {
+        // 設置載入狀態
+        await MainActor.run {
+            isLoading = true
+        }
+        
+        defer {
+            Task { @MainActor in
+                isLoading = false
+            }
+        }
+        
         // 檢查是否需要強制刷新（緩存過期或從未載入）
         if hasLoaded && !isCacheExpired() { 
             return 
@@ -259,8 +298,18 @@ class SharedHealthDataManager: ObservableObject {
     
     /// 強制刷新數據（忽略已載入狀態）
     func forceRefreshData() async {
+        let taskId = "force_refresh_health_data"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performForceRefreshData()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performForceRefreshData() async throws {
         hasLoaded = false
-        await loadHealthDataIfNeeded()
+        try await performLoadHealthDataIfNeeded()
     }
     
     /// 先載入緩存數據（如果有的話）
@@ -295,17 +344,48 @@ class SharedHealthDataManager: ObservableObject {
             }
         }
         
-        let newHealthData = await healthDataUploadManager.getHealthData(days: 14)
-        
-        await MainActor.run {
+        // 測試：直接使用 APIClient 獲取數據，與 VDOT 使用相同方式
+        do {
+            print("嘗試直接使用 APIClient 獲取健康數據...")
+            let response: HealthDailyResponse = try await APIClient.shared.request(
+                HealthDailyResponse.self,
+                path: "/v2/workouts/health_daily?limit=14"
+            )
+            let newHealthData = response.data.healthData
+            
+            print("APIClient 直接調用返回: \(newHealthData.count) 筆健康記錄")
             if !newHealthData.isEmpty {
-                self.healthData = newHealthData
-                self.error = nil
-            } else if self.healthData.isEmpty {
-                self.error = "無法載入健康數據"
+                print("健康數據樣本: \(newHealthData.prefix(2))")
             }
-            self.isLoading = false
-            self.isRefreshing = false
+            
+            await MainActor.run {
+                if !newHealthData.isEmpty {
+                    self.healthData = newHealthData
+                    self.error = nil
+                } else {
+                    self.error = "API 返回空數據"
+                }
+                self.isLoading = false
+                self.isRefreshing = false
+            }
+        } catch {
+            print("APIClient 直接調用失敗: \(error)")
+            
+            // 回退到原來的方法
+            let newHealthData = await healthDataUploadManager.getHealthData(days: 14)
+            
+            print("回退到 HealthDataUploadManager: \(newHealthData.count) 筆健康記錄")
+            
+            await MainActor.run {
+                if !newHealthData.isEmpty {
+                    self.healthData = newHealthData
+                    self.error = nil
+                } else if self.healthData.isEmpty {
+                    self.error = "無法載入健康數據"
+                }
+                self.isLoading = false
+                self.isRefreshing = false
+            }
         }
     }
     
@@ -330,6 +410,16 @@ class SharedHealthDataManager: ObservableObject {
     
     /// 手動刷新數據
     func refreshData() async {
+        let taskId = "refresh_health_data"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performRefreshData()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performRefreshData() async throws {
         await MainActor.run {
             self.isRefreshing = true
             self.error = nil
@@ -343,6 +433,11 @@ class SharedHealthDataManager: ObservableObject {
             if newHealthData.isEmpty {
                 self.error = "無法載入健康數據"
             }
+        }
+        
+        // 如果沒有數據，拋出錯誤
+        if newHealthData.isEmpty {
+            throw NSError(domain: "SharedHealthDataManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "無法載入健康數據"])
         }
     }
 }

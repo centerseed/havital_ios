@@ -1,8 +1,9 @@
 import SwiftUI
 import HealthKit
 
-@MainActor
-class SleepHeartRateViewModel: ObservableObject {
+class SleepHeartRateViewModel: ObservableObject, TaskManageable {
+    // MARK: - TaskManageable Properties
+    var activeTasks: [String: Task<Void, Never>] = [:]
     @Published var heartRateData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?
@@ -10,13 +11,15 @@ class SleepHeartRateViewModel: ObservableObject {
     
     // 透過外部設定的管理器
     var healthKitManager: HealthKitManager?
-    var sharedHealthDataManager: SharedHealthDataManager?
+    // 直接使用單例
+    private let sharedHealthDataManager = SharedHealthDataManager.shared
     
     init() {
         setupNotificationObservers()
     }
     
     deinit {
+        cancelAllTasks()
         NotificationCenter.default.removeObserver(self)
     }
     
@@ -57,8 +60,22 @@ class SleepHeartRateViewModel: ObservableObject {
     }
     
     func loadHeartRateData() async {
-        isLoading = true
-        error = nil
+        // 使用實例唯一的 ID 來避免不同實例間的任務衝突
+        let instanceId = ObjectIdentifier(self).hashValue
+        let taskId = "load_heart_rate_\(instanceId)_\(selectedTimeRange.rawValue)"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performLoadHeartRateData()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performLoadHeartRateData() async throws {
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
         
         let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
         
@@ -81,8 +98,10 @@ class SleepHeartRateViewModel: ObservableObject {
             case .appleHealth:
                 // 從 HealthKit 獲取數據
                 guard let healthKit = healthKitManager else {
-                    self.error = "HealthKit 管理器未初始化"
-                    isLoading = false
+                    await MainActor.run {
+                        self.error = "HealthKit 管理器未初始化"
+                        self.isLoading = false
+                    }
                     return
                 }
                 
@@ -98,36 +117,52 @@ class SleepHeartRateViewModel: ObservableObject {
                 
             case .garmin:
                 // 從 API 獲取數據
-                if let sharedDataManager = sharedHealthDataManager {
-                    await sharedDataManager.loadHealthDataIfNeeded()
+                await sharedHealthDataManager.loadHealthDataIfNeeded()
+                
+                let healthData = sharedHealthDataManager.healthData
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                
+                print("Garmin 心率數據載入: 共 \(healthData.count) 筆健康記錄")
+                
+                // 調試：檢查每筆記錄的 restingHeartRate 字段
+                for record in healthData {
+                    print("記錄: 日期=\(record.date), restingHeartRate=\(record.restingHeartRate ?? -1)")
                     
-                    let healthData = sharedDataManager.healthData
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "yyyy-MM-dd"
-                    
-                    for record in healthData {
-                        if let date = dateFormatter.date(from: record.date),
-                           date >= startDate && date <= now,
-                           let restingHeartRate = record.restingHeartRate {
+                    if let date = dateFormatter.date(from: record.date),
+                       date >= startDate && date <= now {
+                        
+                        if let restingHeartRate = record.restingHeartRate {
                             points.append((date, Double(restingHeartRate)))
+                            print("✅ 添加心率數據: 日期=\(record.date), 心率=\(restingHeartRate)")
+                        } else {
+                            print("❌ 該日期無靜息心率數據: \(record.date)")
                         }
+                    } else {
+                        print("⏰ 日期超出範圍: \(record.date)")
                     }
-                } else {
-                    print("SharedHealthDataManager 未提供，無法載入 Garmin 數據")
-                    self.error = "無法載入 Garmin 心率數據"
                 }
                 
+                print("最終心率數據點數: \(points.count)")
+                
             case .unbound:
-                self.error = "請先選擇數據來源"
+                await MainActor.run {
+                    self.error = "請先選擇數據來源"
+                }
             }
             
-            heartRateData = points.sorted { $0.0 < $1.0 }
-            isLoading = false
+            await MainActor.run {
+                heartRateData = points.sorted { $0.0 < $1.0 }
+                isLoading = false
+            }
         } catch {
             print("Error loading sleep heart rate data: \(error)")
-            self.error = "無法載入睡眠心率數據"
-            isLoading = false
-            heartRateData = []
+            await MainActor.run {
+                self.error = "無法載入睡眠心率數據"
+                self.isLoading = false
+                self.heartRateData = []
+            }
+            throw error
         }
     }
     

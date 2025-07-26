@@ -19,8 +19,9 @@ struct UserProfileView: View {
     @State private var isDeletingAccount = false  // 刪除帳戶加載狀態
     @State private var showDataSourceSwitchConfirmation = false  // 數據源切換確認對話框
     @State private var pendingDataSourceType: DataSourceType?  // 待切換的數據源類型
-    @State private var showDataSyncView = false  // 顯示數據同步畫面
-    @State private var syncDataSource: DataSourceType?  // 需要同步的數據源
+    // 保留 DataSyncView 相關狀態變量供未來使用
+    @State private var showDataSyncView = false  // 顯示數據同步畫面（已停用）
+    @State private var syncDataSource: DataSourceType?  // 需要同步的數據源（已停用）
     @State private var showGarminAlreadyBoundAlert = false
     
     private var appVersion: String {
@@ -205,6 +206,7 @@ struct UserProfileView: View {
                 }
             }
         }
+        // 保留 DataSyncView sheet 供未來使用（目前已停用）
         .sheet(isPresented: $showDataSyncView) {
             if let syncDataSource = syncDataSource {
                 NavigationStack {
@@ -547,9 +549,6 @@ struct UserProfileView: View {
             switch newDataSource {
             case .unbound:
                 // 切換到尚未綁定狀態
-                // 清除本地資料
-                await UnifiedWorkoutManager.shared.clearAllLocalData()
-                
                 userPreferenceManager.dataSourcePreference = .unbound
                 
                 // 同步到後端
@@ -587,9 +586,6 @@ struct UserProfileView: View {
                     // 即使權限請求失敗，也繼續切換數據源
                 }
                 
-                // 清除本地資料
-                await UnifiedWorkoutManager.shared.clearAllLocalData()
-                
                 userPreferenceManager.dataSourcePreference = .appleHealth
                 
                 // 同步到後端
@@ -597,11 +593,8 @@ struct UserProfileView: View {
                     try await UserService.shared.updateDataSource(newDataSource.rawValue)
                     print("數據源設定已同步到後端: \(newDataSource.displayName)")
                     
-                    // 顯示同步畫面
-                    await MainActor.run {
-                        syncDataSource = newDataSource
-                        showDataSyncView = true
-                    }
+                    // 切換完成，不再顯示同步畫面
+                    print("Apple Health 數據源切換完成")
                 } catch {
                     print("同步數據源設定到後端失敗: \(error.localizedDescription)")
                 }
@@ -621,20 +614,14 @@ struct UserProfileView: View {
                 }
                 
                 if garminManager.isConnected {
-                    // OAuth 成功，清除本地資料
-                    await UnifiedWorkoutManager.shared.clearAllLocalData()
-                    
-                    // 顯示同步畫面（數據源已在GarminManager中更新）
-                    await MainActor.run {
-                        syncDataSource = newDataSource
-                        showDataSyncView = true
-                    }
+                    // OAuth 成功，切換完成
+                    print("Garmin 數據源切換完成")
                 } else if !garminManager.isConnecting {
                     // OAuth 流程已結束但未成功連接
-                    print("Garmin OAuth 失敗或用戶取消，未顯示同步畫面")
+                    print("Garmin OAuth 失敗或用戶取消")
                 } else {
                     // 超時
-                    print("Garmin OAuth 超時，未顯示同步畫面")
+                    print("Garmin OAuth 超時")
                 }
                 // 注意：數據源的更新會在OAuth成功後在GarminManager中處理
             }

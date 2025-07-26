@@ -3,7 +3,6 @@ import HealthKit
 
 // MARK: - 錯誤類型定義
 enum AppleHealthWorkoutUploadError: Error {
-    case missingHeartRateData
     case serverError
 }
 
@@ -52,31 +51,39 @@ class AppleHealthWorkoutUploadService {
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
         
-        // 取得心率
-        var heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-        if retryHeartRate && (heartRateData.count < 5) {
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        // 檢查基本數據（時間和距離）
+        let duration = workout.duration
+        let distance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+        
+        // 基本數據驗證：必須有有效的持續時間
+        guard duration > 0 else {
+            throw WorkoutV2ServiceError.invalidWorkoutData
+        }
+        
+        // 取得心率數據（可選，不再強制要求）
+        var heartRateData: [(Date, Double)] = []
+        do {
             heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-        }
-        
-        // 如果心率不足且非 force
-        if !force && (heartRateData.count < 5) {
-            let elapsed = Date().timeIntervalSince(workout.endDate)
-            if elapsed < 600 { // 10 分鐘
-                throw AppleHealthWorkoutUploadError.missingHeartRateData
-            } else {
-                workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                return .success(hasHeartRate: false)
+            if retryHeartRate && heartRateData.count < 5 {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
             }
+        } catch {
+            print("無法獲取心率數據，但將繼續上傳: \(error.localizedDescription)")
         }
         
-        // 擴充數據
-        let speedData              = try await healthKitManager.fetchSpeedData(for: workout)
-        let strideLengthData       = try? await healthKitManager.fetchStrideLengthData(for: workout)
-        let cadenceData            = try? await healthKitManager.fetchCadenceData(for: workout)
-        let groundContactTimeData  = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
+        // 獲取設備信息
+        let deviceInfo = getWorkoutDeviceInfo(workout)
+        let actualSource = deviceInfo.source
+        let actualDevice = deviceInfo.device
+        
+        // 擴充數據（全部為可選）
+        let speedData = (try? await healthKitManager.fetchSpeedData(for: workout)) ?? []
+        let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
+        let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
+        let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
         let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
-        let totalCalories          = try? await healthKitManager.fetchCaloriesData(for: workout)
+        let totalCalories = try? await healthKitManager.fetchCaloriesData(for: workout)
         
         // 轉成 DataPoint
         let heartRates  = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
@@ -94,11 +101,12 @@ class AppleHealthWorkoutUploadService {
                                      groundContactTimes: contacts,
                                      verticalOscillations: oscillations,
                                      totalCalories: totalCalories,
-                                     source: source,
-                                     device: device)
+                                     source: actualSource,
+                                     device: actualDevice)
         
-        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)
-        return .success(hasHeartRate: true)
+        let hasHeartRateData = heartRateData.count >= 5
+        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData)
+        return .success(hasHeartRate: hasHeartRateData)
     }
     
     // MARK: - Batch Upload
@@ -178,6 +186,101 @@ class AppleHealthWorkoutUploadService {
     }
     func clearWorkoutSummaryCache() {
         UserDefaults.standard.removeObject(forKey: "WorkoutSummaryCache")
+    }
+    
+    // MARK: - Device Info Helper
+    private func getWorkoutDeviceInfo(_ workout: HKWorkout) -> (source: String, device: String?) {
+        // 預設值
+        var source = "apple_health"
+        var deviceBrand: String? = nil
+        
+        // 檢查 metadata 中的裝置資訊
+        if let metadata = workout.metadata {
+            // 1. 先檢查是否有製造商資訊
+            if let manufacturer = metadata[HKMetadataKeyDeviceManufacturerName] as? String {
+                let lowercased = manufacturer.lowercased()
+                if lowercased.contains("apple") {
+                    source = "apple_watch"
+                    deviceBrand = "Apple"
+                } else if lowercased.contains("garmin") {
+                    source = "garmin"
+                    deviceBrand = "Garmin"
+                } else if lowercased.contains("polar") {
+                    source = "polar"
+                    deviceBrand = "Polar"
+                } else if lowercased.contains("suunto") {
+                    source = "suunto"
+                    deviceBrand = "Suunto"
+                } else if lowercased.contains("coros") {
+                    source = "coros"
+                    deviceBrand = "Coros"
+                } else if lowercased.contains("huawei") || lowercased.contains("honor") {
+                    source = "huawei"
+                    deviceBrand = "Huawei"
+                } else if lowercased.contains("samsung") || lowercased.contains("galaxy") {
+                    source = "samsung"
+                    deviceBrand = "Samsung"
+                } else if lowercased.contains("fitbit") {
+                    source = "fitbit"
+                    deviceBrand = "Fitbit"
+                } else {
+                    // 其他未列出的製造商
+                    deviceBrand = manufacturer
+                }
+            }
+            
+            // 2. 如果有裝置名稱，且尚未識別出品牌，則從裝置名稱中嘗試識別
+            if deviceBrand == nil, let deviceName = metadata[HKMetadataKeyDeviceName] as? String {
+                let lowercased = deviceName.lowercased()
+                
+                // 檢查常見品牌
+                let brandMappings: [(String, String)] = [
+                    ("apple", "Apple"),
+                    ("garmin", "Garmin"),
+                    ("polar", "Polar"),
+                    ("suunto", "Suunto"),
+                    ("coros", "Coros"),
+                    ("huawei", "Huawei"),
+                    ("honor", "Huawei"),
+                    ("samsung", "Samsung"),
+                    ("galaxy", "Samsung"),
+                    ("fitbit", "Fitbit")
+                ]
+                
+                for (keyword, brand) in brandMappings {
+                    if lowercased.contains(keyword) {
+                        deviceBrand = brand
+                        break
+                    }
+                }
+                
+                // 如果還是無法識別品牌，但有名稱，則使用名稱
+                if deviceBrand == nil {
+                    deviceBrand = deviceName
+                }
+            }
+            
+            // 3. 嘗試從 device 物件獲取更詳細的信息
+            if let device = workout.device {
+                if deviceBrand == nil, let manufacturer = device.manufacturer {
+                    deviceBrand = manufacturer
+                }
+                
+                // 如果有型號信息，將其附加到品牌名稱中
+                if let model = device.model, let brand = deviceBrand {
+                    deviceBrand = "\(brand) \(model)"
+                } else if let model = device.model, deviceBrand == nil {
+                    deviceBrand = model
+                }
+            }
+        }
+        
+        // 如果無法識別品牌，但已經有來源，則使用來源作為品牌
+        if deviceBrand == nil && source != "apple_health" {
+            deviceBrand = source.capitalized
+        }
+        
+        return (source, deviceBrand)
     }
     
     // MARK: - Upload Tracker Helpers
