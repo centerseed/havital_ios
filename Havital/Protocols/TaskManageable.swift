@@ -25,6 +25,21 @@ extension TaskManageable {
         id: String,
         operation: @escaping () async throws -> T
     ) async -> T? {
+        // 類型安全檢查：確保 id 是字符串且有效
+        guard !id.isEmpty else {
+            Logger.firebase("執行任務失敗：任務 ID 不能為空", level: .error, jsonPayload: [
+                "caller": String(describing: type(of: self))
+            ])
+            return nil
+        }
+        
+        // 調試日誌：記錄任務 ID 的類型和值
+        Logger.firebase("執行任務", level: .debug, jsonPayload: [
+            "task_id": id,
+            "caller": String(describing: type(of: self)),
+            "id_type": String(describing: type(of: id))
+        ])
+        
         // 使用串行隊列保證 activeTasks 的線程安全
         return await withCheckedContinuation { continuation in
             taskQueue.async { [weak self] in

@@ -523,7 +523,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     private func getDaysSinceLastUpload() -> Int {
         guard let lastUpload = lastUploadDate else {
-            return 7 // 首次使用，上傳最近7天
+            return 14 // 首次使用，上傳最近14天
         }
         
         let daysSince = Calendar.current.dateComponents([.day], from: lastUpload, to: Date()).day ?? 0

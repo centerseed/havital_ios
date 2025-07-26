@@ -518,8 +518,18 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             return
         }
         
+        // 檢查運動是否已經上傳到 V2 API
+        if WorkoutUploadTracker.shared.isWorkoutUploaded(workout, apiVersion: .v2) {
+            print("🚨 [上傳調試] 運動已上傳到 V2 API，跳過重複上傳")
+            return
+        }
+        
         do {
             let result = try await workoutV2Service.uploadWorkout(workout)
+            
+            // 標記運動為已上傳到 V2 API
+            WorkoutUploadTracker.shared.markWorkoutAsUploaded(workout, hasHeartRate: true, apiVersion: .v2)
+            print("🚨 [上傳調試] 已標記運動為已上傳到 V2 API")
             
             Logger.firebase(
                 "Apple Health 運動記錄上傳到 V2 API 成功",
@@ -535,19 +545,112 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             )
             
         } catch {
-            Logger.firebase(
-                "Apple Health 運動記錄上傳到 V2 API 失敗: \(error.localizedDescription)",
-                level: .error,
-                labels: [
-                    "module": "UnifiedWorkoutManager",
-                    "action": "upload_apple_health_to_v2"
-                ],
-                jsonPayload: [
-                    "workout_type": workout.workoutActivityType.name,
-                    "duration_seconds": Int(workout.duration)
-                ]
-            )
+            // 詳細錯誤回報機制
+            await reportWorkoutUploadError(workout: workout, error: error)
         }
+    }
+    
+    /// 詳細的運動上傳錯誤回報
+    private func reportWorkoutUploadError(workout: HKWorkout, error: Error) async {
+        // 收集詳細的運動數據資訊用於錯誤分析
+        var workoutDetails: [String: Any] = [
+            "workout_uuid": workout.uuid.uuidString,
+            "workout_type": workout.workoutActivityType.rawValue,
+            "workout_type_name": workout.workoutActivityType.name,
+            "duration_seconds": Int(workout.duration),
+            "start_date": workout.startDate.timeIntervalSince1970,
+            "end_date": workout.endDate.timeIntervalSince1970,
+            "total_distance_meters": workout.totalDistance?.doubleValue(for: .meter()) ?? 0,
+            "total_energy_burned": workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0,
+            "source_name": workout.sourceRevision.source.name,
+            "source_bundle_id": workout.sourceRevision.source.bundleIdentifier
+        ]
+        
+        // 收集設備資訊
+        if let device = workout.device {
+            workoutDetails["device_name"] = device.name
+            workoutDetails["device_manufacturer"] = device.manufacturer
+            workoutDetails["device_model"] = device.model
+            workoutDetails["device_hardware_version"] = device.hardwareVersion
+            workoutDetails["device_software_version"] = device.softwareVersion
+        }
+        
+        // 收集 metadata 資訊
+        if let metadata = workout.metadata {
+            var metadataInfo: [String: Any] = [:]
+            for (key, value) in metadata {
+                metadataInfo[String(describing: key)] = String(describing: value)
+            }
+            workoutDetails["metadata"] = metadataInfo
+        }
+        
+        // 嘗試收集部分健康數據以診斷問題
+        do {
+            let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+            workoutDetails["heart_rate_sample_count"] = heartRateData.count
+            if !heartRateData.isEmpty {
+                workoutDetails["heart_rate_min"] = heartRateData.map { $0.1 }.min()
+                workoutDetails["heart_rate_max"] = heartRateData.map { $0.1 }.max()
+                workoutDetails["heart_rate_avg"] = heartRateData.map { $0.1 }.reduce(0, +) / Double(heartRateData.count)
+            }
+        } catch let hrError {
+            workoutDetails["heart_rate_fetch_error"] = hrError.localizedDescription
+        }
+        
+        // 錯誤類型分析
+        var errorType = "unknown"
+        var errorDetails: [String: Any] = [
+            "error_description": error.localizedDescription,
+            "error_type": String(describing: type(of: error))
+        ]
+        
+        if let workoutError = error as? WorkoutV2ServiceError {
+            switch workoutError {
+            case .invalidWorkoutData:
+                errorType = "invalid_workout_data"
+            case .noHeartRateData:
+                errorType = "no_heart_rate_data"
+            case .uploadFailed(let message):
+                errorType = "upload_failed"
+                errorDetails["upload_error_message"] = message
+            case .networkError(let netError):
+                errorType = "network_error"
+                errorDetails["network_error_description"] = netError.localizedDescription
+            }
+        } else if let apiErrorResponse = error as? APIErrorResponse {
+            errorType = "api_error"
+            errorDetails["api_error_code"] = apiErrorResponse.error.code
+            errorDetails["api_error_message"] = apiErrorResponse.error.message
+        } else if let urlError = error as? URLError {
+            errorType = "network_error"
+            errorDetails["url_error_code"] = urlError.code.rawValue
+            errorDetails["url_error_description"] = urlError.localizedDescription
+        }
+        
+        Logger.firebase(
+            "Apple Health 運動記錄上傳到 V2 API 失敗 - 詳細錯誤報告",
+            level: .error,
+            labels: [
+                "module": "UnifiedWorkoutManager",
+                "action": "upload_apple_health_to_v2_error",
+                "error_type": errorType,
+                "device_manufacturer": workoutDetails["device_manufacturer"] as? String ?? "unknown",
+                "source_bundle_id": workoutDetails["source_bundle_id"] as? String ?? "unknown"
+            ],
+            jsonPayload: [
+                "workout_details": workoutDetails,
+                "error_details": errorDetails,
+                "timestamp": Date().timeIntervalSince1970,
+                "user_data_source": UserPreferenceManager.shared.dataSourcePreference.rawValue
+            ]
+        )
+        
+        // 本地錯誤日誌
+        print("❌ [詳細錯誤] 運動上傳失敗")
+        print("   - 運動類型: \(workout.workoutActivityType.name)")
+        print("   - 持續時間: \(workout.duration)秒")
+        print("   - 來源: \(workout.sourceRevision.source.name)")
+        print("   - 錯誤: \(error.localizedDescription)")
     }
     
     // MARK: - Garmin Workflow

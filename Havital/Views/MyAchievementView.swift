@@ -578,8 +578,15 @@ struct SharedHealthDataChartView: View {
             }
             .chartYScale(domain: yAxisDomain)
             .chartXAxis {
-                AxisMarks(values: .stride(by: .day)) { _ in
-                    AxisValueLabel(format: .dateTime.month().day())
+                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            Text(formatDateForDisplay(date))
+                                .font(.caption)
+                        }
+                        AxisGridLine()
+                        AxisTick()
+                    }
                 }
             }
         }
@@ -627,6 +634,12 @@ struct SharedHealthDataChartView: View {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.timeZone = TimeZone.current
         return formatter.date(from: dateString) ?? Date()
+    }
+    
+    private func formatDateForDisplay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd"
+        return formatter.string(from: date)
     }
 }
 
@@ -740,7 +753,7 @@ struct APIBasedHRVChartView: View {
                     }
                     .chartYScale(domain: hrvYAxisDomain)
                     .chartXAxis {
-                        AxisMarks(values: .stride(by: .day)) { _ in
+                        AxisMarks(values: .automatic(desiredCount: 5)) { _ in
                             AxisValueLabel(format: .dateTime.month().day())
                         }
                     }
@@ -900,7 +913,7 @@ struct APIBasedRestingHeartRateChartView: View {
                 }
                 .chartYScale(domain: restingHRYAxisDomain)
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .day)) { _ in
+                    AxisMarks(values: .automatic(desiredCount: 5)) { _ in
                         AxisValueLabel(format: .dateTime.month().day())
                     }
                 }

@@ -57,41 +57,10 @@ struct HRVTrendChartView: View {
                     }
                     .chartYScale(domain: viewModel.yAxisRange)
                     .chartXAxis {
-                        switch viewModel.selectedTimeRange {
-                        case .week:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    AxisValueLabel {
-                                        Text(formatDate(date))
-                                    }
-                                }
-                            }
-                        case .month:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    let calendar = Calendar.current
-                                    let day = calendar.component(.day, from: date)
-                                    if day == 1 || day % 5 == 0 {
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                        }
-                                        AxisTick()
-                                        AxisGridLine()
-                                    }
-                                }
-                            }
-                        case .threeMonths:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    let calendar = Calendar.current
-                                    let day = calendar.component(.day, from: date)
-                                    if day == 1 || day % 5 == 0 {
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                        }
-                                        AxisTick()
-                                        AxisGridLine()
-                                    }
+                        AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel {
+                                    Text(formatDate(date))
                                 }
                             }
                         }

@@ -70,6 +70,8 @@ class AppleHealthWorkoutUploadService {
             }
         } catch {
             print("無法獲取心率數據，但將繼續上傳: \(error.localizedDescription)")
+            // 記錄 HealthKit 數據獲取錯誤
+            await reportHealthKitDataError(workout: workout, dataType: "heart_rate", error: error)
         }
         
         // 獲取設備信息
@@ -78,12 +80,53 @@ class AppleHealthWorkoutUploadService {
         let actualDevice = deviceInfo.device
         
         // 擴充數據（全部為可選）
-        let speedData = (try? await healthKitManager.fetchSpeedData(for: workout)) ?? []
-        let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
-        let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
-        let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
-        let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
-        let totalCalories = try? await healthKitManager.fetchCaloriesData(for: workout)
+        let speedData: [(Date, Double)]
+        do {
+            speedData = try await healthKitManager.fetchSpeedData(for: workout)
+        } catch {
+            speedData = []
+            await reportHealthKitDataError(workout: workout, dataType: "speed", error: error)
+        }
+        
+        let strideLengthData: [(Date, Double)]?
+        do {
+            strideLengthData = try await healthKitManager.fetchStrideLengthData(for: workout)
+        } catch {
+            strideLengthData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "stride_length", error: error)
+        }
+        
+        let cadenceData: [(Date, Double)]?
+        do {
+            cadenceData = try await healthKitManager.fetchCadenceData(for: workout)
+        } catch {
+            cadenceData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "cadence", error: error)
+        }
+        
+        let groundContactTimeData: [(Date, Double)]?
+        do {
+            groundContactTimeData = try await healthKitManager.fetchGroundContactTimeData(for: workout)
+        } catch {
+            groundContactTimeData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "ground_contact_time", error: error)
+        }
+        
+        let verticalOscillationData: [(Date, Double)]?
+        do {
+            verticalOscillationData = try await healthKitManager.fetchVerticalOscillationData(for: workout)
+        } catch {
+            verticalOscillationData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "vertical_oscillation", error: error)
+        }
+        
+        let totalCalories: Double?
+        do {
+            totalCalories = try await healthKitManager.fetchCaloriesData(for: workout)
+        } catch {
+            totalCalories = nil
+            await reportHealthKitDataError(workout: workout, dataType: "calories", error: error)
+        }
         
         // 轉成 DataPoint
         let heartRates  = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
@@ -160,9 +203,22 @@ class AppleHealthWorkoutUploadService {
             source: source,
             device: device)
         
-        let http = try await APIClient.shared.requestWithStatus(path: "/v2/workouts", method: "POST", body: try JSONEncoder().encode(workoutData))
-        guard (200...299).contains(http.statusCode) else {
-            throw AppleHealthWorkoutUploadError.serverError
+        do {
+            // 先嘗試上傳，如果成功就結束
+            let _: EmptyResponse = try await APIClient.shared.request(
+                EmptyResponse.self,
+                path: "/v2/workouts",
+                method: "POST",
+                body: try JSONEncoder().encode(workoutData)
+            )
+        } catch {
+            // 如果失敗，記錄詳細錯誤
+            await reportDetailedUploadError(
+                workout: workout,
+                workoutData: workoutData,
+                error: error
+            )
+            throw error
         }
     }
     
@@ -281,6 +337,206 @@ class AppleHealthWorkoutUploadService {
         }
         
         return (source, deviceBrand)
+    }
+    
+    // MARK: - Error Reporting
+    
+    /// 詳細的運動上傳錯誤回報
+    private func reportDetailedUploadError(
+        workout: HKWorkout,
+        workoutData: WorkoutData,
+        error: Error
+    ) async {
+        // 收集基本運動資訊
+        var errorReport: [String: Any] = [
+            "workout_id": workoutData.id,
+            "workout_type": workoutData.type,
+            "workout_name": workoutData.name,
+            "duration_seconds": workoutData.duration,
+            "distance_meters": workoutData.distance,
+            "start_date": workoutData.startDate,
+            "end_date": workoutData.endDate,
+            "source": workoutData.source ?? "unknown",
+            "device": workoutData.device ?? "unknown",
+            "heart_rate_samples": workoutData.heartRates.count,
+            "speed_samples": workoutData.speeds.count,
+            "total_calories": workoutData.totalCalories ?? 0
+        ]
+        
+        // 收集詳細設備資訊
+        if let device = workout.device {
+            errorReport["device_details"] = [
+                "name": device.name ?? "unknown",
+                "manufacturer": device.manufacturer ?? "unknown", 
+                "model": device.model ?? "unknown",
+                "hardware_version": device.hardwareVersion ?? "unknown",
+                "software_version": device.softwareVersion ?? "unknown"
+            ]
+        }
+        
+        // 收集來源應用資訊
+        errorReport["source_details"] = [
+            "name": workout.sourceRevision.source.name,
+            "bundle_id": workout.sourceRevision.source.bundleIdentifier
+        ]
+        
+        // 收集可選數據狀態
+        var optionalDataStatus: [String: Any] = [:]
+        if let strides = workoutData.strideLengths {
+            optionalDataStatus["stride_samples"] = strides.count
+        }
+        if let cadences = workoutData.cadences {
+            optionalDataStatus["cadence_samples"] = cadences.count
+        }
+        if let groundTimes = workoutData.groundContactTimes {
+            optionalDataStatus["ground_contact_samples"] = groundTimes.count
+        }
+        if let oscillations = workoutData.verticalOscillations {
+            optionalDataStatus["vertical_oscillation_samples"] = oscillations.count
+        }
+        errorReport["optional_data_status"] = optionalDataStatus
+        
+        // 錯誤詳情
+        var errorDetails: [String: Any] = [
+            "error_description": error.localizedDescription,
+            "error_type": String(describing: type(of: error))
+        ]
+        var errorType = "unknown"
+        
+        // 分析錯誤類型並提取 HTTP 狀態碼
+        if let nsError = error as? NSError {
+            errorDetails["error_domain"] = nsError.domain
+            errorDetails["error_code"] = nsError.code
+            
+            // 檢查是否是 HTTP 錯誤（來自 APIClient）
+            if nsError.domain == "APIClient" {
+                errorType = "http_error"
+                errorDetails["http_status_code"] = nsError.code
+                
+                // 嘗試從 userInfo 獲取回應內容
+                if let errorMessage = nsError.userInfo[NSLocalizedDescriptionKey] as? String {
+                    errorDetails["response_body"] = errorMessage
+                }
+                
+                // 根據 HTTP 狀態碼分類
+                switch nsError.code {
+                case 400...499:
+                    errorDetails["error_category"] = "client_error"
+                case 500...599:
+                    errorDetails["error_category"] = "server_error"
+                default:
+                    errorDetails["error_category"] = "unknown_http_error"
+                }
+            }
+        } else if let urlError = error as? URLError {
+            errorType = "network_error"
+            errorDetails["url_error_code"] = urlError.code.rawValue
+            errorDetails["url_error_localized"] = urlError.localizedDescription
+        } else if error is EncodingError {
+            errorType = "encoding_error"
+        } else if error is DecodingError {
+            errorType = "decoding_error"
+        }
+        
+        errorReport["error_details"] = errorDetails
+        
+        // 數據完整性分析
+        var dataQualityAnalysis: [String: Any] = [
+            "has_heart_rate": !workoutData.heartRates.isEmpty,
+            "has_speed": !workoutData.speeds.isEmpty,
+            "has_distance": workoutData.distance > 0,
+            "has_calories": (workoutData.totalCalories ?? 0) > 0,
+            "duration_reasonable": workoutData.duration > 0 && workoutData.duration < 86400 // 0-24小時
+        ]
+        
+        // 心率數據品質
+        if !workoutData.heartRates.isEmpty {
+            let hrValues = workoutData.heartRates.map { $0.value }
+            dataQualityAnalysis["hr_min"] = hrValues.min()
+            dataQualityAnalysis["hr_max"] = hrValues.max()
+            dataQualityAnalysis["hr_avg"] = hrValues.reduce(0, +) / Double(hrValues.count)
+            dataQualityAnalysis["hr_reasonable_range"] = hrValues.allSatisfy { $0 >= 30 && $0 <= 250 }
+        }
+        
+        errorReport["data_quality"] = dataQualityAnalysis
+        
+        // 使用 Firebase 記錄錯誤
+        Logger.firebase(
+            "Apple Health 運動記錄 V2 API 上傳失敗 - 詳細分析",
+            level: .error,
+            labels: [
+                "module": "AppleHealthWorkoutUploadService",
+                "action": "workout_upload_error",
+                "error_type": errorType,
+                "workout_type": workoutData.type,
+                "device_manufacturer": (errorReport["device_details"] as? [String: String])?["manufacturer"] ?? "unknown",
+                "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown"
+            ],
+            jsonPayload: errorReport
+        )
+        
+        // 本地 debug 日誌
+        print("❌ [詳細錯誤分析] AppleHealthWorkoutUploadService 上傳失敗")
+        print("   - 運動: \(workoutData.name) (\(workoutData.type))")
+        print("   - 時長: \(workoutData.duration)秒")
+        print("   - 設備: \(workoutData.device ?? "unknown")")
+        print("   - 錯誤類型: \(errorType)")
+        if let httpStatus = errorDetails["http_status_code"] as? Int {
+            print("   - HTTP 狀態: \(httpStatus)")
+        }
+        print("   - 錯誤訊息: \(error.localizedDescription)")
+    }
+    
+    /// HealthKit 數據獲取錯誤回報
+    private func reportHealthKitDataError(workout: HKWorkout, dataType: String, error: Error) async {
+        var errorReport: [String: Any] = [
+            "workout_uuid": workout.uuid.uuidString,
+            "workout_type": workout.workoutActivityType.rawValue,
+            "workout_type_name": workout.workoutActivityType.name,
+            "duration_seconds": Int(workout.duration),
+            "data_type": dataType,
+            "error_description": error.localizedDescription,
+            "error_type": String(describing: type(of: error))
+        ]
+        
+        // 收集設備資訊
+        if let device = workout.device {
+            errorReport["device_info"] = [
+                "name": device.name ?? "unknown",
+                "manufacturer": device.manufacturer ?? "unknown",
+                "model": device.model ?? "unknown"
+            ]
+        }
+        
+        // 收集來源資訊
+        errorReport["source_info"] = [
+            "name": workout.sourceRevision.source.name,
+            "bundle_id": workout.sourceRevision.source.bundleIdentifier
+        ]
+        
+        // 錯誤分類
+        var errorCategory = "unknown"
+        if let hkError = error as? HKError {
+            errorCategory = "healthkit_error"
+            errorReport["hk_error_code"] = hkError.code.rawValue
+        } else if error is CancellationError {
+            errorCategory = "cancellation_error"
+        }
+        
+        Logger.firebase(
+            "HealthKit 數據獲取失敗 - \(dataType)",
+            level: .error,
+            labels: [
+                "module": "AppleHealthWorkoutUploadService",
+                "action": "healthkit_data_fetch_error",
+                "data_type": dataType,
+                "error_category": errorCategory,
+                "device_manufacturer": (errorReport["device_info"] as? [String: String])?["manufacturer"] ?? "unknown"
+            ],
+            jsonPayload: errorReport
+        )
+        
+        print("⚠️ [HealthKit 錯誤] 無法獲取 \(dataType) 數據: \(error.localizedDescription)")
     }
     
     // MARK: - Upload Tracker Helpers

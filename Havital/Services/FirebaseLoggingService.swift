@@ -130,12 +130,14 @@ actor FirebaseLoggingService {
             userId: userId
         )
         
-        // 暫時禁用 Cloud Logging 上傳，等後端端點準備好再啟用
-        // do {
-        //     try await sendLogToCloudLogging(logEntry)
-        // } catch {
-        //     Logger.error("Firebase Logging 上傳失敗: \(error.localizedDescription)", tag: "FirebaseLogging")
-        // }
+        // 上傳錯誤日誌到後端（僅上傳 error 和 critical 級別）
+        if level == .error || level == .critical {
+            do {
+                try await sendLogToCloudLogging(logEntry)
+            } catch {
+                Logger.error("Firebase Logging 上傳失敗: \(error.localizedDescription)", tag: "FirebaseLogging")
+            }
+        }
         
         // 記錄到 Firebase Analytics（用於事件追蹤）
         if level == .error || level == .critical {

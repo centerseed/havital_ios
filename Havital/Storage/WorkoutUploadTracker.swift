@@ -1,11 +1,17 @@
 import Foundation
 import HealthKit
 
+enum APIVersion {
+    case v1
+    case v2
+}
+
 class WorkoutUploadTracker {
     static let shared = WorkoutUploadTracker()
     
     private let defaults = UserDefaults.standard
     private let uploadedWorkoutsKey = "uploaded_workouts"
+    private let uploadedWorkoutsV2Key = "uploaded_workouts_v2"
     
     private init() {}
     
@@ -19,10 +25,15 @@ class WorkoutUploadTracker {
         return "\(startTimeStamp)_\(endTimeStamp)_\(activityType)"
     }
     
-    /// 標記運動為已上傳，並指定是否包含心率數據
+    /// 標記運動為已上傳到 V1 API，並指定是否包含心率數據
     func markWorkoutAsUploaded(_ workout: HKWorkout, hasHeartRate: Bool = true) {
+        markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRate, apiVersion: .v1)
+    }
+    
+    /// 標記運動為已上傳到指定 API 版本，並指定是否包含心率數據
+    func markWorkoutAsUploaded(_ workout: HKWorkout, hasHeartRate: Bool = true, apiVersion: APIVersion) {
         let stableId = generateStableWorkoutId(workout)
-        var uploadedWorkouts = getUploadedWorkouts()
+        var uploadedWorkouts = getUploadedWorkouts(for: apiVersion)
         
         // 儲存上傳時間和心率數據狀態
         let uploadInfo: [String: Any] = [
@@ -34,17 +45,23 @@ class WorkoutUploadTracker {
         
         do {
             let data = try JSONSerialization.data(withJSONObject: uploadedWorkouts)
-            defaults.set(data, forKey: uploadedWorkoutsKey)
+            let key = apiVersion == .v1 ? uploadedWorkoutsKey : uploadedWorkoutsV2Key
+            defaults.set(data, forKey: key)
             defaults.synchronize() // 確保立即保存
         } catch {
             print("保存已上傳運動記錄時出錯: \(error)")
         }
     }
     
-    /// 檢查運動是否已上傳
+    /// 檢查運動是否已上傳到 V1 API
     func isWorkoutUploaded(_ workout: HKWorkout) -> Bool {
+        return isWorkoutUploaded(workout, apiVersion: .v1)
+    }
+    
+    /// 檢查運動是否已上傳到指定 API 版本
+    func isWorkoutUploaded(_ workout: HKWorkout, apiVersion: APIVersion) -> Bool {
         let stableId = generateStableWorkoutId(workout)
-        let uploadedWorkouts = getUploadedWorkouts()
+        let uploadedWorkouts = getUploadedWorkouts(for: apiVersion)
         return uploadedWorkouts[stableId] != nil
     }
     
@@ -74,9 +91,15 @@ class WorkoutUploadTracker {
         return nil
     }
     
-    /// 返回上傳的運動記錄資訊
+    /// 返回上傳的運動記錄資訊（V1 API）
     private func getUploadedWorkouts() -> [String: Any] {
-        guard let data = defaults.data(forKey: uploadedWorkoutsKey) else {
+        return getUploadedWorkouts(for: .v1)
+    }
+    
+    /// 返回指定 API 版本的上傳運動記錄資訊
+    private func getUploadedWorkouts(for apiVersion: APIVersion) -> [String: Any] {
+        let key = apiVersion == .v1 ? uploadedWorkoutsKey : uploadedWorkoutsV2Key
+        guard let data = defaults.data(forKey: key) else {
             return [:]
         }
         
