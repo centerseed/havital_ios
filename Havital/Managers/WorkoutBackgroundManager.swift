@@ -100,7 +100,6 @@ class WorkoutBackgroundManager: NSObject {
                 await checkAndUploadPendingWorkouts()
                 
                 // 檢查是否需要重試獲取心率資料
-                scheduleHeartRateRetryIfNeeded()
                 
                 // 設置後台刷新確保即使觀察者不觸發也能定期檢查
                 setupBackgroundRefresh()
@@ -199,23 +198,11 @@ class WorkoutBackgroundManager: NSObject {
             // 獲取最近的健身記錄
             let workouts = try await fetchRecentWorkouts()
             
-            // 處理需要重新獲取心率資料的記錄
-            let heartRateRetryWorkouts = workouts.filter { workout in
-                if workoutUploadTracker.isWorkoutUploaded(workout) &&
-                   !workoutUploadTracker.workoutHasHeartRate(workout) {
-                    if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout) {
-                        let timeElapsed = Date().timeIntervalSince(uploadTime)
-                        return timeElapsed >= retryThresholdTime // 超過重試時間的記錄
-                    }
-                }
-                return false
-            }
-            
             // 過濾出未上傳的記錄
             let newWorkouts = workouts.filter { !workoutUploadTracker.isWorkoutUploaded($0) }
             
             // 只有在有需要處理的記錄時才進行同步
-            let totalWorkoutsToProcess = heartRateRetryWorkouts.count + newWorkouts.count
+            let totalWorkoutsToProcess = newWorkouts.count
             
             if totalWorkoutsToProcess > 0 {
                 print("共發現 \(totalWorkoutsToProcess) 筆需要處理的健身記錄")
@@ -227,14 +214,6 @@ class WorkoutBackgroundManager: NSObject {
                 // 如果有大量記錄要處理且應該發送通知，則發送開始通知
                 if totalWorkoutsToProcess > 10 && shouldSendNotification() {
                     await sendBulkSyncStartNotification(count: totalWorkoutsToProcess)
-                }
-                
-                // 處理需要重試獲取心率資料的記錄
-                if !heartRateRetryWorkouts.isEmpty {
-                    print("正在重新獲取 \(heartRateRetryWorkouts.count) 筆記錄的心率資料")
-                    
-                    let retrySuccessCount = await retryUploadingWithHeartRateData(heartRateRetryWorkouts)
-                    syncSuccessCount += retrySuccessCount
                 }
                 
                 // 處理新記錄
@@ -359,7 +338,6 @@ class WorkoutBackgroundManager: NSObject {
             "sync-training-data-start",
             "sync-training-data-completion",
             "first-login-sync",
-            "workout.heartrate.retry"
         ]
         
         notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
@@ -596,21 +574,6 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 重試上傳具有心率資料的運動記錄
-    @discardableResult
-    private func retryUploadingWithHeartRateData(_ workouts: [HKWorkout]) async -> Int {
-        print("嘗試重新獲取並上傳心率資料...")
-        
-        // 使用統一的 WorkoutService 方法進行重試上傳
-        let result = await workoutService.uploadWorkouts(
-            workouts,
-            force: false,
-            retryHeartRate: true
-        )
-        
-        print("重試上傳完成，成功: \(result.success), 失敗: \(result.failed), 總計: \(result.total)")
-        return result.success
-    }
     
     // 上傳健身記錄
     @discardableResult
@@ -644,17 +607,6 @@ class WorkoutBackgroundManager: NSObject {
         return runningActivityTypes.contains(workout.workoutActivityType)
     }
     
-    // 如果有缺少心率資料的記錄，安排稍後再次檢查
-    private func scheduleHeartRateRetryIfNeeded() {
-        // 查詢需要重試的記錄數量
-        let retryIds = workoutUploadTracker.getWorkoutsNeedingHeartRateRetry(timeThreshold: retryThresholdTime / 2) // 30分鐘後重試
-        
-        if !retryIds.isEmpty {
-            print("找到 \(retryIds.count) 筆需要重新嘗試獲取心率資料的運動記錄")
-            
-            // 不發送通知，只在控制台記錄
-        }
-    }
 }
 
 
@@ -662,29 +614,18 @@ class WorkoutBackgroundManager: NSObject {
 extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
     // 當應用在前台時也顯示通知
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // 如果是心率重試通知，則不顯示給用戶
-        if notification.request.identifier == "workout.heartrate.retry" {
-            completionHandler([])
+        // 正常顯示通知
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .sound, .list])
         } else {
-            if #available(iOS 14.0, *) {
-                completionHandler([.banner, .sound, .list])
-            } else {
-                completionHandler([.alert, .sound])
-            }
+            completionHandler([.alert, .sound])
         }
     }
     
     // 處理通知的點擊事件
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        // 處理心率重試通知
-        if response.notification.request.identifier == "workout.heartrate.retry" {
-            // 當收到重試通知時，再次檢查並上傳運動記錄
-            Task {
-                print("收到心率資料重試通知，重新檢查運動記錄...")
-                await checkAndUploadPendingWorkouts()
-                completionHandler()
-            }
-        } else if response.notification.request.identifier.hasPrefix("sync-training-data") ||
+        // 處理同步相關通知
+        if response.notification.request.identifier.hasPrefix("sync-training-data") ||
                     response.notification.request.identifier == "first-login-sync" {
             // 處理同步相關通知的點擊
             completionHandler()

@@ -64,8 +64,8 @@ class AppleHealthWorkoutUploadService {
         var heartRateData: [(Date, Double)] = []
         do {
             heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-            if retryHeartRate && heartRateData.count < 5 {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+            if retryHeartRate && heartRateData.count == 0 {
+                try? await Task.sleep(nanoseconds: 10_000_000_000) // 等待10秒
                 heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
             }
         } catch {

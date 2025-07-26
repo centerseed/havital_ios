@@ -188,7 +188,7 @@ class FeatureFlagManager: ObservableObject {
             "final_published_value": "\(isGarminEnabled)"
         ])
         #else
-        Logger.firebase("正式環境：無法手動設定 Feature Flag", level: .warning, labels: [
+        Logger.firebase("正式環境：無法手動設定 Feature Flag", level: .warn, labels: [
             "module": "FeatureFlagManager",
             "key": key,
             "message": "請使用 Firebase Console 設定"

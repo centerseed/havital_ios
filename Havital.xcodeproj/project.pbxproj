@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F9882E34D87600C7E5ED /* FirebaseMessaging */; };
+		CF19F98B2E34D8D200C7E5ED /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */; };
 		CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683762D5B33B5008A8242 /* FirebaseAnalytics */; };
 		CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683782D5B33B5008A8242 /* FirebaseAppCheck */; };
 		CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CFD6837A2D5B33B5008A8242 /* FirebaseAuth */; };
@@ -92,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */,
 				CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */,
 				CFD6837D2D5B33B5008A8242 /* FirebaseCore in Frameworks */,
 				CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */,
@@ -101,6 +104,7 @@
 				CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */,
 				CFD683832D5B3428008A8242 /* FirebaseCore in Frameworks */,
 				CFD6837F2D5B33B5008A8242 /* FirebaseFirestore in Frameworks */,
+				CF19F98B2E34D8D200C7E5ED /* FirebaseRemoteConfig in Frameworks */,
 				CFD683852D5B3440008A8242 /* FirebaseAnalytics in Frameworks */,
 				CFD6838A2D5B353F008A8242 /* GoogleSignInSwift in Frameworks */,
 			);
@@ -124,6 +128,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CF19F9872E34D87600C7E5ED /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		CFB67CE72D07047500F672E3 = {
 			isa = PBXGroup;
 			children = (
@@ -131,6 +142,7 @@
 				CFB67CF22D07047500F672E3 /* Havital */,
 				CFB67D052D07047800F672E3 /* HavitalTests */,
 				CFB67D0F2D07047800F672E3 /* HavitalUITests */,
+				CF19F9872E34D87600C7E5ED /* Frameworks */,
 				CFB67CF12D07047500F672E3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -178,6 +190,8 @@
 				CFD683842D5B3440008A8242 /* FirebaseAnalytics */,
 				CFD683872D5B353F008A8242 /* GoogleSignIn */,
 				CFD683892D5B353F008A8242 /* GoogleSignInSwift */,
+				CF19F9882E34D87600C7E5ED /* FirebaseMessaging */,
+				CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */,
 			);
 			productName = Havital;
 			productReference = CFB67CF02D07047500F672E3 /* paceriz_dev.app */;
@@ -982,6 +996,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CF19F9882E34D87600C7E5ED /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
 		CFD683762D5B33B5008A8242 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseAnalytics;
