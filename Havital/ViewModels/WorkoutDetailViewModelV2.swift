@@ -285,8 +285,8 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     private let workoutV2Service = WorkoutV2Service.shared
     private let cacheManager = WorkoutV2CacheManager.shared
     
-    // TaskManageable 協議實作
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // TaskManageable 協議實作 (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     init(workout: WorkoutV2) {
         self.workout = workout

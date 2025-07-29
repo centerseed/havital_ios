@@ -109,8 +109,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 添加 Combine cancellables
     private var cancellables = Set<AnyCancellable>()
     
-    // 任務管理 (使用 TaskManageable 協議)
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // 任務管理 (使用 Actor-based TaskManageable 協議)
+    let taskRegistry = TaskRegistry()
     
     // 可注入的現在時間，預設為系統時間，便於測試
     var now: () -> Date = { Date() }

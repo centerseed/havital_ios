@@ -115,8 +115,8 @@ class VDOTManager: ObservableObject, DataManageable {
     let service: APIClient
     private let cacheManager: VDOTCacheManager
     
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     // MARK: - Cacheable Properties
     var cacheIdentifier: String { "VDOTManager" }

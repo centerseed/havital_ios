@@ -2,8 +2,8 @@ import SwiftUI
 import HealthKit
 
 class HRVChartViewModel: ObservableObject, TaskManageable {
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var hrvData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?
@@ -53,14 +53,15 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
             
             let rawData = try await healthKitManager.fetchHRVData(start: startDate, end: now)
             
-            // 按日期分組並計算每天凌晨的平均值
+            // 按日期分組並計算每天凌晨的平均值 - 使用 TimeInterval 作為 key 避免崩潰
             let calendar = Calendar.current
             let groupedData = Dictionary(grouping: rawData) { (date, _) in
-                calendar.startOfDay(for: date)
+                calendar.startOfDay(for: date).timeIntervalSince1970
             }
             
             // 處理每天的數據
-            hrvData = groupedData.compactMap { (date, values) -> (Date, Double)? in
+            hrvData = groupedData.compactMap { (timeInterval, values) -> (Date, Double)? in
+                let date = Date(timeIntervalSince1970: timeInterval)
                 // 找出當天凌晨 00:00 到 06:00 的數據
                 let morningValues = values.filter { (measurementDate, _) in
                     let hour = calendar.component(.hour, from: measurementDate)

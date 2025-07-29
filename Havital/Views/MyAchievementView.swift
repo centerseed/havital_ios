@@ -197,8 +197,8 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
     // MARK: - Singleton
     static let shared = SharedHealthDataManager()
     
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var healthData: [HealthRecord] = []
     @Published var isLoading = false
     @Published var error: String?

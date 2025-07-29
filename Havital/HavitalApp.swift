@@ -24,31 +24,28 @@ struct HavitalApp: App {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var appViewModel = AppViewModel()
     @StateObject private var authService = AuthenticationService.shared
-    @StateObject private var featureFlagManager = FeatureFlagManager.shared
+    @State private var featureFlagManager: FeatureFlagManager? = nil
     
     init() {
-        // 1. 先嘗試從 Bundle 載入 Firebase 設定檔
-        var firebaseConfigPath: String?
-        
-        // 先檢查是否已經有複製的 GoogleService-Info.plist
+        // 1. 初始化 Firebase
+        // 首先嘗試標準的 GoogleService-Info.plist
         if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
-            firebaseConfigPath = path
-            print("ℹ️ 找到 Firebase 設定檔: \(path)")
-        }
-        // 如果沒有，嘗試直接載入特定環境的設定檔
-        else if let path = Bundle.main.path(forResource: "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod"), ofType: "plist") {
-            firebaseConfigPath = path
-            print("ℹ️ 找到環境特定的 Firebase 設定檔: \(path)")
-        }
-        
-        // 2. 初始化 Firebase
-        if let path = firebaseConfigPath, let options = FirebaseOptions(contentsOfFile: path) {
-            FirebaseApp.configure(options: options)
-            print("✅ Firebase 初始化成功 - 使用: \(path)")
-        } else {
-            // 如果所有方法都失敗，嘗試使用預設初始化（會讀取預設位置的 GoogleService-Info.plist）
-            print("⚠️ 無法載入 Firebase 設定檔，嘗試預設初始化...")
+            print("✅ 找到標準 Firebase 配置文件: \(path)")
             FirebaseApp.configure()
+        } else {
+            // 如果沒有標準文件，嘗試環境特定的文件
+            let configFileName = "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod")
+            print("🔍 嘗試使用環境特定的 Firebase 配置文件: \(configFileName)")
+            
+            if let path = Bundle.main.path(forResource: configFileName, ofType: "plist"),
+               let options = FirebaseOptions(contentsOfFile: path) {
+                FirebaseApp.configure(options: options)
+                print("✅ Firebase 初始化成功 - 使用: \(path)")
+            } else {
+                print("❌ 找不到任何 Firebase 配置文件")
+                // 最後的備用方案
+                FirebaseApp.configure()
+            }
         }
         
         // 3. 設定其他 Firebase 服務
@@ -62,35 +59,66 @@ struct HavitalApp: App {
             print("❌ Firebase 初始化失敗！")
         } else {
             print("✅ Firebase 已成功初始化")
+            
+            // 6. Firebase 初始化完成後才創建 FeatureFlagManager
+            // 注意：這裡不能直接設定 @State 變數，需要在 view 中設定
         }
     }
     
     var body: some Scene {
         WindowGroup {
-            ContentView() // 使用 ContentView 作為根視圖
-                .environmentObject(authService)       // 注入 AuthenticationService
-                .environmentObject(healthKitManager)  // 注入 HealthKitManager
-                .environmentObject(appViewModel)      // 注入 AppViewModel
-                .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
-                .onAppear {
-                    // App 啟動時使用新的狀態管理進行序列化初始化
-                    Task {
-                        print("🚀 HavitalApp: 開始序列化初始化流程")
-                        
-                        // Step 1: App 核心初始化（用戶狀態優先）
-                        await appViewModel.initializeApp()
-                        
-                        // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
-                        await setupPermissionsBasedOnUserState()
-                        
-                        print("✅ HavitalApp: 初始化流程完成")
-                    }
+            Group {
+                if let featureFlagManager = featureFlagManager {
+                    ContentView() // 使用 ContentView 作為根視圖
+                        .environmentObject(authService)       // 注入 AuthenticationService
+                        .environmentObject(healthKitManager)  // 注入 HealthKitManager
+                        .environmentObject(appViewModel)      // 注入 AppViewModel
+                        .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
+                        .onAppear {
+                            // App 啟動時使用新的狀態管理進行序列化初始化
+                            Task {
+                                print("🚀 HavitalApp: 開始序列化初始化流程")
+                                
+                                // Step 1: App 核心初始化（用戶狀態優先）
+                                await appViewModel.initializeApp()
+                                
+                                // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
+                                await setupPermissionsBasedOnUserState()
+                                
+                                print("✅ HavitalApp: 初始化流程完成")
+                            }
+                        }
+                } else {
+                    // Firebase 和 FeatureFlagManager 初始化中
+                    ProgressView("初始化中...")
+                        .onAppear {
+                            // 在 Firebase 初始化完成後創建 FeatureFlagManager
+                            if FirebaseApp.app() != nil {
+                                print("🎛️ 創建 FeatureFlagManager")
+                                featureFlagManager = FeatureFlagManager.shared
+                                
+                                // 延遲調試檢查和手動刷新
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                    #if DEBUG
+                                    print("🔍 DEBUG: 3 秒後檢查 Feature Flag 狀態")
+                                    FeatureFlagManager.shared.debugPrintAllFlags()
+                                    
+                                    // 手動刷新 Remote Config
+                                    print("🔄 DEBUG: 手動刷新 Remote Config")
+                                    Task {
+                                        await FeatureFlagManager.shared.refreshConfig()
+                                        print("🔍 DEBUG: 刷新後再次檢查狀態")
+                                        FeatureFlagManager.shared.debugPrintAllFlags()
+                                    }
+                                    #endif
+                                }
+                            }
+                        }
                 }
-                // 處理深度連結
-                .onOpenURL { url in
-                    handleDeepLink(url: url)
-                }
-                // alert 也可以考慮移到 ContentView 或其內部的主 App 內容視圖
+            }
+            .onOpenURL { url in
+                handleDeepLink(url: url)
+            }
         }
         // 添加應用程式生命週期事件處理
         .onChange(of: UIApplication.shared.applicationState) { state in
@@ -230,9 +258,11 @@ struct HavitalApp: App {
             return
         }
         
-        // 主動檢查待上傳記錄
-        print("檢查待上傳健身記錄...")
-        await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
+        // 在背景檢查待上傳記錄，不阻塞主畫面顯示
+        print("在背景檢查待上傳健身記錄...")
+        Task {
+            await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
+        }
     }
     
     // 註冊背景任務 - 只在初始化時呼叫一次

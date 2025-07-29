@@ -32,8 +32,8 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     private let cacheManager: TrainingPlanCacheManager
     // WeekDateService is an enum with static methods, no need for instance
     
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     // MARK: - Cacheable Properties
     var cacheIdentifier: String { "TrainingPlanManager" }

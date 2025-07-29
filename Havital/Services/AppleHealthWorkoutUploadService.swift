@@ -7,12 +7,19 @@ enum AppleHealthWorkoutUploadError: Error {
 }
 
 // MARK: - Apple Health Workout Upload Service
-class AppleHealthWorkoutUploadService {
+class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     static let shared = AppleHealthWorkoutUploadService()
     private init() {}
     
     private let healthKitManager = HealthKitManager()
     private let workoutUploadTracker = WorkoutUploadTracker.shared
+    
+    // Task Management - 使用 Actor-based TaskRegistry 防止重複上傳
+    let taskRegistry = TaskRegistry()
+    
+    deinit {
+        cancelAllTasks()
+    }
     
     // MARK: - Helper - workout type -> string
     private func getWorkoutTypeString(_ activityType: HKWorkoutActivityType) -> String {
@@ -46,6 +53,26 @@ class AppleHealthWorkoutUploadService {
                        retryHeartRate: Bool = false,
                        source: String = "apple_health",
                        device: String? = nil) async throws -> UploadResult {
+        
+        // 使用 workout ID 作為任務標識符防止重複上傳
+        let workoutId = makeWorkoutId(for: workout)
+        let taskId = TaskID("upload_workout_\(workoutId)")
+        
+        guard let result = await executeTask(id: taskId, operation: { [weak self] in
+            guard let self = self else { throw WorkoutV2ServiceError.invalidWorkoutData }
+            return try await self.performUploadWorkout(workout, force: force, retryHeartRate: retryHeartRate, source: source, device: device)
+        }) else {
+            throw WorkoutV2ServiceError.invalidWorkoutData
+        }
+        return result
+    }
+    
+    // MARK: - Internal Upload Implementation
+    private func performUploadWorkout(_ workout: HKWorkout,
+                                    force: Bool = false,
+                                    retryHeartRate: Bool = false,
+                                    source: String = "apple_health",
+                                    device: String? = nil) async throws -> UploadResult {
         // 選擇檢查：確保當前資料來源是 Apple Health
         guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
             throw WorkoutV2ServiceError.invalidWorkoutData
@@ -53,7 +80,7 @@ class AppleHealthWorkoutUploadService {
         
         // 檢查基本數據（時間和距離）
         let duration = workout.duration
-        let distance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+        let _ = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
         
         // 基本數據驗證：必須有有效的持續時間
         guard duration > 0 else {
@@ -64,9 +91,26 @@ class AppleHealthWorkoutUploadService {
         var heartRateData: [(Date, Double)] = []
         do {
             heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-            if retryHeartRate && heartRateData.count == 0 {
-                try? await Task.sleep(nanoseconds: 10_000_000_000) // 等待10秒
-                heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+            
+            // 如果需要重試且沒有心率數據，進行多次重試
+            if retryHeartRate && heartRateData.count <= 2 {
+                let maxRetries = 5
+                let retryInterval: UInt64 = 30_000_000_000 // 30秒
+                
+                for attempt in 1...maxRetries {
+                    print("心率數據獲取重試 \(attempt)/\(maxRetries)，等待30秒...")
+                    try? await Task.sleep(nanoseconds: retryInterval)
+                    
+                    heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+                    if heartRateData.count > 0 {
+                        print("重試第 \(attempt) 次成功獲取心率數據：\(heartRateData.count) 筆")
+                        break
+                    }
+                }
+                
+                if heartRateData.count == 0 {
+                    print("重試 \(maxRetries) 次後仍無法獲取心率數據，將繼續上傳運動記錄")
+                }
             }
         } catch {
             print("無法獲取心率數據，但將繼續上傳: \(error.localizedDescription)")
@@ -156,6 +200,23 @@ class AppleHealthWorkoutUploadService {
     func uploadWorkouts(_ workouts: [HKWorkout],
                         force: Bool = false,
                         retryHeartRate: Bool = false) async -> UploadBatchResult {
+        
+        // 使用統一的批次任務ID防止重複批次上傳
+        let batchId = workouts.map { makeWorkoutId(for: $0) }.joined(separator: ",")
+        let batchTaskId = TaskID("upload_batch_\(batchId.hash)")
+        
+        return await executeTask(id: batchTaskId, operation: { [weak self] in
+            guard let self = self else { 
+                return UploadBatchResult(total: workouts.count, success: 0, failed: workouts.count, failedWorkouts: workouts.map { FailedWorkout(workout: $0, error: WorkoutV2ServiceError.invalidWorkoutData) })
+            }
+            return await self.performBatchUpload(workouts, force: force, retryHeartRate: retryHeartRate)
+        }) ?? UploadBatchResult(total: workouts.count, success: 0, failed: workouts.count, failedWorkouts: workouts.map { FailedWorkout(workout: $0, error: WorkoutV2ServiceError.invalidWorkoutData) })
+    }
+    
+    // MARK: - Internal Batch Upload Implementation
+    private func performBatchUpload(_ workouts: [HKWorkout],
+                                  force: Bool = false,
+                                  retryHeartRate: Bool = false) async -> UploadBatchResult {
         var success = 0
         var failed  = 0
         var failedList: [FailedWorkout] = []
@@ -509,34 +570,108 @@ class AppleHealthWorkoutUploadService {
         }
         
         // 收集來源資訊
+        let sourceName = workout.sourceRevision.source.name
+        let bundleId = workout.sourceRevision.source.bundleIdentifier
         errorReport["source_info"] = [
-            "name": workout.sourceRevision.source.name,
-            "bundle_id": workout.sourceRevision.source.bundleIdentifier
+            "name": sourceName,
+            "bundle_id": bundleId
         ]
+        
+        // 檢查是否為第三方設備數據源
+        let isThirdPartySource = isThirdPartyDataSource(sourceName: sourceName, bundleId: bundleId)
+        errorReport["is_third_party_source"] = isThirdPartySource
         
         // 錯誤分類
         var errorCategory = "unknown"
         if let hkError = error as? HKError {
             errorCategory = "healthkit_error"
             errorReport["hk_error_code"] = hkError.code.rawValue
+            
+            // 針對第三方數據源的授權問題提供特殊處理
+            if isThirdPartySource && (hkError.code == .errorAuthorizationNotDetermined || hkError.code == .errorAuthorizationDenied) {
+                errorCategory = "third_party_authorization_error"
+                print("🔧 [第三方設備] \(sourceName) 的 \(dataType) 數據需要額外授權")
+                print("💡 [建議] 用戶可以在 iPhone 設定 > 隱私權與安全性 > 健康 > 數據存取與裝置 中重新授權")
+            }
         } else if error is CancellationError {
             errorCategory = "cancellation_error"
         }
         
         Logger.firebase(
             "HealthKit 數據獲取失敗 - \(dataType)",
-            level: .error,
+            level: LogLevel.error,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "healthkit_data_fetch_error",
                 "data_type": dataType,
                 "error_category": errorCategory,
-                "device_manufacturer": (errorReport["device_info"] as? [String: String])?["manufacturer"] ?? "unknown"
+                "device_manufacturer": (errorReport["device_info"] as? [String: String])?["manufacturer"] ?? "unknown",
+                "is_third_party": isThirdPartySource ? "true" : "false"
             ],
             jsonPayload: errorReport
         )
         
-        print("⚠️ [HealthKit 錯誤] 無法獲取 \(dataType) 數據: \(error.localizedDescription)")
+        // 根據數據源類型提供不同的錯誤訊息
+        if isThirdPartySource {
+            print("⚠️ [第三方設備] 無法獲取來自 \(sourceName) 的 \(dataType) 數據: \(error.localizedDescription)")
+        } else {
+            print("⚠️ [HealthKit 錯誤] 無法獲取 \(dataType) 數據: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 檢查是否為第三方數據源
+    private func isThirdPartyDataSource(sourceName: String, bundleId: String) -> Bool {
+        // Apple 官方來源
+        let appleSourceIdentifiers = [
+            "com.apple.health",
+            "com.apple.Health",
+            "com.apple.healthd",
+            "com.apple.Fitness"
+        ]
+        
+        let appleSourceNames = [
+            "Health",
+            "Apple Watch",
+            "iPhone",
+            "健康",
+            "Fitness"
+        ]
+        
+        // 檢查 bundle ID
+        if appleSourceIdentifiers.contains(bundleId) {
+            return false
+        }
+        
+        // 檢查來源名稱
+        if appleSourceNames.contains(sourceName) {
+            return false
+        }
+        
+        // 其他常見的第三方健身設備/應用
+        let thirdPartyIdentifiers = [
+            "com.garmin.connect.mobile",
+            "com.polar.polarflow",
+            "com.suunto.suuntolink",
+            "com.fitbit.FitbitMobile",
+            "com.wahoo.wahoofitnessapp",
+            "com.strava.strava",
+            "com.runtastic.Runtastic",
+            "com.nike.nikeplus-gps"
+        ]
+        
+        let thirdPartyNames = [
+            "Connect",
+            "Garmin Connect",
+            "Polar Flow", 
+            "Suunto",
+            "Fitbit",
+            "Wahoo",
+            "Strava",
+            "Runtastic",
+            "Nike Run Club"
+        ]
+        
+        return thirdPartyIdentifiers.contains(bundleId) || thirdPartyNames.contains(sourceName)
     }
     
     // MARK: - Upload Tracker Helpers

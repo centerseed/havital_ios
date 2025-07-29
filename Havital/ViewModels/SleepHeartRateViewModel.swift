@@ -2,8 +2,8 @@ import SwiftUI
 import HealthKit
 
 class SleepHeartRateViewModel: ObservableObject, TaskManageable {
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var heartRateData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?

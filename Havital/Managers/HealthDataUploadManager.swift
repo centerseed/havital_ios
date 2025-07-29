@@ -29,8 +29,8 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     @Published var lastUploadDate: Date?
     @Published var pendingUploadCount = 0
     
-    // TaskManageable 協議實現
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // TaskManageable 協議實現 (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     // Cacheable 協議實現
     var cacheIdentifier: String { "HealthDataUploadManager" }
@@ -136,7 +136,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     /// 獲取健康數據（優先從緩存，然後 API，最後本地數據）
     func getHealthData(days: Int = 7) async -> [HealthRecord] {
-        return await executeTask(id: "get_health_data_\(days)") {
+        return await executeTask(id: TaskID("get_health_data_\(days)")) {
             await self.performGetHealthData(days: days)
         } ?? []
     }

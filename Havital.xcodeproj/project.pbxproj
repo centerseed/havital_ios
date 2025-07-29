@@ -463,7 +463,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 75;
+				CURRENT_PROJECT_VERSION = 79;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -482,8 +482,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.6;
-				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
+				MARKETING_VERSION = 0.9.8;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -591,7 +591,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 75;
+				CURRENT_PROJECT_VERSION = 79;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -610,7 +610,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.6;
+				MARKETING_VERSION = 0.9.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -782,7 +782,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 75;
+				CURRENT_PROJECT_VERSION = 79;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -801,8 +801,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.6;
-				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
+				MARKETING_VERSION = 0.9.8;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -818,7 +818,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Havital/Havital.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 75;
+				CURRENT_PROJECT_VERSION = 79;
 				DEVELOPMENT_ASSET_PATHS = "\"Havital/Preview Content\"";
 				DEVELOPMENT_TEAM = 779277J4JQ;
 				ENABLE_PREVIEWS = YES;
@@ -837,7 +837,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.6;
+				MARKETING_VERSION = 0.9.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;

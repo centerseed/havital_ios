@@ -66,8 +66,8 @@ class UserManager: ObservableObject, DataManageable {
     private let heartRateZonesManager = HeartRateZonesManager.shared
     private let targetService = TargetService.shared
     
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     // MARK: - Combine Support
     private var cancellables = Set<AnyCancellable>()

@@ -22,8 +22,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     private var healthKitObserver: HKObserverQuery?
     private var isObserving = false
     
-    // 任務管理 - 使用 TaskManageable 協議
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // 任務管理 - 使用 Actor-based TaskRegistry
+    let taskRegistry = TaskRegistry()
     
     private init() {
         setupNotificationObservers()
@@ -60,7 +60,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 載入運動記錄（統一介面）
     func loadWorkouts() async {
-        await executeTask(id: "load_workouts") {
+        await executeTask(id: TaskID("load_workouts")) {
             await self.performLoadWorkouts()
         }
     }
@@ -167,7 +167,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 刷新運動記錄（強制從 API 更新）
     func refreshWorkouts() async {
-        await executeTask(id: "refresh_workouts") {
+        await executeTask(id: TaskID("refresh_workouts")) {
             await self.forceRefreshFromAPI()
         }
     }

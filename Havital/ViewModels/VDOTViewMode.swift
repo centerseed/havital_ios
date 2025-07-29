@@ -2,8 +2,8 @@ import Combine
 import Foundation
 
 class VDOTChartViewModel: ObservableObject, TaskManageable {
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var vdotPoints: [VDOTDataPoint] = []
     @Published var averageVdot: Double = 0
     @Published var latestVdot: Double = 0

@@ -95,8 +95,8 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     private let retryInterval: TimeInterval = 300 // 5分鐘
     private let supportedDaysRanges = [7, 14, 30]
     
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     // MARK: - Cacheable Properties
     var cacheIdentifier: String { "HealthDataUploadManagerV2" }

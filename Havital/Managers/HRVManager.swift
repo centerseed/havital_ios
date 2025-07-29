@@ -55,8 +55,8 @@ class HRVManager: ObservableObject, DataManageable {
     let service: HealthKitManager
     private let cacheManager: HRVCacheManager
     
-    // MARK: - TaskManageable Properties
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // MARK: - TaskManageable Properties (Actor-based, thread-safe)
+    let taskRegistry = TaskRegistry()
     
     // MARK: - Cacheable Properties
     var cacheIdentifier: String { "HRVManager" }
@@ -283,13 +283,14 @@ class HRVManager: ObservableObject, DataManageable {
     private func calculateMorningAverages() {
         let calendar = Calendar.current
         
-        // 按日期分組
-        let groupedData = Dictionary(grouping: hrvData) { dataPoint in
-            calendar.startOfDay(for: dataPoint.date)
+        // 按日期分組 - 使用 TimeInterval 作為 key 確保線程安全
+        let groupedByTimeInterval: [TimeInterval: [HRVDataPoint]] = Dictionary(grouping: hrvData) { dataPoint in
+            calendar.startOfDay(for: dataPoint.date).timeIntervalSince1970
         }
         
         // 計算每天的晨間平均值
-        morningAverages = groupedData.compactMap { (date, dataPoints) -> (Date, Double)? in
+        morningAverages = groupedByTimeInterval.compactMap { (timeInterval, dataPoints) -> (Date, Double)? in
+            let date = Date(timeIntervalSince1970: timeInterval)
             let morningPoints = dataPoints.filter { $0.isMorningMeasurement }
             
             guard !morningPoints.isEmpty else { return nil }

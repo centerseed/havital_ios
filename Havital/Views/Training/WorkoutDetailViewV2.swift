@@ -525,17 +525,20 @@ struct ZoneRow: View {
                 .font(.subheadline)
                 .frame(width: 80, alignment: .leading)
             
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 8)
-                    .cornerRadius(4)
-                
-                Rectangle()
-                    .fill(color)
-                    .frame(width: CGFloat(percentage) * 2, height: 8)
-                    .cornerRadius(4)
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 8)
+                        .cornerRadius(4)
+                    
+                    Rectangle()
+                        .fill(color)
+                        .frame(width: max(0, min(geometry.size.width, geometry.size.width * CGFloat(percentage / 100.0))), height: 8)
+                        .cornerRadius(4)
+                }
             }
+            .frame(height: 8)
             
             Text(String(format: "%.1f%%", percentage))
                 .font(.caption)
@@ -556,54 +559,10 @@ struct ZoneRow: View {
         endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
         durationSeconds: 3600,
         distanceMeters: 5000,
-        basicMetrics: BasicMetrics(
-            avgHeartRateBpm: 150,
-            maxHeartRateBpm: 170,
-            minHeartRateBpm: 120,
-            avgPaceSPerKm: 300,
-            avgSpeedMPerS: 3.33,
-            maxSpeedMPerS: 4.0,
-            avgCadenceSpm: 180,
-            avgStrideLengthM: 1.1,
-            caloriesKcal: 300,
-            totalDistanceM: 5000,
-            totalDurationS: 3600,
-            movingDurationS: 3500,
-            totalAscentM: 50,
-            totalDescentM: 45,
-            avgAltitudeM: 100,
-            avgPowerW: nil,
-            maxPowerW: nil,
-            normalizedPowerW: nil,
-            trainingLoad: nil
-        ),
-        advancedMetrics: AdvancedMetrics(
-            dynamicVdot: 45.2,
-            tss: 65.8,
-            trainingType: "easy_run",
-            intensityMinutes: APIIntensityMinutes(low: 45.0, medium: 10.0, high: 5.0),
-            intervalCount: nil,
-            avgHrTop20Percent: 165.0,
-            hrZoneDistribution: ZoneDistribution(
-                marathon: 20.0,
-                threshold: 15.0,
-                recovery: 10.0,
-                interval: 5.0,
-                anaerobic: 2.0,
-                easy: 48.0
-            ),
-            paceZoneDistribution: ZoneDistribution(
-                marathon: 25.0,
-                threshold: 10.0,
-                recovery: 15.0,
-                interval: 8.0,
-                anaerobic: 3.0,
-                easy: 39.0
-            ),
-            rpe: 6.5
-        ),
-        createdAt: ISO8601DateFormatter().string(from: Date()),
-        schemaVersion: "unified",
-        storagePath: "/example/path"
+        basicMetrics: nil,
+        advancedMetrics: nil,
+        createdAt: nil,
+        schemaVersion: nil,
+        storagePath: nil
     ))
 } 

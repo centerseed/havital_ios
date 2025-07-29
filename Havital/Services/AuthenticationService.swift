@@ -20,8 +20,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     private var cancellables = Set<AnyCancellable>()
     private var currentNonce: String?
     
-    // TaskManageable 協議實作
-    var activeTasks: [String: Task<Void, Never>] = [:]
+    // TaskManageable 協議實作 (Actor-based)
+    let taskRegistry = TaskRegistry()
     
     override private init() {
         super.init() // Call super.init() first
@@ -100,7 +100,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     }
     
     func signInWithGoogle() async {
-        await executeTask(id: "sign_in_google") {
+        await executeTask(id: TaskID("sign_in_google")) {
             await self.performGoogleSignIn()
         }
     }
@@ -176,7 +176,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
 
     @MainActor // Ensure UI updates are on the main thread
     func signInWithApple() async {
-        await executeTask(id: "sign_in_apple") {
+        await executeTask(id: TaskID("sign_in_apple")) {
             await self.performAppleSignIn()
         }
     }
@@ -202,7 +202,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     }
     
     internal func syncUserWithBackend(idToken: String) async throws {
-        _ = await executeTask(id: "sync_user_backend") {
+        _ = await executeTask(id: TaskID("sync_user_backend")) {
             try await self.performUserSync(idToken: idToken)
         }
     }
@@ -232,10 +232,6 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
 
-        // 同步過去兩個月未上傳的 workout
-        Task {
-            await self.syncRecentWorkouts()
-        }
     }
     
     // 檢查用戶是否已完成 onboarding
@@ -371,39 +367,6 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         }
     }
 
-    // Get the current ID token
-    public func syncRecentWorkouts() async {
-        await executeTask(id: "sync_recent_workouts") {
-            await self.performRecentWorkoutsSync()
-        }
-    }
-    
-    private func performRecentWorkoutsSync() async {
-        guard isAuthenticated, appUser != nil else {
-            print("使用者未登入，跳過同步最近 workout")
-            return
-        }
-        print("準備同步最近兩個月的 workout")
-        do {
-            let twoMonthsAgo = Calendar.current.date(byAdding: .month, value: -2, to: Date()) ?? Date()
-            // HealthKitManager 通常是自行初始化，而非 singleton
-            let healthKitManager = HealthKitManager()
-            let workoutsToSync = try await healthKitManager.fetchWorkoutsForDateRange(start: twoMonthsAgo, end: Date())
-            
-            if workoutsToSync.isEmpty {
-                print("最近兩個月沒有新的 workout 需要同步")
-                return
-            }
-            
-            print("發現 \(workoutsToSync.count) 個 workout 需要檢查並可能同步")
-            // WorkoutBackgroundUploader 是 singleton
-            let uploadedCount = await WorkoutBackgroundUploader.shared.uploadPendingWorkouts(workouts: workoutsToSync, sendNotifications: true, force: false)
-            print("已成功上傳 \(uploadedCount) 個最近的 workout")
-            
-        } catch {
-            print("同步最近 workout 失敗: \(error)")
-        }
-    }
 
     func getIdToken() async throws -> String {
         guard let user = Auth.auth().currentUser else {

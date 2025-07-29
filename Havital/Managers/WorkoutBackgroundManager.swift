@@ -5,7 +5,7 @@ import BackgroundTasks
 import UIKit
 
 // 完整的工作記錄背景管理器，含所有必要方法，支持心率資料檢查
-class WorkoutBackgroundManager: NSObject {
+class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     static let shared = WorkoutBackgroundManager()
     
     private let healthStore = HKHealthStore()
@@ -26,8 +26,10 @@ class WorkoutBackgroundManager: NSObject {
     }
     private let notificationCooldown: TimeInterval = 3600 // 1小時冷卻時間，只在必要時通知
     
+    // TaskRegistry for thread-safe task management
+    let taskRegistry = TaskRegistry()
+    
     // 批量同步狀態追蹤
-    private var syncInProgress = false
     private var syncTotalCount = 0
     private var syncSuccessCount = 0
     private var isFirstLoginSync = false
@@ -118,7 +120,7 @@ class WorkoutBackgroundManager: NSObject {
     func stopAndCleanupObserving() {
         print("停用 HealthKit 觀察者...")
         stopObservingWorkouts()
-        syncInProgress = false
+        cancelAllTasks()  // 取消所有正在執行的任務
         print("HealthKit 觀察者已停用")
     }
     
@@ -164,11 +166,7 @@ class WorkoutBackgroundManager: NSObject {
             return
         }
         
-        // 如果已有同步任務在進行中，則不重複啟動
-        if syncInProgress {
-            print("已有同步任務在進行中，跳過本次請求")
-            return
-        }
+        // TaskRegistry 會自動處理重複任務，無需額外檢查
         
         // 為了確保後台任務不會過早結束，使用一個背景任務 ID
         var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
@@ -192,14 +190,15 @@ class WorkoutBackgroundManager: NSObject {
         }
         
         do {
-            // 標記同步開始
-            syncInProgress = true
             
             // 獲取最近的健身記錄
             let workouts = try await fetchRecentWorkouts()
             
-            // 過濾出未上傳的記錄
-            let newWorkouts = workouts.filter { !workoutUploadTracker.isWorkoutUploaded($0) }
+            // 過濾出需要處理的記錄（未上傳或缺少心率數據）
+            let newWorkouts = workouts.filter { 
+                !workoutUploadTracker.isWorkoutUploaded($0) || 
+                !workoutUploadTracker.workoutHasHeartRate($0)
+            }
             
             // 只有在有需要處理的記錄時才進行同步
             let totalWorkoutsToProcess = newWorkouts.count
@@ -224,22 +223,26 @@ class WorkoutBackgroundManager: NSObject {
                     let runningWorkouts = newWorkouts.filter { self.isRunningWorkout($0) }
                     let nonRunningWorkouts = newWorkouts.filter { !self.isRunningWorkout($0) }
                     
-                    // 處理跑步記錄
-                    if !runningWorkouts.isEmpty {
-                        let runSuccessCount = await uploadWorkouts(runningWorkouts, sendIndividualNotifications: false)
-                        syncSuccessCount += runSuccessCount
+                    // 如果應該發送通知，先記錄開始處理
+                    if shouldSendNotification() {
+                        print("📱 開始在背景處理 \(newWorkouts.count) 筆健身記錄")
                     }
                     
-                    // 處理非跑步記錄（不發送個別通知）
-                    if !nonRunningWorkouts.isEmpty {
-                        let nonRunSuccessCount = await uploadWorkouts(nonRunningWorkouts, sendIndividualNotifications: false)
-                        syncSuccessCount += nonRunSuccessCount
+                    // 在後台線程處理跑步記錄，避免阻塞主流程
+                    if !runningWorkouts.isEmpty {
+                        Task.detached { [weak self] in
+                            let runSuccessCount = await self?.uploadWorkouts(runningWorkouts, sendIndividualNotifications: false) ?? 0
+                            print("✅ 跑步記錄上傳完成：\(runSuccessCount) 筆成功")
+                        }
                     }
-                }
-                
-                // 完成同步，如果有成功上傳且應該發送通知，則發送完成通知
-                if syncSuccessCount > 0 && shouldSendNotification() {
-                    await sendBulkSyncCompleteNotification(count: syncSuccessCount)
+                    
+                    // 在後台線程處理非跑步記錄，避免阻塞主流程
+                    if !nonRunningWorkouts.isEmpty {
+                        Task.detached { [weak self] in
+                            let nonRunSuccessCount = await self?.uploadWorkouts(nonRunningWorkouts, sendIndividualNotifications: false) ?? 0
+                            print("✅ 非跑步記錄上傳完成：\(nonRunSuccessCount) 筆成功")
+                        }
+                    }
                 }
                 
             } else {
@@ -250,7 +253,6 @@ class WorkoutBackgroundManager: NSObject {
         }
         
         // 結束同步
-        syncInProgress = false
         syncTotalCount = 0
         syncSuccessCount = 0
     }
@@ -432,7 +434,7 @@ class WorkoutBackgroundManager: NSObject {
                 return
             }
             
-            print("偵測到新的健身記錄，啟動背景處理...")
+            print("偵測到新的健身記錄，將在20秒後開始處理...")
             
             // 請求背景執行時間
             var backgroundTask: UIBackgroundTaskIdentifier = .invalid
@@ -445,8 +447,12 @@ class WorkoutBackgroundManager: NSObject {
                 completionHandler()
             }
             
-            // 檢測到新的健身記錄，執行上傳邏輯
+            // 檢測到新的健身記錄，延遲20秒後執行上傳邏輯
             Task {
+                // 延遲20秒，讓 Apple Health 完成數據同步
+                try? await Task.sleep(nanoseconds: 20_000_000_000) // 20秒
+                
+                print("20秒延遲結束，開始處理健身記錄...")
                 await self.checkAndUploadPendingWorkouts()
                 
                 // 完成背景任務
@@ -505,8 +511,10 @@ class WorkoutBackgroundManager: NSObject {
     
     // 應用返回前台時觸發
     @objc private func applicationWillEnterForeground() {
-        // 應用返回前台時，檢查並處理待上傳的健身記錄
+        // 應用返回前台時，延遲後檢查並處理待上傳的健身記錄
         Task {
+            // 短暫延遲，讓系統穩定
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5秒
             await checkAndUploadPendingWorkouts()
         }
     }
@@ -521,9 +529,11 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
+    // MARK: - TaskManageable Cleanup
     deinit {
-        // 在對象銷毀時停止監聽
+        // 在對象銷毀時停止監聽並取消所有任務
         stopObservingWorkouts()
+        cancelAllTasks()
     }
     
     // 安排背景任務
@@ -582,7 +592,7 @@ class WorkoutBackgroundManager: NSObject {
         let result = await workoutService.uploadWorkouts(
             workouts,
             force: false,
-            retryHeartRate: false
+            retryHeartRate: true
         )
         
         // 處理通知

@@ -1,119 +1,170 @@
 import Foundation
 
-// MARK: - 任務管理協議
-protocol TaskManageable: AnyObject {
-    var activeTasks: [String: Task<Void, Never>] { get set }
-    var taskQueue: DispatchQueue { get }
+// MARK: - 線程安全的任務標識符
+struct TaskID: Hashable, CustomStringConvertible, Sendable {
+    private let value: String
     
-    func executeTask<T>(
-        id: String,
-        operation: @escaping () async throws -> T
-    ) async -> T?
+    init(_ value: String) {
+        // 確保 ID 安全：移除特殊字符，限制長度
+        let sanitized = value.replacingOccurrences(of: "[^a-zA-Z0-9_-]", with: "_", options: .regularExpression)
+        self.value = String(sanitized.prefix(50))
+    }
     
-    func cancelTask(id: String)
-    func cancelAllTasks()
+    var description: String { value }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(value)
+    }
+    
+    static func == (lhs: TaskID, rhs: TaskID) -> Bool {
+        return lhs.value == rhs.value
+    }
 }
 
-// MARK: - 預設實現
-extension TaskManageable {
-    /// 默認使用串行隊列保證線程安全
-    var taskQueue: DispatchQueue {
-        return DispatchQueue(label: "taskmanager.\(String(describing: type(of: self)))", qos: .userInitiated)
-    }
+// MARK: - Actor-based Task Registry (完全線程安全)
+@available(iOS 13.0, *)
+actor TaskRegistry {
+    private var activeTasks: [TaskID: Task<Void, Never>] = [:]
     
-    func executeTask<T>(
-        id: String,
-        operation: @escaping () async throws -> T
-    ) async -> T? {
-        // 類型安全檢查：確保 id 是字符串且有效
-        guard !id.isEmpty else {
-            Logger.firebase("執行任務失敗：任務 ID 不能為空", level: .error, jsonPayload: [
-                "caller": String(describing: type(of: self))
-            ])
-            return nil
+    func registerTask(id: TaskID, task: Task<Void, Never>) -> Bool {
+        // 檢查是否已存在
+        if activeTasks[id] != nil {
+            Logger.firebase("任務已在執行中，跳過重複請求", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+            return false
         }
         
-        // 調試日誌：記錄任務 ID 的類型和值
-        Logger.firebase("執行任務", level: .debug, jsonPayload: [
-            "task_id": id,
-            "caller": String(describing: type(of: self)),
-            "id_type": String(describing: type(of: id))
-        ])
-        
-        // 使用串行隊列保證 activeTasks 的線程安全
-        return await withCheckedContinuation { continuation in
-            taskQueue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                
-                // 檢查是否有相同 ID 的任務正在執行
-                if self.activeTasks[id] != nil {
-                    Logger.firebase("任務已在執行中，跳過重複請求", level: .info, jsonPayload: ["task_id": id])
-                    continuation.resume(returning: nil)
-                    return
-                }
-                
-                // 創建真正的執行任務
-                let task = Task<T?, Never> {
-                    do {
-                        let result = try await operation()
-                        Logger.firebase("任務執行成功", level: .info, jsonPayload: ["task_id": id])
-                        return result
-                    } catch is CancellationError {
-                        Logger.firebase("任務被取消", level: .info, jsonPayload: ["task_id": id])
-                        return nil
-                    } catch {
-                        Logger.firebase("任務執行失敗", level: .error, jsonPayload: [
-                            "task_id": id,
-                            "error": error.localizedDescription
-                        ])
-                        return nil
-                    }
-                }
-                
-                // 創建 Void 包裝任務以符合 activeTasks 類型
-                let voidTask = Task<Void, Never> {
-                    let result = await task.value
-                    // 任務完成後清理
-                    self.taskQueue.async {
-                        self.activeTasks.removeValue(forKey: id)
-                    }
-                }
-                
-                // 線程安全地添加任務
-                self.activeTasks[id] = voidTask
-                
-                // 啟動任務並等待結果
-                Task {
-                    let result = await task.value
-                    continuation.resume(returning: result)
-                }
-            }
+        activeTasks[id] = task
+        Logger.firebase("註冊任務", level: LogLevel.debug, jsonPayload: ["task_id": id.description])
+        return true
+    }
+    
+    func removeTask(id: TaskID) {
+        if activeTasks.removeValue(forKey: id) != nil {
+            Logger.firebase("移除任務", level: LogLevel.debug, jsonPayload: ["task_id": id.description])
         }
     }
     
-    func cancelTask(id: String) {
-        taskQueue.async { [weak self] in
-            guard let self = self else { return }
-            if let task = self.activeTasks[id] {
-                task.cancel()
-                self.activeTasks.removeValue(forKey: id)
-                Logger.firebase("取消任務", level: .info, jsonPayload: ["task_id": id])
-            }
+    func cancelTask(id: TaskID) {
+        if let task = activeTasks.removeValue(forKey: id) {
+            task.cancel()
+            Logger.firebase("取消任務", level: LogLevel.info, jsonPayload: ["task_id": id.description])
         }
     }
     
     func cancelAllTasks() {
-        taskQueue.async { [weak self] in
-            guard let self = self else { return }
-            let cancelledCount = self.activeTasks.count
-            for (_, task) in self.activeTasks {
-                task.cancel()
+        let cancelledCount = activeTasks.count
+        let tasksToCancel = Array(activeTasks.values)
+        activeTasks.removeAll()
+        
+        for task in tasksToCancel {
+            task.cancel()
+        }
+        
+        Logger.firebase("取消所有任務", level: LogLevel.info, jsonPayload: ["cancelled_count": cancelledCount])
+    }
+    
+    func taskCount() -> Int {
+        return activeTasks.count
+    }
+}
+
+// MARK: - 任務管理協議（使用 Actor 保證線程安全）
+@available(iOS 13.0, *)
+protocol TaskManageable: AnyObject {
+    var taskRegistry: TaskRegistry { get }
+    
+    func executeTask<T>(
+        id: TaskID,
+        operation: @escaping @Sendable () async throws -> T
+    ) async -> T?
+    
+    func cancelTask(id: TaskID)
+    func cancelAllTasks()
+}
+
+// MARK: - 預設實現（Actor-based 線程安全）
+@available(iOS 13.0, *)
+extension TaskManageable {
+    
+    /// 為字符串 ID 提供便利方法（向後兼容）
+    func executeTask<T>(
+        id: String,
+        operation: @escaping @Sendable () async throws -> T
+    ) async -> T? {
+        return await executeTask(id: TaskID(id), operation: operation)
+    }
+    
+    /// 取消任務的字符串版本（向後兼容）
+    func cancelTask(id: String) {
+        Task { await cancelTask(id: TaskID(id)) }
+    }
+    
+    /// TaskRegistry 必須作為存儲屬性實現
+    /// 每個遵循 TaskManageable 的類都應該實現：
+    /// private let taskRegistry = TaskRegistry()
+    
+    func executeTask<T>(
+        id: TaskID,
+        operation: @escaping @Sendable () async throws -> T
+    ) async -> T? {
+        // 調試日誌：記錄任務執行
+        Logger.firebase("執行任務", level: LogLevel.debug, jsonPayload: [
+            "task_id": id.description,
+            "caller": String(describing: type(of: self))
+        ])
+        
+        // 創建執行任務，不需要捕獲 self，因為 operation 已經是 @Sendable
+        let executionTask = Task<T?, Never> {
+            do {
+                let result = try await operation()
+                Logger.firebase("任務執行成功", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+                return result
+            } catch is CancellationError {
+                Logger.firebase("任務被取消", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+                return nil
+            } catch {
+                Logger.firebase("任務執行失敗", level: LogLevel.error, jsonPayload: [
+                    "task_id": id.description,
+                    "error": String(describing: error)
+                ])
+                return nil
             }
-            self.activeTasks.removeAll()
-            Logger.firebase("取消所有任務", level: .info, jsonPayload: ["cancelled_count": cancelledCount])
+        }
+        
+        // 創建管理任務（用於註冊到 TaskRegistry）
+        let managementTask = Task<Void, Never> { [weak self] in
+            let result = await executionTask.value
+            // 任務完成後從註冊表中移除，使用 weak self 避免循環引用
+            guard let strongSelf = self else { return }
+            await strongSelf.taskRegistry.removeTask(id: id)
+        }
+        
+        // 嘗試註冊任務
+        let registered = await taskRegistry.registerTask(id: id, task: managementTask)
+        
+        if !registered {
+            // 任務已存在，取消新創建的任務
+            executionTask.cancel()
+            managementTask.cancel()
+            return nil
+        }
+        
+        // 等待執行結果
+        return await executionTask.value
+    }
+    
+    func cancelTask(id: TaskID) {
+        Task { [weak self] in
+            guard let strongSelf = self else { return }
+            await strongSelf.taskRegistry.cancelTask(id: id)
+        }
+    }
+    
+    func cancelAllTasks() {
+        // 在 deinit 中調用時使用 weak 引用避免循環引用
+        Task { [weak self] in
+            guard let strongSelf = self else { return }
+            await strongSelf.taskRegistry.cancelAllTasks()
         }
     }
 }

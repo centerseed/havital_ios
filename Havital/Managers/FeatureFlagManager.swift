@@ -55,41 +55,36 @@ class FeatureFlagManager: ObservableObject {
     
     // MARK: - Fetch Remote Config
     private func fetchRemoteConfig() {
-        remoteConfig.fetch { [weak self] status, error in
+        print("🔄 開始獲取並啟用 Remote Config...")
+        
+        // 使用 fetchAndActivate 一次完成獲取和啟用
+        remoteConfig.fetchAndActivate { [weak self] status, error in
             guard let self = self else { return }
             
+            print("📡 Remote Config fetchAndActivate 完成 - status: \(status.rawValue)")
+            
             if let error = error {
-                Logger.firebase("Remote Config 獲取失敗", level: .error, labels: [
+                print("❌ Remote Config fetchAndActivate 失敗: \(error.localizedDescription)")
+                Logger.firebase("Remote Config fetchAndActivate 失敗", level: .error, labels: [
                     "module": "FeatureFlagManager",
                     "error": error.localizedDescription
                 ])
                 // 使用預設值
-                self.updateFeatureFlags()
+                DispatchQueue.main.async {
+                    self.updateFeatureFlags()
+                }
                 return
             }
             
-            Logger.firebase("Remote Config 獲取成功", level: .info, labels: [
+            print("✅ Remote Config fetchAndActivate 成功 - status: \(status.rawValue)")
+            Logger.firebase("Remote Config fetchAndActivate 成功", level: .info, labels: [
                 "module": "FeatureFlagManager",
                 "status": "\(status.rawValue)"
             ])
             
-            // 啟用獲取到的配置
-            self.remoteConfig.activate { [weak self] changed, error in
-                DispatchQueue.main.async {
-                    self?.updateFeatureFlags()
-                }
-                
-                if let error = error {
-                    Logger.firebase("Remote Config 啟用失敗", level: .error, labels: [
-                        "module": "FeatureFlagManager",
-                        "error": error.localizedDescription
-                    ])
-                } else {
-                    Logger.firebase("Remote Config 啟用成功", level: .info, labels: [
-                        "module": "FeatureFlagManager",
-                        "changed": "\(changed)"
-                    ])
-                }
+            // 在主線程更新 feature flags
+            DispatchQueue.main.async {
+                self.updateFeatureFlags()
             }
         }
     }
@@ -136,17 +131,13 @@ class FeatureFlagManager: ObservableObject {
     /// 手動重新獲取 Remote Config（用於測試或特殊情況）
     func refreshConfig() async {
         await withCheckedContinuation { continuation in
-            remoteConfig.fetch { [weak self] status, error in
+            remoteConfig.fetchAndActivate { [weak self] status, error in
                 if error == nil {
-                    self?.remoteConfig.activate { [weak self] _, _ in
-                        DispatchQueue.main.async {
-                            self?.updateFeatureFlags()
-                        }
-                        continuation.resume()
+                    DispatchQueue.main.async {
+                        self?.updateFeatureFlags()
                     }
-                } else {
-                    continuation.resume()
                 }
+                continuation.resume()
             }
         }
     }

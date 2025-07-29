@@ -30,9 +30,21 @@ extension DataManageable where Self: ObservableObject {
         showLoading: Bool = true,
         operation: @escaping () async throws -> T
     ) async -> T? {
+        // 防禦性檢查：確保 ID 有效
+        guard !id.isEmpty, id.count < 100 else {
+            Logger.firebase("無效的任務 ID", level: .error, jsonPayload: [
+                "task_id": String(id.prefix(50)), // 限制日誌長度
+                "caller": String(describing: type(of: self))
+            ])
+            return nil
+        }
+        
         // 防止重複調用
         if showLoading {
-            let currentlyLoading = await MainActor.run { self.isLoading }
+            let currentlyLoading = await MainActor.run { 
+                guard self is AnyObject else { return false } // 檢查對象是否已釋放
+                return self.isLoading 
+            }
             if currentlyLoading {
                 Logger.firebase("數據載入中，跳過重複調用", level: .debug, jsonPayload: ["task_id": id])
                 return nil
