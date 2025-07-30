@@ -9,11 +9,36 @@ struct HeartRateChartView: View {
     let yAxisRange: (min: Double, max: Double)
     let isLoading: Bool
     let error: String?
+    let dataProvider: String?
+    let deviceModel: String?
+    
+    init(heartRates: [DataPoint], maxHeartRate: String, averageHeartRate: Double?, minHeartRate: String, yAxisRange: (min: Double, max: Double), isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil) {
+        self.heartRates = heartRates
+        self.maxHeartRate = maxHeartRate
+        self.averageHeartRate = averageHeartRate
+        self.minHeartRate = minHeartRate
+        self.yAxisRange = yAxisRange
+        self.isLoading = isLoading
+        self.error = error
+        self.dataProvider = dataProvider
+        self.deviceModel = deviceModel
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("心率變化")
-                .font(.headline)
+            HStack {
+                Text("心率變化")
+                    .font(.headline)
+                
+                Spacer()
+                
+                // Garmin Attribution as required by brand guidelines
+                ConditionalGarminAttributionView(
+                    dataProvider: dataProvider,
+                    deviceModel: deviceModel,
+                    displayStyle: .titleLevel
+                )
+            }
 
             if isLoading {
                 VStack {
@@ -130,7 +155,9 @@ struct HeartRateChartView_Previews: PreviewProvider {
                 minHeartRate: "70 bpm",
                 yAxisRange: (min: 50, max: 200),
                 isLoading: false,
-                error: nil
+                error: nil,
+                dataProvider: "Garmin",
+                deviceModel: "Forerunner 955"
             )
             .previewDisplayName("With Data")
             

@@ -179,9 +179,35 @@ class WorkoutV2Service {
             print("  - 路徑: \(errorDetail.codingPath)")
             print("  - 描述: \(errorDetail.description)")
             print("  - Debug: \(errorDetail.debugDescription)")
+            print("  - 完整錯誤: \(decodingError)")
             
             // 嘗試從 APIClient 獲取原始回應數據
             print("⚠️ 請檢查 APIClient 的原始回應數據")
+            
+            // 詳細分析錯誤類型
+            switch decodingError {
+            case .dataCorrupted(let context):
+                print("🔍 數據損壞詳情:")
+                print("  - 上下文: \(context)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                if let underlyingError = context.underlyingError {
+                    print("  - 底層錯誤: \(underlyingError)")
+                }
+            case .keyNotFound(let key, let context):
+                print("🔍 缺少鍵詳情:")
+                print("  - 缺少的鍵: \(key.stringValue)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+            case .typeMismatch(let type, let context):
+                print("🔍 類型不匹配詳情:")
+                print("  - 期望類型: \(type)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+            case .valueNotFound(let type, let context):
+                print("🔍 值未找到詳情:")
+                print("  - 期望類型: \(type)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+            @unknown default:
+                print("🔍 未知錯誤類型")
+            }
             
             Logger.firebase(
                 "Workout V2 JSON 解析失敗",
@@ -259,6 +285,43 @@ class WorkoutV2Service {
             
             // 詳細記錄 JSON 解析錯誤
             let errorDetail = getDecodingErrorDetail(decodingError)
+            
+            // 輸出詳細錯誤信息到 console 以便 debug
+            print("🚨 [WorkoutV2Service] 運動詳情 JSON 解析失敗")
+            print("🔍 運動ID: \(workoutId)")
+            print("🔍 錯誤詳情:")
+            print("  - 字段: \(errorDetail.missingField ?? "unknown")")
+            print("  - 路徑: \(errorDetail.codingPath)")
+            print("  - 描述: \(errorDetail.description)")
+            print("  - Debug: \(errorDetail.debugDescription)")
+            print("  - 完整錯誤: \(decodingError)")
+            
+            // 詳細分析錯誤類型
+            switch decodingError {
+            case .dataCorrupted(let context):
+                print("🔍 數據損壞詳情:")
+                print("  - 上下文: \(context)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                if let underlyingError = context.underlyingError {
+                    print("  - 底層錯誤: \(underlyingError)")
+                }
+            case .keyNotFound(let key, let context):
+                print("🔍 缺少鍵詳情:")
+                print("  - 缺少的鍵: \(key.stringValue)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+            case .typeMismatch(let type, let context):
+                print("🔍 類型不匹配詳情:")
+                print("  - 期望類型: \(type)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+            case .valueNotFound(let type, let context):
+                print("🔍 值未找到詳情:")
+                print("  - 期望類型: \(type)")
+                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+            @unknown default:
+                print("🔍 未知錯誤類型")
+            }
+            
+            print("⚠️ 請檢查 APIClient 的原始回應數據")
             
             Logger.firebase(
                 "Workout V2 詳情 JSON 解析失敗",

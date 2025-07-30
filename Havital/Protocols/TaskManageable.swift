@@ -29,25 +29,29 @@ actor TaskRegistry {
     func registerTask(id: TaskID, task: Task<Void, Never>) -> Bool {
         // 檢查是否已存在
         if activeTasks[id] != nil {
-            Logger.firebase("任務已在執行中，跳過重複請求", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+            // 只記錄本地日誌，不發送到後端
+            print("[TaskRegistry] 任務已在執行中，跳過重複請求: \(id.description)")
             return false
         }
         
         activeTasks[id] = task
-        Logger.firebase("註冊任務", level: LogLevel.debug, jsonPayload: ["task_id": id.description])
+        // 只記錄本地日誌，不發送到後端
+        print("[TaskRegistry] 註冊任務: \(id.description)")
         return true
     }
     
     func removeTask(id: TaskID) {
         if activeTasks.removeValue(forKey: id) != nil {
-            Logger.firebase("移除任務", level: LogLevel.debug, jsonPayload: ["task_id": id.description])
+            // 只記錄本地日誌，不發送到後端
+            print("[TaskRegistry] 移除任務: \(id.description)")
         }
     }
     
     func cancelTask(id: TaskID) {
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
-            Logger.firebase("取消任務", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+            // 只記錄本地日誌，不發送到後端
+            print("[TaskRegistry] 取消任務: \(id.description)")
         }
     }
     
@@ -60,7 +64,10 @@ actor TaskRegistry {
             task.cancel()
         }
         
-        Logger.firebase("取消所有任務", level: LogLevel.info, jsonPayload: ["cancelled_count": cancelledCount])
+        // 只記錄本地日誌，不發送到後端
+        if cancelledCount > 0 {
+            print("[TaskRegistry] 取消所有任務，數量: \(cancelledCount)")
+        }
     }
     
     func taskCount() -> Int {
@@ -107,25 +114,25 @@ extension TaskManageable {
         id: TaskID,
         operation: @escaping @Sendable () async throws -> T
     ) async -> T? {
-        // 調試日誌：記錄任務執行
-        Logger.firebase("執行任務", level: LogLevel.debug, jsonPayload: [
-            "task_id": id.description,
-            "caller": String(describing: type(of: self))
-        ])
+        // 只記錄本地調試日誌，不發送到後端
+        print("[TaskManageable] 執行任務: \(id.description) from \(String(describing: type(of: self)))")
         
         // 創建執行任務，不需要捕獲 self，因為 operation 已經是 @Sendable
         let executionTask = Task<T?, Never> {
             do {
                 let result = try await operation()
-                Logger.firebase("任務執行成功", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+                // 只記錄本地日誌，不發送到後端
+                print("[TaskManageable] 任務執行成功: \(id.description)")
                 return result
             } catch is CancellationError {
-                Logger.firebase("任務被取消", level: LogLevel.info, jsonPayload: ["task_id": id.description])
+                // 取消事件不需要記錄，避免過多日誌
                 return nil
             } catch {
+                // 只有非取消的錯誤才發送到後端進行分析
                 Logger.firebase("任務執行失敗", level: LogLevel.error, jsonPayload: [
                     "task_id": id.description,
-                    "error": String(describing: error)
+                    "error": String(describing: error),
+                    "caller": String(describing: type(of: self))
                 ])
                 return nil
             }

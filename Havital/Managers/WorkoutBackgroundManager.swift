@@ -34,6 +34,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     private var syncSuccessCount = 0
     private var isFirstLoginSync = false
     
+    // 防止過度觸發的冷卻機制
+    private var lastUploadCheckTime: Date?
+    private let uploadCheckCooldown: TimeInterval = 60 // 1分鐘冷卻時間
+    private var isCurrentlyProcessing = false
+    
     // 使用中的觀察查詢
     private var activeObserverQuery: HKObserverQuery?
     private var isObservingWorkouts = false
@@ -155,8 +160,6 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 檢查並上傳待處理的健身記錄 - 修正版
     func checkAndUploadPendingWorkouts() async {
-        print("檢查待上傳的健身記錄...")
-        
         // 檢查當前數據來源設定
         let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
         
@@ -164,6 +167,28 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         guard dataSourcePreference == .appleHealth else {
             print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據上傳")
             return
+        }
+        
+        // 防止過度觸發 - 檢查冷卻時間
+        let now = Date()
+        if let lastTime = lastUploadCheckTime,
+           now.timeIntervalSince(lastTime) < uploadCheckCooldown {
+            print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
+            return
+        }
+        
+        // 防止並發執行
+        guard !isCurrentlyProcessing else {
+            print("🔄 已有上傳任務在進行中，跳過重複調用")
+            return
+        }
+        
+        print("檢查待上傳的健身記錄...")
+        isCurrentlyProcessing = true
+        lastUploadCheckTime = now
+        
+        defer {
+            isCurrentlyProcessing = false
         }
         
         // TaskRegistry 會自動處理重複任務，無需額外檢查
@@ -515,6 +540,13 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         Task {
             // 短暫延遲，讓系統穩定
             try? await Task.sleep(nanoseconds: 5_000_000_000) // 5秒
+            
+            // 重置首次登入標記（避免前景切換觸發大量處理）
+            if isFirstLoginSync {
+                print("📱 應用返回前景，重置首次登入同步標記")
+                isFirstLoginSync = false
+            }
+            
             await checkAndUploadPendingWorkouts()
         }
     }

@@ -37,20 +37,50 @@ struct AppLoadingView: View {
                 
                 // 錯誤狀態的重試按鈕
                 if case .error(let errorMessage) = appStateManager.currentState {
-                    VStack(spacing: 12) {
-                        Text("錯誤: \(errorMessage)")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
+                    VStack(spacing: 16) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 32))
+                                .foregroundColor(.orange)
+                            
+                            Text("應用程式初始化失敗")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Text("請確認網路連線正常，然後重新嘗試")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
                         
-                        Button("重試") {
+                        Button(action: {
                             Task {
                                 await appStateManager.reinitialize()
                             }
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.clockwise")
+                                Text("重新啟動")
+                            }
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.blue)
+                            .cornerRadius(10)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
+                        .frame(width: 200)
                     }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.black.opacity(0.6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            )
+                    )
                     .padding(.top, 16)
                 }
             }

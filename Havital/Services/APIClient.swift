@@ -128,6 +128,32 @@ actor APIClient {
                 print("🔍 原始 API 回應:")
                 print(responseString)
                 print("🔍 解析錯誤: \(finalError)")
+                
+                // 特別檢查是否為運動詳情請求
+                if path.contains("/v2/workouts/") && !path.contains("stats") {
+                    print("⚠️ [運動詳情] 這是運動詳情 API 請求，檢查 V2 模型是否正確使用 SafeDouble/SafeInt")
+                    
+                    // 嘗試解析成基本 JSON 來檢查結構
+                    if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) {
+                        print("🔍 [運動詳情] JSON 結構檢查:")
+                        if let dict = jsonObject as? [String: Any] {
+                            print("  - 頂層鍵: \(dict.keys.sorted())")
+                            if let success = dict["success"] {
+                                print("  - success: \(success)")
+                            }
+                            if let dataObj = dict["data"] as? [String: Any] {
+                                print("  - data 鍵: \(dataObj.keys.sorted())")
+                                if let basicMetrics = dataObj["basic_metrics"] as? [String: Any] {
+                                    print("  - basic_metrics 鍵: \(basicMetrics.keys.sorted())")
+                                }
+                                if let advancedMetrics = dataObj["advanced_metrics"] as? [String: Any] {
+                                    print("  - advanced_metrics 鍵: \(advancedMetrics.keys.sorted())")
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 print("=====================================")
                 
                 // If both fail, throw the original APIResponse parsing error

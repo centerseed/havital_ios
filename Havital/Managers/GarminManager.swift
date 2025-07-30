@@ -197,7 +197,7 @@ class GarminManager: NSObject, ObservableObject {
         
         // 提取參數 - 現在是從後端傳來的結果
         let error = queryItems.first { $0.name == "error" }?.value
-        let errorDescription = queryItems.first { $0.name == "error_description" }?.value ?? "該 Garmin 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin 綁定後，再用本帳號進行連接。"
+        let errorDescription = queryItems.first { $0.name == "error_description" }?.value ?? "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin Connect™ 綁定後，再用本帳號進行連接。"
         let canForceReplace = queryItems.first { $0.name == "can_force_replace" }?.value
         let state = queryItems.first { $0.name == "state" }?.value
         let existingUserId = queryItems.first { $0.name == "existing_user_id" }?.value

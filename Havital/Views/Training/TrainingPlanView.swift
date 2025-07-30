@@ -400,20 +400,53 @@ struct TrainingPlanView: View {
         let retryAction: () -> Void
         
         var body: some View {
-            VStack {
-                Text("載入失敗")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                Text("")
+            VStack(spacing: 20) {
+                // 錯誤圖示
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: 48))
+                    .foregroundColor(.orange)
+                    .padding(.top, 8)
+                
+                VStack(spacing: 12) {
+                    // 主要錯誤訊息
+                    Text("無法載入訓練計劃")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    // 詳細說明文字
+                    Text("網路連線或伺服器發生問題，請檢查網路連線狀況後重新載入")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4)
+                }
+                
+                // 重試按鈕
+                Button(action: retryAction) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("重新載入")
+                    }
                     .font(.body)
-                    .foregroundColor(.red)
-                Button("重試", action: retryAction)
-                    .foregroundColor(.blue)
-                    .padding()
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
             }
-            .padding()
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(12)
+            .padding(24)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+            )
+            .padding(.horizontal, 4)
         }
     }
     

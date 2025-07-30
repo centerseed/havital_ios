@@ -130,12 +130,14 @@ actor FirebaseLoggingService {
             userId: userId
         )
         
-        // 上傳錯誤日誌到後端（僅上傳 error 和 critical 級別）
-        if level == .error || level == .critical {
+        // 只上傳真正的錯誤日誌到後端（僅 error 級別）
+        // critical 級別保留給崩潰等嚴重錯誤，目前暫時不使用
+        if level == .error {
             do {
                 try await sendLogToCloudLogging(logEntry)
             } catch {
-                Logger.error("Firebase Logging 上傳失敗: \(error.localizedDescription)", tag: "FirebaseLogging")
+                // 避免遞歸日誌，直接使用本地日誌
+                print("[FirebaseLogging] 上傳失敗: \(error.localizedDescription)")
             }
         }
         

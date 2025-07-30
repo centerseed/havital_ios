@@ -114,11 +114,6 @@ struct HRVChartSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionTitleWithInfo(
-                title: "心率變異性 (HRV) 趨勢",
-                explanation: "心率變異性（HRV）是衡量身體恢復能力和壓力水平的重要指標。較高的HRV通常表示更好的恢復能力和較低的壓力水平。"
-            )
-            .padding(.horizontal)
             
             switch dataSourcePreference {
             case .appleHealth:
@@ -160,11 +155,6 @@ struct RestingHeartRateChartSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionTitleWithInfo(
-                title: "睡眠靜息心率",
-                explanation: "睡眠靜息心率是評估心臟健康和整體健康狀況的重要指標。較低的靜息心率通常表示更好的心臟功能和更高體能水平。"
-            )
-            .padding(.horizontal)
             
             switch dataSourcePreference {
             case .appleHealth:
@@ -491,6 +481,21 @@ struct SharedHealthDataChartView: View {
                 }
             } else if sharedHealthDataManager.healthData.isEmpty {
                 VStack {
+                    // Title and Garmin Attribution for empty state
+                    HStack {
+                        Text(chartTitle)
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        ConditionalGarminAttributionView(
+                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    .padding(.bottom, 8)
+                    
                     Image(systemName: chartIcon)
                         .foregroundColor(.gray)
                     Text(noDataMessage)
@@ -527,11 +532,23 @@ struct SharedHealthDataChartView: View {
         }
     }
     
+    private var chartTitle: String {
+        switch chartType {
+        case .hrv: return "心率變異性 (HRV) 趨勢"
+        case .restingHeartRate: return "睡眠靜息心率"
+        }
+    }
+    
     @ViewBuilder
     private var chartView: some View {
         VStack {
-            // 狀態指示器
+            // Chart title and status indicators
             HStack {
+                Text(chartTitle)
+                    .font(.headline)
+                
+                Spacer()
+                
                 if sharedHealthDataManager.isRefreshing {
                     ProgressView()
                         .scaleEffect(0.8)
@@ -544,9 +561,16 @@ struct SharedHealthDataChartView: View {
                     Text("使用本地數據")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                } else {
+                    // Garmin Attribution for main chart data
+                    ConditionalGarminAttributionView(
+                        dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                        deviceModel: nil,
+                        displayStyle: .titleLevel
+                    )
                 }
-                Spacer()
             }
+            .padding(.bottom, 8)
             
             Chart {
                 ForEach(sharedHealthDataManager.healthData.indices, id: \.self) { index in

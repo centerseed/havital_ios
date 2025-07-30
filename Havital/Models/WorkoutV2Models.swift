@@ -19,6 +19,7 @@ struct WorkoutV2: Codable, Identifiable {
     let endTimeUtc: String?
     let durationSeconds: Int
     let distanceMeters: Double?
+    let deviceName: String?
     let basicMetrics: BasicMetrics?
     let advancedMetrics: AdvancedMetrics?
     let createdAt: String?
@@ -32,6 +33,7 @@ struct WorkoutV2: Codable, Identifiable {
         case endTimeUtc = "end_time_utc"
         case durationSeconds = "duration_seconds"
         case distanceMeters = "distance_meters"
+        case deviceName = "device_name"
         case basicMetrics = "basic_metrics"
         case advancedMetrics = "advanced_metrics"
         case createdAt = "created_at"
@@ -42,18 +44,67 @@ struct WorkoutV2: Codable, Identifiable {
     // MARK: - Convenience Properties
     
     var startDate: Date {
-        if let startTimeUtc = startTimeUtc {
-            let formatter = ISO8601DateFormatter()
-            return formatter.date(from: startTimeUtc) ?? Date()
+        guard let startTimeUtc = startTimeUtc else {
+            print("⚠️ [WorkoutV2] start_time_utc 為空，使用當前時間")
+            return Date()
         }
+        
+        // 先嘗試標準 ISO8601DateFormatter（支持微秒）
+        let iso8601Formatter = ISO8601DateFormatter()
+        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        if let date = iso8601Formatter.date(from: startTimeUtc) {
+            return date
+        }
+        
+        // 如果失敗，嘗試不包含微秒的格式
+        iso8601Formatter.formatOptions = [.withInternetDateTime]
+        if let date = iso8601Formatter.date(from: startTimeUtc) {
+            return date
+        }
+        
+        // 最後嘗試自定義格式
+        let customFormatter = DateFormatter()
+        customFormatter.locale = Locale(identifier: "en_US_POSIX")
+        customFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        customFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+        
+        if let date = customFormatter.date(from: startTimeUtc) {
+            return date
+        }
+        
+        print("⚠️ [WorkoutV2] 無法解析開始時間: '\(startTimeUtc)'，使用當前時間")
         return Date()
     }
     
     var endDate: Date {
-        if let endTimeUtc = endTimeUtc {
-            let formatter = ISO8601DateFormatter()
-            return formatter.date(from: endTimeUtc) ?? Date()
+        guard let endTimeUtc = endTimeUtc else {
+            return startDate.addingTimeInterval(TimeInterval(durationSeconds))
         }
+        
+        // 使用與 startDate 相同的解析邏輯
+        let iso8601Formatter = ISO8601DateFormatter()
+        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        if let date = iso8601Formatter.date(from: endTimeUtc) {
+            return date
+        }
+        
+        iso8601Formatter.formatOptions = [.withInternetDateTime]
+        if let date = iso8601Formatter.date(from: endTimeUtc) {
+            return date
+        }
+        
+        let customFormatter = DateFormatter()
+        customFormatter.locale = Locale(identifier: "en_US_POSIX")
+        customFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        customFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+        
+        if let date = customFormatter.date(from: endTimeUtc) {
+            return date
+        }
+        
+        print("⚠️ [WorkoutV2] 無法解析結束時間: '\(endTimeUtc)'，使用計算時間")
         return startDate.addingTimeInterval(TimeInterval(durationSeconds))
     }
     
@@ -80,47 +131,197 @@ struct WorkoutV2: Codable, Identifiable {
     }
 }
 
+// MARK: - Safe Number Decoding Helper
+struct SafeDouble: Codable {
+    let value: Double?
+    
+    init(value: Double?) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if container.decodeNil() {
+            value = nil
+            return
+        }
+        
+        // 先嘗試直接解析 Double
+        if let doubleValue = try? container.decode(Double.self) {
+            value = doubleValue
+            return
+        }
+        
+        // 如果失敗，嘗試解析為字串再轉換
+        if let stringValue = try? container.decode(String.self),
+           let doubleValue = Double(stringValue) {
+            value = doubleValue
+            return
+        }
+        
+        // 最後嘗試解析為 Decimal 再轉換
+        if let decimalValue = try? container.decode(Decimal.self) {
+            value = NSDecimalNumber(decimal: decimalValue).doubleValue
+            return
+        }
+        
+        value = nil
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
+struct SafeInt: Codable {
+    let value: Int?
+    
+    init(value: Int?) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if container.decodeNil() {
+            value = nil
+            return
+        }
+        
+        // 先嘗試直接解析 Int
+        if let intValue = try? container.decode(Int.self) {
+            value = intValue
+            return
+        }
+        
+        // 如果失敗，嘗試解析為 Double 再轉換
+        if let doubleValue = try? container.decode(Double.self) {
+            value = Int(doubleValue)
+            return
+        }
+        
+        // 最後嘗試解析為字串再轉換
+        if let stringValue = try? container.decode(String.self),
+           let intValue = Int(stringValue) {
+            value = intValue
+            return
+        }
+        
+        value = nil
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
 struct BasicMetrics: Codable {
-    let avgHeartRateBpm: Int?
-    let maxHeartRateBpm: Int?
-    let minHeartRateBpm: Int?
-    let avgPaceSPerKm: Double?
-    let avgSpeedMPerS: Double?
-    let maxSpeedMPerS: Double?
-    let avgCadenceSpm: Int?
-    let avgStrideLengthM: Double?
-    let caloriesKcal: Int?
-    let totalDistanceM: Double?
-    let totalDurationS: Int?
-    let movingDurationS: Int?
-    let totalAscentM: Double?
-    let totalDescentM: Double?
-    let avgAltitudeM: Double?
-    let avgPowerW: Double?
-    let maxPowerW: Double?
-    let normalizedPowerW: Double?
-    let trainingLoad: Double?
+    private let _avgHeartRateBpm: SafeInt?
+    private let _maxHeartRateBpm: SafeInt?
+    private let _minHeartRateBpm: SafeDouble?
+    private let _avgPaceSPerKm: SafeDouble?
+    private let _avgSpeedMPerS: SafeDouble?
+    private let _maxSpeedMPerS: SafeDouble?
+    private let _avgCadenceSpm: SafeInt?
+    private let _avgStrideLengthM: SafeDouble?
+    private let _caloriesKcal: SafeDouble?
+    private let _totalDistanceM: SafeDouble?
+    private let _totalDurationS: SafeInt?
+    private let _movingDurationS: SafeInt?
+    private let _totalAscentM: SafeDouble?
+    private let _totalDescentM: SafeDouble?
+    private let _avgAltitudeM: SafeDouble?
+    private let _avgPowerW: SafeDouble?
+    private let _maxPowerW: SafeDouble?
+    private let _normalizedPowerW: SafeDouble?
+    private let _trainingLoad: SafeDouble?
+    
+    // 公開的計算屬性
+    var avgHeartRateBpm: Int? { _avgHeartRateBpm?.value }
+    var maxHeartRateBpm: Int? { _maxHeartRateBpm?.value }
+    var minHeartRateBpm: Int? { Int(_minHeartRateBpm?.value ?? 0) }
+    var avgPaceSPerKm: Double? { _avgPaceSPerKm?.value }
+    var avgSpeedMPerS: Double? { _avgSpeedMPerS?.value }
+    var maxSpeedMPerS: Double? { _maxSpeedMPerS?.value }
+    var avgCadenceSpm: Int? { _avgCadenceSpm?.value }
+    var avgStrideLengthM: Double? { _avgStrideLengthM?.value }
+    var caloriesKcal: Int? { Int(_caloriesKcal?.value ?? 0) }
+    var totalDistanceM: Double? { _totalDistanceM?.value }
+    var totalDurationS: Int? { _totalDurationS?.value }
+    var movingDurationS: Int? { _movingDurationS?.value }
+    var totalAscentM: Double? { _totalAscentM?.value }
+    var totalDescentM: Double? { _totalDescentM?.value }
+    var avgAltitudeM: Double? { _avgAltitudeM?.value }
+    var avgPowerW: Double? { _avgPowerW?.value }
+    var maxPowerW: Double? { _maxPowerW?.value }
+    var normalizedPowerW: Double? { _normalizedPowerW?.value }
+    var trainingLoad: Double? { _trainingLoad?.value }
     
     enum CodingKeys: String, CodingKey {
-        case avgHeartRateBpm = "avg_heart_rate_bpm"
-        case maxHeartRateBpm = "max_heart_rate_bpm"
-        case minHeartRateBpm = "min_heart_rate_bpm"
-        case avgPaceSPerKm = "avg_pace_s_per_km"
-        case avgSpeedMPerS = "avg_speed_m_per_s"
-        case maxSpeedMPerS = "max_speed_m_per_s"
-        case avgCadenceSpm = "avg_cadence_spm"
-        case avgStrideLengthM = "avg_stride_length_m"
-        case caloriesKcal = "calories_kcal"
-        case totalDistanceM = "total_distance_m"
-        case totalDurationS = "total_duration_s"
-        case movingDurationS = "moving_duration_s"
-        case totalAscentM = "total_ascent_m"
-        case totalDescentM = "total_descent_m"
-        case avgAltitudeM = "avg_altitude_m"
-        case avgPowerW = "avg_power_w"
-        case maxPowerW = "max_power_w"
-        case normalizedPowerW = "normalized_power_w"
-        case trainingLoad = "training_load"
+        case _avgHeartRateBpm = "avg_heart_rate_bpm"
+        case _maxHeartRateBpm = "max_heart_rate_bpm"
+        case _minHeartRateBpm = "min_heart_rate_bpm"
+        case _avgPaceSPerKm = "avg_pace_s_per_km"
+        case _avgSpeedMPerS = "avg_speed_m_per_s"
+        case _maxSpeedMPerS = "max_speed_m_per_s"
+        case _avgCadenceSpm = "avg_cadence_spm"
+        case _avgStrideLengthM = "avg_stride_length_m"
+        case _caloriesKcal = "calories_kcal"
+        case _totalDistanceM = "total_distance_m"
+        case _totalDurationS = "total_duration_s"
+        case _movingDurationS = "moving_duration_s"
+        case _totalAscentM = "total_ascent_m"
+        case _totalDescentM = "total_descent_m"
+        case _avgAltitudeM = "avg_altitude_m"
+        case _avgPowerW = "avg_power_w"
+        case _maxPowerW = "max_power_w"
+        case _normalizedPowerW = "normalized_power_w"
+        case _trainingLoad = "training_load"
+    }
+    
+    // 便利初始化方法，用於測試和手動創建
+    init(avgHeartRateBpm: Int? = nil,
+         maxHeartRateBpm: Int? = nil,
+         minHeartRateBpm: Double? = nil,
+         avgPaceSPerKm: Double? = nil,
+         avgSpeedMPerS: Double? = nil,
+         maxSpeedMPerS: Double? = nil,
+         avgCadenceSpm: Int? = nil,
+         avgStrideLengthM: Double? = nil,
+         caloriesKcal: Double? = nil,
+         totalDistanceM: Double? = nil,
+         totalDurationS: Int? = nil,
+         movingDurationS: Int? = nil,
+         totalAscentM: Double? = nil,
+         totalDescentM: Double? = nil,
+         avgAltitudeM: Double? = nil,
+         avgPowerW: Double? = nil,
+         maxPowerW: Double? = nil,
+         normalizedPowerW: Double? = nil,
+         trainingLoad: Double? = nil) {
+        
+        self._avgHeartRateBpm = avgHeartRateBpm.map { SafeInt(value: $0) }
+        self._maxHeartRateBpm = maxHeartRateBpm.map { SafeInt(value: $0) }
+        self._minHeartRateBpm = minHeartRateBpm.map { SafeDouble(value: $0) }
+        self._avgPaceSPerKm = avgPaceSPerKm.map { SafeDouble(value: $0) }
+        self._avgSpeedMPerS = avgSpeedMPerS.map { SafeDouble(value: $0) }
+        self._maxSpeedMPerS = maxSpeedMPerS.map { SafeDouble(value: $0) }
+        self._avgCadenceSpm = avgCadenceSpm.map { SafeInt(value: $0) }
+        self._avgStrideLengthM = avgStrideLengthM.map { SafeDouble(value: $0) }
+        self._caloriesKcal = caloriesKcal.map { SafeDouble(value: $0) }
+        self._totalDistanceM = totalDistanceM.map { SafeDouble(value: $0) }
+        self._totalDurationS = totalDurationS.map { SafeInt(value: $0) }
+        self._movingDurationS = movingDurationS.map { SafeInt(value: $0) }
+        self._totalAscentM = totalAscentM.map { SafeDouble(value: $0) }
+        self._totalDescentM = totalDescentM.map { SafeDouble(value: $0) }
+        self._avgAltitudeM = avgAltitudeM.map { SafeDouble(value: $0) }
+        self._avgPowerW = avgPowerW.map { SafeDouble(value: $0) }
+        self._maxPowerW = maxPowerW.map { SafeDouble(value: $0) }
+        self._normalizedPowerW = normalizedPowerW.map { SafeDouble(value: $0) }
+        self._trainingLoad = trainingLoad.map { SafeDouble(value: $0) }
     }
 }
 
@@ -197,133 +398,227 @@ struct WorkoutV2Detail: Codable {
 // MARK: - V2 API Detail Models
 
 struct V2BasicMetrics: Codable {
-    let maxSpeedMPerS: Double?
-    let avgCadenceSpm: Int?
-    let minHeartRateBpm: Int?
-    let normalizedPowerW: Double?
-    let totalDescentM: Double?
-    let trainingLoad: Double?
-    let caloriesKcal: Int?
-    let totalAscentM: Double?
-    let maxPowerW: Double?
-    let avgHeartRateBpm: Int?
-    let avgAltitudeM: Double?
-    let avgPaceSPerKm: Double?
-    let movingDurationS: Int?
-    let avgPowerW: Double?
-    let avgSpeedMPerS: Double?
-    let maxHeartRateBpm: Int?
-    let totalDistanceM: Double?
-    let totalDurationS: Int?
-    let avgStrideLengthM: Double?
+    private let _maxSpeedMPerS: SafeDouble?
+    private let _avgCadenceSpm: SafeInt?
+    private let _minHeartRateBpm: SafeInt?
+    private let _normalizedPowerW: SafeDouble?
+    private let _totalDescentM: SafeDouble?
+    private let _trainingLoad: SafeDouble?
+    private let _caloriesKcal: SafeInt?
+    private let _totalAscentM: SafeDouble?
+    private let _maxPowerW: SafeDouble?
+    private let _avgHeartRateBpm: SafeInt?
+    private let _avgAltitudeM: SafeDouble?
+    private let _avgPaceSPerKm: SafeDouble?
+    private let _movingDurationS: SafeInt?
+    private let _avgPowerW: SafeDouble?
+    private let _avgSpeedMPerS: SafeDouble?
+    private let _maxHeartRateBpm: SafeInt?
+    private let _totalDistanceM: SafeDouble?
+    private let _totalDurationS: SafeInt?
+    private let _avgStrideLengthM: SafeDouble?
+    
+    // 公開的計算屬性
+    var maxSpeedMPerS: Double? { _maxSpeedMPerS?.value }
+    var avgCadenceSpm: Int? { _avgCadenceSpm?.value }
+    var minHeartRateBpm: Int? { _minHeartRateBpm?.value }
+    var normalizedPowerW: Double? { _normalizedPowerW?.value }
+    var totalDescentM: Double? { _totalDescentM?.value }
+    var trainingLoad: Double? { _trainingLoad?.value }
+    var caloriesKcal: Int? { _caloriesKcal?.value }
+    var totalAscentM: Double? { _totalAscentM?.value }
+    var maxPowerW: Double? { _maxPowerW?.value }
+    var avgHeartRateBpm: Int? { _avgHeartRateBpm?.value }
+    var avgAltitudeM: Double? { _avgAltitudeM?.value }
+    var avgPaceSPerKm: Double? { _avgPaceSPerKm?.value }
+    var movingDurationS: Int? { _movingDurationS?.value }
+    var avgPowerW: Double? { _avgPowerW?.value }
+    var avgSpeedMPerS: Double? { _avgSpeedMPerS?.value }
+    var maxHeartRateBpm: Int? { _maxHeartRateBpm?.value }
+    var totalDistanceM: Double? { _totalDistanceM?.value }
+    var totalDurationS: Int? { _totalDurationS?.value }
+    var avgStrideLengthM: Double? { _avgStrideLengthM?.value }
     
     enum CodingKeys: String, CodingKey {
-        case maxSpeedMPerS = "max_speed_m_per_s"
-        case avgCadenceSpm = "avg_cadence_spm"
-        case minHeartRateBpm = "min_heart_rate_bpm"
-        case normalizedPowerW = "normalized_power_w"
-        case totalDescentM = "total_descent_m"
-        case trainingLoad = "training_load"
-        case caloriesKcal = "calories_kcal"
-        case totalAscentM = "total_ascent_m"
-        case maxPowerW = "max_power_w"
-        case avgHeartRateBpm = "avg_heart_rate_bpm"
-        case avgAltitudeM = "avg_altitude_m"
-        case avgPaceSPerKm = "avg_pace_s_per_km"
-        case movingDurationS = "moving_duration_s"
-        case avgPowerW = "avg_power_w"
-        case avgSpeedMPerS = "avg_speed_m_per_s"
-        case maxHeartRateBpm = "max_heart_rate_bpm"
-        case totalDistanceM = "total_distance_m"
-        case totalDurationS = "total_duration_s"
-        case avgStrideLengthM = "avg_stride_length_m"
+        case _maxSpeedMPerS = "max_speed_m_per_s"
+        case _avgCadenceSpm = "avg_cadence_spm"
+        case _minHeartRateBpm = "min_heart_rate_bpm"
+        case _normalizedPowerW = "normalized_power_w"
+        case _totalDescentM = "total_descent_m"
+        case _trainingLoad = "training_load"
+        case _caloriesKcal = "calories_kcal"
+        case _totalAscentM = "total_ascent_m"
+        case _maxPowerW = "max_power_w"
+        case _avgHeartRateBpm = "avg_heart_rate_bpm"
+        case _avgAltitudeM = "avg_altitude_m"
+        case _avgPaceSPerKm = "avg_pace_s_per_km"
+        case _movingDurationS = "moving_duration_s"
+        case _avgPowerW = "avg_power_w"
+        case _avgSpeedMPerS = "avg_speed_m_per_s"
+        case _maxHeartRateBpm = "max_heart_rate_bpm"
+        case _totalDistanceM = "total_distance_m"
+        case _totalDurationS = "total_duration_s"
+        case _avgStrideLengthM = "avg_stride_length_m"
     }
 }
 
 struct V2AdvancedMetrics: Codable {
-    let rpe: Double?
+    private let _rpe: SafeDouble?
     let intensityMinutes: V2IntensityMinutes?
-    let avgHrTop20Percent: Double?
-    let tss: Double?
+    private let _avgHrTop20Percent: SafeDouble?
+    private let _tss: SafeDouble?
     let hrZoneDistribution: V2ZoneDistribution?
     let trainingType: String?
-    let intervalCount: Int?
+    private let _intervalCount: SafeInt?
     let paceZoneDistribution: V2ZoneDistribution?
-    let dynamicVdot: Double?
+    private let _dynamicVdot: SafeDouble?
+    
+    // 公開的計算屬性
+    var rpe: Double? { _rpe?.value }
+    var avgHrTop20Percent: Double? { _avgHrTop20Percent?.value }
+    var tss: Double? { _tss?.value }
+    var intervalCount: Int? { _intervalCount?.value }
+    var dynamicVdot: Double? { _dynamicVdot?.value }
     
     enum CodingKeys: String, CodingKey {
-        case rpe
+        case _rpe = "rpe"
         case intensityMinutes = "intensity_minutes"
-        case avgHrTop20Percent = "avg_hr_top20_percent"
-        case tss
+        case _avgHrTop20Percent = "avg_hr_top20_percent"
+        case _tss = "tss"
         case hrZoneDistribution = "hr_zone_distribution"
         case trainingType = "training_type"
-        case intervalCount = "interval_count"
+        case _intervalCount = "interval_count"
         case paceZoneDistribution = "pace_zone_distribution"
-        case dynamicVdot = "dynamic_vdot"
+        case _dynamicVdot = "dynamic_vdot"
     }
 }
 
 struct V2IntensityMinutes: Codable {
-    let high: Double?
-    let low: Double?
-    let medium: Double?
+    private let _high: SafeDouble?
+    private let _low: SafeDouble?
+    private let _medium: SafeDouble?
+    
+    // 公開的計算屬性
+    var high: Double? { _high?.value }
+    var low: Double? { _low?.value }
+    var medium: Double? { _medium?.value }
+    
+    enum CodingKeys: String, CodingKey {
+        case _high = "high"
+        case _low = "low"
+        case _medium = "medium"
+    }
+    
+    // 便利初始化方法，用於從 APIIntensityMinutes 轉換
+    init(from intensity: APIIntensityMinutes) {
+        self._high = SafeDouble(value: intensity.high)
+        self._low = SafeDouble(value: intensity.low)
+        self._medium = SafeDouble(value: intensity.medium)
+    }
 }
 
 struct V2ZoneDistribution: Codable {
-    let marathon: Double?
-    let interval: Double?
-    let recovery: Double?
-    let threshold: Double?
-    let anaerobic: Double?
-    let easy: Double?
+    private let _marathon: SafeDouble?
+    private let _interval: SafeDouble?
+    private let _recovery: SafeDouble?
+    private let _threshold: SafeDouble?
+    private let _anaerobic: SafeDouble?
+    private let _easy: SafeDouble?
+    
+    // 公開的計算屬性
+    var marathon: Double? { _marathon?.value }
+    var interval: Double? { _interval?.value }
+    var recovery: Double? { _recovery?.value }
+    var threshold: Double? { _threshold?.value }
+    var anaerobic: Double? { _anaerobic?.value }
+    var easy: Double? { _easy?.value }
+    
+    enum CodingKeys: String, CodingKey {
+        case _marathon = "marathon"
+        case _interval = "interval"
+        case _recovery = "recovery"
+        case _threshold = "threshold"
+        case _anaerobic = "anaerobic"
+        case _easy = "easy"
+    }
+    
+    // 便利初始化方法，用於從 ZoneDistribution 轉換
+    init(from zones: ZoneDistribution) {
+        self._marathon = SafeDouble(value: zones.marathon)
+        self._interval = SafeDouble(value: zones.interval)
+        self._recovery = SafeDouble(value: zones.recovery)
+        self._threshold = SafeDouble(value: zones.threshold)
+        self._anaerobic = SafeDouble(value: zones.anaerobic)
+        self._easy = SafeDouble(value: zones.easy)
+    }
 }
 
 struct V2TimeSeries: Codable {
-    let cadencesSpm: [Int?]?
-    let speedsMPerS: [Double?]?
-    let altitudesM: [Double?]?
-    let heartRatesBpm: [Int?]?
-    let sampleRateHz: Double?
-    let totalSamples: Int?
-    let temperaturesC: [Double?]?
-    let timestampsS: [Int?]?
-    let distancesM: [Double?]?
-    let powersW: [Double?]?
-    let pacesSPerKm: [Double?]?
+    private let _cadencesSpm: [SafeInt?]?
+    private let _speedsMPerS: [SafeDouble?]?
+    private let _altitudesM: [SafeDouble?]?
+    private let _heartRatesBpm: [SafeInt?]?
+    private let _sampleRateHz: SafeDouble?
+    private let _totalSamples: SafeInt?
+    private let _temperaturesC: [SafeDouble?]?
+    private let _timestampsS: [SafeInt?]?
+    private let _distancesM: [SafeDouble?]?
+    private let _powersW: [SafeDouble?]?
+    private let _pacesSPerKm: [SafeDouble?]?
+    
+    // 公開的計算屬性
+    var cadencesSpm: [Int?]? { _cadencesSpm?.map { $0?.value } }
+    var speedsMPerS: [Double?]? { _speedsMPerS?.map { $0?.value } }
+    var altitudesM: [Double?]? { _altitudesM?.map { $0?.value } }
+    var heartRatesBpm: [Int?]? { _heartRatesBpm?.map { $0?.value } }
+    var sampleRateHz: Double? { _sampleRateHz?.value }
+    var totalSamples: Int? { _totalSamples?.value }
+    var temperaturesC: [Double?]? { _temperaturesC?.map { $0?.value } }
+    var timestampsS: [Int?]? { _timestampsS?.map { $0?.value } }
+    var distancesM: [Double?]? { _distancesM?.map { $0?.value } }
+    var powersW: [Double?]? { _powersW?.map { $0?.value } }
+    var pacesSPerKm: [Double?]? { _pacesSPerKm?.map { $0?.value } }
     
     enum CodingKeys: String, CodingKey {
-        case cadencesSpm = "cadences_spm"
-        case speedsMPerS = "speeds_m_per_s"
-        case altitudesM = "altitudes_m"
-        case heartRatesBpm = "heart_rates_bpm"
-        case sampleRateHz = "sample_rate_hz"
-        case totalSamples = "total_samples"
-        case temperaturesC = "temperatures_c"
-        case timestampsS = "timestamps_s"
-        case distancesM = "distances_m"
-        case powersW = "powers_w"
-        case pacesSPerKm = "paces_s_per_km"
+        case _cadencesSpm = "cadences_spm"
+        case _speedsMPerS = "speeds_m_per_s"
+        case _altitudesM = "altitudes_m" 
+        case _heartRatesBpm = "heart_rates_bpm"
+        case _sampleRateHz = "sample_rate_hz"
+        case _totalSamples = "total_samples"
+        case _temperaturesC = "temperatures_c"
+        case _timestampsS = "timestamps_s"
+        case _distancesM = "distances_m"
+        case _powersW = "powers_w"
+        case _pacesSPerKm = "paces_s_per_km"
     }
 }
 
 struct V2RouteData: Codable {
-    let horizontalAccuracyM: Double?
-    let totalPoints: Int?
+    private let _horizontalAccuracyM: SafeDouble?
+    private let _totalPoints: SafeInt?
     let timestamps: [String?]?
-    let verticalAccuracyM: Double?
-    let longitudes: [Double?]?
-    let altitudes: [Double?]?
-    let latitudes: [Double?]?
+    private let _verticalAccuracyM: SafeDouble?
+    private let _longitudes: [SafeDouble?]?
+    private let _altitudes: [SafeDouble?]?
+    private let _latitudes: [SafeDouble?]?
+    
+    // 公開的計算屬性
+    var horizontalAccuracyM: Double? { _horizontalAccuracyM?.value }
+    var totalPoints: Int? { _totalPoints?.value }
+    var verticalAccuracyM: Double? { _verticalAccuracyM?.value }
+    var longitudes: [Double?]? { _longitudes?.map { $0?.value } }
+    var altitudes: [Double?]? { _altitudes?.map { $0?.value } }
+    var latitudes: [Double?]? { _latitudes?.map { $0?.value } }
     
     enum CodingKeys: String, CodingKey {
-        case horizontalAccuracyM = "horizontal_accuracy_m"
-        case totalPoints = "total_points"
+        case _horizontalAccuracyM = "horizontal_accuracy_m"
+        case _totalPoints = "total_points"
         case timestamps
-        case verticalAccuracyM = "vertical_accuracy_m"
-        case longitudes
-        case altitudes
-        case latitudes
+        case _verticalAccuracyM = "vertical_accuracy_m"
+        case _longitudes = "longitudes"
+        case _altitudes = "altitudes"
+        case _latitudes = "latitudes"
     }
 }
 
@@ -350,19 +645,25 @@ struct V2DeviceInfo: Codable {
 }
 
 struct V2Environment: Codable {
-    let temperatureC: Double?
-    let windSpeedMPerS: Double?
-    let windDirectionDeg: Double?
-    let humidityPercent: Double?
+    private let _temperatureC: SafeDouble?
+    private let _windSpeedMPerS: SafeDouble?
+    private let _windDirectionDeg: SafeDouble?
+    private let _humidityPercent: SafeDouble?
     let timezone: String?
     let locationName: String?
     let weatherCondition: String?
     
+    // 公開的計算屬性
+    var temperatureC: Double? { _temperatureC?.value }
+    var windSpeedMPerS: Double? { _windSpeedMPerS?.value }
+    var windDirectionDeg: Double? { _windDirectionDeg?.value }
+    var humidityPercent: Double? { _humidityPercent?.value }
+    
     enum CodingKeys: String, CodingKey {
-        case temperatureC = "temperature_c"
-        case windSpeedMPerS = "wind_speed_m_per_s"
-        case windDirectionDeg = "wind_direction_deg"
-        case humidityPercent = "humidity_percent"
+        case _temperatureC = "temperature_c"
+        case _windSpeedMPerS = "wind_speed_m_per_s"
+        case _windDirectionDeg = "wind_direction_deg"
+        case _humidityPercent = "humidity_percent"
         case timezone
         case locationName = "location_name"
         case weatherCondition = "weather_condition"
@@ -370,27 +671,32 @@ struct V2Environment: Codable {
 }
 
 struct V2Metadata: Codable {
-    let processedSampleCount: Int?
+    private let _processedSampleCount: SafeInt?
     let hasPowerData: Bool?
     let hasGpsData: Bool?
     let samplingMethod: String?
     let adapterVersion: String?
-    let originalSampleCount: Int?
+    private let _originalSampleCount: SafeInt?
     let rawDataPath: String?
     let hasHeartRateData: Bool?
-    let rawDataSizeBytes: Int?
+    private let _rawDataSizeBytes: SafeInt?
     let processedAt: String?
     
+    // 公開的計算屬性
+    var processedSampleCount: Int? { _processedSampleCount?.value }
+    var originalSampleCount: Int? { _originalSampleCount?.value }
+    var rawDataSizeBytes: Int? { _rawDataSizeBytes?.value }
+    
     enum CodingKeys: String, CodingKey {
-        case processedSampleCount = "processed_sample_count"
+        case _processedSampleCount = "processed_sample_count"
         case hasPowerData = "has_power_data"
         case hasGpsData = "has_gps_data"
         case samplingMethod = "sampling_method"
         case adapterVersion = "adapter_version"
-        case originalSampleCount = "original_sample_count"
+        case _originalSampleCount = "original_sample_count"
         case rawDataPath = "raw_data_path"
         case hasHeartRateData = "has_heart_rate_data"
-        case rawDataSizeBytes = "raw_data_size_bytes"
+        case _rawDataSizeBytes = "raw_data_size_bytes"
         case processedAt = "processed_at"
     }
 }
@@ -398,42 +704,99 @@ struct V2Metadata: Codable {
 // MARK: - Legacy V1 API Models (Keep for backwards compatibility)
 
 struct AdvancedMetrics: Codable {
-    let dynamicVdot: Double?
-    let tss: Double?
+    private let _dynamicVdot: SafeDouble?
+    private let _tss: SafeDouble?
     let trainingType: String?
     let intensityMinutes: APIIntensityMinutes?
-    let intervalCount: Int?
-    let avgHrTop20Percent: Double?
+    private let _intervalCount: SafeInt?
+    private let _avgHrTop20Percent: SafeDouble?
     let hrZoneDistribution: ZoneDistribution?
     let paceZoneDistribution: ZoneDistribution?
-    let rpe: Double?
+    private let _rpe: SafeDouble?
+    
+    // 公開的計算屬性
+    var dynamicVdot: Double? { _dynamicVdot?.value }
+    var tss: Double? { _tss?.value }
+    var intervalCount: Int? { _intervalCount?.value }
+    var avgHrTop20Percent: Double? { _avgHrTop20Percent?.value }
+    var rpe: Double? { _rpe?.value }
     
     enum CodingKeys: String, CodingKey {
-        case dynamicVdot = "dynamic_vdot"
-        case tss
+        case _dynamicVdot = "dynamic_vdot"
+        case _tss = "tss"
         case trainingType = "training_type"
         case intensityMinutes = "intensity_minutes"
-        case intervalCount = "interval_count"
-        case avgHrTop20Percent = "avg_hr_top20_percent"
+        case _intervalCount = "interval_count"
+        case _avgHrTop20Percent = "avg_hr_top20_percent"
         case hrZoneDistribution = "hr_zone_distribution"
         case paceZoneDistribution = "pace_zone_distribution"
-        case rpe
+        case _rpe = "rpe"
+    }
+    
+    // 便利初始化方法，用於測試和手動創建
+    init(dynamicVdot: Double? = nil,
+         tss: Double? = nil,
+         trainingType: String? = nil,
+         intensityMinutes: APIIntensityMinutes? = nil,
+         intervalCount: Int? = nil,
+         avgHrTop20Percent: Double? = nil,
+         hrZoneDistribution: ZoneDistribution? = nil,
+         paceZoneDistribution: ZoneDistribution? = nil,
+         rpe: Double? = nil) {
+        
+        self._dynamicVdot = dynamicVdot.map { SafeDouble(value: $0) }
+        self._tss = tss.map { SafeDouble(value: $0) }
+        self.trainingType = trainingType
+        self.intensityMinutes = intensityMinutes
+        self._intervalCount = intervalCount.map { SafeInt(value: $0) }
+        self._avgHrTop20Percent = avgHrTop20Percent.map { SafeDouble(value: $0) }
+        self.hrZoneDistribution = hrZoneDistribution
+        self.paceZoneDistribution = paceZoneDistribution
+        self._rpe = rpe.map { SafeDouble(value: $0) }
     }
 }
 
 struct ZoneDistribution: Codable {
-    let marathon: Double?
-    let threshold: Double?
-    let recovery: Double?
-    let interval: Double?
-    let anaerobic: Double?
-    let easy: Double?
+    private let _marathon: SafeDouble?
+    private let _threshold: SafeDouble?
+    private let _recovery: SafeDouble?
+    private let _interval: SafeDouble?
+    private let _anaerobic: SafeDouble?
+    private let _easy: SafeDouble?
+    
+    // 公開的計算屬性
+    var marathon: Double? { _marathon?.value }
+    var threshold: Double? { _threshold?.value }
+    var recovery: Double? { _recovery?.value }
+    var interval: Double? { _interval?.value }
+    var anaerobic: Double? { _anaerobic?.value }
+    var easy: Double? { _easy?.value }
+    
+    enum CodingKeys: String, CodingKey {
+        case _marathon = "marathon"
+        case _threshold = "threshold"
+        case _recovery = "recovery"
+        case _interval = "interval"
+        case _anaerobic = "anaerobic"
+        case _easy = "easy"
+    }
 }
 
 struct APIIntensityMinutes: Codable {
-    let low: Double?
-    let medium: Double?
-    let high: Double?
+    private let _low: SafeDouble?
+    private let _medium: SafeDouble?
+    private let _high: SafeDouble?
+    
+    // 公開的計算屬性
+    var low: Double? { _low?.value }
+    var medium: Double? { _medium?.value }
+    var high: Double? { _high?.value }
+    
+    enum CodingKeys: String, CodingKey {
+        case _low = "low"
+        case _medium = "medium"
+        case _high = "high"
+    }
 }
 
 struct RouteData: Codable {

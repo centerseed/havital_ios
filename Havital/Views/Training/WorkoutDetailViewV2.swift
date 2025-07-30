@@ -95,7 +95,6 @@ struct WorkoutDetailViewV2: View {
                         .fontWeight(.semibold)
                 }
                 
-                
                 if let trainingType = viewModel.trainingType {
                     Text(trainingType)
                         .font(.subheadline)
@@ -105,6 +104,15 @@ struct WorkoutDetailViewV2: View {
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(6)
                 }
+
+                Spacer()
+                
+                // Garmin Attribution for basic metrics
+                ConditionalGarminAttributionView(
+                    dataProvider: viewModel.workout.provider,
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                    displayStyle: .titleLevel
+                )  
             }
             
             // 運動數據網格
@@ -132,7 +140,7 @@ struct WorkoutDetailViewV2: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
@@ -149,9 +157,21 @@ struct WorkoutDetailViewV2: View {
                     Text("提供商")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(viewModel.workout.provider)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    HStack(spacing: 8) {
+                        // For Garmin data: show Logo + Device Name
+                        if viewModel.workout.provider.lowercased().contains("garmin") {
+                            ConditionalGarminAttributionView(
+                                dataProvider: viewModel.workout.provider,
+                                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                                displayStyle: .secondary
+                            )
+                        } else {
+                            // For non-Garmin data: show provider name
+                            Text(viewModel.workout.provider)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                    }
                 }
                 
                 Spacer()
@@ -167,7 +187,7 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
@@ -183,7 +203,9 @@ struct WorkoutDetailViewV2: View {
                     minHeartRate: viewModel.minHeartRateString,
                     yAxisRange: viewModel.yAxisRange,
                     isLoading: viewModel.isLoading,
-                    error: viewModel.error
+                    error: viewModel.error,
+                    dataProvider: viewModel.workout.provider,
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
                 )
             } else {
                 // 簡化的空狀態顯示
@@ -195,7 +217,7 @@ struct WorkoutDetailViewV2: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(Color(.systemGray6))
                 .cornerRadius(12)
             }
         }
@@ -207,7 +229,9 @@ struct WorkoutDetailViewV2: View {
                 PaceChartView(
                     paces: viewModel.paces,
                     isLoading: viewModel.isLoading,
-                    error: viewModel.error
+                    error: viewModel.error,
+                    dataProvider: viewModel.workout.provider,
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
                 )
             }
         }
@@ -232,7 +256,7 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
@@ -275,7 +299,7 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
@@ -312,7 +336,7 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
@@ -353,7 +377,7 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
@@ -418,7 +442,7 @@ struct WorkoutDetailViewV2: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
@@ -439,29 +463,18 @@ struct WorkoutDetailViewV2: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
     // MARK: - 類型轉換方法
     
     private func convertToV2ZoneDistribution(_ zones: ZoneDistribution) -> V2ZoneDistribution {
-        return V2ZoneDistribution(
-            marathon: zones.marathon,
-            interval: zones.interval,
-            recovery: zones.recovery,
-            threshold: zones.threshold,
-            anaerobic: zones.anaerobic,
-            easy: zones.easy
-        )
+        return V2ZoneDistribution(from: zones)
     }
     
     private func convertToV2IntensityMinutes(_ intensity: APIIntensityMinutes) -> V2IntensityMinutes {
-        return V2IntensityMinutes(
-            high: intensity.high,
-            low: intensity.low,
-            medium: intensity.medium
-        )
+        return V2IntensityMinutes(from: intensity)
     }
     
     // MARK: - 輔助方法
@@ -558,7 +571,7 @@ struct ZoneRow: View {
         startTimeUtc: ISO8601DateFormatter().string(from: Date()),
         endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
         durationSeconds: 3600,
-        distanceMeters: 5000,
+        distanceMeters: 5000, deviceName: "Garmin",
         basicMetrics: nil,
         advancedMetrics: nil,
         createdAt: nil,

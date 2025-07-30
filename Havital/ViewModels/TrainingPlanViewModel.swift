@@ -102,6 +102,10 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 控制 loading 動畫顯示
     @Published var isLoadingAnimation = false
     
+    // 初始化狀態標記，防止競爭條件
+    private var isInitializing = true
+    private var hasCompletedInitialLoad = false
+    
     // Modifications data
     @Published var modifications: [Modification] = []
     @Published var modDescription: String = ""
@@ -269,17 +273,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
     init() {
-        // 監聽 workouts 更新通知
-        NotificationCenter.default.publisher(for: .workoutsDidUpdate)
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                print("收到 workoutsDidUpdate 通知，重新加載週跑量和訓練強度...")
-                Task {
-                    // 使用統一方法同時更新週跑量和訓練強度
-                    await self.loadCurrentWeekData()
-                }
-            }
-            .store(in: &cancellables)
         let onboardingCompleted = AuthenticationService.shared.hasCompletedOnboarding
         let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
 
@@ -341,7 +334,39 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
             // 無論如何，最後都要嘗試載入週計劃
             await self.loadWeeklyPlan()
+            
+            // 初始化完成後，設置通知監聽器，避免競爭條件
+            await self.setupNotificationListeners()
+            await MainActor.run {
+                self.isInitializing = false
+                self.hasCompletedInitialLoad = true
+            }
         }
+    }
+    
+    // MARK: - Notification Setup
+    
+    /// 設置通知監聽器（在初始化完成後調用，避免競爭條件）
+    @MainActor
+    private func setupNotificationListeners() async {
+        // 監聽 workouts 更新通知
+        NotificationCenter.default.publisher(for: .workoutsDidUpdate)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                
+                // 防止在初始化期間響應通知
+                guard !self.isInitializing, self.hasCompletedInitialLoad else {
+                    print("初始化期間跳過 workoutsDidUpdate 通知")
+                    return
+                }
+                
+                print("收到 workoutsDidUpdate 通知，重新加載週跑量和訓練強度...")
+                Task {
+                    // 使用統一方法同時更新週跑量和訓練強度
+                    await self.loadCurrentWeekData()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Plan display state
@@ -845,6 +870,11 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         guard !hasLoadedInitialData else { return }
         hasLoadedInitialData = true
         
+        // 標記正在初始化
+        await MainActor.run {
+            isInitializing = true
+        }
+        
         // 首先確保 UnifiedWorkoutManager 被正確初始化和載入數據
         Logger.debug("初始化 UnifiedWorkoutManager...")
         await unifiedWorkoutManager.initialize()
@@ -861,7 +891,17 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         
         // 確保基礎數據載入（簡單直接的方式）
         await loadWorkoutsForCurrentWeek()
-        await loadCurrentWeekData()
+        
+        // 手動載入週數據，繞過初始化檢查
+        await loadCurrentWeekDistance()
+        await loadCurrentWeekIntensity()
+        
+        // 初始化完成後設置通知監聽器
+        await setupNotificationListeners()
+        await MainActor.run {
+            isInitializing = false
+            hasCompletedInitialLoad = true
+        }
     }
     
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
@@ -1120,6 +1160,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 統一載入週數據（距離和強度）
     func loadCurrentWeekData() async {
+        // 防止在初始化期間重複載入
+        guard !isInitializing else {
+            print("初始化期間跳過 loadCurrentWeekData")
+            return
+        }
+        
         await loadCurrentWeekDistance()
         await loadCurrentWeekIntensity()
     }

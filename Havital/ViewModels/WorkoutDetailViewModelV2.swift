@@ -263,7 +263,7 @@ struct Metadata: Codable {
 }
 
 class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
-    @Published var workoutDetail: WorkoutDetailV2?
+    @Published var workoutDetail: WorkoutV2Detail?
     @Published var isLoading = false
     @Published var error: String?
     
@@ -408,6 +408,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                     labels: ["module": "WorkoutDetailViewModelV2", "action": "load_cached"]
                 )
                 
+                // 設置 workoutDetail 以便 UI 可以訪問設備信息等
+                self.workoutDetail = cachedDetail
+                
                 // 處理快取的時間序列數據
                 self.processTimeSeriesData(from: cachedDetail)
                 
@@ -435,6 +438,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             
             // 快取詳細數據
             cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response.data)
+            
+            // 設置 workoutDetail 以便 UI 可以訪問設備信息等
+            self.workoutDetail = response.data
             
             // 處理時間序列數據，轉換成圖表格式
             self.processTimeSeriesData(from: response.data)

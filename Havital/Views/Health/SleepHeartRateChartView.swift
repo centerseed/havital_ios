@@ -4,6 +4,7 @@ import Charts
 struct SleepHeartRateChartView: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @StateObject private var viewModel: SleepHeartRateViewModel
+    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     
     init() {
         _viewModel = StateObject(wrappedValue: SleepHeartRateViewModel())
@@ -21,6 +22,21 @@ struct SleepHeartRateChartView: View {
                 )
             } else {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Header with title and Garmin attribution in same row
+                    HStack {
+                        Text("睡眠靜息心率")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        // Garmin Attribution as required by brand guidelines
+                        ConditionalGarminAttributionView(
+                            dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    
                     Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
                         ForEach(SleepHeartRateViewModel.TimeRange.allCases, id: \.self) { range in
                             Text(range.rawValue).tag(range)
@@ -115,6 +131,7 @@ struct SleepHeartRateChartView: View {
 struct SleepHeartRateChartViewWithGarmin: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @StateObject private var viewModel: SleepHeartRateViewModel
+    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     private let sharedHealthDataManager: SharedHealthDataManager
     
     init() {
@@ -134,6 +151,21 @@ struct SleepHeartRateChartViewWithGarmin: View {
                 )
             } else {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Header with title and Garmin attribution in same row
+                    HStack {
+                        Text("睡眠靜息心率")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        // Garmin Attribution as required by brand guidelines
+                        ConditionalGarminAttributionView(
+                            dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    
                     Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
                         ForEach(SleepHeartRateViewModel.TimeRange.allCases, id: \.self) { range in
                             Text(range.rawValue).tag(range)

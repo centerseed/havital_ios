@@ -192,7 +192,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      device: actualDevice)
         
         let hasHeartRateData = heartRateData.count >= 5
-        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData)
+        // 使用 V2 API 版本標記已上傳
+        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData, apiVersion: .v2)
         return .success(hasHeartRate: hasHeartRateData)
     }
     
@@ -676,11 +677,21 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     
     // MARK: - Upload Tracker Helpers
     func markWorkoutAsUploaded(_ workout: HKWorkout, hasHeartRate: Bool = true) {
-        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRate)
+        // 使用 V2 API 版本標記已上傳
+        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRate, apiVersion: .v2)
     }
-    func isWorkoutUploaded(_ workout: HKWorkout) -> Bool { workoutUploadTracker.isWorkoutUploaded(workout) }
-    func workoutHasHeartRate(_ workout: HKWorkout) -> Bool { workoutUploadTracker.workoutHasHeartRate(workout) }
-    func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? { workoutUploadTracker.getWorkoutUploadTime(workout) }
+    func isWorkoutUploaded(_ workout: HKWorkout) -> Bool { 
+        // 檢查 V2 API 版本的上傳狀態
+        workoutUploadTracker.isWorkoutUploaded(workout, apiVersion: .v2) 
+    }
+    func workoutHasHeartRate(_ workout: HKWorkout) -> Bool { 
+        // 檢查 V2 API 版本的心率狀態
+        workoutUploadTracker.workoutHasHeartRate(workout, apiVersion: .v2) 
+    }
+    func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? { 
+        // 獲取 V2 API 版本的上傳時間
+        workoutUploadTracker.getWorkoutUploadTime(workout, apiVersion: .v2) 
+    }
     
     // MARK: - Result types
     enum UploadResult {

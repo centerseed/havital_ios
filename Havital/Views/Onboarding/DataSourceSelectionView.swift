@@ -55,9 +55,9 @@ struct DataSourceSelectionView: View {
                                 dataSourceCard(
                                     type: .garmin,
                                     icon: "clock.arrow.circlepath",
-                                    title: "Garmin",
+                                    title: "Garmin Connect™",
                                     subtitle: "同步您的 Garmin 帳號活動",
-                                    description: "連接您的 Garmin 帳號，同步運動手錶、手環等設備的活動數據。"
+                                    description: "連接您的 Garmin Connect™ 帳號，同步運動手錶、手環等設備的活動數據。使用此選項即表示您同意 Garmin 的使用條款。"
                                 )
                             }
                         }
@@ -103,12 +103,12 @@ struct DataSourceSelectionView: View {
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .alert("Garmin 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
+        .alert("Garmin Connect™ 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
             Button("我知道了", role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
             }
         } message: {
-            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin 綁定後，再用本帳號進行連接。")
+            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin Connect™ 綁定後，再用本帳號進行連接。")
         }
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
@@ -154,10 +154,19 @@ struct DataSourceSelectionView: View {
         }) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: icon)
-                        .font(.title2)
-                        .foregroundColor(selectedDataSource == type ? .accentColor : .secondary)
-                        .frame(width: 30)
+                    // Use official Garmin logo for Garmin option, system icon for others
+                    if type == .garmin {
+                        Image("Garmin Tag-black-high-res")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 24)
+                            .frame(width: 30)
+                    } else {
+                        Image(systemName: icon)
+                            .font(.title2)
+                            .foregroundColor(selectedDataSource == type ? .accentColor : .secondary)
+                            .frame(width: 30)
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)

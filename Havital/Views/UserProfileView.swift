@@ -284,12 +284,12 @@ struct UserProfileView: View {
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
         }
-        .alert("Garmin 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
+        .alert("Garmin Connect™ 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
             Button("我知道了", role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
             }
         } message: {
-            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin 綁定後，再用本帳號進行連接。")
+            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin Connect™ 綁定後，再用本帳號進行連接。")
         }
     }
     
@@ -433,7 +433,7 @@ struct UserProfileView: View {
                     dataSourceRow(
                         type: .garmin,
                         icon: "clock.arrow.circlepath",
-                        title: "Garmin",
+                        title: "Garmin Connect™",
                         subtitle: "同步您的 Garmin 帳號活動"
                     )
                 }
@@ -456,9 +456,9 @@ struct UserProfileView: View {
             if let pendingType = pendingDataSourceType {
                 switch pendingType {
                 case .garmin:
-                    Text("切換到 Garmin 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin 載入。")
+                    Text("切換到 Garmin Connect™ 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin Connect™ 載入。")
                 case .appleHealth:
-                    Text("切換到 Apple Health 將會解除您的 Garmin 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從 Apple Health 載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
+                    Text("切換到 Apple Health 將會解除您的 Garmin Connect™ 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從 Apple Health 載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
                 case .unbound:
                     Text("切換到尚未綁定狀態將會清除所有本地運動數據。您稍後可以在個人資料頁面中重新選擇和連接數據來源。")
                 }
@@ -475,10 +475,18 @@ struct UserProfileView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                // 圖示
-                Image(systemName: icon)
-                    .foregroundColor(userPreferenceManager.dataSourcePreference == type ? .blue : .secondary)
-                    .frame(width: 24)
+                // 圖示 - Use official Garmin logo for Garmin option
+                if type == .garmin {
+                    Image("Garmin Tag-black-high-res")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 20)
+                        .frame(width: 24)
+                } else {
+                    Image(systemName: icon)
+                        .foregroundColor(userPreferenceManager.dataSourcePreference == type ? .blue : .secondary)
+                        .frame(width: 24)
+                }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)

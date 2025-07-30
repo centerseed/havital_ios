@@ -159,8 +159,8 @@ struct HavitalApp: App {
                 // 3. 設置背景健身記錄同步
                 await setupWorkoutBackgroundProcessing()
                 
-                // 4. 檢查待處理的健身記錄
-                await checkForPendingHealthUpdates()
+                // 4. setupWorkoutObserver 內部已包含上傳檢查，無需重複調用
+                // await checkForPendingHealthUpdates() // 已移除重複調用
                 
             case .garmin:
                 print("⌚ 設置 Garmin 用戶權限")

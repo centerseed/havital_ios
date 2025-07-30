@@ -65,10 +65,15 @@ class WorkoutUploadTracker {
         return uploadedWorkouts[stableId] != nil
     }
     
-    /// 檢查運動是否包含心率數據
+    /// 檢查運動是否包含心率數據（V1 API）
     func workoutHasHeartRate(_ workout: HKWorkout) -> Bool {
+        return workoutHasHeartRate(workout, apiVersion: .v1)
+    }
+    
+    /// 檢查運動是否包含心率數據（指定 API 版本）
+    func workoutHasHeartRate(_ workout: HKWorkout, apiVersion: APIVersion) -> Bool {
         let stableId = generateStableWorkoutId(workout)
-        let uploadedWorkouts = getUploadedWorkouts()
+        let uploadedWorkouts = getUploadedWorkouts(for: apiVersion)
         
         if let uploadInfo = uploadedWorkouts[stableId] as? [String: Any],
            let hasHeartRate = uploadInfo["hasHeartRate"] as? Bool {
@@ -78,10 +83,15 @@ class WorkoutUploadTracker {
         return false
     }
     
-    /// 獲取運動上傳時間
+    /// 獲取運動上傳時間（V1 API）
     func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? {
+        return getWorkoutUploadTime(workout, apiVersion: .v1)
+    }
+    
+    /// 獲取運動上傳時間（指定 API 版本）
+    func getWorkoutUploadTime(_ workout: HKWorkout, apiVersion: APIVersion) -> Date? {
         let stableId = generateStableWorkoutId(workout)
-        let uploadedWorkouts = getUploadedWorkouts()
+        let uploadedWorkouts = getUploadedWorkouts(for: apiVersion)
         
         if let uploadInfo = uploadedWorkouts[stableId] as? [String: Any],
            let timestamp = uploadInfo["timestamp"] as? TimeInterval {

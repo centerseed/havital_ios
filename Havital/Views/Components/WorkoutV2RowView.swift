@@ -124,14 +124,12 @@ struct WorkoutV2RowView: View {
                 
                 Spacer()
                 
-                // 顯示數據來源
-                Text(workout.provider)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(4)
+                // Garmin Attribution and data source
+                ConditionalGarminAttributionView(
+                    dataProvider: workout.provider,
+                    deviceModel: workout.deviceName,
+                    displayStyle: .secondary
+                )
             }
             
         }
@@ -231,27 +229,15 @@ struct WorkoutV2RowView: View {
         startTimeUtc: ISO8601DateFormatter().string(from: Date()),
         endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
         durationSeconds: 3600,
-        distanceMeters: 5000,
+        distanceMeters: 5000, deviceName: "garmin",
         basicMetrics: BasicMetrics(
             avgHeartRateBpm: 150,
             maxHeartRateBpm: 180,
-            minHeartRateBpm: 120,
-            avgPaceSPerKm: Optional<Double>.none,
-            avgSpeedMPerS: Optional<Double>.none,
-            maxSpeedMPerS: Optional<Double>.none,
-            avgCadenceSpm: Optional<Int>.none,
-            avgStrideLengthM: Optional<Double>.none,
-            caloriesKcal: 300,
-            totalDistanceM: 5000,
+            minHeartRateBpm: 120.0,
+            caloriesKcal: 300.0,
+            totalDistanceM: 5000.0,
             totalDurationS: 3600,
-            movingDurationS: 3600,
-            totalAscentM: Optional<Double>.none,
-            totalDescentM: Optional<Double>.none,
-            avgAltitudeM: Optional<Double>.none,
-            avgPowerW: Optional<Double>.none,
-            maxPowerW: Optional<Double>.none,
-            normalizedPowerW: Optional<Double>.none,
-            trainingLoad: Optional<Double>.none
+            movingDurationS: 3600
         ),
         advancedMetrics: AdvancedMetrics(
             dynamicVdot: 45.2,

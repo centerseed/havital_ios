@@ -3,6 +3,7 @@ import Charts
 
 struct HRVTrendChartView: View {
     @StateObject private var viewModel: HRVChartViewModel
+    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     
     init() {
         _viewModel = StateObject(wrappedValue: HRVChartViewModel(healthKitManager: HealthKitManager()))
@@ -33,6 +34,21 @@ struct HRVTrendChartView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Header with title and Garmin attribution in same row
+                    HStack {
+                        Text("心率變異性 (HRV) 趨勢")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        // Garmin Attribution as required by brand guidelines
+                        ConditionalGarminAttributionView(
+                            dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    
                     Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
                         ForEach(HRVChartViewModel.TimeRange.allCases, id: \.self) { range in
                             Text(range.rawValue).tag(range)

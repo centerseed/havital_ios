@@ -5,6 +5,16 @@ struct PaceChartView: View {
     let paces: [DataPoint]
     let isLoading: Bool
     let error: String?
+    let dataProvider: String?
+    let deviceModel: String?
+    
+    init(paces: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil) {
+        self.paces = paces
+        self.isLoading = isLoading
+        self.error = error
+        self.dataProvider = dataProvider
+        self.deviceModel = deviceModel
+    }
     
     private func getMaxPace() -> Double {
         guard !paces.isEmpty else { return 0 }
@@ -148,9 +158,19 @@ struct PaceChartView: View {
                 Text("配速變化")
                     .font(.headline)
                 Spacer()
-                Text("(分鐘/公里)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Garmin Attribution as required by brand guidelines
+                    ConditionalGarminAttributionView(
+                        dataProvider: dataProvider,
+                        deviceModel: deviceModel,
+                        displayStyle: .titleLevel
+                    )
+                    
+                    Text("(分鐘/公里)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             if isLoading {
