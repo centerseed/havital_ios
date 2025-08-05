@@ -78,6 +78,12 @@ struct GarminReconnectionAlertModifier: ViewModifier {
                             .ignoresSafeArea()
                             .overlay(
                                 GarminReconnectionAlert()
+                                    .onAppear {
+                                        print("🚨 GarminReconnectionAlert 顯示")
+                                        print("  - needsReconnection: \(garminManager.needsReconnection)")
+                                        print("  - isConnected: \(garminManager.isConnected)")
+                                        print("  - reconnectionMessage: \(garminManager.reconnectionMessage ?? "nil")")
+                                    }
                             )
                             .transition(.opacity)
                     }

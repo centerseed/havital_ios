@@ -232,8 +232,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
         
-        // 檢查 Garmin 連線狀態（如果用戶資料來源是 Garmin）
-        await checkGarminConnectionIfNeeded()
+        // 在用戶資料完全載入後檢查 Garmin 連線狀態
+        await checkGarminConnectionAfterUserData()
 
     }
     
@@ -285,6 +285,11 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 
                 // 同步用戶偏好
                 UserService.shared.syncUserPreferences(with: user)
+                
+                // 在用戶資料載入完成後檢查 Garmin 連線狀態
+                Task {
+                    await self?.checkGarminConnectionAfterUserData()
+                }
             }
             .store(in: &cancellables)
     }
@@ -295,15 +300,11 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     }
     
     func signOut() async throws {
-        // 先解除 Garmin 綁定（如果已連接）
+        // 登出時只清除本地 Garmin 狀態，不解除後端綁定
+        // 這樣用戶重新登入時可以恢復 Garmin 連接
         if GarminManager.shared.isConnected {
-            do {
-                await GarminManager.shared.disconnect()
-                print("✅ 登出時已成功解除 Garmin 綁定")
-            } catch {
-                print("⚠️ 登出時解除 Garmin 綁定失敗: \(error.localizedDescription)")
-                // 即使解除綁定失敗，仍繼續登出流程
-            }
+            print("🔄 登出時清除本地 Garmin 狀態（保留後端連接）")
+            await GarminManager.shared.disconnect(remote: false)
         }
         
         try Auth.auth().signOut()
@@ -399,19 +400,29 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         print("已重置 onboarding 狀態")
     }
     
-    /// 檢查 Garmin 連線狀態（如果需要）
-    private func checkGarminConnectionIfNeeded() async {
-        // 檢查本地用戶偏好是否為 Garmin
-        guard UserPreferenceManager.shared.dataSourcePreference == .garmin else {
-            return
-        }
-        
+    /// 檢查 Garmin 連線狀態（在獲取用戶資料後）
+    private func checkGarminConnectionAfterUserData() async {
         // 檢查 Garmin 功能是否啟用
         guard FeatureFlagManager.shared.isGarminIntegrationAvailable else {
             return
         }
         
-        print("🔍 用戶資料來源為 Garmin，檢查連線狀態")
+        // 確保用戶資料已經載入完成
+        guard appUser != nil else {
+            print("⚠️ 用戶資料尚未載入，跳過 Garmin 狀態檢查")
+            return
+        }
+        
+        print("🔍 用戶資料載入完成後檢查 Garmin 連線狀態")
+        
+        // 顯示當前用戶資訊，檢查是否為用戶身份問題
+        if let firebaseUser = Auth.auth().currentUser {
+            print("  - Firebase UID: \(firebaseUser.uid)")
+            print("  - Provider: \(firebaseUser.providerData.map { $0.providerID })")
+            print("  - Email: \(firebaseUser.email ?? "nil")")
+        }
+        
+        // 檢查後端的 Garmin 連接狀態
         await GarminManager.shared.checkConnectionStatus()
     }
 }

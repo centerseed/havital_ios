@@ -134,27 +134,15 @@ class UserService {
         // Update week of training if available
         userPreferenceManager.weekOfTraining = user.data.weekOfTraining
         
-        // 同步數據源設定並檢查不一致情況
+        // 同步數據源設定
         if let dataSourceString = user.data.dataSource,
            let dataSourceType = DataSourceType(rawValue: dataSourceString) {
             
-            // 檢查 Garmin 數據源不一致的情況
-            if dataSourceType == .garmin && !GarminManager.shared.isConnected {
-                // 檢查是否用戶本地已經設定為其他數據源（避免重複警告）
-                if userPreferenceManager.dataSourcePreference == .garmin {
-                    print("⚠️ 發現數據源不一致：後端為 Garmin 但本地未連接")
-                    // 發送通知提示用戶處理數據源不一致問題
-                    NotificationCenter.default.post(
-                        name: .garminDataSourceMismatch,
-                        object: nil
-                    )
-                } else {
-                    print("⚠️ 後端為 Garmin 但本地已設為 \(userPreferenceManager.dataSourcePreference.displayName)，跳過警告")
-                }
-            } else {
-                userPreferenceManager.dataSourcePreference = dataSourceType
-                print("從後端恢復數據源設定: \(dataSourceType.displayName)")
-            }
+            // 直接同步數據源設定，不在這裡檢查 Garmin 連接狀態
+            // 因為此時 GarminManager.checkConnectionStatus() 可能還沒執行
+            // Garmin 連接狀態檢查由 AuthenticationService.checkGarminConnectionAfterUserData() 處理
+            userPreferenceManager.dataSourcePreference = dataSourceType
+            print("從後端恢復數據源設定: \(dataSourceType.displayName)")
         } else {
             // 如果後端沒有數據源設定，使用當前本地設定並同步到後端
             Task {

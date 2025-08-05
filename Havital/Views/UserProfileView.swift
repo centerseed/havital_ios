@@ -417,6 +417,27 @@ struct UserProfileView: View {
     private var dataSourceSection: some View {
         Section(header: Text("數據來源")) {
             VStack(spacing: 12) {
+                // 當沒有選擇數據源時顯示提示
+                if userPreferenceManager.dataSourcePreference == .unbound {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("尚未選擇數據來源")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("請選擇一個主要數據源來同步您的訓練記錄")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                
                 // Apple Health 選項
                 dataSourceRow(
                     type: .appleHealth,
@@ -500,12 +521,25 @@ struct UserProfileView: View {
                 
                 // 選擇狀態
                 if userPreferenceManager.dataSourcePreference == type {
-                    Text("使用中")
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                        Text("使用中")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(8)
+                } else if userPreferenceManager.dataSourcePreference == .unbound {
+                    Text("未選擇")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.orange)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
+                        .background(Color.orange.opacity(0.1))
                         .cornerRadius(8)
                 }
                 
@@ -519,13 +553,21 @@ struct UserProfileView: View {
             
             // 數據源選擇按鈕
             HStack {
-                Text("選為主要數據源")
-                    .font(.subheadline)
-                
-                Spacer()
-                
                 let isCurrentSource = userPreferenceManager.dataSourcePreference == type
                 let isGarminConnecting = type == .garmin && garminManager.isConnecting
+                let isUnbound = userPreferenceManager.dataSourcePreference == .unbound
+                
+                if isCurrentSource {
+                    Text("目前使用的數據源")
+                        .font(.subheadline)
+                        .foregroundColor(.green)
+                } else {
+                    Text(isUnbound ? "選擇此數據源" : "切換到此數據源")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                }
+                
+                Spacer()
                 
                 Button(action: {
                     // 如果已經是當前數據源，不需要切換
@@ -542,8 +584,13 @@ struct UserProfileView: View {
                     pendingDataSourceType = type
                     showDataSourceSwitchConfirmation = true
                 }) {
-                    Image(systemName: isCurrentSource ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isCurrentSource ? .blue : .secondary)
+                    if isCurrentSource {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                    } else {
+                        Image(systemName: isUnbound ? "plus.circle" : "arrow.right.circle")
+                            .foregroundColor(isUnbound ? .blue : .orange)
+                    }
                 }
                 .disabled(isCurrentSource || isGarminConnecting)
             }

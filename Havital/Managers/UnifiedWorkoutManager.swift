@@ -85,7 +85,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 優先從緩存載入（永久緩存）
             if let cachedWorkouts = cacheManager.getCachedWorkoutList(), !cachedWorkouts.isEmpty {
                 await MainActor.run {
-                    self.workouts = cachedWorkouts
+                    self.workouts = cachedWorkouts.sorted { $0.endDate > $1.endDate }
                     self.isLoading = false
                 }
                 print("從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
@@ -114,7 +114,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             cacheManager.cacheWorkoutList(fetchedWorkouts)
             
             await MainActor.run {
-                self.workouts = fetchedWorkouts
+                self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
                 self.isLoading = false
                 self.lastSyncTime = Date()
             }
@@ -149,7 +149,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 如果 API 失敗，嘗試使用緩存數據
             if let cachedWorkouts = cacheManager.getCachedWorkoutList() {
                 await MainActor.run {
-                    self.workouts = cachedWorkouts
+                    self.workouts = cachedWorkouts.sorted { $0.endDate > $1.endDate }
                 }
                 print("API 失敗，使用緩存數據，共 \(cachedWorkouts.count) 筆記錄")
             }
@@ -186,7 +186,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 直接覆寫緩存，確保與後端保持一致
             cacheManager.cacheWorkoutList(fetchedWorkouts)
             await MainActor.run {
-                self.workouts = fetchedWorkouts
+                self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
                 self.lastSyncTime = Date()
                 self.isLoading = false
             }
@@ -241,7 +241,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 // 有新數據，更新 UI
                 if let updatedWorkouts = cacheManager.getCachedWorkoutList() {
                     await MainActor.run {
-                        self.workouts = updatedWorkouts
+                        self.workouts = updatedWorkouts.sorted { $0.endDate > $1.endDate }
                         self.lastSyncTime = Date()
                     }
                     print("背景更新完成：新增 \(mergedCount) 筆記錄")
@@ -763,6 +763,7 @@ extension UnifiedWorkoutManager {
     /// 獲取特定類型的運動記錄
     func getWorkoutsByType(_ activityType: String) -> [WorkoutV2] {
         return workouts.filter { $0.activityType == activityType }
+            .sorted { $0.endDate > $1.endDate }
     }
     
     /// 獲取指定日期範圍的運動記錄
@@ -770,7 +771,7 @@ extension UnifiedWorkoutManager {
         return workouts.filter { workout in
             let workoutStartDate = workout.startDate
             return workoutStartDate >= startDate && workoutStartDate <= endDate
-        }
+        }.sorted { $0.endDate > $1.endDate }
     }
     
     /// 計算總距離
@@ -792,7 +793,7 @@ extension UnifiedWorkoutManager {
     
     /// 獲取最新的運動記錄
     var latestWorkout: WorkoutV2? {
-        return workouts.first
+        return workouts.max(by: { $0.endDate < $1.endDate })
     }
     
     /// 獲取緩存統計資訊

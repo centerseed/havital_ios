@@ -40,6 +40,8 @@ struct GarminConnectionStatusData: Codable {
     
     /// 檢查連線是否為活躍狀態
     var isActive: Bool {
-        return connected && status == "active"
+        // 如果 status 為 "active"，就認為連接是活躍的
+        // 不依賴 connected 欄位，因為後端可能沒有正確設置該欄位
+        return status == "active"
     }
 }

@@ -11,7 +11,15 @@ class GarminManager: NSObject, ObservableObject {
     @Published var isConnected = false
     @Published var pendingForceReplace: (state: String, existingUserId: String, errorDescription: String)?
     @Published var garminAlreadyBoundMessage: String? = nil
-    @Published var needsReconnection = false
+    @Published var needsReconnection = false {
+        didSet {
+            print("🔄 needsReconnection 狀態變更: \(oldValue) -> \(needsReconnection)")
+            if needsReconnection {
+                print("📍 設置為 true 的位置:")
+                Thread.callStackSymbols.prefix(5).forEach { print("  \($0)") }
+            }
+        }
+    }
     @Published var reconnectionMessage: String? = nil
     
     // OAuth 2.0 PKCE 參數
@@ -77,6 +85,10 @@ class GarminManager: NSObject, ObservableObject {
         // 從 UserDefaults 讀取連接狀態
         isConnected = UserDefaults.standard.bool(forKey: "garmin_connected")
         
+        // 初始化時重置重新連接相關狀態，避免舊狀態殘留
+        needsReconnection = false
+        reconnectionMessage = nil
+        
         // 如果已經連接，清除任何舊的錯誤信息
         if isConnected {
             connectionError = nil
@@ -86,6 +98,10 @@ class GarminManager: NSObject, ObservableObject {
                 "isConnected": "true"
             ])
         }
+        
+        print("🔄 GarminManager 初始化狀態:")
+        print("  - isConnected: \(isConnected)")
+        print("  - needsReconnection: \(needsReconnection)")
     }
     
     private func saveConnectionStatus(_ connected: Bool) {
@@ -100,30 +116,55 @@ class GarminManager: NSObject, ObservableObject {
     
     /// 檢查 Garmin 連線狀態
     func checkConnectionStatus() async {
+        print("🔍 [開始] checkConnectionStatus() - 當前 needsReconnection: \(needsReconnection)")
+        
         do {
+            print("🔍 開始檢查 Garmin 連線狀態...")
+            
+            // 暫時移除認證檢查，專注解決狀態判斷問題
+            print("  - 開始 API 調用")
+            
             let response = try await GarminConnectionStatusService.shared.checkConnectionStatus()
             
             await MainActor.run {
                 if let data = response.data {
+                    print("🔍 後端 Garmin 狀態檢查結果:")
+                    print("  - connected: \(data.connected)")
+                    print("  - provider: \(data.provider)")
+                    print("  - status: '\(data.status)'")
+                    print("  - isActive: \(data.isActive) (計算結果: connected=\(data.connected) && status='\(data.status)')")
+                    print("  - message: '\(data.message)'")
+                    print("  - connectedAt: \(data.connectedAt ?? "nil")")
+                    print("  - lastUpdated: \(data.lastUpdated ?? "nil")")
+                    
                     // 更新本地連接狀態
                     saveConnectionStatus(data.isActive)
                     
-                    if !data.isActive && data.connected {
-                        // 連接存在但不是活躍狀態，需要重新綁定
-                        needsReconnection = true
-                        reconnectionMessage = data.message
-                        
-                        Logger.firebase("Garmin 連線狀態不是活躍，需要重新綁定", level: .warn, labels: [
-                            "module": "GarminManager",
-                            "action": "checkConnectionStatus",
-                            "status": data.status,
-                            "connected": "\(data.connected)"
-                        ])
-                    } else if data.isActive {
+                    if data.isActive {
                         // 連線正常
+                        print("✅ 設置狀態：needsReconnection = false")
                         needsReconnection = false
                         reconnectionMessage = nil
                         connectionError = nil
+                        
+                        // 強制觸發 UI 更新
+                        objectWillChange.send()
+                        
+                        // 如果 Garmin 連線正常但本地偏好設定不是 Garmin，恢復偏好設定
+                        if UserPreferenceManager.shared.dataSourcePreference != .garmin {
+                            print("🔄 恢復 Garmin 資料來源偏好設定")
+                            UserPreferenceManager.shared.dataSourcePreference = .garmin
+                            
+                            // 同步到後端
+                            Task {
+                                do {
+                                    try await UserService.shared.updateDataSource(DataSourceType.garmin.rawValue)
+                                    print("✅ Garmin 資料來源偏好設定已同步到後端")
+                                } catch {
+                                    print("⚠️ 同步 Garmin 資料來源偏好設定到後端失敗: \(error.localizedDescription)")
+                                }
+                            }
+                        }
                         
                         Logger.firebase("Garmin 連線狀態正常", level: .info, labels: [
                             "module": "GarminManager",
@@ -131,9 +172,31 @@ class GarminManager: NSObject, ObservableObject {
                             "status": data.status
                         ])
                     } else {
-                        // 未連接
-                        needsReconnection = false
-                        reconnectionMessage = nil
+                        // 狀態不是 "active"，檢查是否需要重連
+                        print("⚠️ Garmin 狀態不是 active: '\(data.status)'")
+                        
+                        // 只對真正的錯誤狀態顯示對話框
+                        let problemStatuses = ["bound_to_other_user", "inactive", "expired", "revoked", "suspended", "error"]
+                        let shouldShowReconnection = problemStatuses.contains { problemStatus in
+                            data.status.lowercased().contains(problemStatus.lowercased())
+                        }
+                        
+                        if shouldShowReconnection {
+                            print("❌ 檢測到問題狀態 '\(data.status)'，設置 needsReconnection = true")
+                            needsReconnection = true
+                            reconnectionMessage = data.message.isEmpty ? "Garmin 連接需要重新授權" : data.message
+                            
+                            Logger.firebase("Garmin 需要重新綁定", level: .warn, labels: [
+                                "module": "GarminManager",
+                                "action": "checkConnectionStatus",
+                                "status": data.status,
+                                "connected": "\(data.connected)"
+                            ])
+                        } else {
+                            print("🔄 狀態 '\(data.status)' 不需要重連，設置 needsReconnection = false")
+                            needsReconnection = false
+                            reconnectionMessage = nil
+                        }
                     }
                 } else {
                     // API 回應沒有 data，可能是未連接
@@ -151,10 +214,13 @@ class GarminManager: NSObject, ObservableObject {
             
             await MainActor.run {
                 // 檢查失敗時不改變現有狀態，但清除重新連接提示
+                print("❌ API 調用失敗，設置 needsReconnection = false")
                 needsReconnection = false
                 reconnectionMessage = nil
             }
         }
+        
+        print("🔍 [結束] checkConnectionStatus() - 最終 needsReconnection: \(needsReconnection)")
     }
     
     /// 清除重新連接提示
