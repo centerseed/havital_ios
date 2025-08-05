@@ -65,6 +65,33 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         }
     }
     
+    // MARK: - Pagination Support Methods
+    
+    /// 載入初始運動記錄（分頁版本）
+    /// - Parameter pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應
+    func loadInitialWorkouts(pageSize: Int = 10) async throws -> WorkoutListResponse {
+        return try await workoutV2Service.loadInitialWorkouts(pageSize: pageSize)
+    }
+    
+    /// 載入更多運動記錄（分頁版本）
+    /// - Parameters:
+    ///   - afterCursor: 最舊記錄的 ID
+    ///   - pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應
+    func loadMoreWorkouts(afterCursor: String, pageSize: Int = 10) async throws -> WorkoutListResponse {
+        return try await workoutV2Service.loadMoreWorkouts(afterCursor: afterCursor, pageSize: pageSize)
+    }
+    
+    /// 刷新最新運動記錄（分頁版本）
+    /// - Parameters:
+    ///   - beforeCursor: 最新記錄的 ID
+    ///   - pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應
+    func refreshLatestWorkouts(beforeCursor: String? = nil, pageSize: Int = 10) async throws -> WorkoutListResponse {
+        return try await workoutV2Service.refreshLatestWorkouts(beforeCursor: beforeCursor, pageSize: pageSize)
+    }
+    
     /// 執行實際的載入邏輯
     private func performLoadWorkouts() async {
         // 防止重複調用

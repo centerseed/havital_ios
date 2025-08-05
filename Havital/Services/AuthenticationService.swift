@@ -422,8 +422,26 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             print("  - Email: \(firebaseUser.email ?? "nil")")
         }
         
-        // 檢查後端的 Garmin 連接狀態
-        await GarminManager.shared.checkConnectionStatus()
+        // 如果用戶偏好設定為 Garmin，檢查後端的 Garmin 連接狀態
+        if UserPreferenceManager.shared.dataSourcePreference == .garmin {
+            print("🔍 用戶偏好為 Garmin，檢查連接狀態...")
+            await GarminManager.shared.checkConnectionStatus()
+            
+            // checkConnectionStatus 完成後，檢查是否需要顯示不一致警告
+            await MainActor.run {
+                if !GarminManager.shared.isConnected && GarminManager.shared.needsReconnection {
+                    print("⚠️ Garmin 連接狀態異常，顯示重新綁定提示")
+                    NotificationCenter.default.post(
+                        name: .garminDataSourceMismatch,
+                        object: nil
+                    )
+                } else if GarminManager.shared.isConnected {
+                    print("✅ Garmin 連接狀態正常")
+                }
+            }
+        } else {
+            print("🔍 用戶偏好不是 Garmin (\(UserPreferenceManager.shared.dataSourcePreference.displayName))，跳過 Garmin 狀態檢查")
+        }
     }
 }
 

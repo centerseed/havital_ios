@@ -134,15 +134,15 @@ class UserService {
         // Update week of training if available
         userPreferenceManager.weekOfTraining = user.data.weekOfTraining
         
-        // 同步數據源設定
+        // 同步數據源設定（不在這裡檢查連接狀態）
         if let dataSourceString = user.data.dataSource,
            let dataSourceType = DataSourceType(rawValue: dataSourceString) {
             
-            // 直接同步數據源設定，不在這裡檢查 Garmin 連接狀態
-            // 因為此時 GarminManager.checkConnectionStatus() 可能還沒執行
-            // Garmin 連接狀態檢查由 AuthenticationService.checkGarminConnectionAfterUserData() 處理
             userPreferenceManager.dataSourcePreference = dataSourceType
             print("從後端恢復數據源設定: \(dataSourceType.displayName)")
+            
+            // 連接狀態檢查交由 AuthenticationService.checkGarminConnectionAfterUserData() 處理
+            // 這樣可以確保在正確的時機檢查，避免時序問題
         } else {
             // 如果後端沒有數據源設定，使用當前本地設定並同步到後端
             Task {

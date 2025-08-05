@@ -347,15 +347,28 @@ struct BasicMetrics: Codable {
 
 struct PaginationInfo: Codable {
     let nextCursor: String?
+    let prevCursor: String?
     let hasMore: Bool
-    let totalEstimated: Int
+    let hasNewer: Bool
+    let oldestId: String?
+    let newestId: String?
+    let totalItems: Int?
     let pageSize: Int?
     
     enum CodingKeys: String, CodingKey {
         case nextCursor = "next_cursor"
+        case prevCursor = "prev_cursor"
         case hasMore = "has_more"
-        case totalEstimated = "total_estimated"
+        case hasNewer = "has_newer"
+        case oldestId = "oldest_id"
+        case newestId = "newest_id"
+        case totalItems = "total_items"
         case pageSize = "page_size"
+    }
+    
+    // 向後相容性：如果 API 仍返回舊欄位名稱
+    var totalEstimated: Int {
+        return totalItems ?? 0
     }
 }
 

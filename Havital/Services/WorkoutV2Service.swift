@@ -87,18 +87,24 @@ class WorkoutV2Service {
     
     // MARK: - Fetch Workouts
     
-    /// 獲取運動列表
+    /// 獲取運動列表（支援雙向分頁）
     /// - Parameters:
-    ///   - pageSize: 每頁數量，預設 20
-    ///   - cursor: 分頁游標
-    ///   - startDate: 開始日期
-    ///   - endDate: 結束日期
+    ///   - pageSize: 每頁數量，預設 20，範圍 1-100
+    ///   - cursor: 分頁游標（向後相容，等同於 afterCursor）
+    ///   - beforeCursor: 取得指定 cursor 之前（更新）的資料
+    ///   - afterCursor: 取得指定 cursor 之後（更舊）的資料
+    ///   - direction: 查詢方向：newer 或 older，預設 older
+    ///   - startDate: 開始日期 (ISO 8601 格式)
+    ///   - endDate: 結束日期 (ISO 8601 格式)
     ///   - activityType: 運動類型篩選
-    ///   - provider: 數據來源篩選
+    ///   - provider: 數據來源篩選 (garmin 或 apple_health)
     /// - Returns: 運動列表回應
     func fetchWorkouts(
         pageSize: Int = 20,
         cursor: String? = nil,
+        beforeCursor: String? = nil,
+        afterCursor: String? = nil,
+        direction: String = "older",
         startDate: String? = nil,
         endDate: String? = nil,
         activityType: String? = nil,
@@ -109,10 +115,22 @@ class WorkoutV2Service {
             URLQueryItem(name: "page_size", value: "\(pageSize)")
         ]
         
-        if let cursor = cursor {
+        // 處理分頁游標 - 向後相容性
+        if let beforeCursor = beforeCursor {
+            queryItems.append(URLQueryItem(name: "before_cursor", value: beforeCursor))
+        } else if let afterCursor = afterCursor {
+            queryItems.append(URLQueryItem(name: "after_cursor", value: afterCursor))
+        } else if let cursor = cursor {
+            // 向後相容：cursor 等同於 after_cursor
             queryItems.append(URLQueryItem(name: "cursor", value: cursor))
         }
         
+        // 查詢方向
+        if direction != "older" {
+            queryItems.append(URLQueryItem(name: "direction", value: direction))
+        }
+        
+        // 日期篩選
         if let startDate = startDate {
             queryItems.append(URLQueryItem(name: "start_date", value: startDate))
         }
@@ -121,6 +139,7 @@ class WorkoutV2Service {
             queryItems.append(URLQueryItem(name: "end_date", value: endDate))
         }
         
+        // 類型篩選
         if let activityType = activityType {
             queryItems.append(URLQueryItem(name: "activity_type", value: activityType))
         }
@@ -449,6 +468,46 @@ extension WorkoutV2Service {
         )
         
         return response.data.workouts
+    }
+    
+    // MARK: - Pagination Methods
+    
+    /// 載入更多運動記錄（向下滾動載入更舊資料）
+    /// - Parameters:
+    ///   - afterCursor: 最舊記錄的 ID，用作分頁游標
+    ///   - pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應，包含運動列表和分頁資訊
+    func loadMoreWorkouts(afterCursor: String, pageSize: Int = 10) async throws -> WorkoutListResponse {
+        return try await fetchWorkouts(
+            pageSize: pageSize,
+            afterCursor: afterCursor,
+            direction: "older"
+        )
+    }
+    
+    /// 刷新最新運動記錄（下拉刷新載入更新資料）
+    /// - Parameters:
+    ///   - beforeCursor: 最新記錄的 ID，用作分頁游標
+    ///   - pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應，包含運動列表和分頁資訊
+    func refreshLatestWorkouts(beforeCursor: String? = nil, pageSize: Int = 10) async throws -> WorkoutListResponse {
+        if let beforeCursor = beforeCursor {
+            return try await fetchWorkouts(
+                pageSize: pageSize,
+                beforeCursor: beforeCursor,
+                direction: "newer"
+            )
+        } else {
+            // 初次載入，獲取最新資料
+            return try await fetchWorkouts(pageSize: pageSize)
+        }
+    }
+    
+    /// 初次載入運動記錄
+    /// - Parameter pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應，包含運動列表和分頁資訊
+    func loadInitialWorkouts(pageSize: Int = 10) async throws -> WorkoutListResponse {
+        return try await fetchWorkouts(pageSize: pageSize)
     }
     
     // MARK: - Garmin Historical Data Processing

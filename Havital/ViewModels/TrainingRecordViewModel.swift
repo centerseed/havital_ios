@@ -2,106 +2,311 @@ import SwiftUI
 import HealthKit
 import UserNotifications
 
-class TrainingRecordViewModel: ObservableObject {
+class TrainingRecordViewModel: ObservableObject, TaskManageable {
+    // MARK: - Published Properties
+    @Published var workouts: [WorkoutV2] = []
     @Published var isLoading = false
-    @Published var uploadStatus: String? = nil
+    @Published var isLoadingMore = false
+    @Published var isRefreshing = false
+    @Published var hasMoreData = true
+    @Published var hasNewerData = false
+    @Published var errorMessage: String?
     
-    // 統一使用 UnifiedWorkoutManager
-    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
+    // MARK: - Private Properties
     private let workoutService = WorkoutV2Service.shared
+    private let cacheManager = WorkoutV2CacheManager.shared
     
-    // 初始設置 - 統一使用 UnifiedWorkoutManager
-    func setup() {
-        // UnifiedWorkoutManager 已經在 App 啟動時初始化
-        // 這裡不需要額外設置，只需要確保數據已載入
-        print("TrainingRecordViewModel 設置完成，使用 UnifiedWorkoutManager")
+    // 分頁狀態
+    private var newestId: String?
+    private var oldestId: String?
+    private var currentPageSize = 10
+    
+    // TaskManageable
+    let taskRegistry = TaskRegistry()
+    
+    // MARK: - Initialization
+    
+    init() {
+        loadCachedWorkouts()
     }
     
-    // 不再需要 HealthKit 觀察者，由 UnifiedWorkoutManager 統一管理
-    // 這些方法保留以保持向後兼容性，但實際不執行任何操作
-    private func startWorkoutObserver(healthKitManager: HealthKitManager) {
-        print("TrainingRecordViewModel: HealthKit 觀察者由 UnifiedWorkoutManager 統一管理")
+    // MARK: - Main Loading Methods
+    
+    /// 初次載入運動記錄 - 優先從快取載入，背景更新
+    func loadWorkouts(healthKitManager: HealthKitManager? = nil) async {
+        await executeTask(id: TaskID("load_workouts")) {
+            await self.performInitialLoad()
+        }
     }
     
-    func stopWorkoutObserver(healthKitManager: HealthKitManager) {
-        print("TrainingRecordViewModel: HealthKit 觀察者由 UnifiedWorkoutManager 統一管理")
+    /// 下拉刷新 - 載入最新資料
+    func refreshWorkouts(healthKitManager: HealthKitManager? = nil) async {
+        await executeTask(id: TaskID("refresh_workouts")) {
+            await self.performRefresh()
+        }
     }
     
-    // 加載訓練記錄 - 統一使用 UnifiedWorkoutManager
-    func loadWorkouts(healthKitManager: HealthKitManager) async {
+    /// 載入更多記錄 - 向下滾動
+    func loadMoreWorkouts() async {
+        await executeTask(id: TaskID("load_more_workouts")) {
+            await self.performLoadMore()
+        }
+    }
+    
+    // MARK: - Private Implementation
+    
+    /// 從快取載入資料
+    private func loadCachedWorkouts() {
+        if let cachedWorkouts = cacheManager.getCachedWorkoutList(), !cachedWorkouts.isEmpty {
+            workouts = removeDuplicateWorkouts(cachedWorkouts).sorted { $0.endDate > $1.endDate }
+            updatePaginationState()
+            print("TrainingRecordViewModel: 從快取載入 \(workouts.count) 筆記錄")
+        }
+    }
+    
+    /// 執行初次載入
+    private func performInitialLoad() async {
         await MainActor.run {
             isLoading = true
+            errorMessage = nil
         }
         
-        // 使用 UnifiedWorkoutManager 載入數據
-        await unifiedWorkoutManager.loadWorkouts()
+        do {
+            // 檢查是否被取消
+            try Task.checkCancellation()
+            
+            let response = try await workoutService.loadInitialWorkouts(pageSize: currentPageSize)
+            
+            try Task.checkCancellation()
+            
+            await MainActor.run {
+                let newWorkouts = response.data.workouts
+                
+                if !newWorkouts.isEmpty {
+                    // 與現有資料合併並去重
+                    let allWorkouts = mergeWorkouts(existing: self.workouts, new: newWorkouts)
+                    self.workouts = allWorkouts.sorted { $0.endDate > $1.endDate }
+                    
+                    // 更新分頁狀態
+                    self.updatePaginationState(from: response.data.pagination)
+                    
+                    // 快取資料
+                    self.cacheManager.cacheWorkoutList(self.workouts)
+                    
+                    print("初次載入完成：\(newWorkouts.count) 筆新記錄，總計 \(self.workouts.count) 筆")
+                } else {
+                    print("初次載入：沒有新資料")
+                }
+                
+                self.isLoading = false
+            }
+            
+        } catch is CancellationError {
+            print("TrainingRecordViewModel: 初次載入任務被取消")
+            await MainActor.run {
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
+            print("初次載入失敗: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 執行下拉刷新
+    private func performRefresh() async {
+        await MainActor.run {
+            isRefreshing = true
+            errorMessage = nil
+        }
+        
+        do {
+            try Task.checkCancellation()
+            
+            let response = try await workoutService.refreshLatestWorkouts(
+                beforeCursor: newestId,
+                pageSize: currentPageSize
+            )
+            
+            try Task.checkCancellation()
+            
+            await MainActor.run {
+                let newWorkouts = response.data.workouts
+                
+                if !newWorkouts.isEmpty {
+                    // 新資料插入頂端
+                    let mergedWorkouts = mergeWorkouts(existing: self.workouts, new: newWorkouts, insertAtTop: true)
+                    self.workouts = mergedWorkouts.sorted { $0.endDate > $1.endDate }
+                    
+                    // 更新分頁狀態
+                    self.updatePaginationState(from: response.data.pagination)
+                    
+                    // 快取資料
+                    self.cacheManager.cacheWorkoutList(self.workouts)
+                    
+                    print("刷新完成：\(newWorkouts.count) 筆新記錄，總計 \(self.workouts.count) 筆")
+                } else {
+                    print("刷新完成：沒有新資料")
+                }
+                
+                self.isRefreshing = false
+            }
+            
+        } catch is CancellationError {
+            print("TrainingRecordViewModel: 刷新任務被取消")
+            await MainActor.run {
+                self.isRefreshing = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isRefreshing = false
+            }
+            print("刷新失敗: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 執行載入更多
+    private func performLoadMore() async {
+        guard hasMoreData, let oldestId = oldestId else { return }
         
         await MainActor.run {
-            isLoading = false
+            isLoadingMore = true
+            errorMessage = nil
+        }
+        
+        do {
+            try Task.checkCancellation()
+            
+            let response = try await workoutService.loadMoreWorkouts(
+                afterCursor: oldestId,
+                pageSize: currentPageSize
+            )
+            
+            try Task.checkCancellation()
+            
+            await MainActor.run {
+                let newWorkouts = response.data.workouts
+                
+                if !newWorkouts.isEmpty {
+                    // 新資料附加到底端
+                    let mergedWorkouts = mergeWorkouts(existing: self.workouts, new: newWorkouts, insertAtTop: false)
+                    self.workouts = mergedWorkouts.sorted { $0.endDate > $1.endDate }
+                    
+                    // 更新分頁狀態
+                    self.updatePaginationState(from: response.data.pagination)
+                    
+                    // 快取資料
+                    self.cacheManager.cacheWorkoutList(self.workouts)
+                    
+                    print("載入更多完成：\(newWorkouts.count) 筆記錄，總計 \(self.workouts.count) 筆")
+                }
+                
+                self.isLoadingMore = false
+            }
+            
+        } catch is CancellationError {
+            print("TrainingRecordViewModel: 載入更多任務被取消")
+            await MainActor.run {
+                self.isLoadingMore = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoadingMore = false
+            }
+            print("載入更多失敗: \(error.localizedDescription)")
         }
     }
     
-    // 刷新訓練記錄 - 統一使用 UnifiedWorkoutManager
-    func refreshWorkouts(healthKitManager: HealthKitManager) async {
-        await unifiedWorkoutManager.refreshWorkouts()
+    // MARK: - Helper Methods
+    
+    /// 合併運動記錄並去重
+    private func mergeWorkouts(existing: [WorkoutV2], new: [WorkoutV2], insertAtTop: Bool = false) -> [WorkoutV2] {
+        let allWorkouts = insertAtTop ? new + existing : existing + new
+        return removeDuplicateWorkouts(allWorkouts)
     }
     
-    /// 檢查特定訓練記錄是否已上傳 - 統一使用 UnifiedWorkoutManager
-    func isWorkoutUploaded(_ workout: HKWorkout) -> Bool {
-        // 對於 V2 API 數據，所有記錄都已經在後端
-        return true
+    /// 去除重複的運動記錄（基於 ID）
+    private func removeDuplicateWorkouts(_ workouts: [WorkoutV2]) -> [WorkoutV2] {
+        var uniqueWorkouts: [WorkoutV2] = []
+        var seenIds: Set<String> = []
+        
+        for workout in workouts {
+            if !seenIds.contains(workout.id) {
+                seenIds.insert(workout.id)
+                uniqueWorkouts.append(workout)
+            }
+        }
+        
+        return uniqueWorkouts
     }
     
-    /// 獲取訓練記錄的上傳時間 - 統一使用 UnifiedWorkoutManager
-    func getWorkoutUploadTime(_ workout: HKWorkout) -> Date? {
-        // 對於 V2 API 數據，使用記錄的開始時間
-        return workout.startDate
+    /// 更新分頁狀態
+    private func updatePaginationState(from pagination: PaginationInfo? = nil) {
+        if let pagination = pagination {
+            hasMoreData = pagination.hasMore
+            hasNewerData = pagination.hasNewer
+        }
+        
+        // 更新游標
+        if !workouts.isEmpty {
+            newestId = workouts.first?.id
+            oldestId = workouts.last?.id
+        }
     }
     
-    // 清理資源
-    deinit {
-        print("TrainingRecordViewModel 被釋放")
-    }
+    // MARK: - Computed Properties
     
-    // MARK: - Unified Data Access Methods
-    
-    /// 獲取統一的運動記錄列表
-    var workouts: [WorkoutV2] {
-        return unifiedWorkoutManager.workouts
-    }
-    
-    /// 獲取統一的運動記錄數量
+    /// 運動記錄總數
     var totalWorkoutsCount: Int {
-        return unifiedWorkoutManager.workouts.count
+        return workouts.count
     }
     
-    /// 檢查是否有運動記錄
+    /// 是否有運動記錄
     var hasWorkouts: Bool {
-        return unifiedWorkoutManager.hasWorkouts
+        return !workouts.isEmpty
     }
+    
+    /// 最新的運動記錄
+    var latestWorkout: WorkoutV2? {
+        return workouts.first
+    }
+    
+    // MARK: - Utility Methods
     
     /// 獲取指定日期範圍的運動記錄
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] {
-        return unifiedWorkoutManager.getWorkoutsInDateRange(startDate: startDate, endDate: endDate)
+        return workouts.filter { workout in
+            let workoutStartDate = workout.startDate
+            return workoutStartDate >= startDate && workoutStartDate <= endDate
+        }.sorted { $0.endDate > $1.endDate }
     }
     
     /// 獲取特定類型的運動記錄
     func getWorkoutsByType(_ activityType: String) -> [WorkoutV2] {
-        return unifiedWorkoutManager.getWorkoutsByType(activityType)
+        return workouts.filter { $0.activityType == activityType }
+            .sorted { $0.endDate > $1.endDate }
     }
     
     /// 計算總距離
     func getTotalDistance(for activityType: String? = nil) -> Double {
-        return unifiedWorkoutManager.getTotalDistance(for: activityType)
+        let filteredWorkouts = activityType != nil ? getWorkoutsByType(activityType!) : workouts
+        return filteredWorkouts.compactMap { $0.distance }.reduce(0, +)
     }
     
     /// 計算總時長
     func getTotalDuration(for activityType: String? = nil) -> TimeInterval {
-        return unifiedWorkoutManager.getTotalDuration(for: activityType)
+        let filteredWorkouts = activityType != nil ? getWorkoutsByType(activityType!) : workouts
+        return filteredWorkouts.map { $0.duration }.reduce(0, +)
     }
     
-    /// 獲取最新的運動記錄
-    var latestWorkout: WorkoutV2? {
-        return unifiedWorkoutManager.latestWorkout
+    // MARK: - Cleanup
+    
+    deinit {
+        cancelAllTasks()
+        print("TrainingRecordViewModel 被釋放")
     }
 }
