@@ -41,7 +41,7 @@ struct TrainingRecordView: View {
                 await viewModel.loadWorkouts(healthKitManager: healthKitManager)
             }
             .refreshable {
-                await viewModel.loadWorkouts(healthKitManager: healthKitManager)
+                await viewModel.refreshWorkouts(healthKitManager: healthKitManager)
             }
         }
     }

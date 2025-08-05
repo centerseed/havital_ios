@@ -4,7 +4,7 @@
 //
 
 import XCTest
-@testable import Paceriz
+@testable import Havital
 
 @MainActor
 final class TrainingPlanViewModelTests: XCTestCase {

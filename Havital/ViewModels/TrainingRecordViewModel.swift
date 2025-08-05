@@ -42,7 +42,7 @@ class TrainingRecordViewModel: ObservableObject {
     }
     
     // 刷新訓練記錄 - 統一使用 UnifiedWorkoutManager
-    private func refreshWorkouts(healthKitManager: HealthKitManager) async {
+    func refreshWorkouts(healthKitManager: HealthKitManager) async {
         await unifiedWorkoutManager.refreshWorkouts()
     }
     
