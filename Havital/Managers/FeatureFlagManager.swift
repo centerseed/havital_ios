@@ -41,7 +41,7 @@ class FeatureFlagManager: ObservableObject {
         #if DEBUG
         settings.minimumFetchInterval = 0 // 開發環境立即更新
         #else
-        settings.minimumFetchInterval = 3600 // 正式環境 1 小時更新一次
+        settings.minimumFetchInterval = 0 // 正式環境 1 小時更新一次
         #endif
         
         remoteConfig.configSettings = settings

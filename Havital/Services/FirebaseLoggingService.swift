@@ -130,9 +130,9 @@ actor FirebaseLoggingService {
             userId: userId
         )
         
-        // 只上傳真正的錯誤日誌到後端（僅 error 級別）
-        // critical 級別保留給崩潰等嚴重錯誤，目前暫時不使用
-        if level == .error {
+        // 只上傳指定類型的錯誤到後端
+        // 使用 labels 中的 "cloud_logging" 標記來決定是否上傳
+        if level == .error && labels["cloud_logging"] == "true" {
             do {
                 try await sendLogToCloudLogging(logEntry)
             } catch {

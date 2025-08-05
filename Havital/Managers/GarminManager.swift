@@ -11,6 +11,8 @@ class GarminManager: NSObject, ObservableObject {
     @Published var isConnected = false
     @Published var pendingForceReplace: (state: String, existingUserId: String, errorDescription: String)?
     @Published var garminAlreadyBoundMessage: String? = nil
+    @Published var needsReconnection = false
+    @Published var reconnectionMessage: String? = nil
     
     // OAuth 2.0 PKCE 參數
     private var codeVerifier: String?
@@ -94,6 +96,71 @@ class GarminManager: NSObject, ObservableObject {
     /// 清除連接錯誤信息
     func clearConnectionError() {
         connectionError = nil
+    }
+    
+    /// 檢查 Garmin 連線狀態
+    func checkConnectionStatus() async {
+        do {
+            let response = try await GarminConnectionStatusService.shared.checkConnectionStatus()
+            
+            await MainActor.run {
+                if let data = response.data {
+                    // 更新本地連接狀態
+                    saveConnectionStatus(data.isActive)
+                    
+                    if !data.isActive && data.connected {
+                        // 連接存在但不是活躍狀態，需要重新綁定
+                        needsReconnection = true
+                        reconnectionMessage = data.message
+                        
+                        Logger.firebase("Garmin 連線狀態不是活躍，需要重新綁定", level: .warn, labels: [
+                            "module": "GarminManager",
+                            "action": "checkConnectionStatus",
+                            "status": data.status,
+                            "connected": "\(data.connected)"
+                        ])
+                    } else if data.isActive {
+                        // 連線正常
+                        needsReconnection = false
+                        reconnectionMessage = nil
+                        connectionError = nil
+                        
+                        Logger.firebase("Garmin 連線狀態正常", level: .info, labels: [
+                            "module": "GarminManager",
+                            "action": "checkConnectionStatus",
+                            "status": data.status
+                        ])
+                    } else {
+                        // 未連接
+                        needsReconnection = false
+                        reconnectionMessage = nil
+                    }
+                } else {
+                    // API 回應沒有 data，可能是未連接
+                    saveConnectionStatus(false)
+                    needsReconnection = false
+                    reconnectionMessage = nil
+                }
+            }
+            
+        } catch {
+            Logger.firebase("檢查 Garmin 連線狀態失敗: \(error.localizedDescription)", level: .error, labels: [
+                "module": "GarminManager",
+                "action": "checkConnectionStatus"
+            ])
+            
+            await MainActor.run {
+                // 檢查失敗時不改變現有狀態，但清除重新連接提示
+                needsReconnection = false
+                reconnectionMessage = nil
+            }
+        }
+    }
+    
+    /// 清除重新連接提示
+    func clearReconnectionMessage() {
+        needsReconnection = false
+        reconnectionMessage = nil
     }
     
     // MARK: - OAuth 2.0 PKCE 流程

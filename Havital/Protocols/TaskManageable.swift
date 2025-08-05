@@ -128,12 +128,8 @@ extension TaskManageable {
                 // 取消事件不需要記錄，避免過多日誌
                 return nil
             } catch {
-                // 只有非取消的錯誤才發送到後端進行分析
-                Logger.firebase("任務執行失敗", level: LogLevel.error, jsonPayload: [
-                    "task_id": id.description,
-                    "error": String(describing: error),
-                    "caller": String(describing: type(of: self))
-                ])
+                // TaskManagement 錯誤只記錄在本地，不上傳到雲端
+                print("[TaskManageable] 任務執行失敗: \(id.description) - \(error.localizedDescription)")
                 return nil
             }
         }

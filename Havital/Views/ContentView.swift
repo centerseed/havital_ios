@@ -97,6 +97,7 @@ struct ContentView: View {
         } message: {
             Text("您的帳戶設定為使用 Garmin 數據，但目前尚未連接到您的 Garmin 帳號。請選擇重新綁定 Garmin 或切換回 Apple Health。")
         }
+        .garminReconnectionAlert() // 添加 Garmin 重新連接警告
     }
 
 

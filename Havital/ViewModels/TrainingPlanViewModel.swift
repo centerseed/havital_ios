@@ -271,76 +271,120 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
     
-    // 在初始化時載入 overview 的 createdAt，若缺失則從 API 獲取並保存
+    // 初始化：等待用戶資料載入完成後再載入訓練資料
     init() {
+        // 基本狀態初始化，延遲資料載入到用戶確認後
+        Logger.debug("TrainingPlanViewModel: 開始初始化")
+        
+        // 非同步任務：正確的初始化順序
+        Task {
+            await self.initializeWithUserContext()
+        }
+    }
+    
+    // 依正確順序初始化：用戶資料 -> 訓練概覽 -> 週計劃
+    private func initializeWithUserContext() async {
+        Logger.debug("TrainingPlanViewModel: 等待用戶資料載入完成...")
+        
+        // 等待用戶認證和資料載入完成
+        await waitForUserDataReady()
+        
+        Logger.debug("TrainingPlanViewModel: 用戶資料就緒，開始載入訓練資料")
+        
         let onboardingCompleted = AuthenticationService.shared.hasCompletedOnboarding
         let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
 
-        if onboardingCompleted && savedOverview.createdAt.isEmpty {
-            self.showSyncingSplash = true
-        }
+        await MainActor.run {
+            if onboardingCompleted && savedOverview.createdAt.isEmpty {
+                self.showSyncingSplash = true
+            }
 
-        if !savedOverview.createdAt.isEmpty {
-            self.trainingOverview = savedOverview
-            self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
-            // Initialize selectedWeek to currentWeek to avoid showing incorrect week selection
-            self.selectedWeek = self.currentWeek
-            
-            // Note: Cache clearing removed - backend confirmed they will fix the API issue
-            
-            // 如果是從本地載入，且已 onboarding，則不需要 splash
-            // 但 showSyncingSplash 的最終狀態由後續的 Task 決定，以處理 API call 的情況
+            if !savedOverview.createdAt.isEmpty {
+                self.trainingOverview = savedOverview
+                self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
+                self.selectedWeek = self.currentWeek
+            }
         }
         
-        // 非同步任務處理 API 獲取和 UI 更新
-        Task {
-            if savedOverview.createdAt.isEmpty {
-                // 只有當本地 createdAt 為空時，才真正需要決定是否顯示 Splash 並從 API 獲取
-                if onboardingCompleted {
-                    // 已 onboarding 但本地無資料，此時 showSyncingSplash 應為 true (已在同步區塊設定)
-                } else {
-                    // 未 onboarding，無論本地是否有資料，都不應顯示此特定 splash
-                    // 確保 splash 關閉，因為這不是我們要處理的 splash case
-                    await MainActor.run {
-                        self.showSyncingSplash = false
-                    }
-                }
-
-                do {
-                    let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
-                    TrainingPlanStorage.saveTrainingPlanOverview(overview) // 保存到本地
-                    await MainActor.run {
-                        self.trainingOverview = overview
-                        self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
-                        // Initialize selectedWeek to currentWeek to avoid showing incorrect week selection
-                        self.selectedWeek = self.currentWeek
-                        self.showSyncingSplash = false // 成功獲取後關閉 splash
-                    }
-                } catch {
-                    Logger.error("初始化獲取訓練計劃概覽失敗: \(error)")
-                    await MainActor.run {
-                        self.showSyncingSplash = false // 獲取失敗也關閉 splash，避免卡住
-                    }
-                }
-            } else {
-                // 本地 savedOverview.createdAt 不是空的
-                // 如果已 onboarding，確保 splash 是關閉的
-                if onboardingCompleted {
-                    await MainActor.run {
-                        self.showSyncingSplash = false
-                    }
-                }
-                // 如果未 onboarding，splash 狀態不由這裡的邏輯控制，應保持預設或由其他邏輯處理
-            }
-            // 無論如何，最後都要嘗試載入週計劃
-            await self.loadWeeklyPlan()
+        // 載入或更新訓練概覽
+        await loadTrainingOverviewWithUserContext(savedOverview: savedOverview, onboardingCompleted: onboardingCompleted)
+    }
+    
+    // 等待用戶資料就緒
+    private func waitForUserDataReady() async {
+        // 檢查是否已認證且用戶資料載入完成
+        let maxWaitTime: TimeInterval = 10.0 // 最多等待10秒
+        let checkInterval: TimeInterval = 0.1 // 每100ms檢查一次
+        var waitedTime: TimeInterval = 0
+        
+        while waitedTime < maxWaitTime {
+            let isAuthenticated = AuthenticationService.shared.isAuthenticated
             
-            // 初始化完成後，設置通知監聽器，避免競爭條件
-            await self.setupNotificationListeners()
-            await MainActor.run {
-                self.isInitializing = false
-                self.hasCompletedInitialLoad = true
+            // 簡化檢查：主要確認用戶已認證
+            if isAuthenticated {
+                Logger.debug("TrainingPlanViewModel: 用戶已認證，資料就緒")
+                return
             }
+            
+            try? await Task.sleep(nanoseconds: UInt64(checkInterval * 1_000_000_000))
+            waitedTime += checkInterval
+        }
+        
+        Logger.warn("TrainingPlanViewModel: 等待用戶資料超時，繼續初始化")
+    }
+    
+    // 載入訓練概覽（考慮用戶上下文）
+    private func loadTrainingOverviewWithUserContext(savedOverview: TrainingPlanOverview, onboardingCompleted: Bool) async {
+        if savedOverview.createdAt.isEmpty {
+            // 只有當本地 createdAt 為空時，才真正需要決定是否顯示 Splash 並從 API 獲取
+            if onboardingCompleted {
+                // 已 onboarding 但本地無資料，此時 showSyncingSplash 應為 true (已在同步區塊設定)
+            } else {
+                // 未 onboarding，無論本地是否有資料，都不應顯示此特定 splash
+                // 確保 splash 關閉，因為這不是我們要處理的 splash case
+                await MainActor.run {
+                    self.showSyncingSplash = false
+                }
+            }
+
+            do {
+                let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
+                TrainingPlanStorage.saveTrainingPlanOverview(overview) // 保存到本地
+                await MainActor.run {
+                    self.trainingOverview = overview
+                    self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
+                    // Initialize selectedWeek to currentWeek to avoid showing incorrect week selection
+                    self.selectedWeek = self.currentWeek
+                    self.showSyncingSplash = false // 成功獲取後關閉 splash
+                }
+            } catch {
+                Logger.error("初始化獲取訓練計劃概覽失敗: \(error)")
+                await MainActor.run {
+                    self.showSyncingSplash = false // 獲取失敗也關閉 splash，避免卡住
+                }
+            }
+        } else {
+            // 本地 savedOverview.createdAt 不是空的
+            // 如果已 onboarding，確保 splash 是關閉的
+            if onboardingCompleted {
+                await MainActor.run {
+                    self.showSyncingSplash = false
+                }
+            }
+            // 如果未 onboarding，splash 狀態不由這裡的邏輯控制，應保持預設或由其他邏輯處理
+        }
+        // 無論如何，最後都要嘗試載入週計劃
+        await self.loadWeeklyPlan()
+        
+        // 確保載入週數據（距離和強度），繞過 isInitializing 檢查
+        await self.loadCurrentWeekDistance()
+        await self.loadCurrentWeekIntensity()
+        
+        // 初始化完成後，設置通知監聽器，避免競爭條件
+        await self.setupNotificationListeners()
+        await MainActor.run {
+            self.isInitializing = false
+            self.hasCompletedInitialLoad = true
         }
     }
     
@@ -360,10 +404,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     return
                 }
                 
-                print("收到 workoutsDidUpdate 通知，重新加載週跑量和訓練強度...")
+                print("收到 workoutsDidUpdate 通知，重新加載週跑量、訓練強度和每日訓練記錄...")
                 Task {
                     // 使用統一方法同時更新週跑量和訓練強度
                     await self.loadCurrentWeekData()
+                    // 同時更新每日訓練記錄，以便 DailyTrainingCard 能顯示最新數據
+                    await self.loadWorkoutsForCurrentWeek()
                 }
             }
             .store(in: &cancellables)
@@ -617,18 +663,30 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
             
             do {
-                guard let overviewId = trainingOverview?.id else { throw NSError() }
-                Logger.debug("overview.totalWeeks: \(overview.totalWeeks)")
+                guard let overview = trainingOverview, !overview.id.isEmpty else {
+                    Logger.debug("訓練概覽不存在或 ID 為空，先嘗試載入概覽")
+                    await loadTrainingOverview()
+                    guard trainingOverview != nil, !trainingOverview!.id.isEmpty else {
+                        await updateWeeklyPlanUI(plan: nil, status: .noPlan)
+                        return
+                    }
+                    return // 添加 return，避免 guard 語句繼續執行
+                }
+                
+                let overviewId = trainingOverview!.id
+                Logger.debug("overview.totalWeeks: \(trainingOverview!.totalWeeks)")
                 Logger.debug("cw: \(calculateCurrentTrainingWeek() ?? 0)")
                 Logger.debug("self.currentWeek: \(self.currentWeek)")
                 Logger.debug("self.selectedWeek: \(self.selectedWeek)")
                 Logger.debug("準備載入週計劃 ID: \(overviewId)_\(self.currentWeek)")
                 
-                if (calculateCurrentTrainingWeek() ?? 0 > overview.totalWeeks) {
+                if (calculateCurrentTrainingWeek() ?? 0 > trainingOverview!.totalWeeks) {
+                    Logger.debug("當前週數超過總週數，設置 .completed 狀態")
                     await updateWeeklyPlanUI(plan: nil, status: .completed)
                 } else {
-                    let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                        planId: "\(overviewId)_\(self.currentWeek)")
+                    let planId = "\(overviewId)_\(self.currentWeek)"
+                    Logger.debug("呼叫 API 載入週計劃，planId: \(planId)")
+                    let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(planId: planId)
                     
                     Logger.debug("成功載入週計劃: 週數=\(newPlan.weekOfPlan), ID=\(newPlan.id)")
                     await updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
@@ -636,15 +694,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
                 // 404: 無週計劃
+                Logger.debug("週計劃 404 錯誤，設置 .noPlan 狀態")
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
             } catch {
+                // 檢查是否為任務取消錯誤
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("載入週計劃任務被取消，忽略此錯誤")
+                    return // 忽略取消錯誤，不更新 UI 狀態
+                }
+                
                 // 處理網路錯誤
+                Logger.error("載入週計劃失敗: \(error.localizedDescription)")
                 if let networkError = self.handleNetworkError(error) {
+                    Logger.debug("識別為網路錯誤，顯示網路錯誤提示")
                     await MainActor.run {
                         self.networkError = networkError
                         self.showNetworkErrorAlert = true
                     }
                 } else {
+                    Logger.debug("非網路錯誤，設置 .error 狀態顯示 ErrorView")
                     await updateWeeklyPlanUI(plan: nil, status: .error(error))
                 }
             }
@@ -691,6 +760,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             // 404 錯誤：依週數區分提示
             await updateWeeklyPlanUI(plan: nil, status: .noPlan)
         } catch {
+            // 檢查是否為任務取消錯誤
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                Logger.debug("載入週計劃任務被取消，忽略此錯誤")
+                return // 忽略取消錯誤，不更新 UI 狀態
+            }
             await updateWeeklyPlanUI(plan: nil, status: .error(error))
         }
     }
@@ -869,6 +944,11 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     func loadAllInitialData() async {
         guard !hasLoadedInitialData else { return }
         hasLoadedInitialData = true
+        
+        Logger.debug("TrainingPlanViewModel.loadAllInitialData: 開始執行")
+        
+        // 確保用戶資料已就緒
+        await waitForUserDataReady()
         
         // 標記正在初始化
         await MainActor.run {

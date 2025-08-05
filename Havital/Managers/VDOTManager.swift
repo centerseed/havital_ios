@@ -114,6 +114,7 @@ class VDOTManager: ObservableObject, DataManageable {
     // MARK: - Dependencies
     let service: APIClient
     private let cacheManager: VDOTCacheManager
+    private var lastRefreshTime: Date? // 🚨 添加冷卻機制
     
     // MARK: - TaskManageable Properties (Actor-based)
     let taskRegistry = TaskRegistry()
@@ -360,6 +361,27 @@ class VDOTManager: ObservableObject, DataManageable {
         return vdotDataPoints.count
     }
     
+    // MARK: - Background Refresh with Cooldown
+    
+    /// 帶冷卻機制的背景刷新，避免頻繁 API 調用
+    private func backgroundRefreshWithCooldown() async {
+        let now = Date()
+        
+        // 🚨 冷卻機制：60秒內不重複調用
+        if let lastRefresh = lastRefreshTime,
+           now.timeIntervalSince(lastRefresh) < 60 {
+            print("🚨 VDOTManager: backgroundRefresh 冷卻中，跳過 API 調用")
+            return
+        }
+        
+        lastRefreshTime = now
+        print("🚨 VDOTManager: 開始 backgroundRefresh")
+        
+        _ = await executeDataLoadingTask(id: "background_refresh_cooldown", showLoading: false) {
+            return await self.refreshData()
+        }
+    }
+    
     // MARK: - Notification Observers
     
     private func setupNotificationObservers() {
@@ -367,10 +389,18 @@ class VDOTManager: ObservableObject, DataManageable {
             forName: .workoutsDidUpdate,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             // 運動記錄更新時，可能需要重新計算 VDOT
             Task {
-                await self?.backgroundRefresh()
+                // 🚨 優化：檢查是否為批次上傳，避免頻繁調用 VDOT API
+                if let userInfo = notification.object as? [String: Any],
+                   let isBatchUpload = userInfo["batchUpload"] as? Bool,
+                   isBatchUpload {
+                    print("🚨 VDOTManager: 收到批次上傳通知，延遲刷新 VDOT 數據")
+                    // 批次上傳時延遲刷新，避免頻繁 API 調用
+                    try? await Task.sleep(nanoseconds: 3_000_000_000) // 3秒
+                }
+                await self?.backgroundRefreshWithCooldown()
             }
         }
         

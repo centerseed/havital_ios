@@ -22,7 +22,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
 
         // 初次先嘗試取得現有 FCM token（若已產生）並同步
         if let existingToken = Messaging.messaging().fcmToken {
+            print("🔍 DEBUG: 應用啟動時發現現有 FCM token: \(existingToken.prefix(20))...")
             syncFCMTokenToBackend(existingToken)
+        } else {
+            print("🔍 DEBUG: 應用啟動時尚無 FCM token")
         }
 
         return true
@@ -34,6 +37,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     }
     
     private func syncFCMTokenToBackend(_ fcmToken: String) {
+        print("🔍 DEBUG: 嘗試上傳 FCM token: \(fcmToken.prefix(20))...")
+        print("🔍 DEBUG: 用戶認證狀態: \(AuthenticationService.shared.isAuthenticated)")
+        
         guard AuthenticationService.shared.isAuthenticated else {
             print("使用者尚未登入，暫不上傳 FCM token")
             return
@@ -41,9 +47,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         Task {
             do {
                 try await UserService.shared.updateUserData(["fcm_token": fcmToken])
-                print("✅ FCM token 已成功上傳到後端")
+                print("✅ FCM token 已成功上傳到後端: \(fcmToken.prefix(20))...")
             } catch {
                 print("❌ 上傳 FCM token 失敗: \(error.localizedDescription)")
+                print("❌ 詳細錯誤: \(error)")
             }
         }
     }

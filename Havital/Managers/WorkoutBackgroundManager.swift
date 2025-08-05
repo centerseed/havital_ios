@@ -158,14 +158,20 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         }
     }
     
-    // 檢查並上傳待處理的健身記錄 - 修正版
+    // 檢查並上傳待處理的健身記錄 - 加強版檢查
     func checkAndUploadPendingWorkouts() async {
-        // 檢查當前數據來源設定
+        // 🚨 關鍵修復：加強數據源檢查，避免競態條件
         let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
         
-        // 只有 Apple Health 用戶才需要上傳數據
+        // 嚴格檢查：只有明確設定為 Apple Health 且用戶已完成 onboarding 才上傳
         guard dataSourcePreference == .appleHealth else {
-            print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據上傳")
+            print("⚠️ 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據上傳")
+            return
+        }
+        
+        // 額外檢查：確保用戶已完成 onboarding，避免初始化時的競態條件
+        guard AuthenticationService.shared.hasCompletedOnboarding else {
+            print("⚠️ 用戶尚未完成 onboarding，跳過 HealthKit 數據上傳")
             return
         }
         
@@ -219,38 +225,59 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             // 獲取最近的健身記錄
             let workouts = try await fetchRecentWorkouts()
             
-            // 過濾出需要處理的記錄（未上傳或缺少心率數據）
-            let newWorkouts = workouts.filter { 
-                !workoutUploadTracker.isWorkoutUploaded($0) || 
-                !workoutUploadTracker.workoutHasHeartRate($0)
+            // 分離真正的新運動和需要心率重試的運動
+            let trulyNewWorkouts = workouts.filter { 
+                !workoutUploadTracker.isWorkoutUploaded($0, apiVersion: .v2)
             }
             
-            // 只有在有需要處理的記錄時才進行同步
-            let totalWorkoutsToProcess = newWorkouts.count
+            let workoutsNeedingHeartRateRetry = workouts.filter { workout in
+                // 已上傳但缺少心率數據（使用 V2 API 版本）
+                guard workoutUploadTracker.isWorkoutUploaded(workout, apiVersion: .v2) && 
+                      !workoutUploadTracker.workoutHasHeartRate(workout, apiVersion: .v2) else {
+                    return false
+                }
+                
+                // 檢查是否超過1小時的等待時間，可以重試
+                if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout, apiVersion: .v2) {
+                    let timeElapsed = Date().timeIntervalSince(uploadTime)
+                    return timeElapsed >= 3600 // 1小時 = 3600秒
+                }
+                
+                return false
+            }
+            
+            let allWorkoutsToProcess = trulyNewWorkouts + workoutsNeedingHeartRateRetry
+            let totalWorkoutsToProcess = allWorkoutsToProcess.count
             
             if totalWorkoutsToProcess > 0 {
-                print("共發現 \(totalWorkoutsToProcess) 筆需要處理的健身記錄")
+                print("共發現 \(totalWorkoutsToProcess) 筆需要處理的健身記錄（新運動：\(trulyNewWorkouts.count) 筆，心率重試：\(workoutsNeedingHeartRateRetry.count) 筆）")
                 
                 // 設置同步狀態
                 syncTotalCount = totalWorkoutsToProcess
                 syncSuccessCount = 0
                 
-                // 如果有大量記錄要處理且應該發送通知，則發送開始通知
-                if totalWorkoutsToProcess > 10 && shouldSendNotification() {
-                    await sendBulkSyncStartNotification(count: totalWorkoutsToProcess)
+                // 通知邏輯：只有新運動才發送通知，避免用戶困惑
+                let shouldShowNotificationForNewWorkouts = trulyNewWorkouts.count > 0 && shouldSendNotification()
+                if shouldShowNotificationForNewWorkouts {
+                    await sendBulkSyncStartNotification(count: trulyNewWorkouts.count)
                 }
                 
-                // 處理新記錄
-                if !newWorkouts.isEmpty {
-                    print("正在上傳 \(newWorkouts.count) 筆新記錄")
+                // 處理所有需要處理的記錄
+                if !allWorkoutsToProcess.isEmpty {
+                    if trulyNewWorkouts.count > 0 {
+                        print("正在上傳 \(trulyNewWorkouts.count) 筆新記錄")
+                    }
+                    if workoutsNeedingHeartRateRetry.count > 0 {
+                        print("正在重試 \(workoutsNeedingHeartRateRetry.count) 筆記錄的心率數據")
+                    }
                     
                     // 分離跑步和非跑步記錄
-                    let runningWorkouts = newWorkouts.filter { self.isRunningWorkout($0) }
-                    let nonRunningWorkouts = newWorkouts.filter { !self.isRunningWorkout($0) }
+                    let runningWorkouts = allWorkoutsToProcess.filter { self.isRunningWorkout($0) }
+                    let nonRunningWorkouts = allWorkoutsToProcess.filter { !self.isRunningWorkout($0) }
                     
                     // 如果應該發送通知，先記錄開始處理
-                    if shouldSendNotification() {
-                        print("📱 開始在背景處理 \(newWorkouts.count) 筆健身記錄")
+                    if shouldShowNotificationForNewWorkouts {
+                        print("📱 開始在背景處理 \(trulyNewWorkouts.count) 筆新健身記錄")
                     }
                     
                     // 在後台線程處理跑步記錄，避免阻塞主流程

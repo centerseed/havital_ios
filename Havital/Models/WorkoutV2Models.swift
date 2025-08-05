@@ -63,6 +63,16 @@ struct WorkoutV2: Codable, Identifiable {
             return date
         }
         
+        // 嘗試 RFC 2822 格式 (例如: Fri, 01 Aug 2025 07:30:01 GMT)
+        let rfc2822Formatter = DateFormatter()
+        rfc2822Formatter.locale = Locale(identifier: "en_US_POSIX")
+        rfc2822Formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        rfc2822Formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        
+        if let date = rfc2822Formatter.date(from: startTimeUtc) {
+            return date
+        }
+        
         // 最後嘗試自定義格式
         let customFormatter = DateFormatter()
         customFormatter.locale = Locale(identifier: "en_US_POSIX")
@@ -92,6 +102,16 @@ struct WorkoutV2: Codable, Identifiable {
         
         iso8601Formatter.formatOptions = [.withInternetDateTime]
         if let date = iso8601Formatter.date(from: endTimeUtc) {
+            return date
+        }
+        
+        // 嘗試 RFC 2822 格式 (例如: Fri, 01 Aug 2025 07:30:01 GMT)
+        let rfc2822Formatter = DateFormatter()
+        rfc2822Formatter.locale = Locale(identifier: "en_US_POSIX")
+        rfc2822Formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        rfc2822Formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        
+        if let date = rfc2822Formatter.date(from: endTimeUtc) {
             return date
         }
         

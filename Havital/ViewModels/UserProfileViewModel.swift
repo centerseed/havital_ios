@@ -109,7 +109,7 @@ extension UserProfileViewModel {
         do {
             try await UserService.shared.deleteUser(userId: userId)
             // 登出並清除本地資料
-            try AuthenticationService.shared.signOut()
+            try await AuthenticationService.shared.signOut()
         } catch {
             print("刪除帳戶失敗: \(error.localizedDescription)")
             throw error

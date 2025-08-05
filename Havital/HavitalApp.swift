@@ -28,21 +28,24 @@ struct HavitalApp: App {
     
     init() {
         // 1. 初始化 Firebase
+        let configFileName = "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod")
+        print("🔍 當前建置環境: \(isDebugBuild ? "DEBUG" : "PRODUCTION")")
+        print("🔍 嘗試使用 Firebase 配置文件: \(configFileName)")
+        
         // 首先嘗試標準的 GoogleService-Info.plist
         if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
             print("✅ 找到標準 Firebase 配置文件: \(path)")
             FirebaseApp.configure()
         } else {
             // 如果沒有標準文件，嘗試環境特定的文件
-            let configFileName = "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod")
-            print("🔍 嘗試使用環境特定的 Firebase 配置文件: \(configFileName)")
-            
             if let path = Bundle.main.path(forResource: configFileName, ofType: "plist"),
                let options = FirebaseOptions(contentsOfFile: path) {
                 FirebaseApp.configure(options: options)
                 print("✅ Firebase 初始化成功 - 使用: \(path)")
+                print("✅ Firebase Project ID: \(options.projectID ?? "unknown")")
+                print("✅ Bundle ID: \(options.bundleID ?? "unknown")")
             } else {
-                print("❌ 找不到任何 Firebase 配置文件")
+                print("❌ 找不到環境特定的 Firebase 配置文件: \(configFileName)")
                 // 最後的備用方案
                 FirebaseApp.configure()
             }
@@ -236,9 +239,16 @@ struct HavitalApp: App {
             authService.isFirstLogin = false
         }
         
-        // 設置健身記錄觀察者（已經在主界面，所以已確認用戶登入且完成引導）
-        print("設置健身記錄觀察者...")
-        await WorkoutBackgroundManager.shared.setupWorkoutObserver()
+        // 🚨 關鍵修復：只有 Apple Health 用戶才設置觀察者
+        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        if dataSourcePreference == .appleHealth {
+            print("設置健身記錄觀察者（Apple Health 用戶）...")
+            await WorkoutBackgroundManager.shared.setupWorkoutObserver()
+        } else {
+            print("跳過健身記錄觀察者設置（數據源: \(dataSourcePreference.displayName)）")
+            // 確保停止任何可能已經啟動的觀察者
+            WorkoutBackgroundManager.shared.stopAndCleanupObserving()
+        }
         
         // 安排背景工作 (scheduleBackgroundWorkoutSync 內部會檢查數據來源)
         scheduleBackgroundWorkoutSync()

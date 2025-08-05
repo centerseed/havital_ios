@@ -15,15 +15,19 @@ struct HRVTrendChartView: View {
                 ProgressView("載入中...")
             } else if viewModel.hrvData.isEmpty {
                 VStack(spacing: 16) {
-                    ContentUnavailableView(
-                        "沒有 HRV 數據",
-                        systemImage: "waveform.path.ecg",
-                        description: Text("無法獲取心率變異性數據")
-                    )
+                    EmptyStateView(type: .hrvData)
+                    
                     // 診斷按鈕
                     Button("診斷 HRV 問題") {
                         Task { await viewModel.fetchDiagnostics() }
                     }
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(Color.blue)
+                    .cornerRadius(8)
+                    
                     // 顯示診斷結果
                     if let diag = viewModel.diagnosticsText {
                         Text(diag)

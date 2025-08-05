@@ -200,9 +200,9 @@ class UserPreferenceManager: ObservableObject {
         }
     }
     
-    /// 驗證數據源設定（但絕不自動更改用戶選擇）
+    /// 驗證數據源設定（絕不自動更改用戶選擇）
     private func validateAndAdjustDataSource() {
-        // 🚨 重要修復：絕對不要因為功能標誌就改變用戶的數據源選擇！
+        // 🚨 關鍵修復：絕對不要自動設定數據源，避免競態條件
         
         // 如果用戶選擇了 Garmin 但功能被關閉，記錄警告但不改變設置
         if dataSourcePreference == .garmin && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
@@ -218,20 +218,13 @@ class UserPreferenceManager: ObservableObject {
             )
         }
         
-        // 只有在真正未綁定的情況下，才設置預設值
+        // 🚨 重要：移除自動設定邏輯，保持 unbound 狀態直到用戶明確選擇
         if dataSourcePreference == .unbound {
-            if FeatureFlagManager.shared.isGarminIntegrationAvailable {
-                Logger.firebase("首次使用，Garmin 功能可用，保持 unbound 狀態讓用戶選擇", level: .info, labels: [
-                    "module": "UserPreferenceManager",
-                    "action": "keep_unbound_for_user_choice"
-                ])
-            } else {
-                Logger.firebase("首次使用且 Garmin 功能關閉，預設設為 Apple Health", level: .info, labels: [
-                    "module": "UserPreferenceManager",
-                    "action": "set_default_apple_health"
-                ])
-                dataSourcePreference = .appleHealth
-            }
+            Logger.firebase("數據源為 unbound，等待用戶在 onboarding 中選擇", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "keep_unbound_until_user_choice"
+            ])
+            // 不自動設定任何值，讓用戶在 onboarding 中明確選擇
         }
     }
     

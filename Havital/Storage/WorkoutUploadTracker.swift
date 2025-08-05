@@ -35,10 +35,11 @@ class WorkoutUploadTracker {
         let stableId = generateStableWorkoutId(workout)
         var uploadedWorkouts = getUploadedWorkouts(for: apiVersion)
         
-        // 儲存上傳時間和心率數據狀態
+        // 儲存上傳時間、心率數據狀態和重試計數
         let uploadInfo: [String: Any] = [
             "timestamp": Date().timeIntervalSince1970,
-            "hasHeartRate": hasHeartRate
+            "hasHeartRate": hasHeartRate,
+            "heartRateRetryCount": 0
         ]
         
         uploadedWorkouts[stableId] = uploadInfo

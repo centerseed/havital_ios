@@ -353,7 +353,7 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
                     self.healthData = newHealthData
                     self.error = nil
                 } else {
-                    self.error = "API 返回空數據"
+                    self.error = "伺服器暫時無法提供數據"
                 }
                 self.isLoading = false
                 self.isRefreshing = false
@@ -456,28 +456,18 @@ struct SharedHealthDataChartView: View {
             } else if let error = sharedHealthDataManager.error, !usingFallback {
                 if fallbackToHealthKit && chartType == .hrv {
                     // HRV 可以回退到 HealthKit
-                    VStack(spacing: 8) {
-                        HStack {
-                            Image(systemName: "wifi.exclamationmark")
-                                .foregroundColor(.orange)
-                            Text("使用本地數據")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        HRVTrendChartView()
-                            .environmentObject(healthKitManager)
-                    }
+                    HRVTrendChartView()
+                        .environmentObject(healthKitManager)
                 } else {
-                    VStack {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.orange)
-                        Text("載入失敗")
-                            .font(.headline)
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    EmptyStateView(
+                        type: .loadingFailed,
+                        customMessage: error,
+                        showRetryButton: true
+                    ) {
+                        Task {
+                            await sharedHealthDataManager.refreshData()
+                        }
                     }
-                    .frame(maxWidth: .infinity, minHeight: 100)
                 }
             } else if sharedHealthDataManager.healthData.isEmpty {
                 VStack {
@@ -496,10 +486,7 @@ struct SharedHealthDataChartView: View {
                     }
                     .padding(.bottom, 8)
                     
-                    Image(systemName: chartIcon)
-                        .foregroundColor(.gray)
-                    Text(noDataMessage)
-                        .foregroundColor(.secondary)
+                    EmptyStateView(type: chartType == .hrv ? .hrvData : .sleepHeartRateData)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
             } else {
@@ -556,11 +543,7 @@ struct SharedHealthDataChartView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 } else if usingFallback {
-                    Image(systemName: "wifi.exclamationmark")
-                        .foregroundColor(.orange)
-                    Text("使用本地數據")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    // Remove local data indicator
                 } else {
                     // Garmin Attribution for main chart data
                     ConditionalGarminAttributionView(
@@ -711,53 +694,24 @@ struct APIBasedHRVChartView: View {
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else if let error = error, !usingFallback {
                 if fallbackToHealthKit {
-                    // 顯示 API 失敗，使用本地數據的提示
-                    VStack(spacing: 8) {
-                        HStack {
-                            Image(systemName: "wifi.exclamationmark")
-                                .foregroundColor(.orange)
-                            Text("使用本地數據")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // 使用 HealthKit 的 HRV 圖表作為回退
-                        HRVTrendChartView()
-                            .environmentObject(healthKitManager)
-                    }
+                    // 使用 HealthKit 的 HRV 圖表作為回退
+                    HRVTrendChartView()
+                        .environmentObject(healthKitManager)
                 } else {
-                    VStack {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.orange)
-                        Text("載入失敗")
-                            .font(.headline)
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    EmptyStateView(
+                        type: .loadingFailed,
+                        customMessage: error,
+                        showRetryButton: true
+                    ) {
+                        Task {
+                            await loadHealthData()
+                        }
                     }
-                    .frame(maxWidth: .infinity, minHeight: 100)
                 }
             } else if healthData.isEmpty {
-                VStack {
-                    Image(systemName: "heart.text.square")
-                        .foregroundColor(.gray)
-                    Text("無 HRV 數據")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 100)
+                EmptyStateView(type: .hrvData)
             } else {
                 VStack {
-                    if usingFallback {
-                        HStack {
-                            Image(systemName: "wifi.exclamationmark")
-                                .foregroundColor(.orange)
-                            Text("使用本地數據")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                    }
-                    
                     Chart {
                         ForEach(healthData.indices, id: \.self) { index in
                             let record = healthData[index]
@@ -911,13 +865,7 @@ struct APIBasedRestingHeartRateChartView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
             } else if healthData.isEmpty {
-                VStack {
-                    Image(systemName: "heart")
-                        .foregroundColor(.gray)
-                    Text("無靜息心率數據")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 100)
+                EmptyStateView(type: .sleepHeartRateData)
             } else {
                 Chart {
                     ForEach(healthData.indices, id: \.self) { index in

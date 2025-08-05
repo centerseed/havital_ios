@@ -156,7 +156,7 @@ struct UserProfileView: View {
                 Button(role: .destructive) {
                     Task {
                         do {
-                            try AuthenticationService.shared.signOut()
+                            try await AuthenticationService.shared.signOut()
                         dismiss()
                     } catch {
                         print("登出失敗: \(error)")

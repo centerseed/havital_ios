@@ -15,11 +15,7 @@ struct SleepHeartRateChartView: View {
             if viewModel.isLoading {
                 ProgressView("載入中...")
             } else if viewModel.heartRateData.isEmpty {
-                ContentUnavailableView(
-                    "沒有睡眠心率數據",
-                    systemImage: "heart.fill",
-                    description: Text("無法獲取睡眠心率數據")
-                )
+                EmptyStateView(type: .sleepHeartRateData)
             } else {
                 VStack(alignment: .leading, spacing: 16) {
                     // Header with title and Garmin attribution in same row
@@ -144,11 +140,7 @@ struct SleepHeartRateChartViewWithGarmin: View {
             if viewModel.isLoading {
                 ProgressView("載入中...")
             } else if viewModel.heartRateData.isEmpty {
-                ContentUnavailableView(
-                    "沒有睡眠心率數據",
-                    systemImage: "heart.fill",
-                    description: Text("無法獲取睡眠心率數據")
-                )
+                EmptyStateView(type: .sleepHeartRateData)
             } else {
                 VStack(alignment: .leading, spacing: 16) {
                     // Header with title and Garmin attribution in same row

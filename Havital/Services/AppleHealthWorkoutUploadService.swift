@@ -78,6 +78,13 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
         
+        // 檢查是否已經上傳（除非強制上傳）
+        if !force && workoutUploadTracker.isWorkoutUploaded(workout, apiVersion: .v2) {
+            let hasHeartRate = workoutUploadTracker.workoutHasHeartRate(workout, apiVersion: .v2)
+            print("🚨 運動已上傳到 V2 API，跳過重複上傳")
+            return .success(hasHeartRate: hasHeartRate)
+        }
+        
         // 檢查基本數據（時間和距離）
         let duration = workout.duration
         let _ = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
@@ -222,6 +229,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         var failed  = 0
         var failedList: [FailedWorkout] = []
         
+        print("🚨 批次上傳開始：\(workouts.count) 筆 workout，將暫停通知避免頻繁 API 調用")
+        
         for w in workouts {
             do {
                 _ = try await uploadWorkout(w, force: force, retryHeartRate: retryHeartRate)
@@ -232,6 +241,19 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 failedList.append(FailedWorkout(workout: w, error: error))
             }
         }
+        
+        // 🚨 批次上傳完成後，只發送一次統一通知，避免每個 workout 都觸發 GET API
+        if success > 0 {
+            print("🚨 批次上傳完成：成功 \(success) 筆，失敗 \(failed) 筆")
+            // 延遲發送通知，給 UI 足夠時間準備
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+            
+            NotificationCenter.default.post(
+                name: .workoutsDidUpdate, 
+                object: ["batchUpload": true, "count": success]
+            )
+        }
+        
         return UploadBatchResult(total: workouts.count, success: success, failed: failed, failedWorkouts: failedList)
     }
     
@@ -522,7 +544,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         errorReport["data_quality"] = dataQualityAnalysis
         
-        // 使用 Firebase 記錄錯誤
+        // 使用 Firebase 記錄錯誤 - 標記需要上傳到雲端
         Logger.firebase(
             "Apple Health 運動記錄 V2 API 上傳失敗 - 詳細分析",
             level: .error,
@@ -532,7 +554,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 "error_type": errorType,
                 "workout_type": workoutData.type,
                 "device_manufacturer": (errorReport["device_details"] as? [String: String])?["manufacturer"] ?? "unknown",
-                "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown"
+                "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown",
+                "cloud_logging": "true"  // 標記需要上傳到雲端
             ],
             jsonPayload: errorReport
         )
@@ -607,7 +630,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 "data_type": dataType,
                 "error_category": errorCategory,
                 "device_manufacturer": (errorReport["device_info"] as? [String: String])?["manufacturer"] ?? "unknown",
-                "is_third_party": isThirdPartySource ? "true" : "false"
+                "is_third_party": isThirdPartySource ? "true" : "false",
+                "cloud_logging": "true"  // 標記需要上傳到雲端
             ],
             jsonPayload: errorReport
         )

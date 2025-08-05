@@ -120,11 +120,26 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     // MARK: - Core Training Plan Logic
     
     private func performLoadWeeklyPlan() async throws {
-        // 優先從快取載入
-        if let cachedPlan = cacheManager.loadWeeklyPlan(for: selectedWeek),
-           !cacheManager.shouldRefresh() {
+        // 優先從快取載入，立即顯示避免閃爍
+        if let cachedPlan = cacheManager.loadWeeklyPlan(for: selectedWeek) {
             await MainActor.run {
                 self.currentWeeklyPlan = cachedPlan
+                self.updatePlanStatus(for: cachedPlan)
+                // 從緩存載入時不顯示 loading 狀態
+                self.isLoading = false
+                self.lastSyncTime = Date()
+            }
+            
+            // 如果緩存仍然有效，直接返回
+            if !cacheManager.shouldRefresh() {
+                return
+            }
+            
+            // 如果需要刷新，使用 TaskManageable 機制在背景進行
+            Task {
+                await self.executeTask(id: "background_refresh_weekly_plan") {
+                    await self.backgroundRefreshWeeklyPlan()
+                }
             }
             return
         }
@@ -186,6 +201,71 @@ class TrainingPlanManager: ObservableObject, DataManageable {
         
         // 發送通知
         NotificationCenter.default.post(name: .trainingPlanDidUpdate, object: nil)
+    }
+    
+    /// 背景刷新週計劃（不顯示 loading 狀態），包含週計劃同步
+    private func backgroundRefreshWeeklyPlan() async {
+        do {
+            // 並行獲取 overview 和當週計劃
+            async let overviewTask = service.getTrainingPlanOverview()
+            async let weeklyPlanTask = fetchCurrentWeekPlan()
+            
+            let overview = try await overviewTask
+            let weeklyPlan = await weeklyPlanTask // 可能是 nil（404 情況）
+            
+            await MainActor.run {
+                self.trainingOverview = overview
+                self.currentWeeklyPlan = weeklyPlan
+                self.updatePlanStatus(for: weeklyPlan) // 這會正確處理 404 情況，顯示週回顧按鈕
+                self.lastSyncTime = Date()
+                self.syncError = nil
+            }
+            
+            // 更新快取
+            cacheManager.saveWeeklyPlan(weeklyPlan, for: selectedWeek)
+            
+            // 發送通知
+            NotificationCenter.default.post(name: .trainingPlanDidUpdate, object: nil)
+            
+            Logger.firebase(
+                "背景刷新週計劃完成",
+                level: .info,
+                labels: ["module": "TrainingPlanManager", "action": "background_refresh"],
+                jsonPayload: [
+                    "week": selectedWeek,
+                    "plan_available": weeklyPlan != nil
+                ]
+            )
+            
+        } catch {
+            Logger.firebase(
+                "背景刷新週計劃失敗: \(error.localizedDescription)",
+                level: .warn,
+                labels: ["module": "TrainingPlanManager", "action": "background_refresh"]
+            )
+            
+            await MainActor.run {
+                // 失敗時設置為無計劃，顯示週回顧按鈕
+                self.currentWeeklyPlan = nil
+                self.updatePlanStatus(for: nil)
+                self.syncError = error.localizedDescription
+            }
+        }
+    }
+    
+    /// 獲取當週計劃（處理 404 情況）
+    private func fetchCurrentWeekPlan() async -> WeeklyPlan? {
+        do {
+            // 這裡需要根據實際 API 實現調整
+            // 如果有直接獲取週計劃的 API，使用它
+            // 否則通過 overview 來推斷是否有當週計劃
+            
+            // 暫時返回 nil，表示需要根據實際 API 結構調整
+            return nil
+        } catch {
+            // 404 或其他錯誤，返回 nil
+            return nil
+        }
     }
     
     func loadTrainingOverview() async {

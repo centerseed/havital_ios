@@ -709,16 +709,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     }
     
     private func setupNotificationObservers() {
-        // 監聽運動數據更新
-        NotificationCenter.default.addObserver(
-            forName: .workoutsDidUpdate,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task {
-                await self?.refreshWorkouts()
-            }
-        }
+        // 🚫 移除循環監聽：UnifiedWorkoutManager 不應該監聽自己發送的 workoutsDidUpdate 通知
+        // 這會造成無限循環：refreshWorkouts() -> 發送通知 -> 監聽到通知 -> 再次 refreshWorkouts()
+        // 其他 ViewModels 仍會正常接收 workoutsDidUpdate 通知並更新 UI
         
         // 監聽數據源變更 - 修復觀察者未及時停止的問題
         NotificationCenter.default.addObserver(

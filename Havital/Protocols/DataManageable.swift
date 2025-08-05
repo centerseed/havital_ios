@@ -32,10 +32,8 @@ extension DataManageable where Self: ObservableObject {
     ) async -> T? {
         // 防禦性檢查：確保 ID 有效
         guard !id.isEmpty, id.count < 100 else {
-            Logger.firebase("無效的任務 ID", level: .error, jsonPayload: [
-                "task_id": String(id.prefix(50)), // 限制日誌長度
-                "caller": String(describing: type(of: self))
-            ])
+            // TaskManagement 錯誤只記錄在本地，不上傳到雲端
+            print("[DataManageable] 無效的任務 ID: \(String(id.prefix(50)))")
             return nil
         }
         
@@ -46,7 +44,7 @@ extension DataManageable where Self: ObservableObject {
                 return self.isLoading 
             }
             if currentlyLoading {
-                Logger.firebase("數據載入中，跳過重複調用", level: .debug, jsonPayload: ["task_id": id])
+                print("[DataManageable] 數據載入中，跳過重複調用: \(id)")
                 return nil
             }
         }

@@ -259,7 +259,7 @@ class UserManager: ObservableObject, DataManageable {
     }
     
     func signOut() async throws {
-        try authService.signOut()
+        try await authService.signOut()
         await clearAllData()
         
         Logger.firebase(
@@ -278,7 +278,7 @@ class UserManager: ObservableObject, DataManageable {
         
         let result = await executeDataLoadingTask(id: "delete_account") {
             try await self.service.deleteUser(userId: userId)
-            try self.authService.signOut()
+            try await self.authService.signOut()
             await self.clearAllData()
             
             Logger.firebase(

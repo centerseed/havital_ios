@@ -231,6 +231,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         // 更新 onboarding 與用戶偏好
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
+        
+        // 檢查 Garmin 連線狀態（如果用戶資料來源是 Garmin）
+        await checkGarminConnectionIfNeeded()
 
     }
     
@@ -291,11 +294,15 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         cancellables.removeAll()
     }
     
-    func signOut() throws {
+    func signOut() async throws {
         // 先解除 Garmin 綁定（如果已連接）
-        Task {
-            if GarminManager.shared.isConnected {
+        if GarminManager.shared.isConnected {
+            do {
                 await GarminManager.shared.disconnect()
+                print("✅ 登出時已成功解除 Garmin 綁定")
+            } catch {
+                print("⚠️ 登出時解除 Garmin 綁定失敗: \(error.localizedDescription)")
+                // 即使解除綁定失敗，仍繼續登出流程
             }
         }
         
@@ -390,6 +397,22 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         NotificationCenter.default.post(name: .onboardingCompleted, object: nil)
         
         print("已重置 onboarding 狀態")
+    }
+    
+    /// 檢查 Garmin 連線狀態（如果需要）
+    private func checkGarminConnectionIfNeeded() async {
+        // 檢查本地用戶偏好是否為 Garmin
+        guard UserPreferenceManager.shared.dataSourcePreference == .garmin else {
+            return
+        }
+        
+        // 檢查 Garmin 功能是否啟用
+        guard FeatureFlagManager.shared.isGarminIntegrationAvailable else {
+            return
+        }
+        
+        print("🔍 用戶資料來源為 Garmin，檢查連線狀態")
+        await GarminManager.shared.checkConnectionStatus()
     }
 }
 

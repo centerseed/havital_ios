@@ -72,12 +72,34 @@ class TrainingPlanViewModelV2: BaseDataViewModel<WeeklyPlan, TrainingPlanManager
         // 同步管理器狀態
         syncManagerState()
         
-        // 載入相關數據
-        await loadWorkoutData()
-        await loadModifications()
+        // 如果有訓練計劃數據，載入相關數據
+        if hasWeeklyPlan {
+            await loadWorkoutData()
+            await loadModifications()
+        }
     }
     
     // MARK: - Training Plan Management
+    
+    /// 載入數據 - 避免重複 loading 狀態
+    override func loadData() async {
+        // 先檢查是否有緩存數據
+        let hasCachedData = manager.getCacheSize() > 0 && !manager.isExpired()
+        
+        if !hasCachedData {
+            // 只有在沒有緩存數據時才顯示 loading
+            await super.loadData()
+        } else {
+            // 有緩存時直接載入，不顯示 loading
+            await manager.loadData()
+            syncManagerState()
+        }
+        
+        // 如果有訓練計劃數據，載入相關數據
+        if hasWeeklyPlan {
+            await loadWorkoutData()
+        }
+    }
     
     func switchToWeek(_ week: Int) async {
         guard week != selectedWeek else { return }
@@ -87,7 +109,9 @@ class TrainingPlanViewModelV2: BaseDataViewModel<WeeklyPlan, TrainingPlanManager
         
         // 同步狀態並載入相關數據
         syncManagerState()
-        await loadWorkoutData()
+        if hasWeeklyPlan {
+            await loadWorkoutData()
+        }
     }
     
     func generateNewWeekPlan() async -> Bool {
