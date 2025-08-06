@@ -1,5 +1,22 @@
 import Foundation
 
+// MARK: - Pagination Cache Info
+struct CachedPaginationInfo: Codable {
+    let hasMoreData: Bool
+    let hasNewerData: Bool
+    let newestId: String?
+    let oldestId: String?
+    let cachedAt: TimeInterval
+    
+    init(hasMoreData: Bool, hasNewerData: Bool, newestId: String?, oldestId: String?) {
+        self.hasMoreData = hasMoreData
+        self.hasNewerData = hasNewerData
+        self.newestId = newestId
+        self.oldestId = oldestId
+        self.cachedAt = Date().timeIntervalSince1970
+    }
+}
+
 // MARK: - Workout V2 Cache Manager
 class WorkoutV2CacheManager {
     static let shared = WorkoutV2CacheManager()
@@ -10,6 +27,7 @@ class WorkoutV2CacheManager {
     
     // Cache Keys
     private let workoutListCacheKey = "workout_v2_list_cache"
+    private let workoutPaginationCacheKey = "workout_v2_pagination_cache"
     private let workoutDetailCachePrefix = "workout_v2_detail_"
     private let workoutStatsCacheKey = "workout_v2_stats_cache"
     private let lastSyncTimestampKey = "workout_v2_last_sync"
@@ -45,11 +63,18 @@ class WorkoutV2CacheManager {
     
     /// 快取運動列表
     /// - Parameter workouts: 運動列表
-    func cacheWorkoutList(_ workouts: [WorkoutV2]) {
+    /// - Parameter paginationInfo: 分頁資訊（可選）
+    func cacheWorkoutList(_ workouts: [WorkoutV2], paginationInfo: CachedPaginationInfo? = nil) {
         do {
             let data = try JSONEncoder().encode(workouts)
             userDefaults.set(data, forKey: workoutListCacheKey)
             userDefaults.set(Date().timeIntervalSince1970, forKey: lastSyncTimestampKey)
+            
+            // 快取分頁資訊
+            if let paginationInfo = paginationInfo {
+                let paginationData = try JSONEncoder().encode(paginationInfo)
+                userDefaults.set(paginationData, forKey: workoutPaginationCacheKey)
+            }
             
             // 更新快取元數據
             updateCacheMetadata(for: .workoutList, count: workouts.count)
@@ -104,6 +129,22 @@ class WorkoutV2CacheManager {
         )
         
         return workouts
+    }
+    
+    /// 獲取快取的分頁資訊
+    /// - Returns: 快取的分頁資訊，如果過期或不存在則返回 nil
+    func getCachedPaginationInfo() -> CachedPaginationInfo? {
+        // 檢查快取是否過期
+        if isWorkoutListExpired() {
+            return nil
+        }
+        
+        guard let data = userDefaults.data(forKey: workoutPaginationCacheKey),
+              let paginationInfo = try? JSONDecoder().decode(CachedPaginationInfo.self, from: data) else {
+            return nil
+        }
+        
+        return paginationInfo
     }
     
     /// 增量更新運動列表快取（新增新的運動記錄）

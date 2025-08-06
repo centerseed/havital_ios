@@ -58,6 +58,15 @@ struct WorkoutDetailViewV2: View {
                         } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
                             paceZoneCard(convertToV2ZoneDistribution(paceZones))
                         }
+                        
+                        // 圈速分析卡片 (在區間分佈後，數據來源前)
+                        if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
+                            LapAnalysisView(
+                                laps: laps,
+                                dataProvider: viewModel.workout.provider,
+                                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                            )
+                        }
                     }
                 }
                 

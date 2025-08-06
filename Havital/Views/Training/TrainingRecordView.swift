@@ -13,7 +13,7 @@ struct TrainingRecordView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading {
+                if viewModel.isLoading && !viewModel.hasWorkouts {
                     ProgressView("載入訓練記錄中...")
                 } else {
                     workoutList

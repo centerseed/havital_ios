@@ -35,7 +35,13 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     /// 初次載入運動記錄 - 優先從快取載入，背景更新
     func loadWorkouts(healthKitManager: HealthKitManager? = nil) async {
         await executeTask(id: TaskID("load_workouts")) {
-            await self.performInitialLoad()
+            // 如果快取中有資料，直接在背景更新，不顯示 loading
+            if !self.workouts.isEmpty {
+                await self.performBackgroundUpdate()
+            } else {
+                // 只有在沒有快取資料時才顯示 loading 狀態
+                await self.performInitialLoad()
+            }
         }
     }
     
@@ -55,11 +61,99 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     
     // MARK: - Private Implementation
     
+    /// 背景更新資料（不顯示 loading 狀態）
+    private func performBackgroundUpdate() async {
+        do {
+            try Task.checkCancellation()
+            
+            // 如果有資料，先檢查是否有更新的記錄
+            if let newestId = newestId {
+                let refreshResponse = try await workoutService.refreshLatestWorkouts(
+                    beforeCursor: newestId,
+                    pageSize: currentPageSize
+                )
+                
+                try Task.checkCancellation()
+                
+                await MainActor.run {
+                    let newWorkouts = refreshResponse.data.workouts
+                    
+                    if !newWorkouts.isEmpty {
+                        // 新資料插入頂端
+                        let mergedWorkouts = mergeWorkouts(existing: self.workouts, new: newWorkouts, insertAtTop: true)
+                        self.workouts = mergedWorkouts.sorted { $0.endDate > $1.endDate }
+                        
+                        // 只更新 hasNewerData，保留其他分頁狀態
+                        self.hasNewerData = refreshResponse.data.pagination.hasNewer
+                        self.updatePaginationState() // 更新游標
+                        
+                        // 快取資料和分頁資訊
+                        let paginationInfo = CachedPaginationInfo(
+                            hasMoreData: self.hasMoreData,
+                            hasNewerData: self.hasNewerData,
+                            newestId: self.newestId,
+                            oldestId: self.oldestId
+                        )
+                        self.cacheManager.cacheWorkoutList(self.workouts, paginationInfo: paginationInfo)
+                        
+                        print("背景更新完成：\(newWorkouts.count) 筆新記錄，總計 \(self.workouts.count) 筆")
+                    } else {
+                        print("背景更新：沒有新記錄")
+                    }
+                }
+            } else {
+                // 如果沒有游標，執行初次載入
+                let response = try await workoutService.loadInitialWorkouts(pageSize: currentPageSize)
+                
+                try Task.checkCancellation()
+                
+                await MainActor.run {
+                    let newWorkouts = response.data.workouts
+                    
+                    if !newWorkouts.isEmpty {
+                        self.workouts = newWorkouts.sorted { $0.endDate > $1.endDate }
+                        self.updatePaginationState(from: response.data.pagination)
+                        
+                        let paginationInfo = CachedPaginationInfo(
+                            hasMoreData: self.hasMoreData,
+                            hasNewerData: self.hasNewerData,
+                            newestId: self.newestId,
+                            oldestId: self.oldestId
+                        )
+                        self.cacheManager.cacheWorkoutList(self.workouts, paginationInfo: paginationInfo)
+                        
+                        print("背景初次載入完成：\(newWorkouts.count) 筆記錄")
+                    }
+                }
+            }
+            
+        } catch is CancellationError {
+            print("TrainingRecordViewModel: 背景更新任務被取消")
+        } catch {
+            print("背景更新失敗: \(error.localizedDescription)")
+            // 背景更新失敗不影響 UI 狀態
+        }
+    }
+    
     /// 從快取載入資料
     private func loadCachedWorkouts() {
         if let cachedWorkouts = cacheManager.getCachedWorkoutList(), !cachedWorkouts.isEmpty {
             workouts = removeDuplicateWorkouts(cachedWorkouts).sorted { $0.endDate > $1.endDate }
             updatePaginationState()
+            
+            // 嘗試載入快取的分頁資訊
+            if let cachedPagination = cacheManager.getCachedPaginationInfo() {
+                hasMoreData = cachedPagination.hasMoreData
+                hasNewerData = cachedPagination.hasNewerData
+                newestId = cachedPagination.newestId
+                oldestId = cachedPagination.oldestId
+                print("TrainingRecordViewModel: 從快取載入分頁資訊")
+            } else {
+                // 快取載入時，假設還有更多資料（保守估計）
+                hasMoreData = workouts.count >= currentPageSize
+                hasNewerData = false
+            }
+            
             print("TrainingRecordViewModel: 從快取載入 \(workouts.count) 筆記錄")
         }
     }
@@ -90,8 +184,14 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     // 更新分頁狀態
                     self.updatePaginationState(from: response.data.pagination)
                     
-                    // 快取資料
-                    self.cacheManager.cacheWorkoutList(self.workouts)
+                    // 快取資料和分頁資訊
+                    let paginationInfo = CachedPaginationInfo(
+                        hasMoreData: self.hasMoreData,
+                        hasNewerData: self.hasNewerData,
+                        newestId: self.newestId,
+                        oldestId: self.oldestId
+                    )
+                    self.cacheManager.cacheWorkoutList(self.workouts, paginationInfo: paginationInfo)
                     
                     print("初次載入完成：\(newWorkouts.count) 筆新記錄，總計 \(self.workouts.count) 筆")
                 } else {
@@ -143,8 +243,14 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     // 更新分頁狀態
                     self.updatePaginationState(from: response.data.pagination)
                     
-                    // 快取資料
-                    self.cacheManager.cacheWorkoutList(self.workouts)
+                    // 快取資料和分頁資訊
+                    let paginationInfo = CachedPaginationInfo(
+                        hasMoreData: self.hasMoreData,
+                        hasNewerData: self.hasNewerData,
+                        newestId: self.newestId,
+                        oldestId: self.oldestId
+                    )
+                    self.cacheManager.cacheWorkoutList(self.workouts, paginationInfo: paginationInfo)
                     
                     print("刷新完成：\(newWorkouts.count) 筆新記錄，總計 \(self.workouts.count) 筆")
                 } else {
@@ -198,8 +304,14 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     // 更新分頁狀態
                     self.updatePaginationState(from: response.data.pagination)
                     
-                    // 快取資料
-                    self.cacheManager.cacheWorkoutList(self.workouts)
+                    // 快取資料和分頁資訊
+                    let paginationInfo = CachedPaginationInfo(
+                        hasMoreData: self.hasMoreData,
+                        hasNewerData: self.hasNewerData,
+                        newestId: self.newestId,
+                        oldestId: self.oldestId
+                    )
+                    self.cacheManager.cacheWorkoutList(self.workouts, paginationInfo: paginationInfo)
                     
                     print("載入更多完成：\(newWorkouts.count) 筆記錄，總計 \(self.workouts.count) 筆")
                 }

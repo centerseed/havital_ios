@@ -402,6 +402,7 @@ struct WorkoutV2Detail: Codable {
     let deviceInfo: V2DeviceInfo?
     let environment: V2Environment?
     let metadata: V2Metadata?
+    let laps: [LapData]?
     
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -425,6 +426,7 @@ struct WorkoutV2Detail: Codable {
         case deviceInfo = "device_info"
         case environment = "environment"
         case metadata = "metadata"
+        case laps = "laps"
     }
 }
 
@@ -731,6 +733,72 @@ struct V2Metadata: Codable {
         case hasHeartRateData = "has_heart_rate_data"
         case _rawDataSizeBytes = "raw_data_size_bytes"
         case processedAt = "processed_at"
+    }
+}
+
+// MARK: - Lap Data Models
+
+struct LapData: Codable, Identifiable {
+    let id: String = UUID().uuidString
+    
+    let lapNumber: Int
+    private let _startTimeOffsetS: SafeInt
+    private let _totalTimeS: SafeInt?
+    private let _totalDistanceM: SafeDouble?
+    private let _avgSpeedMPerS: SafeDouble?
+    private let _avgPaceSPerKm: SafeDouble?
+    private let _avgHeartRateBpm: SafeInt?
+    
+    // 公開的計算屬性
+    var startTimeOffsetS: Int { _startTimeOffsetS.value ?? 0 }
+    var totalTimeS: Int? { _totalTimeS?.value }
+    var totalDistanceM: Double? { _totalDistanceM?.value }
+    var avgSpeedMPerS: Double? { _avgSpeedMPerS?.value }
+    var avgPaceSPerKm: Double? { _avgPaceSPerKm?.value }
+    var avgHeartRateBpm: Int? { _avgHeartRateBpm?.value }
+    
+    enum CodingKeys: String, CodingKey {
+        case lapNumber = "lap_number"
+        case _startTimeOffsetS = "start_time_offset_s"
+        case _totalTimeS = "total_time_s"
+        case _totalDistanceM = "total_distance_m"
+        case _avgSpeedMPerS = "avg_speed_m_per_s"
+        case _avgPaceSPerKm = "avg_pace_s_per_km"
+        case _avgHeartRateBpm = "avg_heart_rate_bpm"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        lapNumber = try container.decode(Int.self, forKey: .lapNumber)
+        _startTimeOffsetS = try container.decode(SafeInt.self, forKey: ._startTimeOffsetS)
+        _totalTimeS = try container.decodeIfPresent(SafeInt.self, forKey: ._totalTimeS)
+        _totalDistanceM = try container.decodeIfPresent(SafeDouble.self, forKey: ._totalDistanceM)
+        _avgSpeedMPerS = try container.decodeIfPresent(SafeDouble.self, forKey: ._avgSpeedMPerS)
+        _avgPaceSPerKm = try container.decodeIfPresent(SafeDouble.self, forKey: ._avgPaceSPerKm)
+        _avgHeartRateBpm = try container.decodeIfPresent(SafeInt.self, forKey: ._avgHeartRateBpm)
+    }
+    
+    // 便利屬性 - 格式化的配速顯示
+    var formattedPace: String {
+        guard let pace = avgPaceSPerKm else { return "--:--" }
+        let minutes = Int(pace) / 60
+        let seconds = Int(pace) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    // 便利屬性 - 格式化的時間顯示
+    var formattedTime: String {
+        guard let time = totalTimeS else { return "--:--" }
+        let minutes = time / 60
+        let seconds = time % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    // 便利屬性 - 格式化的距離顯示
+    var formattedDistance: String {
+        guard let distance = totalDistanceM else { return "--" }
+        return String(format: "%.2f km", distance / 1000)
     }
 }
 
