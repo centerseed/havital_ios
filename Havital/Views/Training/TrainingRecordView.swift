@@ -4,7 +4,7 @@ import HealthKit
 struct TrainingRecordView: View {
     @StateObject private var viewModel = TrainingRecordViewModel()
     @EnvironmentObject private var healthKitManager: HealthKitManager
-    @State private var selectedWorkout: HKWorkout?
+    @State private var selectedWorkout: WorkoutV2?
     @State private var showingWorkoutDetail = false
     @State private var heartRateData: [(Date, Double)] = []
     @State private var paceData: [(Date, Double)] = []
@@ -13,7 +13,7 @@ struct TrainingRecordView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading {
+                if viewModel.isLoading && !viewModel.hasWorkouts {
                     ProgressView("載入訓練記錄中...")
                 } else {
                     workoutList
@@ -34,71 +34,113 @@ struct TrainingRecordView: View {
             }
             .sheet(item: $selectedWorkout) { workout in
                 NavigationStack {
-                    WorkoutDetailView(
-                        workout: workout,
-                        healthKitManager: healthKitManager,
-                        initialHeartRateData: heartRateData,
-                        initialPaceData: paceData
-                    )
+                    WorkoutDetailViewV2(workout: workout)
                 }
             }
             .task {
                 await viewModel.loadWorkouts(healthKitManager: healthKitManager)
             }
             .refreshable {
-                await viewModel.loadWorkouts(healthKitManager: healthKitManager)
-            }
-            .onDisappear {
-                // 在視圖消失時停止觀察者
-                viewModel.stopWorkoutObserver(healthKitManager: healthKitManager)
+                await viewModel.refreshWorkouts(healthKitManager: healthKitManager)
             }
         }
     }
     
     private var workoutList: some View {
         List {
-            ForEach(viewModel.workouts, id: \.uuid) { workout in
-                workoutRow(workout)
+            ForEach(viewModel.workouts, id: \.id) { workout in
+                workoutRowWithPagination(workout)
             }
+            
+            loadMoreIndicator
         }
         .overlay {
-            if viewModel.workouts.isEmpty {
-                ContentUnavailableView(
-                    "沒有訓練記錄",
-                    systemImage: "figure.run",
-                    description: Text("過去一個月內沒有訓練記錄")
-                )
+            emptyStateView
+        }
+        .alert("載入錯誤", isPresented: errorBinding) {
+            Button("確定") {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
             }
         }
     }
     
-    private func workoutRow(_ workout: HKWorkout) -> some View {
-        Button {
-            Task {
-                // 預先加載心率數據
-                do {
-                    heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                } catch {
-                    print("加載心率數據時出錯: \(error)")
-                    heartRateData = []
-                }
-                selectedWorkout = workout
-                
-                do {
-                    paceData = try await healthKitManager.fetchPaceData(for: workout)
-                } catch {
-                    print("加載配速數據時出錯: \(error)")
-                    paceData = []
-                }
+    @ViewBuilder
+    private func workoutRowWithPagination(_ workout: WorkoutV2) -> some View {
+        workoutRow(workout)
+            .onAppear {
+                checkForLoadMore(workout)
             }
+    }
+    
+    @ViewBuilder
+    private var loadMoreIndicator: some View {
+        if viewModel.isLoadingMore {
+            HStack {
+                Spacer()
+                ProgressView("載入更多記錄...")
+                    .font(.caption)
+                    .padding()
+                Spacer()
+            }
+            .listRowSeparator(.hidden)
+        }
+    }
+    
+    @ViewBuilder
+    private var emptyStateView: some View {
+        if viewModel.workouts.isEmpty && !viewModel.isLoading {
+            ContentUnavailableView(
+                "沒有訓練記錄",
+                systemImage: "figure.run",
+                description: Text("暫無運動記錄，開始運動後會顯示在這裡")
+            )
+        }
+    }
+    
+    private var errorBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { _ in }
+        )
+    }
+    
+    private func workoutRow(_ workout: WorkoutV2) -> some View {
+        Button {
+            // 對於 V2 API 數據，心率數據已經包含在 workout 中
+            // 這裡可以根據需要處理數據顯示
+            selectedWorkout = workout
         } label: {
-            WorkoutRowView(
+            WorkoutV2RowView(
                 workout: workout,
-                isUploaded: viewModel.isWorkoutUploaded(workout),
-                uploadTime: viewModel.getWorkoutUploadTime(workout)
+                isUploaded: true, // V2 API 數據都已經在後端
+                uploadTime: workout.startDate
             )
         }
         .buttonStyle(.plain)
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// 檢查是否需要載入更多記錄
+    private func checkForLoadMore(_ workout: WorkoutV2) {
+        // 當顯示到最後一筆記錄時，觸發載入更多
+        if workout.id == viewModel.workouts.last?.id {
+            loadMoreIfNeeded()
+        }
+    }
+    
+    /// 載入更多記錄
+    private func loadMoreIfNeeded() {
+        // 避免重複載入
+        guard !viewModel.isLoadingMore && viewModel.hasMoreData else { return }
+        
+        Task {
+            await viewModel.loadMoreWorkouts()
+        }
     }
 }
 

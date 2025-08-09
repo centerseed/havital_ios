@@ -1,8 +1,53 @@
 import Foundation
 import Combine
 
+// MARK: - 數據來源類型定義
+/// 定義 App 的數據來源類型
+enum DataSourceType: String, CaseIterable, Identifiable {
+    case unbound = "unbound"
+    case appleHealth = "apple_health"
+    case garmin = "garmin"
+
+    var id: String { self.rawValue }
+
+    var displayName: String {
+        switch self {
+        case .unbound:
+            return "尚未綁定"
+        case .appleHealth:
+            return "Apple Health"
+        case .garmin:
+            return "Garmin"
+        }
+    }
+}
+
 class UserPreferenceManager: ObservableObject {
     static let shared = UserPreferenceManager()
+    
+    private static let dataSourceKey = "data_source_preference"
+
+    // MARK: - 數據來源偏好
+    /// 使用者選擇的數據來源
+    @Published var dataSourcePreference: DataSourceType {
+        didSet {
+            // 當值改變時，儲存到 UserDefaults
+            UserDefaults.standard.set(dataSourcePreference.rawValue, forKey: Self.dataSourceKey)
+            print("數據來源已切換為: \(dataSourcePreference.displayName)")
+            
+            // 數據源更改通知，讓UI層處理後端同步
+            NotificationCenter.default.post(
+                name: NSNotification.Name("DataSourceDidChange"), 
+                object: dataSourcePreference.rawValue
+            )
+            
+            // 發送數據源切換通知，觸發健康數據刷新
+            NotificationCenter.default.post(
+                name: .dataSourceChanged, 
+                object: dataSourcePreference
+            )
+        }
+    }
     
     // 原有屬性
     @Published var email: String = UserDefaults.standard.string(forKey: "user_email") ?? "" {
@@ -83,6 +128,23 @@ class UserPreferenceManager: ObservableObject {
     }
     
     private init() {
+        // 載入保存的數據來源偏好
+        if let savedSource = UserDefaults.standard.string(forKey: Self.dataSourceKey),
+           let source = DataSourceType(rawValue: savedSource) {
+            self.dataSourcePreference = source
+        } else {
+            self.dataSourcePreference = .unbound
+        }
+        
+        // 監聽 Feature Flag 變化
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("FeatureFlagDidChange"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleFeatureFlagChange(notification)
+        }
+        
         // 載入保存的值
         self.name = UserDefaults.standard.string(forKey: "user_name")
         self.photoURL = UserDefaults.standard.string(forKey: "user_photo_url")
@@ -98,9 +160,78 @@ class UserPreferenceManager: ObservableObject {
         if let restingHR = self.restingHeartRate, restingHR == 0 {
             self.restingHeartRate = nil
         }
+        
+        // 初始化時檢查並調整數據源
+        validateAndAdjustDataSource()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Feature Flag 處理
+    
+    /// 處理 Feature Flag 變化
+    private func handleFeatureFlagChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let garminEnabled = userInfo["garmin_enabled"] as? Bool else {
+            return
+        }
+        
+        Logger.firebase("Feature Flag 變化通知收到", level: .info, labels: [
+            "module": "UserPreferenceManager",
+            "garmin_enabled": "\(garminEnabled)",
+            "current_data_source": dataSourcePreference.rawValue
+        ])
+        
+        // 🚨 重要：絕對不要自動改變用戶的數據源選擇！
+        // 如果 Garmin 功能被關閉，應該顯示錯誤訊息或禁用功能，而不是偷偷切換
+        if !garminEnabled && dataSourcePreference == .garmin {
+            Logger.firebase("⚠️ Garmin 功能已關閉，但用戶選擇了 Garmin 數據源", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "garmin_disabled_warning"
+            ])
+            
+            // 發送通知讓 UI 處理這個狀況，而不是偷偷切換
+            NotificationCenter.default.post(
+                name: NSNotification.Name("GarminFeatureDisabled"), 
+                object: nil
+            )
+        }
+    }
+    
+    /// 驗證數據源設定（絕不自動更改用戶選擇）
+    private func validateAndAdjustDataSource() {
+        // 🚨 關鍵修復：絕對不要自動設定數據源，避免競態條件
+        
+        // 如果用戶選擇了 Garmin 但功能被關閉，記錄警告但不改變設置
+        if dataSourcePreference == .garmin && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
+            Logger.firebase("⚠️ 初始化時發現 Garmin 功能關閉，但用戶選擇了 Garmin", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "garmin_disabled_user_choice_respected"
+            ])
+            
+            // 發送通知讓 UI 處理，而不是偷偷切換
+            NotificationCenter.default.post(
+                name: NSNotification.Name("GarminFeatureDisabled"), 
+                object: nil
+            )
+        }
+        
+        // 🚨 重要：移除自動設定邏輯，保持 unbound 狀態直到用戶明確選擇
+        if dataSourcePreference == .unbound {
+            Logger.firebase("數據源為 unbound，等待用戶在 onboarding 中選擇", level: .info, labels: [
+                "module": "UserPreferenceManager",
+                "action": "keep_unbound_until_user_choice"
+            ])
+            // 不自動設定任何值，讓用戶在 onboarding 中明確選擇
+        }
     }
     
     func clearUserData() {
+        // 移除 NotificationCenter 觀察者
+        NotificationCenter.default.removeObserver(self)
+        
         // 清除基本用戶資訊
         email = ""
         name = nil
@@ -123,7 +254,9 @@ class UserPreferenceManager: ObservableObject {
             "training_plan", "training_plan_overview", "weekly_plan",
             "user_email", "user_name", "age", "max_heart_rate",
             "current_pace", "current_distance", "prefer_week_days",
-            "prefer_week_days_longrun", "week_of_training", "user_photo_url"
+            "prefer_week_days_longrun", "week_of_training", "user_photo_url",
+            // 登出時清除數據來源設定，確保多用戶環境下的數據隔離
+            Self.dataSourceKey
         ]
         
         for key in keysToRemove {
@@ -139,8 +272,6 @@ class UserPreferenceManager: ObservableObject {
                maxHeartRate! > 0 &&
                restingHeartRate! > 0
     }
-    
-    // MARK: - 心率區間相關功能
     
     /// 同步心率數據
     func syncHeartRateData(from user: User?) {

@@ -1,8 +1,9 @@
 import SwiftUI
 import HealthKit
 
-@MainActor
-class HRVChartViewModel: ObservableObject {
+class HRVChartViewModel: ObservableObject, TaskManageable {
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var hrvData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?
@@ -15,9 +16,25 @@ class HRVChartViewModel: ObservableObject {
         self.healthKitManager = healthKitManager
     }
     
+    deinit {
+        cancelAllTasks()
+    }
+    
     func loadHRVData() async {
-        isLoading = true
-        error = nil
+        let taskId = "load_hrv_\(selectedTimeRange.rawValue)"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performLoadHRVData()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performLoadHRVData() async throws {
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
         
         do {
             try await healthKitManager.requestAuthorization()
@@ -36,14 +53,15 @@ class HRVChartViewModel: ObservableObject {
             
             let rawData = try await healthKitManager.fetchHRVData(start: startDate, end: now)
             
-            // 按日期分組並計算每天凌晨的平均值
+            // 按日期分組並計算每天凌晨的平均值 - 使用 TimeInterval 作為 key 避免崩潰
             let calendar = Calendar.current
             let groupedData = Dictionary(grouping: rawData) { (date, _) in
-                calendar.startOfDay(for: date)
+                calendar.startOfDay(for: date).timeIntervalSince1970
             }
             
             // 處理每天的數據
-            hrvData = groupedData.compactMap { (date, values) -> (Date, Double)? in
+            hrvData = groupedData.compactMap { (timeInterval, values) -> (Date, Double)? in
+                let date = Date(timeIntervalSince1970: timeInterval)
                 // 找出當天凌晨 00:00 到 06:00 的數據
                 let morningValues = values.filter { (measurementDate, _) in
                     let hour = calendar.component(.hour, from: measurementDate)
@@ -59,12 +77,17 @@ class HRVChartViewModel: ObservableObject {
             }
             .sorted { $0.0 < $1.0 } // 按日期排序
             
-            isLoading = false
+            await MainActor.run {
+                isLoading = false
+            }
         } catch {
             print("Error loading HRV data: \(error)")
-            self.error = "無法載入心率變異性數據"
-            isLoading = false
-            hrvData = []
+            await MainActor.run {
+                self.error = "無法載入心率變異性數據"
+                self.isLoading = false
+                self.hrvData = []
+            }
+            throw error
         }
     }
     
@@ -82,7 +105,19 @@ class HRVChartViewModel: ObservableObject {
     
     /// Diagnostic: fetch HRV authorization, sample count, and sources
     func fetchDiagnostics() async {
-        diagnosticsText = nil
+        let taskId = "fetch_hrv_diagnostics"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performFetchDiagnostics()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performFetchDiagnostics() async throws {
+        await MainActor.run {
+            diagnosticsText = nil
+        }
         let now = Date()
         // 計算起始日期與 loadHRVData 相同
         let startDate: Date
@@ -100,23 +135,44 @@ class HRVChartViewModel: ObservableObject {
             // 取得 HRV 診斷
             let diag = try await healthKitManager.fetchHRVDiagnostics(start: startDate, end: now)
             let sources = diag.sources.joined(separator: ", ")
-            diagnosticsText = "讀取授權: \(readStatus); 原始樣本數: \(diag.rawSampleCount); 來源: [\(sources)]"
+            await MainActor.run {
+                diagnosticsText = "讀取授權: \(readStatus); 原始樣本數: \(diag.rawSampleCount); 來源: [\(sources)]"
+            }
         } catch {
-            diagnosticsText = "診斷失敗: \(error.localizedDescription)"
+            await MainActor.run {
+                diagnosticsText = "診斷失敗: \(error.localizedDescription)"
+            }
+            throw error
         }
     }
     
     /// 檢查 HRV 讀取授權狀態
     func fetchReadAuthStatus() async {
-        readAuthStatus = nil
+        let taskId = "fetch_hrv_auth_status"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performFetchReadAuthStatus()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performFetchReadAuthStatus() async throws {
+        await MainActor.run {
+            readAuthStatus = nil
+        }
         do {
             let status = try await healthKitManager.checkHRVReadAuthorization()
-            readAuthStatus = status
+            await MainActor.run {
+                readAuthStatus = status
+            }
         } catch {
-            readAuthStatus = nil
-            // 捕捉任意錯誤並存到 error
-            let err = error
-            self.error = "讀取授權檢查失敗: \(err.localizedDescription)"
+            await MainActor.run {
+                readAuthStatus = nil
+                // 捕捉任意錯誤並存到 error
+                self.error = "讀取授權檢查失敗: \(error.localizedDescription)"
+            }
+            throw error
         }
     }
     

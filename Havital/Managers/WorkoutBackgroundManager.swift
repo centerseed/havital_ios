@@ -4,18 +4,12 @@ import UserNotifications
 import BackgroundTasks
 import UIKit
 
-// 自定義錯誤類型
-enum WorkoutUploadError: Error {
-    case missingHeartRateData
-    case serverError
-}
-
 // 完整的工作記錄背景管理器，含所有必要方法，支持心率資料檢查
-class WorkoutBackgroundManager: NSObject {
+class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     static let shared = WorkoutBackgroundManager()
     
     private let healthStore = HKHealthStore()
-    private let workoutService = WorkoutService.shared
+    private let workoutService = WorkoutV2Service.shared
     private let workoutUploadTracker = WorkoutUploadTracker.shared
     private let notificationCenter = UNUserNotificationCenter.current()
     private let healthKitManager = HealthKitManager()
@@ -32,11 +26,18 @@ class WorkoutBackgroundManager: NSObject {
     }
     private let notificationCooldown: TimeInterval = 3600 // 1小時冷卻時間，只在必要時通知
     
+    // TaskRegistry for thread-safe task management
+    let taskRegistry = TaskRegistry()
+    
     // 批量同步狀態追蹤
-    private var syncInProgress = false
     private var syncTotalCount = 0
     private var syncSuccessCount = 0
     private var isFirstLoginSync = false
+    
+    // 防止過度觸發的冷卻機制
+    private var lastUploadCheckTime: Date?
+    private let uploadCheckCooldown: TimeInterval = 60 // 1分鐘冷卻時間
+    private var isCurrentlyProcessing = false
     
     // 使用中的觀察查詢
     private var activeObserverQuery: HKObserverQuery?
@@ -70,6 +71,17 @@ class WorkoutBackgroundManager: NSObject {
     
     // 設置觀察者來監聽新的健身記錄 - 修正版
     func setupWorkoutObserver() async {
+        // 檢查當前數據來源設定
+        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        print("當前數據來源設定: \(dataSourcePreference.displayName)")
+        
+        // 只有 Apple Health 用戶才需要啟動 HealthKit 觀察者
+        guard dataSourcePreference == .appleHealth else {
+            print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 觀察者設置")
+            stopObservingWorkouts() // 確保停止任何現有的觀察者
+            return
+        }
+        
         do {
             // 1. 請求授權
             try await requestAuthorizations()
@@ -95,7 +107,6 @@ class WorkoutBackgroundManager: NSObject {
                 await checkAndUploadPendingWorkouts()
                 
                 // 檢查是否需要重試獲取心率資料
-                scheduleHeartRateRetryIfNeeded()
                 
                 // 設置後台刷新確保即使觀察者不觸發也能定期檢查
                 setupBackgroundRefresh()
@@ -108,6 +119,14 @@ class WorkoutBackgroundManager: NSObject {
         } catch {
             print("設置健身記錄觀察器時出錯: \(error.localizedDescription)")
         }
+    }
+    
+    // 停用觀察者（當切換到 Garmin 數據來源時）
+    func stopAndCleanupObserving() {
+        print("停用 HealthKit 觀察者...")
+        stopObservingWorkouts()
+        cancelAllTasks()  // 取消所有正在執行的任務
+        print("HealthKit 觀察者已停用")
     }
     
     // 獲取待上傳健身記錄數量
@@ -139,15 +158,46 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 檢查並上傳待處理的健身記錄 - 修正版
+    // 檢查並上傳待處理的健身記錄 - 加強版檢查
     func checkAndUploadPendingWorkouts() async {
-        print("檢查待上傳的健身記錄...")
+        // 🚨 關鍵修復：加強數據源檢查，避免競態條件
+        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
         
-        // 如果已有同步任務在進行中，則不重複啟動
-        if syncInProgress {
-            print("已有同步任務在進行中，跳過本次請求")
+        // 嚴格檢查：只有明確設定為 Apple Health 且用戶已完成 onboarding 才上傳
+        guard dataSourcePreference == .appleHealth else {
+            print("⚠️ 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據上傳")
             return
         }
+        
+        // 額外檢查：確保用戶已完成 onboarding，避免初始化時的競態條件
+        guard AuthenticationService.shared.hasCompletedOnboarding else {
+            print("⚠️ 用戶尚未完成 onboarding，跳過 HealthKit 數據上傳")
+            return
+        }
+        
+        // 防止過度觸發 - 檢查冷卻時間
+        let now = Date()
+        if let lastTime = lastUploadCheckTime,
+           now.timeIntervalSince(lastTime) < uploadCheckCooldown {
+            print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
+            return
+        }
+        
+        // 防止並發執行
+        guard !isCurrentlyProcessing else {
+            print("🔄 已有上傳任務在進行中，跳過重複調用")
+            return
+        }
+        
+        print("檢查待上傳的健身記錄...")
+        isCurrentlyProcessing = true
+        lastUploadCheckTime = now
+        
+        defer {
+            isCurrentlyProcessing = false
+        }
+        
+        // TaskRegistry 會自動處理重複任務，無需額外檢查
         
         // 為了確保後台任務不會過早結束，使用一個背景任務 ID
         var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
@@ -171,74 +221,80 @@ class WorkoutBackgroundManager: NSObject {
         }
         
         do {
-            // 標記同步開始
-            syncInProgress = true
             
             // 獲取最近的健身記錄
             let workouts = try await fetchRecentWorkouts()
             
-            // 處理需要重新獲取心率資料的記錄
-            let heartRateRetryWorkouts = workouts.filter { workout in
-                if workoutUploadTracker.isWorkoutUploaded(workout) &&
-                   !workoutUploadTracker.workoutHasHeartRate(workout) {
-                    if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout) {
-                        let timeElapsed = Date().timeIntervalSince(uploadTime)
-                        return timeElapsed >= retryThresholdTime // 超過重試時間的記錄
-                    }
+            // 分離真正的新運動和需要心率重試的運動
+            let trulyNewWorkouts = workouts.filter { 
+                !workoutUploadTracker.isWorkoutUploaded($0, apiVersion: .v2)
+            }
+            
+            let workoutsNeedingHeartRateRetry = workouts.filter { workout in
+                // 已上傳但缺少心率數據（使用 V2 API 版本）
+                guard workoutUploadTracker.isWorkoutUploaded(workout, apiVersion: .v2) && 
+                      !workoutUploadTracker.workoutHasHeartRate(workout, apiVersion: .v2) else {
+                    return false
                 }
+                
+                // 檢查是否超過1小時的等待時間，可以重試
+                if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout, apiVersion: .v2) {
+                    let timeElapsed = Date().timeIntervalSince(uploadTime)
+                    return timeElapsed >= 3600 // 1小時 = 3600秒
+                }
+                
                 return false
             }
             
-            // 過濾出未上傳的記錄
-            let newWorkouts = workouts.filter { !workoutUploadTracker.isWorkoutUploaded($0) }
-            
-            // 只有在有需要處理的記錄時才進行同步
-            let totalWorkoutsToProcess = heartRateRetryWorkouts.count + newWorkouts.count
+            let allWorkoutsToProcess = trulyNewWorkouts + workoutsNeedingHeartRateRetry
+            let totalWorkoutsToProcess = allWorkoutsToProcess.count
             
             if totalWorkoutsToProcess > 0 {
-                print("共發現 \(totalWorkoutsToProcess) 筆需要處理的健身記錄")
+                print("共發現 \(totalWorkoutsToProcess) 筆需要處理的健身記錄（新運動：\(trulyNewWorkouts.count) 筆，心率重試：\(workoutsNeedingHeartRateRetry.count) 筆）")
                 
                 // 設置同步狀態
                 syncTotalCount = totalWorkoutsToProcess
                 syncSuccessCount = 0
                 
-                // 如果有大量記錄要處理且應該發送通知，則發送開始通知
-                if totalWorkoutsToProcess > 10 && shouldSendNotification() {
-                    await sendBulkSyncStartNotification(count: totalWorkoutsToProcess)
+                // 通知邏輯：只有新運動才發送通知，避免用戶困惑
+                let shouldShowNotificationForNewWorkouts = trulyNewWorkouts.count > 0 && shouldSendNotification()
+                if shouldShowNotificationForNewWorkouts {
+                    await sendBulkSyncStartNotification(count: trulyNewWorkouts.count)
                 }
                 
-                // 處理需要重試獲取心率資料的記錄
-                if !heartRateRetryWorkouts.isEmpty {
-                    print("正在重新獲取 \(heartRateRetryWorkouts.count) 筆記錄的心率資料")
-                    
-                    let retrySuccessCount = await retryUploadingWithHeartRateData(heartRateRetryWorkouts)
-                    syncSuccessCount += retrySuccessCount
-                }
-                
-                // 處理新記錄
-                if !newWorkouts.isEmpty {
-                    print("正在上傳 \(newWorkouts.count) 筆新記錄")
+                // 處理所有需要處理的記錄
+                if !allWorkoutsToProcess.isEmpty {
+                    if trulyNewWorkouts.count > 0 {
+                        print("正在上傳 \(trulyNewWorkouts.count) 筆新記錄")
+                    }
+                    if workoutsNeedingHeartRateRetry.count > 0 {
+                        print("正在重試 \(workoutsNeedingHeartRateRetry.count) 筆記錄的心率數據")
+                    }
                     
                     // 分離跑步和非跑步記錄
-                    let runningWorkouts = newWorkouts.filter { self.isRunningWorkout($0) }
-                    let nonRunningWorkouts = newWorkouts.filter { !self.isRunningWorkout($0) }
+                    let runningWorkouts = allWorkoutsToProcess.filter { self.isRunningWorkout($0) }
+                    let nonRunningWorkouts = allWorkoutsToProcess.filter { !self.isRunningWorkout($0) }
                     
-                    // 處理跑步記錄
+                    // 如果應該發送通知，先記錄開始處理
+                    if shouldShowNotificationForNewWorkouts {
+                        print("📱 開始在背景處理 \(trulyNewWorkouts.count) 筆新健身記錄")
+                    }
+                    
+                    // 在後台線程處理跑步記錄，避免阻塞主流程
                     if !runningWorkouts.isEmpty {
-                        let runSuccessCount = await uploadWorkouts(runningWorkouts, sendIndividualNotifications: false)
-                        syncSuccessCount += runSuccessCount
+                        Task.detached { [weak self] in
+                            let runSuccessCount = await self?.uploadWorkouts(runningWorkouts, sendIndividualNotifications: false) ?? 0
+                            print("✅ 跑步記錄上傳完成：\(runSuccessCount) 筆成功")
+                        }
                     }
                     
-                    // 處理非跑步記錄（不發送個別通知）
+                    // 在後台線程處理非跑步記錄，避免阻塞主流程
                     if !nonRunningWorkouts.isEmpty {
-                        let nonRunSuccessCount = await uploadWorkouts(nonRunningWorkouts, sendIndividualNotifications: false)
-                        syncSuccessCount += nonRunSuccessCount
+                        Task.detached { [weak self] in
+                            let nonRunSuccessCount = await self?.uploadWorkouts(nonRunningWorkouts, sendIndividualNotifications: false) ?? 0
+                            print("✅ 非跑步記錄上傳完成：\(nonRunSuccessCount) 筆成功")
+                        }
                     }
-                }
-                
-                // 完成同步，如果有成功上傳且應該發送通知，則發送完成通知
-                if syncSuccessCount > 0 && shouldSendNotification() {
-                    await sendBulkSyncCompleteNotification(count: syncSuccessCount)
                 }
                 
             } else {
@@ -249,7 +305,6 @@ class WorkoutBackgroundManager: NSObject {
         }
         
         // 結束同步
-        syncInProgress = false
         syncTotalCount = 0
         syncSuccessCount = 0
     }
@@ -337,7 +392,6 @@ class WorkoutBackgroundManager: NSObject {
             "sync-training-data-start",
             "sync-training-data-completion",
             "first-login-sync",
-            "workout.heartrate.retry"
         ]
         
         notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
@@ -432,7 +486,7 @@ class WorkoutBackgroundManager: NSObject {
                 return
             }
             
-            print("偵測到新的健身記錄，啟動背景處理...")
+            print("偵測到新的健身記錄，將在20秒後開始處理...")
             
             // 請求背景執行時間
             var backgroundTask: UIBackgroundTaskIdentifier = .invalid
@@ -445,8 +499,12 @@ class WorkoutBackgroundManager: NSObject {
                 completionHandler()
             }
             
-            // 檢測到新的健身記錄，執行上傳邏輯
+            // 檢測到新的健身記錄，延遲20秒後執行上傳邏輯
             Task {
+                // 延遲20秒，讓 Apple Health 完成數據同步
+                try? await Task.sleep(nanoseconds: 20_000_000_000) // 20秒
+                
+                print("20秒延遲結束，開始處理健身記錄...")
                 await self.checkAndUploadPendingWorkouts()
                 
                 // 完成背景任務
@@ -467,11 +525,23 @@ class WorkoutBackgroundManager: NSObject {
         
         // 保存查詢引用
         activeObserverQuery = query
-        isObservingWorkouts = true
         
-        // 執行查詢
-        healthStore.execute(query)
-        print("已開始監聽健身記錄變化")
+        // 使用 HealthKitObserverCoordinator 註冊 Observer
+        Task {
+            let registered = await HealthKitObserverCoordinator.shared.registerObserver(
+                type: HealthKitObserverCoordinator.ObserverType.workoutBackground,
+                query: query,
+                enableBackground: false,  // 背景傳遞已在 setupWorkoutObserver 中設置
+                sampleType: nil
+            )
+            
+            if registered {
+                isObservingWorkouts = true
+                print("WorkoutBackgroundManager: 成功註冊 HealthKit Observer")
+            } else {
+                print("WorkoutBackgroundManager: HealthKit Observer 已經存在，跳過註冊")
+            }
+        }
     }
     
     // 設置背景刷新
@@ -505,25 +575,40 @@ class WorkoutBackgroundManager: NSObject {
     
     // 應用返回前台時觸發
     @objc private func applicationWillEnterForeground() {
-        // 應用返回前台時，檢查並處理待上傳的健身記錄
+        // 應用返回前台時，延遲後檢查並處理待上傳的健身記錄
         Task {
+            // 短暫延遲，讓系統穩定
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5秒
+            
+            // 重置首次登入標記（避免前景切換觸發大量處理）
+            if isFirstLoginSync {
+                print("📱 應用返回前景，重置首次登入同步標記")
+                isFirstLoginSync = false
+            }
+            
             await checkAndUploadPendingWorkouts()
         }
     }
     
     // 停止監聽健身記錄變化
     func stopObservingWorkouts() {
-        if let query = activeObserverQuery {
-            healthStore.stop(query)
-            activeObserverQuery = nil
-            isObservingWorkouts = false
-            print("已停止監聽健身記錄變化")
+        if activeObserverQuery != nil {
+            Task {
+                // 使用 HealthKitObserverCoordinator 移除 Observer
+                await HealthKitObserverCoordinator.shared.removeObserver(type: HealthKitObserverCoordinator.ObserverType.workoutBackground)
+                
+                activeObserverQuery = nil
+                isObservingWorkouts = false
+                print("已停止監聽健身記錄變化")
+            }
         }
     }
     
+    // MARK: - TaskManageable Cleanup
     deinit {
-        // 在對象銷毀時停止監聽
+        // 在對象銷毀時停止監聽並取消所有任務
         stopObservingWorkouts()
+        cancelAllTasks()
     }
     
     // 安排背景任務
@@ -574,164 +659,39 @@ class WorkoutBackgroundManager: NSObject {
         }
     }
     
-    // 重試上傳具有心率資料的運動記錄
-    @discardableResult
-    private func retryUploadingWithHeartRateData(_ workouts: [HKWorkout]) async -> Int {
-        print("嘗試重新獲取並上傳心率資料...")
-        var successCount = 0
-        
-        for workout in workouts {
-            do {
-                // 獲取心率數據
-                let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                
-                // 檢查心率數據是否足夠
-                if heartRateData.count < minHeartRateDataPoints {
-                    print("運動記錄 \(workout.uuid) 心率數據仍然不足 (\(heartRateData.count)筆)，稍後重試")
-                    continue
-                }
-                
-                // 獲取所有擴展數據
-                let speedData = try await healthKitManager.fetchSpeedData(for: workout)
-                let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
-                let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
-                let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
-                let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
-                
-                // 轉換為所需的 DataPoint 格式
-                let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-                let speeds = speedData.map { DataPoint(time: $0.0, value: $0.1) }
-                let strides = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
-                let cadences = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
-                let contactTimes = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
-                let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
-                
-                // 上傳運動數據
-                try await workoutService.postWorkoutDetails(
-                    workout: workout,
-                    heartRates: heartRates,
-                    speeds: speeds,
-                    strideLengths: strides,
-                    cadences: cadences,
-                    groundContactTimes: contactTimes,
-                    verticalOscillations: oscillations
-                )
-                
-                // 標記為已上傳且包含心率資料
-                workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)
-                print("成功重新上傳運動記錄: \(workout.workoutActivityType.name), 心率數據: \(heartRates.count)筆")
-                
-                successCount += 1
-            } catch {
-                print("重新上傳運動記錄失敗: \(workout.uuid), 錯誤: \(error)")
-            }
-            
-            // 添加小延遲
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
-        }
-        
-        return successCount
-    }
     
     // 上傳健身記錄
     @discardableResult
     private func uploadWorkouts(_ workouts: [HKWorkout], sendIndividualNotifications: Bool) async -> Int {
-        var successCount = 0
+        // 使用統一的 WorkoutService 方法進行上傳
+        let result = await workoutService.uploadWorkouts(
+            workouts,
+            force: false,
+            retryHeartRate: true
+        )
         
-        for workout in workouts {
-            do {
-                // 獲取心率數據
-                let heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                
-                // 檢查心率數據是否足夠
-                if heartRateData.count < minHeartRateDataPoints {
-                    let elapsed = Date().timeIntervalSince(workout.endDate)
-                    if elapsed < 10 * 60 {
-                        print("運動記錄 \(workout.uuid) 心率資料尚未齊全，5秒後重試")
-                        // 5秒後重試上傳
-                        DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
-                            Task { 
-                                print("開始重試上傳運動記錄 \(workout.uuid)")
-                                await self.checkAndUploadPendingWorkouts() 
-                            }
-                        }
-                    } else {
-                        print("運動記錄 \(workout.uuid) 心率資料仍不完整，超過10分鐘，標記為已上傳無心率")
-                        workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: false)
-                    }
-                    continue
-                }
-                
-                // 獲取所有擴展數據
-                let speedData = try await healthKitManager.fetchSpeedData(for: workout)
-                let strideLengthData = try? await healthKitManager.fetchStrideLengthData(for: workout)
-                let cadenceData = try? await healthKitManager.fetchCadenceData(for: workout)
-                let groundContactTimeData = try? await healthKitManager.fetchGroundContactTimeData(for: workout)
-                let verticalOscillationData = try? await healthKitManager.fetchVerticalOscillationData(for: workout)
-                
-                // 轉換為所需的 DataPoint 格式
-                let heartRates = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-                let speeds = speedData.map { DataPoint(time: $0.0, value: $0.1) }
-                let strides = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
-                let cadences = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
-                let contactTimes = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
-                let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
-                
-                // 上傳運動數據
-                try await workoutService.postWorkoutDetails(
-                    workout: workout,
-                    heartRates: heartRates,
-                    speeds: speeds,
-                    strideLengths: strides,
-                    cadences: cadences,
-                    groundContactTimes: contactTimes,
-                    verticalOscillations: oscillations
-                )
-                
-                // 標記為已上傳且有心率資料
-                workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: true)
-                print("成功上傳運動記錄: \(workout.workoutActivityType.name), 日期: \(workout.startDate), 心率數據: \(heartRates.count)筆")
-                
-                successCount += 1
-                
-                if successCount > 0 {
-                    // 收集成功上傳的記錄ID
-                    let successIds = workouts.prefix(successCount).map { $0.uuid.uuidString }
-                    // 使用 SyncNotificationManager 發送通知
-                    await SyncNotificationManager.shared.notifySyncCompletion(count: successCount, workoutIds: successIds)
-                }
-                
-            } catch WorkoutUploadError.missingHeartRateData {
-                print("運動記錄 \(workout.uuid) 缺少心率數據，標記為待稍後處理")
-                scheduleHeartRateRetryIfNeeded()
-            } catch {
-                print("上傳運動記錄失敗: \(workout.startDate), 錯誤: \(error)")
-            }
+        // 處理通知
+        if result.success > 0 {
+            // 收集成功上傳的記錄ID
+            let successIds = result.failedWorkouts.isEmpty ? 
+                workouts.prefix(result.success).map { $0.uuid.uuidString } :
+                workouts.filter { workout in
+                    !result.failedWorkouts.contains { $0.workout.uuid == workout.uuid }
+                }.map { $0.uuid.uuidString }
             
-            // 在上傳之間添加小延遲以避免過度使用服務器
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+            // 使用 SyncNotificationManager 發送通知
+            await SyncNotificationManager.shared.notifySyncCompletion(count: result.success, workoutIds: successIds)
         }
         
-        return successCount
+        print("上傳完成，成功: \(result.success), 失敗: \(result.failed), 總計: \(result.total)")
+        return result.success
     }
-
     
     // 判斷是否為跑步相關的健身記錄
     private func isRunningWorkout(_ workout: HKWorkout) -> Bool {
         return runningActivityTypes.contains(workout.workoutActivityType)
     }
     
-    // 如果有缺少心率資料的記錄，安排稍後再次檢查
-    private func scheduleHeartRateRetryIfNeeded() {
-        // 查詢需要重試的記錄數量
-        let retryIds = workoutUploadTracker.getWorkoutsNeedingHeartRateRetry(timeThreshold: retryThresholdTime / 2) // 30分鐘後重試
-        
-        if !retryIds.isEmpty {
-            print("找到 \(retryIds.count) 筆需要重新嘗試獲取心率資料的運動記錄")
-            
-            // 不發送通知，只在控制台記錄
-        }
-    }
 }
 
 
@@ -739,29 +699,18 @@ class WorkoutBackgroundManager: NSObject {
 extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
     // 當應用在前台時也顯示通知
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // 如果是心率重試通知，則不顯示給用戶
-        if notification.request.identifier == "workout.heartrate.retry" {
-            completionHandler([])
+        // 正常顯示通知
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .sound, .list])
         } else {
-            if #available(iOS 14.0, *) {
-                completionHandler([.banner, .sound, .list])
-            } else {
-                completionHandler([.alert, .sound])
-            }
+            completionHandler([.alert, .sound])
         }
     }
     
     // 處理通知的點擊事件
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        // 處理心率重試通知
-        if response.notification.request.identifier == "workout.heartrate.retry" {
-            // 當收到重試通知時，再次檢查並上傳運動記錄
-            Task {
-                print("收到心率資料重試通知，重新檢查運動記錄...")
-                await checkAndUploadPendingWorkouts()
-                completionHandler()
-            }
-        } else if response.notification.request.identifier.hasPrefix("sync-training-data") ||
+        // 處理同步相關通知
+        if response.notification.request.identifier.hasPrefix("sync-training-data") ||
                     response.notification.request.identifier == "first-login-sync" {
             // 處理同步相關通知的點擊
             completionHandler()

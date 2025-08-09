@@ -69,9 +69,12 @@ final class TrainingPlanService {
         do {
             return try await APIClient.shared.request(WeeklyPlan.self,
                 path: "/plan/race_run/weekly/\(planId)")
-        } catch {
-            // 找不到週計畫時統一視為 notFound
+        } catch let error as NSError where error.code == 404 {
+            // 只有 404 錯誤才視為找不到週計畫
             throw WeeklyPlanError.notFound
+        } catch {
+            // 其他錯誤（如網路不穩定、超時等）保持原樣
+            throw error
         }
     }
     

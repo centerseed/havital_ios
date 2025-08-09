@@ -1,22 +1,10 @@
 import Foundation
 
-/// 訓練強度分鐘數
-struct IntensityMinutes: Codable, Equatable {
+/// IntensityMinutes for WorkoutSummary (V1 API)
+struct WorkoutSummaryIntensityMinutes: Codable {
     let low: Double
     let medium: Double
     let high: Double
-    
-    static var zero: IntensityMinutes {
-        return IntensityMinutes(low: 0, medium: 0, high: 0)
-    }
-    
-    static func + (lhs: IntensityMinutes, rhs: IntensityMinutes) -> IntensityMinutes {
-        return IntensityMinutes(
-            low: lhs.low + rhs.low,
-            medium: lhs.medium + rhs.medium,
-            high: lhs.high + rhs.high
-        )
-    }
 }
 
 /// Wrapper for workout summary API response
@@ -46,7 +34,7 @@ struct WorkoutSummary: Codable {
     let type: String
     let vdot: Double
     let trimp: Double?
-    let intensityMinutes: IntensityMinutes?
+    let intensityMinutes: WorkoutSummaryIntensityMinutes?
 
     enum CodingKeys: String, CodingKey {
         case avgHR = "avg_hr"
@@ -84,7 +72,27 @@ struct WorkoutSummary: Codable {
         type = try container.decode(String.self, forKey: .type)
         vdot = try container.decode(Double.self, forKey: .vdot)
         trimp = try container.decodeIfPresent(Double.self, forKey: .trimp)
-        intensityMinutes = try container.decodeIfPresent(IntensityMinutes.self, forKey: .intensityMinutes)
+        intensityMinutes = try container.decodeIfPresent(WorkoutSummaryIntensityMinutes.self, forKey: .intensityMinutes)
+    }
+    
+    /// 自訂編碼，與自訂解碼對應
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(avgHR, forKey: .avgHR)
+        try container.encode(avgPace, forKey: .avgPace)
+        try container.encode(createdTS, forKey: .createdTS)
+        try container.encode(distanceKm, forKey: .distanceKm)
+        try container.encode(durationMin, forKey: .durationMin)
+        try container.encode(hrZonePct, forKey: .hrZonePct)
+        try container.encode(id, forKey: .id)
+        try container.encode(intervalCount, forKey: .intervalCount)
+        try container.encode(maxHR, forKey: .maxHR)
+        try container.encode(minHR, forKey: .minHR)
+        try container.encodeIfPresent(paceZonePct, forKey: .paceZonePct)
+        try container.encode(type, forKey: .type)
+        try container.encode(vdot, forKey: .vdot)
+        try container.encodeIfPresent(trimp, forKey: .trimp)
+        try container.encodeIfPresent(intensityMinutes, forKey: .intensityMinutes)
     }
 }
 

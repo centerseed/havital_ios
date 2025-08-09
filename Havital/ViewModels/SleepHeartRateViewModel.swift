@@ -1,25 +1,85 @@
 import SwiftUI
 import HealthKit
 
-@MainActor
-class SleepHeartRateViewModel: ObservableObject {
+class SleepHeartRateViewModel: ObservableObject, TaskManageable {
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var heartRateData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?
     @Published var selectedTimeRange: TimeRange = .week
-    private let healthKitManager: HealthKitManager
     
-    init(healthKitManager: HealthKitManager) {
-        self.healthKitManager = healthKitManager
+    // 透過外部設定的管理器
+    var healthKitManager: HealthKitManager?
+    // 直接使用單例
+    private let sharedHealthDataManager = SharedHealthDataManager.shared
+    
+    init() {
+        setupNotificationObservers()
+    }
+    
+    deinit {
+        cancelAllTasks()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    /// 設置通知監聽
+    private func setupNotificationObservers() {
+        // 監聽 Garmin 數據刷新通知
+        NotificationCenter.default.addObserver(
+            forName: .garminHealthDataRefresh,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.loadHeartRateData()
+            }
+        }
+        
+        // 監聽 Apple Health 數據刷新通知
+        NotificationCenter.default.addObserver(
+            forName: .appleHealthDataRefresh,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.loadHeartRateData()
+            }
+        }
+        
+        // 監聽數據源切換通知
+        NotificationCenter.default.addObserver(
+            forName: .dataSourceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.loadHeartRateData()
+            }
+        }
     }
     
     func loadHeartRateData() async {
-        isLoading = true
-        error = nil
+        // 使用實例唯一的 ID 來避免不同實例間的任務衝突
+        let instanceId = ObjectIdentifier(self).hashValue
+        let taskId = "load_heart_rate_\(instanceId)_\(selectedTimeRange.rawValue)"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performLoadHeartRateData()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performLoadHeartRateData() async throws {
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
+        
+        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
         
         do {
-            try await healthKitManager.requestAuthorization()
-            
             let now = Date()
             let startDate: Date
             
@@ -33,22 +93,76 @@ class SleepHeartRateViewModel: ObservableObject {
             }
             
             var points: [(Date, Double)] = []
-            var currentDate = startDate
             
-            while currentDate <= now {
-                if let heartRate = try await healthKitManager.fetchSleepHeartRateAverage(for: currentDate) {
-                    points.append((currentDate, heartRate))
+            switch dataSourcePreference {
+            case .appleHealth:
+                // 從 HealthKit 獲取數據
+                guard let healthKit = healthKitManager else {
+                    await MainActor.run {
+                        self.error = "HealthKit 管理器未初始化"
+                        self.isLoading = false
+                    }
+                    return
                 }
-                currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate)!
+                
+                try await healthKit.requestAuthorization()
+                
+                var currentDate = startDate
+                while currentDate <= now {
+                    if let heartRate = try await healthKit.fetchSleepHeartRateAverage(for: currentDate) {
+                        points.append((currentDate, heartRate))
+                    }
+                    currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate)!
+                }
+                
+            case .garmin:
+                // 從 API 獲取數據
+                await sharedHealthDataManager.loadHealthDataIfNeeded()
+                
+                let healthData = sharedHealthDataManager.healthData
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                
+                print("Garmin 心率數據載入: 共 \(healthData.count) 筆健康記錄")
+                
+                // 調試：檢查每筆記錄的 restingHeartRate 字段
+                for record in healthData {
+                    print("記錄: 日期=\(record.date), restingHeartRate=\(record.restingHeartRate ?? -1)")
+                    
+                    if let date = dateFormatter.date(from: record.date),
+                       date >= startDate && date <= now {
+                        
+                        if let restingHeartRate = record.restingHeartRate {
+                            points.append((date, Double(restingHeartRate)))
+                            print("✅ 添加心率數據: 日期=\(record.date), 心率=\(restingHeartRate)")
+                        } else {
+                            print("❌ 該日期無靜息心率數據: \(record.date)")
+                        }
+                    } else {
+                        print("⏰ 日期超出範圍: \(record.date)")
+                    }
+                }
+                
+                print("最終心率數據點數: \(points.count)")
+                
+            case .unbound:
+                await MainActor.run {
+                    self.error = "請先選擇數據來源"
+                }
             }
             
-            heartRateData = points.sorted { $0.0 < $1.0 }
-            isLoading = false
+            await MainActor.run {
+                heartRateData = points.sorted { $0.0 < $1.0 }
+                isLoading = false
+            }
         } catch {
             print("Error loading sleep heart rate data: \(error)")
-            self.error = "無法載入睡眠心率數據"
-            isLoading = false
-            heartRateData = []
+            await MainActor.run {
+                self.error = "無法載入睡眠心率數據"
+                self.isLoading = false
+                self.heartRateData = []
+            }
+            throw error
         }
     }
     

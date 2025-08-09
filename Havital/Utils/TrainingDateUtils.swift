@@ -74,15 +74,8 @@ struct TrainingDateUtils {
             Logger.debug("無法計算今天所在週的週一")
             return nil
         }
-        let dateFormatter = DateFormatter()
-        dateFormatter.timeZone = timeZone ?? TimeZoneManager.shared.getCurrentTimeZone()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
-        dateFormatter.locale = Locale(identifier: "zh_TW")
-        
-        Logger.debug("建立時間: \(dateFormatter.string(from: startDate)) (UTC+8)")
-        Logger.debug("今天時間: \(dateFormatter.string(from: today)) (UTC+8)")
-        Logger.debug("建立週一: \(dateFormatter.string(from: createdMonday)) (UTC+8)")
-        Logger.debug("今天週一: \(dateFormatter.string(from: todayMonday)) (UTC+8)")
+        // 移除冗餘的 DEBUG 日誌以減少日誌噪音
+        // 只在需要時才記錄詳細信息
         let seconds = todayMonday.timeIntervalSince(createdMonday)
         let weekCount = Int(floor(seconds / (7 * 24 * 3600))) + 1
         return max(weekCount, 1)

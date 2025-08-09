@@ -73,120 +73,129 @@ struct OnboardingView: View {
     // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-                Form {
-                    Section(header: Text("您的跑步目標"), footer: Text("如果您沒有特定賽事，可以為自己設定一個挑戰目標，例如「完成第一個5公里」或「提升10公里速度」。")) {
-                        TextField("目標名稱 (例如：台北馬拉松 或 我的5K挑戰)", text: $viewModel.raceName)
-                            .textContentType(.name)
-                        
-                        DatePicker("目標日期",
-                                  selection: $viewModel.raceDate,
-                                  in: Date()...,
-                                  displayedComponents: .date)
-                        
-                        Text("距離比賽還有 \(viewModel.remainingWeeks) 週")
-                            .foregroundColor(.secondary)
-                    }
+        VStack {
+            Form {
+                Section(header: Text("您的跑步目標"), footer: Text("如果您沒有特定賽事，可以為自己設定一個挑戰目標，例如「完成第一個5公里」或「提升10公里速度」。")) {
+                    TextField("目標名稱 (例如：台北馬拉松 或 我的5K挑戰)", text: $viewModel.raceName)
+                        .textContentType(.name)
                     
-                    Section(header: Text("比賽距離")) {
-                        Picker("選擇距離", selection: $viewModel.selectedDistance) {
-                            ForEach(Array(viewModel.availableDistances.keys.sorted()), id: \.self) { key in
-                                Text(viewModel.availableDistances[key] ?? key)
-                                    .tag(key)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
+                    DatePicker("目標日期",
+                              selection: $viewModel.raceDate,
+                              in: Date()...,
+                              displayedComponents: .date)
                     
-                    Section(header: Text("目標完賽時間"), footer: Text("設定一個您期望達成的時間。")) {
-                        HStack {
-                            Picker("時", selection: $viewModel.targetHours) {
-                                ForEach(0...6, id: \.self) { hour in
-                                    Text("\(hour)")
-                                }
-                            }
-                            .pickerStyle(.wheel)
-                            .frame(width: 100)
-                            
-                            Text("時")
-                            
-                            Picker("分", selection: $viewModel.targetMinutes) {
-                                ForEach(0..<60, id: \.self) { minute in
-                                    Text("\(minute)")
-                                }
-                            }
-                            .pickerStyle(.wheel)
-                            .frame(width: 100)
-                            
-                            Text("分")
-                        }
-                        .padding(.vertical, 8)
-                        
-                        Text("平均配速：\(viewModel.targetPace) /公里")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if let error = viewModel.error {
-                        Section {
-                            Text(error)
-                                .foregroundColor(.red)
-                        }
-                    }
-                }
-                // 在表單底部添加固定的按鈕
-                Section {
-                    Button(action: {
-                        Task {
-                            if await viewModel.createTarget() {
-                                showPersonalBest = true
-                            }
-                        }
-                    }) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            Text("下一步")
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .disabled(viewModel.isLoading)
+                    Text("距離比賽還有 \(viewModel.remainingWeeks) 週")
+                        .foregroundColor(.secondary)
                 }
                 
-                NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
-                    .navigationBarBackButtonHidden(true),
-                               isActive: $showPersonalBest) {
-                    EmptyView()
+                Section(header: Text("比賽距離")) {
+                    Picker("選擇距離", selection: $viewModel.selectedDistance) {
+                        ForEach(Array(viewModel.availableDistances.keys.sorted()), id: \.self) { key in
+                            Text(viewModel.availableDistances[key] ?? key)
+                                .tag(key)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                Section(header: Text("目標完賽時間"), footer: Text("設定一個您期望達成的時間。")) {
+                    HStack {
+                        Picker("時", selection: $viewModel.targetHours) {
+                            ForEach(0...6, id: \.self) { hour in
+                                Text("\(hour)")
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .frame(width: 100)
+                        
+                        Text("時")
+                        
+                        Picker("分", selection: $viewModel.targetMinutes) {
+                            ForEach(0..<60, id: \.self) { minute in
+                                Text("\(minute)")
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .frame(width: 100)
+                        
+                        Text("分")
+                    }
+                    .padding(.vertical, 8)
+                    
+                    Text("平均配速：\(viewModel.targetPace) /公里")
+                        .foregroundColor(.secondary)
+                }
+                
+                if let error = viewModel.error {
+                    Section {
+                        Text(error)
+                            .foregroundColor(.red)
+                    }
                 }
             }
-            .navigationTitle("設定訓練目標")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("返回") {
-                        dismiss()
-                    }
-                }
-                
-                // 右上角「下一步」按鈕
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        Task {
-                            if await viewModel.createTarget() {
-                                showPersonalBest = true
-                            }
-                        }
-                    }) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                        } else {
-                            Text("下一步")
+            
+            // 底部按鈕
+            VStack {
+                Button(action: {
+                    Task {
+                        if await viewModel.createTarget() {
+                            showPersonalBest = true
                         }
                     }
-                    .disabled(viewModel.isLoading)
+                }) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("下一步")
+                            .frame(maxWidth: .infinity)
+                    }
                 }
+                .disabled(viewModel.isLoading)
+                .padding()
+                .background(Color.accentColor)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .padding(.bottom, 30)
+            }
+            .background(Color(.systemGroupedBackground))
+            
+            NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
+                .navigationBarBackButtonHidden(true),
+                           isActive: $showPersonalBest) {
+                EmptyView()
             }
         }
+        .navigationTitle("設定訓練目標")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("返回") {
+                    dismiss()
+                }
+            }
+            
+            // 右上角「下一步」按鈕
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    Task {
+                        if await viewModel.createTarget() {
+                            showPersonalBest = true
+                        }
+                    }
+                }) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                    } else {
+                        Text("下一步")
+                    }
+                }
+                .disabled(viewModel.isLoading)
+            }
+        }
+    }
 
 }
 

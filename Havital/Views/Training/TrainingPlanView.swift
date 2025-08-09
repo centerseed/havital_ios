@@ -7,7 +7,6 @@ struct WeekPlanContentView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
     let currentTrainingWeek: Int
-    @EnvironmentObject private var healthKitManager: HealthKitManager
     
     var body: some View {
         let selected = plan.weekOfPlan
@@ -25,7 +24,7 @@ struct WeekPlanContentView: View {
         }
         .onAppear {
             // 除錯 log
-            Logger.info("current: \(currentTrainingWeek), selected: \(plan.weekOfPlan), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
+            Logger.info("current: \(currentTrainingWeek), selected: \(viewModel.selectedWeek), planWeek: \(plan.weekOfPlan), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
         }
     }
 }
@@ -209,8 +208,6 @@ struct TrainingPlanView: View {
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var showWeekSelector = false
     
-    // 添加一個計時器來刷新訓練記錄
-    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
         NavigationStack {
@@ -237,8 +234,8 @@ struct TrainingPlanView: View {
             .transaction { $0.disablesAnimations = true }
             .background(Color(UIColor.systemGroupedBackground))
             .refreshable {
-                // 下拉刷新：直接更新 weekPlan 資料
-                await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
+                // 下拉刷新：手動刷新，跳過所有快取
+                await viewModel.refreshWeeklyPlan(isManualRefresh: true)
             }
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
@@ -252,11 +249,8 @@ struct TrainingPlanView: View {
         }
         .task {
             if hasCompletedOnboarding {
-                await viewModel.loadAllInitialData(healthKitManager: healthKitManager)
+                await viewModel.loadAllInitialData()
             }
-        }
-        .onReceive(timer) { _ in
-            refreshWorkouts()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             refreshWorkouts()
@@ -282,10 +276,25 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }
+        .alert("網路連接問題", isPresented: $viewModel.showNetworkErrorAlert) {
+            Button("重試") {
+                Task {
+                    await viewModel.retryNetworkRequest()
+                }
+            }
+            Button("稍後再試", role: .cancel) {
+                viewModel.showNetworkErrorAlert = false
+            }
+        } message: {
+            Text(viewModel.networkError?.localizedDescription ?? "網路連接異常，請稍後再試")
+        }
         .onAppear {
             if hasCompletedOnboarding {
-                Logger.debug("視圖 onAppear: 已完成 Onboarding，刷新本週跑量")
-                refreshWorkouts()
+                Logger.debug("視圖 onAppear: 已完成 Onboarding")
+                // 只在數據尚未載入時才刷新，避免不必要的重新載入
+                if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
+                    refreshWorkouts()
+                }
             }
         }
     }
@@ -304,7 +313,6 @@ struct TrainingPlanView: View {
                 plan: plan,
                 currentTrainingWeek: viewModel.currentWeek
             )
-            .id(viewModel.currentWeek)
             .transition(.opacity)
             .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
         case .completed:
@@ -392,20 +400,53 @@ struct TrainingPlanView: View {
         let retryAction: () -> Void
         
         var body: some View {
-            VStack {
-                Text("載入失敗")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                Text("")
+            VStack(spacing: 20) {
+                // 錯誤圖示
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: 48))
+                    .foregroundColor(.orange)
+                    .padding(.top, 8)
+                
+                VStack(spacing: 12) {
+                    // 主要錯誤訊息
+                    Text("無法載入訓練計劃")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    // 詳細說明文字
+                    Text("網路連線或伺服器發生問題，請檢查網路連線狀況後重新載入")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4)
+                }
+                
+                // 重試按鈕
+                Button(action: retryAction) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("重新載入")
+                    }
                     .font(.body)
-                    .foregroundColor(.red)
-                Button("重試", action: retryAction)
-                    .foregroundColor(.blue)
-                    .padding()
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
             }
-            .padding()
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(12)
+            .padding(24)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+            )
+            .padding(.horizontal, 4)
         }
     }
     
@@ -413,22 +454,19 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("刷新訓練記錄與本週跑量")
         Task {
-            await viewModel.loadCurrentWeekDistance(healthKitManager: healthKitManager)
-            await viewModel.loadWorkoutsForCurrentWeek(healthKitManager: healthKitManager)
+            // 確保 UnifiedWorkoutManager 數據是最新的
+            await viewModel.refreshWorkoutData()
+            
+            // 只有當沒有週課表時才載入，避免不必要的重新載入
+            if viewModel.weeklyPlan == nil {
+                await viewModel.loadWeeklyPlan()
+            }
+            
+            await viewModel.loadCurrentWeekDistance()
+            await viewModel.loadWorkoutsForCurrentWeek()
         }
     }
     
-    // 檢查更新
-    private func checkForUpdates() {
-        if let lastUpdateTime = UserDefaults.standard.object(forKey: "last_weekly_plan_update") as? Date {
-            let hoursSinceLastUpdate = Calendar.current.dateComponents([.hour], from: lastUpdateTime, to: Date()).hour ?? 0
-            if hoursSinceLastUpdate >= 1 {
-                Task {
-                    await viewModel.refreshWeeklyPlan(healthKitManager: healthKitManager)
-                }
-            }
-        }
-    }
 }
 
 extension Notification.Name {

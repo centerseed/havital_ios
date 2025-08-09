@@ -9,11 +9,36 @@ struct HeartRateChartView: View {
     let yAxisRange: (min: Double, max: Double)
     let isLoading: Bool
     let error: String?
+    let dataProvider: String?
+    let deviceModel: String?
+    
+    init(heartRates: [DataPoint], maxHeartRate: String, averageHeartRate: Double?, minHeartRate: String, yAxisRange: (min: Double, max: Double), isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil) {
+        self.heartRates = heartRates
+        self.maxHeartRate = maxHeartRate
+        self.averageHeartRate = averageHeartRate
+        self.minHeartRate = minHeartRate
+        self.yAxisRange = yAxisRange
+        self.isLoading = isLoading
+        self.error = error
+        self.dataProvider = dataProvider
+        self.deviceModel = deviceModel
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("心率變化")
-                .font(.headline)
+            HStack {
+                Text("心率變化")
+                    .font(.headline)
+                
+                Spacer()
+                
+                // Garmin Attribution as required by brand guidelines
+                ConditionalGarminAttributionView(
+                    dataProvider: dataProvider,
+                    deviceModel: deviceModel,
+                    displayStyle: .titleLevel
+                )
+            }
 
             if isLoading {
                 VStack {
@@ -36,79 +61,6 @@ struct HeartRateChartView: View {
                 )
                 .frame(height: 200)
             } else {
-                // 心率範圍信息區塊
-                HStack(spacing: 16) {
-                    // 最高心率
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("最高心率")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text(maxHeartRate.replacingOccurrences(of: " bpm", with: ""))
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.red)
-
-                            Text("bpm")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-
-
-                    // 平均心率 (可選)
-                    if let avgHR = averageHeartRate {
-                        VStack(alignment: .center, spacing: 4) {
-                            Text("平均心率")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                Text("\(Int(avgHR))")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.purple)
-
-                                Text("bpm")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color.purple.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-
-                    // 最低心率
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("最低心率")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text(minHeartRate.replacingOccurrences(of: " bpm", with: ""))
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-
-                            Text("bpm")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
 
                 Chart {
                     ForEach(heartRates) { point in
@@ -203,7 +155,9 @@ struct HeartRateChartView_Previews: PreviewProvider {
                 minHeartRate: "70 bpm",
                 yAxisRange: (min: 50, max: 200),
                 isLoading: false,
-                error: nil
+                error: nil,
+                dataProvider: "Garmin",
+                deviceModel: "Forerunner 955"
             )
             .previewDisplayName("With Data")
             

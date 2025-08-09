@@ -136,8 +136,8 @@ class WorkoutDetailViewModel: ObservableObject {
     
     // 檢查上傳狀態
     func checkUploadStatus() {
-        isUploaded = WorkoutService.shared.isWorkoutUploaded(workout)
-        uploadTime = WorkoutService.shared.getWorkoutUploadTime(workout)
+        isUploaded = WorkoutV2Service.shared.isWorkoutUploaded(workout)
+        uploadTime = WorkoutV2Service.shared.getWorkoutUploadTime(workout)
     }
     
     func loadHeartRateData() {

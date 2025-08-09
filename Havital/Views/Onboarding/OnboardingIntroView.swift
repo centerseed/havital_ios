@@ -88,7 +88,7 @@ struct OnboardingIntroView: View {
                 }
                 // 隱藏的 NavigationLink
                 NavigationLink(
-                    destination: OnboardingView()
+                    destination: DataSourceSelectionView()
                         .navigationBarBackButtonHidden(true),
                     isActive: $navigateToNextStep
                 ) {

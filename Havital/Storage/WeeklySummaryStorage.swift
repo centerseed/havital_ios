@@ -48,4 +48,28 @@ class WeeklySummaryStorage {
         defaults.synchronize()
         print("已清除儲存的週訓練回顧")
     }
+    
+    func getCacheSize() -> Int {
+        var totalSize = 0
+        
+        // 計算 UserDefaults 中快取項目的大小
+        if let data = defaults.data(forKey: summaryKey) {
+            totalSize += data.count
+        }
+        
+        return totalSize
+    }
+}
+
+// MARK: - Cacheable 協議實作
+extension WeeklySummaryStorage: Cacheable {
+    var cacheIdentifier: String { "weekly_summary" }
+    
+    func clearCache() {
+        clearSavedWeeklySummary()
+    }
+    
+    func isExpired() -> Bool {
+        return false // 週總結不自動過期
+    }
 }

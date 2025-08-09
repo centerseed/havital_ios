@@ -164,10 +164,32 @@ class TargetStorage {
             
         return upcomingTargets.first
     }
+    
+    func getCacheSize() -> Int {
+        // 計算 UserDefaults 中快取項目的大小
+        if let data = defaults.data(forKey: targetsKey) {
+            return data.count
+        }
+        return 0
+    }
+}
+
+// MARK: - Cacheable 協議實作
+extension TargetStorage: Cacheable {
+    var cacheIdentifier: String { "targets" }
+    
+    func clearCache() {
+        clearAllTargets()
+    }
+    
+    func isExpired() -> Bool {
+        return false // 目標不自動過期
+    }
 }
 
 // 擴充 Notification.Name (保持不變，除非你有新的通知需求)
 extension Notification.Name {
     static let targetUpdated = Notification.Name("targetUpdated")
     static let supportingTargetUpdated = Notification.Name("supportingTargetUpdated") // 這個通知現在會在任何可能影響支援賽事列表的操作後發送
+    static let garminDataSourceMismatch = Notification.Name("garminDataSourceMismatch") // 當後端數據源是 Garmin 但本地未連接時發送
 }

@@ -6,7 +6,7 @@ protocol ChartDataPoint {
     var formattedValue: String { get }
 }
 
-struct HRVDataPoint: ChartDataPoint {
+struct HRVDataPoint: ChartDataPoint, Codable {
     let date: Date
     let value: Double
     

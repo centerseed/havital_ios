@@ -3,20 +3,27 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var authService: AuthenticationService
-    @EnvironmentObject private var appViewModel: AppViewModel // 新增對 AppViewModel 的環境物件引用
-    // 假設 AppState 用於管理主 App 的其他狀態，例如選中的 Tab
-    // @StateObject private var appState = AppState() // 如果你有 AppState 並且需要它
-    // 移除 fullScreenCover 相關邏輯
+    @EnvironmentObject private var appViewModel: AppViewModel
+    @ObservedObject private var appStateManager = AppStateManager.shared
 
     var body: some View {
         Group {
-            if !authService.isAuthenticated {
+            // 如果 App 正在初始化，顯示載入畫面
+            if appStateManager.shouldShowLoadingScreen {
+                AppLoadingView()
+            }
+            // 如果用戶未認證，顯示登入畫面
+            else if !authService.isAuthenticated {
                 LoginView()
                     .environmentObject(authService)
-            } else if !authService.hasCompletedOnboarding {
+            }
+            // 如果用戶未完成引導，顯示引導畫面
+            else if !authService.hasCompletedOnboarding {
                 OnboardingIntroView()
                     .environmentObject(authService)
-            } else {
+            }
+            // 顯示主要內容
+            else {
                 mainAppContent()
             }
         }
@@ -77,6 +84,20 @@ struct ContentView: View {
         } message: {
             Text(appViewModel.healthKitAlertMessage)
         }
+        .alert("Garmin 連接已中斷", isPresented: $appViewModel.showGarminMismatchAlert) {
+            Button("重新綁定 Garmin") {
+                appViewModel.reconnectGarmin()
+            }
+            Button("切換到 Apple Health") {
+                appViewModel.switchToAppleHealth()
+            }
+            Button("稍後處理", role: .cancel) {
+                appViewModel.showGarminMismatchAlert = false
+            }
+        } message: {
+            Text("您的帳戶設定為使用 Garmin 數據，但目前尚未連接到您的 Garmin 帳號。請選擇重新綁定 Garmin 或切換回 Apple Health。")
+        }
+        .garminReconnectionAlert() // 添加 Garmin 重新連接警告
     }
 
 

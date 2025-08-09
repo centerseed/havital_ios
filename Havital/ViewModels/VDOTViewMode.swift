@@ -1,7 +1,9 @@
 import Combine
 import Foundation
 
-class VDOTChartViewModel: ObservableObject {
+class VDOTChartViewModel: ObservableObject, TaskManageable {
+    // MARK: - TaskManageable Properties (Actor-based)
+    let taskRegistry = TaskRegistry()
     @Published var vdotPoints: [VDOTDataPoint] = []
     @Published var averageVdot: Double = 0
     @Published var latestVdot: Double = 0
@@ -16,6 +18,10 @@ class VDOTChartViewModel: ObservableObject {
     // 初始化時嘗試從本地加載數據
     init() {
         loadLocalData()
+    }
+    
+    deinit {
+        cancelAllTasks()
     }
 
     private func loadLocalData() {
@@ -65,9 +71,20 @@ class VDOTChartViewModel: ObservableObject {
         }
     }
 
-    func fetchVDOTData(limit: Int = 30, forceFetch: Bool = false) async {
+    func fetchVDOTData(limit: Int = 14, forceFetch: Bool = false) async {
+        let taskId = "fetch_vdot_\(limit)_\(forceFetch)"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performFetchVDOTData(limit: limit, forceFetch: forceFetch)
+        }) != nil else {
+            // 任務已在執行中，直接返回
+            return
+        }
+    }
+    
+    private func performFetchVDOTData(limit: Int, forceFetch: Bool) async throws {
         // 如果本地有數據，延遲顯示loading狀態
-        let shouldShowLoading = vdotPoints.isEmpty
+        let shouldShowLoading = await MainActor.run { vdotPoints.isEmpty }
 
         if shouldShowLoading {
             await MainActor.run {
@@ -77,11 +94,12 @@ class VDOTChartViewModel: ObservableObject {
         }
 
         // 檢查是否需要從後端獲取數據
-        // 如果30秒內已獲取過數據且不是強制刷新，則使用本地緩存
-        if !needUpdatedHrRange && !forceFetch && !storage.shouldRefreshData(cacheTimeInSeconds: 10)
-            && !vdotPoints.isEmpty
+        // 如果30分鐘內已獲取過數據且不是強制刷新，則使用本地緩存
+        let isEmpty = await MainActor.run { vdotPoints.isEmpty }
+        if !needUpdatedHrRange && !forceFetch && !storage.shouldRefreshData(cacheTimeInSeconds: 1800)
+            && !isEmpty
         {
-            print("使用30秒內的本地緩存VDOT數據")
+            print("使用30分鐘內的本地緩存VDOT數據")
 
             if shouldShowLoading {
                 await MainActor.run {
@@ -97,7 +115,7 @@ class VDOTChartViewModel: ObservableObject {
             // 使用 APIClient 取得 VDOT 資料，附加 limit 參數
             let response: VDOTResponse = try await APIClient.shared.request(
                 VDOTResponse.self,
-                path: "/workout/vdots?limit=\(limit)")
+                path: "/v2/workouts/vdots?limit=\(limit)")
 
             let vdotEntries = response.data.vdots
             let points = vdotEntries.map { entry in
@@ -113,32 +131,33 @@ class VDOTChartViewModel: ObservableObject {
             let calculatedLatest = latestEntry?.dynamicVdot ?? 0.0
             let calculatedAverage = latestEntry?.weightVdot ?? 0.0
 
-            // 計算適當的Y軸範圍
-            let values = points.map { $0.value }
-            var yMin: Double = 0
-            var yMax: Double = 40
-
-            if let minValue = values.min(), let maxValue = values.max() {
-                // 添加5%的padding
-                let padding = (maxValue - minValue) * 0.05
-                yMin = Swift.max(minValue - padding, 0)  // 確保不低於0
-                yMax = maxValue + padding
-
-                // 如果範圍太小，擴大它
-                let minimumRange = 5.0  // 最小範圍5個單位
-                let range = yMax - yMin
-                if range < minimumRange {
-                    let additionalPadding = (minimumRange - range) / 2
-                    yMin = Swift.max(yMin - additionalPadding, 0)
-                    yMax = yMax + additionalPadding
-                }
-            }
-
             await MainActor.run {
                 self.vdotPoints = points
                 self.averageVdot = calculatedAverage
                 self.latestVdot = calculatedLatest
                 self.needUpdatedHrRange = response.data.needUpdatedHrRange
+                
+                // 計算適當的Y軸範圍
+                let values = points.map { $0.value }
+                var yMin: Double = 0
+                var yMax: Double = 40
+
+                if let minValue = values.min(), let maxValue = values.max() {
+                    // 添加5%的padding
+                    let padding = (maxValue - minValue) * 0.05
+                    yMin = Swift.max(minValue - padding, 0)  // 確保不低於0
+                    yMax = maxValue + padding
+
+                    // 如果範圍太小，擴大它
+                    let minimumRange = 5.0  // 最小範圍5個單位
+                    let range = yMax - yMin
+                    if range < minimumRange {
+                        let additionalPadding = (minimumRange - range) / 2
+                        yMin = Swift.max(yMin - additionalPadding, 0)
+                        yMax = yMax + additionalPadding
+                    }
+                }
+                
                 self.yAxisRange = yMin...yMax
                 self.isLoading = false
 
@@ -160,11 +179,22 @@ class VDOTChartViewModel: ObservableObject {
                 }
                 self.isLoading = false
             }
+            throw error
         }
     }
 
     // 強制刷新數據（清除本地緩存並重新獲取）
     func refreshVDOTData() async {
+        let taskId = "refresh_vdot"
+        
+        guard await executeTask(id: taskId, operation: {
+            return try await self.performRefreshVDOTData()
+        }) != nil else {
+            return
+        }
+    }
+    
+    private func performRefreshVDOTData() async throws {
         await MainActor.run {
             isLoading = true
             error = nil
@@ -174,7 +204,7 @@ class VDOTChartViewModel: ObservableObject {
         storage.clearVDOTData()
 
         // 重新獲取數據（強制從後端獲取）
-        await fetchVDOTData(forceFetch: true)
+        try await performFetchVDOTData(limit: 14, forceFetch: true)
     }
 
     // 通過提供的日期獲取VDOT

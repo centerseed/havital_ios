@@ -69,33 +69,17 @@ struct VDOTChartView: View {
                 .frame(height: 80)
                 .frame(maxWidth: .infinity)
             } else if let error = viewModel.error {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                    Button("重試") {
-                        Task {
-                            await viewModel.fetchVDOTData()
-                        }
+                EmptyStateView(
+                    type: .loadingFailed,
+                    customMessage: error,
+                    showRetryButton: true
+                ) {
+                    Task {
+                        await viewModel.fetchVDOTData()
                     }
-                    .padding(.top)
-                    .foregroundColor(.blue)
                 }
-                .frame(height: 100)
-                .frame(maxWidth: .infinity)
             } else if viewModel.vdotPoints.isEmpty {
-                VStack {
-                    Image(systemName: "chart.line.downtrend.xyaxis")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                    Text("暫無跑力數據")
-                        .foregroundColor(.secondary)
-                }
-                .frame(height: 100)
-                .frame(maxWidth: .infinity)
+                EmptyStateView(type: .vdotData)
             } else {
                 // 顯示圖表內容
                 vdotContent

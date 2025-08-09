@@ -69,7 +69,7 @@ struct WeekSelectorSheet: View {
                                     Button {
                                         Task {
                                             viewModel.selectedWeek = item.weekIndex
-                                            await viewModel.fetchWeekPlan(week: item.weekIndex, healthKitManager: HealthKitManager())
+                                            await viewModel.fetchWeekPlan(week: item.weekIndex)
                                             isPresented = false
                                         }
                                     } label: {

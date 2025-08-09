@@ -3,6 +3,7 @@ import Charts
 
 struct HRVTrendChartView: View {
     @StateObject private var viewModel: HRVChartViewModel
+    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     
     init() {
         _viewModel = StateObject(wrappedValue: HRVChartViewModel(healthKitManager: HealthKitManager()))
@@ -14,15 +15,19 @@ struct HRVTrendChartView: View {
                 ProgressView("載入中...")
             } else if viewModel.hrvData.isEmpty {
                 VStack(spacing: 16) {
-                    ContentUnavailableView(
-                        "沒有 HRV 數據",
-                        systemImage: "waveform.path.ecg",
-                        description: Text("無法獲取心率變異性數據")
-                    )
+                    EmptyStateView(type: .hrvData)
+                    
                     // 診斷按鈕
                     Button("診斷 HRV 問題") {
                         Task { await viewModel.fetchDiagnostics() }
                     }
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(Color.blue)
+                    .cornerRadius(8)
+                    
                     // 顯示診斷結果
                     if let diag = viewModel.diagnosticsText {
                         Text(diag)
@@ -33,6 +38,21 @@ struct HRVTrendChartView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Header with title and Garmin attribution in same row
+                    HStack {
+                        Text("心率變異性 (HRV) 趨勢")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        // Garmin Attribution as required by brand guidelines
+                        ConditionalGarminAttributionView(
+                            dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    
                     Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
                         ForEach(HRVChartViewModel.TimeRange.allCases, id: \.self) { range in
                             Text(range.rawValue).tag(range)
@@ -57,41 +77,10 @@ struct HRVTrendChartView: View {
                     }
                     .chartYScale(domain: viewModel.yAxisRange)
                     .chartXAxis {
-                        switch viewModel.selectedTimeRange {
-                        case .week:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    AxisValueLabel {
-                                        Text(formatDate(date))
-                                    }
-                                }
-                            }
-                        case .month:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    let calendar = Calendar.current
-                                    let day = calendar.component(.day, from: date)
-                                    if day == 1 || day % 5 == 0 {
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                        }
-                                        AxisTick()
-                                        AxisGridLine()
-                                    }
-                                }
-                            }
-                        case .threeMonths:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    let calendar = Calendar.current
-                                    let day = calendar.component(.day, from: date)
-                                    if day == 1 || day % 5 == 0 {
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                        }
-                                        AxisTick()
-                                        AxisGridLine()
-                                    }
+                        AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel {
+                                    Text(formatDate(date))
                                 }
                             }
                         }

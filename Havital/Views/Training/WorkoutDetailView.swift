@@ -10,7 +10,13 @@ struct WorkoutDetailView: View {
     @State private var isCalculatingVDOT = false
     @State private var summaryTypeChinese: String?
     @State private var hrZonePct: ZonePct?
+<<<<<<< HEAD
     @State private var isReuploading = false
+=======
+    @State private var shareImage: UIImage?
+    @State private var showShareSheet = false
+    @State private var isGeneratingScreenshot = false
+>>>>>>> garmin
 
     private let vdotCalculator = VDOTCalculator()
 
@@ -79,7 +85,7 @@ struct WorkoutDetailView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             // 訓練類型和日期
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("\(summaryTypeChinese ?? viewModel.workout.workoutActivityType.name)")
+                                Text("\(summaryTypeChinese ?? viewModel.workout.workoutActivityType.name.workoutTypeDisplayName())")
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)
@@ -171,7 +177,15 @@ struct WorkoutDetailView: View {
                 // 重新上傳按鈕（非顯眼）
                 Button(action: {
                     Task {
-                        await reuploadWorkout()
+                        do {
+                            let result = try await WorkoutV2Service.shared.uploadWorkout(viewModel.workout, force: true)
+                            await MainActor.run {
+                                viewModel.checkUploadStatus()
+                                loadWorkoutData()
+                            }
+                        } catch {
+                            print("手動上傳失敗: \(error)")
+                        }
                     }
                 }) {
                     HStack(spacing: 4) {
@@ -192,6 +206,21 @@ struct WorkoutDetailView: View {
         .navigationTitle("訓練詳情")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    shareWorkout()
+                } label: {
+                    if isGeneratingScreenshot {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundStyle(.primary)
+                    }
+                }
+                .disabled(isGeneratingScreenshot)
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     dismiss()
@@ -212,6 +241,11 @@ struct WorkoutDetailView: View {
         .id(viewModel.workoutId)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let image = shareImage {
+                ActivityViewController(activityItems: [image])
+            }
         }
     }
 
@@ -332,9 +366,9 @@ struct WorkoutDetailView: View {
                 }
             }
             // 統一組 workoutId
-            let summaryId = WorkoutService.shared.makeWorkoutId(for: viewModel.workout)
+            let summaryId = WorkoutV2Service.shared.makeWorkoutId(for: viewModel.workout)
             // 嘗試快取
-            if let cached = WorkoutService.shared.getCachedWorkoutSummary(for: summaryId) {
+            if let cached = WorkoutV2Service.shared.getCachedWorkoutSummary(for: summaryId) {
                 await MainActor.run {
                     self.dynamicVDOT = cached.vdot
                     viewModel.averageHeartRate = cached.avgHR
@@ -345,8 +379,8 @@ struct WorkoutDetailView: View {
             }
             // 向後端請求
             do {
-                let summary = try await WorkoutService.shared.getWorkoutSummary(workoutId: summaryId)
-                WorkoutService.shared.saveCachedWorkoutSummary(summary, for: summaryId)
+                let summary = try await WorkoutV2Service.shared.getWorkoutSummary(workoutId: summaryId)
+                WorkoutV2Service.shared.saveCachedWorkoutSummary(summary, for: summaryId)
                 await MainActor.run {
                     self.dynamicVDOT = summary.vdot
                     viewModel.averageHeartRate = summary.avgHR
@@ -435,36 +469,126 @@ struct WorkoutDetailView: View {
         let remainingSeconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, remainingSeconds)
     }
-
-    private func reuploadWorkout() async {
-        await MainActor.run {
-            self.isReuploading = true
-        }
+    
+    // MARK: - 分享功能
+    
+    private func shareWorkout() {
+        isGeneratingScreenshot = true
         
-        defer {
-            Task { @MainActor in
-                self.isReuploading = false
+        LongScreenshotCapture.captureView(
+            VStack(spacing: 16) {
+                // 頂部卡片：訓練基本資訊
+                VStack(spacing: 12) {
+                    // 動態跑力和訓練負荷 + 基本資訊
+                    HStack(spacing: 20) {
+                        // 左側：動態跑力和訓練負荷
+                        VStack(spacing: 20) {
+                            // 動態跑力
+                            VStack(alignment: .center, spacing: 4) {
+                                Text("動態跑力")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                if let vdot = dynamicVDOT {
+                                    Text(String(format: "%.1f", vdot))
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.blue)
+                                } else {
+                                    Text("--")
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            // 訓練負荷
+                            if let trimp = viewModel.trainingLoad {
+                                VStack(alignment: .center, spacing: 4) {
+                                    Text("訓練負荷")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text(String(format: "%.1f", trimp))
+                                        .font(.system(size: 30, weight: .bold))
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                        // 右側：基本資訊
+                        VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("\(summaryTypeChinese ?? viewModel.workout.workoutActivityType.name.workoutTypeDisplayName())")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                    
+                                Text(formatDate(viewModel.workout.startDate))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Divider()
+                                .padding(.horizontal)
+                            
+                            if let distance = viewModel.distance {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "figure.walk")
+                                        .font(.subheadline)
+                                        .frame(width: 16)
+                                    Text(distance)
+                                        .font(.subheadline)
+                                }
+                                .foregroundColor(.secondary)
+                            }
+                            
+                            HStack(spacing: 6) {
+                                Image(systemName: "clock")
+                                    .font(.subheadline)
+                                    .frame(width: 16)
+                                Text(viewModel.duration)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(.secondary)
+                            
+                            if let pace = viewModel.pace {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "stopwatch")
+                                        .font(.subheadline)
+                                        .frame(width: 16)
+                                    Text(pace)
+                                        .font(.subheadline)
+                                }
+                                .foregroundColor(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(radius: 2)
+                }
+                
+                // 心率圖表
+                heartRateChartSection
+                
+                // 配速圖表
+                if !viewModel.paces.isEmpty {
+                    paceChartSection
+                }
+                
+                // 心率區間分佈
+                heartRateZoneSection
             }
-        }
-        
-        do {
-            // 確認 workout_id 一致性
-            let workoutId = WorkoutService.shared.makeWorkoutId(for: viewModel.workout)
-            print("重新上傳 workout_id: \(workoutId)")
-            
-            // 執行重新上傳
-            let uploadResult = await WorkoutBackgroundUploader.shared.uploadPendingWorkouts(workouts: [viewModel.workout], force: true)
-            
-            await MainActor.run {
-                viewModel.checkUploadStatus()
-                // 重新載入資料，使用相同的 workout_id
-                loadWorkoutData()
+            .padding()
+            .background(Color(.systemGray6))
+        ) { image in
+            DispatchQueue.main.async {
+                self.isGeneratingScreenshot = false
+                self.shareImage = image
+                self.showShareSheet = true
             }
-            
-            print("重新上傳完成，結果: \(uploadResult)")
-        } catch {
-            print("重新上傳失敗: \(error)")
-            // 可以在這裡添加錯誤提示
         }
     }
 }
