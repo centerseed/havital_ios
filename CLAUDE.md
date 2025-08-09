@@ -152,7 +152,152 @@ let grouped = Dictionary(grouping: workouts) { workout in
 var activeTasks: [TaskID: Task<Void, Never>] = [:]
 ```
 
-### 6. Debugging & Logging Strategy
+### 6. API 服務架構原則
+
+#### 職責分離架構 (Separation of Concerns)
+```
+📱 UI Layer (Views)
+    ↓ 觸發操作
+🧠 ViewModel Layer (TaskManageable)
+    ↓ 業務協調
+📊 Manager Layer (TaskManageable + 雙軌緩存)
+    ↓ 數據管理
+🔄 Service Layer (業務 API 包裝)
+    ↓ API 調用
+🌐 HTTPClient (純 HTTP 通信)
+📋 APIParser (JSON 解析)
+💾 Storage Layer (本地緩存)
+```
+
+#### 雙軌緩存策略 (Cache-First with Background Refresh)
+**核心原則**: 立即顯示緩存內容，同時在背景更新數據
+
+```swift
+// ✅ CORRECT - 雙軌數據載入
+func loadWeeklyPlan() async {
+    await executeTask(id: TaskID("load_weekly_plan")) { [weak self] in
+        guard let self = self else { return }
+        
+        // 軌道 A: 立即顯示緩存 (同步)
+        if let cachedPlan = storage.getCachedPlan() {
+            await self.updateUI(with: .ready(cachedPlan))
+        }
+        
+        // 軌道 B: 背景更新 (非同步)
+        Task.detached { [weak self] in
+            await self?.refreshDataInBackground()
+        }
+    }
+}
+
+private func refreshDataInBackground() async {
+    await executeTask(id: TaskID("refresh_weekly_plan")) { [weak self] in
+        let latestPlan = try await service.getWeeklyPlanById(planId)
+        self?.storage.savePlan(latestPlan)
+        await self?.updateUI(with: .ready(latestPlan))
+    }
+}
+```
+
+#### API 層職責定義
+| 層級 | 職責 | 不負責 |
+|------|------|--------|
+| **HTTPClient** | HTTP 通信、認證、網路錯誤 | JSON 解析、業務邏輯 |
+| **APIParser** | JSON 解析、類型轉換、解析錯誤 | HTTP 通信、業務邏輯 |
+| **Service** | API 調用包裝、業務錯誤處理 | 緩存管理、UI 狀態 |
+| **Manager** | 緩存策略、業務邏輯協調 | 具體 API 實現 |
+
+#### 統一解析模式
+```swift
+protocol APIParser {
+    func parse<T: Codable>(_ type: T.Type, from data: Data) throws -> T
+}
+
+// ✅ CORRECT - Model 驅動的解析
+let response: WorkoutListResponse = try parser.parse(
+    WorkoutListResponse.self, 
+    from: jsonData
+)
+```
+
+#### 任務管理最佳實踐
+
+##### 1. 標準化任務命名
+```swift
+// ✅ CORRECT - 具有唯一性的任務 ID
+TaskID("load_weekly_plan_\(week)")          // 包含參數的唯一 ID
+TaskID("background_refresh_overview")        // 背景任務
+TaskID("generate_new_week_\(selectedWeek)")  // 具有副作用的操作
+```
+
+##### 2. 雙軌載入實現模式
+```swift
+// ✅ CORRECT - 完整的雙軌緩存實現
+class DataManager: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+    
+    func loadData() async {
+        await executeTask(id: TaskID("load_data_\(identifier)")) { [weak self] in
+            guard let self = self else { return }
+            
+            // 軌道 A: 立即顯示緩存 (同步)
+            if let cachedData = cache.loadData() {
+                await MainActor.run {
+                    self.data = cachedData
+                    self.isLoading = false
+                }
+                
+                // 軌道 B: 背景更新 (非同步)
+                Task.detached { [weak self] in
+                    await self?.executeTask(id: TaskID("background_refresh_\(identifier)")) {
+                        await self?.refreshInBackground()
+                    }
+                }
+                return
+            }
+            
+            // 沒有緩存時直接從 API 載入
+            let freshData = try await service.fetchData()
+            await MainActor.run { self.data = freshData }
+            cache.saveData(freshData)
+        }
+    }
+    
+    private func refreshInBackground() async {
+        do {
+            let latestData = try await service.fetchData()
+            await MainActor.run { self.data = latestData }
+            cache.saveData(latestData)
+        } catch {
+            // 背景更新失敗不影響已顯示的緩存
+            Logger.debug("背景更新失敗，保持現有緩存: \(error.localizedDescription)")
+        }
+    }
+}
+```
+
+##### 3. 取消錯誤處理標準
+```swift
+// ✅ CORRECT - 標準化的取消錯誤處理
+} catch {
+    let nsError = error as NSError
+    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+        Logger.debug("任務被取消，忽略錯誤")
+        return // 不更新 UI 狀態
+    }
+    
+    // 處理真實錯誤
+    await MainActor.run { self.syncError = error.localizedDescription }
+    Logger.error("操作失敗: \(error.localizedDescription)")
+}
+```
+
+##### 4. 任務優先級管理
+- **高優先級**: UI 相關的數據載入 (使用 `executeTask`)  
+- **低優先級**: 背景更新 (使用 `Task.detached`)
+- **防重複**: 相同 TaskID 不會重複執行
+
+### 7. Debugging & Logging Strategy
 
 #### Essential Debug Information
 ```swift

@@ -424,11 +424,8 @@ class GarminManager: NSObject, ObservableObject {
         }
 
         do {
-            // 呼叫後端 API 移除連接 (使用 RESTful 標準)
-            let response = try await APIClient.shared.requestWithStatus(
-                path: "/connect/garmin",
-                method: "DELETE"
-            )
+            // 使用統一架構的 GarminDisconnectService 移除連接
+            let response = try await GarminDisconnectService.shared.removeGarminConnection()
             
             if (200...299).contains(response.statusCode) {
                 await MainActor.run {
@@ -499,18 +496,9 @@ class GarminManager: NSObject, ObservableObject {
     /// 將 PKCE 參數發送給後端儲存
     private func storePKCEParameters(codeVerifier: String, codeChallenge: String, state: String) async {
         do {
-            let requestData = [
-                "code_verifier": codeVerifier,
-                "code_challenge": codeChallenge,
-                "state": state
-            ]
-            
-            let jsonData = try JSONSerialization.data(withJSONObject: requestData)
-            
-            let response = try await APIClient.shared.requestWithStatus(
-                path: "/connect/garmin/store-pkce",
-                method: "POST",
-                body: jsonData
+            let response = try await GarminDisconnectService.shared.storePKCE(
+                codeVerifier: codeVerifier, 
+                state: state
             )
             
             if (200...299).contains(response.statusCode) {

@@ -111,31 +111,31 @@ class VDOTChartViewModel: ObservableObject, TaskManageable {
         }
 
         do {
-            print("從後端獲取VDOT數據...")
-            // 使用 APIClient 取得 VDOT 資料，附加 limit 參數
-            let response: VDOTResponse = try await APIClient.shared.request(
-                VDOTResponse.self,
-                path: "/v2/workouts/vdots?limit=\(limit)")
-
-            let vdotEntries = response.data.vdots
-            let points = vdotEntries.map { entry in
+            print("從 VDOTManager 獲取 VDOT 數據...")
+            // 使用重構後的 VDOTManager 獲取數據
+            VDOTManager.shared.dataLimit = limit
+            await VDOTManager.shared.loadData()
+            
+            // 直接使用 VDOTManager 的資料點
+            let points = VDOTManager.shared.vdotDataPoints.map { point in
                 VDOTDataPoint(
-                    date: Date(timeIntervalSince1970: entry.datetime),
-                    value: entry.dynamicVdot,
-                    weightVdot: entry.weightVdot
+                    date: point.date,
+                    value: point.dynamicVdot,
+                    weightVdot: point.weightVdot
                 )
             }.sorted { $0.date < $1.date }
 
             // 最新一筆資料: 動態與加權跑力
-            let latestEntry = vdotEntries.max(by: { $0.datetime < $1.datetime })
-            let calculatedLatest = latestEntry?.dynamicVdot ?? 0.0
-            let calculatedAverage = latestEntry?.weightVdot ?? 0.0
+            let latestPoint = VDOTManager.shared.vdotDataPoints.max(by: { $0.date < $1.date })
+            let calculatedLatest = latestPoint?.dynamicVdot ?? 0.0
+            let calculatedAverage = latestPoint?.weightVdot ?? 0.0
 
             await MainActor.run {
                 self.vdotPoints = points
                 self.averageVdot = calculatedAverage
                 self.latestVdot = calculatedLatest
-                self.needUpdatedHrRange = response.data.needUpdatedHrRange
+                // 使用 VDOTManager 的 needUpdatedHrRange 狀態
+                self.needUpdatedHrRange = VDOTManager.shared.needUpdatedHrRange
                 
                 // 計算適當的Y軸範圍
                 let values = points.map { $0.value }
@@ -163,7 +163,7 @@ class VDOTChartViewModel: ObservableObject, TaskManageable {
 
                 // 保存到本地
                 self.storage.saveVDOTData(
-                    points: points, needUpdatedHrRange: response.data.needUpdatedHrRange)
+                    points: points, needUpdatedHrRange: VDOTManager.shared.needUpdatedHrRange)
             }
 
             print("VDOT數據獲取完成，已更新本地緩存")

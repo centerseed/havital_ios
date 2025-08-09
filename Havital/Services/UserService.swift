@@ -6,25 +6,67 @@ class UserService {
     static let shared = UserService()
     private let userPreferenceManager = UserPreferenceManager.shared
     
-    private init() {}
+    // MARK: - New Architecture Dependencies
+    private let httpClient: HTTPClient
+    private let parser: APIParser
+    
+    private init(httpClient: HTTPClient = DefaultHTTPClient.shared, 
+                 parser: APIParser = DefaultAPIParser.shared) {
+        self.httpClient = httpClient
+        self.parser = parser
+    }
+    
+    // MARK: - Unified API Call Method
+    
+    /// 統一的 API 調用方法
+    private func makeAPICall<T: Codable>(
+        _ type: T.Type,
+        path: String,
+        method: HTTPMethod = .GET,
+        body: Data? = nil
+    ) async throws -> T {
+        do {
+            let rawData = try await httpClient.request(path: path, method: method, body: body)
+            return try ResponseProcessor.extractData(type, from: rawData, using: parser)
+        } catch let apiError as APIError where apiError.isCancelled {
+            // 忽略取消錯誤
+            throw SystemError.taskCancelled
+        } catch {
+            // 其他錯誤按原樣傳遞
+            throw error
+        }
+    }
+    
+    /// 無回應數據的 API 調用
+    private func makeAPICallNoResponse(
+        path: String,
+        method: HTTPMethod = .POST,
+        body: Data? = nil
+    ) async throws {
+        do {
+            _ = try await httpClient.request(path: path, method: method, body: body)
+        } catch let apiError as APIError where apiError.isCancelled {
+            // 忽略取消錯誤
+            throw SystemError.taskCancelled
+        } catch {
+            // 其他錯誤按原樣傳遞
+            throw error
+        }
+    }
     
     func createTarget(_ target: Target) async throws {
-        // 使用 APIClient 建立賽事目標
-        try await APIClient.shared.requestNoResponse(
-            path: "/user/targets", method: "POST",
-            body: try JSONEncoder().encode(target))
+        let body = try JSONEncoder().encode(target)
+        try await makeAPICallNoResponse(path: "/user/targets", method: .POST, body: body)
     }
    
     func updatePersonalBestData(_ performanceData: [String: Any]) async throws {
-        try await APIClient.shared.requestNoResponse(
-            path: "/user/pb/race_run", method: "POST",
-            body: try JSONSerialization.data(withJSONObject: performanceData))
+        let body = try JSONSerialization.data(withJSONObject: performanceData)
+        try await makeAPICallNoResponse(path: "/user/pb/race_run", method: .POST, body: body)
     }
 
     func updateUserData(_ userData: [String: Any]) async throws {
-        try await APIClient.shared.requestNoResponse(
-            path: "/user", method: "PUT",
-            body: try JSONSerialization.data(withJSONObject: userData))
+        let body = try JSONSerialization.data(withJSONObject: userData)
+        try await makeAPICallNoResponse(path: "/user", method: .PUT, body: body)
     }
     
     /// 更新數據源設定到後端
@@ -38,11 +80,13 @@ class UserService {
     }
     
     func getUserProfile() -> AnyPublisher<User, Error> {
-        // 使用 APIClient 取得用戶資料
-        return Future<User, Error> { promise in
+        return Future<User, Error> { [weak self] promise in
             Task {
                 do {
-                    let user = try await APIClient.shared.request(User.self, path: "/user")
+                    guard let self = self else {
+                        throw APIError.system(SystemError.unknownError("Service deallocated"))
+                    }
+                    let user = try await self.makeAPICall(User.self, path: "/user")
                     promise(.success(user))
                 } catch {
                     promise(.failure(error))
@@ -55,69 +99,71 @@ class UserService {
     func loginWithGoogle(idToken: String) async throws -> User {
         print("嘗試使用 Google 登入，ID Token 長度: \(idToken.count)")
         
-        // 確保請求正確的URL
-        guard let url = URL(string: APIConfig.baseURL + "/login/google") else {
-            throw URLError(.badURL)
-        }
-        
-        // 建立請求 - 根據JS代碼匹配格式
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // 關鍵修改：將 idToken 放在 Authorization 標頭而不是請求體中
-        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-        
-        // 不需要請求體
-        print("發送登入請求到: \(url.absoluteString)")
+        // Google 登入需要特殊的認證處理，使用自定義邏輯
+        let data = try await makeGoogleLoginRequest(idToken: idToken)
+        return try await parseGoogleLoginResponse(data: data)
+    }
+    
+    // MARK: - Google Login Helper Methods
+    
+    /// Google 登入專用的請求方法（需要特殊的認證頭）
+    private func makeGoogleLoginRequest(idToken: String) async throws -> Data {
+        print("發送 Google 登入請求")
         print("Authorization: Bearer \(idToken.prefix(20))...")
         
-        // 發送請求
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // 使用自定義 Authorization header
+        let customHeaders = ["Authorization": "Bearer \(idToken)"]
         
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("回應不是 HTTP 回應")
-            throw URLError(.badServerResponse)
+        do {
+            return try await httpClient.request(
+                path: "/login/google", 
+                method: .POST, 
+                body: nil, 
+                customHeaders: customHeaders
+            )
+        } catch {
+            print("Google 登入請求失敗: \(error.localizedDescription)")
+            throw error
         }
-        
-        print("Google 登入回應狀態: \(httpResponse.statusCode)")
-        
-        // 檢查回應
-        if httpResponse.statusCode >= 400 {
-            let responseText = String(data: data, encoding: .utf8) ?? ""
-            print("登入錯誤回應: \(responseText)")
-            throw NSError(domain: "UserService", code: httpResponse.statusCode,
-                          userInfo: [NSLocalizedDescriptionKey: responseText])
+    }
+    
+    /// 解析 Google 登入回應的專用方法
+    private func parseGoogleLoginResponse(data: Data) async throws -> User {
+        do {
+            // 嘗試使用統一的解析器
+            return try ResponseProcessor.extractData(User.self, from: data, using: parser)
+        } catch {
+            // 如果統一解析失敗，使用備用解析邏輯（保持相容性）
+            return try await parseGoogleLoginResponseFallback(data: data)
         }
+    }
+    
+    /// Google 登入回應的備用解析方法（保持向後相容）
+    private func parseGoogleLoginResponseFallback(data: Data) async throws -> User {
+        print("嘗試備用解析方法")
         
-        // 解析回應數據
         do {
             // 嘗試正常解析
-            do {
-                let user = try JSONDecoder().decode(User.self, from: data)
-                print("成功解析用戶資料: \(user.data.displayName ?? "")")
-                return user
-            } catch {
-                // 如果正常解析失敗，查看是否回應格式為 { data: User }
-                print("嘗試備用解析方法")
-                if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let responseData = jsonObject["data"] as? [String: Any] {
-                    // 如果有 data 欄位，嘗試只解析該欄位
-                    let dataJSON = try JSONSerialization.data(withJSONObject: responseData)
-                    let userProfile = try JSONDecoder().decode(UserProfileData.self, from: dataJSON)
-                    let user = User(data: userProfile)
-                    print("成功使用備用方法解析用戶資料: \(user.data.displayName ?? "")")
-                    return user
-                } else {
-                    // 顯示原始 JSON 以便調試
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("無法解析的 JSON 資料: \(jsonString)")
-                    }
-                    throw error
-                }
-            }
+            let user = try JSONDecoder().decode(User.self, from: data)
+            print("成功解析用戶資料: \(user.data.displayName ?? "")")
+            return user
         } catch {
-            print("解析用戶數據失敗: \(error.localizedDescription)")
-            throw error
+            // 如果正常解析失敗，查看是否回應格式為 { data: User }
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let responseData = jsonObject["data"] as? [String: Any] {
+                // 如果有 data 欄位，嘗試只解析該欄位
+                let dataJSON = try JSONSerialization.data(withJSONObject: responseData)
+                let userProfile = try JSONDecoder().decode(UserProfileData.self, from: dataJSON)
+                let user = User(data: userProfile)
+                print("成功使用備用方法解析用戶資料: \(user.data.displayName ?? "")")
+                return user
+            } else {
+                // 顯示原始 JSON 以便調試
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("無法解析的 JSON 資料: \(jsonString)")
+                }
+                throw error
+            }
         }
     }
     
@@ -164,9 +210,6 @@ class UserService {
     
     // 刪除用戶帳戶
     func deleteUser(userId: String) async throws {
-        try await APIClient.shared.requestNoResponse(
-            path: "/user/\(userId)", 
-            method: "DELETE"
-        )
+        try await makeAPICallNoResponse(path: "/user/\(userId)", method: .DELETE)
     }
 }

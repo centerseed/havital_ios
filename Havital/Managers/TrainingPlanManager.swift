@@ -70,15 +70,55 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     }
     
     func loadData() async {
-        await executeDataLoadingTask(id: "load_weekly_plan") {
-            try await self.performLoadWeeklyPlan()
+        await executeTask(id: TaskID("load_weekly_plan_\(selectedWeek)")) { [weak self] () -> Void in
+            guard let self = self else { return }
+            
+            do {
+                try await self.performLoadWeeklyPlan()
+            } catch {
+                // 處理載入錯誤，但不影響已有的緩存數據
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("週計劃載入任務被取消，忽略錯誤")
+                    return
+                }
+                
+                await MainActor.run {
+                    self.syncError = error.localizedDescription
+                    
+                    // 只有在沒有任何數據時才顯示錯誤狀態
+                    if self.currentWeeklyPlan == nil {
+                        self.updatePlanStatus(for: nil)
+                    }
+                }
+                
+                Logger.error("週計劃載入失敗: \(error.localizedDescription)")
+            }
         }
     }
     
     @discardableResult
     func refreshData() async -> Bool {
-        await executeDataLoadingTask(id: "refresh_weekly_plan") {
-            try await self.performRefreshWeeklyPlan()
+        return await executeTask(id: TaskID("force_refresh_weekly_plan_\(selectedWeek)")) { [weak self] () -> Void in
+            guard let self = self else { return }
+            
+            do {
+                try await self.performRefreshWeeklyPlan()
+            } catch {
+                // 處理強制刷新錯誤
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("週計劃強制刷新任務被取消，忽略錯誤")
+                    return
+                }
+                
+                await MainActor.run {
+                    self.syncError = error.localizedDescription
+                }
+                
+                Logger.error("週計劃強制刷新失敗: \(error.localizedDescription)")
+                throw error
+            }
         } != nil
     }
     
@@ -120,25 +160,23 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     // MARK: - Core Training Plan Logic
     
     private func performLoadWeeklyPlan() async throws {
-        // 優先從快取載入，立即顯示避免閃爍
+        Logger.debug("開始雙軌載入週計劃，週次: \(selectedWeek)")
+        
+        // 軌道 A: 立即顯示緩存 (同步執行)
         if let cachedPlan = cacheManager.loadWeeklyPlan(for: selectedWeek) {
             await MainActor.run {
                 self.currentWeeklyPlan = cachedPlan
                 self.updatePlanStatus(for: cachedPlan)
-                // 從緩存載入時不顯示 loading 狀態
                 self.isLoading = false
-                self.lastSyncTime = Date()
+                self.lastSyncTime = Date() // 使用當前時間作為緩存載入時間
             }
             
-            // 如果緩存仍然有效，直接返回
-            if !cacheManager.shouldRefresh() {
-                return
-            }
+            Logger.debug("軌道 A: 成功顯示緩存的週計劃")
             
-            // 如果需要刷新，使用 TaskManageable 機制在背景進行
-            Task {
-                await self.executeTask(id: "background_refresh_weekly_plan") {
-                    await self.backgroundRefreshWeeklyPlan()
+            // 軌道 B: 背景更新 (非同步執行)
+            Task.detached { [weak self] in
+                await self?.executeTask(id: TaskID("background_refresh_weekly_plan_\(self?.selectedWeek ?? 0)")) { () -> Void in
+                    await self?.performBackgroundRefresh()
                 }
             }
             return
@@ -203,54 +241,71 @@ class TrainingPlanManager: ObservableObject, DataManageable {
         NotificationCenter.default.post(name: .trainingPlanDidUpdate, object: nil)
     }
     
-    /// 背景刷新週計劃（不顯示 loading 狀態），包含週計劃同步
-    private func backgroundRefreshWeeklyPlan() async {
+    /// 雙軌策略：背景更新最新數據
+    private func performBackgroundRefresh() async {
+        Logger.debug("軌道 B: 開始背景更新週計劃")
+        
         do {
-            // 並行獲取 overview 和當週計劃
-            async let overviewTask = service.getTrainingPlanOverview()
-            async let weeklyPlanTask = fetchCurrentWeekPlan()
+            let latestPlan = try await fetchLatestWeeklyPlan()
             
-            let overview = try await overviewTask
-            let weeklyPlan = await weeklyPlanTask // 可能是 nil（404 情況）
-            
+            // 更新 UI 和緩存
             await MainActor.run {
-                self.trainingOverview = overview
-                self.currentWeeklyPlan = weeklyPlan
-                self.updatePlanStatus(for: weeklyPlan) // 這會正確處理 404 情況，顯示週回顧按鈕
+                self.currentWeeklyPlan = latestPlan
+                self.updatePlanStatus(for: latestPlan)
                 self.lastSyncTime = Date()
                 self.syncError = nil
             }
             
-            // 更新快取
-            cacheManager.saveWeeklyPlan(weeklyPlan, for: selectedWeek)
+            // 保存到緩存
+            cacheManager.saveWeeklyPlan(latestPlan, for: selectedWeek)
             
-            // 發送通知
+            // 通知更新
             NotificationCenter.default.post(name: .trainingPlanDidUpdate, object: nil)
             
-            Logger.firebase(
-                "背景刷新週計劃完成",
-                level: .info,
-                labels: ["module": "TrainingPlanManager", "action": "background_refresh"],
-                jsonPayload: [
-                    "week": selectedWeek,
-                    "plan_available": weeklyPlan != nil
-                ]
-            )
+            Logger.debug("軌道 B: 背景更新完成")
             
         } catch {
-            Logger.firebase(
-                "背景刷新週計劃失敗: \(error.localizedDescription)",
-                level: .warn,
-                labels: ["module": "TrainingPlanManager", "action": "background_refresh"]
-            )
-            
+            // 背景更新失敗不影響已顯示的緩存內容
             await MainActor.run {
-                // 失敗時設置為無計劃，顯示週回顧按鈕
-                self.currentWeeklyPlan = nil
-                self.updatePlanStatus(for: nil)
                 self.syncError = error.localizedDescription
             }
+            
+            // 只有在沒有緩存數據時才設置錯誤狀態
+            if currentWeeklyPlan == nil {
+                await MainActor.run {
+                    self.updatePlanStatus(for: nil)
+                }
+            }
+            
+            Logger.debug("軌道 B: 背景更新失敗，保持現有緩存: \(error.localizedDescription)")
         }
+    }
+    
+    /// 獲取最新週計劃的統一入口
+    private func fetchLatestWeeklyPlan() async throws -> WeeklyPlan? {
+        // 這裡需要根據實際 API 實現
+        // 目前使用 overview + planId 的方式
+        let overview = try await service.getTrainingPlanOverview()
+        
+        await MainActor.run {
+            self.trainingOverview = overview
+        }
+        
+        // 根據 overview 構建 planId 獲取具體計劃
+        let planId = "\(overview.id)_\(selectedWeek)"
+        
+        do {
+            return try await service.getWeeklyPlanById(planId: planId)
+        } catch TrainingPlanService.WeeklyPlanError.notFound {
+            // 404 是正常情況，表示該週還沒有計劃
+            return nil
+        }
+    }
+    
+    /// 原有的背景刷新方法，重構為使用新的雙軌策略
+    private func backgroundRefreshWeeklyPlan() async {
+        // 委託給新的雙軌策略方法
+        await performBackgroundRefresh()
     }
     
     /// 獲取當週計劃（處理 404 情況）
@@ -269,31 +324,71 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     }
     
     func loadTrainingOverview() async {
-        await executeDataLoadingTask(id: "load_training_overview", showLoading: false) {
-            // 先嘗試從快取載入
-            if let cachedOverview = self.cacheManager.loadTrainingOverview(),
-               !self.cacheManager.shouldRefresh() {
+        await executeTask(id: TaskID("load_training_overview")) { [weak self] () -> Void in
+            guard let self = self else { return }
+            
+            Logger.debug("開始雙軌載入訓練概覽")
+            
+            // 軌道 A: 立即顯示緩存
+            if let cachedOverview = self.cacheManager.loadTrainingOverview() {
                 await MainActor.run {
                     self.trainingOverview = cachedOverview
+                }
+                
+                Logger.debug("軌道 A: 成功顯示緩存的訓練概覽")
+                
+                // 軌道 B: 背景更新
+                Task.detached { [weak self] in
+                    await self?.executeTask(id: TaskID("background_refresh_overview")) { () -> Void in
+                        await self?.refreshTrainingOverviewInBackground()
+                    }
                 }
                 return
             }
             
-            // 從 API 獲取
-            let overview = try await self.service.getTrainingPlanOverview()
+            // 沒有緩存時，直接從 API 獲取
+            do {
+                let overview = try await self.service.getTrainingPlanOverview()
+                
+                await MainActor.run {
+                    self.trainingOverview = overview
+                }
+                
+                self.cacheManager.saveTrainingOverview(overview)
+                
+                Logger.debug("訓練概覽初次載入成功")
+                
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("訓練概覽載入任務被取消，忽略錯誤")
+                    return
+                }
+                
+                Logger.error("訓練概覽載入失敗: \(error.localizedDescription)")
+                throw error
+            }
+        }
+    }
+    
+    /// 背景刷新訓練概覽
+    private func refreshTrainingOverviewInBackground() async {
+        Logger.debug("軌道 B: 開始背景更新訓練概覽")
+        
+        do {
+            let latestOverview = try await service.getTrainingPlanOverview()
             
             await MainActor.run {
-                self.trainingOverview = overview
+                self.trainingOverview = latestOverview
             }
             
-            self.cacheManager.saveTrainingOverview(overview)
+            cacheManager.saveTrainingOverview(latestOverview)
             
-            Logger.firebase(
-                "訓練概覽載入成功",
-                level: .info,
-                labels: ["module": "TrainingPlanManager", "action": "load_overview"],
-                jsonPayload: ["total_weeks": overview.totalWeeks]
-            )
+            Logger.debug("軌道 B: 訓練概覽背景更新完成")
+            
+        } catch {
+            // 背景更新失敗不影響已顯示的緩存內容
+            Logger.debug("軌道 B: 訓練概覽背景更新失敗，保持現有緩存: \(error.localizedDescription)")
         }
     }
     
@@ -327,60 +422,108 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     // MARK: - Plan Generation
     
     func generateNewWeekPlan() async -> Bool {
-        return await executeDataLoadingTask(id: "generate_new_week") {
-            // 使用實際的 API 方法
-            let newPlan = try await self.service.createWeeklyPlan(targetWeek: self.selectedWeek)
+        return await executeTask(id: TaskID("generate_new_week_\(selectedWeek)")) { [weak self] () -> Void in
+            guard let self = self else { return }
             
-            await MainActor.run {
-                self.currentWeeklyPlan = newPlan
-                self.showNewWeekPrompt = false
-                self.noWeeklyPlanAvailable = false
-                self.updatePlanStatus(for: newPlan)
+            do {
+                Logger.debug("開始生成新週計劃，週次: \(self.selectedWeek)")
+                
+                // 使用實際的 API 方法
+                let newPlan = try await self.service.createWeeklyPlan(targetWeek: self.selectedWeek)
+                
+                await MainActor.run {
+                    self.currentWeeklyPlan = newPlan
+                    self.showNewWeekPrompt = false
+                    self.noWeeklyPlanAvailable = false
+                    self.updatePlanStatus(for: newPlan)
+                }
+                
+                self.cacheManager.saveWeeklyPlan(newPlan, for: self.selectedWeek)
+                
+                // 發送通知
+                NotificationCenter.default.post(name: .trainingPlanDidUpdate, object: nil)
+                
+                Logger.debug("新週計劃生成成功，週次: \(self.selectedWeek)")
+                
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("新週計劃生成任務被取消，忽略錯誤")
+                    return
+                }
+                
+                await MainActor.run {
+                    self.syncError = error.localizedDescription
+                }
+                
+                Logger.error("新週計劃生成失敗: \(error.localizedDescription)")
+                throw error
             }
-            
-            self.cacheManager.saveWeeklyPlan(newPlan, for: self.selectedWeek)
-            
-            // 發送通知
-            NotificationCenter.default.post(name: .trainingPlanDidUpdate, object: nil)
-            
-            Logger.firebase(
-                "新週計劃生成成功",
-                level: .info,
-                labels: ["module": "TrainingPlanManager", "action": "generate_new_week"],
-                jsonPayload: ["week": self.selectedWeek]
-            )
-            
-            return true
         } != nil
     }
     
     // MARK: - Modifications Management
     
     func loadModifications() async {
-        await executeDataLoadingTask(id: "load_modifications", showLoading: false) {
-            // 使用實際的 API 方法 (不需要週數參數)
-            let mods = try await self.service.getModifications()
+        await executeTask(id: TaskID("load_modifications")) { [weak self] () -> Void in
+            guard let self = self else { return }
             
-            await MainActor.run {
-                self.modifications = mods
+            do {
+                Logger.debug("開始載入修改項目")
+                
+                // 使用實際的 API 方法 (不需要週數參數)
+                let mods = try await self.service.getModifications()
+                
+                await MainActor.run {
+                    self.modifications = mods
+                }
+                
+                Logger.debug("修改項目載入成功，數量: \(mods.count)")
+                
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("修改項目載入任務被取消，忽略錯誤")
+                    return
+                }
+                
+                Logger.error("修改項目載入失敗: \(error.localizedDescription)")
+                throw error
             }
         }
     }
     
     func saveModification(_ content: String, expiresAt: String? = nil, isOneTime: Bool = false, priority: Int = 1) async -> Bool {
-        return await executeDataLoadingTask(id: "save_modification") {
-            // 使用正確的 NewModification 結構
-            let newMod = NewModification(
-                content: content,
-                expiresAt: expiresAt,
-                isOneTime: isOneTime,
-                priority: priority
-            )
-            let savedMod = try await self.service.createModification(newMod)
+        return await executeTask(id: TaskID("save_modification_\(Date().timeIntervalSince1970)")) { [weak self] () -> Void in
+            guard let self = self else { return }
             
-            // 重新載入修改列表
-            await self.loadModifications()
-            return true
+            do {
+                Logger.debug("開始保存修改項目: \(content.prefix(50))...")
+                
+                // 使用正確的 NewModification 結構
+                let newMod = NewModification(
+                    content: content,
+                    expiresAt: expiresAt,
+                    isOneTime: isOneTime,
+                    priority: priority
+                )
+                let savedMod = try await self.service.createModification(newMod)
+                
+                // 重新載入修改列表
+                await self.loadModifications()
+                
+                Logger.debug("修改項目保存成功，內容: \(savedMod.content.prefix(30))...")
+                
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("修改項目保存任務被取消，忽略錯誤")
+                    return
+                }
+                
+                Logger.error("修改項目保存失敗: \(error.localizedDescription)")
+                throw error
+            }
         } != nil
     }
     

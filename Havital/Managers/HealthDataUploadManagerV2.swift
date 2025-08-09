@@ -71,7 +71,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     // MARK: - Type Definitions
     typealias DataType = [HealthRecord]
-    typealias ServiceType = APIClient
+    typealias ServiceType = HealthDataService
     
     // MARK: - Published Properties (DataManageable Requirements)
     @Published var isLoading = false
@@ -85,7 +85,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     @Published var backgroundSyncEnabled: Bool = false
     
     // MARK: - Dependencies
-    let service: APIClient
+    let service: HealthDataService
     private let cacheManager: HealthDataCacheManager
     private let healthKitManager = HealthKitManager()
     private let userPreferenceManager = UserPreferenceManager.shared
@@ -109,7 +109,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     // MARK: - Initialization
     private init() {
-        self.service = APIClient.shared
+        self.service = HealthDataService.shared
         self.cacheManager = HealthDataCacheManager()
         
         // 註冊到 CacheEventBus
@@ -218,7 +218,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         
         // 從 API 獲取
         do {
-            let response = try await service.fetchHealthDaily(limit: days)
+            let response = try await service.getHealthDaily(limit: days)
             let healthData = response.data.healthData
             let collection = HealthDataCollection(records: healthData, days: days)
             
@@ -262,7 +262,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     private func refreshHealthDataForRange(days: Int) async throws {
         // 強制從 API 獲取
-        let response = try await service.fetchHealthDaily(limit: days)
+        let response = try await service.getHealthDaily(limit: days)
         let healthData = response.data.healthData
         let collection = HealthDataCollection(records: healthData, days: days)
         

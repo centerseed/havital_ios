@@ -25,13 +25,7 @@ class NetworkMonitor {
     }
 }
 
-/// 通用 API 回應結構
-// MARK: - API Response Base
-struct APIResponse<T: Codable>: Codable {
-    let success: Bool
-    let data: T
-    let message: String?
-}
+// APIResponse is now defined in Services/Core/UnifiedAPIResponse.swift
 
 struct APIErrorResponse: Codable {
     let success: Bool

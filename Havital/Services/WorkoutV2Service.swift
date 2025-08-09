@@ -33,12 +33,94 @@ struct DecodingErrorDetail {
 class WorkoutV2Service {
     static let shared = WorkoutV2Service()
     
-    private let apiClient = APIClient.shared
-    private let healthKitManager = HealthKitManager()
+    // MARK: - New Architecture Dependencies
+    private let httpClient: any HTTPClient
+    private let parser: any APIParser
     
-    private init() {}
+    private init(httpClient: any HTTPClient = DefaultHTTPClient.shared,
+                 parser: any APIParser = DefaultAPIParser.shared) {
+        self.httpClient = httpClient
+        self.parser = parser
+    }
+    
+    // MARK: - Unified API Call Method
+    
+    /// 統一的 API 調用方法，保留詳細錯誤分析
+    private func makeAPICall<T: Codable>(
+        _ type: T.Type,
+        path: String,
+        method: HTTPMethod = .GET,
+        body: Data? = nil,
+        operationName: String
+    ) async throws -> T {
+        do {
+            let rawData = try await httpClient.request(path: path, method: method, body: body)
+            
+            // 先嘗試使用統一解析器
+            do {
+                return try ResponseProcessor.extractData(type, from: rawData, using: parser)
+            } catch {
+                // 如果統一解析失敗，使用原有的詳細錯誤分析
+                throw error
+            }
+            
+        } catch let decodingError as DecodingError {
+            // 保留原有的詳細解析錯誤處理邏輯
+            let errorDetail = getDecodingErrorDetail(decodingError)
+            logDetailedDecodingError(errorDetail, operationName: operationName, type: type)
+            
+            throw WorkoutV2Error.decodingFailed(errorDetail.description)
+            
+        } catch let apiError as APIError where apiError.isCancelled {
+            Logger.debug("\(operationName) 任務被取消，忽略錯誤")
+            throw SystemError.taskCancelled
+        } catch {
+            Logger.firebase(
+                "\(operationName) 請求失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": operationName.lowercased().replacingOccurrences(of: " ", with: "_"),
+                    "error_type": "general_error"
+                ],
+                jsonPayload: [
+                    "error_description": error.localizedDescription,
+                    "error_type": String(describing: Swift.type(of: error))
+                ]
+            )
+            throw error
+        }
+    }
     
     // MARK: - Error Handling Helpers
+    
+    /// 記錄詳細的解碼錯誤信息
+    private func logDetailedDecodingError<T>(_ errorDetail: DecodingErrorDetail, operationName: String, type: T.Type) {
+        // 輸出詳細錯誤信息到 console 以便 debug
+        print("🚨 [WorkoutV2Service] \(operationName) JSON 解析失敗")
+        print("🔍 錯誤詳情:")
+        print("  - 字段: \(errorDetail.missingField ?? "unknown")")
+        print("  - 路徑: \(errorDetail.codingPath)")
+        print("  - 描述: \(errorDetail.description)")
+        print("  - Debug: \(errorDetail.debugDescription)")
+        
+        Logger.firebase(
+            "\(operationName) JSON 解析失敗",
+            level: .error,
+            labels: [
+                "module": "WorkoutV2Service",
+                "action": operationName.lowercased().replacingOccurrences(of: " ", with: "_"),
+                "error_type": "decoding_error"
+            ],
+            jsonPayload: [
+                "error_description": errorDetail.description,
+                "missing_field": errorDetail.missingField ?? "unknown",
+                "coding_path": errorDetail.codingPath,
+                "debug_description": errorDetail.debugDescription,
+                "expected_type": String(describing: type)
+            ]
+        )
+    }
     
     /// 解析 DecodingError 的詳細信息
     private func getDecodingErrorDetail(_ error: DecodingError) -> DecodingErrorDetail {
@@ -163,10 +245,11 @@ class WorkoutV2Service {
                 ]
             )
             
-            let response: WorkoutListResponse = try await apiClient.request(
+            let response: WorkoutListResponse = try await makeAPICall(
                 WorkoutListResponse.self,
                 path: components.url?.absoluteString ?? "/v2/workouts",
-                method: "GET"
+                method: .GET,
+                operationName: "Workout V2 列表獲取"
             )
             
             Logger.firebase(
@@ -186,88 +269,8 @@ class WorkoutV2Service {
             
             return response
             
-        } catch let decodingError as DecodingError {
-            
-            // 詳細記錄 JSON 解析錯誤
-            let errorDetail = getDecodingErrorDetail(decodingError)
-            
-            // 輸出詳細錯誤信息到 console 以便 debug
-            print("🚨 [WorkoutV2Service] JSON 解析失敗")
-            print("🔍 錯誤詳情:")
-            print("  - 字段: \(errorDetail.missingField ?? "unknown")")
-            print("  - 路徑: \(errorDetail.codingPath)")
-            print("  - 描述: \(errorDetail.description)")
-            print("  - Debug: \(errorDetail.debugDescription)")
-            print("  - 完整錯誤: \(decodingError)")
-            
-            // 嘗試從 APIClient 獲取原始回應數據
-            print("⚠️ 請檢查 APIClient 的原始回應數據")
-            
-            // 詳細分析錯誤類型
-            switch decodingError {
-            case .dataCorrupted(let context):
-                print("🔍 數據損壞詳情:")
-                print("  - 上下文: \(context)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                if let underlyingError = context.underlyingError {
-                    print("  - 底層錯誤: \(underlyingError)")
-                }
-            case .keyNotFound(let key, let context):
-                print("🔍 缺少鍵詳情:")
-                print("  - 缺少的鍵: \(key.stringValue)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-            case .typeMismatch(let type, let context):
-                print("🔍 類型不匹配詳情:")
-                print("  - 期望類型: \(type)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-            case .valueNotFound(let type, let context):
-                print("🔍 值未找到詳情:")
-                print("  - 期望類型: \(type)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-            @unknown default:
-                print("🔍 未知錯誤類型")
-            }
-            
-            Logger.firebase(
-                "Workout V2 JSON 解析失敗",
-                level: .error,
-                labels: [
-                    "module": "WorkoutV2Service",
-                    "action": "fetch_workouts",
-                    "error_type": "decoding_error"
-                ],
-                jsonPayload: [
-                    "error_description": errorDetail.description,
-                    "missing_field": errorDetail.missingField ?? "unknown",
-                    "coding_path": errorDetail.codingPath,
-                    "debug_description": errorDetail.debugDescription,
-                    "page_size": pageSize,
-                    "provider_filter": provider ?? "all",
-                    "activity_type_filter": activityType ?? "all"
-                ]
-            )
-            
-            throw WorkoutV2Error.decodingFailed(errorDetail.description)
-            
         } catch {
-            
-            Logger.firebase(
-                "Workout V2 請求失敗",
-                level: .error,
-                labels: [
-                    "module": "WorkoutV2Service",
-                    "action": "fetch_workouts",
-                    "error_type": "general_error"
-                ],
-                jsonPayload: [
-                    "error_description": error.localizedDescription,
-                    "error_type": String(describing: type(of: error)),
-                    "page_size": pageSize,
-                    "provider_filter": provider ?? "all",
-                    "activity_type_filter": activityType ?? "all"
-                ]
-            )
-            
+            // 錯誤已經在 makeAPICall 中處理，直接拋出
             throw error
         }
     }
@@ -278,10 +281,11 @@ class WorkoutV2Service {
     func fetchWorkoutDetail(workoutId: String) async throws -> WorkoutDetailResponse {
         
         do {
-            let response: WorkoutDetailResponse = try await apiClient.request(
+            let response: WorkoutDetailResponse = try await makeAPICall(
                 WorkoutDetailResponse.self,
                 path: "/v2/workouts/\(workoutId)",
-                method: "GET"
+                method: .GET,
+                operationName: "Workout V2 詳情獲取"
             )
             
             Logger.firebase(
@@ -300,84 +304,8 @@ class WorkoutV2Service {
             
             return response
             
-        } catch let decodingError as DecodingError {
-            
-            // 詳細記錄 JSON 解析錯誤
-            let errorDetail = getDecodingErrorDetail(decodingError)
-            
-            // 輸出詳細錯誤信息到 console 以便 debug
-            print("🚨 [WorkoutV2Service] 運動詳情 JSON 解析失敗")
-            print("🔍 運動ID: \(workoutId)")
-            print("🔍 錯誤詳情:")
-            print("  - 字段: \(errorDetail.missingField ?? "unknown")")
-            print("  - 路徑: \(errorDetail.codingPath)")
-            print("  - 描述: \(errorDetail.description)")
-            print("  - Debug: \(errorDetail.debugDescription)")
-            print("  - 完整錯誤: \(decodingError)")
-            
-            // 詳細分析錯誤類型
-            switch decodingError {
-            case .dataCorrupted(let context):
-                print("🔍 數據損壞詳情:")
-                print("  - 上下文: \(context)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                if let underlyingError = context.underlyingError {
-                    print("  - 底層錯誤: \(underlyingError)")
-                }
-            case .keyNotFound(let key, let context):
-                print("🔍 缺少鍵詳情:")
-                print("  - 缺少的鍵: \(key.stringValue)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-            case .typeMismatch(let type, let context):
-                print("🔍 類型不匹配詳情:")
-                print("  - 期望類型: \(type)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-            case .valueNotFound(let type, let context):
-                print("🔍 值未找到詳情:")
-                print("  - 期望類型: \(type)")
-                print("  - 編碼路徑: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-            @unknown default:
-                print("🔍 未知錯誤類型")
-            }
-            
-            print("⚠️ 請檢查 APIClient 的原始回應數據")
-            
-            Logger.firebase(
-                "Workout V2 詳情 JSON 解析失敗",
-                level: .error,
-                labels: [
-                    "module": "WorkoutV2Service",
-                    "action": "fetch_workout_detail",
-                    "error_type": "decoding_error"
-                ],
-                jsonPayload: [
-                    "workout_id": workoutId,
-                    "error_description": errorDetail.description,
-                    "missing_field": errorDetail.missingField ?? "unknown",
-                    "coding_path": errorDetail.codingPath,
-                    "debug_description": errorDetail.debugDescription
-                ]
-            )
-            
-            throw WorkoutV2Error.decodingFailed(errorDetail.description)
-            
         } catch {
-            
-            Logger.firebase(
-                "Workout V2 詳情請求失敗",
-                level: .error,
-                labels: [
-                    "module": "WorkoutV2Service",
-                    "action": "fetch_workout_detail",
-                    "error_type": "general_error"
-                ],
-                jsonPayload: [
-                    "workout_id": workoutId,
-                    "error_description": error.localizedDescription,
-                    "error_type": String(describing: type(of: error))
-                ]
-            )
-            
+            // 錯誤已經在 makeAPICall 中處理，直接拋出
             throw error
         }
     }
@@ -386,10 +314,11 @@ class WorkoutV2Service {
     /// - Parameter days: 統計天數，預設 30 天
     /// - Returns: 運動統計回應
     func fetchWorkoutStats(days: Int = 30) async throws -> WorkoutStatsResponse {
-        let response: WorkoutStatsResponse = try await apiClient.request(
+        let response: WorkoutStatsResponse = try await makeAPICall(
             WorkoutStatsResponse.self,
             path: "/v2/workouts/stats?days=\(days)",
-            method: "GET"
+            method: .GET,
+            operationName: "Workout V2 統計獲取"
         )
         
         Logger.firebase(
@@ -522,11 +451,12 @@ extension WorkoutV2Service {
             // 將請求體編碼為 JSON Data
             let bodyData = try JSONEncoder().encode(requestBody)
             
-            let response: GarminHistoricalDataResponse = try await apiClient.request(
+            let response: GarminHistoricalDataResponse = try await makeAPICall(
                 GarminHistoricalDataResponse.self,
                 path: "/connect/garmin/process-historical-data",
-                method: "POST",
-                body: bodyData
+                method: .POST,
+                body: bodyData,
+                operationName: "Garmin 歷史數據處理觸發"
             )
             
             Logger.firebase(
@@ -570,10 +500,11 @@ extension WorkoutV2Service {
                 labels: ["module": "WorkoutV2Service", "action": "get_garmin_processing_status_start"]
             )
             
-            let response: GarminProcessingStatusResponse = try await apiClient.request(
+            let response: GarminProcessingStatusResponse = try await makeAPICall(
                 GarminProcessingStatusResponse.self,
                 path: "/connect/garmin/processing-status",
-                method: "GET"
+                method: .GET,
+                operationName: "Garmin 處理狀態查詢"
             )
             
             Logger.firebase(
@@ -597,46 +528,8 @@ extension WorkoutV2Service {
             
             return response
             
-        } catch let decodingError as DecodingError {
-            
-            // 詳細記錄 JSON 解析錯誤
-            let errorDetail = getDecodingErrorDetail(decodingError)
-            
-            // 輸出詳細錯誤信息到 console 以便 debug
-            print("🚨 [WorkoutV2Service] Garmin 處理狀態 JSON 解析失敗")
-            print("🔍 錯誤詳情:")
-            print("  - 字段: \(errorDetail.missingField ?? "unknown")")
-            print("  - 路徑: \(errorDetail.codingPath)")
-            print("  - 描述: \(errorDetail.description)")
-            print("  - Debug: \(errorDetail.debugDescription)")
-            
-            Logger.firebase(
-                "Garmin 處理狀態 JSON 解析失敗",
-                level: .error,
-                labels: [
-                    "module": "WorkoutV2Service",
-                    "action": "get_garmin_processing_status",
-                    "error_type": "decoding_error"
-                ],
-                jsonPayload: [
-                    "error_description": errorDetail.description,
-                    "missing_field": errorDetail.missingField ?? "unknown",
-                    "coding_path": errorDetail.codingPath,
-                    "debug_description": errorDetail.debugDescription
-                ]
-            )
-            
-            throw WorkoutV2Error.decodingFailed(errorDetail.description)
-            
         } catch {
-            Logger.firebase(
-                "Garmin 處理狀態查詢失敗: \(error.localizedDescription)",
-                level: .error,
-                labels: [
-                    "module": "WorkoutV2Service",
-                    "action": "get_garmin_processing_status"
-                ]
-            )
+            // 錯誤已經在 makeAPICall 中處理，直接拋出
             throw error
         }
     }

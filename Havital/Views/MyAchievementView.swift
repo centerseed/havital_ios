@@ -334,26 +334,25 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
             }
         }
         
-        // 測試：直接使用 APIClient 獲取數據，與 VDOT 使用相同方式
+        // 使用統一架構的 HealthDataUploadManagerV2 獲取數據
         do {
-            print("嘗試直接使用 APIClient 獲取健康數據...")
-            let response: HealthDailyResponse = try await APIClient.shared.request(
-                HealthDailyResponse.self,
-                path: "/v2/workouts/health_daily?limit=14"
-            )
-            let newHealthData = response.data.healthData
-            
-            print("APIClient 直接調用返回: \(newHealthData.count) 筆健康記錄")
-            if !newHealthData.isEmpty {
-                print("健康數據樣本: \(newHealthData.prefix(2))")
-            }
+            print("使用 HealthDataUploadManagerV2 獲取健康數據...")
+            await HealthDataUploadManagerV2.shared.loadData()
             
             await MainActor.run {
-                if !newHealthData.isEmpty {
-                    self.healthData = newHealthData
-                    self.error = nil
+                // 從 HealthDataUploadManagerV2 獲取 14 天的數據
+                if let collection = HealthDataUploadManagerV2.shared.healthDataCollections[14] {
+                    let newHealthData = collection.records
+                    print("HealthDataUploadManagerV2 返回: \(newHealthData.count) 筆健康記錄")
+                    
+                    if !newHealthData.isEmpty {
+                        self.healthData = newHealthData
+                        self.error = nil
+                    } else {
+                        self.error = "伺服器暫時無法提供數據"
+                    }
                 } else {
-                    self.error = "伺服器暫時無法提供數據"
+                    self.error = "無法獲取健康數據"
                 }
                 self.isLoading = false
                 self.isRefreshing = false

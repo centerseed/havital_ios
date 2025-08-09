@@ -98,7 +98,7 @@ class VDOTManager: ObservableObject, DataManageable {
     
     // MARK: - Type Definitions
     typealias DataType = [EnhancedVDOTDataPoint]
-    typealias ServiceType = APIClient
+    typealias ServiceType = VDOTService
     
     // MARK: - Published Properties (DataManageable Requirements)
     @Published var isLoading = false
@@ -112,7 +112,7 @@ class VDOTManager: ObservableObject, DataManageable {
     @Published var dataLimit: Int = 14 // 預設顯示最近 14 筆數據
     
     // MARK: - Dependencies
-    let service: APIClient
+    let service: VDOTService
     private let cacheManager: VDOTCacheManager
     private var lastRefreshTime: Date? // 🚨 添加冷卻機制
     
@@ -127,7 +127,7 @@ class VDOTManager: ObservableObject, DataManageable {
     
     // MARK: - Initialization
     private init() {
-        self.service = APIClient.shared
+        self.service = VDOTService.shared
         self.cacheManager = VDOTCacheManager()
         
         // 註冊到 CacheEventBus
@@ -229,10 +229,7 @@ class VDOTManager: ObservableObject, DataManageable {
         }
         
         // 從 API 獲取數據
-        let response: VDOTResponse = try await service.request(
-            VDOTResponse.self,
-            path: "/v2/workouts/vdots?limit=\(dataLimit)"
-        )
+        let response: VDOTResponse = try await service.getVDOTs(limit: dataLimit)
         
         let enhancedDataPoints = response.data.vdots.map { entry in
             EnhancedVDOTDataPoint(from: entry)
@@ -272,10 +269,7 @@ class VDOTManager: ObservableObject, DataManageable {
     
     private func performRefreshVDOTData() async throws {
         // 強制從 API 獲取
-        let response: VDOTResponse = try await service.request(
-            VDOTResponse.self,
-            path: "/v2/workouts/vdots?limit=\(dataLimit)"
-        )
+        let response: VDOTResponse = try await service.getVDOTs(limit: dataLimit)
         
         let enhancedDataPoints = response.data.vdots.map { entry in
             EnhancedVDOTDataPoint(from: entry)

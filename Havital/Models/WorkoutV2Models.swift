@@ -151,90 +151,107 @@ struct WorkoutV2: Codable, Identifiable {
     }
 }
 
-// MARK: - Safe Number Decoding Helper
+// MARK: - Safe Number Wrapper Structs
+// These wrapper structs provide compatibility with the existing codebase that expects a .value property
+// They internally use the same parsing logic as SafeNumber
+
 struct SafeDouble: Codable {
-    let value: Double?
+    private var _internal: Double?
+    
+    var value: Double? {
+        return _internal
+    }
     
     init(value: Double?) {
-        self.value = value
+        self._internal = value
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         
         if container.decodeNil() {
-            value = nil
+            _internal = nil
             return
         }
         
-        // 先嘗試直接解析 Double
+        // Try to decode as Double first
         if let doubleValue = try? container.decode(Double.self) {
-            value = doubleValue
+            _internal = doubleValue
             return
         }
         
-        // 如果失敗，嘗試解析為字串再轉換
+        // Try to decode as String and convert
         if let stringValue = try? container.decode(String.self),
            let doubleValue = Double(stringValue) {
-            value = doubleValue
+            _internal = doubleValue
             return
         }
         
-        // 最後嘗試解析為 Decimal 再轉換
+        // Try to decode as Int and convert
+        if let intValue = try? container.decode(Int.self) {
+            _internal = Double(intValue)
+            return
+        }
+        
+        // Try to decode as Decimal and convert
         if let decimalValue = try? container.decode(Decimal.self) {
-            value = NSDecimalNumber(decimal: decimalValue).doubleValue
+            _internal = NSDecimalNumber(decimal: decimalValue).doubleValue
             return
         }
         
-        value = nil
+        _internal = nil
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(value)
+        try container.encode(_internal)
     }
 }
 
 struct SafeInt: Codable {
-    let value: Int?
+    private var _internal: Int?
+    
+    var value: Int? {
+        return _internal
+    }
     
     init(value: Int?) {
-        self.value = value
+        self._internal = value
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         
         if container.decodeNil() {
-            value = nil
+            _internal = nil
             return
         }
         
-        // 先嘗試直接解析 Int
+        // Try to decode as Int first
         if let intValue = try? container.decode(Int.self) {
-            value = intValue
+            _internal = intValue
             return
         }
         
-        // 如果失敗，嘗試解析為 Double 再轉換
+        // Try to decode as Double and convert
         if let doubleValue = try? container.decode(Double.self) {
-            value = Int(doubleValue)
+            _internal = Int(doubleValue)
             return
         }
         
-        // 最後嘗試解析為字串再轉換
+        // Try to decode as String and convert
         if let stringValue = try? container.decode(String.self),
            let intValue = Int(stringValue) {
-            value = intValue
+            _internal = intValue
             return
         }
         
-        value = nil
+        _internal = nil
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(value)
+        try container.encode(_internal)
     }
 }
 

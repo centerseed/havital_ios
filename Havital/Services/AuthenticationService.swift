@@ -23,10 +23,16 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     // TaskManageable 協議實作 (Actor-based)
     let taskRegistry = TaskRegistry()
     
-    override private init() {
-        super.init() // Call super.init() first
+    // MARK: - New Architecture Dependencies
+    private let httpClient: HTTPClient
+    private let parser: APIParser
+    
+    private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
+                 parser: APIParser = DefaultAPIParser.shared) {
+        self.httpClient = httpClient
+        self.parser = parser
+        super.init()
         
-        // Now it's safe to use self
         // Listen to auth state changes
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
@@ -47,20 +53,33 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                         }
                     }
                 }
-                
-                // 同時觸發週計劃更新
-                Task {
-                    await self.refreshWeeklyPlanAfterLogin()
-                }
             } else {
                 self.appUser = nil
-                self.hasCompletedOnboarding = false
             }
         }
         
         // 從 UserDefaults 讀取 hasCompletedOnboarding
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         // 注意：isReonboardingMode 不需要持久化，它是一個臨時狀態
+    }
+    
+    // MARK: - Unified API Call Method
+    
+    /// 統一的 API 調用方法
+    private func makeAPICall<T: Codable>(
+        _ type: T.Type,
+        path: String,
+        method: HTTPMethod = .GET,
+        body: Data? = nil
+    ) async throws -> T {
+        do {
+            let rawData = try await httpClient.request(path: path, method: method, body: body)
+            return try ResponseProcessor.extractData(type, from: rawData, using: parser)
+        } catch let apiError as APIError where apiError.isCancelled {
+            throw SystemError.taskCancelled
+        } catch {
+            throw error
+        }
     }
 
     // Helper to generate a random nonce for Apple Sign In
@@ -209,7 +228,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     
     private func performUserSync(idToken: String) async throws {
         // 從後端取得完整用戶資料
-        var user = try await APIClient.shared.request(User.self, path: "/user")
+        var user = try await makeAPICall(User.self, path: "/user")
         // 若後端未返回名稱或頭像，使用 Firebase 資料更新後端
         if let firebaseUser = Auth.auth().currentUser {
             var updateData = [String: Any]()
@@ -222,7 +241,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             if !updateData.isEmpty {
                 try await UserService.shared.updateUserData(updateData)
                 // 重新抓取更新後的用戶資料
-                user = try await APIClient.shared.request(User.self, path: "/user")
+                user = try await makeAPICall(User.self, path: "/user")
             }
         }
         await MainActor.run {

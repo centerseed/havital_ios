@@ -693,7 +693,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 }
                 
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
-                // 404: 無週計劃
+                // 404: 無週計劃，設置 .noPlan 狀態顯示「取得週回顧」按鈕
                 Logger.debug("週計劃 404 錯誤，設置 .noPlan 狀態")
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
             } catch {
@@ -702,6 +702,18 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
                     Logger.debug("載入週計劃任務被取消，忽略此錯誤")
                     return // 忽略取消錯誤，不更新 UI 狀態
+                }
+                
+                // 檢查是否為 API 404 錯誤（資源不存在）
+                if let apiError = error as? APIError {
+                    switch apiError {
+                    case .business(.notFound(_)):
+                        Logger.debug("API 404 錯誤，設置 .noPlan 狀態顯示「取得週回顧」按鈕")
+                        await updateWeeklyPlanUI(plan: nil, status: .noPlan)
+                        return
+                    default:
+                        break
+                    }
                 }
                 
                 // 處理網路錯誤
@@ -757,7 +769,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             await identifyTodayTraining()
             
         } catch let err as TrainingPlanService.WeeklyPlanError where err == .notFound {
-            // 404 錯誤：依週數區分提示
+            // 404 錯誤：顯示「取得週回顧」按鈕
+            Logger.debug("fetchWeekPlan 404 錯誤，設置 .noPlan 狀態")
             await updateWeeklyPlanUI(plan: nil, status: .noPlan)
         } catch {
             // 檢查是否為任務取消錯誤
@@ -766,6 +779,19 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 Logger.debug("載入週計劃任務被取消，忽略此錯誤")
                 return // 忽略取消錯誤，不更新 UI 狀態
             }
+            
+            // 檢查是否為 API 404 錯誤
+            if let apiError = error as? APIError {
+                switch apiError {
+                case .business(.notFound(_)):
+                    Logger.debug("fetchWeekPlan API 404 錯誤，設置 .noPlan 狀態")
+                    await updateWeeklyPlanUI(plan: nil, status: .noPlan)
+                    return
+                default:
+                    break
+                }
+            }
+            
             await updateWeeklyPlanUI(plan: nil, status: .error(error))
         }
     }
@@ -1073,13 +1099,34 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 
                 break  // 成功後跳出重試迴圈
             } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
-                // 404 時標記無週計劃並結束重試
-                // 修正：手動將 weeklyPlan 設為 nil，確保狀態一致性
+                // 404 時標記無週計劃並結束重試，顯示「取得週回顧」按鈕
+                Logger.debug("刷新週計劃 404 錯誤，設置 .noPlan 狀態")
                 await MainActor.run {
                     self.weeklyPlan = nil
                 }
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
                 break
+            } catch let error as APIError {
+                switch error {
+                case .business(.notFound(_)):
+                    // API 404 錯誤也應該顯示「取得週回顧」按鈕
+                    Logger.debug("刷新週計劃 API 404 錯誤，設置 .noPlan 狀態")
+                    await MainActor.run {
+                        self.weeklyPlan = nil
+                    }
+                    await updateWeeklyPlanUI(plan: nil, status: .noPlan)
+                    break
+                default:
+                    // 其他 API 錯誤當作普通錯誤處理，不 break，繼續到重試邏輯
+                    currentRetry += 1
+                    if currentRetry >= maxRetries {
+                        await updateWeeklyPlanUI(plan: nil, status: .error(error))
+                        Logger.error("刷新訓練計劃失敗 (已重試 \(maxRetries) 次): \(error)")
+                    } else {
+                        Logger.error("刷新訓練計劃失敗，準備重試: \(error)")
+                        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))  // 等待1秒後重試
+                    }
+                }
             } catch {
                 currentRetry += 1
                 if currentRetry >= maxRetries {
