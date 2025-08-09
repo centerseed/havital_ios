@@ -415,8 +415,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 啟動 HealthKit 觀察者
             await startHealthKitObserver()
             
-            // 設置背景管理器 (WorkoutBackgroundManager 內部會再次檢查數據來源)
-            await workoutBackgroundManager.setupWorkoutObserver()
+            // 注意：WorkoutBackgroundManager.setupWorkoutObserver() 已經在 HavitalApp 中調用
+            // 不要重複調用，避免設置多個觀察者
             
             // 檢查並上傳待處理的運動記錄
             Task {
@@ -436,7 +436,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         
         let workoutType = HKObjectType.workoutType()
         
-        healthKitObserver = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] (query, completionHandler, error) in
+        let observerQuery = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] (query, completionHandler, error) in
             guard let self = self else {
                 completionHandler()
                 return
@@ -456,20 +456,20 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             }
         }
         
-        if let observer = healthKitObserver {
-            healthKitManager.healthStore.execute(observer)
-            
-            // 啟用背景傳遞
-            healthKitManager.healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { success, error in
-                if success {
-                    print("Apple Health 背景傳遞已啟用")
-                } else if let error = error {
-                    print("無法啟用 Apple Health 背景傳遞: \(error.localizedDescription)")
-                }
-            }
-            
+        // 使用 HealthKitObserverCoordinator 註冊 Observer
+        let registered = await HealthKitObserverCoordinator.shared.registerObserver(
+            type: HealthKitObserverCoordinator.ObserverType.unifiedWorkout,
+            query: observerQuery,
+            enableBackground: true,
+            sampleType: workoutType
+        )
+        
+        if registered {
+            healthKitObserver = observerQuery
             isObserving = true
-            print("Apple Health 觀察者已啟動")
+            print("UnifiedWorkoutManager: 成功註冊 HealthKit Observer")
+        } else {
+            print("UnifiedWorkoutManager: HealthKit Observer 已經存在，跳過註冊")
         }
     }
     
@@ -552,11 +552,20 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         }
         
         do {
-            let result = try await workoutV2Service.uploadWorkout(workout)
+            // 啟用心率重試機制，確保有足夠時間獲取心率數據
+            let result = try await workoutV2Service.uploadWorkout(workout, force: false, retryHeartRate: true)
             
-            // 標記運動為已上傳到 V2 API
-            WorkoutUploadTracker.shared.markWorkoutAsUploaded(workout, hasHeartRate: true, apiVersion: .v2)
-            print("🚨 [上傳調試] 已標記運動為已上傳到 V2 API")
+            // 根據實際結果標記運動上傳狀態
+            let hasHeartRate: Bool
+            switch result {
+            case .success(let heartRateAvailable):
+                hasHeartRate = heartRateAvailable
+            case .failure(let error):
+                throw error
+            }
+            
+            WorkoutUploadTracker.shared.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRate, apiVersion: .v2)
+            print("🚨 [上傳調試] 已標記運動為已上傳到 V2 API，心率數據: \(hasHeartRate ? "有" : "無")")
             
             Logger.firebase(
                 "Apple Health 運動記錄上傳到 V2 API 成功",
@@ -707,16 +716,18 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         cancelAllTasks()
         
         // 停止 HealthKit 觀察者
-        if let observer = healthKitObserver {
+        if healthKitObserver != nil {
             print("🛑 停止 UnifiedWorkoutManager 的 HealthKit 觀察者")
-            healthKitManager.healthStore.stop(observer)
-            healthKitManager.healthStore.disableBackgroundDelivery(for: HKObjectType.workoutType()) { success, error in
-                if !success, let error = error {
-                    print("無法禁用 Apple Health 背景傳遞: \(error.localizedDescription)")
-                } else {
-                    print("✅ Apple Health 背景傳遞已禁用")
-                }
-            }
+            
+            // 使用 HealthKitObserverCoordinator 移除 Observer
+            await HealthKitObserverCoordinator.shared.removeObserver(type: HealthKitObserverCoordinator.ObserverType.unifiedWorkout)
+            
+            // 禁用背景傳遞
+            await HealthKitObserverCoordinator.shared.disableBackgroundDelivery(
+                for: HKObjectType.workoutType(),
+                type: HealthKitObserverCoordinator.ObserverType.unifiedWorkout
+            )
+            
             healthKitObserver = nil
             isObserving = false
             print("✅ UnifiedWorkoutManager 的 Apple Health 觀察者已停止")

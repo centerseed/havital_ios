@@ -58,12 +58,18 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let workoutId = makeWorkoutId(for: workout)
         let taskId = TaskID("upload_workout_\(workoutId)")
         
+        print("🚀 [TaskRegistry] 開始上傳任務 - WorkoutID: \(workoutId), Force: \(force), RetryHeartRate: \(retryHeartRate)")
+        
         guard let result = await executeTask(id: taskId, operation: { [weak self] in
             guard let self = self else { throw WorkoutV2ServiceError.invalidWorkoutData }
+            print("🔄 [TaskRegistry] 執行上傳操作 - WorkoutID: \(workoutId)")
             return try await self.performUploadWorkout(workout, force: force, retryHeartRate: retryHeartRate, source: source, device: device)
         }) else {
+            print("❌ [TaskRegistry] 上傳任務返回nil - WorkoutID: \(workoutId)")
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
+        
+        print("✅ [TaskRegistry] 上傳任務完成 - WorkoutID: \(workoutId), 結果: \(result)")
         return result
     }
     
@@ -96,31 +102,55 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         // 取得心率數據（可選，不再強制要求）
         var heartRateData: [(Date, Double)] = []
+        var heartRateRetriesAttempted = 0
+        
         do {
-            heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
+            // 首次獲取心率數據
+            heartRateData = try await healthKitManager.fetchHeartRateData(for: workout, forceRefresh: false, retryAttempt: 0)
+            print("📊 [Upload] 初次心率數據獲取: \(heartRateData.count) 筆")
             
-            // 如果需要重試且沒有心率數據，進行多次重試
-            if retryHeartRate && heartRateData.count <= 2 {
+            // 如果需要重試且心率數據不足，進行多次重試
+            if retryHeartRate && heartRateData.count < 2 {
                 let maxRetries = 5
                 let retryInterval: UInt64 = 30_000_000_000 // 30秒
                 
+                print("🔄 [Upload] 心率數據不足(\(heartRateData.count) < 2)，開始重試流程...")
+                
                 for attempt in 1...maxRetries {
-                    print("心率數據獲取重試 \(attempt)/\(maxRetries)，等待30秒...")
+                    heartRateRetriesAttempted = attempt
+                    print("🔄 [Upload] 心率數據重試 \(attempt)/\(maxRetries)，等待30秒...")
+                    
+                    // 等待一段時間，讓Apple Health完成數據同步
                     try? await Task.sleep(nanoseconds: retryInterval)
                     
-                    heartRateData = try await healthKitManager.fetchHeartRateData(for: workout)
-                    if heartRateData.count > 0 {
-                        print("重試第 \(attempt) 次成功獲取心率數據：\(heartRateData.count) 筆")
+                    // 使用強制刷新和重試標記來避免TaskRegistry阻擋
+                    let retryData = try await healthKitManager.fetchHeartRateData(
+                        for: workout, 
+                        forceRefresh: true, 
+                        retryAttempt: attempt
+                    )
+                    
+                    print("🔄 [Upload] 重試第 \(attempt) 次獲取心率數據：\(retryData.count) 筆")
+                    
+                    // 如果重試獲得了更多數據，使用重試結果
+                    if retryData.count > heartRateData.count {
+                        heartRateData = retryData
+                        print("✅ [Upload] 重試成功，更新心率數據：\(heartRateData.count) 筆")
+                    }
+                    
+                    // 如果獲得了足夠的心率數據，停止重試
+                    if heartRateData.count >= 5 {
+                        print("✅ [Upload] 心率數據充足，停止重試")
                         break
                     }
                 }
                 
-                if heartRateData.count == 0 {
-                    print("重試 \(maxRetries) 次後仍無法獲取心率數據，將繼續上傳運動記錄")
+                if heartRateData.count < 5 {
+                    print("⚠️ [Upload] 重試 \(maxRetries) 次後心率數據仍不足：\(heartRateData.count) 筆，將繼續上傳運動記錄")
                 }
             }
         } catch {
-            print("無法獲取心率數據，但將繼續上傳: \(error.localizedDescription)")
+            print("❌ [Upload] 無法獲取心率數據: \(error.localizedDescription)")
             // 記錄 HealthKit 數據獲取錯誤
             await reportHealthKitDataError(workout: workout, dataType: "heart_rate", error: error)
         }
@@ -198,7 +228,13 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      source: actualSource,
                                      device: actualDevice)
         
-        let hasHeartRateData = heartRateData.count >= 5
+        // 增強心率數據驗證邏輯
+        let hasHeartRateData = validateHeartRateData(heartRateData, workout: workout, retriesAttempted: heartRateRetriesAttempted)
+        
+        // 記錄最終的心率狀態
+        let workoutId = makeWorkoutId(for: workout)
+        print("📊 [Upload] 最終心率驗證 - 運動ID: \(workoutId), 心率數據: \(heartRateData.count) 筆, 判定有心率: \(hasHeartRateData), 重試次數: \(heartRateRetriesAttempted)")
+        
         // 使用 V2 API 版本標記已上傳
         workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData, apiVersion: .v2)
         return .success(hasHeartRate: hasHeartRateData)
@@ -697,6 +733,56 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         ]
         
         return thirdPartyIdentifiers.contains(bundleId) || thirdPartyNames.contains(sourceName)
+    }
+    
+    // MARK: - Heart Rate Validation
+    
+    /// 驗證心率數據的品質和完整性
+    private func validateHeartRateData(_ heartRateData: [(Date, Double)], workout: HKWorkout, retriesAttempted: Int) -> Bool {
+        // 基本數量檢查
+        if heartRateData.count < 2 {
+            print("⚠️ [Validation] 心率數據不足: \(heartRateData.count) < 2筆")
+            return false
+        }
+        
+        // 檢查心率值的合理性
+        let heartRateValues = heartRateData.map { $0.1 }
+        let minHR = heartRateValues.min() ?? 0
+        let maxHR = heartRateValues.max() ?? 0
+        let avgHR = heartRateValues.reduce(0, +) / Double(heartRateValues.count)
+        
+        // 心率值應在合理範圍內（30-250 BPM）
+        let validHeartRates = heartRateValues.filter { $0 >= 30 && $0 <= 250 }
+        let validPercentage = Double(validHeartRates.count) / Double(heartRateValues.count)
+        
+        print("📊 [Validation] 心率數據品質 - 總數: \(heartRateData.count), 最小值: \(Int(minHR)), 最大值: \(Int(maxHR)), 平均: \(Int(avgHR)), 有效比例: \(String(format: "%.1f", validPercentage * 100))%")
+        
+        // 至少70%的心率值應該是有效的
+        if validPercentage < 0.7 {
+            print("⚠️ [Validation] 心率數據品質不佳，有效比例低於70%")
+            return false
+        }
+        
+        // 檢查時間覆蓋率
+        let workoutDuration = workout.duration
+        let heartRateTimeSpan: TimeInterval
+        if let firstDate = heartRateData.first?.0, let lastDate = heartRateData.last?.0 {
+            heartRateTimeSpan = lastDate.timeIntervalSince(firstDate)
+        } else {
+            heartRateTimeSpan = 0
+        }
+        let coverageRatio = heartRateTimeSpan / workoutDuration
+        
+        print("📊 [Validation] 心率時間覆蓋 - 運動時長: \(Int(workoutDuration))秒, 心率跨度: \(Int(heartRateTimeSpan))秒, 覆蓋率: \(String(format: "%.1f", coverageRatio * 100))%")
+        
+        // 心率數據應至少覆蓋運動時間的30%
+        if coverageRatio < 0.3 && workoutDuration > 300 { // 5分鐘以上的運動才檢查覆蓋率
+            print("⚠️ [Validation] 心率時間覆蓋率不足，可能數據不完整")
+            return false
+        }
+        
+        print("✅ [Validation] 心率數據驗證通過")
+        return true
     }
     
     // MARK: - Upload Tracker Helpers

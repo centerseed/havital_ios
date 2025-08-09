@@ -6,6 +6,14 @@ struct WorkoutDetailViewV2: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showHRZoneInfo = false
     @State private var selectedZoneTab: ZoneTab = .heartRate
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage?
+    @State private var isGeneratingScreenshot = false
+    @State private var isReuploadingWorkout = false
+    @State private var showReuploadAlert = false
+    @State private var showInsufficientHeartRateAlert = false
+    @State private var reuploadErrorMessage: String?
+    @State private var heartRateCount = 0
     
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -75,9 +83,26 @@ struct WorkoutDetailViewV2: View {
             }
             .padding()
         }
+        .refreshable {
+            await viewModel.refreshWorkoutDetail()
+        }
         .navigationTitle("運動詳情")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    shareWorkout()
+                } label: {
+                    if isGeneratingScreenshot {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isGeneratingScreenshot)
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("關閉") {
                     dismiss()
@@ -90,6 +115,11 @@ struct WorkoutDetailViewV2: View {
         .onDisappear {
             // 確保在 View 消失時取消任務
             viewModel.cancelLoadingTasks()
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let shareImage = shareImage {
+                ActivityViewController(activityItems: [shareImage])
+            }
         }
     }
     
@@ -153,6 +183,73 @@ struct WorkoutDetailViewV2: View {
         .cornerRadius(12)
     }
     
+    // MARK: - 計算屬性
+    
+    private var isAppleHealthSource: Bool {
+        let provider = viewModel.workout.provider.lowercased()
+        return provider.contains("apple") || provider.contains("health") || provider == "apple_health"
+    }
+    
+    // MARK: - 重新上傳功能
+    
+    private func reuploadWorkout() async {
+        // 只有 Apple Health 資料才能重新上傳
+        guard isAppleHealthSource else { return }
+        
+        isReuploadingWorkout = true
+        reuploadErrorMessage = nil
+        
+        do {
+            // 呼叫 ViewModel 的重新上傳方法，包含心率數據檢查
+            let result = await viewModel.reuploadWorkoutWithHeartRateCheck()
+            
+            await MainActor.run {
+                isReuploadingWorkout = false
+                
+                switch result {
+                case .success(let hasHeartRate):
+                    reuploadErrorMessage = hasHeartRate ? "運動記錄已成功重新上傳！" : "運動記錄已上傳，但心率資料不足。"
+                    // 重新載入詳細資料
+                    Task {
+                        await viewModel.refreshWorkoutDetail()
+                    }
+                    
+                case .insufficientHeartRate(let count):
+                    // 心率數據不足，顯示警告
+                    heartRateCount = count
+                    showInsufficientHeartRateAlert = true
+                    
+                case .failure(let message):
+                    reuploadErrorMessage = message
+                }
+            }
+        } catch {
+            await MainActor.run {
+                isReuploadingWorkout = false
+                reuploadErrorMessage = "重新上傳時發生錯誤：\(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func forceReuploadWithInsufficientHeartRate() async {
+        isReuploadingWorkout = true
+        reuploadErrorMessage = nil
+        
+        let result = await viewModel.forceReuploadWorkout()
+        
+        await MainActor.run {
+            isReuploadingWorkout = false
+            if result {
+                reuploadErrorMessage = "運動記錄已上傳（心率資料不足）"
+                Task {
+                    await viewModel.refreshWorkoutDetail()
+                }
+            } else {
+                reuploadErrorMessage = "重新上傳失敗，請稍後再試。"
+            }
+        }
+    }
+    
     // MARK: - 數據來源信息卡片
     
     private var sourceInfoCard: some View {
@@ -194,10 +291,79 @@ struct WorkoutDetailViewV2: View {
                         .fontWeight(.medium)
                 }
             }
+            
+            // 只有 Apple Health 資料來源才顯示重新上傳按鈕
+            if isAppleHealthSource {
+                Divider()
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("重新同步資料")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("強制重新上傳此運動記錄，包含重試獲取心率資料")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showReuploadAlert = true
+                    }) {
+                        if isReuploadingWorkout {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .frame(width: 60, height: 28)
+                        } else {
+                            Label("重新上傳", systemImage: "arrow.triangle.2.circlepath")
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(6)
+                        }
+                    }
+                    .disabled(isReuploadingWorkout)
+                }
+            }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .alert("重新上傳運動記錄", isPresented: $showReuploadAlert) {
+            Button("取消", role: .cancel) { }
+            Button("確認上傳", role: .destructive) {
+                Task {
+                    await reuploadWorkout()
+                }
+            }
+        } message: {
+            Text("確定要重新上傳此運動記錄嗎？這將會覆蓋現有資料並嘗試重新獲取所有感測器數據（包含心率）。")
+        }
+        .alert("重新上傳結果", isPresented: .constant(reuploadErrorMessage != nil)) {
+            Button("確定") {
+                reuploadErrorMessage = nil
+            }
+        } message: {
+            if let errorMessage = reuploadErrorMessage {
+                Text(errorMessage)
+            }
+        }
+        .alert("心率資料不足", isPresented: $showInsufficientHeartRateAlert) {
+            Button("取消", role: .cancel) { 
+                isReuploadingWorkout = false
+            }
+            Button("仍要上傳", role: .destructive) {
+                Task {
+                    await forceReuploadWithInsufficientHeartRate()
+                }
+            }
+        } message: {
+            Text("此運動記錄的心率資料過少（只有 \(heartRateCount) 個數據點），可能會影響進階指標的準確度。\n\n建議檢查 Apple Watch 或心率帶是否正確配戴。\n\n您仍要繼續上傳嗎？")
+        }
     }
     
     // MARK: - 圖表區塊
@@ -509,6 +675,57 @@ struct WorkoutDetailViewV2: View {
         
         return parts.isEmpty ? "-" : parts.joined(separator: "\n")
     }
+    
+    // MARK: - 分享功能
+    
+    private func shareWorkout() {
+        isGeneratingScreenshot = true
+        
+        LongScreenshotCapture.captureView(
+            VStack(spacing: 16) {
+                basicInfoCard
+                
+                if viewModel.workout.advancedMetrics != nil {
+                    advancedMetricsCard
+                }
+                
+                heartRateChartSection
+                
+                if !viewModel.paces.isEmpty {
+                    paceChartSection
+                }
+                
+                if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
+                   let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
+                    combinedZoneDistributionCard(hrZones: convertToV2ZoneDistribution(hrZones), paceZones: convertToV2ZoneDistribution(paceZones))
+                } else if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution {
+                    heartRateZoneCard(convertToV2ZoneDistribution(hrZones))
+                } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
+                    paceZoneCard(convertToV2ZoneDistribution(paceZones))
+                }
+                
+                if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
+                    LapAnalysisView(
+                        laps: laps,
+                        dataProvider: viewModel.workout.provider,
+                        deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                    )
+                }
+                
+                sourceInfoCard
+            }
+            .padding()
+            .background(Color(.systemGray6))
+        ) { image in
+            DispatchQueue.main.async {
+                self.isGeneratingScreenshot = false
+                self.shareImage = image
+                self.showShareSheet = true
+            }
+        }
+    }
+    
+    
 }
 
 // MARK: - 輔助 Views

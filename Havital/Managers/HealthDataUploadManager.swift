@@ -65,6 +65,9 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     deinit {
         cancelAllTasks()
+        Task {
+            await stopHealthKitObservers()
+        }
     }
     
     // MARK: - Public Interface
@@ -94,11 +97,9 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     /// 設置 HealthKit 觀察者，監聽新數據
     private func setupHealthKitObserver() {
-        let healthStore = HKHealthStore()
-        
         // 監聽 HRV 數據更新
         let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
-        let hrvQuery = HKObserverQuery(sampleType: hrvType, predicate: nil) { [weak self] _, _, _ in
+        let hrvQuery = HKObserverQuery(sampleType: hrvType, predicate: nil) { [weak self] _, completionHandler, _ in
             Task {
                 // HRV 數據更新，等待一段時間後上傳（讓數據穩定）
                 try? await Task.sleep(nanoseconds: 30 * 60 * 1_000_000_000) // 等待30分鐘
@@ -106,32 +107,58 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
                 
                 // 通知 UI 刷新數據
                 await self?.notifyAppleHealthDataRefresh()
+                completionHandler()
             }
         }
         
         // 監聽靜息心率數據更新
         let rhrType = HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
-        let rhrQuery = HKObserverQuery(sampleType: rhrType, predicate: nil) { [weak self] _, _, _ in
+        let rhrQuery = HKObserverQuery(sampleType: rhrType, predicate: nil) { [weak self] _, completionHandler, _ in
             Task {
                 // 靜息心率更新，立即嘗試上傳
                 await self?.uploadRecentHealthData()
                 
                 // 通知 UI 刷新數據
                 await self?.notifyAppleHealthDataRefresh()
+                completionHandler()
             }
         }
         
-        healthStore.execute(hrvQuery)
-        healthStore.execute(rhrQuery)
-        
-        // 啟用背景傳遞
-        healthStore.enableBackgroundDelivery(for: hrvType, frequency: .immediate) { _, _ in }
-        healthStore.enableBackgroundDelivery(for: rhrType, frequency: .immediate) { _, _ in }
+        // 使用 HealthKitObserverCoordinator 註冊 Observer
+        Task {
+            let hrvRegistered = await HealthKitObserverCoordinator.shared.registerObserver(
+                type: HealthKitObserverCoordinator.ObserverType.heartRateVariability,
+                query: hrvQuery,
+                enableBackground: true,
+                sampleType: hrvType
+            )
+            
+            let rhrRegistered = await HealthKitObserverCoordinator.shared.registerObserver(
+                type: HealthKitObserverCoordinator.ObserverType.restingHeartRate,
+                query: rhrQuery,
+                enableBackground: true,
+                sampleType: rhrType
+            )
+            
+            if hrvRegistered {
+                print("HealthDataUploadManager: 成功註冊 HRV Observer")
+            }
+            if rhrRegistered {
+                print("HealthDataUploadManager: 成功註冊 RHR Observer")
+            }
+        }
     }
     
     /// 立即同步健康數據
     func syncHealthDataNow() async {
         await uploadRecentHealthData()
+    }
+    
+    /// 停止所有 HealthKit 觀察者
+    private func stopHealthKitObservers() async {
+        await HealthKitObserverCoordinator.shared.removeObserver(type: HealthKitObserverCoordinator.ObserverType.heartRateVariability)
+        await HealthKitObserverCoordinator.shared.removeObserver(type: HealthKitObserverCoordinator.ObserverType.restingHeartRate)
+        print("HealthDataUploadManager: 已停止所有 HealthKit 觀察者")
     }
     
     /// 獲取健康數據（優先從緩存，然後 API，最後本地數據）

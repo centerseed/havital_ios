@@ -525,11 +525,23 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         
         // 保存查詢引用
         activeObserverQuery = query
-        isObservingWorkouts = true
         
-        // 執行查詢
-        healthStore.execute(query)
-        print("已開始監聽健身記錄變化")
+        // 使用 HealthKitObserverCoordinator 註冊 Observer
+        Task {
+            let registered = await HealthKitObserverCoordinator.shared.registerObserver(
+                type: HealthKitObserverCoordinator.ObserverType.workoutBackground,
+                query: query,
+                enableBackground: false,  // 背景傳遞已在 setupWorkoutObserver 中設置
+                sampleType: nil
+            )
+            
+            if registered {
+                isObservingWorkouts = true
+                print("WorkoutBackgroundManager: 成功註冊 HealthKit Observer")
+            } else {
+                print("WorkoutBackgroundManager: HealthKit Observer 已經存在，跳過註冊")
+            }
+        }
     }
     
     // 設置背景刷新
@@ -580,11 +592,15 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 停止監聽健身記錄變化
     func stopObservingWorkouts() {
-        if let query = activeObserverQuery {
-            healthStore.stop(query)
-            activeObserverQuery = nil
-            isObservingWorkouts = false
-            print("已停止監聽健身記錄變化")
+        if activeObserverQuery != nil {
+            Task {
+                // 使用 HealthKitObserverCoordinator 移除 Observer
+                await HealthKitObserverCoordinator.shared.removeObserver(type: HealthKitObserverCoordinator.ObserverType.workoutBackground)
+                
+                activeObserverQuery = nil
+                isObservingWorkouts = false
+                print("已停止監聽健身記錄變化")
+            }
         }
     }
     

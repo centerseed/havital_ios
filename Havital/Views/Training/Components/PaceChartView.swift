@@ -18,138 +18,169 @@ struct PaceChartView: View {
     
     private func getMaxPace() -> Double {
         guard !paces.isEmpty else { return 0 }
-        return paces.map { $0.value }.max() ?? 0
+        // 配速值越小表示越快，所以最大配速實際上是最小值
+        return paces.map { $0.value }.min() ?? 0
     }
     
     private func getMinPace() -> Double {
         guard !paces.isEmpty else { return 0 }
-        // 過濾掉過慢的配速（例如小於0.25 m/s 的配速）
-        let filteredPaces = paces.filter { $0.value >= 0.25 }
-        return filteredPaces.map { $0.value }.min() ?? 0
+        // 配速值越大表示越慢，所以最小配速實際上是最大值
+        // 過濾掉異常慢的配速（例如大於1800秒/公里，即30分鐘/公里）
+        let filteredPaces = paces.filter { $0.value <= 1800 }
+        return filteredPaces.map { $0.value }.max() ?? 0
     }
     
-    private func formatPaceFromMetersPerSecond(_ speed: Double) -> String {
-        guard speed > 0 else { return "--:--" }
-        let secondsPerKm = 1000 / speed
-        let minutes = Int(secondsPerKm) / 60
-        let seconds = Int(secondsPerKm) % 60
-        return String(format: "%d:%02d", minutes, seconds)
-    }
-    
-    private func formatSlowestPace(_ speed: Double) -> String {
-        guard speed > 0 else { return "--:--" }
-        let secondsPerKm = 1000 / speed
+    private func formatPaceFromSeconds(_ secondsPerKm: Double) -> String {
+        guard secondsPerKm > 0 else { return "--:--" }
         let minutes = Int(secondsPerKm) / 60
         let seconds = Int(secondsPerKm) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
     
     private var yAxisTickValues: [Double] {
-        let range = speedChartYRange
+        let range = paceChartYRange
         let lower = range.lowerBound
         let upper = range.upperBound
-        var values: [Double] = []
-
-        // 預設情況下的速度值，用於 fallback
-        let defaultMinSpeed: Double = 1.0
-        let defaultMaxSpeed: Double = 5.0
+        var originalValues: [Double] = []
 
         if lower < upper {
             let spread = upper - lower
-            // 避免除以零或極小間距導致的問題，設定一個最小有效間距閾值
-            if spread > 1e-7 { // 例如 0.0000001 m/s
-                let numberOfIntervals = 4 // 這會產生 5 個刻度點
-                for i in 0...numberOfIntervals {
-                    values.append(lower + spread * (Double(i) / Double(numberOfIntervals)))
-                }
-            } else {
-                // 如果間距非常小，只顯示中間值或上下限 (如果它們不同)
-                values.append(lower)
-                if upper != lower { values.append(upper) }
-            }
-        } else if lower == upper { // 如果範圍是一個單點
-            // 產生一個小範圍圍繞該點，例如 +/- 5% 或一個固定值
-            let delta = max(lower * 0.05, 0.1) // 至少 +/- 0.1 m/s
-            values.append(lower - delta)
-            values.append(lower)
-            values.append(lower + delta)
-        } else { // lower > upper (理論上不應發生，但作為防禦)
-            // Fallback 到預設的速度範圍刻度
-            let defaultSpread = defaultMaxSpeed - defaultMinSpeed
+            // 生成5個刻度點
             let numberOfIntervals = 4
             for i in 0...numberOfIntervals {
-                values.append(defaultMinSpeed + defaultSpread * (Double(i) / Double(numberOfIntervals)))
+                originalValues.append(lower + spread * (Double(i) / Double(numberOfIntervals)))
             }
         }
+        
+        // 轉換為反轉後的 Y 值
+        let invertedValues = originalValues.map { invertedPaceValue($0) }
+        
         // 過濾掉 NaN 或無限值，並確保唯一性和排序
-        return Array(Set(values.filter { $0.isFinite })).sorted()
+        return Array(Set(invertedValues.filter { $0.isFinite })).sorted()
     }
 
-    private var speedChartYRange: ClosedRange<Double> {
-        // 預設速度範圍 (m/s)
-        let defaultMinSpeed: Double = 1.0  // 約 16:40 min/km
-        let defaultMaxSpeed: Double = 5.0  // 約 3:20 min/km
-        let absoluteMinSpeed: Double = 0.1 // 避免除以零或非常慢的速度
-        let absoluteMaxSpeed: Double = 10.0 // 約 1:40 min/km (博爾特衝刺級別)
+    private var paceChartYRange: ClosedRange<Double> {
+        // 預設配速範圍 (秒/公里)
+        let defaultMinPace: Double = 180  // 3:00 min/km (很快的配速)
+        let defaultMaxPace: Double = 600  // 10:00 min/km (慢跑配速)
+        let absoluteMinPace: Double = 120 // 2:00 min/km (極快)
+        let absoluteMaxPace: Double = 1200 // 20:00 min/km (走路)
 
         // 1. 處理空數據
-        // 如果 paces 陣列為空，則返回預設範圍。
-        // 否則，即使在預覽模式下，也繼續使用實際數據計算範圍。
         if paces.isEmpty {
-            // print("PaceChartView: paces is empty, returning default speed range.") // 可用於調試
-            return defaultMinSpeed...defaultMaxSpeed
+            return defaultMinPace...defaultMaxPace
         }
 
-        // 2. 過濾有效速度 (m/s)
-        let validSpeeds = paces.map { $0.value }.filter { $0 >= absoluteMinSpeed }
+        // 2. 過濾有效配速 (秒/公里)
+        let validPaces = paces.map { $0.value }.filter { $0 > 0 && $0 <= absoluteMaxPace }
 
-        guard !validSpeeds.isEmpty else {
-            return defaultMinSpeed...defaultMaxSpeed
+        guard !validPaces.isEmpty else {
+            return defaultMinPace...defaultMaxPace
         }
 
-        // 3. 從數據計算最小和最大速度
-        var dataMinSpeed = validSpeeds.min() ?? defaultMinSpeed
-        var dataMaxSpeed = validSpeeds.max() ?? defaultMaxSpeed
+        // 3. 從數據計算最小和最大配速
+        var dataMinPace = validPaces.min() ?? defaultMinPace
+        var dataMaxPace = validPaces.max() ?? defaultMaxPace
         
-        // 將數據衍生的速度限制在絕對範圍內
-        dataMinSpeed = max(dataMinSpeed, absoluteMinSpeed)
-        dataMaxSpeed = min(dataMaxSpeed, absoluteMaxSpeed)
+        // 將數據衍生的配速限制在絕對範圍內
+        dataMinPace = max(dataMinPace, absoluteMinPace)
+        dataMaxPace = min(dataMaxPace, absoluteMaxPace)
 
-        // 如果計算後 min > max (不太可能，除非數據特殊或預設值交叉)，則交換
-        if dataMinSpeed > dataMaxSpeed {
-            swap(&dataMinSpeed, &dataMaxSpeed)
+        // 如果計算後 min > max，則交換
+        if dataMinPace > dataMaxPace {
+            swap(&dataMinPace, &dataMaxPace)
         }
         
-        // 4. 處理最小速度接近或大於最大速度的情況 (例如所有數據點相同)
-        if dataMinSpeed >= dataMaxSpeed {
-            let centerSpeed = dataMinSpeed
-            dataMinSpeed = max(absoluteMinSpeed, centerSpeed * 0.9)
-            dataMaxSpeed = min(absoluteMaxSpeed, centerSpeed * 1.1)
-            
-            if dataMinSpeed >= dataMaxSpeed { // 如果調整後仍然無效，則回退到預設值
-                 return defaultMinSpeed...defaultMaxSpeed
-            }
+        // 4. 處理範圍太小的情況
+        if dataMaxPace - dataMinPace < 30 { // 如果範圍小於30秒
+            let centerPace = (dataMinPace + dataMaxPace) / 2
+            dataMinPace = max(absoluteMinPace, centerPace - 30)
+            dataMaxPace = min(absoluteMaxPace, centerPace + 30)
         }
         
         // 5. 添加邊距
-        let margin = (dataMaxSpeed - dataMinSpeed) * 0.1 // 上下各10%邊距
+        let margin = (dataMaxPace - dataMinPace) * 0.1 // 上下各10%邊距
         
-        var finalMinSpeed = dataMinSpeed - margin
-        var finalMaxSpeed = dataMaxSpeed + margin
+        var finalMinPace = dataMinPace - margin
+        var finalMaxPace = dataMaxPace + margin
         
         // 再次用絕對限制進行校準
-        finalMinSpeed = max(finalMinSpeed, absoluteMinSpeed)
-        finalMaxSpeed = min(finalMaxSpeed, absoluteMaxSpeed)
+        finalMinPace = max(finalMinPace, absoluteMinPace)
+        finalMaxPace = min(finalMaxPace, absoluteMaxPace)
 
         // 確保最終範圍有效
-        if finalMinSpeed >= finalMaxSpeed {
-            if dataMinSpeed < dataMaxSpeed { 
-                return dataMinSpeed...dataMaxSpeed
-            }
-            return defaultMinSpeed...defaultMaxSpeed
+        if finalMinPace >= finalMaxPace {
+            return defaultMinPace...defaultMaxPace
         }
         
-        return finalMinSpeed...finalMaxSpeed
+        return finalMinPace...finalMaxPace
+    }
+    
+    private func invertedPaceValue(_ pace: Double) -> Double {
+        let range = paceChartYRange
+        return range.upperBound + range.lowerBound - pace
+    }
+    
+    @ViewBuilder
+    private var paceChart: some View {
+        Chart {
+            // 使用 ForEach 和 LineMark 繪製折線
+            ForEach(paces) { point in
+                LineMark(
+                    x: .value("時間", point.time),
+                    y: .value("配速", invertedPaceValue(point.value))
+                )
+                .foregroundStyle(Color.green.gradient)
+                .interpolationMethod(.linear)
+            }
+            
+            // 單獨繪製填色區域
+            let lowerBound = paceChartYRange.lowerBound
+            ForEach(paces) { point in
+                AreaMark(
+                    x: .value("時間", point.time),
+                    yStart: .value("配速", lowerBound),
+                    yEnd: .value("配速", invertedPaceValue(point.value))
+                )
+                .foregroundStyle(LinearGradient(
+                    colors: [.green.opacity(0.3), .green.opacity(0.05)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ))
+                .interpolationMethod(.linear)
+            }
+        }
+        .frame(height: 180)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: yAxisTickValues) { value in
+                if let invertedPace = value.as(Double.self), invertedPace > 0 {
+                    let originalPace = invertedPaceValue(invertedPace)
+                    AxisValueLabel {
+                        Text(formatPaceFromSeconds(originalPace))
+                            .font(.caption2)
+                    }
+                }
+                AxisTick()
+                AxisGridLine()
+            }
+        }
+        .chartYScale(domain: paceChartYRange)
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .minute, count: 10)) { value in
+                if let date = value.as(Date.self) {
+                    AxisValueLabel {
+                        Text(timeFormatter(date))
+                            .font(.caption)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func timeFormatter(_ date: Date) -> String {
+        let hour = Calendar.current.component(.hour, from: date)
+        let minute = Calendar.current.component(.minute, from: date)
+        return String(format: "%d:%02d", hour, minute)
     }
     
     var body: some View {
@@ -201,7 +232,7 @@ struct PaceChartView: View {
                             Text("最快:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(formatPaceFromSeconds(1000 / getMaxPace()))
+                            Text(formatPaceFromSeconds(getMaxPace()))
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.green)
@@ -213,7 +244,7 @@ struct PaceChartView: View {
                             Text("最慢:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(formatPaceFromSeconds(1000 / getMinPace()))
+                            Text(formatPaceFromSeconds(getMinPace()))
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.orange)
@@ -221,66 +252,7 @@ struct PaceChartView: View {
                     }
 
 
-                    Chart {
-                        // 使用 ForEach 和 LineMark 繪製折線
-                        ForEach(paces) { point in
-                            LineMark(
-                                x: .value("時間", point.time),
-                                y: .value("速度", point.value)
-                            )
-                            .foregroundStyle(Color.green.gradient)
-                            .interpolationMethod(.catmullRom)
-                        }
-                        
-                        // 單獨繪製填色區域，確保底部邊界正確
-                        ForEach(Array(paces.enumerated()), id: \.element.id) { index, point in
-                            AreaMark(
-                                x: .value("時間", point.time),
-                                yStart: .value("速度", speedChartYRange.lowerBound), // 使用圖表範圍的下限作為填色底部
-                                yEnd: .value("速度", point.value)
-                            )
-                            .foregroundStyle(LinearGradient(
-                                colors: [.green.opacity(0.3), .green.opacity(0.05)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ))
-                            .interpolationMethod(.catmullRom)
-                        }
-                    }
-                    .frame(height: 180)
-                    // .chartYScale(domain: paceChartYRange) // 移除重複的，下方已包含 reversed: true
-                    .chartYAxis {
-                        // 將Y軸標籤移至左側，並使用計算好的刻度值
-                        AxisMarks(position: .leading, values: yAxisTickValues) { value in
-                            if let speedInMps = value.as(Double.self), speedInMps > 0 {
-                                AxisValueLabel {
-                                    Text(formatPaceFromSeconds(1000 / speedInMps)) // 將速度(m/s)轉為配速(s/km)再格式化
-                                        .font(.caption2)
-                                }
-                            } else if let speedInMps = value.as(Double.self), speedInMps == 0 {
-                                AxisValueLabel {
-                                    Text("∞") // 速度為0時配速為無窮大
-                                        .font(.caption2)
-                                }
-                            }
-                            AxisTick()
-                            AxisGridLine()
-                        }
-                    }
-                    .chartYScale(domain: speedChartYRange) // 使用速度範圍，不再需要反轉
-                    // X軸配置不變
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .minute, count: 10)) { value in
-                            if let date = value.as(Date.self) {
-                                AxisValueLabel {
-                                    Text(
-                                        "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
-                                    )
-                                    .font(.caption)
-                                }
-                            }
-                        }
-                    }
+                    paceChart
                 }
             }
         }
@@ -288,13 +260,6 @@ struct PaceChartView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
-    }
-    
-    private func formatPaceFromSeconds(_ seconds: Double) -> String {
-        let totalSeconds = Int(seconds)
-        let minutes = totalSeconds / 60
-        let remainingSeconds = totalSeconds % 60
-        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }
 

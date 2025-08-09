@@ -75,22 +75,19 @@ struct LapAnalysisView: View {
                         .padding(.vertical, 6)
                         .background(Color(.systemGray5))
                         
-                        // Table rows
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(spacing: 0) {
-                                ForEach(Array(laps.enumerated()), id: \.element.id) { index, lap in
-                                    LapRowView(lap: lap, isEven: index % 2 == 0, width: geometry.size.width)
-                                        .id(lap.id)
-                                }
+                        // Table rows - 移除 ScrollView 讓長截圖能完整顯示所有資料
+                        VStack(spacing: 0) {
+                            ForEach(Array(laps.enumerated()), id: \.element.id) { index, lap in
+                                LapRowView(lap: lap, isEven: index % 2 == 0, width: geometry.size.width)
+                                    .id(lap.id)
                             }
                         }
-                        .frame(maxHeight: 300)
                     }
                     .background(Color(.systemBackground))
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
                 }
-                .frame(height: min(CGFloat(laps.count * 35 + 40), 340))
+                .frame(height: CGFloat(laps.count * 35 + 40)) // 移除最大高度限制，讓所有資料都顯示
             }
         }
         .padding()
