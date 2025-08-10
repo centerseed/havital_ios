@@ -13,9 +13,9 @@ enum DataSourceType: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .unbound:
-            return "尚未綁定"
+            return L10n.DataSource.notConnected.localized
         case .appleHealth:
-            return "Apple Health"
+            return L10n.DataSource.appleHealth.localized
         case .garmin:
             return "Garmin"
         }
@@ -127,6 +127,22 @@ class UserPreferenceManager: ObservableObject {
         }
     }
     
+    // MARK: - Language Preference
+    @Published var languagePreference: SupportedLanguage {
+        didSet {
+            UserDefaults.standard.set(languagePreference.rawValue, forKey: "language_preference")
+            // Sync with LanguageManager
+            LanguageManager.shared.currentLanguage = languagePreference
+        }
+    }
+    
+    // Note: Unit preference removed until backend supports imperial units
+    // @Published var unitPreference: UnitPreference {
+    //     didSet {
+    //         UserDefaults.standard.set(unitPreference.rawValue, forKey: "unit_preference")
+    //     }
+    // }
+    
     private init() {
         // 載入保存的數據來源偏好
         if let savedSource = UserDefaults.standard.string(forKey: Self.dataSourceKey),
@@ -135,6 +151,22 @@ class UserPreferenceManager: ObservableObject {
         } else {
             self.dataSourcePreference = .unbound
         }
+        
+        // 載入語言偏好
+        if let savedLanguage = UserDefaults.standard.string(forKey: "language_preference"),
+           let language = SupportedLanguage(rawValue: savedLanguage) {
+            self.languagePreference = language
+        } else {
+            self.languagePreference = SupportedLanguage.current
+        }
+        
+        // Note: Unit preference initialization removed until backend supports imperial units
+        // if let savedUnit = UserDefaults.standard.string(forKey: "unit_preference"),
+        //    let unit = UnitPreference(rawValue: savedUnit) {
+        //     self.unitPreference = unit
+        // } else {
+        //     self.unitPreference = .metric
+        // }
         
         // 監聽 Feature Flag 變化
         NotificationCenter.default.addObserver(
@@ -255,6 +287,7 @@ class UserPreferenceManager: ObservableObject {
             "user_email", "user_name", "age", "max_heart_rate",
             "current_pace", "current_distance", "prefer_week_days",
             "prefer_week_days_longrun", "week_of_training", "user_photo_url",
+            "language_preference", "unit_preference",
             // 登出時清除數據來源設定，確保多用戶環境下的數據隔離
             Self.dataSourceKey
         ]

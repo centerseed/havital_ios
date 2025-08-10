@@ -23,6 +23,7 @@ struct UserProfileView: View {
     @State private var showDataSyncView = false  // 顯示數據同步畫面（已停用）
     @State private var syncDataSource: DataSourceType?  // 需要同步的數據源（已停用）
     @State private var showGarminAlreadyBoundAlert = false
+    @State private var showLanguageSettings = false
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -137,6 +138,23 @@ struct UserProfileView: View {
                                 .foregroundColor(.secondary)
                                 .font(.caption)
                         }
+                    }
+                }
+            }
+            
+            // Settings Section
+            Section(header: Text("設定")) {
+                // Language Settings
+                Button(action: {
+                    showLanguageSettings = true
+                }) {
+                    HStack {
+                        Image(systemName: "globe")
+                        Text("語言設定")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
                     }
                 }
             }
@@ -267,6 +285,9 @@ struct UserProfileView: View {
             } else {
                 EmptyView()
             }
+        }
+        .sheet(isPresented: $showLanguageSettings) {
+            LanguageSettingsView()
         }
         // 重新 OnBoarding 確認對話框
         .confirmationDialog(

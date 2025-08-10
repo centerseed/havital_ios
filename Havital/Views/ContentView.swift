@@ -45,21 +45,21 @@ struct ContentView: View {
                 // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
                 .tabItem {
                     Image(systemName: "figure.run")
-                    Text("訓練計劃")
+                    Text(L10n.Tab.trainingPlan.localized)
                 }
             
             TrainingRecordView()
                 // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
                 .tabItem {
                     Image(systemName: "chart.line.text.clipboard")
-                    Text("訓練紀錄")
+                    Text(L10n.Tab.trainingRecord.localized)
                 }
             
             MyAchievementView()
                 // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
                 .tabItem {
                     Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                    Text("表現數據")
+                    Text(L10n.Tab.performanceData.localized)
                 }
         }
         .onAppear {
@@ -74,13 +74,13 @@ struct ContentView: View {
             // print("Main TabView appeared. Triggering permission setup.")
             // appViewModel.requestPermissionsAndSetupBackgroundTasks() // 假設 AppViewModel 有此方法
         }
-        .alert("需要健康資料權限", isPresented: $appViewModel.showHealthKitAlert) {
-            Button("前往設定", role: .none) {
+        .alert(L10n.Error.healthPermission.localized, isPresented: $appViewModel.showHealthKitAlert) {
+            Button(L10n.Common.settings.localized, role: .none) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("取消", role: .cancel) { }
+            Button(L10n.Common.cancel.localized, role: .cancel) { }
         } message: {
             Text(appViewModel.healthKitAlertMessage)
         }
