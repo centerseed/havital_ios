@@ -259,6 +259,9 @@ struct TrainingPlanOverviewDetailView: View {
                 // 更新訓練計劃概覽
                 let updatedOverview = try await TrainingPlanService.shared.updateTrainingPlanOverview(overviewId: overview.id)
                 
+                // 保存更新後的概覽到本地存儲
+                TrainingPlanStorage.saveTrainingPlanOverview(updatedOverview)
+                
                 await MainActor.run {
                     self.overview = updatedOverview
                     self.isUpdatingOverview = false
@@ -266,6 +269,12 @@ struct TrainingPlanOverviewDetailView: View {
                     self.updateStatusMessage = "訓練計劃已根據最新目標重新產生"
                     self.isUpdateSuccessful = true
                     self.hasTargetSaved = false  // 在更新完成後重置狀態
+                    
+                    // 發送通知通知主畫面重新載入
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("TrainingOverviewUpdated"),
+                        object: updatedOverview
+                    )
                     
                     // 5秒後自動隱藏成功提示
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {

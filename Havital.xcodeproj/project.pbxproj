@@ -273,6 +273,8 @@
 			knownRegions = (
 				en,
 				Base,
+				ja,
+				"zh-Hant",
 			);
 			mainGroup = CFB67CE72D07047500F672E3;
 			minimizedProjectReferenceProxies = 1;
@@ -482,7 +484,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.8;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -610,7 +612,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.8;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -801,7 +803,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.8;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -837,7 +839,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.8;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;

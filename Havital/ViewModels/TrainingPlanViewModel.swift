@@ -276,6 +276,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         // 基本狀態初始化，延遲資料載入到用戶確認後
         Logger.debug("TrainingPlanViewModel: 開始初始化")
         
+        // 設置通知監聽器將在初始化完成後調用
+        
         // 非同步任務：正確的初始化順序
         Task {
             await self.initializeWithUserContext()
@@ -410,6 +412,38 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     await self.loadCurrentWeekData()
                     // 同時更新每日訓練記錄，以便 DailyTrainingCard 能顯示最新數據
                     await self.loadWorkoutsForCurrentWeek()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // 監聽訓練概覽更新通知
+        NotificationCenter.default.publisher(for: NSNotification.Name("TrainingOverviewUpdated"))
+            .sink { [weak self] notification in
+                guard let self = self else { return }
+                
+                // 防止在初始化期間響應通知
+                guard !self.isInitializing, self.hasCompletedInitialLoad else {
+                    print("初始化期間跳過 TrainingOverviewUpdated 通知")
+                    return
+                }
+                
+                if let updatedOverview = notification.object as? TrainingPlanOverview {
+                    print("收到 TrainingOverviewUpdated 通知，更新訓練概覽...")
+                    Task {
+                        await MainActor.run {
+                            self.trainingOverview = updatedOverview
+                            // 重新計算當前週數
+                            self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: updatedOverview.createdAt) ?? 1
+                            self.selectedWeek = self.currentWeek
+                        }
+                        
+                        // 重要：更新 overview 後必須重新載入週課表和其他相關資訊
+                        print("概覽更新完成，開始重新載入週課表和相關資訊...")
+                        await self.loadWeeklyPlan()
+                        await self.loadCurrentWeekDistance()
+                        await self.loadCurrentWeekIntensity()
+                        await self.loadWorkoutsForCurrentWeek()
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -832,27 +866,38 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         if !savedOverview.trainingPlanName.isEmpty {
             await MainActor.run {
                 self.trainingOverview = savedOverview
+                // 重新計算當前週數，確保使用最新的本地數據
+                self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
+                self.selectedWeek = self.currentWeek
             }
             
             // 輸出當前訓練週數
             logCurrentTrainingWeek()
+            
+            Logger.debug("已從本地加載訓練計劃概覽，跳過API調用以保留本地更新")
+            return // 如果本地有數據，就不要從API獲取，避免覆蓋本地更新
         }
         
-        // 然後嘗試從API獲取最新數據（登出後登入分支）
+        // 只有當本地沒有數據時才從API獲取
         do {
             let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
             
             // 成功獲取後更新UI
             await MainActor.run {
                 self.trainingOverview = overview
+                self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
+                self.selectedWeek = self.currentWeek
             }
-            Logger.debug("成功載入訓練計劃概覽")
+            Logger.debug("成功從API載入訓練計劃概覽")
             Logger.debug("Plan Overview id \(overview.id)")
             TrainingPlanStorage.saveTrainingPlanOverview(overview)
             logCurrentTrainingWeek()
         } catch {
             Logger.error("載入訓練計劃概覽從API失敗: \(error)")
-            // 已從本地加載，不需要額外處理
+            // 如果本地也沒有數據且API失敗，這是真正的錯誤
+            if savedOverview.trainingPlanName.isEmpty {
+                Logger.error("本地和API都無法獲取訓練計劃概覽")
+            }
         }
     }
     
