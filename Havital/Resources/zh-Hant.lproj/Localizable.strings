@@ -1,0 +1,254 @@
+/* 
+  Localizable.strings (Traditional Chinese)
+  Havital
+*/
+
+// MARK: - Main Navigation
+"tab.training_plan" = "訓練計劃";
+"tab.training_record" = "訓練紀錄";
+"tab.performance_data" = "表現數據";
+"tab.profile" = "個人";
+
+// MARK: - Common Actions
+"common.save" = "儲存";
+"common.cancel" = "取消";
+"common.delete" = "刪除";
+"common.edit" = "編輯";
+"common.done" = "完成";
+"common.close" = "關閉";
+"common.confirm" = "確認";
+"common.loading" = "載入中...";
+"common.retry" = "重試";
+"common.refresh" = "重新整理";
+"common.settings" = "設定";
+"common.logout" = "登出";
+"common.login" = "登入";
+"common.next" = "下一步";
+"common.back" = "返回";
+"common.skip" = "跳過";
+"common.start" = "開始";
+"common.stop" = "停止";
+"common.pause" = "暫停";
+"common.resume" = "繼續";
+"common.finish" = "完成";
+
+// MARK: - Authentication
+"auth.welcome" = "歡迎使用 Havital";
+"auth.login_title" = "登入";
+"auth.logout_title" = "登出";
+"auth.login_subtitle" = "登入以同步您的訓練資料";
+"auth.email_placeholder" = "電子郵件";
+"auth.password_placeholder" = "密碼";
+"auth.forgot_password" = "忘記密碼？";
+"auth.no_account" = "還沒有帳號？";
+"auth.sign_up" = "註冊";
+"auth.login_failed" = "登入失敗";
+"auth.logout_confirm" = "確定要登出嗎？";
+
+// MARK: - Onboarding
+"onboarding.welcome" = "歡迎來到 Havital";
+"onboarding.set_goal" = "設定訓練目標";
+"onboarding.race_distance" = "比賽距離";
+"onboarding.target_time" = "目標完賽時間";
+"onboarding.training_days" = "訓練日";
+"onboarding.weekly_volume" = "週跑量";
+"onboarding.select_days" = "選擇訓練日";
+"onboarding.connect_data" = "連接數據來源";
+"onboarding.complete" = "完成設定";
+"onboarding.skip_for_now" = "稍後設定";
+
+// MARK: - Profile
+"profile.title" = "個人資料";
+"profile.personal_info" = "個人資訊";
+"profile.training_info" = "訓練資訊";
+"profile.heart_rate_info" = "心率資訊";
+"profile.data_sources" = "數據來源";
+"profile.settings" = "設定";
+"profile.name" = "姓名";
+"profile.email" = "電子郵件";
+"profile.birth_date" = "出生日期";
+"profile.gender" = "性別";
+"profile.male" = "男性";
+"profile.female" = "女性";
+"profile.height" = "身高";
+"profile.weight" = "體重";
+"profile.resting_hr" = "安靜心率";
+"profile.max_hr" = "最大心率";
+"profile.weekly_mileage" = "週跑量";
+"profile.edit_profile" = "編輯個人資料";
+
+// MARK: - Data Sources
+"datasource.title" = "數據來源";
+"datasource.apple_health" = "Apple Health";
+"datasource.garmin_connect" = "Garmin Connect™";
+"datasource.not_connected" = "尚未綁定";
+"datasource.connected" = "已連接";
+"datasource.disconnect" = "解除綁定";
+"datasource.connect" = "連接";
+"datasource.sync_now" = "立即同步";
+"datasource.last_sync" = "最後同步";
+"datasource.sync_success" = "同步成功";
+"datasource.sync_failed" = "同步失敗";
+"datasource.syncing" = "同步中...";
+
+// MARK: - Training Plan
+"training.plan_title" = "訓練計劃";
+"training.weekly_plan" = "本週計劃";
+"training.daily_training" = "每日訓練";
+"training.weekly_volume" = "週跑量";
+"training.training_review" = "訓練回顧";
+"training.generate_plan" = "產生課表";
+"training.no_plan" = "尚無訓練計劃";
+"training.create_plan" = "建立訓練計劃";
+"training.week" = "第 %d 週";
+"training.today" = "今日";
+"training.tomorrow" = "明日";
+"training.yesterday" = "昨日";
+"training.rest_day" = "休息日";
+"training.completed" = "已完成";
+"training.pending" = "待完成";
+"training.skipped" = "已跳過";
+"training.edit_volume" = "編輯週跑量";
+"training.edit_days" = "編輯訓練日";
+
+// MARK: - Training Types
+"training.type.easy" = "輕鬆跑";
+"training.type.tempo" = "節奏跑";
+"training.type.interval" = "間歇訓練";
+"training.type.long" = "長距離跑";
+"training.type.recovery" = "恢復跑";
+"training.type.race" = "比賽配速";
+"training.type.fartlek" = "法特萊克";
+"training.type.hill" = "爬坡訓練";
+"training.type.speed" = "速度訓練";
+
+// MARK: - Training Record
+"record.title" = "訓練紀錄";
+"record.all_workouts" = "所有訓練";
+"record.this_week" = "本週";
+"record.this_month" = "本月";
+"record.this_year" = "今年";
+"record.distance" = "距離";
+"record.duration" = "時間";
+"record.pace" = "配速";
+"record.heart_rate" = "心率";
+"record.calories" = "卡路里";
+"record.elevation" = "爬升";
+"record.cadence" = "步頻";
+"record.no_records" = "尚無訓練紀錄";
+"record.view_details" = "查看詳情";
+
+// MARK: - Performance
+"performance.title" = "表現數據";
+"performance.overview" = "總覽";
+"performance.weekly_stats" = "週統計";
+"performance.monthly_stats" = "月統計";
+"performance.yearly_stats" = "年統計";
+"performance.total_distance" = "總距離";
+"performance.total_time" = "總時間";
+"performance.avg_pace" = "平均配速";
+"performance.avg_hr" = "平均心率";
+"performance.total_workouts" = "訓練次數";
+"performance.longest_run" = "最長距離";
+"performance.fastest_pace" = "最快配速";
+"performance.progress" = "進步趨勢";
+
+// MARK: - Settings
+"settings.title" = "設定";
+"settings.general" = "一般";
+"settings.notifications" = "通知";
+"settings.privacy" = "隱私";
+"settings.about" = "關於";
+"settings.language" = "語言";
+"settings.units" = "單位";
+"settings.metric" = "公制";
+"settings.imperial" = "英制";
+"settings.theme" = "主題";
+"settings.light" = "淺色";
+"settings.dark" = "深色";
+"settings.auto" = "自動";
+"settings.delete_account" = "刪除帳戶";
+"settings.delete_confirm" = "確定要刪除帳戶嗎？此操作無法復原。";
+"settings.version" = "版本";
+"settings.terms" = "服務條款";
+"settings.privacy_policy" = "隱私政策";
+
+// MARK: - Language Settings
+"language.title" = "語言設定";
+"language.zh-TW" = "繁體中文";
+"language.en-US" = "English";
+"language.ja-JP" = "日本語";
+"language.change_confirm" = "確定要更改語言嗎？";
+"language.changed" = "語言已更改";
+
+// MARK: - Errors
+"error.network" = "網路連線錯誤";
+"error.server" = "伺服器錯誤";
+"error.unknown" = "未知錯誤";
+"error.invalid_data" = "資料格式錯誤";
+"error.authentication" = "認證失敗";
+"error.permission_denied" = "權限不足";
+"error.not_found" = "找不到資料";
+"error.timeout" = "請求逾時";
+"error.try_again" = "請稍後再試";
+"error.health_permission" = "需要健康資料存取權限";
+"error.calendar_permission" = "需要行事曆存取權限";
+"error.notification_permission" = "需要通知權限";
+
+// MARK: - Success Messages
+"success.saved" = "已儲存";
+"success.updated" = "已更新";
+"success.deleted" = "已刪除";
+"success.synced" = "同步完成";
+"success.plan_generated" = "訓練計劃已產生";
+"success.profile_updated" = "個人資料已更新";
+"success.settings_saved" = "設定已儲存";
+
+// MARK: - Units
+"unit.km" = "公里";
+"unit.mi" = "英里";
+"unit.m" = "公尺";
+"unit.ft" = "英尺";
+"unit.min_per_km" = "分/公里";
+"unit.min_per_mi" = "分/英里";
+"unit.bpm" = "次/分";
+"unit.kcal" = "大卡";
+"unit.hours" = "小時";
+"unit.minutes" = "分鐘";
+"unit.seconds" = "秒";
+"unit.kg" = "公斤";
+"unit.lbs" = "磅";
+"unit.cm" = "公分";
+"unit.inch" = "英吋";
+
+// MARK: - Date & Time
+"date.today" = "今天";
+"date.yesterday" = "昨天";
+"date.tomorrow" = "明天";
+"date.week" = "週";
+"date.month" = "月";
+"date.year" = "年";
+"date.monday" = "星期一";
+"date.tuesday" = "星期二";
+"date.wednesday" = "星期三";
+"date.thursday" = "星期四";
+"date.friday" = "星期五";
+"date.saturday" = "星期六";
+"date.sunday" = "星期日";
+"date.mon" = "一";
+"date.tue" = "二";
+"date.wed" = "三";
+"date.thu" = "四";
+"date.fri" = "五";
+"date.sat" = "六";
+"date.sun" = "日";
+
+// MARK: - Alerts & Confirmations
+"alert.unsaved_changes" = "有未儲存的變更";
+"alert.discard_changes" = "要放棄變更嗎？";
+"alert.keep_editing" = "繼續編輯";
+"alert.discard" = "放棄";
+"alert.delete_workout" = "刪除訓練紀錄";
+"alert.delete_workout_confirm" = "確定要刪除這筆訓練紀錄嗎？";
+"alert.disconnect_source" = "解除數據來源";
+"alert.disconnect_confirm" = "確定要解除 %@ 的連接嗎？";

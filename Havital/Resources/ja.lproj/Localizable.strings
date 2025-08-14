@@ -1,0 +1,254 @@
+/* 
+  Localizable.strings (Japanese)
+  Havital
+*/
+
+// MARK: - Main Navigation
+"tab.training_plan" = "トレーニング計画";
+"tab.training_record" = "トレーニング記録";
+"tab.performance_data" = "パフォーマンス";
+"tab.profile" = "プロフィール";
+
+// MARK: - Common Actions
+"common.save" = "保存";
+"common.cancel" = "キャンセル";
+"common.delete" = "削除";
+"common.edit" = "編集";
+"common.done" = "完了";
+"common.close" = "閉じる";
+"common.confirm" = "確認";
+"common.loading" = "読み込み中...";
+"common.retry" = "再試行";
+"common.refresh" = "更新";
+"common.settings" = "設定";
+"common.logout" = "ログアウト";
+"common.login" = "ログイン";
+"common.next" = "次へ";
+"common.back" = "戻る";
+"common.skip" = "スキップ";
+"common.start" = "開始";
+"common.stop" = "停止";
+"common.pause" = "一時停止";
+"common.resume" = "再開";
+"common.finish" = "終了";
+
+// MARK: - Authentication
+"auth.welcome" = "Havitalへようこそ";
+"auth.login_title" = "ログイン";
+"auth.logout_title" = "ログアウト";
+"auth.login_subtitle" = "トレーニングデータを同期するにはサインインしてください";
+"auth.email_placeholder" = "メールアドレス";
+"auth.password_placeholder" = "パスワード";
+"auth.forgot_password" = "パスワードを忘れた方";
+"auth.no_account" = "アカウントをお持ちでない方";
+"auth.sign_up" = "新規登録";
+"auth.login_failed" = "ログインに失敗しました";
+"auth.logout_confirm" = "ログアウトしてもよろしいですか？";
+
+// MARK: - Onboarding
+"onboarding.welcome" = "Havitalへようこそ";
+"onboarding.set_goal" = "トレーニング目標を設定";
+"onboarding.race_distance" = "レース距離";
+"onboarding.target_time" = "目標完走時間";
+"onboarding.training_days" = "トレーニング日";
+"onboarding.weekly_volume" = "週間走行距離";
+"onboarding.select_days" = "トレーニング日を選択";
+"onboarding.connect_data" = "データソースを接続";
+"onboarding.complete" = "設定完了";
+"onboarding.skip_for_now" = "後で設定";
+
+// MARK: - Profile
+"profile.title" = "プロフィール";
+"profile.personal_info" = "個人情報";
+"profile.training_info" = "トレーニング情報";
+"profile.heart_rate_info" = "心拍数情報";
+"profile.data_sources" = "データソース";
+"profile.settings" = "設定";
+"profile.name" = "名前";
+"profile.email" = "メールアドレス";
+"profile.birth_date" = "生年月日";
+"profile.gender" = "性別";
+"profile.male" = "男性";
+"profile.female" = "女性";
+"profile.height" = "身長";
+"profile.weight" = "体重";
+"profile.resting_hr" = "安静時心拍数";
+"profile.max_hr" = "最大心拍数";
+"profile.weekly_mileage" = "週間走行距離";
+"profile.edit_profile" = "プロフィールを編集";
+
+// MARK: - Data Sources
+"datasource.title" = "データソース";
+"datasource.apple_health" = "Apple Health";
+"datasource.garmin_connect" = "Garmin Connect™";
+"datasource.not_connected" = "未接続";
+"datasource.connected" = "接続済み";
+"datasource.disconnect" = "接続解除";
+"datasource.connect" = "接続";
+"datasource.sync_now" = "今すぐ同期";
+"datasource.last_sync" = "最終同期";
+"datasource.sync_success" = "同期成功";
+"datasource.sync_failed" = "同期失敗";
+"datasource.syncing" = "同期中...";
+
+// MARK: - Training Plan
+"training.plan_title" = "トレーニング計画";
+"training.weekly_plan" = "週間計画";
+"training.daily_training" = "日々のトレーニング";
+"training.weekly_volume" = "週間走行距離";
+"training.training_review" = "トレーニングレビュー";
+"training.generate_plan" = "スケジュール作成";
+"training.no_plan" = "トレーニング計画なし";
+"training.create_plan" = "トレーニング計画を作成";
+"training.week" = "第%d週";
+"training.today" = "今日";
+"training.tomorrow" = "明日";
+"training.yesterday" = "昨日";
+"training.rest_day" = "休息日";
+"training.completed" = "完了";
+"training.pending" = "保留中";
+"training.skipped" = "スキップ済み";
+"training.edit_volume" = "週間走行距離を編集";
+"training.edit_days" = "トレーニング日を編集";
+
+// MARK: - Training Types
+"training.type.easy" = "イージーラン";
+"training.type.tempo" = "テンポラン";
+"training.type.interval" = "インターバルトレーニング";
+"training.type.long" = "ロングラン";
+"training.type.recovery" = "リカバリーラン";
+"training.type.race" = "レースペース";
+"training.type.fartlek" = "ファルトレク";
+"training.type.hill" = "ヒルトレーニング";
+"training.type.speed" = "スピードワーク";
+
+// MARK: - Training Record
+"record.title" = "トレーニング記録";
+"record.all_workouts" = "すべてのワークアウト";
+"record.this_week" = "今週";
+"record.this_month" = "今月";
+"record.this_year" = "今年";
+"record.distance" = "距離";
+"record.duration" = "時間";
+"record.pace" = "ペース";
+"record.heart_rate" = "心拍数";
+"record.calories" = "カロリー";
+"record.elevation" = "標高";
+"record.cadence" = "ケイデンス";
+"record.no_records" = "トレーニング記録なし";
+"record.view_details" = "詳細を見る";
+
+// MARK: - Performance
+"performance.title" = "パフォーマンス";
+"performance.overview" = "概要";
+"performance.weekly_stats" = "週間統計";
+"performance.monthly_stats" = "月間統計";
+"performance.yearly_stats" = "年間統計";
+"performance.total_distance" = "総距離";
+"performance.total_time" = "総時間";
+"performance.avg_pace" = "平均ペース";
+"performance.avg_hr" = "平均心拍数";
+"performance.total_workouts" = "トレーニング回数";
+"performance.longest_run" = "最長距離";
+"performance.fastest_pace" = "最速ペース";
+"performance.progress" = "進捗トレンド";
+
+// MARK: - Settings
+"settings.title" = "設定";
+"settings.general" = "一般";
+"settings.notifications" = "通知";
+"settings.privacy" = "プライバシー";
+"settings.about" = "アプリについて";
+"settings.language" = "言語";
+"settings.units" = "単位";
+"settings.metric" = "メートル法";
+"settings.imperial" = "ヤード・ポンド法";
+"settings.theme" = "テーマ";
+"settings.light" = "ライト";
+"settings.dark" = "ダーク";
+"settings.auto" = "自動";
+"settings.delete_account" = "アカウント削除";
+"settings.delete_confirm" = "アカウントを削除してもよろしいですか？この操作は元に戻せません。";
+"settings.version" = "バージョン";
+"settings.terms" = "利用規約";
+"settings.privacy_policy" = "プライバシーポリシー";
+
+// MARK: - Language Settings
+"language.title" = "言語設定";
+"language.zh-TW" = "繁體中文";
+"language.en-US" = "English";
+"language.ja-JP" = "日本語";
+"language.change_confirm" = "言語を変更してもよろしいですか？";
+"language.changed" = "言語が変更されました";
+
+// MARK: - Errors
+"error.network" = "ネットワーク接続エラー";
+"error.server" = "サーバーエラー";
+"error.unknown" = "不明なエラー";
+"error.invalid_data" = "無効なデータ形式";
+"error.authentication" = "認証失敗";
+"error.permission_denied" = "アクセス拒否";
+"error.not_found" = "データが見つかりません";
+"error.timeout" = "リクエストタイムアウト";
+"error.try_again" = "後でもう一度お試しください";
+"error.health_permission" = "ヘルスデータへのアクセスが必要です";
+"error.calendar_permission" = "カレンダーへのアクセスが必要です";
+"error.notification_permission" = "通知の許可が必要です";
+
+// MARK: - Success Messages
+"success.saved" = "保存しました";
+"success.updated" = "更新しました";
+"success.deleted" = "削除しました";
+"success.synced" = "同期完了";
+"success.plan_generated" = "トレーニング計画を作成しました";
+"success.profile_updated" = "プロフィールを更新しました";
+"success.settings_saved" = "設定を保存しました";
+
+// MARK: - Units
+"unit.km" = "km";
+"unit.mi" = "マイル";
+"unit.m" = "m";
+"unit.ft" = "フィート";
+"unit.min_per_km" = "分/km";
+"unit.min_per_mi" = "分/マイル";
+"unit.bpm" = "bpm";
+"unit.kcal" = "kcal";
+"unit.hours" = "時間";
+"unit.minutes" = "分";
+"unit.seconds" = "秒";
+"unit.kg" = "kg";
+"unit.lbs" = "ポンド";
+"unit.cm" = "cm";
+"unit.inch" = "インチ";
+
+// MARK: - Date & Time
+"date.today" = "今日";
+"date.yesterday" = "昨日";
+"date.tomorrow" = "明日";
+"date.week" = "週";
+"date.month" = "月";
+"date.year" = "年";
+"date.monday" = "月曜日";
+"date.tuesday" = "火曜日";
+"date.wednesday" = "水曜日";
+"date.thursday" = "木曜日";
+"date.friday" = "金曜日";
+"date.saturday" = "土曜日";
+"date.sunday" = "日曜日";
+"date.mon" = "月";
+"date.tue" = "火";
+"date.wed" = "水";
+"date.thu" = "木";
+"date.fri" = "金";
+"date.sat" = "土";
+"date.sun" = "日";
+
+// MARK: - Alerts & Confirmations
+"alert.unsaved_changes" = "未保存の変更";
+"alert.discard_changes" = "変更を破棄しますか？";
+"alert.keep_editing" = "編集を続ける";
+"alert.discard" = "破棄";
+"alert.delete_workout" = "ワークアウトを削除";
+"alert.delete_workout_confirm" = "このワークアウトを削除してもよろしいですか？";
+"alert.disconnect_source" = "データソースを切断";
+"alert.disconnect_confirm" = "%@を切断してもよろしいですか？";

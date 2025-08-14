@@ -251,6 +251,12 @@ class WorkoutV2Service {
             
         } catch {
             
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2Service] 請求被取消（App 進入背景或任務取消）")
+                throw error  // 直接拋出，不記錄為錯誤
+            }
+            
             Logger.firebase(
                 "Workout V2 請求失敗",
                 level: .error,
@@ -362,6 +368,12 @@ class WorkoutV2Service {
             throw WorkoutV2Error.decodingFailed(errorDetail.description)
             
         } catch {
+            
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2Service] 詳情請求被取消（App 進入背景或任務取消）")
+                throw error  // 直接拋出，不記錄為錯誤
+            }
             
             Logger.firebase(
                 "Workout V2 詳情請求失敗",

@@ -445,10 +445,12 @@ struct UserProfileView: View {
                     title: "Apple Health",
                     subtitle: "使用 iPhone 和 Apple Watch 的健康資料"
                 )
+                .id("apple-health-row")
                 
                 // 只有當 Garmin 功能啟用時才顯示
                 if featureFlagManager.isGarminIntegrationAvailable {
                     Divider()
+                        .padding(.vertical, 8)
                     
                     // Garmin 選項
                     dataSourceRow(
@@ -457,6 +459,7 @@ struct UserProfileView: View {
                         title: "Garmin Connect™",
                         subtitle: "同步您的 Garmin 帳號活動"
                     )
+                    .id("garmin-row")
                 }
                 
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
@@ -475,13 +478,21 @@ struct UserProfileView: View {
             }
         } message: {
             if let pendingType = pendingDataSourceType {
-                switch pendingType {
-                case .garmin:
-                    Text("切換到 Garmin Connect™ 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin Connect™ 載入。")
-                case .appleHealth:
+                let currentDataSource = userPreferenceManager.dataSourcePreference
+                
+                switch (currentDataSource, pendingType) {
+                case (.unbound, .garmin):
+                    Text("選擇 Garmin Connect™ 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin Connect™ 載入。")
+                case (.unbound, .appleHealth):
+                    Text("選擇 Apple Health 作為您的數據源。您的訓練紀錄將從 Apple Health 載入，包括來自 iPhone 和 Apple Watch 的健康資料。")
+                case (.garmin, .appleHealth):
                     Text("切換到 Apple Health 將會解除您的 Garmin Connect™ 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從 Apple Health 載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
-                case .unbound:
+                case (.appleHealth, .garmin):
+                    Text("切換到 Garmin Connect™ 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin Connect™ 載入，目前顯示的紀錄會被新數據源的內容取代。")
+                case (_, .unbound):
                     Text("切換到尚未綁定狀態將會清除所有本地運動數據。您稍後可以在個人資料頁面中重新選擇和連接數據來源。")
+                default:
+                    Text("確認要進行此操作嗎？")
                 }
             }
         }
@@ -494,108 +505,107 @@ struct UserProfileView: View {
         title: String,
         subtitle: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                // 圖示 - Use official Garmin logo for Garmin option
-                if type == .garmin {
-                    Image("Garmin Tag-black-high-res")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 20)
-                        .frame(width: 24)
-                } else {
-                    Image(systemName: icon)
-                        .foregroundColor(userPreferenceManager.dataSourcePreference == type ? .blue : .secondary)
-                        .frame(width: 24)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.headline)
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                // 選擇狀態
-                if userPreferenceManager.dataSourcePreference == type {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.caption)
-                        Text("使用中")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                } else if userPreferenceManager.dataSourcePreference == .unbound {
-                    Text("未選擇")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                
-                // Garmin連接狀態指示器
-                if type == .garmin && garminManager.isConnecting {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .frame(width: 20, height: 20)
-                }
+        let isCurrentSource = userPreferenceManager.dataSourcePreference == type
+        let isGarminConnecting = type == .garmin && garminManager.isConnecting
+        let isUnbound = userPreferenceManager.dataSourcePreference == .unbound
+        
+        Button(action: {
+            // 防止重複觸發
+            guard !showDataSourceSwitchConfirmation else {
+                return
             }
             
-            // 數據源選擇按鈕
-            HStack {
-                let isCurrentSource = userPreferenceManager.dataSourcePreference == type
-                let isGarminConnecting = type == .garmin && garminManager.isConnecting
-                let isUnbound = userPreferenceManager.dataSourcePreference == .unbound
-                
-                if isCurrentSource {
-                    Text("目前使用的數據源")
-                        .font(.subheadline)
-                        .foregroundColor(.green)
-                } else {
-                    Text(isUnbound ? "選擇此數據源" : "切換到此數據源")
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
+            // 如果已經是當前數據源，不需要切換
+            if isCurrentSource {
+                return
+            }
+            
+            // 如果Garmin正在連接中，不允許切換
+            if isGarminConnecting {
+                return
+            }
+            
+            // 顯示確認對話框
+            pendingDataSourceType = type
+            showDataSourceSwitchConfirmation = true
+        }) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    // 圖示
+                    if type == .garmin {
+                        Image("Garmin Tag-black-high-res")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 20)
+                            .frame(width: 24)
+                    } else {
+                        Image(systemName: icon)
+                            .foregroundColor(isCurrentSource ? .blue : .secondary)
+                            .frame(width: 24)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // 狀態指示
+                    if isCurrentSource {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.caption)
+                            Text("使用中")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.green.opacity(0.1))
+                        .cornerRadius(8)
+                    } else if isUnbound {
+                        Image(systemName: "plus.circle")
+                            .foregroundColor(.blue)
+                    } else {
+                        Image(systemName: "arrow.right.circle")
+                            .foregroundColor(.orange)
+                    }
+                    
+                    // Garmin連接狀態
+                    if type == .garmin && isGarminConnecting {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .frame(width: 20, height: 20)
+                    }
                 }
                 
-                Spacer()
-                
-                Button(action: {
-                    // 如果已經是當前數據源，不需要切換
+                // 操作提示
+                HStack {
                     if isCurrentSource {
-                        return
-                    }
-                    
-                    // 如果Garmin正在連接中，不允許切換
-                    if isGarminConnecting {
-                        return
-                    }
-                    
-                    // 顯示確認對話框
-                    pendingDataSourceType = type
-                    showDataSourceSwitchConfirmation = true
-                }) {
-                    if isCurrentSource {
-                        Image(systemName: "checkmark.circle.fill")
+                        Text("目前使用的數據源")
+                            .font(.subheadline)
                             .foregroundColor(.green)
                     } else {
-                        Image(systemName: isUnbound ? "plus.circle" : "arrow.right.circle")
-                            .foregroundColor(isUnbound ? .blue : .orange)
+                        Text(isUnbound ? "選擇此數據源" : "切換到此數據源")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
                     }
+                    Spacer()
                 }
-                .disabled(isCurrentSource || isGarminConnecting)
+                .padding(.leading, 32)
             }
-            .padding(.leading, 32)
+            .padding(.vertical, 8)
         }
+        .disabled(isCurrentSource || isGarminConnecting)
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .id("\(type.rawValue)-row")
     }
     
     // 處理數據源切換邏輯

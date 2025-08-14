@@ -310,6 +310,12 @@ class WorkoutV2CacheManager {
                 ]
             )
         } catch {
+            // 取消錯誤不記錄為 error
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2CacheManager] 快取操作被取消")
+                return
+            }
+            
             Logger.firebase(
                 "快取運動統計失敗: \(error.localizedDescription)",
                 level: .error,

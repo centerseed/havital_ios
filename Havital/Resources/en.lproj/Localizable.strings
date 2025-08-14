@@ -1,0 +1,254 @@
+/* 
+  Localizable.strings (English)
+  Havital
+*/
+
+// MARK: - Main Navigation
+"tab.training_plan" = "Training Plan";
+"tab.training_record" = "Training Log";
+"tab.performance_data" = "Performance";
+"tab.profile" = "Profile";
+
+// MARK: - Common Actions
+"common.save" = "Save";
+"common.cancel" = "Cancel";
+"common.delete" = "Delete";
+"common.edit" = "Edit";
+"common.done" = "Done";
+"common.close" = "Close";
+"common.confirm" = "Confirm";
+"common.loading" = "Loading...";
+"common.retry" = "Retry";
+"common.refresh" = "Refresh";
+"common.settings" = "Settings";
+"common.logout" = "Log Out";
+"common.login" = "Log In";
+"common.next" = "Next";
+"common.back" = "Back";
+"common.skip" = "Skip";
+"common.start" = "Start";
+"common.stop" = "Stop";
+"common.pause" = "Pause";
+"common.resume" = "Resume";
+"common.finish" = "Finish";
+
+// MARK: - Authentication
+"auth.welcome" = "Welcome to Havital";
+"auth.login_title" = "Log In";
+"auth.logout_title" = "Log Out";
+"auth.login_subtitle" = "Sign in to sync your training data";
+"auth.email_placeholder" = "Email";
+"auth.password_placeholder" = "Password";
+"auth.forgot_password" = "Forgot Password?";
+"auth.no_account" = "Don't have an account?";
+"auth.sign_up" = "Sign Up";
+"auth.login_failed" = "Login Failed";
+"auth.logout_confirm" = "Are you sure you want to log out?";
+
+// MARK: - Onboarding
+"onboarding.welcome" = "Welcome to Havital";
+"onboarding.set_goal" = "Set Training Goal";
+"onboarding.race_distance" = "Race Distance";
+"onboarding.target_time" = "Target Finish Time";
+"onboarding.training_days" = "Training Days";
+"onboarding.weekly_volume" = "Weekly Volume";
+"onboarding.select_days" = "Select Training Days";
+"onboarding.connect_data" = "Connect Data Sources";
+"onboarding.complete" = "Complete Setup";
+"onboarding.skip_for_now" = "Set Up Later";
+
+// MARK: - Profile
+"profile.title" = "Profile";
+"profile.personal_info" = "Personal Info";
+"profile.training_info" = "Training Info";
+"profile.heart_rate_info" = "Heart Rate Info";
+"profile.data_sources" = "Data Sources";
+"profile.settings" = "Settings";
+"profile.name" = "Name";
+"profile.email" = "Email";
+"profile.birth_date" = "Birth Date";
+"profile.gender" = "Gender";
+"profile.male" = "Male";
+"profile.female" = "Female";
+"profile.height" = "Height";
+"profile.weight" = "Weight";
+"profile.resting_hr" = "Resting Heart Rate";
+"profile.max_hr" = "Max Heart Rate";
+"profile.weekly_mileage" = "Weekly Mileage";
+"profile.edit_profile" = "Edit Profile";
+
+// MARK: - Data Sources
+"datasource.title" = "Data Sources";
+"datasource.apple_health" = "Apple Health";
+"datasource.garmin_connect" = "Garmin Connect™";
+"datasource.not_connected" = "Not Connected";
+"datasource.connected" = "Connected";
+"datasource.disconnect" = "Disconnect";
+"datasource.connect" = "Connect";
+"datasource.sync_now" = "Sync Now";
+"datasource.last_sync" = "Last Sync";
+"datasource.sync_success" = "Sync Successful";
+"datasource.sync_failed" = "Sync Failed";
+"datasource.syncing" = "Syncing...";
+
+// MARK: - Training Plan
+"training.plan_title" = "Training Plan";
+"training.weekly_plan" = "Weekly Plan";
+"training.daily_training" = "Daily Training";
+"training.weekly_volume" = "Weekly Volume";
+"training.training_review" = "Training Review";
+"training.generate_plan" = "Generate Schedule";
+"training.no_plan" = "No Training Plan";
+"training.create_plan" = "Create Training Plan";
+"training.week" = "Week %d";
+"training.today" = "Today";
+"training.tomorrow" = "Tomorrow";
+"training.yesterday" = "Yesterday";
+"training.rest_day" = "Rest Day";
+"training.completed" = "Completed";
+"training.pending" = "Pending";
+"training.skipped" = "Skipped";
+"training.edit_volume" = "Edit Weekly Volume";
+"training.edit_days" = "Edit Training Days";
+
+// MARK: - Training Types
+"training.type.easy" = "Easy Run";
+"training.type.tempo" = "Tempo Run";
+"training.type.interval" = "Interval Training";
+"training.type.long" = "Long Run";
+"training.type.recovery" = "Recovery Run";
+"training.type.race" = "Race Pace";
+"training.type.fartlek" = "Fartlek";
+"training.type.hill" = "Hill Training";
+"training.type.speed" = "Speed Work";
+
+// MARK: - Training Record
+"record.title" = "Training Log";
+"record.all_workouts" = "All Workouts";
+"record.this_week" = "This Week";
+"record.this_month" = "This Month";
+"record.this_year" = "This Year";
+"record.distance" = "Distance";
+"record.duration" = "Duration";
+"record.pace" = "Pace";
+"record.heart_rate" = "Heart Rate";
+"record.calories" = "Calories";
+"record.elevation" = "Elevation";
+"record.cadence" = "Cadence";
+"record.no_records" = "No Training Records";
+"record.view_details" = "View Details";
+
+// MARK: - Performance
+"performance.title" = "Performance";
+"performance.overview" = "Overview";
+"performance.weekly_stats" = "Weekly Stats";
+"performance.monthly_stats" = "Monthly Stats";
+"performance.yearly_stats" = "Yearly Stats";
+"performance.total_distance" = "Total Distance";
+"performance.total_time" = "Total Time";
+"performance.avg_pace" = "Average Pace";
+"performance.avg_hr" = "Average HR";
+"performance.total_workouts" = "Total Workouts";
+"performance.longest_run" = "Longest Run";
+"performance.fastest_pace" = "Fastest Pace";
+"performance.progress" = "Progress Trend";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.general" = "General";
+"settings.notifications" = "Notifications";
+"settings.privacy" = "Privacy";
+"settings.about" = "About";
+"settings.language" = "Language";
+"settings.units" = "Units";
+"settings.metric" = "Metric";
+"settings.imperial" = "Imperial";
+"settings.theme" = "Theme";
+"settings.light" = "Light";
+"settings.dark" = "Dark";
+"settings.auto" = "Auto";
+"settings.delete_account" = "Delete Account";
+"settings.delete_confirm" = "Are you sure you want to delete your account? This action cannot be undone.";
+"settings.version" = "Version";
+"settings.terms" = "Terms of Service";
+"settings.privacy_policy" = "Privacy Policy";
+
+// MARK: - Language Settings
+"language.title" = "Language Settings";
+"language.zh-TW" = "繁體中文";
+"language.en-US" = "English";
+"language.ja-JP" = "日本語";
+"language.change_confirm" = "Are you sure you want to change the language?";
+"language.changed" = "Language Changed";
+
+// MARK: - Errors
+"error.network" = "Network Connection Error";
+"error.server" = "Server Error";
+"error.unknown" = "Unknown Error";
+"error.invalid_data" = "Invalid Data Format";
+"error.authentication" = "Authentication Failed";
+"error.permission_denied" = "Permission Denied";
+"error.not_found" = "Data Not Found";
+"error.timeout" = "Request Timeout";
+"error.try_again" = "Please try again later";
+"error.health_permission" = "Health Data Access Required";
+"error.calendar_permission" = "Calendar Access Required";
+"error.notification_permission" = "Notification Permission Required";
+
+// MARK: - Success Messages
+"success.saved" = "Saved";
+"success.updated" = "Updated";
+"success.deleted" = "Deleted";
+"success.synced" = "Sync Complete";
+"success.plan_generated" = "Training Plan Generated";
+"success.profile_updated" = "Profile Updated";
+"success.settings_saved" = "Settings Saved";
+
+// MARK: - Units
+"unit.km" = "km";
+"unit.mi" = "mi";
+"unit.m" = "m";
+"unit.ft" = "ft";
+"unit.min_per_km" = "min/km";
+"unit.min_per_mi" = "min/mi";
+"unit.bpm" = "bpm";
+"unit.kcal" = "kcal";
+"unit.hours" = "hours";
+"unit.minutes" = "minutes";
+"unit.seconds" = "seconds";
+"unit.kg" = "kg";
+"unit.lbs" = "lbs";
+"unit.cm" = "cm";
+"unit.inch" = "in";
+
+// MARK: - Date & Time
+"date.today" = "Today";
+"date.yesterday" = "Yesterday";
+"date.tomorrow" = "Tomorrow";
+"date.week" = "Week";
+"date.month" = "Month";
+"date.year" = "Year";
+"date.monday" = "Monday";
+"date.tuesday" = "Tuesday";
+"date.wednesday" = "Wednesday";
+"date.thursday" = "Thursday";
+"date.friday" = "Friday";
+"date.saturday" = "Saturday";
+"date.sunday" = "Sunday";
+"date.mon" = "Mon";
+"date.tue" = "Tue";
+"date.wed" = "Wed";
+"date.thu" = "Thu";
+"date.fri" = "Fri";
+"date.sat" = "Sat";
+"date.sun" = "Sun";
+
+// MARK: - Alerts & Confirmations
+"alert.unsaved_changes" = "Unsaved Changes";
+"alert.discard_changes" = "Discard changes?";
+"alert.keep_editing" = "Keep Editing";
+"alert.discard" = "Discard";
+"alert.delete_workout" = "Delete Workout";
+"alert.delete_workout_confirm" = "Are you sure you want to delete this workout?";
+"alert.disconnect_source" = "Disconnect Data Source";
+"alert.disconnect_confirm" = "Are you sure you want to disconnect %@?";
