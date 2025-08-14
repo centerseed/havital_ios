@@ -270,7 +270,30 @@ class WorkoutV2Service {
             return response
             
         } catch {
-            // 錯誤已經在 makeAPICall 中處理，直接拋出
+            
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2Service] 請求被取消（App 進入背景或任務取消）")
+                throw error  // 直接拋出，不記錄為錯誤
+            }
+            
+            Logger.firebase(
+                "Workout V2 請求失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "fetch_workouts",
+                    "error_type": "general_error"
+                ],
+                jsonPayload: [
+                    "error_description": error.localizedDescription,
+                    "error_type": String(describing: type(of: error)),
+                    "page_size": pageSize,
+                    "provider_filter": provider ?? "all",
+                    "activity_type_filter": activityType ?? "all"
+                ]
+            )
+            
             throw error
         }
     }
@@ -305,7 +328,28 @@ class WorkoutV2Service {
             return response
             
         } catch {
-            // 錯誤已經在 makeAPICall 中處理，直接拋出
+            
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2Service] 詳情請求被取消（App 進入背景或任務取消）")
+                throw error  // 直接拋出，不記錄為錯誤
+            }
+            
+            Logger.firebase(
+                "Workout V2 詳情請求失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "fetch_workout_detail",
+                    "error_type": "general_error"
+                ],
+                jsonPayload: [
+                    "workout_id": workoutId,
+                    "error_description": error.localizedDescription,
+                    "error_type": String(describing: type(of: error))
+                ]
+            )
+            
             throw error
         }
     }

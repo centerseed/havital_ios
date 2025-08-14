@@ -299,6 +299,12 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             )
             
         } catch {
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[UnifiedWorkoutManager] 背景更新被取消（App 進入背景或任務取消）")
+                return  // 直接返回，不記錄為錯誤
+            }
+            
             print("背景更新失敗: \(error.localizedDescription)")
             Logger.firebase(
                 "背景更新運動記錄失敗: \(error.localizedDescription)",
