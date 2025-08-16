@@ -179,7 +179,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
         // 嘗試從 API 獲取
         do {
             let response = try await apiClient.fetchHealthDaily(limit: days)
-            let healthData = response.data.healthData
+            let healthData = response.healthData
             
             // 緩存 API 數據
             cacheHealthData(healthData, days: days)

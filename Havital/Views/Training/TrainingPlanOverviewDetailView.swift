@@ -114,7 +114,7 @@ struct TrainingPlanOverviewDetailView: View {
                 }
                 .foregroundColor(.blue)
                 .padding(.trailing, 16)
-                .padding(.top, 16)
+                .padding(.top, 50)
             }
             .edgesIgnoringSafeArea(.bottom)
             .navigationBarHidden(true)

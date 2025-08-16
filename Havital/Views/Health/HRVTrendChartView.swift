@@ -53,12 +53,6 @@ struct HRVTrendChartView: View {
                         )
                     }
                     
-                    Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
-                        ForEach(HRVChartViewModel.TimeRange.allCases, id: \.self) { range in
-                            Text(range.rawValue).tag(range)
-                        }
-                    }
-                    .pickerStyle(.segmented)
                     
                     Chart {
                         ForEach(viewModel.hrvData, id: \.0) { item in
@@ -77,27 +71,25 @@ struct HRVTrendChartView: View {
                     }
                     .chartYScale(domain: viewModel.yAxisRange)
                     .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                        AxisMarks(values: .automatic(desiredCount: 4)) { value in
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
                                     Text(formatDate(date))
+                                        .font(.caption)
                                 }
+                                AxisGridLine()
+                                AxisTick()
                             }
                         }
                     }
                     .chartYAxis {
-                        AxisMarks { value in
+                        AxisMarks(position: .leading) { value in
                             AxisValueLabel {
                                 Text("\(value.as(Double.self)?.formatted() ?? "")")
                             }
                         }
                     }
                 }
-            }
-        }
-        .onChange(of: viewModel.selectedTimeRange) { _ in
-            Task {
-                await viewModel.loadHRVData()
             }
         }
         .task {

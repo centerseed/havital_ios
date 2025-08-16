@@ -585,7 +585,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let shouldLogAsError = !isExpectedError(error)
         Logger.firebase(
             "Apple Health 運動記錄 V2 API 上傳失敗 - 詳細分析",
-            level: shouldLogAsError ? .error : .warning,
+            level: shouldLogAsError ? .error : .warn,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "workout_upload_error",
@@ -663,7 +663,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let isExpected = error is CancellationError || errorCategory == "cancellation_error"
         Logger.firebase(
             "HealthKit 數據獲取失敗 - \(dataType)",
-            level: isExpected ? LogLevel.warning : LogLevel.error,
+            level: isExpected ? LogLevel.warn : LogLevel.error,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "healthkit_data_fetch_error",

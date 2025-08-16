@@ -42,14 +42,14 @@ class HeartRateZonesBridge {
             }
             
             // 獲取心率數據
-            if userProfile.data.maxHr ?? 0 > 0 {
-                userPreferenceManager.maxHeartRate = userProfile.data.maxHr
-                print("從用戶資料獲取最大心率: \(userProfile.data.maxHr)")
+            if userProfile.maxHr ?? 0 > 0 {
+                userPreferenceManager.maxHeartRate = userProfile.maxHr
+                print("從用戶資料獲取最大心率: \(userProfile.maxHr)")
             }
             
-            if userProfile.data.relaxingHr ?? 0 > 0 {
-                userPreferenceManager.restingHeartRate = userProfile.data.relaxingHr
-                print("從用戶資料獲取靜息心率: \(userProfile.data.relaxingHr)")
+            if userProfile.relaxingHr ?? 0 > 0 {
+                userPreferenceManager.restingHeartRate = userProfile.relaxingHr
+                print("從用戶資料獲取靜息心率: \(userProfile.relaxingHr)")
             }
             
             // 如果現在有有效的心率數據，計算心率區間

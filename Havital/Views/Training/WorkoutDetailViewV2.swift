@@ -150,7 +150,7 @@ struct WorkoutDetailViewV2: View {
                 ConditionalGarminAttributionView(
                     dataProvider: viewModel.workout.provider,
                     deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
-                    displayStyle: .titleLevel
+                    displayStyle: .compact
                 )  
             }
             

@@ -74,7 +74,7 @@ struct GarminAttributionView: View {
         Image(garminLogoImageName)
             .resizable()
             .scaledToFit()
-            .frame(height: 10)
+            .frame(height: 14)
     }
     
     // MARK: - Social Media Attribution

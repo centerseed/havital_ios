@@ -127,20 +127,19 @@ class GarminManager: NSObject, ObservableObject {
             let response = try await GarminConnectionStatusService.shared.checkConnectionStatus()
             
             await MainActor.run {
-                if let data = response.data {
-                    print("🔍 後端 Garmin 狀態檢查結果:")
-                    print("  - connected: \(data.connected)")
-                    print("  - provider: \(data.provider)")
-                    print("  - status: '\(data.status)'")
-                    print("  - isActive: \(data.isActive) (計算結果: connected=\(data.connected) && status='\(data.status)')")
-                    print("  - message: '\(data.message)'")
-                    print("  - connectedAt: \(data.connectedAt ?? "nil")")
-                    print("  - lastUpdated: \(data.lastUpdated ?? "nil")")
-                    
-                    // 更新本地連接狀態
-                    saveConnectionStatus(data.isActive)
-                    
-                    if data.isActive {
+                print("🔍 後端 Garmin 狀態檢查結果:")
+                print("  - connected: \(response.connected)")
+                print("  - provider: \(response.provider)")
+                print("  - status: '\(response.status)'")
+                print("  - isActive: \(response.isActive) (計算結果: connected=\(response.connected) && status='\(response.status)')")
+                print("  - message: '\(response.message)'")
+                print("  - connectedAt: \(response.connectedAt ?? "nil")")
+                print("  - lastUpdated: \(response.lastUpdated ?? "nil")")
+                
+                // 更新本地連接狀態
+                saveConnectionStatus(response.isActive)
+                
+                if response.isActive {
                         // 連線正常
                         print("✅ 設置狀態：needsReconnection = false")
                         needsReconnection = false
@@ -169,41 +168,35 @@ class GarminManager: NSObject, ObservableObject {
                         Logger.firebase("Garmin 連線狀態正常", level: .info, labels: [
                             "module": "GarminManager",
                             "action": "checkConnectionStatus",
-                            "status": data.status
+                            "status": response.status
                         ])
                     } else {
                         // 狀態不是 "active"，檢查是否需要重連
-                        print("⚠️ Garmin 狀態不是 active: '\(data.status)'")
+                        print("⚠️ Garmin 狀態不是 active: '\(response.status)'")
                         
                         // 只對真正的錯誤狀態顯示對話框
                         let problemStatuses = ["bound_to_other_user", "inactive", "expired", "revoked", "suspended", "error"]
                         let shouldShowReconnection = problemStatuses.contains { problemStatus in
-                            data.status.lowercased().contains(problemStatus.lowercased())
+                            response.status.lowercased().contains(problemStatus.lowercased())
                         }
                         
                         if shouldShowReconnection {
-                            print("❌ 檢測到問題狀態 '\(data.status)'，設置 needsReconnection = true")
+                            print("❌ 檢測到問題狀態 '\(response.status)'，設置 needsReconnection = true")
                             needsReconnection = true
-                            reconnectionMessage = data.message.isEmpty ? "Garmin 連接需要重新授權" : data.message
+                            reconnectionMessage = response.message.isEmpty ? "Garmin 連接需要重新授權" : response.message
                             
                             Logger.firebase("Garmin 需要重新綁定", level: .warn, labels: [
                                 "module": "GarminManager",
                                 "action": "checkConnectionStatus",
-                                "status": data.status,
-                                "connected": "\(data.connected)"
+                                "status": response.status,
+                                "connected": "\(response.connected)"
                             ])
                         } else {
-                            print("🔄 狀態 '\(data.status)' 不需要重連，設置 needsReconnection = false")
+                            print("🔄 狀態 '\(response.status)' 不需要重連，設置 needsReconnection = false")
                             needsReconnection = false
                             reconnectionMessage = nil
                         }
                     }
-                } else {
-                    // API 回應沒有 data，可能是未連接
-                    saveConnectionStatus(false)
-                    needsReconnection = false
-                    reconnectionMessage = nil
-                }
             }
             
         } catch {

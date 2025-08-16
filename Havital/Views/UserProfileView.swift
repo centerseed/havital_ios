@@ -295,7 +295,7 @@ struct UserProfileView: View {
     
     // 使用者頭像與名稱標頭
     @ViewBuilder
-    private func profileHeader(_ userData: UserProfileData) -> some View {
+    private func profileHeader(_ userData: User) -> some View {
         HStack(alignment: .center, spacing: 16) {
             if let urlString = userData.photoUrl, let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
@@ -359,7 +359,7 @@ struct UserProfileView: View {
         .padding(.vertical, 6)
     }
     
-    private func trainingDaysView(_ userData: UserProfileData) -> some View {
+    private func trainingDaysView(_ userData: User) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             // Regular training days
             HStack {

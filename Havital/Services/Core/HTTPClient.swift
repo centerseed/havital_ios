@@ -43,8 +43,15 @@ actor DefaultHTTPClient: HTTPClient {
     func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
         let request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
         
+        // 增強日誌：記錄請求詳情
+        Logger.debug("[HTTPClient] 發送請求: \(method.rawValue) \(path)")
+        if let bodyData = body {
+            Logger.debug("[HTTPClient] 請求體大小: \(bodyData.count) bytes")
+        }
+        
         // 檢查網路連接
         if !NetworkMonitor.shared.isConnected {
+            Logger.error("[HTTPClient] 網路未連接")
             throw HTTPError.noConnection
         }
         
@@ -52,10 +59,11 @@ actor DefaultHTTPClient: HTTPClient {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
+                Logger.error("[HTTPClient] 無效的 HTTP 回應")
                 throw HTTPError.invalidResponse("不是有效的 HTTP 回應")
             }
             
-            Logger.debug("\(method.rawValue) \(path) -> \(httpResponse.statusCode)")
+            Logger.debug("[HTTPClient] \(method.rawValue) \(path) -> \(httpResponse.statusCode), 響應大小: \(data.count) bytes")
             
             // 檢查 HTTP 狀態碼
             try validateHTTPResponse(httpResponse, data: data)
@@ -63,6 +71,17 @@ actor DefaultHTTPClient: HTTPClient {
             return data
             
         } catch let urlError as URLError {
+            // 取消錯誤使用 debug 級別，其他錯誤使用 error 級別
+            if urlError.code == .cancelled {
+                Logger.debug("[HTTPClient] 請求被取消 - \(method.rawValue) \(path)")
+            } else {
+                Logger.error("[HTTPClient] URL 錯誤 - 請求: \(method.rawValue) \(path)")
+                Logger.error("[HTTPClient] 錯誤詳情: \(urlError.localizedDescription)")
+                Logger.error("[HTTPClient] 錯誤代碼: \(urlError.code.rawValue)")
+                if let failingURL = urlError.failingURL {
+                    Logger.error("[HTTPClient] 失敗的 URL: \(failingURL.absoluteString)")
+                }
+            }
             throw mapURLErrorToHTTPError(urlError)
         }
     }

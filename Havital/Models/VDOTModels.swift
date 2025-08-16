@@ -9,10 +9,6 @@ struct VDOTDataPoint: Identifiable, Hashable {
 }
 
 struct VDOTResponse: Codable {
-    let data: VDOTData
-}
-
-struct VDOTData: Codable {
     let needUpdatedHrRange: Bool
     let vdots: [VDOTEntry]
     

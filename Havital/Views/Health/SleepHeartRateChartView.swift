@@ -33,12 +33,6 @@ struct SleepHeartRateChartView: View {
                         )
                     }
                     
-                    Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
-                        ForEach(SleepHeartRateViewModel.TimeRange.allCases, id: \.self) { range in
-                            Text(range.rawValue).tag(range)
-                        }
-                    }
-                    .pickerStyle(.segmented)
                     
                     Chart {
                         ForEach(viewModel.heartRateData, id: \.0) { item in
@@ -57,51 +51,27 @@ struct SleepHeartRateChartView: View {
                     }
                     .chartYScale(domain: viewModel.yAxisRange)
                     .chartXAxis {
-                        switch viewModel.selectedTimeRange {
-                        case .week:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    AxisValueLabel {
-                                        Text(formatDate(date))
-                                    }
+                        AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel {
+                                    Text(formatDate(date))
+                                        .font(.caption)
                                 }
+                                AxisGridLine()
+                                AxisTick()
                             }
-                        case .month:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    let calendar = Calendar.current
-                                    let day = calendar.component(.day, from: date)
-                                    if day == 1 || day % 5 == 0 {
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                        }
-                                        AxisTick()
-                                        AxisGridLine()
-                                    }
-                                }
-                            }
-                        case .threeMonths:
-                            AxisMarks(values: .stride(by: .day)) { value in
-                                if let date = value.as(Date.self) {
-                                    let calendar = Calendar.current
-                                    let day = calendar.component(.day, from: date)
-                                    if day == 1 || day % 5 == 0 {
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                        }
-                                        AxisTick()
-                                        AxisGridLine()
-                                    }
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { value in
+                            AxisValueLabel {
+                                if let heartRate = value.as(Double.self) {
+                                    Text("\(Int(heartRate))")
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
-        .onChange(of: viewModel.selectedTimeRange) { _ in
-            Task {
-                await viewModel.loadHeartRateData()
             }
         }
         .onAppear {
@@ -158,12 +128,6 @@ struct SleepHeartRateChartViewWithGarmin: View {
                         )
                     }
                     
-                    Picker("時間範圍", selection: $viewModel.selectedTimeRange) {
-                        ForEach(SleepHeartRateViewModel.TimeRange.allCases, id: \.self) { range in
-                            Text(range.rawValue).tag(range)
-                        }
-                    }
-                    .pickerStyle(.segmented)
                     
                     Chart {
                         ForEach(viewModel.heartRateData, id: \.0) { item in
@@ -182,7 +146,7 @@ struct SleepHeartRateChartViewWithGarmin: View {
                         }
                     }
                     .chartXAxis {
-                        AxisMarks(values: .stride(by: .day, count: 1)) { value in
+                        AxisMarks(values: .automatic(desiredCount: 4)) { value in
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
                                     Text(formatDate(date))
@@ -194,7 +158,7 @@ struct SleepHeartRateChartViewWithGarmin: View {
                         }
                     }
                     .chartYAxis {
-                        AxisMarks { value in
+                        AxisMarks(position: .leading) { value in
                             AxisValueLabel {
                                 if let heartRate = value.as(Double.self) {
                                     Text("\(Int(heartRate))")
@@ -206,25 +170,8 @@ struct SleepHeartRateChartViewWithGarmin: View {
                         }
                     }
                     .chartYScale(domain: viewModel.yAxisRange)
-                    .frame(height: 200)
-                    
-                    if let latestData = viewModel.heartRateData.last {
-                        HStack {
-                            Text("最新: \(Int(latestData.1)) BPM")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(formatDate(latestData.0))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    .frame(height: 180)
                 }
-            }
-        }
-        .onChange(of: viewModel.selectedTimeRange) { _ in
-            Task {
-                await viewModel.loadHeartRateData()
             }
         }
         .onAppear {

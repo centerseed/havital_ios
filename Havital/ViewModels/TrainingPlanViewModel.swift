@@ -677,6 +677,17 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     // 404: 無週計劃
                     await updateWeeklyPlanUI(plan: nil, status: .noPlan)
                 } catch {
+                    // 檢查是否為取消錯誤，如果是則忽略
+                    let nsError = error as NSError
+                    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled ||
+                       error is CancellationError ||
+                       error.localizedDescription.contains("cancelled") ||
+                       error.localizedDescription.contains("canceled") ||
+                       error.localizedDescription.contains("取消") {
+                        Logger.debug("背景更新計劃任務被取消，忽略此錯誤")
+                        return
+                    }
+                    
                     // 其他錯誤: 檢查是否為網路問題
                     if let networkError = self.handleNetworkError(error) {
                         await MainActor.run {
@@ -731,11 +742,25 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 Logger.debug("週計劃 404 錯誤，設置 .noPlan 狀態")
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
             } catch {
-                // 檢查是否為任務取消錯誤
+                // 檢查是否為任務取消錯誤（支援多種取消錯誤類型）
                 let nsError = error as NSError
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-                    Logger.debug("載入週計劃任務被取消，忽略此錯誤")
+                    Logger.debug("載入週計劃任務被取消 (URLError)，忽略此錯誤")
                     return // 忽略取消錯誤，不更新 UI 狀態
+                }
+                
+                // 檢查其他類型的取消錯誤
+                if error is CancellationError {
+                    Logger.debug("載入週計劃任務被取消 (CancellationError)，忽略此錯誤")
+                    return
+                }
+                
+                // 檢查錯誤描述中是否包含取消相關關鍵字
+                if error.localizedDescription.contains("cancelled") || 
+                   error.localizedDescription.contains("canceled") ||
+                   error.localizedDescription.contains("取消") {
+                    Logger.debug("載入週計劃任務被取消 (描述匹配)，忽略此錯誤: \(error.localizedDescription)")
+                    return
                 }
                 
                 // 檢查是否為 API 404 錯誤（資源不存在）

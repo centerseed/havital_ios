@@ -232,10 +232,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         // 若後端未返回名稱或頭像，使用 Firebase 資料更新後端
         if let firebaseUser = Auth.auth().currentUser {
             var updateData = [String: Any]()
-            if user.data.displayName == nil, let name = firebaseUser.displayName {
+            if user.displayName == nil, let name = firebaseUser.displayName {
                 updateData["display_name"] = name
             }
-            if user.data.photoUrl == nil, let photo = firebaseUser.photoURL?.absoluteString {
+            if user.photoUrl == nil, let photo = firebaseUser.photoURL?.absoluteString {
                 updateData["photo_url"] = photo
             }
             if !updateData.isEmpty {
@@ -260,9 +260,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     // 檢查用戶是否已完成 onboarding，並在完成時重設 isReonboardingMode
     private func checkOnboardingStatus(user: User) {
         // 如果用戶有 active_weekly_plan_id，則表示已完成 onboarding
-        let completed = user.data.activeWeeklyPlanId != nil
+        let completed = user.activeWeeklyPlanId != nil
         
-        print("🔍 檢查 onboarding 狀態 - activeWeeklyPlanId: \(String(describing: user.data.activeWeeklyPlanId))")
+        print("🔍 檢查 onboarding 狀態 - activeWeeklyPlanId: \(String(describing: user.activeWeeklyPlanId))")
         print("🔍 當前 hasCompletedOnboarding: \(hasCompletedOnboarding), 新值: \(completed)")
         
         // 在主線程更新狀態並儲存到 UserDefaults

@@ -36,7 +36,7 @@ struct HeartRateChartView: View {
                 ConditionalGarminAttributionView(
                     dataProvider: dataProvider,
                     deviceModel: deviceModel,
-                    displayStyle: .titleLevel
+                    displayStyle: .compact
                 )
             }
 

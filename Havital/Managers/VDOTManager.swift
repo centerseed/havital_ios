@@ -231,7 +231,7 @@ class VDOTManager: ObservableObject, DataManageable {
         // 從 API 獲取數據
         let response: VDOTResponse = try await service.getVDOTs(limit: dataLimit)
         
-        let enhancedDataPoints = response.data.vdots.map { entry in
+        let enhancedDataPoints = response.vdots.map { entry in
             EnhancedVDOTDataPoint(from: entry)
         }.sorted { $0.date < $1.date }
         
@@ -240,14 +240,14 @@ class VDOTManager: ObservableObject, DataManageable {
         // 更新 UI 和快取
         await MainActor.run {
             self.vdotDataPoints = enhancedDataPoints
-            self.needUpdatedHrRange = response.data.needUpdatedHrRange
+            self.needUpdatedHrRange = response.needUpdatedHrRange
             self.statistics = statistics
         }
         
         // 保存到快取
         let cacheData = VDOTCacheData(
             dataPoints: enhancedDataPoints,
-            needUpdatedHrRange: response.data.needUpdatedHrRange
+            needUpdatedHrRange: response.needUpdatedHrRange
         )
         cacheManager.saveToCache(cacheData)
         
@@ -262,7 +262,7 @@ class VDOTManager: ObservableObject, DataManageable {
                 "data_points": enhancedDataPoints.count,
                 "latest_vdot": statistics.latestDynamicVdot,
                 "average_vdot": statistics.averageWeightedVdot,
-                "need_hr_update": response.data.needUpdatedHrRange
+                "need_hr_update": response.needUpdatedHrRange
             ]
         )
     }
@@ -271,7 +271,7 @@ class VDOTManager: ObservableObject, DataManageable {
         // 強制從 API 獲取
         let response: VDOTResponse = try await service.getVDOTs(limit: dataLimit)
         
-        let enhancedDataPoints = response.data.vdots.map { entry in
+        let enhancedDataPoints = response.vdots.map { entry in
             EnhancedVDOTDataPoint(from: entry)
         }.sorted { $0.date < $1.date }
         
@@ -279,14 +279,14 @@ class VDOTManager: ObservableObject, DataManageable {
         
         await MainActor.run {
             self.vdotDataPoints = enhancedDataPoints
-            self.needUpdatedHrRange = response.data.needUpdatedHrRange
+            self.needUpdatedHrRange = response.needUpdatedHrRange
             self.statistics = statistics
         }
         
         // 強制更新快取
         let cacheData = VDOTCacheData(
             dataPoints: enhancedDataPoints,
-            needUpdatedHrRange: response.data.needUpdatedHrRange
+            needUpdatedHrRange: response.needUpdatedHrRange
         )
         cacheManager.forceRefresh(with: cacheData)
         

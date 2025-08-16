@@ -53,19 +53,19 @@ class TargetService {
         let body = try JSONEncoder().encode(target)
         let response = try await makeAPICall(TargetResponse.self,
             path: "/user/targets", method: .POST, body: body)
-        return response.data
+        return response
     }
     
     /// 獲取所有賽事目標
     func getTargets() async throws -> [Target] {
         let response = try await makeAPICall(TargetsResponse.self, path: "/user/targets")
-        return response.data
+        return response
     }
     
     /// 獲取特定賽事目標詳情
     func getTarget(id: String) async throws -> Target {
         let response = try await makeAPICall(TargetResponse.self, path: "/user/targets/\(id)")
-        return response.data
+        return response
     }
     
     /// 更新特定賽事目標
@@ -73,7 +73,7 @@ class TargetService {
         let body = try JSONEncoder().encode(target)
         let response = try await makeAPICall(TargetResponse.self,
             path: "/user/targets/\(id)", method: .PUT, body: body)
-        return response.data
+        return response
     }
     
     /// 刪除特定賽事目標
@@ -116,11 +116,7 @@ class TargetService {
 }
 
 // 單一目標回應結構
-struct TargetResponse: Codable {
-    let data: Target
-}
+typealias TargetResponse = Target
 
 // 多個目標回應結構
-struct TargetsResponse: Codable {
-    let data: [Target]
-}
+typealias TargetsResponse = [Target]

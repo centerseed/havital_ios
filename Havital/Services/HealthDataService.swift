@@ -51,7 +51,7 @@ class HealthDataService {
                 "action": "get_health_daily"
             ],
             jsonPayload: [
-                "data_count": response.data.healthData.count,
+                "data_count": response.healthData.count,
                 "limit": limit
             ]
         )

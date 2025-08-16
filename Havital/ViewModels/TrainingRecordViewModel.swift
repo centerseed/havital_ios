@@ -76,7 +76,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                 try Task.checkCancellation()
                 
                 await MainActor.run {
-                    let newWorkouts = refreshResponse.data.workouts
+                    let newWorkouts = refreshResponse.workouts
                     
                     if !newWorkouts.isEmpty {
                         // 新資料插入頂端
@@ -84,7 +84,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                         self.workouts = mergedWorkouts.sorted { $0.endDate > $1.endDate }
                         
                         // 只更新 hasNewerData，保留其他分頁狀態
-                        self.hasNewerData = refreshResponse.data.pagination.hasNewer
+                        self.hasNewerData = refreshResponse.pagination.hasNewer
                         self.updatePaginationState() // 更新游標
                         
                         // 快取資料和分頁資訊
@@ -108,11 +108,11 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                 try Task.checkCancellation()
                 
                 await MainActor.run {
-                    let newWorkouts = response.data.workouts
+                    let newWorkouts = response.workouts
                     
                     if !newWorkouts.isEmpty {
                         self.workouts = newWorkouts.sorted { $0.endDate > $1.endDate }
-                        self.updatePaginationState(from: response.data.pagination)
+                        self.updatePaginationState(from: response.pagination)
                         
                         let paginationInfo = CachedPaginationInfo(
                             hasMoreData: self.hasMoreData,
@@ -174,7 +174,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             await MainActor.run {
-                let newWorkouts = response.data.workouts
+                let newWorkouts = response.workouts
                 
                 if !newWorkouts.isEmpty {
                     // 與現有資料合併並去重
@@ -182,7 +182,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     self.workouts = allWorkouts.sorted { $0.endDate > $1.endDate }
                     
                     // 更新分頁狀態
-                    self.updatePaginationState(from: response.data.pagination)
+                    self.updatePaginationState(from: response.pagination)
                     
                     // 快取資料和分頁資訊
                     let paginationInfo = CachedPaginationInfo(
@@ -233,7 +233,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             await MainActor.run {
-                let newWorkouts = response.data.workouts
+                let newWorkouts = response.workouts
                 
                 if !newWorkouts.isEmpty {
                     // 新資料插入頂端
@@ -241,7 +241,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     self.workouts = mergedWorkouts.sorted { $0.endDate > $1.endDate }
                     
                     // 更新分頁狀態
-                    self.updatePaginationState(from: response.data.pagination)
+                    self.updatePaginationState(from: response.pagination)
                     
                     // 快取資料和分頁資訊
                     let paginationInfo = CachedPaginationInfo(
@@ -294,7 +294,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             await MainActor.run {
-                let newWorkouts = response.data.workouts
+                let newWorkouts = response.workouts
                 
                 if !newWorkouts.isEmpty {
                     // 新資料附加到底端
@@ -302,7 +302,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     self.workouts = mergedWorkouts.sorted { $0.endDate > $1.endDate }
                     
                     // 更新分頁狀態
-                    self.updatePaginationState(from: response.data.pagination)
+                    self.updatePaginationState(from: response.pagination)
                     
                     // 快取資料和分頁資訊
                     let paginationInfo = CachedPaginationInfo(

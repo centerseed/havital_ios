@@ -3,10 +3,6 @@ import Foundation
 // MARK: - Workout List API Models
 
 struct WorkoutListResponse: Codable {
-    let data: WorkoutListData
-}
-
-struct WorkoutListData: Codable {
     let workouts: [WorkoutV2]
     let pagination: PaginationInfo
 }
@@ -391,9 +387,7 @@ struct PaginationInfo: Codable {
 
 // MARK: - Workout Detail API Models
 
-struct WorkoutDetailResponse: Codable {
-    let data: WorkoutV2Detail
-}
+typealias WorkoutDetailResponse = WorkoutV2Detail
 
 struct WorkoutV2Detail: Codable {
     let id: String

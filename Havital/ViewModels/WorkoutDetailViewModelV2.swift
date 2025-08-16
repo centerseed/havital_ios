@@ -664,10 +664,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             // 快取詳細數據
-            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response.data)
+            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response)
             
             // 設置 workoutDetail
-            self.workoutDetail = response.data
+            self.workoutDetail = response
             
             // 清除舊的圖表數據
             self.heartRates.removeAll()
@@ -677,7 +677,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             self.cadences.removeAll()
             
             // 處理時間序列數據，轉換成圖表格式
-            self.processTimeSeriesData(from: response.data)
+            self.processTimeSeriesData(from: response)
             
             // 設置心率 Y 軸範圍
             if !heartRates.isEmpty {
@@ -694,7 +694,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 labels: ["module": "WorkoutDetailViewModelV2", "action": "refresh_detail"],
                 jsonPayload: [
                     "workout_id": workout.id,
-                    "activity_type": response.data.activityType
+                    "activity_type": response.activityType
                 ]
             )
             
@@ -758,13 +758,13 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             // 快取詳細數據
-            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response.data)
+            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response)
             
             // 設置 workoutDetail 以便 UI 可以訪問設備信息等
-            self.workoutDetail = response.data
+            self.workoutDetail = response
             
             // 處理時間序列數據，轉換成圖表格式
-            self.processTimeSeriesData(from: response.data)
+            self.processTimeSeriesData(from: response)
             
             // 設置心率 Y 軸範圍
             if !heartRates.isEmpty {
@@ -781,7 +781,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 labels: ["module": "WorkoutDetailViewModelV2", "action": "load_detail"],
                 jsonPayload: [
                     "workout_id": workout.id,
-                    "activity_type": response.data.activityType
+                    "activity_type": response.activityType
                 ]
             )
             

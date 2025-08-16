@@ -1,10 +1,6 @@
 import Foundation
 
 struct User: Codable {
-    let data: UserProfileData
-}
-
-struct UserProfileData: Codable {
     let activeTrainingId: String?
     let activeWeeklyPlanId: String?
     /// 顯示名稱可能為空

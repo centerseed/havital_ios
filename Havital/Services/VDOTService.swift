@@ -51,7 +51,7 @@ class VDOTService {
                 "action": "get_vdots"
             ],
             jsonPayload: [
-                "data_count": response.data.vdots.count,
+                "data_count": response.vdots.count,
                 "limit": limit
             ]
         )

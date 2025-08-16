@@ -145,7 +145,7 @@ class UserService {
         do {
             // 嘗試正常解析
             let user = try JSONDecoder().decode(User.self, from: data)
-            print("成功解析用戶資料: \(user.data.displayName ?? "")")
+            print("成功解析用戶資料: \(user.displayName ?? "")")
             return user
         } catch {
             // 如果正常解析失敗，查看是否回應格式為 { data: User }
@@ -153,9 +153,8 @@ class UserService {
                let responseData = jsonObject["data"] as? [String: Any] {
                 // 如果有 data 欄位，嘗試只解析該欄位
                 let dataJSON = try JSONSerialization.data(withJSONObject: responseData)
-                let userProfile = try JSONDecoder().decode(UserProfileData.self, from: dataJSON)
-                let user = User(data: userProfile)
-                print("成功使用備用方法解析用戶資料: \(user.data.displayName ?? "")")
+                let user = try JSONDecoder().decode(User.self, from: dataJSON)
+                print("成功使用備用方法解析用戶資料: \(user.displayName ?? "")")
                 return user
             } else {
                 // 顯示原始 JSON 以便調試
@@ -171,17 +170,17 @@ class UserService {
     func syncUserPreferences(with user: User) {
         // 若後端未提供，從 Firebase 使用者檔案取得 Email/Name/Photo
         let firebaseUser = Auth.auth().currentUser
-        userPreferenceManager.email = user.data.email ?? firebaseUser?.email ?? ""
-        userPreferenceManager.name = user.data.displayName ?? firebaseUser?.displayName ?? ""
-        userPreferenceManager.photoURL = user.data.photoUrl ?? firebaseUser?.photoURL?.absoluteString
+        userPreferenceManager.email = user.email ?? firebaseUser?.email ?? ""
+        userPreferenceManager.name = user.displayName ?? firebaseUser?.displayName ?? ""
+        userPreferenceManager.photoURL = user.photoUrl ?? firebaseUser?.photoURL?.absoluteString
         
-        userPreferenceManager.maxHeartRate = user.data.maxHr
+        userPreferenceManager.maxHeartRate = user.maxHr
         
         // Update week of training if available
-        userPreferenceManager.weekOfTraining = user.data.weekOfTraining
+        userPreferenceManager.weekOfTraining = user.weekOfTraining
         
         // 同步數據源設定（不在這裡檢查連接狀態）
-        if let dataSourceString = user.data.dataSource,
+        if let dataSourceString = user.dataSource,
            let dataSourceType = DataSourceType(rawValue: dataSourceString) {
             
             userPreferenceManager.dataSourcePreference = dataSourceType

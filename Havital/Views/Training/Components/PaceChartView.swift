@@ -195,7 +195,7 @@ struct PaceChartView: View {
                     ConditionalGarminAttributionView(
                         dataProvider: dataProvider,
                         deviceModel: deviceModel,
-                        displayStyle: .titleLevel
+                        displayStyle: .compact
                     )
                     
                     Text("(分鐘/公里)")

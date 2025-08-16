@@ -132,7 +132,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             
             // 如果沒有緩存，從 API 獲取數據
             print("沒有緩存數據，從 API 載入運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 10)
             
             // 檢查是否被取消
             try Task.checkCancellation()
@@ -208,7 +208,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         
         do {
             print("強制刷新：從 API 獲取最新運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 10)
             
             // 直接覆寫緩存，確保與後端保持一致
             cacheManager.cacheWorkoutList(fetchedWorkouts)
@@ -259,7 +259,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     private func backgroundUpdateWorkouts() async {
         do {
             print("背景更新：從 API 獲取最新運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 100)
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 10)
             
             // 合併到緩存
             let mergedCount = cacheManager.mergeWorkoutsToCache(fetchedWorkouts)

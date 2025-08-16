@@ -197,7 +197,7 @@ class AppStateManager: ObservableObject {
             let user = try await userService!.getUserProfile().async()
             
             print("📥 AppStateManager: 成功獲取用戶資料")
-            print("   - 後端數據源: \(user.data.dataSource ?? "未設定")")
+            print("   - 後端數據源: \(user.dataSource ?? "未設定")")
             
             // 同步用戶偏好設定（包括數據源）
             userService!.syncUserPreferences(with: user)

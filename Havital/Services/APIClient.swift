@@ -244,11 +244,6 @@ struct HealthRecord: Codable {
 }
 
 struct HealthDailyResponse: Codable {
-    let success: Bool
-    let data: HealthDailyData
-}
-
-struct HealthDailyData: Codable {
     let healthData: [HealthRecord]
     let count: Int
     let limit: Int

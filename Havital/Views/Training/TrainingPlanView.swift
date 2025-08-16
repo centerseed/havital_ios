@@ -207,6 +207,7 @@ struct TrainingPlanView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var showWeekSelector = false
+    @State private var showTrainingProgress = false
     
     
     var body: some View {
@@ -276,6 +277,9 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }
+        .sheet(isPresented: $showTrainingProgress) {
+            TrainingProgressView(viewModel: viewModel)
+        }
         .alert("網路連接問題", isPresented: $viewModel.showNetworkErrorAlert) {
             Button("重試") {
                 Task {
@@ -338,7 +342,7 @@ struct TrainingPlanView: View {
                 Button(action: {
                     showTrainingOverview = true
                 }) {
-                    Image(systemName: "info.circle")
+                    Image(systemName: "doc.text.below.ecg")
                         .foregroundColor(.primary)
                 }
             }
@@ -349,6 +353,18 @@ struct TrainingPlanView: View {
                         showUserProfile = true
                     }) {
                         Label("用戶資訊", systemImage: "person.circle")
+                    }
+                    
+                    Button(action: {
+                        showTrainingOverview = true
+                    }) {
+                        Label("訓練總覽", systemImage: "doc.text.below.ecg")
+                    }
+                    
+                    Button(action: {
+                        showTrainingProgress = true
+                    }) {
+                        Label("訓練進度", systemImage: "chart.line.uptrend.xyaxis")
                     }
                     /*
                     Button(action: {
