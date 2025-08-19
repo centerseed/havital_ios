@@ -36,18 +36,25 @@ struct CircleProgressView: View {
                     Text(title)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.center)
                 }
                 
                 VStack(spacing: 0) {
                     Text(distanceInfo)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         
                     Text(unit ?? "km")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

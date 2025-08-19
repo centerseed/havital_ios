@@ -57,6 +57,9 @@ extension View {
 struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage?
+    @State private var isGeneratingScreenshot = false
     
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -114,6 +117,84 @@ struct MyAchievementView: View {
             .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle("表現數據")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        shareWeeklyReview()
+                    } label: {
+                        if isGeneratingScreenshot {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                    .disabled(isGeneratingScreenshot)
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                if let shareImage = shareImage {
+                    ActivityViewController(activityItems: [shareImage])
+                }
+            }
+        }
+    }
+    
+    private func shareWeeklyReview() {
+        isGeneratingScreenshot = true
+        
+        LongScreenshotCapture.captureView(
+            VStack(spacing: 20) {
+                // VDOT Chart Section
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionTitleWithInfo(
+                        title: "VDOT 趨勢",
+                        explanation: "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。"
+                    )
+                    .padding(.horizontal)
+                    
+                    VDOTChartView()
+                        .padding()
+                }
+                .background(Color(UIColor.systemBackground))
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                .padding(.horizontal)
+                
+                // Weekly Volume Chart Section
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionTitleWithInfo(
+                        title: "週跑量趨勢",
+                        explanation: "顯示您每週的跑步里程數變化，幫助您掌握訓練量的變化趨勢和調整訓練計劃。"
+                    )
+                    .padding(.horizontal)
+                    
+                    WeeklyVolumeChartView(showTitle: false)
+                        .padding()
+                }
+                .background(Color(UIColor.systemBackground))
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                .padding(.horizontal)
+                
+                // HRV Chart Section
+                HRVChartSection()
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+                
+                // Resting Heart Rate Chart Section
+                RestingHeartRateChartSection()
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+            }
+            .padding(.vertical)
+            .background(Color(UIColor.systemGroupedBackground))
+        ) { image in
+            DispatchQueue.main.async {
+                self.isGeneratingScreenshot = false
+                self.shareImage = image
+                self.showShareSheet = true
+            }
         }
     }
 }

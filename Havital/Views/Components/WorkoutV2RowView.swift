@@ -116,20 +116,23 @@ struct WorkoutV2RowView: View {
                 }
             }
             
-            // 數據來源和訓練資訊
-            HStack {
+            // 日期和 Garmin 資訊
+            VStack(alignment: .leading, spacing: 2) {
                 Text(formattedDate(workout.startDate))
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                Spacer()
-                
-                // Garmin Attribution and data source
-                ConditionalGarminAttributionView(
-                    dataProvider: workout.provider,
-                    deviceModel: workout.deviceName,
-                    displayStyle: .secondary
-                )
+                // Garmin Attribution - 只在是 Garmin 數據時顯示，靠右對齊
+                if workout.provider.lowercased().contains("garmin") {
+                    HStack {
+                        Spacer()
+                        ConditionalGarminAttributionView(
+                            dataProvider: workout.provider,
+                            deviceModel: workout.deviceName,
+                            displayStyle: .secondary
+                        )
+                    }
+                }
             }
             
         }

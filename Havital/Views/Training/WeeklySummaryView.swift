@@ -5,11 +5,14 @@ struct WeeklySummaryView: View {
     let weekNumber: Int?
     @Binding var isVisible: Bool
     var onGenerateNextWeek: (() -> Void)?
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage?
+    @State private var isGeneratingScreenshot = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 標題與關閉按鈕
+                // 標題與分享按鈕
                 HStack {
                     if let weekNumber = weekNumber {
                         Text("第\(weekNumber)週訓練回顧")
@@ -20,6 +23,21 @@ struct WeeklySummaryView: View {
                             .font(.title2)
                             .fontWeight(.bold)
                     }
+                    
+                    Spacer()
+                    
+                    Button {
+                        shareWeeklySummary()
+                    } label: {
+                        if isGeneratingScreenshot {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.title3)
+                        }
+                    }
+                    .disabled(isGeneratingScreenshot)
                 }
                 
                 // 訓練完成度部分
@@ -55,6 +73,11 @@ struct WeeklySummaryView: View {
             .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
+        .sheet(isPresented: $showShareSheet) {
+            if let shareImage = shareImage {
+                ActivityViewController(activityItems: [shareImage])
+            }
+        }
     }
     
     // 訓練完成度區塊
@@ -322,6 +345,353 @@ struct WeeklySummaryView: View {
         } else {
             return .red
         }
+    }
+    
+    private func shareWeeklySummary() {
+        isGeneratingScreenshot = true
+        
+        LongScreenshotCapture.captureView(
+            VStack(alignment: .leading, spacing: 24) {
+                // 標題部分（截圖時不包含分享按鈕）
+                VStack(alignment: .leading, spacing: 8) {
+                    if let weekNumber = weekNumber {
+                        Text("第\(weekNumber)週訓練回顧")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text("上週訓練回顧")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 8)
+                
+                // 訓練完成度部分（為截圖優化）
+                screenshotCompletionSection
+                
+                // 訓練分析部分（為截圖優化）
+                screenshotAnalysisSection
+                
+                // 下週建議部分（為截圖優化）
+                screenshotSuggestionSection
+                
+                // 如果有調整建議也包含進去（為截圖優化）
+                if summary.nextWeekAdjustments.status != "不需調整課表" {
+                    screenshotAdjustmentSection
+                }
+            }
+            .padding()
+            .background(Color(UIColor.systemGroupedBackground))
+        ) { image in
+            DispatchQueue.main.async {
+                self.isGeneratingScreenshot = false
+                self.shareImage = image
+                self.showShareSheet = true
+            }
+        }
+    }
+    
+    // MARK: - 為截圖優化的區塊視圖
+    
+    // 為截圖優化的訓練完成度區塊
+    private var screenshotCompletionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("訓練完成度")
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            HStack(spacing: 20) {
+                ZStack {
+                    Circle()
+                        .stroke(lineWidth: 8)
+                        .opacity(0.3)
+                        .foregroundColor(.gray)
+                    
+                    Circle()
+                        .trim(from: 0, to: CGFloat(min(summary.trainingCompletion.percentage / 100, 1.0)))
+                        .stroke(style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                        .foregroundColor(completionColor)
+                        .rotationEffect(Angle(degrees: 270))
+                    
+                    VStack {
+                        Text("\(Int(summary.trainingCompletion.percentage))%")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .lineLimit(nil)
+                    }
+                }
+                .frame(width: 80, height: 80)
+                
+                VStack(alignment: .leading) {
+                    Text(summary.trainingCompletion.evaluation)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(12)
+    }
+    
+    // 為截圖優化的訓練分析區塊
+    private var screenshotAnalysisSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("訓練分析")
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            // 心率分析
+            VStack(alignment: .leading, spacing: 8) {
+                Label("心率表現", systemImage: "heart.fill")
+                    .font(.subheadline)
+                    .foregroundColor(.red)
+                    .lineLimit(nil)
+                
+                HStack {
+                    Text("平均: \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
+                        .font(.caption)
+                        .lineLimit(nil)
+                    
+                    Spacer()
+                    
+                    Text("最高: \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
+                        .font(.caption)
+                        .lineLimit(nil)
+                }
+                
+                Text(summary.trainingAnalysis.heartRate.evaluation ?? "")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+            
+            // 配速分析
+            VStack(alignment: .leading, spacing: 8) {
+                Label("配速表現", systemImage: "speedometer")
+                    .font(.subheadline)
+                    .foregroundColor(.green)
+                    .lineLimit(nil)
+                
+                HStack {
+                    Text("平均: \(summary.trainingAnalysis.pace.average) /km")
+                        .font(.caption)
+                        .lineLimit(nil)
+                    
+                    Spacer()
+                    
+                    Text("趨勢: \(summary.trainingAnalysis.pace.trend)")
+                        .font(.caption)
+                        .lineLimit(nil)
+                }
+                
+                Text(summary.trainingAnalysis.pace.evaluation ?? "")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding()
+            .background(Color.green.opacity(0.1))
+            .cornerRadius(8)
+            
+            // 距離分析
+            VStack(alignment: .leading, spacing: 8) {
+                Label("跑量表現", systemImage: "figure.run")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                    .lineLimit(nil)
+                
+                HStack {
+                    Text("總距離: \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
+                        .font(.caption)
+                        .lineLimit(nil)
+                    
+                    Spacer()
+                    
+                    Text("\(summary.trainingAnalysis.distance.comparisonToPlan)")
+                        .font(.caption)
+                        .lineLimit(nil)
+                }
+                
+                Text(summary.trainingAnalysis.distance.evaluation ?? "")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(12)
+    }
+    
+    // 為截圖優化的下週建議區塊
+    private var screenshotSuggestionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("下週訓練重點")
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            Text(summary.nextWeekSuggestions.focus)
+                .font(.subheadline)
+                .padding(.bottom, 4)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            ForEach(summary.nextWeekSuggestions.recommendations, id: \.self) { recommendation in
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                        .padding(.top, 2)
+                    
+                    Text(recommendation)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(12)
+    }
+    
+    // 為截圖優化的調整建議區塊
+    private var screenshotAdjustmentSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("課表調整建議")
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(summary.nextWeekAdjustments.status)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(summary.nextWeekAdjustments.status == "不需調整課表" ? .green : .orange)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    Spacer()
+                }
+                
+                if let modifications = summary.nextWeekAdjustments.modifications {
+                    if let intervalTraining = modifications.intervalTraining {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("間歇訓練")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.orange)
+                                .lineLimit(nil)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("原計畫")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                    
+                                    Text(intervalTraining.original)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("調整後")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                    
+                                    Text(intervalTraining.adjusted)
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    
+                    if let longRun = modifications.longRun {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("長跑訓練")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                                .lineLimit(nil)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("原計畫")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                    
+                                    Text(longRun.original)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("調整後")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                    
+                                    Text(longRun.adjusted)
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                
+                Text(summary.nextWeekAdjustments.adjustmentReason)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(12)
     }
 }
 

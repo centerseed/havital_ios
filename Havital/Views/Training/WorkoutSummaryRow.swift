@@ -43,19 +43,27 @@ struct WorkoutSummaryRow: View {
                         Text("計算動態跑力中...")
                             .font(.subheadline)
                             .foregroundColor(.white)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     } else if let vdot = dynamicVDOT {
                         Text("動態跑力：\(String(format: "%.1f", vdot))")
                             .font(.subheadline)
                             .foregroundColor(.primary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text("動態跑力：--")
                             .font(.subheadline)
                             .foregroundColor(.primary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     Text("動態跑力：--")
                         .font(.subheadline)
                         .foregroundColor(.primary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 // 配速、距離和平均心率
@@ -243,15 +251,21 @@ struct WorkoutV2SummaryRow: View {
                         Text("動態跑力：\(String(format: "%.1f", vdot))")
                             .font(.subheadline)
                             .foregroundColor(.primary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text("動態跑力：--")
                             .font(.subheadline)
                             .foregroundColor(.primary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     Text("動態跑力：--")
                         .font(.subheadline)
                         .foregroundColor(.primary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 // 配速、距離和平均心率

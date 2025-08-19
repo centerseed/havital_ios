@@ -25,8 +25,8 @@ struct PaceChartView: View {
     private func getMinPace() -> Double {
         guard !paces.isEmpty else { return 0 }
         // 配速值越大表示越慢，所以最小配速實際上是最大值
-        // 過濾掉異常慢的配速（例如大於1800秒/公里，即30分鐘/公里）
-        let filteredPaces = paces.filter { $0.value <= 1800 }
+        // 過濾掉異常慢的配速（低於15分速，即900秒/公里）
+        let filteredPaces = paces.filter { $0.value <= 900 }
         return filteredPaces.map { $0.value }.max() ?? 0
     }
     
@@ -71,8 +71,8 @@ struct PaceChartView: View {
             return defaultMinPace...defaultMaxPace
         }
 
-        // 2. 過濾有效配速 (秒/公里)
-        let validPaces = paces.map { $0.value }.filter { $0 > 0 && $0 <= absoluteMaxPace }
+        // 2. 過濾有效配速 (秒/公里) - 針對下界過濾 outliers
+        let validPaces = paces.map { $0.value }.filter { $0 > 0 && $0 <= 900 } // 過濾掉低於15分速的outliers
 
         guard !validPaces.isEmpty else {
             return defaultMinPace...defaultMaxPace
@@ -121,11 +121,16 @@ struct PaceChartView: View {
         return range.upperBound + range.lowerBound - pace
     }
     
+    /// 過濾後的配速數據用於繪製
+    private var filteredPaces: [DataPoint] {
+        return paces.filter { $0.value > 0 && $0.value <= 900 } // 過濾掉低於15分速的數據點
+    }
+    
     @ViewBuilder
     private var paceChart: some View {
         Chart {
             // 使用 ForEach 和 LineMark 繪製折線
-            ForEach(paces) { point in
+            ForEach(filteredPaces) { point in
                 LineMark(
                     x: .value("時間", point.time),
                     y: .value("配速", invertedPaceValue(point.value))
@@ -136,7 +141,7 @@ struct PaceChartView: View {
             
             // 單獨繪製填色區域
             let lowerBound = paceChartYRange.lowerBound
-            ForEach(paces) { point in
+            ForEach(filteredPaces) { point in
                 AreaMark(
                     x: .value("時間", point.time),
                     yStart: .value("配速", lowerBound),
@@ -217,7 +222,7 @@ struct PaceChartView: View {
                     description: Text("請稍後再試")
                 )
                 .frame(height: 200)
-            } else if paces.isEmpty {
+            } else if filteredPaces.isEmpty {
                 ContentUnavailableView(
                     "沒有配速數據",
                     systemImage: "figure.walk.motion",

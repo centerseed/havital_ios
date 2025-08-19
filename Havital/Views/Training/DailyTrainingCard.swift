@@ -149,6 +149,8 @@ struct DailyTrainingCard: View {
                     
                     Text(day.dayTarget)
                         .font(.body)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     if day.isTrainingDay {
                         // 對於無trainingItems的非間歇課表，顯示trainingDetails詳情
@@ -209,6 +211,8 @@ struct DailyTrainingCard: View {
                                     Text(desc)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .padding(.vertical, 4)
                                 }
                                 if let hr = details.heartRateRange {
@@ -347,6 +351,8 @@ struct DailyTrainingCard: View {
                                     Text(item.runDetails)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .padding(.vertical, 8)
                             }
@@ -357,6 +363,8 @@ struct DailyTrainingCard: View {
                             Text("提示：\(tips)")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, 8)
                         }
                     }
@@ -369,8 +377,8 @@ struct DailyTrainingCard: View {
                 Text(day.dayTarget)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
         }

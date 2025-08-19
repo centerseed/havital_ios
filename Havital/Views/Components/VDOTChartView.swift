@@ -177,7 +177,7 @@ struct VDOTChartView: View {
                 "動態跑力": Color.blue,
                 "加權跑力": Color.orange
             ])
-            .frame(height: 80)
+            .frame(height: 120)
             .chartYScale(domain: viewModel.yAxisRange)
             .chartXAxis(.hidden) // Hide X-axis
             .chartYAxis {

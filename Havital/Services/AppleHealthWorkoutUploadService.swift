@@ -593,6 +593,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 "workout_type": workoutData.type,
                 "device_manufacturer": (errorReport["device_details"] as? [String: String])?["manufacturer"] ?? "unknown",
                 "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown",
+                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+                "build_number": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
                 "cloud_logging": "true"  // 標記需要上傳到雲端
             ],
             jsonPayload: errorReport
