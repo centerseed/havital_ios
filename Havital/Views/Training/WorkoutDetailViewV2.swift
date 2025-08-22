@@ -57,6 +57,11 @@ struct WorkoutDetailViewV2: View {
                             paceChartSection
                         }
                         
+                        // 步態分析圖表
+                        if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
+                            gaitAnalysisChartSection
+                        }
+                        
                         // 區間分佈卡片（合併顯示）
                         if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
                            let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
@@ -412,6 +417,34 @@ struct WorkoutDetailViewV2: View {
         }
     }
     
+    private var gaitAnalysisChartSection: some View {
+        Group {
+            if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
+                GaitAnalysisChartView(
+                    stanceTimes: viewModel.stanceTimes,
+                    verticalRatios: viewModel.verticalRatios,
+                    cadences: viewModel.cadences,
+                    isLoading: viewModel.isLoading,
+                    error: viewModel.error,
+                    dataProvider: viewModel.workout.provider,
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                )
+            } else {
+                // 簡化的空狀態顯示
+                VStack {
+                    Text("步態分析")
+                        .font(.headline)
+                    Text("無步態數據")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+    }
+    
     // MARK: - 高級指標卡片
     
     private var advancedMetricsCard: some View {
@@ -427,6 +460,10 @@ struct WorkoutDetailViewV2: View {
                 
                 if let tss = viewModel.workout.advancedMetrics?.tss {
                     DataItem(title: "訓練負荷", value: String(format: "%.1f", tss), icon: "heart.circle")
+                }
+                
+                if let avgVerticalRatio = viewModel.workout.advancedMetrics?.avgVerticalRatioPercent {
+                    DataItem(title: "移動效率", value: String(format: "%.1f%%", avgVerticalRatio), icon: "arrow.up.and.down.circle")
                 }
             }
         }
@@ -693,6 +730,10 @@ struct WorkoutDetailViewV2: View {
                 
                 if !viewModel.paces.isEmpty {
                     paceChartSection
+                }
+                
+                if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
+                    gaitAnalysisChartSection
                 }
                 
                 if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,

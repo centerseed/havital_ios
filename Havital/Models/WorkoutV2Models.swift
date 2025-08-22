@@ -518,6 +518,8 @@ struct V2AdvancedMetrics: Codable {
     private let _intervalCount: SafeInt?
     let paceZoneDistribution: V2ZoneDistribution?
     private let _dynamicVdot: SafeDouble?
+    private let _avgStanceTimeMs: SafeDouble?
+    private let _avgVerticalRatioPercent: SafeDouble?
     
     // 公開的計算屬性
     var rpe: Double? { _rpe?.value }
@@ -525,6 +527,8 @@ struct V2AdvancedMetrics: Codable {
     var tss: Double? { _tss?.value }
     var intervalCount: Int? { _intervalCount?.value }
     var dynamicVdot: Double? { _dynamicVdot?.value }
+    var avgStanceTimeMs: Double? { _avgStanceTimeMs?.value }
+    var avgVerticalRatioPercent: Double? { _avgVerticalRatioPercent?.value }
     
     enum CodingKeys: String, CodingKey {
         case _rpe = "rpe"
@@ -536,6 +540,8 @@ struct V2AdvancedMetrics: Codable {
         case _intervalCount = "interval_count"
         case paceZoneDistribution = "pace_zone_distribution"
         case _dynamicVdot = "dynamic_vdot"
+        case _avgStanceTimeMs = "avg_stance_time_ms"
+        case _avgVerticalRatioPercent = "avg_vertical_ratio_percent"
     }
 }
 
@@ -612,6 +618,17 @@ struct V2TimeSeries: Codable {
     private let _powersW: [SafeDouble?]?
     private let _pacesSPerKm: [SafeDouble?]?
     
+    // 進階步態指標
+    private let _stanceTimesMs: [SafeDouble?]?
+    private let _stanceTimesPercent: [SafeDouble?]?
+    private let _groundContactTimesMs: [SafeDouble?]?
+    private let _groundContactBalances: [SafeDouble?]?
+    private let _verticalOscillationsMm: [SafeDouble?]?
+    private let _verticalRatios: [SafeDouble?]?
+    private let _stepLengthsM: [SafeDouble?]?
+    private let _runningSmoothnessValues: [SafeDouble?]?
+    private let _runningPowersW: [SafeDouble?]?
+    
     // 公開的計算屬性
     var cadencesSpm: [Int?]? { _cadencesSpm?.map { $0?.value } }
     var speedsMPerS: [Double?]? { _speedsMPerS?.map { $0?.value } }
@@ -625,6 +642,17 @@ struct V2TimeSeries: Codable {
     var powersW: [Double?]? { _powersW?.map { $0?.value } }
     var pacesSPerKm: [Double?]? { _pacesSPerKm?.map { $0?.value } }
     
+    // 進階步態指標的公開計算屬性
+    var stanceTimesMs: [Double?]? { _stanceTimesMs?.map { $0?.value } }
+    var stanceTimesPercent: [Double?]? { _stanceTimesPercent?.map { $0?.value } }
+    var groundContactTimesMs: [Double?]? { _groundContactTimesMs?.map { $0?.value } }
+    var groundContactBalances: [Double?]? { _groundContactBalances?.map { $0?.value } }
+    var verticalOscillationsMm: [Double?]? { _verticalOscillationsMm?.map { $0?.value } }
+    var verticalRatios: [Double?]? { _verticalRatios?.map { $0?.value } }
+    var stepLengthsM: [Double?]? { _stepLengthsM?.map { $0?.value } }
+    var runningSmoothnessValues: [Double?]? { _runningSmoothnessValues?.map { $0?.value } }
+    var runningPowersW: [Double?]? { _runningPowersW?.map { $0?.value } }
+    
     enum CodingKeys: String, CodingKey {
         case _cadencesSpm = "cadences_spm"
         case _speedsMPerS = "speeds_m_per_s"
@@ -637,6 +665,17 @@ struct V2TimeSeries: Codable {
         case _distancesM = "distances_m"
         case _powersW = "powers_w"
         case _pacesSPerKm = "paces_s_per_km"
+        
+        // 進階步態指標
+        case _stanceTimesMs = "stance_times_ms"
+        case _stanceTimesPercent = "stance_times_percent"
+        case _groundContactTimesMs = "ground_contact_times_ms"
+        case _groundContactBalances = "ground_contact_balances"
+        case _verticalOscillationsMm = "vertical_oscillations_mm"
+        case _verticalRatios = "vertical_ratios"
+        case _stepLengthsM = "step_lengths_m"
+        case _runningSmoothnessValues = "running_smoothness_values"
+        case _runningPowersW = "running_powers_w"
     }
 }
 
@@ -825,6 +864,8 @@ struct AdvancedMetrics: Codable {
     let hrZoneDistribution: ZoneDistribution?
     let paceZoneDistribution: ZoneDistribution?
     private let _rpe: SafeDouble?
+    private let _avgStanceTimeMs: SafeDouble?
+    private let _avgVerticalRatioPercent: SafeDouble?
     
     // 公開的計算屬性
     var dynamicVdot: Double? { _dynamicVdot?.value }
@@ -832,6 +873,8 @@ struct AdvancedMetrics: Codable {
     var intervalCount: Int? { _intervalCount?.value }
     var avgHrTop20Percent: Double? { _avgHrTop20Percent?.value }
     var rpe: Double? { _rpe?.value }
+    var avgStanceTimeMs: Double? { _avgStanceTimeMs?.value }
+    var avgVerticalRatioPercent: Double? { _avgVerticalRatioPercent?.value }
     
     enum CodingKeys: String, CodingKey {
         case _dynamicVdot = "dynamic_vdot"
@@ -843,6 +886,8 @@ struct AdvancedMetrics: Codable {
         case hrZoneDistribution = "hr_zone_distribution"
         case paceZoneDistribution = "pace_zone_distribution"
         case _rpe = "rpe"
+        case _avgStanceTimeMs = "avg_stance_time_ms"
+        case _avgVerticalRatioPercent = "avg_vertical_ratio_percent"
     }
     
     // 便利初始化方法，用於測試和手動創建
@@ -854,7 +899,9 @@ struct AdvancedMetrics: Codable {
          avgHrTop20Percent: Double? = nil,
          hrZoneDistribution: ZoneDistribution? = nil,
          paceZoneDistribution: ZoneDistribution? = nil,
-         rpe: Double? = nil) {
+         rpe: Double? = nil,
+         avgStanceTimeMs: Double? = nil,
+         avgVerticalRatioPercent: Double? = nil) {
         
         self._dynamicVdot = dynamicVdot.map { SafeDouble(value: $0) }
         self._tss = tss.map { SafeDouble(value: $0) }
@@ -865,6 +912,8 @@ struct AdvancedMetrics: Codable {
         self.hrZoneDistribution = hrZoneDistribution
         self.paceZoneDistribution = paceZoneDistribution
         self._rpe = rpe.map { SafeDouble(value: $0) }
+        self._avgStanceTimeMs = avgStanceTimeMs.map { SafeDouble(value: $0) }
+        self._avgVerticalRatioPercent = avgVerticalRatioPercent.map { SafeDouble(value: $0) }
     }
 }
 

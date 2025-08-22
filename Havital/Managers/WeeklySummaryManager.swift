@@ -83,6 +83,9 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
     }
     
     func loadData() async {
+        // 先同步載入本地緩存數據（如果有的話）
+        loadLocalData()
+        
         await executeDataLoadingTask(id: "load_weekly_summaries") {
             try await self.performLoadWeeklySummaries()
         }
