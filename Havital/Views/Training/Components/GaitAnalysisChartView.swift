@@ -159,6 +159,11 @@ struct GaitAnalysisChartView: View {
                 )
                 .frame(height: 200)
             } else {
+                // Debug: 打印數據狀態
+                let _ = print("📊 [GaitChart] 觸地時間數據點: \(stanceTimes.count)")
+                let _ = print("📊 [GaitChart] 垂直比率數據點: \(verticalRatios.count)")
+                let _ = print("📊 [GaitChart] 步頻數據點: \(cadences.count)")
+                
                 // Tab selector
                 let availableTabs = GaitTab.allCases.filter { tab in
                     switch tab {
@@ -167,6 +172,8 @@ struct GaitAnalysisChartView: View {
                     case .cadence: return !cadences.isEmpty
                     }
                 }
+                
+                let _ = print("📊 [GaitChart] 可用標籤頁: \(availableTabs.map { $0.title })")
                 
                 if availableTabs.count > 1 {
                     Picker("步態指標", selection: $selectedGaitTab) {
@@ -229,12 +236,12 @@ struct GaitAnalysisChartView: View {
                         
                         // 最大值線 
                         RuleMark(y: .value("最大", maxValue))
-                            .foregroundStyle(Color.red.opacity(0.6))
+                            .foregroundStyle(Color(red: 1.0, green: 0.3, blue: 0.3).opacity(0.6))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                         
                         // 最小值線
                         RuleMark(y: .value("最小", minValue))
-                            .foregroundStyle(Color.blue.opacity(0.6))
+                            .foregroundStyle(Color(red: 0.3, green: 0.6, blue: 1.0).opacity(0.6))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     }
                 }
@@ -242,7 +249,7 @@ struct GaitAnalysisChartView: View {
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .stride(by: yAxisStride)) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
-                            .foregroundStyle(Color.gray.opacity(0.3))
+                            .foregroundStyle(Color.primary.opacity(0.2))
                         if let yValue = value.as(Double.self) {
                             AxisValueLabel {
                                 Text(formatYAxisLabel(yValue))
@@ -267,7 +274,7 @@ struct GaitAnalysisChartView: View {
             }
         }
         .padding()
-        .background(Color(red: 0.95, green: 0.95, blue: 0.97))
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
     }

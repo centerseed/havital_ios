@@ -21,6 +21,8 @@ struct WorkoutV2: Codable, Identifiable {
     let createdAt: String?
     let schemaVersion: String?
     let storagePath: String?
+    let dailyPlanSummary: DailyPlanSummary?
+    let aiSummary: AISummary?
     
     enum CodingKeys: String, CodingKey {
         case id, provider
@@ -35,6 +37,8 @@ struct WorkoutV2: Codable, Identifiable {
         case createdAt = "created_at"
         case schemaVersion = "schema_version"
         case storagePath = "storage_path"
+        case dailyPlanSummary = "daily_plan_summary"
+        case aiSummary = "ai_summary"
     }
     
     // MARK: - Convenience Properties
@@ -1180,6 +1184,37 @@ extension WorkoutV2Detail {
     
     var trainingType: String? {
         return advancedMetrics?.trainingType
+    }
+}
+
+// MARK: - Daily Plan Summary and AI Summary Models
+
+struct DailyPlanSummary: Codable {
+    let dayTarget: String?
+    let distanceKm: Double?
+    let pace: String?
+    let trainingType: String?
+    let heartRateRange: DailySummaryHeartRateRange?
+    
+    enum CodingKeys: String, CodingKey {
+        case dayTarget = "day_target"
+        case distanceKm = "distance_km"
+        case pace
+        case trainingType = "training_type"
+        case heartRateRange = "heart_rate_range"
+    }
+}
+
+struct DailySummaryHeartRateRange: Codable {
+    let min: Int
+    let max: Int
+}
+
+struct AISummary: Codable {
+    let analysis: String
+    
+    enum CodingKeys: String, CodingKey {
+        case analysis
     }
 }
 

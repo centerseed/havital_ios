@@ -352,25 +352,55 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
         
         // 處理步態分析數據 - 觸地時間 (毫秒)
+        print("📊 [GaitAnalysis] 檢查觸地時間數據...")
+        print("📊 [GaitAnalysis] stanceTimesMs 存在: \(timeSeries.stanceTimesMs != nil)")
+        print("📊 [GaitAnalysis] timestampsS 存在: \(timeSeries.timestampsS != nil)")
+        
         if let stanceTimeData = timeSeries.stanceTimesMs,
            let timestamps = timeSeries.timestampsS {
             
+            print("📊 [GaitAnalysis] 觸地時間原始數據點數: \(stanceTimeData.count)")
+            print("📊 [GaitAnalysis] 時間戳數據點數: \(timestamps.count)")
+            
             var stanceTimePoints: [DataPoint] = []
+            var validPointsCount = 0
+            var invalidPointsCount = 0
             
             for (index, stanceTime) in stanceTimeData.enumerated() {
                 if index < timestamps.count,
                    let timestamp = timestamps[index] {
                     let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
                     
-                    // 只處理有效的觸地時間值 (150-400毫秒是合理範圍)
+                    // 處理觸地時間值 (根據截圖，數值範圍是267-289ms，很合理)
                     if let stanceValue = stanceTime,
-                       stanceValue > 100 && stanceValue < 500 && stanceValue.isFinite {
+                       stanceValue > 50 && stanceValue < 600 && stanceValue.isFinite {
                         stanceTimePoints.append(DataPoint(time: time, value: stanceValue))
+                        validPointsCount += 1
+                        
+                        if validPointsCount <= 5 { // 顯示前5個有效數據點
+                            print("📊 [GaitAnalysis] 觸地時間[\(validPointsCount)]: \(String(format: "%.1f", stanceValue)) ms")
+                        }
+                    } else {
+                        invalidPointsCount += 1
+                        if invalidPointsCount <= 3 { // 顯示前3個無效數據點的詳細信息
+                            if stanceTime == nil {
+                                print("📊 [GaitAnalysis] 無效觸地時間[\(invalidPointsCount)]: null (索引 \(index))")
+                            } else {
+                                print("📊 [GaitAnalysis] 無效觸地時間[\(invalidPointsCount)]: \(stanceTime!) ms (索引 \(index))")
+                            }
+                        }
                     }
                 }
             }
             
+            print("📊 [GaitAnalysis] 有效觸地時間數據點: \(validPointsCount)")
+            print("📊 [GaitAnalysis] 無效觸地時間數據點: \(invalidPointsCount)")
+            
             self.stanceTimes = downsampleData(stanceTimePoints, maxPoints: 500)
+            print("📊 [GaitAnalysis] 降採樣後觸地時間數據點: \(self.stanceTimes.count)")
+        } else {
+            print("⚠️ [GaitAnalysis] 沒有觸地時間數據或時間戳數據")
+            self.stanceTimes = []
         }
         
         // 處理步態分析數據 - 垂直比率/移動效率 (%)

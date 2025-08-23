@@ -41,6 +41,11 @@ struct WorkoutDetailViewV2: View {
                     advancedMetricsCard
                 }
                 
+                // 課表資訊和AI分析卡片
+                if viewModel.workout.dailyPlanSummary != nil || viewModel.workout.aiSummary != nil {
+                    TrainingPlanInfoCard(workout: viewModel.workout)
+                }
+                
                 // 載入狀態或錯誤訊息
                 if viewModel.isLoading {
                     loadingView
@@ -838,11 +843,14 @@ struct ZoneRow: View {
         startTimeUtc: ISO8601DateFormatter().string(from: Date()),
         endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
         durationSeconds: 3600,
-        distanceMeters: 5000, deviceName: "Garmin",
+        distanceMeters: 5000,
+        deviceName: "Garmin",
         basicMetrics: nil,
         advancedMetrics: nil,
         createdAt: nil,
         schemaVersion: nil,
-        storagePath: nil
+        storagePath: nil,
+        dailyPlanSummary: nil,
+        aiSummary: nil
     ))
 } 

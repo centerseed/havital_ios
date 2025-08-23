@@ -215,21 +215,24 @@ struct DailyTrainingCard: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                         .padding(.vertical, 4)
                                 }
-                                if let hr = details.heartRateRange {
-                                    Text("心率區間：\(hr.min)-\(hr.max)")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.green.opacity(0.15))
-                                        .cornerRadius(12)
-                                }
-                                if let distance = details.distanceKm {
-                                    Text(String(format: "%.1fkm", distance))
-                                        .font(.caption2)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                        .cornerRadius(12)
+                                HStack(spacing: 8) {
+                                    if let hr = details.heartRateRange {
+                                        Text("心率區間：\(hr.min)-\(hr.max)")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.green.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    if let distance = details.distanceKm {
+                                        Text(String(format: "%.1fkm", distance))
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    Spacer()
                                 }
                             }
                         }
@@ -459,9 +462,9 @@ struct DailyTrainingCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(isToday
                       ? (colorScheme == .dark
-                         ? Color(UIColor.systemBlue).opacity(0.2)
-                         : Color(UIColor.systemBlue).opacity(0.1))
-                      : Color(UIColor.tertiarySystemBackground))
+                         ? Color.blue.opacity(0.2)
+                         : Color.blue.opacity(0.1))
+                      : Color(.tertiarySystemBackground))
         )
         // 使用 WorkoutDetailViewV2 顯示 WorkoutV2 數據
         .sheet(item: $selectedWorkout) { workout in
