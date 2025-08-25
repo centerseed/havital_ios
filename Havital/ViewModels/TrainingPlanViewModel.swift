@@ -276,6 +276,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         // 基本狀態初始化，延遲資料載入到用戶確認後
         Logger.debug("TrainingPlanViewModel: 開始初始化")
         
+        // 設置通知監聽器將在初始化完成後調用
+        
         // 非同步任務：正確的初始化順序
         Task {
             await self.initializeWithUserContext()
@@ -410,6 +412,38 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     await self.loadCurrentWeekData()
                     // 同時更新每日訓練記錄，以便 DailyTrainingCard 能顯示最新數據
                     await self.loadWorkoutsForCurrentWeek()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // 監聽訓練概覽更新通知
+        NotificationCenter.default.publisher(for: NSNotification.Name("TrainingOverviewUpdated"))
+            .sink { [weak self] notification in
+                guard let self = self else { return }
+                
+                // 防止在初始化期間響應通知
+                guard !self.isInitializing, self.hasCompletedInitialLoad else {
+                    print("初始化期間跳過 TrainingOverviewUpdated 通知")
+                    return
+                }
+                
+                if let updatedOverview = notification.object as? TrainingPlanOverview {
+                    print("收到 TrainingOverviewUpdated 通知，更新訓練概覽...")
+                    Task {
+                        await MainActor.run {
+                            self.trainingOverview = updatedOverview
+                            // 重新計算當前週數
+                            self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: updatedOverview.createdAt) ?? 1
+                            self.selectedWeek = self.currentWeek
+                        }
+                        
+                        // 重要：更新 overview 後必須重新載入週課表和其他相關資訊
+                        print("概覽更新完成，開始重新載入週課表和相關資訊...")
+                        await self.loadWeeklyPlan()
+                        await self.loadCurrentWeekDistance()
+                        await self.loadCurrentWeekIntensity()
+                        await self.loadWorkoutsForCurrentWeek()
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -643,6 +677,17 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     // 404: 無週計劃
                     await updateWeeklyPlanUI(plan: nil, status: .noPlan)
                 } catch {
+                    // 檢查是否為取消錯誤，如果是則忽略
+                    let nsError = error as NSError
+                    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled ||
+                       error is CancellationError ||
+                       error.localizedDescription.contains("cancelled") ||
+                       error.localizedDescription.contains("canceled") ||
+                       error.localizedDescription.contains("取消") {
+                        Logger.debug("背景更新計劃任務被取消，忽略此錯誤")
+                        return
+                    }
+                    
                     // 其他錯誤: 檢查是否為網路問題
                     if let networkError = self.handleNetworkError(error) {
                         await MainActor.run {
@@ -697,11 +742,25 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 Logger.debug("週計劃 404 錯誤，設置 .noPlan 狀態")
                 await updateWeeklyPlanUI(plan: nil, status: .noPlan)
             } catch {
-                // 檢查是否為任務取消錯誤
+                // 檢查是否為任務取消錯誤（支援多種取消錯誤類型）
                 let nsError = error as NSError
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-                    Logger.debug("載入週計劃任務被取消，忽略此錯誤")
+                    Logger.debug("載入週計劃任務被取消 (URLError)，忽略此錯誤")
                     return // 忽略取消錯誤，不更新 UI 狀態
+                }
+                
+                // 檢查其他類型的取消錯誤
+                if error is CancellationError {
+                    Logger.debug("載入週計劃任務被取消 (CancellationError)，忽略此錯誤")
+                    return
+                }
+                
+                // 檢查錯誤描述中是否包含取消相關關鍵字
+                if error.localizedDescription.contains("cancelled") || 
+                   error.localizedDescription.contains("canceled") ||
+                   error.localizedDescription.contains("取消") {
+                    Logger.debug("載入週計劃任務被取消 (描述匹配)，忽略此錯誤: \(error.localizedDescription)")
+                    return
                 }
                 
                 // 檢查是否為 API 404 錯誤（資源不存在）
@@ -858,27 +917,38 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         if !savedOverview.trainingPlanName.isEmpty {
             await MainActor.run {
                 self.trainingOverview = savedOverview
+                // 重新計算當前週數，確保使用最新的本地數據
+                self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
+                self.selectedWeek = self.currentWeek
             }
             
             // 輸出當前訓練週數
             logCurrentTrainingWeek()
+            
+            Logger.debug("已從本地加載訓練計劃概覽，跳過API調用以保留本地更新")
+            return // 如果本地有數據，就不要從API獲取，避免覆蓋本地更新
         }
         
-        // 然後嘗試從API獲取最新數據（登出後登入分支）
+        // 只有當本地沒有數據時才從API獲取
         do {
             let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
             
             // 成功獲取後更新UI
             await MainActor.run {
                 self.trainingOverview = overview
+                self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
+                self.selectedWeek = self.currentWeek
             }
-            Logger.debug("成功載入訓練計劃概覽")
+            Logger.debug("成功從API載入訓練計劃概覽")
             Logger.debug("Plan Overview id \(overview.id)")
             TrainingPlanStorage.saveTrainingPlanOverview(overview)
             logCurrentTrainingWeek()
         } catch {
             Logger.error("載入訓練計劃概覽從API失敗: \(error)")
-            // 已從本地加載，不需要額外處理
+            // 如果本地也沒有數據且API失敗，這是真正的錯誤
+            if savedOverview.trainingPlanName.isEmpty {
+                Logger.error("本地和API都無法獲取訓練計劃概覽")
+            }
         }
     }
     
@@ -1407,14 +1477,23 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
+            print("🗓️ 計算當週跑量時間範圍: \(weekStart) 到 \(weekEnd)")
+            
             // 從 UnifiedWorkoutManager 獲取該週的運動記錄
             let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
                 startDate: weekStart,
                 endDate: weekEnd
             )
             
+            print("🏃 UnifiedWorkoutManager 獲取到 \(weekWorkouts.count) 筆該週記錄")
+            
             // 過濾僅包含跑步類型的鍛煉
             let runWorkouts = weekWorkouts.filter { $0.activityType == "running" }
+            
+            print("🏃 其中跑步記錄 \(runWorkouts.count) 筆")
+            for workout in runWorkouts {
+                print("   - \(workout.id): \(workout.startDate), 距離: \((workout.distance ?? 0) / 1000.0) km")
+            }
             
             // 計算跑步距離總和（從 V2 數據）
             let totalDistance = runWorkouts.compactMap { workout in

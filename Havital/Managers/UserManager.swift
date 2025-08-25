@@ -5,7 +5,7 @@ import Combine
 
 // MARK: - 用戶數據類型
 enum UserDataUpdateType {
-    case profile(UserProfileData)
+    case profile(User)
     case weeklyDistance(Int)
     case personalBest([String: Any])
     case dataSource(String)
@@ -23,7 +23,7 @@ struct UserStatistics: Codable {
     let lastActivityDate: Date?
     let accountCreatedDate: Date?
     
-    init(userData: UserProfileData, targets: [Target] = []) {
+    init(userData: User, targets: [Target] = []) {
         // 從用戶數據計算統計信息
         self.totalWorkouts = 0 // 需要從其他數據源獲取
         self.totalDistance = Double(userData.currentWeekDistance ?? 0)
@@ -40,7 +40,7 @@ struct UserStatistics: Codable {
 class UserManager: ObservableObject, DataManageable {
     
     // MARK: - Type Definitions
-    typealias DataType = UserProfileData
+    typealias DataType = User
     typealias ServiceType = UserService
     
     // MARK: - Published Properties (DataManageable Requirements)
@@ -49,7 +49,7 @@ class UserManager: ObservableObject, DataManageable {
     @Published var syncError: String?
     
     // MARK: - User Specific Properties
-    @Published var currentUser: UserProfileData?
+    @Published var currentUser: User?
     @Published var heartRateZones: [HeartRateZonesManager.HeartRateZone] = []
     @Published var isLoadingZones = false
     @Published var userTargets: [Target] = []
@@ -190,12 +190,12 @@ class UserManager: ObservableObject, DataManageable {
         
         // 更新 UI 和快取
         await MainActor.run {
-            self.updateUserData(user.data)
+            self.updateUserData(user)
         }
         
         // 保存到快取
         let cacheData = UserCacheData(
-            userProfile: user.data,
+            userProfile: user,
             targets: userTargets // 使用當前的 targets
         )
         cacheManager.saveToCache(cacheData)
@@ -208,8 +208,8 @@ class UserManager: ObservableObject, DataManageable {
             level: .info,
             labels: ["module": "UserManager", "action": "load_user_profile"],
             jsonPayload: [
-                "user_name": user.data.displayName ?? "unknown",
-                "data_source": user.data.dataSource ?? "unknown"
+                "user_name": user.displayName ?? "unknown",
+                "data_source": user.dataSource ?? "unknown"
             ]
         )
     }
@@ -232,12 +232,12 @@ class UserManager: ObservableObject, DataManageable {
         }
         
         await MainActor.run {
-            self.updateUserData(user.data)
+            self.updateUserData(user)
         }
         
         // 強制更新快取
         let cacheData = UserCacheData(
-            userProfile: user.data,
+            userProfile: user,
             targets: userTargets
         )
         cacheManager.forceRefresh(with: cacheData)
@@ -391,7 +391,7 @@ class UserManager: ObservableObject, DataManageable {
     
     // MARK: - Helper Methods
     
-    private func updateUserData(_ userData: UserProfileData) {
+    private func updateUserData(_ userData: User) {
         currentUser = userData
         updateStatistics()
     }
@@ -497,12 +497,12 @@ private class UserCacheManager: BaseCacheManagerTemplate<UserCacheData> {
 
 // MARK: - Cache Data Structure  
 private struct UserCacheData: Codable {
-    let userProfile: UserProfileData
+    let userProfile: User
     let targets: [Target]
 }
 
-// MARK: - UserProfileData Extension
-extension UserProfileData {
+// MARK: - User Extension
+extension User {
     func toDictionary() -> [String: Any] {
         var dict: [String: Any] = [:]
         

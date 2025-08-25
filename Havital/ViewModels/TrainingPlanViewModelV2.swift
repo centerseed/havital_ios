@@ -203,7 +203,11 @@ class TrainingPlanViewModelV2: BaseDataViewModel<WeeklyPlan, TrainingPlanManager
             endDate: dateInfo.endDate
         )
         
-        currentWeekDistance = workouts.compactMap { $0.distance }.reduce(0, +)
+        // 只計算跑步活動的距離
+        let runningWorkouts = workouts.filter { $0.activityType == "running" }
+        currentWeekDistance = runningWorkouts.compactMap { $0.distance }.reduce(0, +)
+        
+        print("🏃 計算當週跑量: 總記錄 \(workouts.count) 筆, 跑步記錄 \(runningWorkouts.count) 筆, 總跑量 \(currentWeekDistance) km")
     }
     
     private func loadCurrentWeekIntensity() async {

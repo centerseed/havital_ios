@@ -149,6 +149,8 @@ struct DailyTrainingCard: View {
                     
                     Text(day.dayTarget)
                         .font(.body)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     if day.isTrainingDay {
                         // 對於無trainingItems的非間歇課表，顯示trainingDetails詳情
@@ -209,23 +211,28 @@ struct DailyTrainingCard: View {
                                     Text(desc)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .padding(.vertical, 4)
                                 }
-                                if let hr = details.heartRateRange {
-                                    Text("心率區間：\(hr.min)-\(hr.max)")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.green.opacity(0.15))
-                                        .cornerRadius(12)
-                                }
-                                if let distance = details.distanceKm {
-                                    Text(String(format: "%.1fkm", distance))
-                                        .font(.caption2)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                        .cornerRadius(12)
+                                HStack(spacing: 8) {
+                                    if let hr = details.heartRateRange {
+                                        Text("心率區間：\(hr.min)-\(hr.max)")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.green.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    if let distance = details.distanceKm {
+                                        Text(String(format: "%.1fkm", distance))
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
+                                            .cornerRadius(12)
+                                    }
+                                    Spacer()
                                 }
                             }
                         }
@@ -303,52 +310,126 @@ struct DailyTrainingCard: View {
                             }
                             
                             // Show each training item
-                            ForEach(trainingItems) { item in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    // 標題及重複次數
-                                    HStack {
-                                        if day.type == .interval, let times = item.goals.times {
-                                            Text("× \(times)")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
+                            if day.type == .interval {
+                                // 間歇訓練特殊處理：將衝刺段和恢復段分別顯示在兩行
+                                ForEach(Array(stride(from: 0, to: trainingItems.count, by: 2)), id: \.self) { index in
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        let sprintItem = trainingItems[index]
+                                        let recoveryItem = index + 1 < trainingItems.count ? trainingItems[index + 1] : nil
+                                        
+                                        // 第一行：衝刺段
+                                        HStack(spacing: 8) {
+                                            Text("衝刺段")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                            
+                                            if let times = sprintItem.goals.times {
+                                                Text("× \(times)")
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .foregroundColor(.orange)
+                                            }
+                                            
+                                            if let pace = sprintItem.goals.pace {
+                                                Text(pace)
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.orange.opacity(0.15))
+                                                    .cornerRadius(8)
+                                            }
+                                            
+                                            if let distance = sprintItem.goals.distanceKm {
+                                                Text(String(format: "%.1fkm", distance))
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.orange.opacity(0.15))
+                                                    .cornerRadius(8)
+                                            }
+                                            
+                                            Spacer()
                                         }
                                         
-                                        if let pace = item.goals.pace {
-                                            Text(pace)
-                                                .font(.caption2)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                                .cornerRadius(12)
+                                        // 第二行：恢復段
+                                        if let recoveryItem = recoveryItem {
+                                            HStack(spacing: 8) {
+                                                Text("恢復段")
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .foregroundColor(.secondary)
+                                                
+                                                if let times = recoveryItem.goals.times {
+                                                    Text("× \(times)")
+                                                        .font(.system(size: 11, weight: .medium))
+                                                        .foregroundColor(.orange)
+                                                }
+                                                
+                                                if let pace = recoveryItem.goals.pace {
+                                                    Text(pace)
+                                                        .font(.system(size: 11, weight: .medium))
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 3)
+                                                        .background(Color.orange.opacity(0.15))
+                                                        .cornerRadius(8)
+                                                }
+                                                
+                                                if let distance = recoveryItem.goals.distanceKm {
+                                                    Text(String(format: "%.1fkm", distance))
+                                                        .font(.system(size: 11, weight: .medium))
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 3)
+                                                        .background(Color.orange.opacity(0.15))
+                                                        .cornerRadius(8)
+                                                }
+                                                
+                                                Spacer()
+                                            }
                                         }
-                                        
-                                        if let hr = item.goals.heartRateRange {
-                                            Text("心率區間： \(hr.min)-\(hr.max)")
-                                                .font(.caption2)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.green.opacity(0.15))
-                                                .cornerRadius(12)
-                                        }
-                                        if let distance = item.goals.distanceKm {
-                                            Text(String(format: "%.1fkm", distance))
-                                                .font(.caption2)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
-                                                .cornerRadius(12)
-                                        }
-                                        Spacer()
                                     }
-                                    // 度量指標pills
-                                    HStack(spacing: 2) {}
-                                        
-                                    // 說明文字
-                                    Text(item.runDetails)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    .padding(.vertical, 6)
                                 }
-                                .padding(.vertical, 8)
+                            } else {
+                                // 非間歇訓練保持原有顯示方式
+                                ForEach(trainingItems) { item in
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        // 標題及重複次數
+                                        HStack {
+                                            if let pace = item.goals.pace {
+                                                Text(pace)
+                                                    .font(.caption2)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.blue.opacity(0.15))
+                                                    .cornerRadius(12)
+                                            }
+                                            
+                                            if let hr = item.goals.heartRateRange {
+                                                Text("心率區間： \(hr.min)-\(hr.max)")
+                                                    .font(.caption2)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.green.opacity(0.15))
+                                                    .cornerRadius(12)
+                                            }
+                                            if let distance = item.goals.distanceKm {
+                                                Text(String(format: "%.1fkm", distance))
+                                                    .font(.caption2)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.blue.opacity(0.15))
+                                                    .cornerRadius(12)
+                                            }
+                                            Spacer()
+                                        }
+                                        
+                                        // 說明文字
+                                        Text(item.runDetails)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(nil)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    .padding(.vertical, 8)
+                                }
                             }
                         }
                         
@@ -357,6 +438,8 @@ struct DailyTrainingCard: View {
                             Text("提示：\(tips)")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, 8)
                         }
                     }
@@ -369,8 +452,8 @@ struct DailyTrainingCard: View {
                 Text(day.dayTarget)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
         }
@@ -379,9 +462,9 @@ struct DailyTrainingCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(isToday
                       ? (colorScheme == .dark
-                         ? Color(UIColor.systemBlue).opacity(0.2)
-                         : Color(UIColor.systemBlue).opacity(0.1))
-                      : Color(UIColor.tertiarySystemBackground))
+                         ? Color.blue.opacity(0.2)
+                         : Color.blue.opacity(0.1))
+                      : Color(.tertiarySystemBackground))
         )
         // 使用 WorkoutDetailViewV2 顯示 WorkoutV2 數據
         .sheet(item: $selectedWorkout) { workout in

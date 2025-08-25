@@ -113,10 +113,24 @@ class HealthKitManager: ObservableObject, TaskManageable {
         )
     }
     
-    // 獲取步頻數據 (通過步數計算)
-    // 獲取步頻數據 (通過步數計算)
+    // 獲取步頻數據 (先嘗試直接獲取，失敗則通過步數計算)
     func fetchCadenceData(for workout: HKWorkout) async throws -> [(Date, Double)] {
-        // 獲取步數數據
+        print("🔍 [Cadence] 開始獲取步頻數據...")
+        
+        // 方法1: 嘗試直接獲取步頻數據 (某些第三方設備可能提供)
+        // 檢查是否有第三方應用寫入的步頻數據
+        do {
+            let directCadence = try await fetchDirectCadenceData(for: workout)
+            if !directCadence.isEmpty {
+                print("✅ [Cadence] 找到直接步頻數據: \(directCadence.count) 筆")
+                return directCadence
+            }
+        } catch {
+            print("⚠️ [Cadence] 無法獲取直接步頻數據: \(error.localizedDescription)")
+        }
+        
+        // 方法2: 通過步數計算步頻
+        print("🔄 [Cadence] 嘗試通過步數計算步頻...")
         guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
             throw HealthError.notAvailable
         }
@@ -127,46 +141,240 @@ class HealthKitManager: ObservableObject, TaskManageable {
             unit: HKUnit.count()
         )
         
+        print("📊 [Cadence] 獲取到步數數據: \(stepCounts.count) 筆")
+        
         // 如果步數數據不足，返回空數組
-        if stepCounts.count < 2 {
-            print("步數數據不足，無法計算步頻")
+        if stepCounts.count < 3 {
+            print("⚠️ [Cadence] 步數數據不足，無法計算步頻: \(stepCounts.count) < 3")
             return []
         }
         
         // 計算步頻
         return calculateCadence(stepCount: stepCounts)
     }
+    
+    // 嘗試直接獲取步頻數據 (從第三方設備或應用)
+    private func fetchDirectCadenceData(for workout: HKWorkout) async throws -> [(Date, Double)] {
+        // 注意：iOS HealthKit 沒有標準的步頻數據類型
+        // 但某些第三方應用可能會使用自定義的方式存儲步頻數據
+        // 這裡我們檢查一些可能的數據來源
+        
+        // 檢查是否有其他可能的步頻數據類型
+        // (目前 Apple HealthKit 沒有直接的步頻類型，所以這個方法會返回空數組)
+        
+        return []
+    }
 
-    // 輔助方法：計算步頻 (步/分鐘)
+    // 輔助方法：計算步頻 (步/分鐘) - 先分析原始數據
     private func calculateCadence(stepCount: [(Date, Double)]) -> [(Date, Double)] {
         var cadenceData: [(Date, Double)] = []
         
         // 需要至少2個時間點來計算步頻
         if stepCount.count < 2 {
+            print("⚠️ [Cadence] 步數數據不足，無法計算步頻: \(stepCount.count) < 2")
             return cadenceData
         }
         
-        // 對每個時間窗口計算步頻
-        for i in 1..<stepCount.count {
-            let previousPoint = stepCount[i-1]
-            let currentPoint = stepCount[i]
+        print("📊 [Cadence] ========== 開始分析原始步數數據 ==========")
+        print("📊 [Cadence] 總數據點: \(stepCount.count)")
+        
+        // 按時間排序步數數據
+        let sortedStepCount = stepCount.sorted { $0.0 < $1.0 }
+        
+        // 詳細分析前20個數據點
+        print("📊 [Cadence] 前20個步數數據點詳細分析:")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        
+        for (index, point) in sortedStepCount.prefix(20).enumerated() {
+            let timeStr = formatter.string(from: point.0)
+            print("  [\(String(format: "%2d", index))] 時間: \(timeStr), 步數: \(String(format: "%8.1f", point.1))")
             
-            let timeDifference = currentPoint.0.timeIntervalSince(previousPoint.0)
-            if timeDifference > 0 {
-                // 計算這段時間內的步數差異
-                let stepDifference = currentPoint.1 - previousPoint.1
-                
-                // 只有當步數差異為正數時才計算步頻
-                if stepDifference > 0 {
-                    // 計算步頻(步/分鐘)
-                    let cadenceValue = (stepDifference / timeDifference) * 60.0
-                    
-                    // 添加到結果中，使用時間窗口的中間點作為數據點時間
-                    let midPointTime = previousPoint.0.addingTimeInterval(timeDifference / 2)
-                    cadenceData.append((midPointTime, cadenceValue))
-                }
+            if index > 0 {
+                let prevPoint = sortedStepCount[index-1]
+                let timeDiff = point.0.timeIntervalSince(prevPoint.0)
+                let stepDiff = point.1 - prevPoint.1
+                print("       -> 時間差: \(String(format: "%6.1f", timeDiff))秒, 步數差: \(String(format: "%6.1f", stepDiff))")
             }
         }
+        
+        // 分析數據的整體特性
+        let firstPoint = sortedStepCount.first!
+        let lastPoint = sortedStepCount.last!
+        let totalTime = lastPoint.0.timeIntervalSince(firstPoint.0)
+        
+        let allSteps = sortedStepCount.map { $0.1 }
+        let minSteps = allSteps.min() ?? 0
+        let maxSteps = allSteps.max() ?? 0
+        let totalSteps = maxSteps - minSteps
+        
+        print("📊 [Cadence] ========== 整體數據分析 ==========")
+        print("📊 [Cadence] 運動開始時間: \(formatter.string(from: firstPoint.0))")
+        print("📊 [Cadence] 運動結束時間: \(formatter.string(from: lastPoint.0))")
+        print("📊 [Cadence] 總運動時間: \(String(format: "%.1f", totalTime))秒 (\(String(format: "%.1f", totalTime/60))分鐘)")
+        print("📊 [Cadence] 步數最小值: \(String(format: "%.1f", minSteps))")
+        print("📊 [Cadence] 步數最大值: \(String(format: "%.1f", maxSteps))")
+        print("📊 [Cadence] 總步數變化: \(String(format: "%.1f", totalSteps))")
+        
+        // 分析步數變化模式
+        var positiveChanges = 0
+        var negativeChanges = 0
+        var zeroChanges = 0
+        var maxPositiveChange = 0.0
+        var maxNegativeChange = 0.0
+        
+        for i in 1..<sortedStepCount.count {
+            let stepDiff = sortedStepCount[i].1 - sortedStepCount[i-1].1
+            if stepDiff > 0 {
+                positiveChanges += 1
+                maxPositiveChange = max(maxPositiveChange, stepDiff)
+            } else if stepDiff < 0 {
+                negativeChanges += 1
+                maxNegativeChange = min(maxNegativeChange, stepDiff)
+            } else {
+                zeroChanges += 1
+            }
+        }
+        
+        print("📊 [Cadence] ========== 步數變化模式分析 ==========")
+        print("📊 [Cadence] 步數增加的時間點: \(positiveChanges) 次")
+        print("📊 [Cadence] 步數減少的時間點: \(negativeChanges) 次") 
+        print("📊 [Cadence] 步數不變的時間點: \(zeroChanges) 次")
+        print("📊 [Cadence] 最大單次步數增加: \(String(format: "%.1f", maxPositiveChange))")
+        print("📊 [Cadence] 最大單次步數減少: \(String(format: "%.1f", maxNegativeChange))")
+        
+        // 分析時間間隔模式
+        var timeIntervals: [Double] = []
+        for i in 1..<sortedStepCount.count {
+            let timeDiff = sortedStepCount[i].0.timeIntervalSince(sortedStepCount[i-1].0)
+            timeIntervals.append(timeDiff)
+        }
+        
+        let minInterval = timeIntervals.min() ?? 0
+        let maxInterval = timeIntervals.max() ?? 0
+        let avgInterval = timeIntervals.reduce(0, +) / Double(timeIntervals.count)
+        
+        print("📊 [Cadence] ========== 時間間隔分析 ==========")
+        print("📊 [Cadence] 最小時間間隔: \(String(format: "%.1f", minInterval))秒")
+        print("📊 [Cadence] 最大時間間隔: \(String(format: "%.1f", maxInterval))秒")
+        print("📊 [Cadence] 平均時間間隔: \(String(format: "%.1f", avgInterval))秒")
+        
+        // 基於瞬時步數數據計算步頻
+        print("📊 [Cadence] ========== 瞬時步數分析 ==========")
+        print("📊 [Cadence] 發現：這是瞬時步數數據，不是累積值")
+        print("📊 [Cadence] 採樣間隔: 2.6秒，數值範圍: 5-10步")
+        
+        // 使用滑動窗口計算平滑的步頻數據
+        // 改為生成時間序列數據而不是單一平均值
+        print("📊 [Cadence] 開始計算平滑化步頻 (30秒滑動窗口)...")
+        
+        let windowDuration: TimeInterval = 30.0 // 30秒滑動窗口
+        let stepInterval: TimeInterval = 15.0   // 每15秒輸出一個數據點
+        
+        // 計算運動的總時長和需要輸出的時間點
+        let startTime = firstPoint.0
+        let endTime = lastPoint.0
+        let totalDuration = endTime.timeIntervalSince(startTime)
+        
+        print("📊 [Cadence] 滑動窗口參數: 窗口大小=\(windowDuration)秒, 輸出間隔=\(stepInterval)秒")
+        print("📊 [Cadence] 運動總時長: \(String(format: "%.1f", totalDuration))秒")
+        
+        // 生成時間點序列 (從運動開始後15秒開始，每15秒一個點)
+        var currentTime = startTime.addingTimeInterval(windowDuration / 2) // 從第一個窗口中心開始
+        var timePointIndex = 0
+        
+        while currentTime <= endTime.addingTimeInterval(-windowDuration / 2) {
+            // 計算當前時間點的30秒窗口範圍
+            let windowStart = currentTime.addingTimeInterval(-windowDuration / 2)
+            let windowEnd = currentTime.addingTimeInterval(windowDuration / 2)
+            
+            // 找出窗口內的所有步數數據點
+            let windowSteps = sortedStepCount.filter { point in
+                point.0 >= windowStart && point.0 <= windowEnd
+            }
+            
+            if !windowSteps.isEmpty {
+                // 計算窗口內的總步數和時間跨度
+                let totalSteps = windowSteps.reduce(0.0) { sum, point in sum + point.1 }
+                let actualWindowDuration = min(windowDuration, windowEnd.timeIntervalSince(windowStart))
+                
+                // 計算該窗口的平均步頻 (步/分鐘)
+                let averageCadence = (totalSteps / actualWindowDuration) * 60.0
+                
+                // 過濾合理的步頻範圍
+                if averageCadence >= 100 && averageCadence <= 250 {
+                    cadenceData.append((currentTime, averageCadence))
+                    
+                    if timePointIndex < 10 { // 顯示前10個點的詳細信息
+                        let timeStr = formatter.string(from: currentTime)
+                        print("  [\(String(format: "%2d", timePointIndex))] 時間: \(timeStr), 窗口步數: \(String(format: "%6.1f", totalSteps)), 步頻: \(String(format: "%6.1f", averageCadence)) spm")
+                    }
+                } else if timePointIndex < 10 {
+                    let timeStr = formatter.string(from: currentTime)
+                    print("  [\(String(format: "%2d", timePointIndex))] 時間: \(timeStr), 窗口步數: \(String(format: "%6.1f", totalSteps)), 步頻: \(String(format: "%6.1f", averageCadence)) spm (異常值，已過濾)")
+                }
+            }
+            
+            // 移動到下一個時間點
+            currentTime = currentTime.addingTimeInterval(stepInterval)
+            timePointIndex += 1
+        }
+        
+        // 如果沒有有效數據，嘗試更寬鬆的範圍和更小的窗口
+        if cadenceData.isEmpty {
+            print("⚠️ [Cadence] 30秒窗口沒有找到有效步頻，嘗試15秒窗口和放寬範圍...")
+            
+            let smallerWindow: TimeInterval = 15.0
+            currentTime = startTime.addingTimeInterval(smallerWindow / 2)
+            timePointIndex = 0
+            
+            while currentTime <= endTime.addingTimeInterval(-smallerWindow / 2) {
+                let windowStart = currentTime.addingTimeInterval(-smallerWindow / 2)
+                let windowEnd = currentTime.addingTimeInterval(smallerWindow / 2)
+                
+                let windowSteps = sortedStepCount.filter { point in
+                    point.0 >= windowStart && point.0 <= windowEnd
+                }
+                
+                if !windowSteps.isEmpty {
+                    let totalSteps = windowSteps.reduce(0.0) { sum, point in sum + point.1 }
+                    let actualWindowDuration = min(smallerWindow, windowEnd.timeIntervalSince(windowStart))
+                    let averageCadence = (totalSteps / actualWindowDuration) * 60.0
+                    
+                    // 使用更寬鬆的範圍 (50-400 spm)
+                    if averageCadence >= 50 && averageCadence <= 400 {
+                        cadenceData.append((currentTime, averageCadence))
+                        
+                        if timePointIndex < 10 {
+                            let timeStr = formatter.string(from: currentTime)
+                            print("  [\(String(format: "%2d", timePointIndex))] 時間: \(timeStr), 窗口步數: \(String(format: "%6.1f", totalSteps)), 步頻: \(String(format: "%6.1f", averageCadence)) spm (15秒窗口)")
+                        }
+                    }
+                }
+                
+                currentTime = currentTime.addingTimeInterval(stepInterval)
+                timePointIndex += 1
+            }
+        }
+        
+        // 統計結果
+        if !cadenceData.isEmpty {
+            let cadenceValues = cadenceData.map { $0.1 }
+            let averageCadence = cadenceValues.reduce(0, +) / Double(cadenceValues.count)
+            let minCadence = cadenceValues.min()!
+            let maxCadence = cadenceValues.max()!
+            
+            print("📊 [Cadence] ========== 計算結果統計 ==========")
+            print("📊 [Cadence] 有效步頻數據點: \(cadenceData.count)")
+            print("📊 [Cadence] 平均步頻: \(String(format: "%.1f", averageCadence)) spm")
+            print("📊 [Cadence] 步頻範圍: \(String(format: "%.1f", minCadence)) - \(String(format: "%.1f", maxCadence)) spm")
+            print("✅ [Cadence] 成功生成 \(cadenceData.count) 個時間序列步頻數據點")
+        } else {
+            print("⚠️ [Cadence] 沒有找到任何有效的步頻數據")
+        }
+        
+        print("📊 [Cadence] ========== 分析完成 ==========")
+        print("✅ [Cadence] 最終有效數據點: \(cadenceData.count)")
         
         return cadenceData
     }

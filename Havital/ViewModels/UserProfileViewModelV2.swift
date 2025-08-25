@@ -4,12 +4,12 @@ import FirebaseAuth
 // MARK: - 重構後的用戶資料 ViewModel (遵循統一架構模式)
 /// 使用 UserManager 和 BaseDataViewModel 的標準化實現
 @MainActor
-class UserProfileViewModelV2: BaseDataViewModel<UserProfileData, UserManager> {
+class UserProfileViewModelV2: BaseDataViewModel<User, UserManager> {
     
     // MARK: - User Specific Properties
     
     /// 當前用戶資料
-    @Published var userData: UserProfileData? {
+    @Published var userData: User? {
         didSet {
             // 當用戶數據更新時，同步更新 data 數組以保持一致性
             data = userData != nil ? [userData!] : []

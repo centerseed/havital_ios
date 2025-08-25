@@ -581,9 +581,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         errorReport["data_quality"] = dataQualityAnalysis
         
         // 使用 Firebase 記錄錯誤 - 標記需要上傳到雲端
+        // 只記錄非預期的錯誤為 error，預期的錯誤記為 warning
+        let shouldLogAsError = !isExpectedError(error)
         Logger.firebase(
             "Apple Health 運動記錄 V2 API 上傳失敗 - 詳細分析",
-            level: .error,
+            level: shouldLogAsError ? .error : .warn,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "workout_upload_error",
@@ -591,6 +593,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 "workout_type": workoutData.type,
                 "device_manufacturer": (errorReport["device_details"] as? [String: String])?["manufacturer"] ?? "unknown",
                 "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown",
+                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+                "build_number": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
                 "cloud_logging": "true"  // 標記需要上傳到雲端
             ],
             jsonPayload: errorReport
@@ -657,9 +661,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             errorCategory = "cancellation_error"
         }
         
+        // 取消錯誤和預期錯誤記為 warning
+        let isExpected = error is CancellationError || errorCategory == "cancellation_error"
         Logger.firebase(
             "HealthKit 數據獲取失敗 - \(dataType)",
-            level: LogLevel.error,
+            level: isExpected ? LogLevel.warn : LogLevel.error,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "healthkit_data_fetch_error",
@@ -678,6 +684,28 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         } else {
             print("⚠️ [HealthKit 錯誤] 無法獲取 \(dataType) 數據: \(error.localizedDescription)")
         }
+    }
+    
+    /// 檢查是否為預期的錯誤（不應記為 error）
+    private func isExpectedError(_ error: Error) -> Bool {
+        // 取消錯誤
+        if error is CancellationError { return true }
+        if (error as NSError).code == NSURLErrorCancelled { return true }
+        
+        // 網路暫時性錯誤
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .timedOut:
+                return true
+            default:
+                break
+            }
+        }
+        
+        // 429 Too Many Requests
+        if (error as NSError).code == 429 { return true }
+        
+        return false
     }
     
     /// 檢查是否為第三方數據源

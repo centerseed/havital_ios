@@ -57,6 +57,9 @@ extension View {
 struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage?
+    @State private var isGeneratingScreenshot = false
     
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -83,6 +86,22 @@ struct MyAchievementView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                     .padding(.horizontal)
                     
+                    // Weekly Volume Chart Section - 週跑量趨勢圖
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionTitleWithInfo(
+                            title: "週跑量趨勢",
+                            explanation: "顯示您每週的跑步里程數變化，幫助您掌握訓練量的變化趨勢和調整訓練計劃。"
+                        )
+                        .padding(.horizontal)
+                        
+                        WeeklyVolumeChartView(showTitle: false)
+                            .padding()
+                    }
+                    .background(Color(UIColor.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                    .padding(.horizontal)
+                    
                     // HRV 趨勢圖 - 根據數據源選擇顯示方式
                     HRVChartSection()
                         .environmentObject(healthKitManager)
@@ -98,6 +117,84 @@ struct MyAchievementView: View {
             .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle("表現數據")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        shareWeeklyReview()
+                    } label: {
+                        if isGeneratingScreenshot {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                    .disabled(isGeneratingScreenshot)
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                if let shareImage = shareImage {
+                    ActivityViewController(activityItems: [shareImage])
+                }
+            }
+        }
+    }
+    
+    private func shareWeeklyReview() {
+        isGeneratingScreenshot = true
+        
+        LongScreenshotCapture.captureView(
+            VStack(spacing: 20) {
+                // VDOT Chart Section
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionTitleWithInfo(
+                        title: "VDOT 趨勢",
+                        explanation: "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。"
+                    )
+                    .padding(.horizontal)
+                    
+                    VDOTChartView()
+                        .padding()
+                }
+                .background(Color(UIColor.systemBackground))
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                .padding(.horizontal)
+                
+                // Weekly Volume Chart Section
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionTitleWithInfo(
+                        title: "週跑量趨勢",
+                        explanation: "顯示您每週的跑步里程數變化，幫助您掌握訓練量的變化趨勢和調整訓練計劃。"
+                    )
+                    .padding(.horizontal)
+                    
+                    WeeklyVolumeChartView(showTitle: false)
+                        .padding()
+                }
+                .background(Color(UIColor.systemBackground))
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                .padding(.horizontal)
+                
+                // HRV Chart Section
+                HRVChartSection()
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+                
+                // Resting Heart Rate Chart Section
+                RestingHeartRateChartSection()
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+            }
+            .padding(.vertical)
+            .background(Color(UIColor.systemGroupedBackground))
+        ) { image in
+            DispatchQueue.main.async {
+                self.isGeneratingScreenshot = false
+                self.shareImage = image
+                self.showShareSheet = true
+            }
         }
     }
 }
@@ -179,6 +276,21 @@ struct RestingHeartRateChartSection: View {
         .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Common Time Range Enum
+enum ChartTimeRange: String, CaseIterable {
+    case week = "一週"
+    case month = "一個月"
+    case threeMonths = "三個月"
+    
+    var days: Int {
+        switch self {
+        case .week: return 7
+        case .month: return 30
+        case .threeMonths: return 90
+        }
     }
 }
 
@@ -279,11 +391,9 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
     
     /// 檢查緩存是否過期
     private func isCacheExpired() -> Bool {
-        let keys = ["7", "14", "30"].map { "health_data_cache_time_\($0)" }
-        return keys.allSatisfy { key in
-            guard let cacheTime = UserDefaults.standard.object(forKey: key) as? Date else { return true }
-            return Date().timeIntervalSince(cacheTime) >= 1800 // 30分鐘
-        }
+        let timeKey = "health_data_cache_time_14"
+        guard let cacheTime = UserDefaults.standard.object(forKey: timeKey) as? Date else { return true }
+        return Date().timeIntervalSince(cacheTime) >= 1800 // 30分鐘
     }
     
     /// 強制刷新數據（忽略已載入狀態）
@@ -340,7 +450,7 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
             await HealthDataUploadManagerV2.shared.loadData()
             
             await MainActor.run {
-                // 從 HealthDataUploadManagerV2 獲取 14 天的數據
+                // 從 HealthDataUploadManagerV2 獲取指定天數的數據
                 if let collection = HealthDataUploadManagerV2.shared.healthDataCollections[14] {
                     let newHealthData = collection.records
                     print("HealthDataUploadManagerV2 返回: \(newHealthData.count) 筆健康記錄")
@@ -446,17 +556,22 @@ struct SharedHealthDataChartView: View {
     let fallbackToHealthKit: Bool
     
     @State private var usingFallback = false
+    @State private var selectedTimeRange: ChartTimeRange = .month
+    @State private var chartHealthData: [HealthRecord] = []
+    @State private var isLoadingChartData = false
+    @State private var chartError: String?
     
     var body: some View {
         VStack {
-            if sharedHealthDataManager.isLoading {
+            if isLoadingChartData {
                 ProgressView(loadingMessage)
                     .frame(maxWidth: .infinity, minHeight: 100)
-            } else if let error = sharedHealthDataManager.error, !usingFallback {
+            } else if let error = chartError, !usingFallback {
                 if fallbackToHealthKit && chartType == .hrv {
                     // HRV 可以回退到 HealthKit
                     HRVTrendChartView()
                         .environmentObject(healthKitManager)
+                        .frame(height: 180)
                 } else {
                     EmptyStateView(
                         type: .loadingFailed,
@@ -464,11 +579,11 @@ struct SharedHealthDataChartView: View {
                         showRetryButton: true
                     ) {
                         Task {
-                            await sharedHealthDataManager.refreshData()
+                            await loadChartData()
                         }
                     }
                 }
-            } else if sharedHealthDataManager.healthData.isEmpty {
+            } else if chartHealthData.isEmpty {
                 VStack {
                     // Title and Garmin Attribution for empty state
                     HStack {
@@ -493,7 +608,12 @@ struct SharedHealthDataChartView: View {
             }
         }
         .task {
-            await sharedHealthDataManager.loadHealthDataIfNeeded()
+            await loadChartData()
+        }
+        .onChange(of: selectedTimeRange) { _ in
+            Task {
+                await loadChartData()
+            }
         }
     }
     
@@ -554,9 +674,10 @@ struct SharedHealthDataChartView: View {
             }
             .padding(.bottom, 8)
             
+            
             Chart {
-                ForEach(sharedHealthDataManager.healthData.indices, id: \.self) { index in
-                    let record = sharedHealthDataManager.healthData[index]
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
                     switch chartType {
                     case .hrv:
                         if let hrv = record.hrvLastNightAvg {
@@ -578,13 +699,13 @@ struct SharedHealthDataChartView: View {
                     }
                 }
             }
-            .frame(height: 150)
+            .frame(height: 180)
             .chartYAxis {
                 AxisMarks(position: .leading)
             }
             .chartYScale(domain: yAxisDomain)
             .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatDateForDisplay(date))
@@ -601,7 +722,7 @@ struct SharedHealthDataChartView: View {
     private var yAxisDomain: ClosedRange<Double> {
         switch chartType {
         case .hrv:
-            let hrvValues = sharedHealthDataManager.healthData.compactMap { $0.hrvLastNightAvg }
+            let hrvValues = chartHealthData.compactMap { $0.hrvLastNightAvg }
             guard !hrvValues.isEmpty else { return 0...100 }
             
             let minValue = hrvValues.min() ?? 0
@@ -617,7 +738,7 @@ struct SharedHealthDataChartView: View {
             }
             
         case .restingHeartRate:
-            let hrValues = sharedHealthDataManager.healthData.compactMap { $0.restingHeartRate }.map { Double($0) }
+            let hrValues = chartHealthData.compactMap { $0.restingHeartRate }.map { Double($0) }
             guard !hrValues.isEmpty else { return 40...100 }
             
             let minValue = hrValues.min() ?? 40
@@ -646,6 +767,33 @@ struct SharedHealthDataChartView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"
         return formatter.string(from: date)
+    }
+    
+    // MARK: - Independent Data Loading
+    private func loadChartData() async {
+        await MainActor.run {
+            isLoadingChartData = true
+            chartError = nil
+        }
+        
+        do {
+            // 使用 HealthDataUploadManager 獲取指定天數的數據
+            let newHealthData = await HealthDataUploadManager.shared.getHealthData(days: selectedTimeRange.days)
+            
+            await MainActor.run {
+                chartHealthData = newHealthData
+                isLoadingChartData = false
+                
+                if newHealthData.isEmpty {
+                    chartError = "無法載入健康數據"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                chartError = error.localizedDescription
+                isLoadingChartData = false
+            }
+        }
     }
 }
 
@@ -696,6 +844,7 @@ struct APIBasedHRVChartView: View {
                     // 使用 HealthKit 的 HRV 圖表作為回退
                     HRVTrendChartView()
                         .environmentObject(healthKitManager)
+                        .frame(height: 180)
                 } else {
                     EmptyStateView(
                         type: .loadingFailed,

@@ -214,9 +214,9 @@ class HeartRateZonesManager {
                 )
             }
             
-            if userProfile.data.maxHr ?? 0 > 0 && userProfile.data.relaxingHr ?? 0 > 0 {
-                let maxHR = userProfile.data.maxHr
-                let restingHR = userProfile.data.relaxingHr
+            if userProfile.maxHr ?? 0 > 0 && userProfile.relaxingHr ?? 0 > 0 {
+                let maxHR = userProfile.maxHr
+                let restingHR = userProfile.relaxingHr
                 
                 print("從用戶資料同步心率區間 - 最大心率: \(maxHR), 靜息心率: \(restingHR)")
                 

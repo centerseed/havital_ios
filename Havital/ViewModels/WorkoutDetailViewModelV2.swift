@@ -2,266 +2,7 @@ import SwiftUI
 import Combine
 import HealthKit
 
-/// 實際的 V2 API 運動詳情數據模型 (基於實際 API 回應)
-struct WorkoutDetailV2: Codable {
-    let id: String
-    let provider: String
-    let activityType: String
-    let sportType: String
-    let startTime: String
-    let endTime: String
-    let userId: String
-    let schemaVersion: String
-    let source: String
-    let storagePath: String
-    let createdAt: String?
-    let updatedAt: String?
-    let originalId: String
-    let providerUserId: String
-    let garminUserId: String?
-    let webhookStoragePath: String?
-    
-    // 基本指標
-    let basicMetrics: RealBasicMetrics?
-    
-    // 高級指標
-    let advancedMetrics: RealAdvancedMetrics?
-    
-    // 時間序列數據
-    let timeSeries: TimeSeries?
-    
-    // 設備信息
-    let deviceInfo: DeviceInfo?
-    
-    // 路線數據
-    let routeData: WorkoutRouteData?
-    
-    // 環境數據
-    let environment: EnvironmentData?
-    
-    // 元數據
-    let metadata: Metadata?
-    
-    enum CodingKeys: String, CodingKey {
-        case id, provider, source
-        case activityType = "activity_type"
-        case sportType = "sport_type"
-        case startTime = "start_time"
-        case endTime = "end_time"
-        case userId = "user_id"
-        case schemaVersion = "schema_version"
-        case storagePath = "storage_path"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case originalId = "original_id"
-        case providerUserId = "provider_user_id"
-        case garminUserId = "garmin_user_id"
-        case webhookStoragePath = "webhook_storage_path"
-        case basicMetrics = "basic_metrics"
-        case advancedMetrics = "advanced_metrics"
-        case timeSeries = "time_series"
-        case deviceInfo = "device_info"
-        case routeData = "route_data"
-        case environment = "environment"
-        case metadata = "metadata"
-    }
-}
 
-struct RealBasicMetrics: Codable {
-    let totalDurationS: Int?
-    let totalDistanceM: Double?
-    let avgHeartRateBpm: Int?
-    let maxHeartRateBpm: Int?
-    let minHeartRateBpm: Int?
-    let avgPaceSPerKm: Double?
-    let avgSpeedMPerS: Double?
-    let maxSpeedMPerS: Double?
-    let avgCadenceSpm: Int?
-    let avgStrideLengthM: Double?
-    let caloriesKcal: Int?
-    let movingDurationS: Int?
-    let totalAscentM: Double?
-    let totalDescentM: Double?
-    let avgAltitudeM: Double?
-    let avgPowerW: Double?
-    let maxPowerW: Double?
-    let normalizedPowerW: Double?
-    let trainingLoad: Double?
-    
-    enum CodingKeys: String, CodingKey {
-        case totalDurationS = "total_duration_s"
-        case totalDistanceM = "total_distance_m"
-        case avgHeartRateBpm = "avg_heart_rate_bpm"
-        case maxHeartRateBpm = "max_heart_rate_bpm"
-        case minHeartRateBpm = "min_heart_rate_bpm"
-        case avgPaceSPerKm = "avg_pace_s_per_km"
-        case avgSpeedMPerS = "avg_speed_m_per_s"
-        case maxSpeedMPerS = "max_speed_m_per_s"
-        case avgCadenceSpm = "avg_cadence_spm"
-        case avgStrideLengthM = "avg_stride_length_m"
-        case caloriesKcal = "calories_kcal"
-        case movingDurationS = "moving_duration_s"
-        case totalAscentM = "total_ascent_m"
-        case totalDescentM = "total_descent_m"
-        case avgAltitudeM = "avg_altitude_m"
-        case avgPowerW = "avg_power_w"
-        case maxPowerW = "max_power_w"
-        case normalizedPowerW = "normalized_power_w"
-        case trainingLoad = "training_load"
-    }
-}
-
-struct RealAdvancedMetrics: Codable {
-    let dynamicVdot: Double?
-    let tss: Double?
-    let trainingType: String?
-    let intensityMinutes: RealIntensityMinutes?
-    let intervalCount: Int?
-    let avgHrTop20Percent: Double?
-    let hrZoneDistribution: RealZoneDistribution?
-    let paceZoneDistribution: RealZoneDistribution?
-    let rpe: Double?
-    
-    enum CodingKeys: String, CodingKey {
-        case dynamicVdot = "dynamic_vdot"
-        case tss
-        case trainingType = "training_type"
-        case intensityMinutes = "intensity_minutes"
-        case intervalCount = "interval_count"
-        case avgHrTop20Percent = "avg_hr_top20_percent"
-        case hrZoneDistribution = "hr_zone_distribution"
-        case paceZoneDistribution = "pace_zone_distribution"
-        case rpe
-    }
-}
-
-struct RealIntensityMinutes: Codable {
-    let low: Double?
-    let medium: Double?
-    let high: Double?
-}
-
-struct RealZoneDistribution: Codable {
-    let recovery: Double?
-    let easy: Double?
-    let marathon: Double?
-    let threshold: Double?
-    let interval: Double?
-    let anaerobic: Double?
-}
-
-struct TimeSeries: Codable {
-    let heartRatesBpm: [Int]?
-    let cadencesSpm: [Int]?
-    let speedsMPerS: [Double]?
-    let altitudesM: [Double]?
-    let timestampsS: [Int]?
-    let distancesM: [Double]?
-    let pacesSPerKm: [Double]?
-    let temperaturesC: [Double]?
-    let powersW: [Double]?
-    let sampleRateHz: Double?
-    let totalSamples: Int?
-    
-    enum CodingKeys: String, CodingKey {
-        case heartRatesBpm = "heart_rates_bpm"
-        case cadencesSpm = "cadences_spm"
-        case speedsMPerS = "speeds_m_per_s"
-        case altitudesM = "altitudes_m"
-        case timestampsS = "timestamps_s"
-        case distancesM = "distances_m"
-        case pacesSPerKm = "paces_s_per_km"
-        case temperaturesC = "temperatures_c"
-        case powersW = "powers_w"
-        case sampleRateHz = "sample_rate_hz"
-        case totalSamples = "total_samples"
-    }
-}
-
-struct DeviceInfo: Codable {
-    let deviceName: String?
-    let deviceModel: String?
-    let deviceManufacturer: String?
-    let firmwareVersion: String?
-    let hasGps: Bool?
-    let hasHeartRate: Bool?
-    let hasAccelerometer: Bool?
-    let hasBarometer: Bool?
-    
-    enum CodingKeys: String, CodingKey {
-        case deviceName = "device_name"
-        case deviceModel = "device_model"
-        case deviceManufacturer = "device_manufacturer"
-        case firmwareVersion = "firmware_version"
-        case hasGps = "has_gps"
-        case hasHeartRate = "has_heart_rate"
-        case hasAccelerometer = "has_accelerometer"
-        case hasBarometer = "has_barometer"
-    }
-}
-
-struct WorkoutRouteData: Codable {
-    let totalPoints: Int?
-    let latitudes: [Double]?
-    let longitudes: [Double]?
-    let altitudes: [Double]?
-    let timestamps: [String]?
-    let horizontalAccuracyM: Double?
-    let verticalAccuracyM: Double?
-    
-    enum CodingKeys: String, CodingKey {
-        case totalPoints = "total_points"
-        case latitudes, longitudes, altitudes, timestamps
-        case horizontalAccuracyM = "horizontal_accuracy_m"
-        case verticalAccuracyM = "vertical_accuracy_m"
-    }
-}
-
-struct EnvironmentData: Codable {
-    let temperatureC: Double?
-    let windSpeedMPerS: Double?
-    let windDirectionDeg: Double?
-    let humidityPercent: Double?
-    let timezone: String?
-    let locationName: String?
-    let weatherCondition: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case temperatureC = "temperature_c"
-        case windSpeedMPerS = "wind_speed_m_per_s"
-        case windDirectionDeg = "wind_direction_deg"
-        case humidityPercent = "humidity_percent"
-        case timezone
-        case locationName = "location_name"
-        case weatherCondition = "weather_condition"
-    }
-}
-
-struct Metadata: Codable {
-    let processedSampleCount: Int?
-    let originalSampleCount: Int?
-    let hasGpsData: Bool?
-    let hasHeartRateData: Bool?
-    let hasPowerData: Bool?
-    let samplingMethod: String?
-    let adapterVersion: String?
-    let rawDataPath: String?
-    let rawDataSizeBytes: Int?
-    let processedAt: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case processedSampleCount = "processed_sample_count"
-        case originalSampleCount = "original_sample_count"
-        case hasGpsData = "has_gps_data"
-        case hasHeartRateData = "has_heart_rate_data"
-        case hasPowerData = "has_power_data"
-        case samplingMethod = "sampling_method"
-        case adapterVersion = "adapter_version"
-        case rawDataPath = "raw_data_path"
-        case rawDataSizeBytes = "raw_data_size_bytes"
-        case processedAt = "processed_at"
-    }
-}
 
 class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     @Published var workoutDetail: WorkoutV2Detail?
@@ -274,6 +15,12 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     @Published var speeds: [DataPoint] = []
     @Published var altitudes: [DataPoint] = []
     @Published var cadences: [DataPoint] = []
+    
+    // 步態分析數據
+    @Published var stanceTimes: [DataPoint] = []
+    @Published var verticalRatios: [DataPoint] = []
+    @Published var groundContactTimes: [DataPoint] = []
+    @Published var verticalOscillations: [DataPoint] = []
     
     // 心率區間分佈
     @Published var hrZoneDistribution: [String: Double] = [:]
@@ -301,6 +48,12 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         speeds.removeAll()
         altitudes.removeAll()
         cadences.removeAll()
+        
+        // 步態分析數據
+        stanceTimes.removeAll()
+        verticalRatios.removeAll()
+        groundContactTimes.removeAll()
+        verticalOscillations.removeAll()
     }
     
     // MARK: - 重新上傳功能 (Apple Health Only)
@@ -560,12 +313,12 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             
             var heartRatePoints: [DataPoint] = []
             
-            for (index, hr) in heartRateData.enumerated() {
+            for (index, heartRate) in heartRateData.enumerated() {
                 if index < timestamps.count,
-                   let heartRate = hr,
+                   let hr = heartRate,
                    let timestamp = timestamps[index] {
                     let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
-                    heartRatePoints.append(DataPoint(time: time, value: Double(heartRate)))
+                    heartRatePoints.append(DataPoint(time: time, value: Double(hr)))
                 }
             }
             
@@ -586,8 +339,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                     
                     // 只處理有效的配速值
                     if let paceValue = pace,
-                       paceValue > 0 && paceValue < 3600, // 合理的配速範圍：0-60分鐘/公里
-                       paceValue.isFinite { // 確保不是無窮大或NaN
+                       paceValue > 0 && paceValue < 3600 && paceValue.isFinite { // 合理的配速範圍：0-60分鐘/公里
                         pacePoints.append(DataPoint(time: time, value: paceValue))
                     }
                     // 如果配速是null或異常值，就直接跳過該數據點
@@ -597,6 +349,146 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             
             // 直接使用所有有效數據點，不進行降採樣
             self.paces = pacePoints
+        }
+        
+        // 處理步態分析數據 - 觸地時間 (毫秒)
+        print("📊 [GaitAnalysis] 檢查觸地時間數據...")
+        print("📊 [GaitAnalysis] stanceTimesMs 存在: \(timeSeries.stanceTimesMs != nil)")
+        print("📊 [GaitAnalysis] timestampsS 存在: \(timeSeries.timestampsS != nil)")
+        
+        if let stanceTimeData = timeSeries.stanceTimesMs,
+           let timestamps = timeSeries.timestampsS {
+            
+            print("📊 [GaitAnalysis] 觸地時間原始數據點數: \(stanceTimeData.count)")
+            print("📊 [GaitAnalysis] 時間戳數據點數: \(timestamps.count)")
+            
+            var stanceTimePoints: [DataPoint] = []
+            var validPointsCount = 0
+            var invalidPointsCount = 0
+            
+            for (index, stanceTime) in stanceTimeData.enumerated() {
+                if index < timestamps.count,
+                   let timestamp = timestamps[index] {
+                    let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
+                    
+                    // 處理觸地時間值 (根據截圖，數值範圍是267-289ms，很合理)
+                    if let stanceValue = stanceTime,
+                       stanceValue > 50 && stanceValue < 600 && stanceValue.isFinite {
+                        stanceTimePoints.append(DataPoint(time: time, value: stanceValue))
+                        validPointsCount += 1
+                        
+                        if validPointsCount <= 5 { // 顯示前5個有效數據點
+                            print("📊 [GaitAnalysis] 觸地時間[\(validPointsCount)]: \(String(format: "%.1f", stanceValue)) ms")
+                        }
+                    } else {
+                        invalidPointsCount += 1
+                        if invalidPointsCount <= 3 { // 顯示前3個無效數據點的詳細信息
+                            if stanceTime == nil {
+                                print("📊 [GaitAnalysis] 無效觸地時間[\(invalidPointsCount)]: null (索引 \(index))")
+                            } else {
+                                print("📊 [GaitAnalysis] 無效觸地時間[\(invalidPointsCount)]: \(stanceTime!) ms (索引 \(index))")
+                            }
+                        }
+                    }
+                }
+            }
+            
+            print("📊 [GaitAnalysis] 有效觸地時間數據點: \(validPointsCount)")
+            print("📊 [GaitAnalysis] 無效觸地時間數據點: \(invalidPointsCount)")
+            
+            self.stanceTimes = downsampleData(stanceTimePoints, maxPoints: 500)
+            print("📊 [GaitAnalysis] 降採樣後觸地時間數據點: \(self.stanceTimes.count)")
+        } else {
+            print("⚠️ [GaitAnalysis] 沒有觸地時間數據或時間戳數據")
+            self.stanceTimes = []
+        }
+        
+        // 處理步態分析數據 - 垂直比率/移動效率 (%)
+        if let verticalRatioData = timeSeries.verticalRatios,
+           let timestamps = timeSeries.timestampsS {
+            
+            var verticalRatioPoints: [DataPoint] = []
+            
+            for (index, verticalRatio) in verticalRatioData.enumerated() {
+                if index < timestamps.count,
+                   let timestamp = timestamps[index] {
+                    let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
+                    
+                    // 只處理有效的垂直比率值 (3-15%是合理範圍)
+                    if let ratioValue = verticalRatio,
+                       ratioValue > 0 && ratioValue < 30 && ratioValue.isFinite {
+                        verticalRatioPoints.append(DataPoint(time: time, value: ratioValue))
+                    }
+                }
+            }
+            
+            self.verticalRatios = downsampleData(verticalRatioPoints, maxPoints: 500)
+        }
+        
+        // 處理步態分析數據 - 地面接觸時間 (毫秒) 
+        if let groundContactData = timeSeries.groundContactTimesMs,
+           let timestamps = timeSeries.timestampsS {
+            
+            var groundContactPoints: [DataPoint] = []
+            
+            for (index, contactTime) in groundContactData.enumerated() {
+                if index < timestamps.count,
+                   let timestamp = timestamps[index] {
+                    let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
+                    
+                    // 只處理有效的地面接觸時間值 (150-400毫秒是合理範圍)
+                    if let contactValue = contactTime,
+                       contactValue > 100 && contactValue < 500 && contactValue.isFinite {
+                        groundContactPoints.append(DataPoint(time: time, value: contactValue))
+                    }
+                }
+            }
+            
+            self.groundContactTimes = downsampleData(groundContactPoints, maxPoints: 500)
+        }
+        
+        // 處理步態分析數據 - 垂直振幅 (毫米)
+        if let verticalOscillationData = timeSeries.verticalOscillationsMm,
+           let timestamps = timeSeries.timestampsS {
+            
+            var verticalOscillationPoints: [DataPoint] = []
+            
+            for (index, oscillation) in verticalOscillationData.enumerated() {
+                if index < timestamps.count,
+                   let timestamp = timestamps[index] {
+                    let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
+                    
+                    // 只處理有效的垂直振幅值 (50-150毫米是合理範圍)
+                    if let oscillationValue = oscillation,
+                       oscillationValue > 30 && oscillationValue < 200 && oscillationValue.isFinite {
+                        verticalOscillationPoints.append(DataPoint(time: time, value: oscillationValue))
+                    }
+                }
+            }
+            
+            self.verticalOscillations = downsampleData(verticalOscillationPoints, maxPoints: 500)
+        }
+        
+        // 處理步頻數據 (每分鐘步數)
+        if let cadenceData = timeSeries.cadencesSpm,
+           let timestamps = timeSeries.timestampsS {
+            
+            var cadencePoints: [DataPoint] = []
+            
+            for (index, cadence) in cadenceData.enumerated() {
+                if index < timestamps.count,
+                   let timestamp = timestamps[index] {
+                    let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
+                    
+                    // 只處理有效的步頻值 (120-220 spm是合理範圍)
+                    if let cadenceValue = cadence,
+                       cadenceValue > 100 && cadenceValue < 250 && cadenceValue != 0 {
+                        cadencePoints.append(DataPoint(time: time, value: Double(cadenceValue)))
+                    }
+                }
+            }
+            
+            self.cadences = downsampleData(cadencePoints, maxPoints: 500)
         }
     }
     
@@ -664,10 +556,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             // 快取詳細數據
-            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response.data)
+            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response)
             
             // 設置 workoutDetail
-            self.workoutDetail = response.data
+            self.workoutDetail = response
             
             // 清除舊的圖表數據
             self.heartRates.removeAll()
@@ -676,8 +568,14 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             self.altitudes.removeAll()
             self.cadences.removeAll()
             
+            // 清除步態分析數據
+            self.stanceTimes.removeAll()
+            self.verticalRatios.removeAll()
+            self.groundContactTimes.removeAll()
+            self.verticalOscillations.removeAll()
+            
             // 處理時間序列數據，轉換成圖表格式
-            self.processTimeSeriesData(from: response.data)
+            self.processTimeSeriesData(from: response)
             
             // 設置心率 Y 軸範圍
             if !heartRates.isEmpty {
@@ -694,7 +592,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 labels: ["module": "WorkoutDetailViewModelV2", "action": "refresh_detail"],
                 jsonPayload: [
                     "workout_id": workout.id,
-                    "activity_type": response.data.activityType
+                    "activity_type": response.activityType
                 ]
             )
             
@@ -758,13 +656,13 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             try Task.checkCancellation()
             
             // 快取詳細數據
-            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response.data)
+            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response)
             
             // 設置 workoutDetail 以便 UI 可以訪問設備信息等
-            self.workoutDetail = response.data
+            self.workoutDetail = response
             
             // 處理時間序列數據，轉換成圖表格式
-            self.processTimeSeriesData(from: response.data)
+            self.processTimeSeriesData(from: response)
             
             // 設置心率 Y 軸範圍
             if !heartRates.isEmpty {
@@ -781,7 +679,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 labels: ["module": "WorkoutDetailViewModelV2", "action": "load_detail"],
                 jsonPayload: [
                     "workout_id": workout.id,
-                    "activity_type": response.data.activityType
+                    "activity_type": response.activityType
                 ]
             )
             

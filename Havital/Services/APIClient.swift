@@ -229,7 +229,7 @@ extension APIClient {
 }
 
 // MARK: - Health Data Models
-struct HealthRecord: Codable {
+struct HealthRecord: Codable, Equatable {
     let date: String
     let dailyCalories: Int?
     let hrvLastNightAvg: Double?
@@ -244,11 +244,6 @@ struct HealthRecord: Codable {
 }
 
 struct HealthDailyResponse: Codable {
-    let success: Bool
-    let data: HealthDailyData
-}
-
-struct HealthDailyData: Codable {
     let healthData: [HealthRecord]
     let count: Int
     let limit: Int

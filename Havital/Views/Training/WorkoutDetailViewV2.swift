@@ -41,6 +41,11 @@ struct WorkoutDetailViewV2: View {
                     advancedMetricsCard
                 }
                 
+                // 課表資訊和AI分析卡片
+                if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
+                    TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail)
+                }
+                
                 // 載入狀態或錯誤訊息
                 if viewModel.isLoading {
                     loadingView
@@ -55,6 +60,11 @@ struct WorkoutDetailViewV2: View {
                         // 配速變化圖表
                         if !viewModel.paces.isEmpty {
                             paceChartSection
+                        }
+                        
+                        // 步態分析圖表
+                        if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
+                            gaitAnalysisChartSection
                         }
                         
                         // 區間分佈卡片（合併顯示）
@@ -150,7 +160,7 @@ struct WorkoutDetailViewV2: View {
                 ConditionalGarminAttributionView(
                     dataProvider: viewModel.workout.provider,
                     deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
-                    displayStyle: .titleLevel
+                    displayStyle: .compact
                 )  
             }
             
@@ -412,6 +422,34 @@ struct WorkoutDetailViewV2: View {
         }
     }
     
+    private var gaitAnalysisChartSection: some View {
+        Group {
+            if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
+                GaitAnalysisChartView(
+                    stanceTimes: viewModel.stanceTimes,
+                    verticalRatios: viewModel.verticalRatios,
+                    cadences: viewModel.cadences,
+                    isLoading: viewModel.isLoading,
+                    error: viewModel.error,
+                    dataProvider: viewModel.workout.provider,
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                )
+            } else {
+                // 簡化的空狀態顯示
+                VStack {
+                    Text("步態分析")
+                        .font(.headline)
+                    Text("無步態數據")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+    }
+    
     // MARK: - 高級指標卡片
     
     private var advancedMetricsCard: some View {
@@ -427,6 +465,10 @@ struct WorkoutDetailViewV2: View {
                 
                 if let tss = viewModel.workout.advancedMetrics?.tss {
                     DataItem(title: "訓練負荷", value: String(format: "%.1f", tss), icon: "heart.circle")
+                }
+                
+                if let avgVerticalRatio = viewModel.workout.advancedMetrics?.avgVerticalRatioPercent {
+                    DataItem(title: "移動效率", value: String(format: "%.1f%%", avgVerticalRatio), icon: "arrow.up.and.down.circle")
                 }
             }
         }
@@ -689,10 +731,19 @@ struct WorkoutDetailViewV2: View {
                     advancedMetricsCard
                 }
                 
+                // 課表資訊和AI分析卡片 (強制展開AI分析)
+                if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
+                    TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail, forceExpandAnalysis: true)
+                }
+                
                 heartRateChartSection
                 
                 if !viewModel.paces.isEmpty {
                     paceChartSection
+                }
+                
+                if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
+                    gaitAnalysisChartSection
                 }
                 
                 if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
@@ -719,12 +770,69 @@ struct WorkoutDetailViewV2: View {
         ) { image in
             DispatchQueue.main.async {
                 self.isGeneratingScreenshot = false
-                self.shareImage = image
+                
+                // 優化圖片格式和大小以改善分享兼容性
+                if let originalImage = image {
+                    let optimizedImage = self.optimizeImageForSharing(originalImage)
+                    self.shareImage = optimizedImage
+                } else {
+                    self.shareImage = image
+                }
+                
                 self.showShareSheet = true
             }
         }
     }
     
+    // MARK: - 圖片優化
+    
+    private func optimizeImageForSharing(_ image: UIImage) -> UIImage? {
+        // 限制圖片的最大尺寸和文件大小
+        let maxWidth: CGFloat = 1080
+        let maxHeight: CGFloat = 6000
+        let compressionQuality: CGFloat = 0.8
+        
+        let currentSize = image.size
+        var newSize = currentSize
+        
+        // 如果圖片太大，按比例縮放
+        if currentSize.width > maxWidth || currentSize.height > maxHeight {
+            let widthRatio = maxWidth / currentSize.width
+            let heightRatio = maxHeight / currentSize.height
+            let ratio = min(widthRatio, heightRatio)
+            
+            newSize = CGSize(
+                width: currentSize.width * ratio,
+                height: currentSize.height * ratio
+            )
+        }
+        
+        // 如果需要縮放，創建新圖片
+        if newSize != currentSize {
+            UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+            let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            
+            if let resizedImage = resizedImage {
+                // 轉換為JPEG格式以減小文件大小
+                if let jpegData = resizedImage.jpegData(compressionQuality: compressionQuality),
+                   let finalImage = UIImage(data: jpegData) {
+                    print("圖片已優化：原始尺寸 \(currentSize) -> 新尺寸 \(newSize)")
+                    return finalImage
+                }
+            }
+        } else {
+            // 即使尺寸沒變，也轉換為JPEG格式
+            if let jpegData = image.jpegData(compressionQuality: compressionQuality),
+               let finalImage = UIImage(data: jpegData) {
+                print("圖片已轉換為JPEG格式")
+                return finalImage
+            }
+        }
+        
+        return image
+    }
     
 }
 
@@ -797,11 +905,14 @@ struct ZoneRow: View {
         startTimeUtc: ISO8601DateFormatter().string(from: Date()),
         endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
         durationSeconds: 3600,
-        distanceMeters: 5000, deviceName: "Garmin",
+        distanceMeters: 5000,
+        deviceName: "Garmin",
         basicMetrics: nil,
         advancedMetrics: nil,
         createdAt: nil,
         schemaVersion: nil,
-        storagePath: nil
+        storagePath: nil,
+        dailyPlanSummary: nil,
+        aiSummary: nil
     ))
 } 

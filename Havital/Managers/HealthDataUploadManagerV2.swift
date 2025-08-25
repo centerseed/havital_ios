@@ -219,7 +219,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         // 從 API 獲取
         do {
             let response = try await service.getHealthDaily(limit: days)
-            let healthData = response.data.healthData
+            let healthData = response.healthData
             let collection = HealthDataCollection(records: healthData, days: days)
             
             await MainActor.run {
@@ -263,7 +263,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     private func refreshHealthDataForRange(days: Int) async throws {
         // 強制從 API 獲取
         let response = try await service.getHealthDaily(limit: days)
-        let healthData = response.data.healthData
+        let healthData = response.healthData
         let collection = HealthDataCollection(records: healthData, days: days)
         
         await MainActor.run {

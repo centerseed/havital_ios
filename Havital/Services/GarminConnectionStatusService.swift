@@ -47,11 +47,6 @@ class GarminConnectionStatusService {
 // MARK: - Response Models
 
 struct GarminConnectionStatusResponse: Codable {
-    let success: Bool
-    let data: GarminConnectionStatusData?
-}
-
-struct GarminConnectionStatusData: Codable {
     let connected: Bool
     let provider: String
     let status: String

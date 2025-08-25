@@ -57,6 +57,8 @@ struct WeekOverviewCard: View {
 
                         Text(plan.purpose)
                             .font(.body)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

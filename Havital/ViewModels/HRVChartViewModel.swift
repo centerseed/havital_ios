@@ -7,7 +7,7 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
     @Published var hrvData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?
-    @Published var selectedTimeRange: TimeRange = .week
+    @Published var selectedTimeRange: TimeRange = .month
     @Published var diagnosticsText: String? = nil
     @Published var readAuthStatus: HKAuthorizationRequestStatus? = nil
     private let healthKitManager: HealthKitManager

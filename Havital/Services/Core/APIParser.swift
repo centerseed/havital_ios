@@ -26,18 +26,25 @@ struct DefaultAPIParser: APIParser {
     }
     
     func parse<T: Codable>(_ type: T.Type, from data: Data) throws -> T {
+        // 增強日誌：記錄正在解析的類型和數據大小
+        Logger.debug("[APIParser] 開始解析類型: \(String(describing: type)), 數據大小: \(data.count) bytes")
+        
         do {
             // 主要解析邏輯
-            return try decoder.decode(T.self, from: data)
+            let result = try decoder.decode(T.self, from: data)
+            Logger.debug("[APIParser] 成功解析類型: \(String(describing: type))")
+            return result
             
         } catch let decodingError as DecodingError {
             // 詳細的解析錯誤處理
             let errorDetail = analyzeDecodingError(decodingError, for: type, data: data)
-            Logger.error("JSON 解析失敗: \(errorDetail.description)")
+            Logger.error("[APIParser] JSON 解析失敗: \(errorDetail.description)")
+            Logger.error("[APIParser] 失敗的類型: \(String(describing: type))")
+            Logger.error("[APIParser] 原始響應數據: \(String(data: data, encoding: .utf8) ?? "無法解析為字串")")
             
             // 嘗試容錯處理
             if let fallbackResult = try? attemptFallbackParsing(type, from: data) {
-                Logger.debug("使用容錯機制成功解析")
+                Logger.debug("[APIParser] 使用容錯機制成功解析")
                 return fallbackResult
             }
             

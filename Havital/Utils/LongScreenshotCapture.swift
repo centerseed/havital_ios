@@ -323,15 +323,26 @@ struct LongScreenshotCapture {
         // 最終尺寸
         let finalSize = contentSize
         
-        // 創建圖像
-        let renderer = UIGraphicsImageRenderer(size: finalSize)
+        // 限制最大尺寸以避免內存問題和分享失敗
+        let maxWidth: CGFloat = 1080  // 適合大多數設備
+        let maxHeight: CGFloat = 8000  // 限制高度防止圖片過大
+        
+        let scaledSize = CGSize(
+            width: min(finalSize.width, maxWidth),
+            height: min(finalSize.height, maxHeight)
+        )
+        
+        print("最終截圖尺寸: \(scaledSize)")
+        
+        // 使用JPEG格式來減小文件大小
+        let renderer = UIGraphicsImageRenderer(size: scaledSize)
         
         return renderer.image { context in
             let cgContext = context.cgContext
             
             // 設置背景
             cgContext.setFillColor(UIColor.systemGray6.cgColor)
-            cgContext.fill(CGRect(origin: .zero, size: finalSize))
+            cgContext.fill(CGRect(origin: .zero, size: scaledSize))
             
             // 根據是否使用根視圖來選擇渲染策略
             if shouldUseRootView {
@@ -339,7 +350,7 @@ struct LongScreenshotCapture {
                 let originalFrame = targetView.frame
                 
                 // 設置為正確的尺寸
-                targetView.frame = CGRect(origin: .zero, size: finalSize)
+                targetView.frame = CGRect(origin: .zero, size: scaledSize)
                 
                 // 递歸強制所有子視圖的佈局
                 func forceLayoutRecursively(_ view: UIView) {
@@ -364,7 +375,7 @@ struct LongScreenshotCapture {
                 let originalBounds = scrollView.bounds
                 
                 scrollView.contentOffset = .zero
-                scrollView.bounds = CGRect(origin: .zero, size: finalSize)
+                scrollView.bounds = CGRect(origin: .zero, size: scaledSize)
                 
                 // 強制佈局更新
                 func forceLayoutRecursively(_ view: UIView) {
@@ -385,7 +396,7 @@ struct LongScreenshotCapture {
             } else {
                 // 一般視圖渲染
                 let originalFrame = targetView.frame
-                targetView.frame = CGRect(origin: .zero, size: finalSize)
+                targetView.frame = CGRect(origin: .zero, size: scaledSize)
                 
                 targetView.setNeedsLayout()
                 targetView.layoutIfNeeded()

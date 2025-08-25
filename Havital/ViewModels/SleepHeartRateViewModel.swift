@@ -7,7 +7,7 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
     @Published var heartRateData: [(Date, Double)] = []
     @Published var isLoading = false
     @Published var error: String?
-    @Published var selectedTimeRange: TimeRange = .week
+    @Published var selectedTimeRange: TimeRange = .month
     
     // 透過外部設定的管理器
     var healthKitManager: HealthKitManager?

@@ -207,6 +207,10 @@ struct TrainingPlanView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var showWeekSelector = false
+    @State private var showTrainingProgress = false
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage?
+    @State private var isGeneratingScreenshot = false
     
     
     var body: some View {
@@ -276,6 +280,14 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $showTrainingOverview) {
             trainingOverviewSheet
         }
+        .sheet(isPresented: $showTrainingProgress) {
+            TrainingProgressView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let shareImage = shareImage {
+                ActivityViewController(activityItems: [shareImage])
+            }
+        }
         .alert("網路連接問題", isPresented: $viewModel.showNetworkErrorAlert) {
             Button("重試") {
                 Task {
@@ -338,7 +350,7 @@ struct TrainingPlanView: View {
                 Button(action: {
                     showTrainingOverview = true
                 }) {
-                    Image(systemName: "info.circle")
+                    Image(systemName: "doc.text.below.ecg")
                         .foregroundColor(.primary)
                 }
             }
@@ -346,9 +358,34 @@ struct TrainingPlanView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
+                        shareTrainingPlan()
+                    }) {
+                        if isGeneratingScreenshot {
+                            Label("產生中...", systemImage: "arrow.2.squarepath")
+                        } else {
+                            Label("分享課表", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    .disabled(isGeneratingScreenshot || viewModel.planStatus == .loading)
+                    
+                    Divider()
+                    
+                    Button(action: {
                         showUserProfile = true
                     }) {
                         Label("用戶資訊", systemImage: "person.circle")
+                    }
+                    
+                    Button(action: {
+                        showTrainingOverview = true
+                    }) {
+                        Label("訓練總覽", systemImage: "doc.text.below.ecg")
+                    }
+                    
+                    Button(action: {
+                        showTrainingProgress = true
+                    }) {
+                        Label("訓練進度", systemImage: "chart.line.uptrend.xyaxis")
                     }
                     /*
                     Button(action: {
@@ -464,6 +501,100 @@ struct TrainingPlanView: View {
             
             await viewModel.loadCurrentWeekDistance()
             await viewModel.loadWorkoutsForCurrentWeek()
+        }
+    }
+    
+    // 分享訓練課表
+    private func shareTrainingPlan() {
+        isGeneratingScreenshot = true
+        
+        LongScreenshotCapture.captureView(
+            VStack(spacing: 24) {
+                // 標題部分
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(viewModel.trainingPlanName)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    if let plan = viewModel.weeklyPlan {
+                        Text("第\(plan.weekOfPlan)週課表")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.bottom, 8)
+                
+                // 根據當前狀態顯示內容
+                switch viewModel.planStatus {
+                case .ready(let plan):
+                    // 週概覽卡片
+                    WeekOverviewCard(viewModel: viewModel, plan: plan)
+                    
+                    // 每日訓練列表
+                    DailyTrainingListView(viewModel: viewModel, plan: plan)
+                    
+                case .noPlan:
+                    VStack(spacing: 16) {
+                        Image(systemName: "calendar.badge.plus")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        
+                        Text("本週尚未產生課表")
+                            .font(.headline)
+                        
+                        Text("請先產生週回顧以獲得個人化訓練建議")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
+                    
+                case .completed:
+                    VStack(spacing: 16) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.green)
+                        
+                        Text("訓練週期已完成")
+                            .font(.headline)
+                        
+                        Text("恭喜您完成這個訓練週期！")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
+                    
+                case .loading, .error:
+                    VStack(spacing: 16) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        
+                        Text("課表載入中...")
+                            .font(.headline)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
+                }
+            }
+            .padding()
+            .background(Color(UIColor.systemGroupedBackground))
+        ) { image in
+            DispatchQueue.main.async {
+                self.isGeneratingScreenshot = false
+                self.shareImage = image
+                self.showShareSheet = true
+            }
         }
     }
     

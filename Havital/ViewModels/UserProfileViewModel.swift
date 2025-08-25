@@ -6,7 +6,7 @@ import FirebaseAuth
 class UserProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: Error?
-    @Published var userData: UserProfileData?
+    @Published var userData: User?
     @Published var heartRateZones: [HeartRateZonesManager.HeartRateZone] = []
     @Published var isLoadingZones = true
     
@@ -25,9 +25,9 @@ class UserProfileViewModel: ObservableObject {
                     print("Error fetching user profile: \(error.localizedDescription)")
                 }
             } receiveValue: { response in
-                // Now we correctly access the nested data property
-                self.userData = response.data
-                print("Successfully fetched user profile for: \(response.data.displayName)")
+                // Now we correctly access the user data directly
+                self.userData = response
+                print("Successfully fetched user profile for: \(response.displayName)")
             }
             .store(in: &cancellables)
     }

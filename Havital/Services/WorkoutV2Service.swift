@@ -53,14 +53,22 @@ class WorkoutV2Service {
         body: Data? = nil,
         operationName: String
     ) async throws -> T {
+        // 增強日誌：記錄 API 調用詳情
+        Logger.debug("[WorkoutV2Service] \(operationName) - 調用 API: \(method.rawValue) \(path)")
+        Logger.debug("[WorkoutV2Service] \(operationName) - 預期解析類型: \(String(describing: type))")
+        
         do {
             let rawData = try await httpClient.request(path: path, method: method, body: body)
+            Logger.debug("[WorkoutV2Service] \(operationName) - 收到響應，數據大小: \(rawData.count) bytes")
             
             // 先嘗試使用統一解析器
             do {
-                return try ResponseProcessor.extractData(type, from: rawData, using: parser)
+                let result = try ResponseProcessor.extractData(type, from: rawData, using: parser)
+                Logger.debug("[WorkoutV2Service] \(operationName) - 成功解析響應")
+                return result
             } catch {
                 // 如果統一解析失敗，使用原有的詳細錯誤分析
+                Logger.error("[WorkoutV2Service] \(operationName) - 統一解析器失敗: \(error.localizedDescription)")
                 throw error
             }
             
@@ -260,8 +268,8 @@ class WorkoutV2Service {
                     "action": "fetch_workouts"
                 ],
                             jsonPayload: [
-                "workouts_count": response.data.workouts.count,
-                "has_more": response.data.pagination.hasMore,
+                "workouts_count": response.workouts.count,
+                "has_more": response.pagination.hasMore,
                 "provider_filter": provider ?? "all",
                 "activity_type_filter": activityType ?? "all"
             ]
@@ -270,7 +278,30 @@ class WorkoutV2Service {
             return response
             
         } catch {
-            // 錯誤已經在 makeAPICall 中處理，直接拋出
+            
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2Service] 請求被取消（App 進入背景或任務取消）")
+                throw error  // 直接拋出，不記錄為錯誤
+            }
+            
+            Logger.firebase(
+                "Workout V2 請求失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "fetch_workouts",
+                    "error_type": "general_error"
+                ],
+                jsonPayload: [
+                    "error_description": error.localizedDescription,
+                    "error_type": String(describing: type(of: error)),
+                    "page_size": pageSize,
+                    "provider_filter": provider ?? "all",
+                    "activity_type_filter": activityType ?? "all"
+                ]
+            )
+            
             throw error
         }
     }
@@ -297,15 +328,36 @@ class WorkoutV2Service {
                 ],
                             jsonPayload: [
                 "workout_id": workoutId,
-                "activity_type": response.data.activityType,
-                "duration_seconds": Int(response.data.duration)
+                "activity_type": response.activityType,
+                "duration_seconds": Int(response.duration)
             ]
             )
             
             return response
             
         } catch {
-            // 錯誤已經在 makeAPICall 中處理，直接拋出
+            
+            // 檢查是否為取消錯誤（App 進入背景或任務取消）
+            if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
+                print("[WorkoutV2Service] 詳情請求被取消（App 進入背景或任務取消）")
+                throw error  // 直接拋出，不記錄為錯誤
+            }
+            
+            Logger.firebase(
+                "Workout V2 詳情請求失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "fetch_workout_detail",
+                    "error_type": "general_error"
+                ],
+                jsonPayload: [
+                    "workout_id": workoutId,
+                    "error_description": error.localizedDescription,
+                    "error_type": String(describing: type(of: error))
+                ]
+            )
+            
             throw error
         }
     }
@@ -351,7 +403,7 @@ extension WorkoutV2Service {
     /// - Returns: 運動列表
     func fetchRecentWorkouts(limit: Int = 20) async throws -> [WorkoutV2] {
         let response = try await fetchWorkouts(pageSize: limit)
-        return response.data.workouts
+        return response.workouts
     }
     
     /// 獲取特定類型的運動記錄
@@ -361,7 +413,7 @@ extension WorkoutV2Service {
     /// - Returns: 運動列表
     func fetchWorkoutsByType(_ activityType: String, limit: Int = 20) async throws -> [WorkoutV2] {
         let response = try await fetchWorkouts(pageSize: limit, activityType: activityType)
-        return response.data.workouts
+        return response.workouts
     }
     
     /// 獲取特定數據來源的運動記錄
@@ -371,7 +423,7 @@ extension WorkoutV2Service {
     /// - Returns: 運動列表
     func fetchWorkoutsByProvider(_ provider: String, limit: Int = 20) async throws -> [WorkoutV2] {
         let response = try await fetchWorkouts(pageSize: limit, provider: provider)
-        return response.data.workouts
+        return response.workouts
     }
     
     /// 獲取日期範圍內的運動記錄
@@ -396,7 +448,7 @@ extension WorkoutV2Service {
             endDate: endDateString
         )
         
-        return response.data.workouts
+        return response.workouts
     }
     
     // MARK: - Pagination Methods
