@@ -128,7 +128,12 @@ struct TrainingRecordView: View {
     /// 檢查是否需要載入更多記錄
     private func checkForLoadMore(_ workout: WorkoutV2) {
         // 當顯示到最後一筆記錄時，觸發載入更多
-        if workout.id == viewModel.workouts.last?.id {
+        let isLastItem = workout.id == viewModel.workouts.last?.id
+        print("🔍 檢查分頁載入: 當前項目 \(workout.id), 是否為最後一項: \(isLastItem)")
+        print("🔍 總記錄數: \(viewModel.workouts.count), hasMoreData: \(viewModel.hasMoreData), isLoadingMore: \(viewModel.isLoadingMore)")
+        
+        if isLastItem {
+            print("🔍 到達最後一項，嘗試載入更多...")
             loadMoreIfNeeded()
         }
     }
@@ -136,8 +141,14 @@ struct TrainingRecordView: View {
     /// 載入更多記錄
     private func loadMoreIfNeeded() {
         // 避免重複載入
-        guard !viewModel.isLoadingMore && viewModel.hasMoreData else { return }
+        print("🚀 loadMoreIfNeeded - isLoadingMore: \(viewModel.isLoadingMore), hasMoreData: \(viewModel.hasMoreData)")
         
+        guard !viewModel.isLoadingMore && viewModel.hasMoreData else {
+            print("❌ 載入更多被阻止 - isLoadingMore: \(viewModel.isLoadingMore), hasMoreData: \(viewModel.hasMoreData)")
+            return
+        }
+        
+        print("✅ 開始載入更多記錄...")
         Task {
             await viewModel.loadMoreWorkouts()
         }

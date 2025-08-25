@@ -1477,14 +1477,23 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
+            print("🗓️ 計算當週跑量時間範圍: \(weekStart) 到 \(weekEnd)")
+            
             // 從 UnifiedWorkoutManager 獲取該週的運動記錄
             let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
                 startDate: weekStart,
                 endDate: weekEnd
             )
             
+            print("🏃 UnifiedWorkoutManager 獲取到 \(weekWorkouts.count) 筆該週記錄")
+            
             // 過濾僅包含跑步類型的鍛煉
             let runWorkouts = weekWorkouts.filter { $0.activityType == "running" }
+            
+            print("🏃 其中跑步記錄 \(runWorkouts.count) 筆")
+            for workout in runWorkouts {
+                print("   - \(workout.id): \(workout.startDate), 距離: \((workout.distance ?? 0) / 1000.0) km")
+            }
             
             // 計算跑步距離總和（從 V2 數據）
             let totalDistance = runWorkouts.compactMap { workout in

@@ -418,6 +418,8 @@ struct WorkoutV2Detail: Codable {
     let environment: V2Environment?
     let metadata: V2Metadata?
     let laps: [LapData]?
+    let dailyPlanSummary: DailyPlanSummary?
+    let aiSummary: AISummary?
     
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -442,6 +444,8 @@ struct WorkoutV2Detail: Codable {
         case environment = "environment"
         case metadata = "metadata"
         case laps = "laps"
+        case dailyPlanSummary = "daily_plan_summary"
+        case aiSummary = "ai_summary"
     }
 }
 
@@ -1195,6 +1199,7 @@ struct DailyPlanSummary: Codable {
     let pace: String?
     let trainingType: String?
     let heartRateRange: DailySummaryHeartRateRange?
+    let trainingDetails: DailyTrainingDetails?
     
     enum CodingKeys: String, CodingKey {
         case dayTarget = "day_target"
@@ -1202,12 +1207,37 @@ struct DailyPlanSummary: Codable {
         case pace
         case trainingType = "training_type"
         case heartRateRange = "heart_rate_range"
+        case trainingDetails = "training_details"
+    }
+}
+
+struct DailyTrainingDetails: Codable {
+    let description: String?
+    let segments: [DailyPlanSegment]?
+    let totalDistanceKm: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case description
+        case segments
+        case totalDistanceKm = "total_distance_km"
     }
 }
 
 struct DailySummaryHeartRateRange: Codable {
     let min: Int
     let max: Int
+}
+
+struct DailyPlanSegment: Codable {
+    let distanceKm: Double?
+    let pace: String?
+    let description: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case distanceKm = "distance_km"
+        case pace
+        case description
+    }
 }
 
 struct AISummary: Codable {

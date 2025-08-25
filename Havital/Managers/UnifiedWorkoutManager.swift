@@ -132,13 +132,13 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             
             // 如果沒有緩存，從 API 獲取數據
             print("沒有緩存數據，從 API 載入運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 10)
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
             
             // 檢查是否被取消
             try Task.checkCancellation()
             
-            // 快取數據
-            cacheManager.cacheWorkoutList(fetchedWorkouts)
+            // 不要直接覆蓋緩存，因為 TrainingRecordViewModel 可能有更完整的資料
+            // cacheManager.cacheWorkoutList(fetchedWorkouts) // 移除，避免覆蓋完整緩存
             
             await MainActor.run {
                 self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
@@ -208,10 +208,10 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         
         do {
             print("強制刷新：從 API 獲取最新運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 10)
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
             
-            // 直接覆寫緩存，確保與後端保持一致
-            cacheManager.cacheWorkoutList(fetchedWorkouts)
+            // 不覆蓋緩存，避免丟失 TrainingRecordViewModel 的完整資料
+            // cacheManager.cacheWorkoutList(fetchedWorkouts) // 移除，避免覆蓋完整緩存
             await MainActor.run {
                 self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
                 self.lastSyncTime = Date()
@@ -259,7 +259,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     private func backgroundUpdateWorkouts() async {
         do {
             print("背景更新：從 API 獲取最新運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 10)
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
             
             // 合併到緩存
             let mergedCount = cacheManager.mergeWorkoutsToCache(fetchedWorkouts)
@@ -277,8 +277,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                     NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
                 }
             } else {
-                // 沒有新數據，只更新同步時間
-                cacheManager.cacheWorkoutList(self.workouts) // 更新同步時間戳
+                // 沒有新數據，不更新緩存以避免覆蓋完整資料
+                // cacheManager.cacheWorkoutList(self.workouts) // 移除，避免覆蓋
                 await MainActor.run {
                     self.lastSyncTime = Date()
                 }
