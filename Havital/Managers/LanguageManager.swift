@@ -15,6 +15,8 @@ class LanguageManager: ObservableObject {
                 saveLanguagePreference()
                 applyLanguage()
                 syncWithBackend()
+                // 通知 HTTPClient 語言已變更，之後的請求會使用新的 Accept-Language 標頭
+                Logger.firebase("Language changed to: \(currentLanguage.apiCode)", level: .info)
             }
         }
     }

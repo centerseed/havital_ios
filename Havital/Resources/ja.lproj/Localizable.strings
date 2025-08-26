@@ -111,6 +111,16 @@
 "training.edit_volume" = "週間走行距離を編集";
 "training.edit_days" = "トレーニング日を編集";
 
+// MARK: - Training Plan Info Card
+"training.plan_info" = "トレーニング計画情報";
+"training.ai_analysis" = "AI分析";
+"training.expand" = "展開";
+"training.collapse" = "折りたたみ";
+"training.distance" = "距離";
+"training.pace" = "ペース";
+"training.heart_rate_zone" = "心拍ゾーン";
+"training.training_type" = "トレーニングタイプ";
+
 // MARK: - Training Types
 "training.type.easy" = "イージーラン";
 "training.type.tempo" = "テンポラン";
@@ -121,6 +131,9 @@
 "training.type.fartlek" = "ファルトレク";
 "training.type.hill" = "ヒルトレーニング";
 "training.type.speed" = "スピードワーク";
+"training.type.lsd" = "LSDラン";
+"training.type.threshold" = "閾値ラン";
+"training.type.progression" = "プログレッションラン";
 
 // MARK: - Training Record
 "record.title" = "トレーニング記録";

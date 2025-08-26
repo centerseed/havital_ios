@@ -111,6 +111,16 @@
 "training.edit_volume" = "Edit Weekly Volume";
 "training.edit_days" = "Edit Training Days";
 
+// MARK: - Training Plan Info Card
+"training.plan_info" = "Training Plan Info";
+"training.ai_analysis" = "AI Analysis";
+"training.expand" = "Expand";
+"training.collapse" = "Collapse";
+"training.distance" = "Distance";
+"training.pace" = "Pace";
+"training.heart_rate_zone" = "HR Zone";
+"training.training_type" = "Training Type";
+
 // MARK: - Training Types
 "training.type.easy" = "Easy Run";
 "training.type.tempo" = "Tempo Run";
@@ -121,6 +131,9 @@
 "training.type.fartlek" = "Fartlek";
 "training.type.hill" = "Hill Training";
 "training.type.speed" = "Speed Work";
+"training.type.lsd" = "LSD Run";
+"training.type.threshold" = "Threshold Run";
+"training.type.progression" = "Progression Run";
 
 // MARK: - Training Record
 "record.title" = "Training Log";

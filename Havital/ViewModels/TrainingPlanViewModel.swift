@@ -1407,8 +1407,15 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 endDate: weekEnd
             )
             
+            // 過濾掉瑜伽、普拉提和重量訓練等非有氧運動
+            let aerobicWorkouts = weekWorkouts.filter { workout in
+                shouldIncludeInTrainingLoad(activityType: workout.activityType)
+            }
+            
+            Logger.debug("該週總運動: \(weekWorkouts.count) 筆，有氧運動: \(aerobicWorkouts.count) 筆")
+            
             // 直接使用 API 提供的 intensity_minutes 數據
-            let intensity = aggregateIntensityFromV2Workouts(weekWorkouts)
+            let intensity = aggregateIntensityFromV2Workouts(aerobicWorkouts)
             
             Logger.debug("訓練強度聚合完成 - 低: \(intensity.low), 中: \(intensity.medium), 高: \(intensity.high)")
             
@@ -1424,6 +1431,22 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         } catch {
             Logger.error("加載本週訓練強度時出錯: \(error)")
         }
+    }
+    
+    // 判斷運動類型是否應該包含在訓練負荷計算中
+    private func shouldIncludeInTrainingLoad(activityType: String) -> Bool {
+        // 包含有氧運動類型，排除瑜伽、普拉提、重量訓練等
+        let aerobicActivityTypes: Set<String> = [
+            "run",           // 跑步
+            "walk",          // 步行
+            "cycling",       // 騎車
+            "swim",          // 游泳
+            "hiit",          // 高強度間歇訓練
+            "mixedCardio",   // 混合有氧
+            "hiking"         // 健行
+        ]
+        
+        return aerobicActivityTypes.contains(activityType.lowercased())
     }
     
     // 聚合 V2 API 提供的 intensity_minutes 數據

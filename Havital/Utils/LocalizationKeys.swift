@@ -124,6 +124,16 @@ enum L10n {
         static let editVolume = "training.edit_volume"
         static let editDays = "training.edit_days"
         
+        // Training Plan Info Card
+        static let planInfo = "training.plan_info"
+        static let aiAnalysis = "training.ai_analysis"
+        static let expand = "training.expand"
+        static let collapse = "training.collapse"
+        static let distance = "training.distance"
+        static let pace = "training.pace"
+        static let heartRateZone = "training.heart_rate_zone"
+        static let trainingType = "training.training_type"
+        
         enum TrainingType {
             static let easy = "training.type.easy"
             static let tempo = "training.type.tempo"
@@ -134,6 +144,9 @@ enum L10n {
             static let fartlek = "training.type.fartlek"
             static let hill = "training.type.hill"
             static let speed = "training.type.speed"
+            static let lsd = "training.type.lsd"
+            static let threshold = "training.type.threshold"
+            static let progression = "training.type.progression"
         }
     }
     

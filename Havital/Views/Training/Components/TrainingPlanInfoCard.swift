@@ -12,7 +12,7 @@ struct TrainingPlanInfoCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("課表資訊")
+            Text(NSLocalizedString("training.plan_info", comment: "Training Plan Info"))
                 .font(.headline)
                 .fontWeight(.semibold)
             
@@ -35,7 +35,7 @@ struct TrainingPlanInfoCard: View {
                         let displayDistance = getDisplayDistance(from: dailyPlan)
                         if displayDistance > 0 {
                             TrainingInfoItem(
-                                title: "距離",
+                                title: NSLocalizedString("training.distance", comment: "Distance"),
                                 value: String(format: "%.1f km", displayDistance),
                                 icon: "location"
                             )
@@ -45,7 +45,7 @@ struct TrainingPlanInfoCard: View {
                         let displayPace = getDisplayPace(from: dailyPlan)
                         if !displayPace.isEmpty {
                             TrainingInfoItem(
-                                title: "配速",
+                                title: NSLocalizedString("training.pace", comment: "Pace"),
                                 value: displayPace,
                                 icon: "speedometer"
                             )
@@ -53,7 +53,7 @@ struct TrainingPlanInfoCard: View {
                         
                         if let hrRange = dailyPlan.heartRateRange {
                             TrainingInfoItem(
-                                title: "心率區間",
+                                title: NSLocalizedString("training.heart_rate_zone", comment: "HR Zone"),
                                 value: "\(hrRange.min)-\(hrRange.max)",
                                 icon: "heart"
                             )
@@ -61,7 +61,7 @@ struct TrainingPlanInfoCard: View {
                         
                         if let trainingType = dailyPlan.trainingType {
                             TrainingInfoItem(
-                                title: "訓練類型",
+                                title: NSLocalizedString("training.training_type", comment: "Training Type"),
                                 value: formatTrainingType(trainingType),
                                 icon: "figure.run"
                             )
@@ -78,7 +78,7 @@ struct TrainingPlanInfoCard: View {
                 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("AI 分析")
+                        Text(NSLocalizedString("training.ai_analysis", comment: "AI Analysis"))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.blue)
@@ -91,7 +91,7 @@ struct TrainingPlanInfoCard: View {
                                     isAnalysisExpanded.toggle()
                                 }
                             }) {
-                                Text(isAnalysisExpanded ? "收起" : "展開")
+                                Text(isAnalysisExpanded ? NSLocalizedString("training.collapse", comment: "Collapse") : NSLocalizedString("training.expand", comment: "Expand"))
                                     .font(.caption)
                                     .foregroundColor(.blue)
                                     .padding(.horizontal, 8)
@@ -173,21 +173,21 @@ struct TrainingPlanInfoCard: View {
     private func formatTrainingType(_ type: String) -> String {
         switch type.lowercased() {
         case "easy_run", "easy":
-            return "輕鬆跑"
+            return NSLocalizedString("training.type.easy", comment: "Easy Run")
         case "interval":
-            return "間歇跑"
+            return NSLocalizedString("training.type.interval", comment: "Interval Training")
         case "tempo":
-            return "節奏跑"
+            return NSLocalizedString("training.type.tempo", comment: "Tempo Run")
         case "threshold":
-            return "閾值跑"
+            return NSLocalizedString("training.type.threshold", comment: "Threshold Run")
         case "long_run":
-            return "長跑"
+            return NSLocalizedString("training.type.long", comment: "Long Run")
         case "recovery_run":
-            return "恢復跑"
+            return NSLocalizedString("training.type.recovery", comment: "Recovery Run")
         case "lsd":
-            return "長距離慢跑"
+            return NSLocalizedString("training.type.lsd", comment: "LSD Run")
         case "progression":
-            return "漸進跑"
+            return NSLocalizedString("training.type.progression", comment: "Progression Run")
         default:
             return type
         }

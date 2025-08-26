@@ -218,6 +218,35 @@ struct CollapsedWorkoutSummary: View {
 struct WorkoutV2SummaryRow: View {
     let workout: WorkoutV2
     @ObservedObject var viewModel: TrainingPlanViewModel
+    let trainingType: DayType?  // 新增訓練類型參數
+    
+    // MARK: - 訓練指標顯示邏輯
+    
+    /// 根據訓練類型判斷是否顯示配速資訊
+    private var shouldShowPace: Bool {
+        guard let type = trainingType else { return true }
+        switch type {
+        case .easyRun, .easy, .recovery_run, .longRun, .lsd:
+            return false  // 輕鬆跑、恢復跑、長跑、LSD 隱藏配速
+        case .interval, .tempo, .threshold, .progression:
+            return true   // 間歇、節奏跑、閾值跑、漸進跑 顯示配速
+        default:
+            return true   // 其他類型預設顯示配速
+        }
+    }
+    
+    /// 根據訓練類型判斷是否顯示心率資訊
+    private var shouldShowHeartRate: Bool {
+        guard let type = trainingType else { return true }
+        switch type {
+        case .interval:
+            return false  // 間歇訓練隱藏心率
+        case .easyRun, .easy, .recovery_run, .longRun, .lsd, .tempo, .threshold, .progression:
+            return true   // 有氧訓練顯示心率
+        default:
+            return true   // 其他類型預設顯示心率
+        }
+    }
     
     // 根據 workout type 選擇圖示
     private var workoutIconName: String {
@@ -281,7 +310,7 @@ struct WorkoutV2SummaryRow: View {
                         }
                     }
                     
-                    if let distance = workout.distance, distance > 0 {
+                    if shouldShowPace, let distance = workout.distance, distance > 0 {
                         let paceInSeconds = workout.duration / distance * 1000
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
@@ -294,7 +323,7 @@ struct WorkoutV2SummaryRow: View {
                     }
                     
                     // 顯示平均心率
-                    if let avgHR = workout.basicMetrics?.avgHeartRateBpm {
+                    if shouldShowHeartRate, let avgHR = workout.basicMetrics?.avgHeartRateBpm {
                         HStack(spacing: 2) {
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 10))
@@ -326,6 +355,22 @@ struct WorkoutV2SummaryRow: View {
 struct CollapsedWorkoutV2Summary: View {
     let workouts: [WorkoutV2]
     @ObservedObject var viewModel: TrainingPlanViewModel
+    let trainingType: DayType?  // 新增訓練類型參數
+    
+    // MARK: - 訓練指標顯示邏輯
+    
+    /// 根據訓練類型判斷是否顯示配速資訊
+    private var shouldShowPace: Bool {
+        guard let type = trainingType else { return true }
+        switch type {
+        case .easyRun, .easy, .recovery_run, .longRun, .lsd:
+            return false  // 輕鬆跑、恢復跑、長跑、LSD 隱藏配速
+        case .interval, .tempo, .threshold, .progression:
+            return true   // 間歇、節奏跑、閾值跑、漸進跑 顯示配速
+        default:
+            return true   // 其他類型預設顯示配速
+        }
+    }
     
     var body: some View {
         HStack(spacing: 12) {
@@ -344,7 +389,7 @@ struct CollapsedWorkoutV2Summary: View {
                             }
                         }
                         
-                        if let distance = workout.distance, distance > 0 {
+                        if shouldShowPace, let distance = workout.distance, distance > 0 {
                             let paceInSeconds = workout.duration / distance * 1000
                             HStack(spacing: 2) {
                                 Image(systemName: "speedometer")

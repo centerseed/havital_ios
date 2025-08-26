@@ -98,6 +98,11 @@ actor DefaultHTTPClient: HTTPClient {
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        // 添加 Accept-Language 標頭（除非自定義 headers 中已包含）
+        if customHeaders?["Accept-Language"] == nil {
+            request.setValue(LanguageManager.shared.currentLanguage.apiCode, forHTTPHeaderField: "Accept-Language")
+        }
+        
         // 添加自定義 headers（優先級最高）
         if let customHeaders = customHeaders {
             for (key, value) in customHeaders {

@@ -11,6 +11,32 @@ struct DailyTrainingCard: View {
     @State private var selectedWorkout: WorkoutV2?
     @State private var isLoadingData = false
     
+    // MARK: - 訓練指標顯示邏輯
+    
+    /// 根據訓練類型判斷是否顯示配速資訊
+    private var shouldShowPace: Bool {
+        switch day.type {
+        case .easyRun, .easy, .recovery_run, .longRun, .lsd:
+            return false  // 輕鬆跑、恢復跑、長跑、LSD 隱藏配速
+        case .interval, .tempo, .threshold, .progression:
+            return true   // 間歇、節奏跑、閾值跑、漸進跑 顯示配速
+        default:
+            return true   // 其他類型預設顯示配速
+        }
+    }
+    
+    /// 根據訓練類型判斷是否顯示心率資訊
+    private var shouldShowHeartRate: Bool {
+        switch day.type {
+        case .interval:
+            return false  // 間歇訓練隱藏心率
+        case .easyRun, .easy, .recovery_run, .longRun, .lsd, .tempo, .threshold, .progression:
+            return true   // 有氧訓練顯示心率
+        default:
+            return true   // 其他類型預設顯示心率
+        }
+    }
+    
     var body: some View {
         let isExpanded = isToday || viewModel.expandedDayIndices.contains(day.dayIndexInt)
         
@@ -103,7 +129,7 @@ struct DailyTrainingCard: View {
                             Button {
                                 selectedWorkout = workout
                             } label: {
-                                WorkoutV2SummaryRow(workout: workout, viewModel: viewModel)
+                                WorkoutV2SummaryRow(workout: workout, viewModel: viewModel, trainingType: day.type)
                                     .overlay(
                                         Group {
                                             if isLoadingData && selectedWorkout?.id == workout.id {
@@ -131,7 +157,7 @@ struct DailyTrainingCard: View {
                                 }
                             }
                         } label: {
-                            CollapsedWorkoutV2Summary(workouts: workouts, viewModel: viewModel)
+                            CollapsedWorkoutV2Summary(workouts: workouts, viewModel: viewModel, trainingType: day.type)
                         }
                         .buttonStyle(PlainButtonStyle())
                         .disabled(isLoadingData)
@@ -195,13 +221,15 @@ struct DailyTrainingCard: View {
                                                 .padding(.vertical, 2)
                                                 .background(Color.orange.opacity(0.1))
                                                 .cornerRadius(8)
-                                            Text(seg.pace)
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.15))
-                                                .cornerRadius(8)
+                                            if shouldShowPace {
+                                                Text(seg.pace)
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.orange.opacity(0.15))
+                                                    .cornerRadius(8)
+                                            }
                                         }
                                     }
                                 }
@@ -216,7 +244,7 @@ struct DailyTrainingCard: View {
                                         .padding(.vertical, 4)
                                 }
                                 HStack(spacing: 8) {
-                                    if let hr = details.heartRateRange {
+                                    if shouldShowHeartRate, let hr = details.heartRateRange {
                                         Text("心率區間：\(hr.min)-\(hr.max)")
                                             .font(.caption2)
                                             .padding(.horizontal, 8)
@@ -280,13 +308,15 @@ struct DailyTrainingCard: View {
                                                 .padding(.vertical, 2)
                                                 .background(Color.orange.opacity(0.1))
                                                 .cornerRadius(8)
-                                            Text(seg.pace)
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.15))
-                                                .cornerRadius(8)
+                                            if shouldShowPace {
+                                                Text(seg.pace)
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.orange.opacity(0.15))
+                                                    .cornerRadius(8)
+                                            }
                                         }
                                     }
                                 }
@@ -329,7 +359,7 @@ struct DailyTrainingCard: View {
                                                     .foregroundColor(.orange)
                                             }
                                             
-                                            if let pace = sprintItem.goals.pace {
+                                            if shouldShowPace, let pace = sprintItem.goals.pace {
                                                 Text(pace)
                                                     .font(.system(size: 11, weight: .medium))
                                                     .padding(.horizontal, 6)
@@ -363,7 +393,7 @@ struct DailyTrainingCard: View {
                                                         .foregroundColor(.orange)
                                                 }
                                                 
-                                                if let pace = recoveryItem.goals.pace {
+                                                if shouldShowPace, let pace = recoveryItem.goals.pace {
                                                     Text(pace)
                                                         .font(.system(size: 11, weight: .medium))
                                                         .padding(.horizontal, 6)
@@ -393,7 +423,7 @@ struct DailyTrainingCard: View {
                                     VStack(alignment: .leading, spacing: 8) {
                                         // 標題及重複次數
                                         HStack {
-                                            if let pace = item.goals.pace {
+                                            if shouldShowPace, let pace = item.goals.pace {
                                                 Text(pace)
                                                     .font(.caption2)
                                                     .padding(.horizontal, 8)
@@ -402,7 +432,7 @@ struct DailyTrainingCard: View {
                                                     .cornerRadius(12)
                                             }
                                             
-                                            if let hr = item.goals.heartRateRange {
+                                            if shouldShowHeartRate, let hr = item.goals.heartRateRange {
                                                 Text("心率區間： \(hr.min)-\(hr.max)")
                                                     .font(.caption2)
                                                     .padding(.horizontal, 8)

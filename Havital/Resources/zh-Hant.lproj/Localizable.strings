@@ -111,6 +111,16 @@
 "training.edit_volume" = "編輯週跑量";
 "training.edit_days" = "編輯訓練日";
 
+// MARK: - Training Plan Info Card
+"training.plan_info" = "課表資訊";
+"training.ai_analysis" = "AI 分析";
+"training.expand" = "展開";
+"training.collapse" = "收起";
+"training.distance" = "距離";
+"training.pace" = "配速";
+"training.heart_rate_zone" = "心率區間";
+"training.training_type" = "訓練類型";
+
 // MARK: - Training Types
 "training.type.easy" = "輕鬆跑";
 "training.type.tempo" = "節奏跑";
@@ -121,6 +131,9 @@
 "training.type.fartlek" = "法特萊克";
 "training.type.hill" = "爬坡訓練";
 "training.type.speed" = "速度訓練";
+"training.type.lsd" = "長距離慢跑";
+"training.type.threshold" = "閾值跑";
+"training.type.progression" = "漸進跑";
 
 // MARK: - Training Record
 "record.title" = "訓練紀錄";
