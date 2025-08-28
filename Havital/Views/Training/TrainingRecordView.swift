@@ -14,12 +14,12 @@ struct TrainingRecordView: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && !viewModel.hasWorkouts {
-                    ProgressView("載入訓練記錄中...")
+                    ProgressView(NSLocalizedString("training.loading_records", comment: "Loading training records..."))
                 } else {
                     workoutList
                 }
             }
-            .navigationTitle("訓練記錄")
+            .navigationTitle(NSLocalizedString("record.title", comment: "Training Log"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -57,8 +57,8 @@ struct TrainingRecordView: View {
         .overlay {
             emptyStateView
         }
-        .alert("載入錯誤", isPresented: errorBinding) {
-            Button("確定") {
+        .alert(NSLocalizedString("error.load_failed", comment: "Load Error"), isPresented: errorBinding) {
+            Button(NSLocalizedString("common.confirm", comment: "Confirm")) {
                 viewModel.errorMessage = nil
             }
         } message: {
@@ -81,7 +81,7 @@ struct TrainingRecordView: View {
         if viewModel.isLoadingMore {
             HStack {
                 Spacer()
-                ProgressView("載入更多記錄...")
+                ProgressView(NSLocalizedString("training.loading_more_records", comment: "Loading more records..."))
                     .font(.caption)
                     .padding()
                 Spacer()
@@ -94,9 +94,9 @@ struct TrainingRecordView: View {
     private var emptyStateView: some View {
         if viewModel.workouts.isEmpty && !viewModel.isLoading {
             ContentUnavailableView(
-                "沒有訓練記錄",
+                NSLocalizedString("record.no_records", comment: "No Training Records"),
                 systemImage: "figure.run",
-                description: Text("暫無運動記錄，開始運動後會顯示在這裡")
+                description: Text(NSLocalizedString("record.no_records_description", comment: "No workout records available, they will appear here after you start exercising"))
             )
         }
     }
@@ -125,30 +125,30 @@ struct TrainingRecordView: View {
     
     // MARK: - Helper Methods
     
-    /// 檢查是否需要載入更多記錄
+    /// Check if more records need to be loaded
     private func checkForLoadMore(_ workout: WorkoutV2) {
-        // 當顯示到最後一筆記錄時，觸發載入更多
+        // When displaying the last record, trigger loading more
         let isLastItem = workout.id == viewModel.workouts.last?.id
-        print("🔍 檢查分頁載入: 當前項目 \(workout.id), 是否為最後一項: \(isLastItem)")
-        print("🔍 總記錄數: \(viewModel.workouts.count), hasMoreData: \(viewModel.hasMoreData), isLoadingMore: \(viewModel.isLoadingMore)")
+        print("🔍 Check pagination loading: Current item \(workout.id), Is last item: \(isLastItem)")
+        print("🔍 Total records: \(viewModel.workouts.count), hasMoreData: \(viewModel.hasMoreData), isLoadingMore: \(viewModel.isLoadingMore)")
         
         if isLastItem {
-            print("🔍 到達最後一項，嘗試載入更多...")
+            print("🔍 Reached last item, attempting to load more...")
             loadMoreIfNeeded()
         }
     }
     
-    /// 載入更多記錄
+    /// Load more records
     private func loadMoreIfNeeded() {
-        // 避免重複載入
+        // Avoid duplicate loading
         print("🚀 loadMoreIfNeeded - isLoadingMore: \(viewModel.isLoadingMore), hasMoreData: \(viewModel.hasMoreData)")
         
         guard !viewModel.isLoadingMore && viewModel.hasMoreData else {
-            print("❌ 載入更多被阻止 - isLoadingMore: \(viewModel.isLoadingMore), hasMoreData: \(viewModel.hasMoreData)")
+            print("❌ Load more blocked - isLoadingMore: \(viewModel.isLoadingMore), hasMoreData: \(viewModel.hasMoreData)")
             return
         }
         
-        print("✅ 開始載入更多記錄...")
+        print("✅ Starting to load more records...")
         Task {
             await viewModel.loadMoreWorkouts()
         }

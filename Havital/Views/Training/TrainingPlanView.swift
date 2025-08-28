@@ -36,11 +36,11 @@ struct NewWeekPromptView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("目前訓練進度已進入第 \(currentTrainingWeek) 週")
+            Text(NSLocalizedString("training.current_week_progress", comment: "Current training progress has entered week") + " \(currentTrainingWeek) " + NSLocalizedString("date.week", comment: "Week"))
                 .font(.headline)
                 .multilineTextAlignment(.center)
                 
-            Text("Paceriz會依照您的訓練狀況，產生為您專屬設計的週課表。讓我們來查看這週訓練狀況，並且產生新的課表吧！")
+            Text(NSLocalizedString("training.paceriz_plan_description", comment: "Paceriz will generate a personalized weekly schedule based on your training condition. Let's check this week's training status and generate a new schedule!"))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             
@@ -79,7 +79,7 @@ struct NewWeekPromptView: View {
                 }) {
                     HStack {
                         Image(systemName: "warninglight")
-                        Text("取得\(viewModel.getLastWeekRangeString())訓練回顧")
+                        Text(NSLocalizedString("training.get_weekly_review", comment: "Get Weekly Review") + "\(viewModel.getLastWeekRangeString())")
                     }
                     .padding()
                     .background(Color.blue)
@@ -105,7 +105,7 @@ struct DailyTrainingListView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 添加標題
             HStack {
-                Text("每日訓練")
+                Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
                     .font(.headline)
                     .foregroundColor(.primary)
                     .padding(.top, 16)
@@ -138,7 +138,7 @@ struct FinalWeekPromptView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("辛苦了！您的訓練週期已結束。別忘了在訓練回顧後，設定下一個訓練目標喔！！")
+            Text(NSLocalizedString("training.cycle_completed_message", comment: "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!"))
                 .font(.headline)
                 .multilineTextAlignment(.center)
 
@@ -165,7 +165,7 @@ struct FinalWeekPromptView: View {
                 }) {
                     HStack {
                         Image(systemName: "target") // 可以換一個更合適的圖示
-                        Text("設定新目標")
+                        Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -180,7 +180,7 @@ struct FinalWeekPromptView: View {
                 }) {
                     HStack {
                         Image(systemName: "doc.text.magnifyingglass")
-                        Text("取得\(viewModel.getLastWeekRangeString())訓練回顧")
+                        Text(NSLocalizedString("training.get_weekly_review", comment: "Get Weekly Review") + "\(viewModel.getLastWeekRangeString())")
                     }
                     .padding()
                     .background(Color.blue)
@@ -223,7 +223,7 @@ struct TrainingPlanView: View {
                             .opacity(viewModel.planStatus == .loading ? 0.3 : 1.0)
                         
                         if viewModel.planStatus == .loading {
-                            ProgressView("載入訓練計劃中...")
+                            ProgressView(NSLocalizedString("training.loading_plan", comment: "Loading training plan..."))
                                 .foregroundColor(.gray)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(Color(UIColor.systemBackground).opacity(0.8))
@@ -259,7 +259,7 @@ struct TrainingPlanView: View {
             refreshWorkouts()
         }
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
-            Logger.debug("收到 onboardingCompleted 通知，刷新本週跑量")
+            Logger.debug("Received onboardingCompleted notification, refreshing weekly volume")
             refreshWorkouts()
         }
         .sheet(isPresented: $showUserProfile) {
@@ -287,21 +287,21 @@ struct TrainingPlanView: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
-        .alert("網路連接問題", isPresented: $viewModel.showNetworkErrorAlert) {
-            Button("重試") {
+        .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
+            Button(NSLocalizedString("common.retry", comment: "Retry")) {
                 Task {
                     await viewModel.retryNetworkRequest()
                 }
             }
-            Button("稍後再試", role: .cancel) {
+            Button(NSLocalizedString("common.later", comment: "Later"), role: .cancel) {
                 viewModel.showNetworkErrorAlert = false
             }
         } message: {
-            Text(viewModel.networkError?.localizedDescription ?? "網路連接異常，請稍後再試")
+            Text(viewModel.networkError?.localizedDescription ?? NSLocalizedString("error.network_connection_failed", comment: "Network connection failed, please try again later"))
         }
         .onAppear {
             if hasCompletedOnboarding {
-                Logger.debug("視圖 onAppear: 已完成 Onboarding")
+                Logger.debug("View onAppear: Onboarding completed")
                 // 只在數據尚未載入時才刷新，避免不必要的重新載入
                 if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
                     refreshWorkouts()
@@ -360,9 +360,9 @@ struct TrainingPlanView: View {
                         shareTrainingPlan()
                     }) {
                         if isGeneratingScreenshot {
-                            Label("產生中...", systemImage: "arrow.2.squarepath")
+                            Label(NSLocalizedString("common.generating", comment: "Generating..."), systemImage: "arrow.2.squarepath")
                         } else {
-                            Label("分享課表", systemImage: "square.and.arrow.up")
+                            Label(NSLocalizedString("training.share_schedule", comment: "Share Schedule"), systemImage: "square.and.arrow.up")
                         }
                     }
                     .disabled(isGeneratingScreenshot || viewModel.planStatus == .loading)
@@ -372,25 +372,25 @@ struct TrainingPlanView: View {
                     Button(action: {
                         showUserProfile = true
                     }) {
-                        Label("用戶資訊", systemImage: "person.circle")
+                        Label(NSLocalizedString("profile.title", comment: "Profile"), systemImage: "person.circle")
                     }
                     
                     Button(action: {
                         showTrainingOverview = true
                     }) {
-                        Label("訓練總覽", systemImage: "doc.text.below.ecg")
+                        Label(NSLocalizedString("training.overview", comment: "Training Overview"), systemImage: "doc.text.below.ecg")
                     }
                     
                     Button(action: {
                         showTrainingProgress = true
                     }) {
-                        Label("訓練進度", systemImage: "chart.line.uptrend.xyaxis")
+                        Label(NSLocalizedString("training.progress", comment: "Training Progress"), systemImage: "chart.line.uptrend.xyaxis")
                     }
                     /*
                     Button(action: {
                         showModifications = true
                     }) {
-                        Label("修改課表", systemImage: "slider.horizontal.3")
+                        Label(NSLocalizedString("training.modify_schedule", comment: "Modify Schedule"), systemImage: "slider.horizontal.3")
                     }
                     */
                 } label: {
@@ -408,20 +408,20 @@ struct TrainingPlanView: View {
                 TrainingPlanOverviewDetailView(overview: overview)
             } else {
                 VStack(spacing: 20) {
-                    Text("無法載入訓練計劃概覽")
+                    Text(NSLocalizedString("training.cannot_load_overview", comment: "Unable to load training plan overview"))
                         .font(.headline)
                     
-                    Button("關閉") {
+                    Button(NSLocalizedString("common.close", comment: "Close")) {
                         showTrainingOverview = false
                     }
                     .buttonStyle(.borderedProminent)
                     .padding()
                 }
-                .navigationTitle("訓練計劃")
+                .navigationTitle(NSLocalizedString("training.plan_title", comment: "Training Plan"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("關閉") {
+                        Button(NSLocalizedString("common.close", comment: "Close")) {
                             showTrainingOverview = false
                         }
                     }
@@ -445,13 +445,13 @@ struct TrainingPlanView: View {
                 
                 VStack(spacing: 12) {
                     // 主要錯誤訊息
-                    Text("無法載入訓練計劃")
+                    Text(NSLocalizedString("training.cannot_load_plan", comment: "Unable to load training plan"))
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                     
                     // 詳細說明文字
-                    Text("網路連線或伺服器發生問題，請檢查網路連線狀況後重新載入")
+                    Text(NSLocalizedString("error.network_or_server_error", comment: "Network connection or server error, please check your network connection and reload"))
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -462,7 +462,7 @@ struct TrainingPlanView: View {
                 Button(action: retryAction) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
-                        Text("重新載入")
+                        Text(NSLocalizedString("common.reload", comment: "Reload"))
                     }
                     .font(.body)
                     .fontWeight(.medium)
@@ -488,7 +488,7 @@ struct TrainingPlanView: View {
     
     // 刷新訓練記錄
     private func refreshWorkouts() {
-        Logger.debug("刷新訓練記錄與本週跑量")
+        Logger.debug("Refreshing training records and weekly volume")
         Task {
             // 使用統一的刷新方法
             await viewModel.refreshWeeklyPlan()
@@ -517,7 +517,7 @@ struct TrainingPlanView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     if let plan = viewModel.weeklyPlan {
-                        Text("第\(plan.weekOfPlan)週課表")
+                        Text(NSLocalizedString("training.week_schedule", comment: "Week Schedule") + " \(plan.weekOfPlan)")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -540,10 +540,10 @@ struct TrainingPlanView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.gray)
                         
-                        Text("本週尚未產生課表")
+                        Text(NSLocalizedString("training.no_schedule_generated", comment: "This week's schedule has not been generated yet"))
                             .font(.headline)
                         
-                        Text("請先產生週回顧以獲得個人化訓練建議")
+                        Text(NSLocalizedString("training.generate_review_first", comment: "Please generate a weekly review first to get personalized training recommendations"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)

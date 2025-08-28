@@ -84,18 +84,18 @@ struct ContentView: View {
         } message: {
             Text(appViewModel.healthKitAlertMessage)
         }
-        .alert("Garmin 連接已中斷", isPresented: $appViewModel.showGarminMismatchAlert) {
-            Button("重新綁定 Garmin") {
+        .alert(NSLocalizedString("alert.garmin_disconnected", comment: "Garmin Connection Interrupted"), isPresented: $appViewModel.showGarminMismatchAlert) {
+            Button(NSLocalizedString("alert.reconnect_garmin", comment: "Reconnect Garmin")) {
                 appViewModel.reconnectGarmin()
             }
-            Button("切換到 Apple Health") {
+            Button(NSLocalizedString("alert.switch_to_apple_health", comment: "Switch to Apple Health")) {
                 appViewModel.switchToAppleHealth()
             }
-            Button("稍後處理", role: .cancel) {
+            Button(NSLocalizedString("common.later", comment: "Later"), role: .cancel) {
                 appViewModel.showGarminMismatchAlert = false
             }
         } message: {
-            Text("您的帳戶設定為使用 Garmin 數據，但目前尚未連接到您的 Garmin 帳號。請選擇重新綁定 Garmin 或切換回 Apple Health。")
+            Text(NSLocalizedString("alert.garmin_not_connected_message", comment: "Your account is set to use Garmin data, but is not currently connected to your Garmin account. Please choose to reconnect Garmin or switch back to Apple Health."))
         }
         .garminReconnectionAlert() // 添加 Garmin 重新連接警告
     }

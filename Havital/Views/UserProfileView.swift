@@ -36,7 +36,7 @@ struct UserProfileView: View {
                 if viewModel.isLoading {
                     HStack {
                         Spacer()
-                        ProgressView("載入中...")
+                        ProgressView(NSLocalizedString("common.loading", comment: "Loading..."))
                         Spacer()
                     }
                 } else if let userData = viewModel.userData {
@@ -48,13 +48,13 @@ struct UserProfileView: View {
             
             // 新增週跑量區塊 - 放在最前面的重要位置
             if let userData = viewModel.userData {
-                Section(header: Text("訓練資訊")) {
+                Section(header: Text(NSLocalizedString("profile.training_info", comment: "Training Info"))) {
                     // 週跑量資訊與編輯按鈕
                     HStack {
-                        Label("當前週跑量", systemImage: "figure.walk")
+                        Label(NSLocalizedString("profile.weekly_mileage", comment: "Weekly Mileage"), systemImage: "figure.walk")
                             .foregroundColor(.blue)
                         Spacer()
-                        Text("\(userData.currentWeekDistance ?? 0) 公里")
+                        Text("\(userData.currentWeekDistance ?? 0) \(NSLocalizedString("unit.km", comment: "km"))")
                             .fontWeight(.medium)
                     }
                     
@@ -68,7 +68,7 @@ struct UserProfileView: View {
                         }
                     }) {
                         HStack {
-                            Text("編輯週跑量")
+                            Text(NSLocalizedString("training.edit_volume", comment: "Edit Weekly Volume"))
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
@@ -83,10 +83,10 @@ struct UserProfileView: View {
             
             // Heart Rate Zones Section
             if let userData = viewModel.userData {
-                Section(header: Text("心率資訊")) {
+                Section(header: Text(NSLocalizedString("profile.heart_rate_info", comment: "Heart Rate Info"))) {
                     // Display basic heart rate info
                     HStack {
-                        Label("最大心率", systemImage: "heart.fill")
+                        Label(NSLocalizedString("profile.max_hr", comment: "Max Heart Rate"), systemImage: "heart.fill")
                             .foregroundColor(.red)
                         Spacer()
                         Text(viewModel.formatHeartRate(userData.maxHr))
@@ -94,7 +94,7 @@ struct UserProfileView: View {
                     }
                     
                     HStack {
-                        Label("靜息心率", systemImage: "heart")
+                        Label(NSLocalizedString("profile.resting_hr", comment: "Resting Heart Rate"), systemImage: "heart")
                             .foregroundColor(.blue)
                         Spacer()
                         Text(viewModel.formatHeartRate(userData.relaxingHr))
@@ -106,7 +106,7 @@ struct UserProfileView: View {
                         showZoneEditor = true
                     }) {
                         HStack {
-                            Text("心率區間詳細資訊")
+                            Text(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone") + " " + NSLocalizedString("record.view_details", comment: "View Details"))
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
@@ -118,7 +118,7 @@ struct UserProfileView: View {
                     if viewModel.isLoadingZones {
                         HStack {
                             Spacer()
-                            ProgressView("載入心率區間...")
+                            ProgressView(NSLocalizedString("common.loading", comment: "Loading..."))
                             Spacer()
                         }
                     } else {
@@ -127,12 +127,12 @@ struct UserProfileView: View {
                 }
                 
                 // Training Days Section - More Compact
-                Section(header: Text("訓練日")) {
+                Section(header: Text(NSLocalizedString("onboarding.training_days", comment: "Training Days"))) {
                     trainingDaysView(userData)
                     // 編輯訓練日按鈕 (與編輯週跑量一致)
                     Button(action: { showTrainingDaysEditor = true }) {
                         HStack {
-                            Text("編輯訓練日")
+                            Text(NSLocalizedString("training.edit_days", comment: "Edit Training Days"))
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
@@ -143,14 +143,14 @@ struct UserProfileView: View {
             }
             
             // Settings Section
-            Section(header: Text("設定")) {
+            Section(header: Text(NSLocalizedString("settings.title", comment: "Settings"))) {
                 // Language Settings
                 Button(action: {
                     showLanguageSettings = true
                 }) {
                     HStack {
                         Image(systemName: "globe")
-                        Text("語言設定")
+                        Text(NSLocalizedString("settings.language", comment: "Language"))
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
@@ -167,7 +167,7 @@ struct UserProfileView: View {
                 }) {
                     HStack {
                         Image(systemName: "arrow.clockwise")
-                        Text("重新 OnBoarding")
+                        Text("Re-Onboard")
                     }
                 }
                 
@@ -183,7 +183,7 @@ struct UserProfileView: View {
                 } label: {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("登出")
+                        Text(NSLocalizedString("common.logout", comment: "Log Out"))
                     }
                 }
             }
@@ -192,7 +192,7 @@ struct UserProfileView: View {
             Section {
                 HStack {
                     Spacer()
-                    Text("版本號 \(appVersion)")
+                    Text(NSLocalizedString("settings.version", comment: "Version") + " \(appVersion)")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -204,7 +204,7 @@ struct UserProfileView: View {
                 } label: {
                     HStack {
                         Image(systemName: "trash")
-                        Text("刪除帳戶")
+                        Text(NSLocalizedString("settings.delete_account", comment: "Delete Account"))
                         if isDeletingAccount {
                             Spacer()
                             ProgressView()
@@ -215,11 +215,11 @@ struct UserProfileView: View {
                 .disabled(isDeletingAccount)
             }
         }
-        .navigationTitle("個人資料")
+        .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("完成") {
+                Button(NSLocalizedString("common.done", comment: "Done")) {
                     dismiss()
                 }
             }
@@ -257,9 +257,9 @@ struct UserProfileView: View {
             )
         }
         // 編輯訓練日編輯器
-        .alert("確認刪除帳戶", isPresented: $showDeleteAccountConfirmation) {
-            Button("取消", role: .cancel) {}
-            Button("刪除", role: .destructive) {
+        .alert(NSLocalizedString("settings.delete_account", comment: "Delete Account"), isPresented: $showDeleteAccountConfirmation) {
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+            Button(NSLocalizedString("common.delete", comment: "Delete"), role: .destructive) {
                 Task {
                     isDeletingAccount = true
                     do {
@@ -272,7 +272,7 @@ struct UserProfileView: View {
                 }
             }
         } message: {
-            Text("此操作無法復原，所有資料將被永久刪除。確定要繼續嗎？")
+            Text(NSLocalizedString("settings.delete_confirm", comment: "Are you sure you want to delete your account? This action cannot be undone."))
         }
         .sheet(isPresented: $showTrainingDaysEditor) {
             if let ud = viewModel.userData {
@@ -291,26 +291,26 @@ struct UserProfileView: View {
         }
         // 重新 OnBoarding 確認對話框
         .confirmationDialog(
-            "確定要重新開始 OnBoarding 流程嗎？",
+            "Are you sure you want to restart the onboarding process?",
             isPresented: $showOnboardingConfirmation,
             titleVisibility: .visible
         ) {
-            Button("確定", role: .destructive) {
+            Button(NSLocalizedString("common.confirm", comment: "Confirm"), role: .destructive) {
                 AuthenticationService.shared.startReonboarding() // 改為呼叫新的方法
             }
-            Button("取消", role: .cancel) {}
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
         } message: {
-            Text("這將會重置您的所有訓練設置，需要重新設定您的訓練偏好。目前的訓練計畫將會被清除，且無法復原。")
+            Text("This will reset all your training settings and require you to reconfigure your training preferences. Your current training plan will be cleared and cannot be recovered.")
         }
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
         }
-        .alert("Garmin Connect™ 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
-            Button("我知道了", role: .cancel) {
+        .alert("Garmin Connect™ Account Already Bound", isPresented: $showGarminAlreadyBoundAlert) {
+            Button("OK", role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
             }
         } message: {
-            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin Connect™ 綁定後，再用本帳號進行連接。")
+            Text(garminManager.garminAlreadyBoundMessage ?? "This Garmin Connect™ account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account and unbind Garmin Connect™ in the profile page, then connect with this account.")
         }
     }
     
@@ -337,14 +337,14 @@ struct UserProfileView: View {
                     .foregroundColor(.gray)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(userData.displayName ?? "用戶")
+                Text(userData.displayName ?? NSLocalizedString("profile.name", comment: "Name"))
                     .font(.title2).bold()
                 
                 // 檢查是否為 Apple 登入且 email 為空或匿名
                 if let providerData = Auth.auth().currentUser?.providerData.first,
                    providerData.providerID == "apple.com" && 
                    (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
-                    Text("Apple 用戶")
+                    Text("Apple User")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 } else {
@@ -366,7 +366,7 @@ struct UserProfileView: View {
                         .fill(viewModel.zoneColor(for: zone.zone))
                         .frame(width: 10, height: 10)
                     
-                    Text("區間 \(zone.zone): \(zone.name)")
+                    Text(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone") + " \(zone.zone): \(zone.name)")
                         .font(.subheadline)
                     
                     Spacer()
@@ -384,7 +384,7 @@ struct UserProfileView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Regular training days
             HStack {
-                Text("一般訓練日:")
+                Text(NSLocalizedString("onboarding.training_days", comment: "Training Days") + ":")
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
@@ -404,7 +404,7 @@ struct UserProfileView: View {
             // Long run days
             if !(userData.preferWeekDaysLongrun?.isEmpty ?? false) {
                 HStack {
-                    Text("長跑日:")
+                    Text(NSLocalizedString("training.type.long", comment: "Long Run") + ":")
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
@@ -428,7 +428,7 @@ struct UserProfileView: View {
         HStack {
             Image(systemName: "exclamationmark.triangle")
                 .foregroundColor(.red)
-            Text("載入失敗: \(error.localizedDescription)")
+            Text(NSLocalizedString("error.unknown", comment: "Unknown Error") + ": \(error.localizedDescription)")
                 .font(.subheadline)
                 .foregroundColor(.red)
         }
@@ -436,7 +436,7 @@ struct UserProfileView: View {
     }
     
     private var dataSourceSection: some View {
-        Section(header: Text("數據來源")) {
+        Section(header: Text(NSLocalizedString("profile.data_sources", comment: "Data Sources"))) {
             VStack(spacing: 12) {
                 // 當沒有選擇數據源時顯示提示
                 if userPreferenceManager.dataSourcePreference == .unbound {
@@ -444,10 +444,10 @@ struct UserProfileView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("尚未選擇數據來源")
+                            Text(NSLocalizedString("datasource.not_connected", comment: "Not Connected"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            Text("請選擇一個主要數據源來同步您的訓練記錄")
+                            Text("Please select a primary data source to sync your training records")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -464,7 +464,7 @@ struct UserProfileView: View {
                     type: .appleHealth,
                     icon: "heart.fill",
                     title: "Apple Health",
-                    subtitle: "使用 iPhone 和 Apple Watch 的健康資料"
+                    subtitle: "Use health data from iPhone and Apple Watch"
                 )
                 .id("apple-health-row")
                 
@@ -478,7 +478,7 @@ struct UserProfileView: View {
                         type: .garmin,
                         icon: "clock.arrow.circlepath",
                         title: "Garmin Connect™",
-                        subtitle: "同步您的 Garmin 帳號活動"
+                        subtitle: "Sync your Garmin account activities"
                     )
                     .id("garmin-row")
                 }
@@ -487,11 +487,11 @@ struct UserProfileView: View {
             }
             .padding(.vertical, 4)
         }
-        .alert("切換數據來源", isPresented: $showDataSourceSwitchConfirmation) {
-            Button("取消", role: .cancel) {
+        .alert("Switch Data Source", isPresented: $showDataSourceSwitchConfirmation) {
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {
                 pendingDataSourceType = nil
             }
-            Button("確認切換") {
+            Button(NSLocalizedString("common.confirm", comment: "Confirm")) {
                 if let newDataSource = pendingDataSourceType {
                     switchDataSource(to: newDataSource)
                     pendingDataSourceType = nil
@@ -503,17 +503,17 @@ struct UserProfileView: View {
                 
                 switch (currentDataSource, pendingType) {
                 case (.unbound, .garmin):
-                    Text("選擇 Garmin Connect™ 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin Connect™ 載入。")
+                    Text("Selecting Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™.")
                 case (.unbound, .appleHealth):
-                    Text("選擇 Apple Health 作為您的數據源。您的訓練紀錄將從 Apple Health 載入，包括來自 iPhone 和 Apple Watch 的健康資料。")
+                    Text("Select Apple Health as your data source. Your training records will be loaded from Apple Health, including health data from iPhone and Apple Watch.")
                 case (.garmin, .appleHealth):
-                    Text("切換到 Apple Health 將會解除您的 Garmin Connect™ 綁定，確保後台不再接收 Garmin 數據。您的訓練紀錄將從 Apple Health 載入，目前顯示的紀錄會被新數據源的內容取代，請確認是否要繼續？")
+                    Text("Switching to Apple Health will unbind your Garmin Connect™ connection and ensure the backend no longer receives Garmin data. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content. Do you want to continue?")
                 case (.appleHealth, .garmin):
-                    Text("切換到 Garmin Connect™ 需要進行授權流程。您將被重定向到 Garmin 網站進行登入和授權。授權成功後，您的訓練紀錄將從 Garmin Connect™ 載入，目前顯示的紀錄會被新數據源的內容取代。")
+                    Text("Switching to Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.")
                 case (_, .unbound):
-                    Text("切換到尚未綁定狀態將會清除所有本地運動數據。您稍後可以在個人資料頁面中重新選擇和連接數據來源。")
+                    Text("Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.")
                 default:
-                    Text("確認要進行此操作嗎？")
+                    Text("Are you sure you want to proceed with this operation?")
                 }
             }
         }
@@ -582,7 +582,7 @@ struct UserProfileView: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                                 .font(.caption)
-                            Text("使用中")
+                            Text(NSLocalizedString("datasource.connected", comment: "Connected"))
                                 .font(.caption)
                                 .foregroundColor(.green)
                         }
@@ -609,11 +609,11 @@ struct UserProfileView: View {
                 // 操作提示
                 HStack {
                     if isCurrentSource {
-                        Text("目前使用的數據源")
+                        Text("Currently active data source")
                             .font(.subheadline)
                             .foregroundColor(.green)
                     } else {
-                        Text(isUnbound ? "選擇此數據源" : "切換到此數據源")
+                        Text(isUnbound ? NSLocalizedString("datasource.connect", comment: "Connect") : "Switch to this data source")
                             .font(.subheadline)
                             .foregroundColor(.primary)
                     }

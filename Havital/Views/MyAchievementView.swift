@@ -23,7 +23,7 @@ struct SectionTitleWithInfo: View {
             }
             .if(!useSheet) { view in
                 view.alert(title, isPresented: $showingInfo) {
-                    Button("了解", role: .cancel) {}
+                    Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {}
                 } message: {
                     Text(explanation)
                 }
@@ -89,8 +89,8 @@ struct MyAchievementView: View {
                     // Weekly Volume Chart Section - 週跑量趨勢圖
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(
-                            title: "週跑量趨勢",
-                            explanation: "顯示您每週的跑步里程數變化，幫助您掌握訓練量的變化趨勢和調整訓練計劃。"
+                            title: NSLocalizedString("performance.weekly_volume_trend", comment: "Weekly Volume Trend"),
+                            explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
                         )
                         .padding(.horizontal)
                         
@@ -115,7 +115,7 @@ struct MyAchievementView: View {
                 .padding(.vertical)
             }
             .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("表現數據")
+            .navigationTitle(NSLocalizedString("performance.title", comment: "Performance"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -229,7 +229,7 @@ struct HRVChartSection: View {
                 
             case .unbound:
                 // 未綁定數據源
-                EmptyDataSourceView(message: "請選擇數據來源以查看 HRV 趨勢")
+                EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_hrv", comment: "Please select a data source to view HRV trends"))
                     .padding()
             }
         }
@@ -268,7 +268,7 @@ struct RestingHeartRateChartSection: View {
                 
             case .unbound:
                 // 未綁定數據源
-                EmptyDataSourceView(message: "請選擇數據來源以查看靜息心率趨勢")
+                EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
                     .padding()
             }
         }
@@ -619,15 +619,15 @@ struct SharedHealthDataChartView: View {
     
     private var loadingMessage: String {
         switch chartType {
-        case .hrv: return "載入 HRV 數據中..."
-        case .restingHeartRate: return "載入靜息心率數據中..."
+        case .hrv: return NSLocalizedString("performance.loading_hrv", comment: "Loading HRV data...")
+        case .restingHeartRate: return NSLocalizedString("performance.loading_resting_hr", comment: "Loading resting heart rate data...")
         }
     }
     
     private var noDataMessage: String {
         switch chartType {
-        case .hrv: return "無 HRV 數據"
-        case .restingHeartRate: return "無靜息心率數據"
+        case .hrv: return NSLocalizedString("performance.no_hrv_data", comment: "No HRV data")
+        case .restingHeartRate: return NSLocalizedString("performance.no_resting_hr_data", comment: "No resting heart rate data")
         }
     }
     
@@ -640,8 +640,8 @@ struct SharedHealthDataChartView: View {
     
     private var chartTitle: String {
         switch chartType {
-        case .hrv: return "心率變異性 (HRV) 趨勢"
-        case .restingHeartRate: return "睡眠靜息心率"
+        case .hrv: return NSLocalizedString("performance.hrv_title", comment: "Heart Rate Variability (HRV) Trend")
+        case .restingHeartRate: return NSLocalizedString("performance.resting_hr_title", comment: "Sleep Resting Heart Rate")
         }
     }
     
@@ -658,7 +658,7 @@ struct SharedHealthDataChartView: View {
                 if sharedHealthDataManager.isRefreshing {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("更新中...")
+                    Text(NSLocalizedString("performance.updating", comment: "Updating..."))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 } else if usingFallback {
@@ -785,7 +785,7 @@ struct SharedHealthDataChartView: View {
                 isLoadingChartData = false
                 
                 if newHealthData.isEmpty {
-                    chartError = "無法載入健康數據"
+                    chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "Unable to load chart data")
                 }
             }
         } catch {
@@ -837,7 +837,7 @@ struct APIBasedHRVChartView: View {
     var body: some View {
         VStack {
             if isLoading {
-                ProgressView("載入 HRV 數據中...")
+                ProgressView(NSLocalizedString("performance.loading_hrv", comment: "Loading HRV data..."))
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else if let error = error, !usingFallback {
                 if fallbackToHealthKit {
@@ -924,7 +924,7 @@ struct APIBasedHRVChartView: View {
             error = nil
         } else if healthData.isEmpty {
             // 只有在沒有現有數據時才設為錯誤狀態
-            error = "無法載入 HRV 數據"
+            error = NSLocalizedString("performance.no_hrv_data", comment: "No HRV data")
         }
     }
     
@@ -999,13 +999,13 @@ struct APIBasedRestingHeartRateChartView: View {
     var body: some View {
         VStack {
             if isLoading {
-                ProgressView("載入靜息心率數據中...")
+                ProgressView(NSLocalizedString("performance.loading_resting_hr", comment: "Loading resting heart rate data..."))
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else if let error = error {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundColor(.orange)
-                    Text("載入失敗")
+                    Text(NSLocalizedString("performance.load_failed", comment: "Load failed"))
                         .font(.headline)
                     Text(error)
                         .font(.caption)

@@ -20,7 +20,7 @@ struct HeartRateZoneInfoView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // 說明文字
-                    Text("心率區間使用心率儲備（HRR）方法計算，提供更個人化的訓練強度區間。")
+                    Text(NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .padding(.horizontal)
@@ -29,12 +29,12 @@ struct HeartRateZoneInfoView: View {
                     // 心率設定資訊
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("目前設定")
+                            Text(NSLocalizedString("hr_zone.current_settings", comment: "Current Settings"))
                                 .font(.headline)
                             
                             Spacer()
                             
-                            Button(isEditing ? "取消" : "編輯") {
+                            Button(isEditing ? NSLocalizedString("common.cancel", comment: "Cancel") : NSLocalizedString("common.edit", comment: "Edit")) {
                                 if isEditing {
                                     // 取消編輯，恢復原始值
                                     loadCurrentValues()
@@ -49,10 +49,10 @@ struct HeartRateZoneInfoView: View {
                             // 編輯模式
                             VStack(spacing: 12) {
                                 HStack {
-                                    Text("最大心率")
+                                    Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
                                         .font(.subheadline)
                                     Spacer()
-                                    TextField("最大心率 (bpm)", text: $maxHeartRate)
+                                    TextField(NSLocalizedString("hr_zone.max_hr_placeholder", comment: "Max Heart Rate (bpm)"), text: $maxHeartRate)
                                         .keyboardType(.numberPad)
                                         .multilineTextAlignment(.trailing)
                                         .frame(width: 80)
@@ -67,10 +67,10 @@ struct HeartRateZoneInfoView: View {
                                 .padding(.horizontal)
                                 
                                 HStack {
-                                    Text("靜息心率")
+                                    Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
                                         .font(.subheadline)
                                     Spacer()
-                                    TextField("靜息心率 (bpm)", text: $restingHeartRate)
+                                    TextField(NSLocalizedString("hr_zone.resting_hr_placeholder", comment: "Resting Heart Rate (bpm)"), text: $restingHeartRate)
                                         .keyboardType(.numberPad)
                                         .multilineTextAlignment(.trailing)
                                         .frame(width: 80)
@@ -89,7 +89,7 @@ struct HeartRateZoneInfoView: View {
                                         ProgressView()
                                             .progressViewStyle(CircularProgressViewStyle())
                                     } else {
-                                        Text("儲存設定")
+                                        Text(NSLocalizedString("hr_zone.save_settings", comment: "Save Settings"))
                                     }
                                 }
                                 .frame(maxWidth: .infinity)
@@ -126,18 +126,18 @@ struct HeartRateZoneInfoView: View {
                     
                     // 心率區間詳情
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("心率區間詳情")
+                        Text(NSLocalizedString("hr_zone.details", comment: "Heart Rate Zone Details"))
                             .font(.headline)
                             .padding(.horizontal)
                         
                         if isLoading {
-                            ProgressView("載入中...")
+                            ProgressView(NSLocalizedString("hr_zone.loading", comment: "Loading..."))
                                 .frame(maxWidth: .infinity, minHeight: 100)
                         } else {
                             ForEach(zones, id: \.zone) { zone in
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
-                                        Text("區間 \(zone.zone): \(zone.name)")
+                                        Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
                                             .font(.subheadline)
                                             .fontWeight(.medium)
                                         
@@ -153,7 +153,7 @@ struct HeartRateZoneInfoView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     
-                                    Text("好處: \(zone.benefit)")
+                                    Text(String(format: NSLocalizedString("hr_zone.benefit", comment: "Benefit"), zone.benefit))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -168,7 +168,7 @@ struct HeartRateZoneInfoView: View {
                     .padding(.vertical, 8)
                 }
             }
-            .navigationTitle("心率區間資訊")
+            .navigationTitle(NSLocalizedString("hr_zone.info", comment: "Heart Rate Zone Info"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -180,20 +180,20 @@ struct HeartRateZoneInfoView: View {
                     }
                 }
             }
-            .alert("提示", isPresented: $showingAlert) {
-                Button("確定", role: .cancel) { }
+            .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
+                Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
             } message: {
                 Text(alertMessage)
             }
-            .alert("最大心率", isPresented: $showingMaxHRInfo) {
-                Button("了解", role: .cancel) { }
+            .alert(NSLocalizedString("hr_zone.max_hr_info_title", comment: "Max Heart Rate"), isPresented: $showingMaxHRInfo) {
+                Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
             } message: {
-                Text("最大心率是您在極限運動時能達到的最高心率。\n\n一般可以使用 220-年齡 的公式來估算，但實際值可能因人而異。\n\n建議範圍：100-250 bpm")
+                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
             }
-            .alert("靜息心率", isPresented: $showingRestingHRInfo) {
-                Button("了解", role: .cancel) { }
+            .alert(NSLocalizedString("hr_zone.resting_hr_info_title", comment: "Resting Heart Rate"), isPresented: $showingRestingHRInfo) {
+                Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
             } message: {
-                Text("靜息心率是您完全放鬆時（如剛起床時）測量到的心率。\n\n一般成人的靜息心率在 60-100 bpm 之間，運動員可能更低。\n\n建議範圍：30-120 bpm")
+                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
             }
             .task {
                 await loadZoneData()
@@ -232,26 +232,26 @@ struct HeartRateZoneInfoView: View {
     
     private func saveHeartRateZones() {
         guard let maxHR = Int(maxHeartRate), let restingHR = Int(restingHeartRate) else {
-            alertMessage = "請輸入有效的心率數值"
+            alertMessage = NSLocalizedString("hr_zone.invalid_input", comment: "Invalid input")
             showingAlert = true
             return
         }
         
         // 驗證輸入值
         if maxHR <= restingHR {
-            alertMessage = "最大心率必須大於靜息心率"
+            alertMessage = NSLocalizedString("hr_zone.max_greater_than_resting", comment: "Max greater than resting")
             showingAlert = true
             return
         }
         
         if maxHR > 250 || maxHR < 100 {
-            alertMessage = "最大心率應在 100-250 bpm 之間"
+            alertMessage = NSLocalizedString("hr_zone.max_hr_range", comment: "Max HR range")
             showingAlert = true
             return
         }
         
         if restingHR < 30 || restingHR > 120 {
-            alertMessage = "靜息心率應在 30-120 bpm 之間"
+            alertMessage = NSLocalizedString("hr_zone.resting_hr_range", comment: "Resting HR range")
             showingAlert = true
             return
         }
@@ -282,7 +282,7 @@ struct HeartRateZoneInfoView: View {
             } catch {
                 await MainActor.run {
                     isSaving = false
-                    alertMessage = "儲存失敗: \(error.localizedDescription)"
+                    alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
                     showingAlert = true
                 }
             }

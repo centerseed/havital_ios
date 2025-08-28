@@ -265,3 +265,164 @@
 "alert.delete_workout_confirm" = "Are you sure you want to delete this workout?";
 "alert.disconnect_source" = "Disconnect Data Source";
 "alert.disconnect_confirm" = "Are you sure you want to disconnect %@?";
+
+// MARK: - Additional Training Strings
+"training.current_week_progress" = "Current training progress has entered week";
+"training.paceriz_plan_description" = "Paceriz will generate a personalized weekly schedule based on your training condition. Let's check this week's training status and generate a new schedule!";
+"training.get_weekly_review" = "Get Weekly Review ";
+"training.daily_training" = "Daily Training";
+"training.cycle_completed_message" = "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!";
+"training.set_new_goal" = "Set New Goal";
+"training.loading_plan" = "Loading training plan...";
+"training.share_schedule" = "Share Schedule";
+"training.overview" = "Training Overview";
+"training.progress" = "Training Progress";
+"training.modify_schedule" = "Modify Schedule";
+"training.cannot_load_overview" = "Unable to load training plan overview";
+"training.cannot_load_plan" = "Unable to load training plan";
+"training.week_schedule" = "Week Schedule";
+"training.no_schedule_generated" = "This week's schedule has not been generated yet";
+"training.generate_review_first" = "Please generate a weekly review first to get personalized training recommendations";
+"training.loading_records" = "Loading training records...";
+"training.loading_more_records" = "Loading more records...";
+"training.pace_zone" = "Pace Zone";
+
+// MARK: - Common Additional
+"common.generating" = "Generating...";
+"common.later" = "Later";
+"common.reload" = "Reload";
+"common.ok" = "OK";
+
+// MARK: - Workout Details
+"workout.details" = "Workout Details";
+"workout.start_time" = "Start Time";
+"workout.reupload_success" = "Workout successfully re-uploaded!";
+"workout.upload_success_insufficient_hr" = "Workout uploaded but insufficient heart rate data.";
+"workout.reupload_error" = "Error occurred during re-upload:";
+"workout.reupload_failed" = "Re-upload failed, please try again later.";
+"workout.provider" = "Provider";
+"workout.activity_type" = "Activity Type";
+"workout.resync_data" = "Resync Data";
+"workout.force_reupload_description" = "Force re-upload this workout record, including retry fetching heart rate data";
+
+// MARK: - Record Additional
+"record.avg_heart_rate" = "Average Heart Rate";
+"record.max_heart_rate" = "Max Heart Rate";
+"record.no_records_description" = "No workout records available, they will appear here after you start exercising";
+
+// MARK: - Performance
+"performance.weekly_volume_trend" = "Weekly Volume Trend";
+"performance.weekly_volume_trend_description" = "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.";
+"performance.select_data_source_hrv" = "Please select a data source to view HRV trends";
+"performance.select_data_source_resting_hr" = "Please select a data source to view resting heart rate trends";
+
+// MARK: - Error Additional
+"error.load_failed" = "Load Error";
+"error.network_connection_failed" = "Network connection failed, please try again later";
+"error.network_or_server_error" = "Network connection or server error, please check your network connection and reload";
+"error.server_unavailable" = "Server temporarily unable to provide data";
+"error.cannot_get_health_data" = "Unable to get health data";
+"error.cannot_load_health_data" = "Unable to load health data";
+
+// MARK: - Alert Additional
+"alert.garmin_disconnected" = "Garmin Connection Interrupted";
+"alert.reconnect_garmin" = "Reconnect Garmin";
+"alert.switch_to_apple_health" = "Switch to Apple Health";
+"alert.garmin_not_connected_message" = "Your account is set to use Garmin data, but is not currently connected to your Garmin account. Please choose to reconnect Garmin or switch back to Apple Health.";
+
+// MARK: - Performance Chart Strings
+"performance.loading_hrv" = "Loading HRV data...";
+"performance.loading_resting_hr" = "Loading resting heart rate data...";
+"performance.no_hrv_data" = "No HRV data";
+"performance.no_resting_hr_data" = "No resting heart rate data";
+"performance.hrv_title" = "Heart Rate Variability (HRV) Trend";
+"performance.resting_hr_title" = "Sleep Resting Heart Rate";
+"performance.updating" = "Updating...";
+"performance.load_failed" = "Load failed";
+"performance.cannot_load_chart_data" = "Unable to load chart data";
+
+// MARK: - Training Progress Strings  
+"training.current_progress" = "Current Progress";
+"training.current_week_of_total" = "Week %d / Total %d weeks";
+"training.current_stage" = "Current Stage: %@";
+"training.week_range" = "Week %d-%d";
+"training.cannot_get_progress" = "Unable to get current training progress";
+"training.target_race" = "Target Race";
+"training.race_assessment" = "Race Assessment";  
+"training.training_stages" = "Training Stages";
+"training.cannot_get_stages" = "Unable to get training stage information";
+"training.week_number" = "Week %d";
+"training.view_schedule" = "View Schedule";
+"training.training_review" = "Training Review";
+"training.generate_schedule" = "Generate Schedule";
+
+// MARK: - Training Overview Strings
+"training.total_weeks" = "Total weeks: %d weeks";
+"training.goal_assessment" = "Goal Assessment"; 
+"training.plan_highlights" = "Plan Highlights";
+"training.training_stages" = "Training Stages";
+"training.updating_plan" = "Updating training plan...";
+"training.plan_regenerated" = "Training plan has been regenerated based on latest goals";
+"training.update_failed" = "Failed to update training plan: %@";
+
+// MARK: - Onboarding Strings
+"onboarding.welcome_to_paceriz" = "Welcome to Paceriz!";
+"onboarding.ready_to_start" = "Ready to start your running journey? Paceriz will create a scientific training plan tailored to your personal goals and fitness level, helping you run further, faster, and healthier.";
+"onboarding.training_focus" = "Our training plans incorporate professional running knowledge, focusing on:";
+"onboarding.goal_oriented" = "Goal-Oriented";
+"onboarding.goal_oriented_desc" = "Whether your goal is completing your first 5K, challenging a marathon, or improving your personal record, we'll plan a clear path for you.";
+"onboarding.progressive" = "Progressive Training";
+"onboarding.progressive_desc" = "Through reasonable arrangement of training intensity and volume, gradually improve your fitness and effectively prevent sports injuries.";
+"onboarding.heart_rate_guided" = "Heart Rate Guided";
+"onboarding.heart_rate_guided_desc" = "Learn to use heart rate zones for training, making each run more efficient and maximizing your training results.";
+"onboarding.setup_guide" = "Next, we'll guide you through some simple settings to better understand your needs. Let's get started!";
+"onboarding.start_setup" = "Start Setup";
+"onboarding.your_running_goal" = "Your Running Goal";
+"onboarding.goal_description" = "If you don't have a specific race, you can set a challenge goal for yourself, such as 'Complete first 5K' or 'Improve 10K speed'.";
+"onboarding.goal_name_placeholder" = "Goal name (e.g., Taipei Marathon or My 5K Challenge)";
+"onboarding.goal_date" = "Goal Date";
+"onboarding.weeks_until_race" = "Weeks until race: %d";
+"onboarding.race_distance" = "Race Distance";
+"onboarding.select_distance" = "Select Distance";
+"onboarding.target_finish_time" = "Target Finish Time";
+"onboarding.target_time_description" = "Set a time you hope to achieve.";
+"onboarding.hours" = "hours";
+"onboarding.minutes" = "minutes";
+"onboarding.average_pace" = "Average pace: %@ /km";
+"onboarding.next_step" = "Next Step";
+"onboarding.set_training_goal" = "Set Training Goal";
+"onboarding.back" = "Back";
+"onboarding.my_training_goal" = "My Training Goal";
+"onboarding.target_created" = "Training goal created";
+
+// MARK: - Distance Labels
+"distance.5k" = "5K";
+"distance.10k" = "10K"; 
+"distance.half_marathon" = "Half Marathon";
+"distance.full_marathon" = "Full Marathon";
+
+// MARK: - Heart Rate Zone Strings
+"hr_zone.settings" = "Heart Rate Zone Settings";
+"hr_zone.description" = "Heart rate zones are calculated using the Heart Rate Reserve (HRR) method, providing more personalized training intensity zones.";
+"hr_zone.max_hr" = "Max Heart Rate";
+"hr_zone.resting_hr" = "Resting Heart Rate";
+"hr_zone.max_hr_placeholder" = "Max Heart Rate (bpm)";
+"hr_zone.resting_hr_placeholder" = "Resting Heart Rate (bpm)";
+"hr_zone.preview" = "Heart Rate Zone Preview";
+"hr_zone.zone" = "Zone %d: %@";
+"hr_zone.save_settings" = "Save Settings";
+"hr_zone.current_settings" = "Current Settings";
+"hr_zone.info" = "Heart Rate Zone Info";
+"hr_zone.details" = "Heart Rate Zone Details";
+"hr_zone.loading" = "Loading...";
+"hr_zone.benefit" = "Benefit: %@";
+"hr_zone.max_hr_info_title" = "Max Heart Rate";
+"hr_zone.max_hr_info_message" = "Max heart rate is the highest heart rate you can achieve during extreme exercise.\n\nGenerally, you can use the formula 220-age to estimate, but actual values may vary from person to person.\n\nRecommended range: 100-250 bpm";
+"hr_zone.resting_hr_info_title" = "Resting Heart Rate";
+"hr_zone.resting_hr_info_message" = "Resting heart rate is your heart rate when you are completely relaxed (such as when you just wake up).\n\nGeneral adults have a resting heart rate between 60-100 bpm, athletes may be lower.\n\nRecommended range: 30-120 bpm";
+"hr_zone.invalid_input" = "Please enter valid heart rate values";
+"hr_zone.max_greater_than_resting" = "Max heart rate must be greater than resting heart rate";
+"hr_zone.max_hr_range" = "Max heart rate should be between 100-250 bpm";
+"hr_zone.resting_hr_range" = "Resting heart rate should be between 30-120 bpm";
+"hr_zone.save_failed" = "Save failed: %@";
+"hr_zone.understand" = "Understand";

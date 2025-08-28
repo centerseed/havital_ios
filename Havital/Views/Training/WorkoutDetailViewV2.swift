@@ -20,8 +20,8 @@ struct WorkoutDetailViewV2: View {
         
         var title: String {
             switch self {
-            case .heartRate: return "心率區間"
-            case .pace: return "配速區間"
+            case .heartRate: return NSLocalizedString("training.heart_rate_zone", comment: "HR Zone")
+            case .pace: return NSLocalizedString("training.pace_zone", comment: "Pace Zone")
             }
         }
     }
@@ -96,7 +96,7 @@ struct WorkoutDetailViewV2: View {
         .refreshable {
             await viewModel.refreshWorkoutDetail()
         }
-        .navigationTitle("運動詳情")
+        .navigationTitle(NSLocalizedString("workout.details", comment: "Workout Details"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -114,7 +114,7 @@ struct WorkoutDetailViewV2: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("關閉") {
+                Button(NSLocalizedString("common.close", comment: "Close")) {
                     dismiss()
                 }
             }
@@ -166,25 +166,25 @@ struct WorkoutDetailViewV2: View {
             
             // 運動數據網格
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                DataItem(title: "距離", value: viewModel.distance ?? "-", icon: "location")
-                DataItem(title: "時間", value: viewModel.duration, icon: "clock")
-                DataItem(title: "卡路里", value: viewModel.calories ?? "-", icon: "flame")
+                DataItem(title: NSLocalizedString("record.distance", comment: "Distance"), value: viewModel.distance ?? "-", icon: "location")
+                DataItem(title: NSLocalizedString("record.duration", comment: "Duration"), value: viewModel.duration, icon: "clock")
+                DataItem(title: NSLocalizedString("record.calories", comment: "Calories"), value: viewModel.calories ?? "-", icon: "flame")
                 
                 if let pace = viewModel.pace {
-                    DataItem(title: "配速", value: pace, icon: "speedometer")
+                    DataItem(title: NSLocalizedString("record.pace", comment: "Pace"), value: pace, icon: "speedometer")
                 }
                 
                 if let avgHR = viewModel.averageHeartRate {
-                    DataItem(title: "平均心率", value: avgHR, icon: "heart")
+                    DataItem(title: NSLocalizedString("record.avg_heart_rate", comment: "Average Heart Rate"), value: avgHR, icon: "heart")
                 }
                 
                 if let maxHR = viewModel.maxHeartRate {
-                    DataItem(title: "最大心率", value: maxHR, icon: "heart.fill")
+                    DataItem(title: NSLocalizedString("record.max_heart_rate", comment: "Max Heart Rate"), value: maxHR, icon: "heart.fill")
                 }
             }
             
             // 日期時間
-            Text("開始時間: \(formatDate(viewModel.workout.startDate))")
+            Text(NSLocalizedString("workout.start_time", comment: "Start Time") + ": \(formatDate(viewModel.workout.startDate))")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -218,7 +218,7 @@ struct WorkoutDetailViewV2: View {
                 
                 switch result {
                 case .success(let hasHeartRate):
-                    reuploadErrorMessage = hasHeartRate ? "運動記錄已成功重新上傳！" : "運動記錄已上傳，但心率資料不足。"
+                    reuploadErrorMessage = hasHeartRate ? NSLocalizedString("workout.reupload_success", comment: "Workout successfully re-uploaded!") : NSLocalizedString("workout.upload_success_insufficient_hr", comment: "Workout uploaded but insufficient heart rate data.")
                     // 重新載入詳細資料
                     Task {
                         await viewModel.refreshWorkoutDetail()
@@ -236,7 +236,7 @@ struct WorkoutDetailViewV2: View {
         } catch {
             await MainActor.run {
                 isReuploadingWorkout = false
-                reuploadErrorMessage = "重新上傳時發生錯誤：\(error.localizedDescription)"
+                reuploadErrorMessage = NSLocalizedString("workout.reupload_error", comment: "Error occurred during re-upload:") + " \(error.localizedDescription)"
             }
         }
     }
@@ -250,12 +250,12 @@ struct WorkoutDetailViewV2: View {
         await MainActor.run {
             isReuploadingWorkout = false
             if result {
-                reuploadErrorMessage = "運動記錄已上傳（心率資料不足）"
+                reuploadErrorMessage = NSLocalizedString("workout.upload_success_insufficient_hr", comment: "Workout uploaded (insufficient heart rate data)")
                 Task {
                     await viewModel.refreshWorkoutDetail()
                 }
             } else {
-                reuploadErrorMessage = "重新上傳失敗，請稍後再試。"
+                reuploadErrorMessage = NSLocalizedString("workout.reupload_failed", comment: "Re-upload failed, please try again later.")
             }
         }
     }
@@ -264,13 +264,13 @@ struct WorkoutDetailViewV2: View {
     
     private var sourceInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("數據來源")
+            Text(NSLocalizedString("profile.data_sources", comment: "Data Sources"))
                 .font(.headline)
                 .fontWeight(.semibold)
             
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("提供商")
+                    Text(NSLocalizedString("workout.provider", comment: "Provider"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     HStack(spacing: 8) {
@@ -293,7 +293,7 @@ struct WorkoutDetailViewV2: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("活動類型")
+                    Text(NSLocalizedString("workout.activity_type", comment: "Activity Type"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(viewModel.workout.activityType.workoutTypeDisplayName())
@@ -308,10 +308,10 @@ struct WorkoutDetailViewV2: View {
                 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("重新同步資料")
+                        Text(NSLocalizedString("workout.resync_data", comment: "Resync Data"))
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("強制重新上傳此運動記錄，包含重試獲取心率資料")
+                        Text(NSLocalizedString("workout.force_reupload_description", comment: "Force re-upload this workout record, including retry fetching heart rate data"))
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .lineLimit(2)

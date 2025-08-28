@@ -16,16 +16,16 @@ struct HRRHeartRateZoneEditorView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("心率區間設定")) {
-                    Text("心率區間使用心率儲備（HRR）方法計算，提供更個人化的訓練強度區間。")
+                Section(header: Text(NSLocalizedString("hr_zone.settings", comment: "Heart Rate Zone Settings"))) {
+                    Text(NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .padding(.vertical, 8)
                 }
                 
-                Section(header: Text("最大心率")) {
+                Section(header: Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))) {
                     HStack {
-                        TextField("最大心率 (bpm)", text: $maxHeartRate)
+                        TextField(NSLocalizedString("hr_zone.max_hr_placeholder", comment: "Max Heart Rate (bpm)"), text: $maxHeartRate)
                             .keyboardType(.numberPad)
                         
                         Button(action: {
@@ -44,9 +44,9 @@ struct HRRHeartRateZoneEditorView: View {
                     }
                 }
                 
-                Section(header: Text("靜息心率")) {
+                Section(header: Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))) {
                     HStack {
-                        TextField("靜息心率 (bpm)", text: $restingHeartRate)
+                        TextField(NSLocalizedString("hr_zone.resting_hr_placeholder", comment: "Resting Heart Rate (bpm)"), text: $restingHeartRate)
                             .keyboardType(.numberPad)
                         
                         Button(action: {
@@ -68,12 +68,12 @@ struct HRRHeartRateZoneEditorView: View {
                 // 心率區間預覽
                 if let maxHR = Int(maxHeartRate), let restingHR = Int(restingHeartRate),
                     maxHR > restingHR, maxHR > 0, restingHR > 0 {
-                    Section(header: Text("心率區間預覽")) {
+                    Section(header: Text(NSLocalizedString("hr_zone.preview", comment: "Heart Rate Zone Preview"))) {
                         let zones = HeartRateZonesManager.shared.calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
                         
                         ForEach(zones, id: \.zone) { zone in
                             HStack {
-                                Text("區間 \(zone.zone): \(zone.name)")
+                                Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
                                     .font(.subheadline)
                                 
                                 Spacer()
@@ -92,62 +92,62 @@ struct HRRHeartRateZoneEditorView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                         } else {
-                            Text("儲存設定")
+                            Text(NSLocalizedString("hr_zone.save_settings", comment: "Save Settings"))
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .disabled(isLoading || maxHeartRate.isEmpty || restingHeartRate.isEmpty)
                 }
             }
-            .navigationTitle("心率區間設定")
+            .navigationTitle(NSLocalizedString("hr_zone.settings", comment: "Heart Rate Zone Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(NSLocalizedString("common.cancel", comment: "Cancel")) {
                         dismiss()
                     }
                 }
             }
-            .alert("提示", isPresented: $showingAlert) {
-                Button("確定", role: .cancel) { }
+            .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
+                Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
             } message: {
                 Text(alertMessage)
             }
-            .alert("最大心率", isPresented: $showingMaxHRInfo) {
-                Button("了解", role: .cancel) { }
+            .alert(NSLocalizedString("hr_zone.max_hr_info_title", comment: "Max Heart Rate"), isPresented: $showingMaxHRInfo) {
+                Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
             } message: {
-                Text("最大心率是您在極限運動時能達到的最高心率。\n\n一般可以使用 220-年齡 的公式來估算，但實際值可能因人而異。\n\n建議範圍：100-220 bpm")
+                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
             }
-            .alert("靜息心率", isPresented: $showingRestingHRInfo) {
-                Button("了解", role: .cancel) { }
+            .alert(NSLocalizedString("hr_zone.resting_hr_info_title", comment: "Resting Heart Rate"), isPresented: $showingRestingHRInfo) {
+                Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
             } message: {
-                Text("靜息心率是您完全放鬆時（如剛起床時）測量到的心率。\n\n一般成人的靜息心率在 50-80 bpm 之間，運動員可能更低。\n\n建議範圍：30-80 bpm")
+                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
             }
         }
     }
     
     private func saveHeartRateZones() {
         guard let maxHR = Int(maxHeartRate), let restingHR = Int(restingHeartRate) else {
-            alertMessage = "請輸入有效的心率數值"
+            alertMessage = NSLocalizedString("hr_zone.invalid_input", comment: "Invalid input")
             showingAlert = true
             return
         }
         
         // 驗證輸入值
         if maxHR <= restingHR {
-            alertMessage = "最大心率必須大於靜息心率"
+            alertMessage = NSLocalizedString("hr_zone.max_greater_than_resting", comment: "Max greater than resting")
             showingAlert = true
             return
         }
         
         if maxHR > 250 || maxHR < 100 {
-            alertMessage = "最大心率應在 100-250 bpm 之間"
+            alertMessage = NSLocalizedString("hr_zone.max_hr_range", comment: "Max HR range")
             showingAlert = true
             return
         }
         
         if restingHR < 30 || restingHR > 100 {
-            alertMessage = "靜息心率應在 30-100 bpm 之間"
+            alertMessage = NSLocalizedString("hr_zone.resting_hr_range", comment: "Resting HR range")
             showingAlert = true
             return
         }
@@ -174,7 +174,7 @@ struct HRRHeartRateZoneEditorView: View {
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    alertMessage = "儲存失敗: \(error.localizedDescription)"
+                    alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
                     showingAlert = true
                 }
             }

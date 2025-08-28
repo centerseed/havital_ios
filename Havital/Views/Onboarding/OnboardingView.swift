@@ -12,12 +12,14 @@ class OnboardingViewModel: ObservableObject {
     @Published var error: String?
     // @Published var navigateToTrainingDays = false // 這個狀態似乎沒有直接在這個 View 中使用來導航，而是 createTarget 成功後，間接觸發 showPersonalBest
     
-    let availableDistances = [
-        "5": "5公里",
-        "10": "10公里",
-        "21.0975": "半程馬拉松",
-        "42.195": "全程馬拉松"
-    ]
+    var availableDistances: [String: String] {
+        [
+            "5": NSLocalizedString("distance.5k", comment: "5K"),
+            "10": NSLocalizedString("distance.10k", comment: "10K"),
+            "21.0975": NSLocalizedString("distance.half_marathon", comment: "Half Marathon"),
+            "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
+        ]
+    }
     
     var remainingWeeks: Int {
         let calendar = Calendar.current
@@ -45,7 +47,7 @@ class OnboardingViewModel: ObservableObject {
             let target = Target(
                 id: UUID().uuidString,
                 type: "race_run", // 或許可以考慮增加 "personal_goal" 類型
-                name: raceName.isEmpty ? "我的訓練目標" : raceName, // 如果名稱為空，給一個預設值
+                name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName, // 如果名稱為空，給一個預設值
                 distanceKm: Int(Double(selectedDistance) ?? 42.195),
                 targetTime: targetHours * 3600 + targetMinutes * 60,
                 targetPace: targetPace,
@@ -55,7 +57,7 @@ class OnboardingViewModel: ObservableObject {
             )
             
             try await UserService.shared.createTarget(target)
-            print("訓練目標已建立")
+            print(NSLocalizedString("onboarding.target_created", comment: "Training goal created"))
             isLoading = false
             return true
         } catch {
@@ -75,21 +77,21 @@ struct OnboardingView: View {
     var body: some View {
         VStack {
             Form {
-                Section(header: Text("您的跑步目標"), footer: Text("如果您沒有特定賽事，可以為自己設定一個挑戰目標，例如「完成第一個5公里」或「提升10公里速度」。")) {
-                    TextField("目標名稱 (例如：台北馬拉松 或 我的5K挑戰)", text: $viewModel.raceName)
+                Section(header: Text(NSLocalizedString("onboarding.your_running_goal", comment: "Your Running Goal")), footer: Text(NSLocalizedString("onboarding.goal_description", comment: "Goal description"))) {
+                    TextField(NSLocalizedString("onboarding.goal_name_placeholder", comment: "Goal name placeholder"), text: $viewModel.raceName)
                         .textContentType(.name)
                     
-                    DatePicker("目標日期",
+                    DatePicker(NSLocalizedString("onboarding.goal_date", comment: "Goal Date"),
                               selection: $viewModel.raceDate,
                               in: Date()...,
                               displayedComponents: .date)
                     
-                    Text("距離比賽還有 \(viewModel.remainingWeeks) 週")
+                    Text(String(format: NSLocalizedString("onboarding.weeks_until_race", comment: "Weeks until race"), viewModel.remainingWeeks))
                         .foregroundColor(.secondary)
                 }
                 
-                Section(header: Text("比賽距離")) {
-                    Picker("選擇距離", selection: $viewModel.selectedDistance) {
+                Section(header: Text(NSLocalizedString("onboarding.race_distance", comment: "Race Distance"))) {
+                    Picker(NSLocalizedString("onboarding.select_distance", comment: "Select Distance"), selection: $viewModel.selectedDistance) {
                         ForEach(Array(viewModel.availableDistances.keys.sorted()), id: \.self) { key in
                             Text(viewModel.availableDistances[key] ?? key)
                                 .tag(key)
@@ -98,7 +100,7 @@ struct OnboardingView: View {
                     .pickerStyle(.menu)
                 }
                 
-                Section(header: Text("目標完賽時間"), footer: Text("設定一個您期望達成的時間。")) {
+                Section(header: Text(NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time")), footer: Text(NSLocalizedString("onboarding.target_time_description", comment: "Target time description"))) {
                     HStack {
                         Picker("時", selection: $viewModel.targetHours) {
                             ForEach(0...6, id: \.self) { hour in
@@ -108,7 +110,7 @@ struct OnboardingView: View {
                         .pickerStyle(.wheel)
                         .frame(width: 100)
                         
-                        Text("時")
+                        Text(NSLocalizedString("onboarding.hours", comment: "hours"))
                         
                         Picker("分", selection: $viewModel.targetMinutes) {
                             ForEach(0..<60, id: \.self) { minute in
@@ -118,11 +120,11 @@ struct OnboardingView: View {
                         .pickerStyle(.wheel)
                         .frame(width: 100)
                         
-                        Text("分")
+                        Text(NSLocalizedString("onboarding.minutes", comment: "minutes"))
                     }
                     .padding(.vertical, 8)
                     
-                    Text("平均配速：\(viewModel.targetPace) /公里")
+                    Text(String(format: NSLocalizedString("onboarding.average_pace", comment: "Average pace"), viewModel.targetPace))
                         .foregroundColor(.secondary)
                 }
                 
@@ -148,7 +150,7 @@ struct OnboardingView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .frame(maxWidth: .infinity)
                     } else {
-                        Text("下一步")
+                        Text(NSLocalizedString("onboarding.next_step", comment: "Next Step"))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -168,11 +170,11 @@ struct OnboardingView: View {
                 EmptyView()
             }
         }
-        .navigationTitle("設定訓練目標")
+        .navigationTitle(NSLocalizedString("onboarding.set_training_goal", comment: "Set Training Goal"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("返回") {
+                Button(NSLocalizedString("onboarding.back", comment: "Back")) {
                     dismiss()
                 }
             }
@@ -189,7 +191,7 @@ struct OnboardingView: View {
                     if viewModel.isLoading {
                         ProgressView()
                     } else {
-                        Text("下一步")
+                        Text(NSLocalizedString("onboarding.next_step", comment: "Next Step"))
                     }
                 }
                 .disabled(viewModel.isLoading)

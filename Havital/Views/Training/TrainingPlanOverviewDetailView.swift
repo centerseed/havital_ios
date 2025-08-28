@@ -39,7 +39,7 @@ struct TrainingPlanOverviewDetailView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        Text("總週數: \(overview.totalWeeks)週")
+                        Text(String(format: NSLocalizedString("training.total_weeks", comment: "Total weeks: %d weeks"), overview.totalWeeks))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -68,7 +68,7 @@ struct TrainingPlanOverviewDetailView: View {
                     // Goal Evaluation Section
                     SectionCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "目標評估", systemImage: "target")
+                            SectionHeader(title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"), systemImage: "target")
                             
                             Text(overview.targetEvaluate)
                                 .font(.body)
@@ -82,7 +82,7 @@ struct TrainingPlanOverviewDetailView: View {
                     // Training Highlight Section
                     SectionCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "計劃亮點", systemImage: "sparkles")
+                            SectionHeader(title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"), systemImage: "sparkles")
                             
                             Text(overview.trainingHighlight)
                                 .font(.body)
@@ -96,7 +96,7 @@ struct TrainingPlanOverviewDetailView: View {
                     // Training Stages
                     SectionCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            SectionHeader(title: "訓練階段", systemImage: "chart.bar.fill")
+                            SectionHeader(title: NSLocalizedString("training.training_stages", comment: "Training Stages"), systemImage: "chart.bar.fill")
                             
                             ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
                                 let stage = overview.trainingStageDescription[index]
@@ -109,7 +109,7 @@ struct TrainingPlanOverviewDetailView: View {
                 .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
             }
             .overlay(alignment: .topTrailing) {
-                Button("完成") {
+                Button(NSLocalizedString("common.done", comment: "Done")) {
                     dismiss()
                 }
                 .foregroundColor(.blue)
@@ -178,7 +178,7 @@ struct TrainingPlanOverviewDetailView: View {
                         ProgressView()
                             .scaleEffect(1.5)
                         
-                        Text("正在更新訓練計劃...")
+                        Text(NSLocalizedString("training.updating_plan", comment: "Updating training plan..."))
                             .font(.headline)
                             .foregroundColor(.white)
                     }
@@ -266,7 +266,7 @@ struct TrainingPlanOverviewDetailView: View {
                     self.overview = updatedOverview
                     self.isUpdatingOverview = false
                     self.showUpdateStatus = true
-                    self.updateStatusMessage = "訓練計劃已根據最新目標重新產生"
+                    self.updateStatusMessage = NSLocalizedString("training.plan_regenerated", comment: "Training plan has been regenerated based on latest goals")
                     self.isUpdateSuccessful = true
                     self.hasTargetSaved = false  // 在更新完成後重置狀態
                     
@@ -287,7 +287,7 @@ struct TrainingPlanOverviewDetailView: View {
                 await MainActor.run {
                     self.isUpdatingOverview = false
                     self.showUpdateStatus = true
-                    self.updateStatusMessage = "更新訓練計劃失敗：\(error.localizedDescription)"
+                    self.updateStatusMessage = String(format: NSLocalizedString("training.update_failed", comment: "Failed to update training plan: %@"), error.localizedDescription)
                     self.isUpdateSuccessful = false
                 }
                 print("更新訓練計劃概覽失敗: \(error)")

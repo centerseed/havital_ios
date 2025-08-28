@@ -22,11 +22,11 @@ struct TrainingProgressView: View {
                 }
                 .padding()
             }
-            .navigationTitle("訓練計劃進度")
+            .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button(NSLocalizedString("common.done", comment: "Done")) {
                         dismiss()
                     }
                 }
@@ -40,12 +40,12 @@ struct TrainingProgressView: View {
         VStack(alignment: .leading, spacing: 12) {
             if let plan = viewModel.weeklyPlan, let currentWeek = viewModel.calculateCurrentTrainingWeek() {
                 HStack {
-                    Text("當前進度")
+                    Text(NSLocalizedString("training.current_progress", comment: "Current Progress"))
                         .font(.headline)
                     
                     Spacer()
                     
-                    Text("第 \(currentWeek) 週 / 共 \(plan.totalWeeks) 週")
+                    Text(String(format: NSLocalizedString("training.current_week_of_total", comment: "Week %d / Total %d weeks"), currentWeek, plan.totalWeeks))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -80,19 +80,19 @@ struct TrainingProgressView: View {
                             .fill(getStageColor(stageIndex: currentStage.index))
                             .frame(width: 12, height: 12)
                         
-                        Text("當前階段：\(currentStage.stageName)")
+                        Text(String(format: NSLocalizedString("training.current_stage", comment: "Current Stage: %@"), currentStage.stageName))
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
                         Spacer()
                         
-                        Text("第\(currentStage.weekStart)-\(currentStage.weekEnd)週")
+                        Text(String(format: NSLocalizedString("training.week_range", comment: "Week %d-%d"), currentStage.weekStart, currentStage.weekEnd))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
             } else {
-                Text("無法獲取當前訓練進度")
+                Text(NSLocalizedString("training.cannot_get_progress", comment: "Unable to get current training progress"))
                     .font(.body)
                     .foregroundColor(.secondary)
             }
@@ -105,7 +105,7 @@ struct TrainingProgressView: View {
     // 目標賽事卡片
     private func targetRaceCard(overview: TrainingPlanOverview) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("目標賽事")
+            Text(NSLocalizedString("training.target_race", comment: "Target Race"))
                 .font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
@@ -116,7 +116,7 @@ struct TrainingProgressView: View {
                 // 分隔線
                 Divider()
                 
-                Text("賽事評估")
+                Text(NSLocalizedString("training.race_assessment", comment: "Race Assessment"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .padding(.top, 4)
@@ -134,7 +134,7 @@ struct TrainingProgressView: View {
     // 訓練階段區塊
     private var trainingStagesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("訓練階段")
+            Text(NSLocalizedString("training.training_stages", comment: "Training Stages"))
                 .font(.headline)
             
             if let overview = viewModel.trainingOverview,
@@ -146,7 +146,7 @@ struct TrainingProgressView: View {
                     stageSection(stage: stage, index: index, isCurrentStage: isCurrentStage)
                 }
             } else {
-                Text("無法獲取訓練階段資訊")
+                Text(NSLocalizedString("training.cannot_get_stages", comment: "Unable to get training stage information"))
                     .font(.body)
                     .foregroundColor(.secondary)
             }
@@ -176,7 +176,7 @@ struct TrainingProgressView: View {
                     
                     Spacer()
                     
-                    Text("第\(stage.weekStart)-\(stage.weekEnd ?? stage.weekStart)週")
+                    Text(String(format: NSLocalizedString("training.week_range", comment: "Week %d-%d"), stage.weekStart, stage.weekEnd ?? stage.weekStart))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -242,7 +242,7 @@ struct TrainingProgressView: View {
         
         return HStack {
             // 週數指示
-            Text("第 \(weekNumber) 週")
+            Text(String(format: NSLocalizedString("training.week_number", comment: "Week %d"), weekNumber))
                 .font(.subheadline)
                 .fontWeight(isCurrentWeek ? .bold : .regular)
                 .foregroundColor(isCurrentWeek ? .primary : .secondary)
@@ -254,7 +254,7 @@ struct TrainingProgressView: View {
                 Button {
                     // 這裡可以導向該週的詳細課表
                 } label: {
-                    Label("查看課表", systemImage: "list.bullet")
+                    Label(NSLocalizedString("training.view_schedule", comment: "View Schedule"), systemImage: "list.bullet")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -270,7 +270,7 @@ struct TrainingProgressView: View {
                 Button {
                     // 導向該週的訓練回顧
                 } label: {
-                    Label("訓練回顧", systemImage: "chart.bar")
+                    Label(NSLocalizedString("training.training_review", comment: "Training Review"), systemImage: "chart.bar")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -288,7 +288,7 @@ struct TrainingProgressView: View {
                         await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
                     }
                 } label: {
-                    Label("產生課表", systemImage: "plus.circle")
+                    Label(NSLocalizedString("training.generate_schedule", comment: "Generate Schedule"), systemImage: "plus.circle")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

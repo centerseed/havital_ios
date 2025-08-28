@@ -20,7 +20,7 @@ struct OnboardingIntroView: View {
                                 .frame(width: 100, height: 100)
                                 .foregroundColor(.accentColor)
                             
-                            Text("歡迎來到 Paceriz！")
+                            Text(NSLocalizedString("onboarding.welcome_to_paceriz", comment: "Welcome to Paceriz!"))
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
                                 .multilineTextAlignment(.center)
@@ -30,26 +30,26 @@ struct OnboardingIntroView: View {
                         
                         // 主要內容區塊
                         VStack(alignment: .leading, spacing: 24) {
-                            Text("準備好開始您的跑步旅程了嗎？Paceriz 將根據您的個人目標和體能狀況，為您量身打造科學化的訓練計畫，幫助您跑得更遠、更快、更健康。")
+                            Text(NSLocalizedString("onboarding.ready_to_start", comment: "Ready to start your running journey?"))
                                 .font(.body)
                                 .fixedSize(horizontal: false, vertical: true)
                             
-                            Text("我們的訓練計畫融合了專業的跑步知識，注重：")
+                            Text(NSLocalizedString("onboarding.training_focus", comment: "Our training plans focus on:"))
                                 .font(.headline)
                             
                             // 特色項目
                             VStack(alignment: .leading, spacing: 16) {
                                 featureRow(icon: "target", 
-                                         title: "目標導向", 
-                                         description: "無論您的目標是完成第一場5公里、挑戰馬拉松，還是提升個人紀錄，我們都會為您規劃清晰的路徑。")
+                                         title: NSLocalizedString("onboarding.goal_oriented", comment: "Goal-Oriented"), 
+                                         description: NSLocalizedString("onboarding.goal_oriented_desc", comment: "Goal oriented description"))
                                 
                                 featureRow(icon: "arrow.triangle.2.circlepath", 
-                                         title: "循序漸進", 
-                                         description: "透過合理安排訓練強度與跑量，逐步提升您的體能，有效預防運動傷害。")
+                                         title: NSLocalizedString("onboarding.progressive", comment: "Progressive Training"), 
+                                         description: NSLocalizedString("onboarding.progressive_desc", comment: "Progressive training description"))
                                 
                                 featureRow(icon: "heart.text.square", 
-                                         title: "心率引導", 
-                                         description: "學習運用心率區間進行訓練，讓每次跑步更有效率，最大化您的訓練成果。")
+                                         title: NSLocalizedString("onboarding.heart_rate_guided", comment: "Heart Rate Guided"), 
+                                         description: NSLocalizedString("onboarding.heart_rate_guided_desc", comment: "Heart rate guided description"))
                             }
                             .padding(.top, 8)
                         }
@@ -59,7 +59,7 @@ struct OnboardingIntroView: View {
                         Spacer()
                         
                         // 底部提示文字
-                        Text("接下來，我們將引導您完成幾個簡單的設定，以便更了解您的需求。讓我們一起開始吧！")
+                        Text(NSLocalizedString("onboarding.setup_guide", comment: "Setup guide text"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -72,7 +72,7 @@ struct OnboardingIntroView: View {
                         Button(action: {
                             navigateToNextStep = true
                         }) {
-                            Text("開始設定")
+                            Text(NSLocalizedString("onboarding.start_setup", comment: "Start Setup"))
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
