@@ -92,13 +92,14 @@ enum BusinessError: Error, LocalizedError {
 
 enum SystemError: Error, LocalizedError {
     case taskCancelled
+    case cancelled
     case configurationError(String)
     case storageError(String)
     case unknownError(String)
     
     var errorDescription: String? {
         switch self {
-        case .taskCancelled:
+        case .taskCancelled, .cancelled:
             return "任務已取消"
         case .configurationError(let message):
             return "配置錯誤: \(message)"

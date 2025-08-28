@@ -37,6 +37,10 @@ class WorkoutV2Service {
     private let httpClient: any HTTPClient
     private let parser: any APIParser
     
+    // MARK: - Request Deduplication
+    private var activeRequests: [String: Task<Any, Error>] = [:]
+    private let requestQueue = DispatchQueue(label: "com.havital.workout-service.requests", attributes: .concurrent)
+    
     private init(httpClient: any HTTPClient = DefaultHTTPClient.shared,
                  parser: any APIParser = DefaultAPIParser.shared) {
         self.httpClient = httpClient
@@ -173,6 +177,75 @@ class WorkoutV2Service {
                 debugDescription: error.localizedDescription
             )
         }
+    }
+    
+    // MARK: - Request Deduplication Helper
+    
+    /// 帶有去重邏輯的 API 調用方法
+    private func makeDeduplicatedAPICall<T: Codable>(
+        _ type: T.Type,
+        path: String,
+        method: HTTPMethod = .GET,
+        body: Data? = nil,
+        operationName: String
+    ) async throws -> T {
+        // 生成請求的唯一鍵
+        let requestKey = generateRequestKey(path: path, method: method, body: body)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            requestQueue.async(flags: .barrier) { [weak self] in
+                guard let self = self else {
+                    continuation.resume(throwing: SystemError.cancelled)
+                    return
+                }
+                
+                // 檢查是否已有相同的請求正在進行
+                if let existingTask = self.activeRequests[requestKey] {
+                    Logger.debug("[WorkoutV2Service] \(operationName) - 發現重複請求，使用現有任務: \(requestKey)")
+                    Task {
+                        do {
+                            let result = try await existingTask.value as! T
+                            continuation.resume(returning: result)
+                        } catch {
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                    return
+                }
+                
+                // 創建新任務
+                let task = Task<Any, Error> {
+                    defer {
+                        // 任務完成後清理
+                        self.requestQueue.async(flags: .barrier) {
+                            self.activeRequests.removeValue(forKey: requestKey)
+                        }
+                    }
+                    
+                    Logger.debug("[WorkoutV2Service] \(operationName) - 開始新請求: \(requestKey)")
+                    return try await self.makeAPICall(type, path: path, method: method, body: body, operationName: operationName)
+                }
+                
+                // 保存任務
+                self.activeRequests[requestKey] = task
+                
+                // 執行任務並返回結果
+                Task {
+                    do {
+                        let result = try await task.value as! T
+                        continuation.resume(returning: result)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        }
+    }
+    
+    /// 生成請求唯一鍵
+    private func generateRequestKey(path: String, method: HTTPMethod, body: Data?) -> String {
+        let bodyHash = body?.hashValue ?? 0
+        return "\(method.rawValue)_\(path)_\(bodyHash)"
     }
     
     // MARK: - Fetch Workouts

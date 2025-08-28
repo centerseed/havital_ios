@@ -6,6 +6,7 @@ struct WeeklyPlan: Codable, Equatable {
     let weekOfPlan: Int
     let totalWeeks: Int
     let totalDistance: Double
+    let totalDistanceReason: String?  // 週跑量決定方式說明，選填以保持向後兼容
     let designReason: [String]?
     let days: [TrainingDay]
     let intensityTotalMinutes: IntensityTotalMinutes?
@@ -43,6 +44,7 @@ struct WeeklyPlan: Codable, Equatable {
         case weekOfPlan = "week_of_plan"
         case totalWeeks = "total_weeks"
         case totalDistance = "total_distance_km"
+        case totalDistanceReason = "total_distance_reason"
         case designReason = "design_reason"
         case days
         case intensityTotalMinutes = "intensity_total_minutes"
@@ -61,6 +63,7 @@ struct WeeklyPlan: Codable, Equatable {
             weekOfPlan = try nestedContainer.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try nestedContainer.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try nestedContainer.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
+            totalDistanceReason = try nestedContainer.decodeIfPresent(String.self, forKey: .totalDistanceReason)
             intensityTotalMinutes = try nestedContainer.decodeIfPresent(IntensityTotalMinutes.self, forKey: .intensityTotalMinutes)
             designReason = try nestedContainer.decodeIfPresent([String].self, forKey: .designReason)
             days = try nestedContainer.decode([TrainingDay].self, forKey: .days)
@@ -72,6 +75,7 @@ struct WeeklyPlan: Codable, Equatable {
             weekOfPlan = try container.decode(Int.self, forKey: .weekOfPlan)
             totalWeeks = try container.decode(Int.self, forKey: .totalWeeks)
             totalDistance = try container.decodeIfPresent(Double.self, forKey: .totalDistance) ?? 0.0
+            totalDistanceReason = try container.decodeIfPresent(String.self, forKey: .totalDistanceReason)
             intensityTotalMinutes = try container.decodeIfPresent(IntensityTotalMinutes.self, forKey: .intensityTotalMinutes)
             designReason = try container.decodeIfPresent([String].self, forKey: .designReason)
             days = try container.decode([TrainingDay].self, forKey: .days)
@@ -89,18 +93,20 @@ struct WeeklyPlan: Codable, Equatable {
                lhs.weekOfPlan == rhs.weekOfPlan &&
                lhs.totalWeeks == rhs.totalWeeks &&
                lhs.totalDistance == rhs.totalDistance &&
+               lhs.totalDistanceReason == rhs.totalDistanceReason &&
                lhs.days == rhs.days &&
                lhs.intensityTotalMinutes == rhs.intensityTotalMinutes
     }
 }
 
 extension WeeklyPlan {
-    init(id: String, purpose: String, weekOfPlan: Int, totalWeeks: Int, totalDistance: Double, designReason: [String]?, days: [TrainingDay], intensityTotalMinutes: IntensityTotalMinutes? = nil) {
+    init(id: String, purpose: String, weekOfPlan: Int, totalWeeks: Int, totalDistance: Double, totalDistanceReason: String? = nil, designReason: [String]?, days: [TrainingDay], intensityTotalMinutes: IntensityTotalMinutes? = nil) {
         self.id = id
         self.purpose = purpose
         self.weekOfPlan = weekOfPlan
         self.totalWeeks = totalWeeks
         self.totalDistance = totalDistance
+        self.totalDistanceReason = totalDistanceReason
         self.designReason = designReason
         self.days = days
         self.intensityTotalMinutes = intensityTotalMinutes
@@ -171,8 +177,9 @@ struct TrainingDay: Codable, Identifiable, Equatable {
     var trainingItems: [WeeklyTrainingItem]? {
         if let details = trainingDetails {
             switch type {
-            case .easyRun, .easy, .rest, .longRun, .recovery_run:
-                if let description = details.description, let distance = details.distanceKm {
+            case .easyRun, .easy, .rest, .longRun, .recovery_run, .lsd:
+                if let distance = details.distanceKm {
+                    let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
                         name: type == .rest ? "休息" :
                               type == .longRun ? "長距離跑" :
@@ -195,7 +202,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 if let work = details.work, let recovery = details.recovery, let repeats = details.repeats {
                     let workItem = WeeklyTrainingItem(
                         name: "間歇跑",
-                        runDetails: work.description,
+                        runDetails: work.description ?? "",
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: work.pace, distanceKm: work.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
@@ -203,25 +210,24 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     
                     let recoveryItem = WeeklyTrainingItem(
                         name: "恢復跑",
-                        runDetails: recovery.description,
+                        runDetails: recovery.description ?? "",
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: recovery.pace, distanceKm: recovery.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(recoveryItem)
                     return items
                 }
-            case .tempo:
-                if let description = details.description,
-                   let distance = details.distanceKm,
-                   let pace = details.pace {
+            case .tempo, .threshold:
+                if let distance = details.distanceKm {
+                    let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
                         name: "節奏跑",
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(
-                            pace: pace,
+                            pace: details.pace, // pace 可以是 nil
                             distanceKm: distance,
-                            heartRateRange: nil,
+                            heartRateRange: details.heartRateRange,
                             heartRate: nil,
                             times: nil
                         )
@@ -229,7 +235,8 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     return [item]
                 }
             case .progression:
-                if let segments = details.segments, let totalDistance = details.totalDistanceKm, let description = details.description {
+                if let _ = details.segments, let totalDistance = details.totalDistanceKm {
+                    let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
                         name: "漸速跑",
                         runDetails: description,
@@ -239,17 +246,28 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     return [item]
                 }
             case .race:
-                if let description = details.description {
-                    let item = WeeklyTrainingItem(
+                let description = details.description ?? ""
+                let item = WeeklyTrainingItem(
                         name: "比賽",
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: nil, heartRateRange: nil, heartRate: nil, times: nil)
                     )
                     return [item]
-                }
-            default:
-                break
+            case .crossTraining, .hiking, .strength, .yoga, .cycling:
+                let description = details.description ?? ""
+                let activityName = type == .crossTraining ? "交叉訓練" :
+                                 type == .hiking ? "健走" :
+                                 type == .strength ? "肌力訓練" :
+                                 type == .yoga ? "瑜伽" :
+                                 "騎車"
+                let item = WeeklyTrainingItem(
+                        name: activityName,
+                        runDetails: description,
+                        durationMinutes: nil,
+                        goals: TrainingGoals(pace: nil, distanceKm: details.distanceKm, heartRateRange: details.heartRateRange, heartRate: nil, times: nil)
+                    )
+                    return [item]
             }
         }
         return nil
@@ -257,30 +275,43 @@ struct TrainingDay: Codable, Identifiable, Equatable {
 }
 
 struct HeartRateRange: Codable, Equatable {
-    let min: Int
-    let max: Int
+    let min: Int?  // 改為可選，提高健壯性
+    let max: Int?  // 改為可選，提高健壯性
     
     enum CodingKeys: String, CodingKey {
         case min
         case max
     }
+    
+    // 只有當 min 和 max 都存在時才是有效的心率區間
+    var isValid: Bool {
+        return min != nil && max != nil
+    }
+    
+    // 格式化心率區間文字
+    var displayText: String? {
+        guard let minVal = min, let maxVal = max else { return nil }
+        return "\(minVal)-\(maxVal)"
+    }
 }
 
 struct TrainingDetails: Codable, Equatable {
-    let description: String?
-    let distanceKm: Double?
-    let totalDistanceKm: Double?
+    let description: String?  // 對於間歇訓練，頂層可能沒有 description
+    let distanceKm: Double?  // 對於rest類型是可選的
+    let totalDistanceKm: Double?  // 對於分段訓練使用
+    let timeMinutes: Double?  // 對於rest類型可能沒有時間
     let pace: String?
     let work: WorkoutSegment?
     let recovery: WorkoutSegment?
     let repeats: Int?
-    let heartRateRange: HeartRateRange?
+    let heartRateRange: HeartRateRange?  // 對於一般訓練是必填的，但對於rest是可選的
     let segments: [ProgressionSegment]?
     
     static func == (lhs: TrainingDetails, rhs: TrainingDetails) -> Bool {
         return lhs.description == rhs.description &&
                lhs.distanceKm == rhs.distanceKm &&
                lhs.totalDistanceKm == rhs.totalDistanceKm &&
+               lhs.timeMinutes == rhs.timeMinutes &&
                lhs.pace == rhs.pace &&
                lhs.work == rhs.work &&
                lhs.recovery == rhs.recovery &&
@@ -293,6 +324,7 @@ struct TrainingDetails: Codable, Equatable {
         case description
         case distanceKm = "distance_km"
         case totalDistanceKm = "total_distance_km"
+        case timeMinutes = "time_minutes"
         case pace
         case work
         case recovery
@@ -303,20 +335,26 @@ struct TrainingDetails: Codable, Equatable {
 }
 
 struct WorkoutSegment: Codable, Equatable {
-    let description: String
-    let distanceKm: Double
+    let description: String?  // 改為可選，間歇恢復段可能沒有描述
+    let distanceKm: Double?  // 改為可選，因為 API 可能返回 null
+    let distanceM: Double?   // 添加米的距離欄位
+    let timeMinutes: Double? // 添加時間欄位
     let pace: String?
+    let heartRateRange: HeartRateRange?  // 添加心率區間欄位
     
     enum CodingKeys: String, CodingKey {
         case description
         case distanceKm = "distance_km"
+        case distanceM = "distance_m"
+        case timeMinutes = "time_minutes"
         case pace
+        case heartRateRange = "heart_rate_range"
     }
 }
 
 struct ProgressionSegment: Codable, Equatable {
-    let distanceKm: Double
-    let pace: String
+    let distanceKm: Double?  // 改為可選，提高靈活性
+    let pace: String?        // 改為可選，提高靈活性
     let description: String?
     
     enum CodingKeys: String, CodingKey {
