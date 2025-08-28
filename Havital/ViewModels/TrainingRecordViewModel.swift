@@ -15,6 +15,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     // MARK: - Private Properties
     private let workoutService = WorkoutV2Service.shared
     private let cacheManager = WorkoutV2CacheManager.shared
+    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
     
     // 分頁狀態
     private var newestId: String?
@@ -28,23 +29,29 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     
     init() {
         loadCachedWorkouts()
+        setupUnifiedWorkoutManagerObserver()
         print("🚀 TrainingRecordViewModel 初始化完成 - hasMoreData: \(hasMoreData), workouts.count: \(workouts.count)")
     }
     
     // MARK: - Main Loading Methods
     
-    /// 初次載入運動記錄 - 優先從快取載入，背景更新
+    /// 初次載入運動記錄 - 優先從 UnifiedWorkoutManager 獲取數據
     func loadWorkouts(healthKitManager: HealthKitManager? = nil) async {
         print("🎯 loadWorkouts 被調用 - 當前狀態: workouts.count=\(workouts.count), hasMoreData=\(hasMoreData)")
         
         await executeTask(id: TaskID("load_workouts")) {
-            // 如果快取中有資料，直接在背景更新，不顯示 loading
-            if !self.workouts.isEmpty {
-                print("🎯 執行背景更新路徑")
-                await self.performBackgroundUpdate()
+            // 如果 UnifiedWorkoutManager 正在載入，等待它完成
+            if self.unifiedWorkoutManager.isPerformingInitialLoad {
+                print("🎯 UnifiedWorkoutManager 正在載入中，等待完成...")
+                return
+            }
+            
+            // 如果 UnifiedWorkoutManager 已有數據，直接使用
+            if self.unifiedWorkoutManager.hasWorkouts {
+                print("🎯 從 UnifiedWorkoutManager 獲取數據")
+                await self.syncFromUnifiedWorkoutManager()
             } else {
                 print("🎯 執行初次載入路徑")
-                // 只有在沒有快取資料時才顯示 loading 狀態
                 await self.performInitialLoad()
             }
             
@@ -471,10 +478,56 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
         return filteredWorkouts.map { $0.duration }.reduce(0, +)
     }
     
+    // MARK: - UnifiedWorkoutManager Integration
+    
+    /// 設置 UnifiedWorkoutManager 觀察者
+    private func setupUnifiedWorkoutManagerObserver() {
+        // 監聽 UnifiedWorkoutManager 的數據更新
+        NotificationCenter.default.addObserver(
+            forName: .workoutsDidUpdate,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { [weak self] in
+                await self?.syncFromUnifiedWorkoutManager()
+            }
+        }
+    }
+    
+    /// 從 UnifiedWorkoutManager 同步數據
+    private func syncFromUnifiedWorkoutManager() async {
+        let managerWorkouts = unifiedWorkoutManager.workouts
+        
+        guard !managerWorkouts.isEmpty else {
+            print("🔄 UnifiedWorkoutManager 沒有數據，跳過同步")
+            return
+        }
+        
+        await MainActor.run {
+            // 更新本地數據
+            self.workouts = managerWorkouts.sorted { $0.endDate > $1.endDate }
+            
+            // 更新分頁狀態
+            self.updatePaginationState()
+            
+            // 緩存數據
+            let paginationInfo = CachedPaginationInfo(
+                hasMoreData: self.hasMoreData,
+                hasNewerData: self.hasNewerData,
+                newestId: self.newestId,
+                oldestId: self.oldestId
+            )
+            self.cacheManager.cacheWorkoutList(self.workouts, paginationInfo: paginationInfo)
+            
+            print("🔄 已從 UnifiedWorkoutManager 同步 \(managerWorkouts.count) 筆記錄")
+        }
+    }
+    
     // MARK: - Cleanup
     
     deinit {
         cancelAllTasks()
+        NotificationCenter.default.removeObserver(self)
         print("TrainingRecordViewModel 被釋放")
     }
 }

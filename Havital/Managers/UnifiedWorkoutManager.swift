@@ -19,6 +19,10 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     @Published var lastSyncTime: Date?
     @Published var syncError: String?
     
+    // 防止重複載入的狀態控制
+    private var isLoadingInitial = false
+    private var hasInitialLoadCompleted = false
+    
     private var healthKitObserver: HKObserverQuery?
     private var isObserving = false
     
@@ -60,6 +64,20 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 載入運動記錄（統一介面）
     func loadWorkouts() async {
+        // 防止重複初始載入
+        if isLoadingInitial {
+            print("UnifiedWorkoutManager: 已有初始載入任務進行中，忽略重複調用")
+            return
+        }
+        
+        if hasInitialLoadCompleted {
+            print("UnifiedWorkoutManager: 已完成初始載入，跳過")
+            return
+        }
+        
+        isLoadingInitial = true
+        defer { isLoadingInitial = false }
+        
         await executeTask(id: TaskID("load_workouts")) {
             await self.performLoadWorkouts()
         }
@@ -117,6 +135,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 }
                 print("從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
                 
+                // 標記初始載入完成（即使是從緩存載入的）
+                self.hasInitialLoadCompleted = true
+                
                 // 發送運動數據更新通知（首次載入緩存數據）
                 NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
                 
@@ -145,6 +166,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 self.isLoading = false
                 self.lastSyncTime = Date()
             }
+            
+            // 標記初始載入完成
+            self.hasInitialLoadCompleted = true
             
             // 發送運動數據更新通知
             NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
@@ -186,7 +210,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 level: .error,
                 labels: [
                     "module": "UnifiedWorkoutManager",
-                    "action": "load_workouts"
+                    "action": "load_workouts",
+                    "cloud_logging": "true"
                 ]
             )
         }
@@ -858,5 +883,35 @@ extension UnifiedWorkoutManager {
     /// 檢查緩存是否需要刷新
     func shouldRefreshCache() -> Bool {
         return cacheManager.shouldRefreshCache()
+    }
+    
+    // MARK: - Shared Pagination Support for ViewModels
+    
+    /// 為其他 ViewModel 提供統一的分頁載入接口
+    func loadInitialWorkoutsForPagination(pageSize: Int = 10) async throws -> WorkoutListResponse {
+        // 如果已經有初始數據，直接從本地構造回應
+        if hasInitialLoadCompleted && !workouts.isEmpty {
+            return WorkoutListResponse(
+                workouts: Array(workouts.prefix(pageSize)),
+                pagination: PaginationInfo(
+                    nextCursor: workouts.count > pageSize ? workouts[pageSize - 1].id : nil,
+                    prevCursor: nil,
+                    hasMore: workouts.count > pageSize,
+                    hasNewer: false,
+                    oldestId: workouts.count > pageSize ? workouts[pageSize - 1].id : nil,
+                    newestId: workouts.first?.id,
+                    totalItems: workouts.count,
+                    pageSize: pageSize
+                )
+            )
+        }
+        
+        // 否則從 API 載入
+        return try await workoutV2Service.loadInitialWorkouts(pageSize: pageSize)
+    }
+    
+    /// 檢查是否正在進行初始載入
+    var isPerformingInitialLoad: Bool {
+        return isLoadingInitial
     }
 } 

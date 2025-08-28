@@ -1055,7 +1055,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         Logger.debug("初始化 UnifiedWorkoutManager...")
         await unifiedWorkoutManager.initialize()
         
-        // 載入運動記錄（優先使用緩存）
+        // 載入運動記錄（優先使用緩存） - 只調用一次
         await unifiedWorkoutManager.loadWorkouts()
         Logger.debug("UnifiedWorkoutManager 載入完成，共有 \(unifiedWorkoutManager.workouts.count) 筆運動記錄")
         
@@ -1065,7 +1065,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             await loadWeeklyPlan()
         }
         
-        // 確保基礎數據載入（簡單直接的方式）
+        // 載入當前週數據（不再調用 ensureWorkoutDataLoaded，因為已經載入過了）
         await loadWorkoutsForCurrentWeek()
         
         // 手動載入週數據，繞過初始化檢查
@@ -1217,10 +1217,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
         
         do {
-            // 確保 UnifiedWorkoutManager 有數據
-            await ensureWorkoutDataLoaded()
-            
-            // 獲取當前週的時間範圍
+            // 獲取當前週的時間範圍（移除 ensureWorkoutDataLoaded 調用以避免重複載入）
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
             // 從 UnifiedWorkoutManager 獲取該週的運動記錄
@@ -1367,8 +1364,17 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         await loadCurrentWeekIntensity()
     }
     
-    // 確保運動數據已載入
+    // 確保運動數據已載入 - 僅檢查狀態，不重複調用 API
     private func ensureWorkoutDataLoaded() async {
+        // 如果正在執行初始載入，等待完成
+        if unifiedWorkoutManager.isPerformingInitialLoad {
+            Logger.debug("UnifiedWorkoutManager 正在載入中，等待完成...")
+            // 簡單等待一下讓初始載入完成
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒
+            return
+        }
+        
+        // 如果沒有數據且不在載入中，才發起載入
         if !unifiedWorkoutManager.hasWorkouts {
             Logger.debug("UnifiedWorkoutManager 沒有數據，先載入運動記錄...")
             await unifiedWorkoutManager.loadWorkouts()
@@ -1395,9 +1401,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
         
         do {
-            // 確保 UnifiedWorkoutManager 有數據
-            await ensureWorkoutDataLoaded()
-            
             let (weekStart, weekEnd) = getCurrentWeekDates()
             Logger.debug("計算 \(formatDate(weekStart)) 開始的週訓練強度...")
             
@@ -1471,9 +1474,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
         
         do {
-            // 確保 UnifiedWorkoutManager 有數據
-            await ensureWorkoutDataLoaded()
-            
             // 獲取當前週的時間範圍
             let (weekStart, weekEnd) = getCurrentWeekDates()
             
