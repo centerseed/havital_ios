@@ -80,6 +80,13 @@ struct WorkoutListView: View {
     let isLoadingData: Bool
     let selectedWorkout: WorkoutV2?
     
+    private var loadingOverlay: some View {
+        ProgressView()
+            .scaleEffect(0.8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.1))
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !isExpanded {
@@ -92,14 +99,14 @@ struct WorkoutListView: View {
                     Button {
                         onWorkoutSelect(workout)
                     } label: {
-                        WorkoutV2SummaryRow(workout: workout, viewModel: viewModel)
+                        let isSelected = selectedWorkout?.id == workout.id
+                        let showLoading = isLoadingData && isSelected
+                        
+                        WorkoutV2SummaryRow(workout: workout, viewModel: viewModel, trainingType: day.type)
                             .overlay(
                                 Group {
-                                    if isLoadingData && selectedWorkout?.id == workout.id {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .background(Color.black.opacity(0.1))
+                                    if showLoading {
+                                        loadingOverlay
                                     }
                                 }
                             )
@@ -115,7 +122,7 @@ struct WorkoutListView: View {
                         onExpandToggle()
                     }
                 } label: {
-                    CollapsedWorkoutV2Summary(workouts: workouts, viewModel: viewModel)
+                    CollapsedWorkoutV2Summary(workouts: workouts, viewModel: viewModel, trainingType: day.type)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .disabled(isLoadingData)

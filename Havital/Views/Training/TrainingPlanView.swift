@@ -9,7 +9,7 @@ struct WeekPlanContentView: View {
     let currentTrainingWeek: Int
     
     var body: some View {
-        let selected = plan.weekOfPlan
+        let _ = plan.weekOfPlan  // 移除未使用的變數
         let current = currentTrainingWeek
         VStack {
             if viewModel.isFinalWeek {
@@ -252,9 +252,8 @@ struct TrainingPlanView: View {
             }
         }
         .task {
-            if hasCompletedOnboarding {
-                await viewModel.loadAllInitialData()
-            }
+            // 初始化已在 TrainingPlanViewModel.init() 中自動執行
+            // 不需要手動調用 loadAllInitialData
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             refreshWorkouts()
@@ -491,8 +490,8 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("刷新訓練記錄與本週跑量")
         Task {
-            // 確保 UnifiedWorkoutManager 數據是最新的
-            await viewModel.refreshWorkoutData()
+            // 使用統一的刷新方法
+            await viewModel.refreshWeeklyPlan()
             
             // 只有當沒有週課表時才載入，避免不必要的重新載入
             if viewModel.weeklyPlan == nil {

@@ -23,6 +23,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     private var isLoadingInitial = false
     private var hasInitialLoadCompleted = false
     
+    // 防重複刷新機制
+    private var lastUserRefreshTime: Date?
+    
     private var healthKitObserver: HKObserverQuery?
     private var isObserving = false
     
@@ -139,10 +142,10 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 self.hasInitialLoadCompleted = true
                 
                 // 發送運動數據更新通知（首次載入緩存數據）
-                NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+                NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "initial_cache"])
                 
                 // 檢查是否需要背景更新（但不阻塞 UI）
-                if cacheManager.shouldRefreshCache(intervalSinceLastSync: 300) { // 5 分鐘
+                if cacheManager.shouldRefreshCache(intervalSinceLastSync: 300) { // 5 分鐘（一般情況）
                     print("背景更新運動記錄...")
                     Task.detached { [weak self] in
                         await self?.backgroundUpdateWorkouts()
@@ -158,8 +161,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 檢查是否被取消
             try Task.checkCancellation()
             
-            // 不要直接覆蓋緩存，因為 TrainingRecordViewModel 可能有更完整的資料
-            // cacheManager.cacheWorkoutList(fetchedWorkouts) // 移除，避免覆蓋完整緩存
+            // 統一緩存策略：保存獲取的數據到緩存
+            cacheManager.cacheWorkoutList(fetchedWorkouts)
             
             await MainActor.run {
                 self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
@@ -170,8 +173,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 標記初始載入完成
             self.hasInitialLoadCompleted = true
             
-            // 發送運動數據更新通知
-            NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+            // 首次載入完成，發送通知  
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "initial_load"])
             
             Logger.firebase(
                 "運動記錄首次載入成功",
@@ -217,10 +220,56 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         }
     }
     
-    /// 刷新運動記錄（強制從 API 更新）
+    /// 刷新運動記錄（用戶下拉刷新，使用短間隔智能更新）
     func refreshWorkouts() async {
         await executeTask(id: TaskID("refresh_workouts")) {
-            await self.forceRefreshFromAPI()
+            await self.smartRefreshFromAPI()
+        }
+    }
+    
+    /// 智能刷新：防重複觸發 + 短間隔更新
+    private func smartRefreshFromAPI() async {
+        let now = Date()
+        
+        // 防重複觸發：5秒內不重複刷新
+        if let lastRefresh = lastUserRefreshTime,
+           now.timeIntervalSince(lastRefresh) < 5 {
+            print("用戶刷新過於頻繁，忽略此次刷新請求")
+            return
+        }
+        
+        // 記錄刷新時間
+        lastUserRefreshTime = now
+        
+        await MainActor.run {
+            isLoading = true
+            syncError = nil
+        }
+        
+        do {
+            // 從 API 獲取最新數據
+            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50)
+            
+            await MainActor.run {
+                self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
+                self.lastSyncTime = Date()
+                self.isLoading = false
+            }
+            
+            // 更新緩存並記錄同步時間
+            cacheManager.cacheWorkoutList(fetchedWorkouts)
+            
+            // 用戶刷新完成，發送更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "user_refresh"])
+            
+            print("用戶刷新完成：獲得 \(fetchedWorkouts.count) 筆運動記錄")
+            
+        } catch {
+            await MainActor.run {
+                self.syncError = error.localizedDescription
+                self.isLoading = false
+            }
+            print("用戶刷新失敗: \(error.localizedDescription)")
         }
     }
     
@@ -235,16 +284,16 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             print("強制刷新：從 API 獲取最新運動記錄...")
             let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
             
-            // 不覆蓋緩存，避免丟失 TrainingRecordViewModel 的完整資料
-            // cacheManager.cacheWorkoutList(fetchedWorkouts) // 移除，避免覆蓋完整緩存
+            // 統一緩存策略：保存刷新的數據到緩存
+            cacheManager.cacheWorkoutList(fetchedWorkouts)
             await MainActor.run {
                 self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
                 self.lastSyncTime = Date()
                 self.isLoading = false
             }
             
-            // 發送運動數據更新通知
-            NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+            // 強制刷新完成，發送更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "force_refresh"])
             Logger.firebase(
                 "強制刷新運動記錄完成 (覆寫方式)",
                 level: .info,
@@ -298,15 +347,16 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                     }
                     print("背景更新完成：新增 \(mergedCount) 筆記錄")
                     
-                    // 發送運動數據更新通知
-                    NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+                    // 背景更新發現新數據，發送通知
+                    NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "background_update"])
                 }
             } else {
-                // 沒有新數據，不更新緩存以避免覆蓋完整資料
-                // cacheManager.cacheWorkoutList(self.workouts) // 移除，避免覆蓋
+                // 沒有新數據，更新最後同步時間
                 await MainActor.run {
                     self.lastSyncTime = Date()
                 }
+                // 更新緩存時間戳（如果方法存在的話）
+                // cacheManager.updateCacheTimestamp() // 暫時註釋，需要檢查方法是否存在
                 print("背景更新完成：沒有新數據")
             }
             
@@ -468,7 +518,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         let workoutType = HKObjectType.workoutType()
         
         let observerQuery = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] (query, completionHandler, error) in
-            guard let self = self else {
+            guard let self else {
                 completionHandler()
                 return
             }
@@ -529,8 +579,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 重新載入統一的運動記錄
             await loadWorkouts()
             
-            // 發送運動數據更新通知
-            NotificationCenter.default.post(name: .workoutsDidUpdate, object: nil)
+            // 新運動記錄同步完成，發送更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "new_workout_synced"])
             
         } catch {
             print("處理新的 Apple Health 運動記錄失敗: \(error.localizedDescription)")
@@ -628,7 +678,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             "start_date": workout.startDate.timeIntervalSince1970,
             "end_date": workout.endDate.timeIntervalSince1970,
             "total_distance_meters": workout.totalDistance?.doubleValue(for: .meter()) ?? 0,
-            "total_energy_burned": workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0,
+            "total_energy_burned": workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0, // 已棄用但暫時保留兼容性
             "source_name": workout.sourceRevision.source.name,
             "source_bundle_id": workout.sourceRevision.source.bundleIdentifier
         ]
@@ -684,10 +734,11 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 errorType = "network_error"
                 errorDetails["network_error_description"] = netError.localizedDescription
             }
-        } else if let apiErrorResponse = error as? APIErrorResponse {
-            errorType = "api_error"
-            errorDetails["api_error_code"] = apiErrorResponse.error.code
-            errorDetails["api_error_message"] = apiErrorResponse.error.message
+        // API錯誤處理（移除不相關的類型轉換）
+        // } else if let apiErrorResponse = error as? APIErrorResponse {
+        //     errorType = "api_error"
+        //     errorDetails["api_error_code"] = apiErrorResponse.error.code
+        //     errorDetails["api_error_message"] = apiErrorResponse.error.message
         } else if let urlError = error as? URLError {
             errorType = "network_error"
             errorDetails["url_error_code"] = urlError.code.rawValue

@@ -102,9 +102,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 控制 loading 動畫顯示
     @Published var isLoadingAnimation = false
     
-    // 初始化狀態標記，防止競爭條件
-    private var isInitializing = true
-    private var hasCompletedInitialLoad = false
+    // 簡化的初始化狀態標記
+    private var hasInitialized = false
+    
+    // 防重複更新機制
+    private var lastWeekDataUpdateTime: Date?
+    private let weekDataUpdateInterval: TimeInterval = 3 // 3秒防重複
     
     // Modifications data
     @Published var modifications: [Modification] = []
@@ -271,28 +274,48 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
     
-    // 初始化：等待用戶資料載入完成後再載入訓練資料
+    // 簡化的初始化 - 單一路徑
     init() {
-        // 基本狀態初始化，延遲資料載入到用戶確認後
-        Logger.debug("TrainingPlanViewModel: 開始初始化")
+        Logger.debug("TrainingPlanViewModel: 開始簡化的初始化")
         
-        // 設置通知監聽器將在初始化完成後調用
-        
-        // 非同步任務：正確的初始化順序
+        // 非同步初始化 - 使用單一統一的初始化方法
         Task {
-            await self.initializeWithUserContext()
+            await self.performUnifiedInitialization()
         }
     }
     
-    // 依正確順序初始化：用戶資料 -> 訓練概覽 -> 週計劃
-    private func initializeWithUserContext() async {
-        Logger.debug("TrainingPlanViewModel: 等待用戶資料載入完成...")
+    /// 統一的初始化方法 - 合併所有初始化邏輯
+    private func performUnifiedInitialization() async {
+        // 防止重複初始化
+        guard !hasInitialized else {
+            Logger.debug("TrainingPlanViewModel: 已初始化，跳過")
+            return
+        }
+        hasInitialized = true
         
-        // 等待用戶認證和資料載入完成
+        Logger.debug("TrainingPlanViewModel: 開始統一初始化流程")
+        
+        // 1. 等待用戶認證完成
         await waitForUserDataReady()
         
-        Logger.debug("TrainingPlanViewModel: 用戶資料就緒，開始載入訓練資料")
+        // 2. 初始化 UnifiedWorkoutManager - 統一的運動數據源
+        await unifiedWorkoutManager.initialize()
+        await unifiedWorkoutManager.loadWorkouts()
         
+        // 3. 載入訓練概覽和週計劃
+        await loadTrainingData()
+        
+        // 4. 載入當前週數據
+        await loadCurrentWeekData()
+        
+        // 5. 設置通知監聽器
+        await setupNotificationListeners()
+        
+        Logger.debug("TrainingPlanViewModel: 統一初始化完成")
+    }
+    
+    /// 載入訓練相關數據
+    private func loadTrainingData() async {
         let onboardingCompleted = AuthenticationService.shared.hasCompletedOnboarding
         let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
 
@@ -308,8 +331,13 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
         }
         
-        // 載入或更新訓練概覽
-        await loadTrainingOverviewWithUserContext(savedOverview: savedOverview, onboardingCompleted: onboardingCompleted)
+        // 載入訓練概覽
+        await loadTrainingOverview()
+        
+        // 載入週計劃
+        if weeklyPlan == nil {
+            await loadWeeklyPlan()
+        }
     }
     
     // 等待用戶資料就緒
@@ -335,60 +363,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         Logger.warn("TrainingPlanViewModel: 等待用戶資料超時，繼續初始化")
     }
     
-    // 載入訓練概覽（考慮用戶上下文）
-    private func loadTrainingOverviewWithUserContext(savedOverview: TrainingPlanOverview, onboardingCompleted: Bool) async {
-        if savedOverview.createdAt.isEmpty {
-            // 只有當本地 createdAt 為空時，才真正需要決定是否顯示 Splash 並從 API 獲取
-            if onboardingCompleted {
-                // 已 onboarding 但本地無資料，此時 showSyncingSplash 應為 true (已在同步區塊設定)
-            } else {
-                // 未 onboarding，無論本地是否有資料，都不應顯示此特定 splash
-                // 確保 splash 關閉，因為這不是我們要處理的 splash case
-                await MainActor.run {
-                    self.showSyncingSplash = false
-                }
-            }
-
-            do {
-                let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
-                TrainingPlanStorage.saveTrainingPlanOverview(overview) // 保存到本地
-                await MainActor.run {
-                    self.trainingOverview = overview
-                    self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
-                    // Initialize selectedWeek to currentWeek to avoid showing incorrect week selection
-                    self.selectedWeek = self.currentWeek
-                    self.showSyncingSplash = false // 成功獲取後關閉 splash
-                }
-            } catch {
-                Logger.error("初始化獲取訓練計劃概覽失敗: \(error)")
-                await MainActor.run {
-                    self.showSyncingSplash = false // 獲取失敗也關閉 splash，避免卡住
-                }
-            }
-        } else {
-            // 本地 savedOverview.createdAt 不是空的
-            // 如果已 onboarding，確保 splash 是關閉的
-            if onboardingCompleted {
-                await MainActor.run {
-                    self.showSyncingSplash = false
-                }
-            }
-            // 如果未 onboarding，splash 狀態不由這裡的邏輯控制，應保持預設或由其他邏輯處理
-        }
-        // 無論如何，最後都要嘗試載入週計劃
-        await self.loadWeeklyPlan()
-        
-        // 確保載入週數據（距離和強度），繞過 isInitializing 檢查
-        await self.loadCurrentWeekDistance()
-        await self.loadCurrentWeekIntensity()
-        
-        // 初始化完成後，設置通知監聽器，避免競爭條件
-        await self.setupNotificationListeners()
-        await MainActor.run {
-            self.isInitializing = false
-            self.hasCompletedInitialLoad = true
-        }
-    }
+    // 移除複雜的 loadTrainingOverviewWithUserContext - 已合併到 performUnifiedInitialization
     
     // MARK: - Notification Setup
     
@@ -397,21 +372,38 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     private func setupNotificationListeners() async {
         // 監聽 workouts 更新通知
         NotificationCenter.default.publisher(for: .workoutsDidUpdate)
-            .sink { [weak self] _ in
+            .sink { [weak self] notification in
                 guard let self = self else { return }
                 
                 // 防止在初始化期間響應通知
-                guard !self.isInitializing, self.hasCompletedInitialLoad else {
+                guard self.hasInitialized else {
                     print("初始化期間跳過 workoutsDidUpdate 通知")
                     return
                 }
                 
-                print("收到 workoutsDidUpdate 通知，重新加載週跑量、訓練強度和每日訓練記錄...")
-                Task {
-                    // 使用統一方法同時更新週跑量和訓練強度
-                    await self.loadCurrentWeekData()
-                    // 同時更新每日訓練記錄，以便 DailyTrainingCard 能顯示最新數據
-                    await self.loadWorkoutsForCurrentWeek()
+                // 根據通知原因決定是否需要更新
+                let reason = (notification.object as? [String: String])?["reason"] ?? "unknown"
+                print("收到 workoutsDidUpdate 通知，原因: \(reason)")
+                
+                switch reason {
+                case "initial_cache", "initial_load":
+                    // 初始載入時不需要重複更新（數據已經在初始化時載入）
+                    print("初始載入通知，跳過週數據更新")
+                    return
+                    
+                case "background_update", "user_refresh", "new_workout_synced", "force_refresh":
+                    // 只有在有實際新數據時才更新週數據
+                    print("發現新運動數據，開始更新週數據...")
+                    Task {
+                        await self.smartUpdateWeekData()
+                    }
+                    
+                default:
+                    // 其他情況也更新（保持兼容性）
+                    print("未知通知原因，執行週數據更新...")
+                    Task {
+                        await self.smartUpdateWeekData()
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -422,7 +414,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 guard let self = self else { return }
                 
                 // 防止在初始化期間響應通知
-                guard !self.isInitializing, self.hasCompletedInitialLoad else {
+                guard self.hasInitialized else {
                     print("初始化期間跳過 TrainingOverviewUpdated 通知")
                     return
                 }
@@ -447,6 +439,38 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    /// 智能更新週數據：防重複 + 批量更新
+    private func smartUpdateWeekData() async {
+        let now = Date()
+        
+        // 防重複更新：3秒內不重複更新週數據
+        if let lastUpdate = lastWeekDataUpdateTime,
+           now.timeIntervalSince(lastUpdate) < weekDataUpdateInterval {
+            print("週數據更新過於頻繁，忽略此次更新請求（距上次更新 \(Int(now.timeIntervalSince(lastUpdate)))秒）")
+            return
+        }
+        
+        // 記錄更新時間
+        lastWeekDataUpdateTime = now
+        
+        print("開始智能週數據更新...")
+        
+        // 批量執行週相關數據更新
+        await executeTask(id: TaskID("smart_week_data_update")) { [weak self] in
+            guard let self = self else { return }
+            
+            // 並行執行所有週數據載入
+            async let weekDistance = self.performLoadCurrentWeekDistance()
+            async let weekIntensity = self.performLoadCurrentWeekIntensity()
+            async let weekWorkouts = self.performLoadWorkoutsForCurrentWeek()
+            
+            // 等待所有更新完成
+            let _ = try await (weekDistance, weekIntensity, weekWorkouts)
+            
+            print("智能週數據更新完成")
+        }
     }
     
     // MARK: - Plan display state
@@ -631,6 +655,10 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             Logger.debug("updateWeeklyPlanUI: 週計劃為 nil")
         }
         self.planStatus = status
+        
+        // 🔧 修復：確保載入狀態重置，避免按鈕被禁用
+        self.isLoading = false
+        
         updatePromptViews()
     }
     
@@ -808,51 +836,20 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         return currentWeek > savedPlan.weekOfPlan
     }
     
-    /// 依據指定週數產生對應週計劃
+    /// 統一的指定週計劃載入 - 使用 loadWeeklyPlan 更新 selectedWeek
     func fetchWeekPlan(week: Int) async {
-        planStatus = .loading
+        // 更新當前選擇的週數
         await MainActor.run {
-            error = nil
+            self.selectedWeek = week
         }
-        do {
-            // 僅使用 GET 查詢指定週計劃
-            guard let overviewId = trainingOverview?.id else { throw NSError() }
-            let plan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                planId: "\(overviewId)_\(week)")
-            
-            await updateWeeklyPlanUI(plan: plan, status: .ready(plan))
-            
-            // 載入該週的健康資料
-            await loadWorkoutsForCurrentWeek()
-            await loadCurrentWeekData()
-            await identifyTodayTraining()
-            
-        } catch let err as TrainingPlanService.WeeklyPlanError where err == .notFound {
-            // 404 錯誤：顯示「取得週回顧」按鈕
-            Logger.debug("fetchWeekPlan 404 錯誤，設置 .noPlan 狀態")
-            await updateWeeklyPlanUI(plan: nil, status: .noPlan)
-        } catch {
-            // 檢查是否為任務取消錯誤
-            let nsError = error as NSError
-            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-                Logger.debug("載入週計劃任務被取消，忽略此錯誤")
-                return // 忽略取消錯誤，不更新 UI 狀態
-            }
-            
-            // 檢查是否為 API 404 錯誤
-            if let apiError = error as? APIError {
-                switch apiError {
-                case .business(.notFound(_)):
-                    Logger.debug("fetchWeekPlan API 404 錯誤，設置 .noPlan 狀態")
-                    await updateWeeklyPlanUI(plan: nil, status: .noPlan)
-                    return
-                default:
-                    break
-                }
-            }
-            
-            await updateWeeklyPlanUI(plan: nil, status: .error(error))
-        }
+        
+        // 使用統一的載入方法
+        await loadWeeklyPlan(skipCache: true)
+        
+        // 載入相關數據
+        await loadWorkoutsForCurrentWeek()
+        await loadCurrentWeekData()
+        await identifyTodayTraining()
     }
     
     // MARK: - New prompt display logic
@@ -1033,182 +1030,23 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
 
-    // Flag to ensure initial data load only once
-    private var hasLoadedInitialData = false
+    // 移除重複的初始化標記
     
-    /// 只在第一次執行：先載入概覽，再載入週計劃、VDOT、記錄、距離等
-    func loadAllInitialData() async {
-        guard !hasLoadedInitialData else { return }
-        hasLoadedInitialData = true
-        
-        Logger.debug("TrainingPlanViewModel.loadAllInitialData: 開始執行")
-        
-        // 確保用戶資料已就緒
-        await waitForUserDataReady()
-        
-        // 標記正在初始化
-        await MainActor.run {
-            isInitializing = true
-        }
-        
-        // 首先確保 UnifiedWorkoutManager 被正確初始化和載入數據
-        Logger.debug("初始化 UnifiedWorkoutManager...")
-        await unifiedWorkoutManager.initialize()
-        
-        // 載入運動記錄（優先使用緩存） - 只調用一次
-        await unifiedWorkoutManager.loadWorkouts()
-        Logger.debug("UnifiedWorkoutManager 載入完成，共有 \(unifiedWorkoutManager.workouts.count) 筆運動記錄")
-        
-        // 依序載入 overview，再載入 weeklyPlan
-        await loadTrainingOverview()
-        if weeklyPlan == nil {
-            await loadWeeklyPlan()
-        }
-        
-        // 載入當前週數據（不再調用 ensureWorkoutDataLoaded，因為已經載入過了）
-        await loadWorkoutsForCurrentWeek()
-        
-        // 手動載入週數據，繞過初始化檢查
-        await loadCurrentWeekDistance()
-        await loadCurrentWeekIntensity()
-        
-        // 初始化完成後設置通知監聽器
-        await setupNotificationListeners()
-        await MainActor.run {
-            isInitializing = false
-            hasCompletedInitialLoad = true
-        }
-    }
+    // 移除重複的 loadAllInitialData - 現在由 performUnifiedInitialization 統一處理
     
+    /// 統一的刷新方法 - 使用 loadWeeklyPlan 的 skipCache 功能
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
-        await executeTask(id: "refresh_weekly_plan") {
-            await self.performRefreshWeeklyPlan(isManualRefresh: isManualRefresh)
-        }
-    }
-    
-    /// 執行實際的刷新邏輯
-    private func performRefreshWeeklyPlan(isManualRefresh: Bool) async {
-        // 檢查是否被取消
-        guard !Task.isCancelled else { return }
+        // 簡化為使用統一的載入方法，但跳過緩存
+        await loadWeeklyPlan(skipCache: true)
         
-        // 修正：在刷新計畫前，務必先重新計算當前週數，確保資料最新
-        if let overview = trainingOverview, !overview.createdAt.isEmpty {
-            self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
-        }
-        
-        // 檢查是否被取消
-        guard !Task.isCancelled else { return }
-        
-        // 刷新 UnifiedWorkoutManager 的數據
+        // 刷新運動數據
         await unifiedWorkoutManager.refreshWorkouts()
         
-        // 檢查是否被取消
-        guard !Task.isCancelled else { return }
-        
-        // 手動刷新時跳過快取，直接從 API 獲取最新數據
-        if isManualRefresh {
-            await loadWeeklyPlan(skipCache: true)
-            return
-        }
-        
-        // 下拉刷新僅更新資料，不變更 planStatus
-        
-        let maxRetries = 3
-        var currentRetry = 0
-        
-        while currentRetry < maxRetries {
-            // 檢查是否被取消
-            guard !Task.isCancelled else { return }
-            
-            do {
-                Logger.debug("開始更新計劃 (嘗試 \(currentRetry + 1)/\(maxRetries))")
-                // 使用獨立 Task 呼叫 Service，避免 Button 或 View 取消影響
-                guard let overviewId = trainingOverview?.id else { throw NSError() }
-                let weekId = "\(overviewId)_\(self.currentWeek)"
-                Logger.info("Load weekly plan with planId: \(weekId).")
-                
-                let newPlan = try await Task.detached(priority: .userInitiated) {
-                    try await TrainingPlanService.shared.getWeeklyPlanById(planId: weekId)
-                }.value
-                
-                // 檢查是否被取消
-                guard !Task.isCancelled else { return }
-                
-                // 檢查計劃是否有變更
-                let planWeekChanged =
-                currentPlanWeek != nil && currentPlanWeek != newPlan.weekOfPlan
-                
-                // 更新當前計劃週數
-                currentPlanWeek = newPlan.weekOfPlan
-                
-                // 重新計算週日期信息
-                if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
-                    self.weekDateInfo = info
-                }
-                
-                await updateWeeklyPlanUI(plan: newPlan, planChanged: planWeekChanged, status: .ready(newPlan))
-                
-                Logger.debug("完成更新計劃")
-                
-                // 檢查是否被取消
-                guard !Task.isCancelled else { return }
-                
-                // 重新載入訓練記錄
-                await loadWorkoutsForCurrentWeek()
-                
-                // 檢查是否被取消
-                guard !Task.isCancelled else { return }
-                
-                await identifyTodayTraining()
-                
-                // 檢查是否被取消
-                guard !Task.isCancelled else { return }
-                
-                // 修正：無條件重新載入週數據，確保跨週時能正確歸零
-                await loadCurrentWeekData()
-                
-                break  // 成功後跳出重試迴圈
-            } catch let error as TrainingPlanService.WeeklyPlanError where error == .notFound {
-                // 404 時標記無週計劃並結束重試，顯示「取得週回顧」按鈕
-                Logger.debug("刷新週計劃 404 錯誤，設置 .noPlan 狀態")
-                await MainActor.run {
-                    self.weeklyPlan = nil
-                }
-                await updateWeeklyPlanUI(plan: nil, status: .noPlan)
-                break
-            } catch let error as APIError {
-                switch error {
-                case .business(.notFound(_)):
-                    // API 404 錯誤也應該顯示「取得週回顧」按鈕
-                    Logger.debug("刷新週計劃 API 404 錯誤，設置 .noPlan 狀態")
-                    await MainActor.run {
-                        self.weeklyPlan = nil
-                    }
-                    await updateWeeklyPlanUI(plan: nil, status: .noPlan)
-                    break
-                default:
-                    // 其他 API 錯誤當作普通錯誤處理，不 break，繼續到重試邏輯
-                    currentRetry += 1
-                    if currentRetry >= maxRetries {
-                        await updateWeeklyPlanUI(plan: nil, status: .error(error))
-                        Logger.error("刷新訓練計劃失敗 (已重試 \(maxRetries) 次): \(error)")
-                    } else {
-                        Logger.error("刷新訓練計劃失敗，準備重試: \(error)")
-                        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))  // 等待1秒後重試
-                    }
-                }
-            } catch {
-                currentRetry += 1
-                if currentRetry >= maxRetries {
-                    await updateWeeklyPlanUI(plan: nil, status: .error(error))
-                    Logger.error("刷新訓練計劃失敗 (已重試 \(maxRetries) 次): \(error)")
-                } else {
-                    Logger.error("刷新訓練計劃失敗，準備重試: \(error)")
-                    try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))  // 等待1秒後重試
-                }
-            }
-        }
+        // 重新載入當前週數據
+        await loadCurrentWeekData()
     }
+    
+    // 移除複雜的 performRefreshWeeklyPlan - 功能已由 loadWeeklyPlan(skipCache: true) 取代
     
     // 修正的載入當前週訓練記錄方法（使用統一的數據來源）
     func loadWorkoutsForCurrentWeek() async {
@@ -1266,6 +1104,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             await MainActor.run {
                 self.isLoadingWorkouts = false
             }
+        }
+    }
+    
+    // 用於批量更新的純邏輯方法（不直接更新 UI 狀態）
+    private func performLoadWorkoutsForCurrentWeek() async throws {
+        // 獲取當前週的時間範圍
+        let (weekStart, weekEnd) = getCurrentWeekDates()
+        
+        // 從 UnifiedWorkoutManager 獲取該週的運動記錄
+        let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
+            startDate: weekStart,
+            endDate: weekEnd
+        )
+        
+        // 按日期分組
+        let grouped = groupWorkoutsByDayFromV2(weekWorkouts)
+        
+        // 更新UI（只更新數據，不更新 loading 狀態）
+        await MainActor.run {
+            self.workoutsByDayV2 = grouped
         }
     }
     
@@ -1354,11 +1212,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 統一載入週數據（距離和強度）
     func loadCurrentWeekData() async {
-        // 防止在初始化期間重複載入
-        guard !isInitializing else {
-            print("初始化期間跳過 loadCurrentWeekData")
-            return
-        }
+        // 簡化：移除初始化期間檢查，統一處理
         
         await loadCurrentWeekDistance()
         await loadCurrentWeekIntensity()
@@ -1655,10 +1509,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
     
-    // 刷新運動數據（供外部調用）
-    func refreshWorkoutData() async {
-        await unifiedWorkoutManager.refreshWorkouts()
-    }
+    // 移除重複的 refreshWorkoutData - 直接使用 unifiedWorkoutManager.refreshWorkouts()
     
     deinit {
         cancelAllTasks()
