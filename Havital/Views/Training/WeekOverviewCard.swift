@@ -9,7 +9,7 @@ struct WeekOverviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("本週概覽")
+            Text(NSLocalizedString("training_plan.week_overview", comment: "Week Overview"))
                 .font(.headline)
                 .padding(.horizontal, 4)
             
@@ -23,7 +23,7 @@ struct WeekOverviewCard: View {
                     }
 
                     HStack(spacing: 8) {
-                        Text("本週跑量和訓練負荷")
+                        Text(NSLocalizedString("training_plan.weekly_volume_load", comment: "Weekly Volume and Training Load"))
                             .font(.system(size: 14, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
@@ -50,7 +50,7 @@ struct WeekOverviewCard: View {
                     
                     // 訓練目的
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("週目標")
+                        Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)

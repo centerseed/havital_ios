@@ -31,7 +31,7 @@ struct DayHeaderView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
-                        Text(viewModel.weekdayName(for: day.dayIndexInt))
+                        Text(viewModel.weekdayShortName(for: day.dayIndexInt))
                             .font(.headline)
                         if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
                             Text(viewModel.formatShortDate(date))
@@ -39,7 +39,7 @@ struct DayHeaderView: View {
                                 .foregroundColor(.secondary)
                         }
                         if isToday {
-                            Text("今天")
+                            Text(NSLocalizedString("training_plan.today", comment: "Today"))
                                 .font(.caption)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
@@ -153,7 +153,7 @@ struct TrainingDetailsView: View {
                 }
                 
                 if let tips = day.tips {
-                    Text("提示：\(tips)")
+                    Text(String(format: NSLocalizedString("training_plan.tip", comment: "Tip: %@"), tips))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(nil)
@@ -209,7 +209,7 @@ struct SegmentedTrainingView: View {
             ForEach(segments.indices, id: \.self) { idx in
                 let seg = segments[idx]
                 HStack(spacing: 8) {
-                    Text("區段 \(idx + 1)")
+                    Text(String(format: NSLocalizedString("training_plan.segment", comment: "Segment %d"), idx + 1))
                         .font(.caption)
                         .foregroundColor(.orange)
                         .padding(.horizontal, 6)
@@ -274,7 +274,7 @@ struct SimpleTrainingView: View {
                 }
                 
                 if let hr = details.heartRateRange, let displayText = hr.displayText {
-                    Text("心率區間：\(displayText)")
+                    Text(String(format: NSLocalizedString("training_plan.heart_rate_zone", comment: "Heart Rate Zone: %@"), displayText))
                         .font(.caption2)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -321,12 +321,12 @@ struct IntervalTrainingHeaderView: View {
     
     var body: some View {
         HStack {
-            Text("間歇訓練")
+            Text(NSLocalizedString("training_plan.interval_training", comment: "Interval Training"))
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundColor(.orange)
             Spacer()
-            Text("\(repeats) × 重複")
+            Text(String(format: NSLocalizedString("training_plan.repeats", comment: "%d × Repeats"), repeats))
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundColor(.orange)
@@ -348,10 +348,10 @@ struct IntervalTrainingItemsView: View {
                 let sprintItem = trainingItems[index]
                 let recoveryItem = index + 1 < trainingItems.count ? trainingItems[index + 1] : nil
                 
-                IntervalSegmentRow(title: "衝刺段", item: sprintItem)
+                IntervalSegmentRow(title: NSLocalizedString("training_plan.sprint_segment", comment: "Sprint Segment"), item: sprintItem)
                 
                 if let recoveryItem = recoveryItem {
-                    IntervalSegmentRow(title: "恢復段", item: recoveryItem)
+                    IntervalSegmentRow(title: NSLocalizedString("training_plan.recovery_segment", comment: "Recovery Segment"), item: recoveryItem)
                 }
             }
             .padding(.vertical, 6)
@@ -376,8 +376,8 @@ struct IntervalSegmentRow: View {
             }
             
             // 如果是恢復段且沒有配速和距離，顯示"原地休息"
-            if title == "恢復段" && item.goals.pace == nil && item.goals.distanceKm == nil {
-                Text("原地休息")
+            if title == NSLocalizedString("training_plan.recovery_segment", comment: "Recovery Segment") && item.goals.pace == nil && item.goals.distanceKm == nil {
+                Text(NSLocalizedString("training_plan.rest_in_place", comment: "Rest in place"))
                     .font(.system(size: 11, weight: .medium))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -437,7 +437,7 @@ struct RegularTrainingItemsView: View {
                     }
                     
                     if let hr = item.goals.heartRateRange, let displayText = hr.displayText {
-                        Text("心率區間： \(displayText)")
+                        Text(String(format: NSLocalizedString("training_plan.heart_rate_zone", comment: "Heart Rate Zone: %@"), displayText))
                             .font(.caption2)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)

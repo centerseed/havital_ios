@@ -39,7 +39,7 @@ struct EditTrainingDaysView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("選擇一般訓練日")) {
+                Section(header: Text(NSLocalizedString("training_days.select_general_days", comment: "Select General Training Days"))) {
                     ForEach(1..<8) { weekday in
                         let isSelected = viewModel.selectedWeekdays.contains(weekday)
                         Button(action: {
@@ -62,8 +62,8 @@ struct EditTrainingDaysView: View {
                     }
                 }
 
-                Section(header: Text("長跑日（建議週末）").padding(.top, 10)) {
-                    Picker("長跑日", selection: $viewModel.selectedLongRunDay) {
+                Section(header: Text(NSLocalizedString("training_days.long_run_day_weekend", comment: "Long Run Day (Recommend Weekend)")).padding(.top, 10)) {
+                    Picker(NSLocalizedString("training_days.long_run_day", comment: "Long Run Day"), selection: $viewModel.selectedLongRunDay) {
                         ForEach(1..<8) { weekday in
                             Text(getWeekdayName(weekday)).tag(weekday)
                         }
@@ -77,15 +77,15 @@ struct EditTrainingDaysView: View {
                     }
                 }
             }
-            .navigationTitle("編輯訓練日")
+            .navigationTitle(NSLocalizedString("training_days.edit_title", comment: "Edit Training Days"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(NSLocalizedString("common.cancel", comment: "Cancel")) {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("儲存") {
+                    Button(NSLocalizedString("training_days.save", comment: "Save")) {
                         Task {
                             await viewModel.updatePreferences()
                             onSave()
@@ -100,13 +100,13 @@ struct EditTrainingDaysView: View {
     // Helper for weekday name
     private func getWeekdayName(_ weekday: Int) -> String {
         switch weekday {
-        case 1: return "週一"
-        case 2: return "週二"
-        case 3: return "週三"
-        case 4: return "週四"
-        case 5: return "週五"
-        case 6: return "週六"
-        case 7: return "週日"
+        case 1: return NSLocalizedString("date.monday", comment: "Monday")
+        case 2: return NSLocalizedString("date.tuesday", comment: "Tuesday")
+        case 3: return NSLocalizedString("date.wednesday", comment: "Wednesday")
+        case 4: return NSLocalizedString("date.thursday", comment: "Thursday")
+        case 5: return NSLocalizedString("date.friday", comment: "Friday")
+        case 6: return NSLocalizedString("date.saturday", comment: "Saturday")
+        case 7: return NSLocalizedString("date.sunday", comment: "Sunday")
         default: return ""
         }
     }

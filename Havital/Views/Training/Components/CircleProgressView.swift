@@ -66,15 +66,15 @@ struct CircleProgressView: View {
         CircleProgressView(
             progress: 0.7,
             distanceInfo: "35/50",
-            title: "本週跑量"
+            title: NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
         )
         .frame(width: 100, height: 100)
         
         CircleProgressView(
             progress: 0.4,
             distanceInfo: "4/10",
-            title: "訓練進度",
-            unit: "週"
+            title: NSLocalizedString("progress.training_progress", comment: "Training Progress"),
+            unit: NSLocalizedString("progress.week_unit", comment: "Week")
         )
         .frame(width: 100, height: 100)
     }

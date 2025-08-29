@@ -15,8 +15,8 @@ struct IntensityProgressView: View {
             if currentMinutes > 0 {
                 // 狀況: 目標為 0，實際 > 0
                 return (
-                    mainText: "\(currentMinutes) 分鐘",
-                    annotationText: "(未安排)",
+                    mainText: String(format: NSLocalizedString("intensity.minutes", comment: "Minutes"), currentMinutes),
+                    annotationText: NSLocalizedString("intensity.unscheduled", comment: "(Unscheduled)"),
                     showIcon: false,
                     progressValue: 1.0, // 顯示完整進度條以表示活動量
                     barColor: .gray,     // 灰底
@@ -25,7 +25,7 @@ struct IntensityProgressView: View {
             } else {
                 // 狀況: 目標為 0，實際 = 0
                 return (
-                    mainText: "未安排", // 或 "無預計訓練"
+                    mainText: NSLocalizedString("intensity.not_scheduled", comment: "Not scheduled"), // 或 "無預計訓練"
                     annotationText: nil,
                     showIcon: false,
                     progressValue: 0.0,
@@ -38,7 +38,7 @@ struct IntensityProgressView: View {
             if currentMinutes == 0 {
                 // 狀況: 實際 = 0 (目標 > 0)
                 return (
-                    mainText: "0 / \(target) 分鐘",
+                    mainText: String(format: NSLocalizedString("intensity.minutes_progress", comment: "Minutes progress"), 0, target),
                     annotationText: nil,
                     showIcon: false,
                     progressValue: 0.0,
@@ -48,7 +48,7 @@ struct IntensityProgressView: View {
             } else if current > Double(target) {
                 // 狀況: 進度 > 100%
                 return (
-                    mainText: "\(currentMinutes) / \(target) 分鐘",
+                    mainText: String(format: NSLocalizedString("intensity.minutes_progress", comment: "Minutes progress"), currentMinutes, target),
                     annotationText: nil,
                     showIcon: true, // 顯示 ⓘ 圖示
                     progressValue: 1.0, // 顯示至 100%
@@ -58,7 +58,7 @@ struct IntensityProgressView: View {
             } else {
                 // 狀況: 實際 < 目標 (或等於目標)
                 return (
-                    mainText: "\(currentMinutes) / \(target) 分鐘",
+                    mainText: String(format: NSLocalizedString("intensity.minutes_progress", comment: "Minutes progress"), currentMinutes, target),
                     annotationText: nil,
                     showIcon: false,
                     progressValue: current / Double(target),
@@ -120,21 +120,21 @@ struct IntensityProgressView: View {
 #Preview {
     VStack {
         IntensityProgressView(
-            title: "低強度",
+            title: NSLocalizedString("intensity.low", comment: "Low Intensity"),
             current: 120,
             target: 180,
             originalColor: .blue
         )
         
         IntensityProgressView(
-            title: "中強度",
+            title: NSLocalizedString("intensity.medium", comment: "Medium Intensity"),
             current: 45,
             target: 30,
             originalColor: .green
         )
         
         IntensityProgressView(
-            title: "高強度",
+            title: NSLocalizedString("intensity.high", comment: "High Intensity"),
             current: 15,
             target: 0,
             originalColor: .orange

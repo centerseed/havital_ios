@@ -38,7 +38,7 @@ struct EmailLoginView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("登入")
+                    Text(NSLocalizedString("common.login", comment: "Log In"))
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(AppTheme.shared.primaryColor)
@@ -51,23 +51,23 @@ struct EmailLoginView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Email 登入")
-        .alert("登入失敗", isPresented: $showAlert) {
+        .navigationTitle(NSLocalizedString("login.email_title", comment: "Email Login"))
+        .alert(NSLocalizedString("login.failed", comment: "Login Failed"), isPresented: $showAlert) {
             // 僅 email 未驗證時顯示重新發送按鈕
             if viewModel.canResendVerification {
-                Button("重新發送驗證信") {
+                Button(NSLocalizedString("login.email_not_verified_resend", comment: "Resend Verification Email")) {
                     Task {
                         await viewModel.resendVerification()
                         showResendSuccess = true
                     }
                 }
             }
-            Button("確定", role: .cancel) { }
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
         } message: {
             Text(alertMessage)
         }
-        .alert("提示", isPresented: $showResendSuccess) {
-            Button("確定", role: .cancel) { }
+        .alert(NSLocalizedString("login.resend_success_title", comment: "Notice"), isPresented: $showResendSuccess) {
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
         } message: {
             Text(viewModel.resendSuccessMessage ?? "")
         }

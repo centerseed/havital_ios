@@ -1472,6 +1472,10 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         return ViewModelUtils.weekdayName(for: index)
     }
     
+    func weekdayShortName(for index: Int) -> String {
+        return ViewModelUtils.weekdayShortName(for: index)
+    }
+    
     // 用於除錯的日期格式化工具
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()

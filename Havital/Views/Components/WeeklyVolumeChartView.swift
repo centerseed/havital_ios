@@ -62,7 +62,7 @@ struct WeeklyVolumeChartView: View {
             // Title and Info (only show if showTitle is true)
             if showTitle {
                 HStack {
-                    Text("週跑量趨勢")
+                    Text(NSLocalizedString("weekly_volume.trend", comment: "Weekly Volume Trend"))
                         .font(.headline)
                         .foregroundColor(.primary)
                     
@@ -79,7 +79,7 @@ struct WeeklyVolumeChartView: View {
                     if weeklySummaryManager.isLoading || isLoading {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text("載入中...")
+                        Text(NSLocalizedString("weekly_volume.loading", comment: "Loading..."))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -91,7 +91,7 @@ struct WeeklyVolumeChartView: View {
                         Spacer()
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text("載入中...")
+                        Text(NSLocalizedString("weekly_volume.loading", comment: "Loading..."))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -111,8 +111,8 @@ struct WeeklyVolumeChartView: View {
                 }
             } else if filteredVolumeData.isEmpty {
                 EmptyStateView(
-                    type: .noData(dataType: "週跑量"),
-                    customMessage: "暫無週跑量數據"
+                    type: .noData(dataType: NSLocalizedString("weekly_volume.trend", comment: "Weekly Volume Trend")),
+                    customMessage: NSLocalizedString("weekly_volume.no_data", comment: "No weekly volume data available")
                 )
                 .frame(height: 150)
             } else {
@@ -123,17 +123,17 @@ struct WeeklyVolumeChartView: View {
             if let selected = selectedWeek {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("第 \(selected.week) 週")
+                        Text(String(format: NSLocalizedString("weekly_volume.week_number", comment: "Week number"), selected.week))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
                         if selected.distance > 0 {
-                            Text("\(String(format: "%.1f", selected.distance)) 公里")
+                            Text(String(format: NSLocalizedString("weekly_volume.kilometers", comment: "Kilometers"), selected.distance))
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                         } else {
-                            Text("無跑步記錄")
+                            Text(NSLocalizedString("weekly_volume.no_running_records", comment: "No running records"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
@@ -249,7 +249,7 @@ struct WeeklyVolumeChartView: View {
                 
                 // Check if we have data after loading
                 if weeklySummaryManager.weeklySummaries.isEmpty {
-                    error = "暫無週跑量數據，請確保已有訓練記錄"
+                    error = NSLocalizedString("weekly_volume.no_data_message", comment: "No weekly volume data available, please ensure you have training records")
                 } else {
                     error = nil
                 }
@@ -260,10 +260,10 @@ struct WeeklyVolumeChartView: View {
                 // Check if it's a cancellation error
                 let nsError = error as NSError
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-                    print("週跑量數據載入被取消，忽略錯誤")
+                    print(NSLocalizedString("weekly_volume.load_cancelled", comment: "Weekly volume data loading cancelled, ignoring error"))
                     return
                 }
-                self.error = "載入失敗: \(error.localizedDescription)"
+                self.error = String(format: NSLocalizedString("weekly_volume.load_failed", comment: "Load failed"), error.localizedDescription)
             }
         }
     }

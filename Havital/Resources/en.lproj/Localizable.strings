@@ -426,3 +426,112 @@
 "hr_zone.resting_hr_range" = "Resting heart rate should be between 30-120 bpm";
 "hr_zone.save_failed" = "Save failed: %@";
 "hr_zone.understand" = "Understand";
+
+// MARK: - Training Days Editor
+"training_days.select_general_days" = "Select General Training Days";
+"training_days.long_run_day_weekend" = "Long Run Day (Recommend Weekend)";
+"training_days.long_run_day" = "Long Run Day";
+"training_days.edit_title" = "Edit Training Days";
+"training_days.save" = "Save";
+
+// MARK: - Login Strings  
+"login.tagline" = "Let's easily embark on the path to health and fitness";
+"login.google_signin" = "Sign in with Google";
+"login.apple_signin" = "Sign in with Apple";
+"login.failed" = "Login Failed";
+"login.email_title" = "Email Login";
+"login.email_not_verified_resend" = "Resend Verification Email";
+"login.resend_success_title" = "Notice";
+
+// MARK: - Data Sync Strings
+"sync.title" = "Data Sync";
+"sync.sync_data" = "Sync %@ Data";
+"sync.syncing_records" = "Syncing your workout records...";
+"sync.complete" = "Sync Complete";
+"sync.failed" = "Sync Failed";
+"sync.retry" = "Retry";
+"sync.skip" = "Skip";
+"sync.error_records_failed" = "%d records failed to process";
+"sync.checking_health_auth" = "Checking Apple Health authorization...";
+"sync.getting_30_day_records" = "Getting workout records from the last 30 days...";
+"sync.no_health_records" = "No Apple Health workout records found in the last 30 days. Please ensure your iPhone or Apple Watch has recorded workout data.";
+"sync.uploading_records" = "Uploading workout records to cloud (total %d records)...";
+"sync.uploading_record_progress" = "Uploading workout record %d/%d...";
+"sync.all_records_failed" = "All workout records failed to upload. Last error: %@";
+"sync.reload_data" = "Reloading workout data...";
+"sync.apple_health_failed" = "Apple Health sync failed: %@";
+"sync.checking_garmin_status" = "Checking Garmin processing status...";
+"sync.garmin_processing_detected" = "Detected Garmin data is being processed...\nContinuing to monitor progress";
+"sync.garmin_processing_continue" = "Detected Garmin processing in progress, entering polling mode directly";
+"sync.start_garmin_historical" = "Starting Garmin historical data processing...";
+"sync.processing_garmin_data" = "Processing Garmin data...\nEstimated time: %@";
+"sync.garmin_historical_success" = "Successfully triggered new Garmin historical data processing";
+"sync.processing_in_progress" = "Detected processing in progress...\nConnecting to ongoing processing";
+"sync.cannot_connect_garmin" = "Unable to connect to ongoing Garmin processing: %@";
+"sync.garmin_sync_failed" = "Garmin sync failed: %@";
+"sync.processing_garmin_progress" = "Processing Garmin data...\nProgress: %d/%d (%d%%)";
+"sync.processing_garmin_initializing" = "Processing Garmin data...\nInitializing processing...";
+
+// MARK: - Weekly Volume & Intensity Strings
+"weekly_volume.trend" = "Weekly Volume Trend";
+"weekly_volume.loading" = "Loading...";
+"weekly_volume.no_data" = "No weekly volume data available";
+"weekly_volume.no_data_message" = "No weekly volume data available, please ensure you have training records";
+"weekly_volume.week_number" = "Week %d";
+"weekly_volume.kilometers" = "%.1f km";
+"weekly_volume.no_running_records" = "No running records";
+"weekly_volume.load_failed" = "Load failed: %@";
+"weekly_volume.load_cancelled" = "Weekly volume data loading cancelled, ignoring error";
+
+// MARK: - Intensity Distribution Strings  
+"intensity.low" = "Low";
+"intensity.medium" = "Medium";
+"intensity.high" = "High";
+"intensity.minutes" = "%d mins";
+"intensity.minutes_progress" = "%d / %d mins";
+"intensity.not_scheduled" = "Not scheduled";
+"intensity.unscheduled" = "(Unscheduled)";
+
+// MARK: - Training Plan View Strings
+"training_plan.week_overview" = "Week Overview";
+"training_plan.weekly_volume_load" = "Weekly Volume";
+"training_plan.week_target" = "Week Target";
+"training_plan.today" = "Today";
+"training_plan.tip" = "Tip: %@";
+"training_plan.segment" = "Segment %d";
+"training_plan.heart_rate_zone" = "Heart Rate Zone: %@";
+"training_plan.interval_training" = "Interval Training";
+"training_plan.repeats" = "%d × Repeats";
+"training_plan.sprint_segment" = "Sprint Segment";
+"training_plan.recovery_segment" = "Recovery Segment";
+"training_plan.rest_in_place" = "Rest in place";
+"training_plan.cycle_completed" = "Training cycle completed";
+"training_plan.congratulations" = "Congratulations on completing this training cycle!";
+"training_plan.loading_schedule" = "Loading schedule...";
+
+// MARK: - Weekday Names (Full and Short)
+"weekday.monday" = "Monday";
+"weekday.tuesday" = "Tuesday";
+"weekday.wednesday" = "Wednesday";
+"weekday.thursday" = "Thursday";
+"weekday.friday" = "Friday";
+"weekday.saturday" = "Saturday";
+"weekday.sunday" = "Sunday";
+
+"weekday.mon_short" = "Mon";
+"weekday.tue_short" = "Tue";
+"weekday.wed_short" = "Wed";
+"weekday.thu_short" = "Thu";
+"weekday.fri_short" = "Fri";
+"weekday.sat_short" = "Sat";
+"weekday.sun_short" = "Sun";
+
+// MARK: - Training Intensity Levels
+"intensity.low" = "Low";
+"intensity.medium" = "Medium";
+"intensity.high" = "High";
+
+// MARK: - Weekly Progress Strings
+"progress.weekly_volume" = "Volume";
+"progress.training_progress" = "Training Progress";
+"progress.week_unit" = "Week";

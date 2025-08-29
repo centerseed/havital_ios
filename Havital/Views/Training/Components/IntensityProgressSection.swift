@@ -8,7 +8,7 @@ struct IntensityProgressSection: View {
         VStack(spacing: 12) {
             // 低強度
             IntensityProgressView(
-                title: "低強度",
+                title: NSLocalizedString("intensity.low", comment: "Low Intensity"),
                 current: actualIntensity.low,
                 target: Int(planIntensity.low),
                 originalColor: .blue
@@ -16,7 +16,7 @@ struct IntensityProgressSection: View {
             
             // 中強度
             IntensityProgressView(
-                title: "中強度",
+                title: NSLocalizedString("intensity.medium", comment: "Medium Intensity"),
                 current: actualIntensity.medium,
                 target: Int(planIntensity.medium),
                 originalColor: .green
@@ -24,7 +24,7 @@ struct IntensityProgressSection: View {
             
             // 高強度
             IntensityProgressView(
-                title: "高強度",
+                title: NSLocalizedString("intensity.high", comment: "High Intensity"),
                 current: actualIntensity.high,
                 target: Int(planIntensity.high),
                 originalColor: .orange

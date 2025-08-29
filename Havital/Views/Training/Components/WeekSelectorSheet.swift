@@ -107,7 +107,7 @@ struct WeekSelectorSheet: View {
                     .padding(.horizontal, 6)
                 }
             }
-            .navigationTitle("訓練進度")
+            .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

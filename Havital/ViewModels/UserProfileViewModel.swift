@@ -42,10 +42,7 @@ class UserProfileViewModel: ObservableObject {
     }
     
     func weekdayName(for index: Int) -> String {
-        // Using a system where 1=Monday, 2=Tuesday, ... 7=Sunday
-        let weekdays = ["一", "二", "三", "四", "五", "六", "日"]
-        let adjustedIndex = (index - 1) % 7
-        return "星期" + weekdays[adjustedIndex]
+        return ViewModelUtils.weekdayName(for: index)
     }
     
     func formatHeartRate(_ rate: Int) -> String {

@@ -44,9 +44,36 @@ struct ViewModelUtils {
 
     /// 星期文字 (一~日)
     static func weekdayName(for index: Int) -> String {
-        let weekdays = ["一", "二", "三", "四", "五", "六", "日"]
+        let weekdayKeys = [
+            "weekday.monday",
+            "weekday.tuesday", 
+            "weekday.wednesday",
+            "weekday.thursday",
+            "weekday.friday",
+            "weekday.saturday",
+            "weekday.sunday"
+        ]
+        
         guard index >= 1 && index <= 7 else { return "" }
-        return "星期" + weekdays[index - 1]
+        let key = weekdayKeys[index - 1]
+        return NSLocalizedString(key, comment: "Weekday name")
+    }
+    
+    /// 短星期文字 (Mon~Sun)
+    static func weekdayShortName(for index: Int) -> String {
+        let weekdayShortKeys = [
+            "weekday.mon_short",
+            "weekday.tue_short", 
+            "weekday.wed_short",
+            "weekday.thu_short",
+            "weekday.fri_short",
+            "weekday.sat_short",
+            "weekday.sun_short"
+        ]
+        
+        guard index >= 1 && index <= 7 else { return "" }
+        let key = weekdayShortKeys[index - 1]
+        return NSLocalizedString(key, comment: "Short weekday name")
     }
 
     /// 除錯日期顯示 yyyy-MM-dd HH:mm:ss

@@ -14,8 +14,8 @@ struct ProgressCirclesSection: View {
                     CircleProgressView(
                         progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks),
                         distanceInfo: "\(plan.weekOfPlan)/\(plan.totalWeeks)",
-                        title: "訓練進度",
-                        unit: "週"
+                        title: NSLocalizedString("progress.training_progress", comment: "Training Progress"),
+                        unit: NSLocalizedString("progress.week_unit", comment: "Week")
                     )
                     .frame(width: 100, height: 100)
                     .onTapGesture { showWeekSelector = true }
@@ -27,7 +27,7 @@ struct ProgressCirclesSection: View {
                     CircleProgressView(
                         progress: min(currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
                         distanceInfo: "\(formatDistance(currentWeekDistance))/\(formatDistance(plan.totalDistance))",
-                        title: "本週跑量"
+                        title: NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
                     )
                     .frame(width: 100, height: 100)
                 }
@@ -54,7 +54,7 @@ struct ProgressWithIntensitySection: View {
                     CircleProgressView(
                         progress: min(currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
                         distanceInfo: "\(formatDistance(currentWeekDistance))/\(formatDistance(plan.totalDistance))",
-                        title: "本週跑量"
+                        title: NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
                     )
                     .frame(width: 100, height: 100)
                 }

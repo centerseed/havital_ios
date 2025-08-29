@@ -7,7 +7,7 @@ struct WeekProgressHeader: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack {
-                Text("訓練進度")
+                Text(NSLocalizedString("training.progress", comment: "Training Progress"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 Spacer()

@@ -18,7 +18,7 @@ struct LoginView: View {
                         .font(.system(size: 48, weight: .bold))
                         .foregroundColor(AppTheme.shared.primaryColor)
                     
-                    Text("讓我們輕鬆踏上，運動健康之路")
+                    Text(NSLocalizedString("login.tagline", comment: "Login tagline"))
                         .font(.title2)
                         .foregroundColor(AppTheme.TextColors.secondary)
                 }
@@ -42,7 +42,7 @@ struct LoginView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "g.circle.fill")
                                 .font(.title2)
-                            Text("使用 Google 登入")
+                            Text(NSLocalizedString("login.google_signin", comment: "Sign in with Google"))
                                 .font(.title3)
                                 .fontWeight(.semibold)
                         }
@@ -70,7 +70,7 @@ struct LoginView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "apple.logo")
                                 .font(.title2)
-                            Text("使用 Apple 登入")
+                            Text(NSLocalizedString("login.apple_signin", comment: "Sign in with Apple"))
                                 .font(.title3)
                                 .fontWeight(.semibold)
                         }
@@ -104,8 +104,8 @@ struct LoginView: View {
                 showError = true
             }
         }
-        .alert("登入失敗", isPresented: $showError) {
-            Button("確定", role: .cancel) {
+        .alert(NSLocalizedString("login.failed", comment: "Login Failed"), isPresented: $showError) {
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {
                 authService.loginError = nil
             }
         } message: {
