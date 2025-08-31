@@ -111,24 +111,45 @@ class WorkoutV2CacheManager {
             return nil
         }
         
-        guard let data = userDefaults.data(forKey: workoutListCacheKey),
-              let workouts = try? JSONDecoder().decode([WorkoutV2].self, from: data) else {
+        guard let data = userDefaults.data(forKey: workoutListCacheKey) else {
             return nil
         }
         
-        Logger.firebase(
-            "從快取載入運動列表",
-            level: .info,
-            labels: [
-                "module": "WorkoutV2CacheManager",
-                "action": "load_cached_workout_list"
-            ],
-            jsonPayload: [
-                "workouts_count": workouts.count
+        do {
+            let workouts = try JSONDecoder().decode([WorkoutV2].self, from: data)
+            
+            Logger.firebase(
+                "從快取載入運動列表",
+                level: .info,
+                labels: [
+                    "module": "WorkoutV2CacheManager",
+                    "action": "load_cached_workout_list"
+                ],
+                jsonPayload: [
+                    "workouts_count": workouts.count
+                ]
+            )
+            
+            return workouts
+        } catch {
+            // 記錄詳細的 decode 錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "data_size": data.count,
+                "context": "workout_v2_list_decode_from_cache",
+                "cache_key": workoutListCacheKey
             ]
-        )
-        
-        return workouts
+            
+            Logger.firebase("WorkoutV2 list decode failed from cache",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "WorkoutV2CacheManager", "operation": "loadWorkoutList"],
+                          jsonPayload: errorDetails)
+            
+            return nil
+        }
     }
     
     /// 獲取快取的分頁資訊
@@ -139,12 +160,32 @@ class WorkoutV2CacheManager {
             return nil
         }
         
-        guard let data = userDefaults.data(forKey: workoutPaginationCacheKey),
-              let paginationInfo = try? JSONDecoder().decode(CachedPaginationInfo.self, from: data) else {
+        guard let data = userDefaults.data(forKey: workoutPaginationCacheKey) else {
             return nil
         }
         
-        return paginationInfo
+        do {
+            let paginationInfo = try JSONDecoder().decode(CachedPaginationInfo.self, from: data)
+            return paginationInfo
+        } catch {
+            // 記錄詳細的 decode 錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "data_size": data.count,
+                "context": "pagination_info_decode_from_cache",
+                "cache_key": workoutPaginationCacheKey
+            ]
+            
+            Logger.firebase("Pagination info decode failed from cache",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "WorkoutV2CacheManager", "operation": "getCachedPaginationInfo"],
+                          jsonPayload: errorDetails)
+            
+            return nil
+        }
     }
     
     /// 增量更新運動列表快取（新增新的運動記錄）

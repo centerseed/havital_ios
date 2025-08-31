@@ -72,12 +72,44 @@ struct GaitAnalysisChartView: View {
     private var yAxisRange: (min: Double, max: Double) {
         guard !currentData.isEmpty else { return (min: 0, max: 1) }
         let values = currentData.map { $0.value }
-        let minValue = values.min() ?? 0
-        let maxValue = values.max() ?? 1
-        let range = maxValue - minValue
-        let padding = range * 0.1 // 10% padding
+        let sortedValues = values.sorted()
+        let count = sortedValues.count
         
-        return (min: max(0, minValue - padding), max: maxValue + padding)
+        // Get basic stats
+        let minValue = sortedValues.first ?? 0
+        let maxValue = sortedValues.last ?? 1
+        let totalRange = maxValue - minValue
+        
+        // Use different strategies based on metric type
+        switch selectedGaitTab {
+        case .stanceTime:
+            // For stance time, ensure we show reasonable range but accommodate outliers
+            let p10Index = max(0, Int(Double(count) * 0.10))
+            let p90Index = min(count - 1, Int(Double(count) * 0.90))
+            let p10Value = sortedValues[p10Index]
+            let p90Value = sortedValues[p90Index]
+            
+            // Extend range to accommodate outliers but keep reasonable scale
+            let rangeMin = max(0, min(p10Value - 20, minValue - 10))
+            let rangeMax = max(p90Value + 30, maxValue)
+            
+            return (min: rangeMin, max: rangeMax)
+            
+        case .verticalRatio:
+            // For vertical ratio, use a more constrained range
+            let p5Index = max(0, Int(Double(count) * 0.05))
+            let p95Index = min(count - 1, Int(Double(count) * 0.95))
+            let p5Value = sortedValues[p5Index]
+            let p95Value = sortedValues[p95Index]
+            
+            let padding = max(1.0, (p95Value - p5Value) * 0.2)
+            return (min: max(0, p5Value - padding), max: p95Value + padding)
+            
+        case .cadence:
+            // For cadence, use wider range to show context
+            let padding = max(10.0, totalRange * 0.1)
+            return (min: max(0, minValue - padding), max: maxValue + padding)
+        }
     }
     
     // MARK: - Statistics
@@ -205,21 +237,14 @@ struct GaitAnalysisChartView: View {
                 // Chart
                 Chart {
                     ForEach(currentData) { point in
-                        LineMark(
+                        // Use PointMark (dots) instead of LineMark for better outlier handling
+                        PointMark(
                             x: .value("時間", point.time),
                             y: .value(selectedGaitTab.title, point.value)
                         )
-                        .foregroundStyle(selectedGaitTab.color.gradient)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                        .interpolationMethod(.catmullRom)
-
-                        AreaMark(
-                            x: .value("時間", point.time),
-                            yStart: .value(selectedGaitTab.title, yAxisRange.min),
-                            yEnd: .value(selectedGaitTab.title, point.value)
-                        )
-                        .foregroundStyle(selectedGaitTab.color.opacity(0.1))
-                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(pointColor(for: point.value))
+                        .symbolSize(pointSize(for: point.value))
+                        .opacity(pointOpacity(for: point.value))
                     }
                     
                     // 統計值參考線
@@ -281,15 +306,116 @@ struct GaitAnalysisChartView: View {
     
     // MARK: - Helper Methods
     
+    private func pointSize(for value: Double) -> CGFloat {
+        // Base point size
+        let baseSize: CGFloat = 30
+        
+        // Check if value is an outlier
+        if isOutlier(value) {
+            return baseSize * 1.3 // Make outliers slightly larger
+        } else {
+            return baseSize
+        }
+    }
+    
+    private func pointOpacity(for value: Double) -> Double {
+        // Check if value is an outlier
+        if isOutlier(value) {
+            return 0.6 // Make outliers more transparent
+        } else {
+            return 0.8 // Normal opacity
+        }
+    }
+    
+    private func isOutlier(_ value: Double) -> Bool {
+        guard !currentData.isEmpty else { return false }
+        let values = currentData.map { $0.value }
+        let sortedValues = values.sorted()
+        let count = sortedValues.count
+        
+        // Use 5th and 95th percentiles to identify outliers
+        let p5Index = max(0, Int(Double(count) * 0.05))
+        let p95Index = min(count - 1, Int(Double(count) * 0.95))
+        
+        let p5Value = sortedValues[p5Index]
+        let p95Value = sortedValues[p95Index]
+        
+        return value < p5Value || value > p95Value
+    }
+    
+    private func pointColor(for value: Double) -> Color {
+        switch selectedGaitTab {
+        case .verticalRatio:
+            // 移動效率 (垂直比率) - 藍(優秀) -> 綠(良好) -> 黃(普通) -> 橙(差) -> 紅(很差)
+            if value < 3.0 {
+                return .blue // 奧運選手級別
+            } else if value < 6.1 {
+                return .green // 優越
+            } else if value < 7.4 {
+                return .green.opacity(0.7) // 良好
+            } else if value < 8.6 {
+                return .yellow // 好
+            } else if value < 10.1 {
+                return .orange // 普通
+            } else {
+                return .red // 差
+            }
+            
+        case .stanceTime:
+            // 觸地時間 (毫秒) - 藍(菁英) -> 綠(優越) -> 黃(良好) -> 橙(普通) -> 紅(差)
+            if value < 170 {
+                return .blue // 菁英
+            } else if value < 190 {
+                return .green // 優越
+            } else if value < 210 {
+                return .green.opacity(0.7) // 良好
+            } else if value < 240 {
+                return .yellow // 普通
+            } else {
+                return .red // 差
+            }
+            
+        case .cadence:
+            // 步頻 (spm) - 綠色為理想區間，橙色為次佳，紅色為不理想
+            if value >= 170 && value <= 190 {
+                return .green // 理想步頻區間
+            } else if (value >= 150 && value < 170) || (value > 190 && value <= 200) {
+                return .orange // 次佳區間
+            } else {
+                return .red // 不理想區間 (<150 或 >200)
+            }
+        }
+    }
+    
     private var yAxisStride: Double {
         let range = yAxisRange.max - yAxisRange.min
         switch selectedGaitTab {
         case .stanceTime:
-            return range < 50 ? 10 : 20
+            if range < 50 {
+                return 10
+            } else if range < 100 {
+                return 20
+            } else if range < 200 {
+                return 30
+            } else {
+                return 50
+            }
         case .verticalRatio:
-            return range < 2 ? 0.5 : 1
+            if range < 2 {
+                return 0.5
+            } else if range < 5 {
+                return 1
+            } else {
+                return 2
+            }
         case .cadence:
-            return range < 20 ? 5 : 10
+            if range < 20 {
+                return 5
+            } else if range < 50 {
+                return 10
+            } else {
+                return 20
+            }
         }
     }
     

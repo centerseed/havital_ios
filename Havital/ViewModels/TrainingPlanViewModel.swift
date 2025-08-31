@@ -725,6 +725,25 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     } else {
                         // 其他錯誤: 保持使用本地數據
                         Logger.error("API加載計劃失敗，保持使用本地數據: \(error)")
+                        
+                        // 記錄背景更新失敗的詳細錯誤資訊到 Firebase
+                        let errorDetails: [String: Any] = [
+                            "error_type": String(describing: type(of: error)),
+                            "error_description": error.localizedDescription,
+                            "error_domain": (error as NSError).domain,
+                            "error_code": (error as NSError).code,
+                            "error_userInfo": (error as NSError).userInfo,
+                            "overview_id": trainingOverview?.id ?? "unknown",
+                            "current_week": currentWeek,
+                            "selected_week": selectedWeek,
+                            "context": "background_refresh_weekly_plan",
+                            "has_cached_plan": weeklyPlan != nil
+                        ]
+                        
+                        Logger.firebase("Background weekly plan refresh failed",
+                                      level: .error,
+                                      labels: ["cloud_logging": "true", "component": "TrainingPlanViewModel", "operation": "backgroundRefresh"],
+                                      jsonPayload: errorDetails)
                     }
                 }
             }
@@ -805,6 +824,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 
                 // 處理網路錯誤
                 Logger.error("載入週計劃失敗: \(error.localizedDescription)")
+                
+                // 記錄詳細錯誤資訊到 Firebase Cloud Logging
+                let errorDetails: [String: Any] = [
+                    "error_type": String(describing: type(of: error)),
+                    "error_description": error.localizedDescription,
+                    "error_domain": (error as NSError).domain,
+                    "error_code": (error as NSError).code,
+                    "error_userInfo": (error as NSError).userInfo,
+                    "overview_id": trainingOverview?.id ?? "unknown",
+                    "current_week": currentWeek,
+                    "selected_week": selectedWeek,
+                    "plan_status": String(describing: planStatus),
+                    "context": "load_weekly_plan"
+                ]
+                
+                Logger.firebase("Weekly plan loading failed with detailed error info",
+                              level: .error,
+                              labels: ["cloud_logging": "true", "component": "TrainingPlanViewModel", "operation": "loadWeeklyPlan"],
+                              jsonPayload: errorDetails)
+                
                 if let networkError = self.handleNetworkError(error) {
                     Logger.debug("識別為網路錯誤，顯示網路錯誤提示")
                     await MainActor.run {

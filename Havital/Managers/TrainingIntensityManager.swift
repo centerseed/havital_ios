@@ -134,13 +134,14 @@ class TrainingIntensityManager {
                         // No direct minutes are added here based on HRR for the point itself to totalLow/Medium/HighMinutes.
                         // workoutLowIntensity already includes gap times which cover the workout duration if HR data is just one point.
                         // We still need to set lowCount, mediumCount, highCount if we want to log the distribution for this single point.
-                        if hrr <= 72 {
+                        if hrr >= 50 && hrr <= 72 {
                             lowCount = 1
-                        } else if hrr <= 84 {
+                        } else if hrr > 72 && hrr <= 84 {
                             mediumCount = 1
-                        } else {
+                        } else if hrr > 84 {
                             highCount = 1
                         }
+                        // If hrr < 50, don't count it in any intensity zone
                     } else if heartRateData.count > 1 {
                         // 多個心率樣本點，考慮點與點之間的時間差
                         // 重置計算用的強度分鐘數 (這些是基於HR數據點的，不包括gap)
@@ -176,16 +177,17 @@ class TrainingIntensityManager {
                                 print("HIM_DEBUG: HR Sample \(i) contributes \(minutesForThisPoint) minutes.")
                             }
 
-                            if hrr <= 72 {
+                            if hrr >= 50 && hrr <= 72 {
                                 totalLowMinutes += minutesForThisPoint
                                 lowCount += 1
-                            } else if hrr <= 84 {
+                            } else if hrr > 72 && hrr <= 84 {
                                 totalMediumMinutes += minutesForThisPoint
                                 mediumCount += 1
-                            } else {
+                            } else if hrr > 84 {
                                 totalHighMinutes += minutesForThisPoint
                                 highCount += 1
                             }
+                            // If hrr < 50, don't add these minutes to any intensity zone
                         }
                         
                         // 更新 workout 的強度分鐘數 (累加由 HR data points 計算出的部分)

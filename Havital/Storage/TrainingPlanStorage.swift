@@ -30,6 +30,23 @@ class TrainingPlanStorage {
             return try JSONDecoder().decode(WeeklyPlan.self, from: data)
         } catch {
             print("Error loading weekly plan: \(error)")
+            
+            // 記錄詳細的 decode 錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "data_size": data.count,
+                "context": "weekly_plan_decode_from_storage",
+                "storage_key": shared.weeklyPlanKey
+            ]
+            
+            Logger.firebase("Weekly plan decode failed from UserDefaults storage",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "TrainingPlanStorage", "operation": "loadWeeklyPlan"],
+                          jsonPayload: errorDetails)
+            
             return nil
         }
     }
@@ -44,6 +61,24 @@ class TrainingPlanStorage {
             return try JSONDecoder().decode(WeeklyPlan.self, from: data)
         } catch {
             print("Error loading weekly plan for week \(week): \(error)")
+            
+            // 記錄詳細的 decode 錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "data_size": data.count,
+                "target_week": week,
+                "context": "weekly_plan_decode_from_storage_by_week",
+                "storage_key": weekKey
+            ]
+            
+            Logger.firebase("Weekly plan decode failed from UserDefaults storage (by week)",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "TrainingPlanStorage", "operation": "loadWeeklyPlanForWeek"],
+                          jsonPayload: errorDetails)
+            
             return nil
         }
     }
