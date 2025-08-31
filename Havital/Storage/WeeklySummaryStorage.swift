@@ -38,6 +38,23 @@ class WeeklySummaryStorage {
             return summary
         } catch {
             print("讀取週訓練回顧時出錯：\(error)")
+            
+            // 記錄詳細的 decode 錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "data_size": data.count,
+                "context": "weekly_summary_decode_from_storage",
+                "storage_key": summaryKey
+            ]
+            
+            Logger.firebase("Weekly summary decode failed from UserDefaults storage",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "WeeklySummaryStorage", "operation": "loadWeeklySummary"],
+                          jsonPayload: errorDetails)
+            
             return nil
         }
     }
@@ -116,11 +133,22 @@ class WeeklySummaryStorage {
             
             return summaries
         } catch {
-            Logger.firebase(
-                "讀取週總結列表時出錯，清除損壞的快取",
-                level: .warn,
-                jsonPayload: ["error": error.localizedDescription]
-            )
+            // 記錄詳細的 decode 錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "data_size": data.count,
+                "context": "weekly_summary_list_decode_from_storage",
+                "storage_key": summaryListKey
+            ]
+            
+            Logger.firebase("Weekly summary list decode failed from UserDefaults storage, clearing corrupted cache",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "WeeklySummaryStorage", "operation": "loadWeeklySummaryList"],
+                          jsonPayload: errorDetails)
+            
             clearWeeklySummaryList()
             return nil
         }

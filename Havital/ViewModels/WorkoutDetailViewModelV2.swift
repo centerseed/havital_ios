@@ -605,11 +605,22 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             self.error = error.localizedDescription
             self.isLoading = false
             
-            Logger.firebase(
-                "運動詳情刷新失敗: \(error.localizedDescription)",
-                level: .error,
-                labels: ["module": "WorkoutDetailViewModelV2", "action": "refresh_detail"]
-            )
+            // 記錄詳細錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "workout_id": workout.id,
+                "activity_type": workout.activityType,
+                "has_cached_detail": workoutDetail != nil,
+                "context": "workout_detail_refresh"
+            ]
+            
+            Logger.firebase("Workout detail refresh failed with detailed error info",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "WorkoutDetailViewModelV2", "operation": "refreshWorkoutDetail"],
+                          jsonPayload: errorDetails)
         }
     }
 
@@ -692,11 +703,22 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             self.error = error.localizedDescription
             self.isLoading = false
             
-            Logger.firebase(
-                "運動詳情載入失敗: \(error.localizedDescription)",
-                level: .error,
-                labels: ["module": "WorkoutDetailViewModelV2", "action": "load_detail"]
-            )
+            // 記錄詳細錯誤資訊到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": String(describing: type(of: error)),
+                "error_description": error.localizedDescription,
+                "error_domain": (error as NSError).domain,
+                "error_code": (error as NSError).code,
+                "workout_id": workout.id,
+                "activity_type": workout.activityType,
+                "has_cached_detail": workoutDetail != nil,
+                "context": "workout_detail_load"
+            ]
+            
+            Logger.firebase("Workout detail load failed with detailed error info",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "WorkoutDetailViewModelV2", "operation": "loadWorkoutDetail"],
+                          jsonPayload: errorDetails)
         }
     }
     

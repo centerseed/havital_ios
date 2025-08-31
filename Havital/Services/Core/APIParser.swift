@@ -42,6 +42,24 @@ struct DefaultAPIParser: APIParser {
             Logger.error("[APIParser] 失敗的類型: \(String(describing: type))")
             Logger.error("[APIParser] 原始響應數據: \(String(data: data, encoding: .utf8) ?? "無法解析為字串")")
             
+            // 記錄詳細的 decode 錯誤到 Firebase Cloud Logging
+            let errorDetails: [String: Any] = [
+                "error_type": "DecodingError",
+                "error_detail_type": String(describing: errorDetail.type),
+                "error_description": errorDetail.description,
+                "missing_field": errorDetail.missingField ?? "",
+                "coding_path": errorDetail.codingPath,
+                "expected_type": errorDetail.expectedType,
+                "response_preview": errorDetail.responsePreview,
+                "data_size": data.count,
+                "context": "api_response_decode"
+            ]
+            
+            Logger.firebase("API response decode failed with DecodingError",
+                          level: .error,
+                          labels: ["cloud_logging": "true", "component": "APIParser", "operation": "parse"],
+                          jsonPayload: errorDetails)
+            
             // 嘗試容錯處理
             if let fallbackResult = try? attemptFallbackParsing(type, from: data) {
                 Logger.debug("[APIParser] 使用容錯機制成功解析")

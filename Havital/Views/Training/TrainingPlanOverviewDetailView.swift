@@ -132,14 +132,8 @@ struct TrainingPlanOverviewDetailView: View {
                 fetchAndSyncTargets()
             }
             .sheet(isPresented: $showEditSheet, onDismiss: {
-                // 當編輯視圖關閉時重新載入目標賽事
-                loadTargetRace()
-                
-                // 只有在保存了目標後才更新overview
-                if hasTargetSaved {
-                    updateTrainingPlanOverview()
-                    // hasTargetSaved 的重置移到 updateTrainingPlanOverview 完成後
-                }
+                // 編輯視圖關閉後的處理邏輯會在通知中處理
+                // 這裡不需要做任何事情，避免重複處理
             }) {
                 if let target = targetRace {
                     EditTargetView(target: target)
@@ -159,8 +153,23 @@ struct TrainingPlanOverviewDetailView: View {
             }) {
                 AddSupportingTargetView()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .targetUpdated)) { _ in
-                hasTargetSaved = true
+            .onReceive(NotificationCenter.default.publisher(for: .targetUpdated)) { notification in
+                // 只處理來自 EditTargetView 且包含變更資訊的通知
+                if let userInfo = notification.userInfo,
+                   let hasSignificantChange = userInfo["hasSignificantChange"] as? Bool {
+                    print("接收到賽事編輯通知，重要變更: \(hasSignificantChange)")
+                    
+                    // 無論是否有重要變更，都要重新載入賽事資料以顯示最新名稱
+                    loadTargetRace()
+                    
+                    // 只有在有重要變更時才更新訓練計劃概覽
+                    if hasSignificantChange {
+                        updateTrainingPlanOverview()
+                    }
+                } else {
+                    // 忽略來自其他地方（如 TargetStorage）的通知，避免不必要的 overview 更新
+                    print("忽略來自 TargetStorage 的 targetUpdated 通知")
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
                 // 當支援賽事更新時，只重新載入支援賽事列表，不更新主要訓練計劃

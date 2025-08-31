@@ -83,10 +83,16 @@ struct EditTargetView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("儲存") {
                         Task {
-                            if await targetModel.updateTarget() {
-                                NotificationCenter.default.post(name: .targetUpdated, object: nil)
+                            if let hasSignificantChange = await targetModel.updateTarget() {
+                                // 無論是否有重要變更，都發送通知並關閉視圖
+                                NotificationCenter.default.post(
+                                    name: .targetUpdated, 
+                                    object: nil, 
+                                    userInfo: ["hasSignificantChange": hasSignificantChange]
+                                )
                                 dismiss()
                             }
+                            // 如果回傳 nil（更新失敗），則不關閉視圖
                         }
                     }
                     .disabled(targetModel.raceName.isEmpty || targetModel.isLoading)
@@ -106,6 +112,10 @@ class EditTargetViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     private let targetId: String
+    
+    // 儲存原始值用於變更檢測
+    private let originalDistance: String
+    private let originalTargetTime: Int
     
     let availableDistances = [
         "5": "5公里",
@@ -144,21 +154,28 @@ class EditTargetViewModel: ObservableObject {
     
     init(target: Target) {
         self.targetId = target.id
+        
+        // 先初始化原始值
+        self.originalTargetTime = target.targetTime
+        
+        // 初始化當前值
         self.raceName = target.name
         self.raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
         
-        // 設置距離
+        // 設置距離並保存原始距離值
         if let distanceStr = availableDistances.keys.first(where: { Int(Double($0) ?? 0) == target.distanceKm }) {
             self.selectedDistance = distanceStr
+            self.originalDistance = distanceStr
+        } else {
+            self.originalDistance = "42.195" // 預設值
         }
         
         // 設置目標時間
         self.targetHours = target.targetTime / 3600
         self.targetMinutes = (target.targetTime % 3600) / 60
-        
     }
     
-    func updateTarget() async -> Bool {
+    func updateTarget() async -> Bool? {
         isLoading = true
         error = nil
         
@@ -177,14 +194,19 @@ class EditTargetViewModel: ObservableObject {
             
             // 更新目標賽事
             _ = try await TargetService.shared.updateTarget(id: targetId, target: target)
-            print("賽事目標已更新")
-            return true
+            
+            // 檢查是否有重要變更（距離或完賽時間）
+            let currentTargetTime = targetHours * 3600 + targetMinutes * 60
+            let hasSignificantChange = (selectedDistance != originalDistance) || (currentTargetTime != originalTargetTime)
+            
+            print("賽事目標已更新，重要變更: \(hasSignificantChange)")
+            isLoading = false
+            return hasSignificantChange
         } catch {
             self.error = error.localizedDescription
             print("更新賽事目標失敗: \(error.localizedDescription)")
             isLoading = false
-            return false
+            return nil
         }
-        isLoading = false
     }
 }

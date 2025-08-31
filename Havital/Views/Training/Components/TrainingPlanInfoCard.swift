@@ -104,7 +104,7 @@ struct TrainingPlanInfoCard: View {
                     }
                     
                     Text(aiSummary.analysis)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(forceExpandAnalysis || isAnalysisExpanded ? nil : 3)
                         .animation(.easeInOut(duration: 0.2), value: isAnalysisExpanded)
