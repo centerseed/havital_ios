@@ -31,7 +31,7 @@ struct DayHeaderView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
-                        Text(viewModel.weekdayShortName(for: day.dayIndexInt))
+                        Text(viewModel.weekdayName(for: day.dayIndexInt))
                             .font(.headline)
                         if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
                             Text(viewModel.formatShortDate(date))
@@ -52,7 +52,7 @@ struct DayHeaderView: View {
                 
                 Spacer()
                 
-                Text(day.type.chineseName)
+                Text(day.type.localizedName)
                     .font(.subheadline)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -186,7 +186,7 @@ struct SegmentedTrainingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(day.type.chineseName)
+                Text(day.type.localizedName)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
@@ -415,8 +415,10 @@ struct RegularTrainingItemsView: View {
     // 檢查是否應該隱藏配速資訊
     private func shouldHidePace(for item: WeeklyTrainingItem) -> Bool {
         let itemName = item.name.lowercased()
-        return itemName.contains("輕鬆跑") || 
-               itemName.contains("恢復跑") ||
+        let easyRunName = L10n.Training.TrainingType.easy.localized.lowercased()
+        let recoveryRunName = L10n.Training.TrainingType.recovery.localized.lowercased()
+        return itemName.contains(easyRunName) || 
+               itemName.contains(recoveryRunName) ||
                day.type == .easyRun || 
                day.type == .easy || 
                day.type == .recovery_run

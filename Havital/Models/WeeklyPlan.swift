@@ -181,10 +181,10 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 if let distance = details.distanceKm {
                     let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
-                        name: type == .rest ? "休息" :
-                              type == .longRun ? "長距離跑" :
-                              type == .lsd ? "長慢跑" :
-                              "輕鬆跑",
+                        name: type == .rest ? L10n.Training.TrainingType.rest.localized :
+                              type == .longRun ? L10n.Training.TrainingType.long.localized :
+                              type == .lsd ? L10n.Training.TrainingType.lsd.localized :
+                              L10n.Training.TrainingType.easy.localized,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(
@@ -201,7 +201,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 var items: [WeeklyTrainingItem] = []
                 if let work = details.work, let recovery = details.recovery, let repeats = details.repeats {
                     let workItem = WeeklyTrainingItem(
-                        name: "間歇跑",
+                        name: L10n.Training.TrainingType.interval.localized,
                         runDetails: work.description ?? "",
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: work.pace, distanceKm: work.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
@@ -209,7 +209,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     items.append(workItem)
                     
                     let recoveryItem = WeeklyTrainingItem(
-                        name: "恢復跑",
+                        name: L10n.Training.TrainingType.recovery.localized,
                         runDetails: recovery.description ?? "",
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: recovery.pace, distanceKm: recovery.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
@@ -221,7 +221,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 if let distance = details.distanceKm {
                     let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
-                        name: "節奏跑",
+                        name: type == .tempo ? L10n.Training.TrainingType.tempo.localized : L10n.Training.TrainingType.threshold.localized,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(
@@ -238,7 +238,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 if let _ = details.segments, let totalDistance = details.totalDistanceKm {
                     let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
-                        name: "漸速跑",
+                        name: L10n.Training.TrainingType.progression.localized,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
@@ -248,7 +248,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
             case .race:
                 let description = details.description ?? ""
                 let item = WeeklyTrainingItem(
-                        name: "比賽",
+                        name: L10n.Training.TrainingType.race.localized,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: nil, heartRateRange: nil, heartRate: nil, times: nil)
@@ -256,11 +256,11 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     return [item]
             case .crossTraining, .hiking, .strength, .yoga, .cycling:
                 let description = details.description ?? ""
-                let activityName = type == .crossTraining ? "交叉訓練" :
-                                 type == .hiking ? "健走" :
-                                 type == .strength ? "肌力訓練" :
-                                 type == .yoga ? "瑜伽" :
-                                 "騎車"
+                let activityName = type == .crossTraining ? L10n.Training.TrainingType.crossTraining.localized :
+                                 type == .hiking ? L10n.Training.TrainingType.hiking.localized :
+                                 type == .strength ? L10n.Training.TrainingType.strength.localized :
+                                 type == .yoga ? L10n.Training.TrainingType.yoga.localized :
+                                 L10n.Training.TrainingType.cycling.localized
                 let item = WeeklyTrainingItem(
                         name: activityName,
                         runDetails: description,

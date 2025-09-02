@@ -8,7 +8,9 @@ struct IntensityProgressSection: View {
         VStack(spacing: 12) {
             // 低強度
             IntensityProgressView(
-                title: NSLocalizedString("intensity.low", comment: "Low Intensity"),
+                title: ViewModelUtils.isCurrentLanguageChinese() 
+                    ? NSLocalizedString("intensity.low_zh", comment: "低強度")
+                    : NSLocalizedString("intensity.low", comment: "Low Intensity"),
                 current: actualIntensity.low,
                 target: Int(planIntensity.low),
                 originalColor: .blue
@@ -16,7 +18,9 @@ struct IntensityProgressSection: View {
             
             // 中強度
             IntensityProgressView(
-                title: NSLocalizedString("intensity.medium", comment: "Medium Intensity"),
+                title: ViewModelUtils.isCurrentLanguageChinese() 
+                    ? NSLocalizedString("intensity.medium_zh", comment: "中強度")
+                    : NSLocalizedString("intensity.medium", comment: "Medium Intensity"),
                 current: actualIntensity.medium,
                 target: Int(planIntensity.medium),
                 originalColor: .green
@@ -24,7 +28,9 @@ struct IntensityProgressSection: View {
             
             // 高強度
             IntensityProgressView(
-                title: NSLocalizedString("intensity.high", comment: "High Intensity"),
+                title: ViewModelUtils.isCurrentLanguageChinese() 
+                    ? NSLocalizedString("intensity.high_zh", comment: "高強度")
+                    : NSLocalizedString("intensity.high", comment: "High Intensity"),
                 current: actualIntensity.high,
                 target: Int(planIntensity.high),
                 originalColor: .orange

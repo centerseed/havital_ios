@@ -133,7 +133,7 @@ class VDOTChartViewModelV2: BaseDataViewModel<EnhancedVDOTDataPoint, VDOTManager
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d"
         
-        return "\(formatter.string(from: point.date)): 動態跑力 \(String(format: "%.1f", point.dynamicVdot))"
+        return "\(formatter.string(from: point.date)): \(L10n.Performance.VDOT.dynamicVdot.localized) \(String(format: "%.1f", point.dynamicVdot))"
     }
     
     // MARK: - Data Formatting
@@ -155,10 +155,10 @@ class VDOTChartViewModelV2: BaseDataViewModel<EnhancedVDOTDataPoint, VDOTManager
         guard index < vdotPoints.count else { return nil }
         
         let point = vdotPoints[index]
-        var info = "\(formatDate(point.date)): 動態跑力 \(formatVDOTValue(point.dynamicVdot))"
+        var info = "\(formatDate(point.date)): \(L10n.Performance.VDOT.dynamicVdot.localized) \(formatVDOTValue(point.dynamicVdot))"
         
         if let weightVdot = point.weightVdot {
-            info += ", 加權跑力 \(formatVDOTValue(weightVdot))"
+            info += ", \(L10n.Performance.VDOT.weightedVdot.localized) \(formatVDOTValue(weightVdot))"
         }
         
         return info
@@ -169,14 +169,14 @@ class VDOTChartViewModelV2: BaseDataViewModel<EnhancedVDOTDataPoint, VDOTManager
     /// 統計信息描述
     var statisticsDescription: String {
         guard let stats = statistics else {
-            return "暫無統計信息"
+            return L10n.Performance.VDOT.noStatistics.localized
         }
         
         return """
-        最新動態跑力: \(formatVDOTValue(stats.latestDynamicVdot))
-        平均加權跑力: \(formatVDOTValue(stats.averageWeightedVdot))
-        數據點數量: \(stats.dataPointCount)
-        趨勢: \(vdotTrend.description)
+        \(L10n.Performance.VDOT.latestDynamicVdot.localized): \(formatVDOTValue(stats.latestDynamicVdot))
+        \(L10n.Performance.VDOT.averageWeightedVdot.localized): \(formatVDOTValue(stats.averageWeightedVdot))
+        \(L10n.Performance.VDOT.dataPointCount.localized): \(stats.dataPointCount)
+        \(L10n.Performance.VDOT.trend.localized): \(vdotTrend.description)
         """
     }
     

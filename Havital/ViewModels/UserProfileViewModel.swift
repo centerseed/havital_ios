@@ -45,6 +45,10 @@ class UserProfileViewModel: ObservableObject {
         return ViewModelUtils.weekdayName(for: index)
     }
     
+    func weekdayShortName(for index: Int) -> String {
+        return ViewModelUtils.weekdayShortName(for: index)
+    }
+    
     func formatHeartRate(_ rate: Int) -> String {
         return "\(rate) bpm"
     }

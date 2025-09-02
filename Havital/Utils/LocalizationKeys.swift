@@ -63,6 +63,31 @@ enum L10n {
         static let connectData = "onboarding.connect_data"
         static let complete = "onboarding.complete"
         static let skipForNow = "onboarding.skip_for_now"
+        
+        // Data Source Selection
+        static let chooseDataSource = "onboarding.choose_data_source"
+        static let selectPlatformDescription = "onboarding.select_platform_description"
+        static let processing = "onboarding.processing"
+        static let continueStep = "onboarding.continue"
+        
+        // Apple Health
+        static let appleHealthSubtitle = "onboarding.apple_health_subtitle"
+        static let appleHealthDescription = "onboarding.apple_health_description"
+        
+        // Garmin
+        static let garminSubtitle = "onboarding.garmin_subtitle"
+        static let garminDescription = "onboarding.garmin_description"
+        
+        // Time units
+        static let hoursLabel = "onboarding.hours_label"
+        static let minutesLabel = "onboarding.minutes_label"
+        
+        // Alerts
+        static let garminAlreadyBound = "onboarding.garmin_already_bound"
+        static let garminAlreadyBoundMessage = "onboarding.garmin_already_bound_message"
+        static let iUnderstand = "onboarding.i_understand"
+        static let error = "onboarding.error"
+        static let confirm = "onboarding.confirm"
     }
     
     // MARK: - Profile
@@ -124,6 +149,57 @@ enum L10n {
         static let editVolume = "training.edit_volume"
         static let editDays = "training.edit_days"
         
+        // Loading Animation Messages
+        enum LoadingAnimation {
+            // Generate Plan Messages
+            static let analyzingFitness = "training.loading.analyzing_fitness"
+            static let planningIntensity = "training.loading.planning_intensity"
+            static let preparingCustomPlan = "training.loading.preparing_custom_plan"
+            
+            // Generate Review Messages
+            static let analyzingTrainingData = "training.loading.analyzing_training_data"
+            static let evaluatingProgress = "training.loading.evaluating_progress"
+            static let preparingReview = "training.loading.preparing_review"
+        }
+        
+        // Training Review Sections
+        enum Review {
+            // Main titles
+            static let weeklyReview = "training.review.weekly_review"
+            static let lastWeekReview = "training.review.last_week_review"
+            static let weekReview = "training.review.week_review"
+            static let generateNextWeekPlan = "training.review.generate_next_week_plan"
+            
+            // Section titles
+            static let trainingCompletion = "training.review.training_completion"
+            static let trainingAnalysis = "training.review.training_analysis"
+            static let nextWeekFocus = "training.review.next_week_focus"
+            static let planAdjustmentSuggestions = "training.review.plan_adjustment_suggestions"
+            
+            // Performance subsections
+            static let heartRatePerformance = "training.review.heart_rate_performance"
+            static let pacePerformance = "training.review.pace_performance"
+            static let distancePerformance = "training.review.distance_performance"
+            
+            // Training types
+            static let intervalTraining = "training.review.interval_training"
+            static let longRunTraining = "training.review.long_run_training"
+            
+            // Labels
+            static let originalPlan = "training.review.original_plan"
+            static let adjustedPlan = "training.review.adjusted_plan"
+            static let average = "training.review.average"
+            static let maximum = "training.review.maximum"
+            static let totalDistance = "training.review.total_distance"
+            static let trend = "training.review.trend"
+            
+            // Loading and error states
+            static let analyzingData = "training.review.analyzing_data"
+            static let loadingMessage = "training.review.loading_message"
+            static let loadingError = "training.review.loading_error"
+            static let retry = "training.review.retry"
+        }
+        
         // Training Plan Info Card
         static let planInfo = "training.plan_info"
         static let aiAnalysis = "training.ai_analysis"
@@ -147,7 +223,101 @@ enum L10n {
             static let lsd = "training.type.lsd"
             static let threshold = "training.type.threshold"
             static let progression = "training.type.progression"
+            static let rest = "training.type.rest"
+            static let crossTraining = "training.type.cross_training"
+            static let hiking = "training.type.hiking"
+            static let strength = "training.type.strength"
+            static let yoga = "training.type.yoga"
+            static let cycling = "training.type.cycling"
+            static let restDay = "training.type.rest_day"
         }
+        
+        // Heart Rate Zones
+        enum Zone {
+            static let anaerobic = "training.zone.anaerobic"
+            static let easy = "training.zone.easy"
+            static let interval = "training.zone.interval"
+            static let marathon = "training.zone.marathon"
+            static let recovery = "training.zone.recovery"
+            static let threshold = "training.zone.threshold"
+        }
+    }
+    
+    // MARK: - Workout Detail
+    enum WorkoutDetail {
+        // Upload Actions
+        static let reupload = "workout.detail.reupload"
+        static let reuploadAlert = "workout.detail.reupload_alert"
+        static let cancel = "workout.detail.cancel"
+        static let confirm = "workout.detail.confirm"
+        static let confirmUpload = "workout.detail.confirm_upload"
+        static let reuploadMessage = "workout.detail.reupload_message"
+        static let reuploadResult = "workout.detail.reupload_result"
+        static let insufficientHeartRate = "workout.detail.insufficient_heart_rate"
+        static let stillUpload = "workout.detail.still_upload"
+        static let insufficientHeartRateMessage = "workout.detail.insufficient_heart_rate_message"
+        
+        // Data Sections
+        static let heartRateData = "workout.detail.heart_rate_data"
+        static let noHeartRateData = "workout.detail.no_heart_rate_data"
+        static let gaitAnalysis = "workout.detail.gait_analysis" 
+        static let noGaitData = "workout.detail.no_gait_data"
+        static let advancedMetrics = "workout.detail.advanced_metrics"
+        static let heartRateZones = "workout.detail.heart_rate_zones"
+        static let paceZones = "workout.detail.pace_zones"
+        static let zoneDistribution = "workout.detail.zone_distribution"
+        static let zoneType = "workout.detail.zone_type"
+        
+        // Metrics
+        static let dynamicVdot = "workout.detail.dynamic_vdot"
+        static let trainingLoad = "workout.detail.training_load"
+        static let movementEfficiency = "workout.detail.movement_efficiency"
+        
+        // Heart Rate Zones
+        static let recoveryZone = "workout.detail.recovery_zone"
+        static let aerobicZone = "workout.detail.aerobic_zone"
+        static let marathonZone = "workout.detail.marathon_zone"
+        static let thresholdZone = "workout.detail.threshold_zone"
+        static let intervalZone = "workout.detail.interval_zone"
+        static let anaerobicZone = "workout.detail.anaerobic_zone"
+        
+        // Pace Zones
+        static let recoveryPace = "workout.detail.recovery_pace"
+        static let easyPace = "workout.detail.easy_pace"
+        static let marathonPace = "workout.detail.marathon_pace"
+        static let thresholdPace = "workout.detail.threshold_pace"
+        static let intervalPace = "workout.detail.interval_pace"
+        static let anaerobicPace = "workout.detail.anaerobic_pace"
+        
+        // Loading States
+        static let loadingDetails = "workout.detail.loading_details"
+        static let loadFailed = "workout.detail.load_failed"
+        
+        // Intensity Minutes
+        static let low = "workout.detail.intensity_low"
+        static let medium = "workout.detail.intensity_medium"
+        static let high = "workout.detail.intensity_high"
+        static let minutes = "workout.detail.minutes"
+    }
+    
+    // MARK: - Workout Metrics
+    enum WorkoutMetrics {
+        static let distance = "workout.metrics.distance"
+        static let time = "workout.metrics.time"
+        static let calories = "workout.metrics.calories"
+    }
+    
+    // MARK: - Activity Types
+    enum ActivityType {
+        static let running = "activity.type.running"
+        static let cycling = "activity.type.cycling"
+        static let swimming = "activity.type.swimming"
+        static let walking = "activity.type.walking"
+        static let hiking = "activity.type.hiking"
+        static let strengthTraining = "activity.type.strength_training"
+        static let yoga = "activity.type.yoga"
+        static let pilates = "activity.type.pilates"
+        static let other = "activity.type.other"
     }
     
     // MARK: - Training Record
@@ -165,7 +335,15 @@ enum L10n {
         static let elevation = "record.elevation"
         static let cadence = "record.cadence"
         static let noRecords = "record.no_records"
+        static let noRecordsDescription = "record.no_records_description"
         static let viewDetails = "record.view_details"
+        
+        // Device Info
+        static let deviceInfoTitle = "record.device_info.title"
+        static let deviceInfoDescription = "record.device_info.description"
+        static let deviceInfoNativeSupport = "record.device_info.native_support"
+        static let deviceInfoLimitations = "record.device_info.limitations"
+        static let deviceInfoFutureSupport = "record.device_info.future_support"
     }
     
     // MARK: - Performance
@@ -183,6 +361,77 @@ enum L10n {
         static let longestRun = "performance.longest_run"
         static let fastestPace = "performance.fastest_pace"
         static let progress = "performance.progress"
+        
+        // Achievement View specific
+        static let vdotTrend = "performance.vdot_trend"
+        static let vdotExplanation = "performance.vdot_explanation"
+        
+        enum TimeRange {
+            static let week = "performance.time_range.week"
+            static let month = "performance.time_range.month"
+            static let threeMonths = "performance.time_range.three_months"
+        }
+        
+        enum DataSource {
+            static let serverError = "performance.data_source.server_error"
+            static let noHealthData = "performance.data_source.no_health_data"
+            static let loadDataError = "performance.data_source.load_data_error"
+            static let loadHealthDataError = "performance.data_source.load_health_data_error"
+        }
+        
+        enum Chart {
+            static let date = "performance.chart.date"
+            static let restingHeartRate = "performance.chart.resting_heart_rate"
+            static let vdotValue = "performance.chart.vdot_value"
+            static let loading = "performance.chart.loading"
+        }
+        
+        enum VDOT {
+            static let dynamicVdot = "performance.vdot.dynamic_vdot"
+            static let weightedVdot = "performance.vdot.weighted_vdot"
+            static let latestVdot = "performance.vdot.latest_vdot"
+            static let vdotTitle = "performance.vdot.vdot_title"
+            static let whatIsVdot = "performance.vdot.what_is_vdot"
+            static let vdotDescription = "performance.vdot.vdot_description"
+            static let setHeartRateZones = "performance.vdot.set_heart_rate_zones"
+            static let calculatingVdot = "performance.vdot.calculating_vdot"
+            static let averageWeightedVdot = "performance.vdot.average_weighted_vdot"
+            static let latestDynamicVdot = "performance.vdot.latest_dynamic_vdot"
+            static let heartRateZonePrompt = "performance.vdot.heart_rate_zone_prompt"
+            static let noStatistics = "performance.vdot.no_statistics"
+            static let dataPointCount = "performance.vdot.data_point_count"
+            static let trend = "performance.vdot.trend"
+        }
+        
+        enum HRV {
+            static let loadingHrv = "performance.hrv.loading_hrv"
+            static let noHrvData = "performance.hrv.no_hrv_data"
+            static let hrvTitle = "performance.hrv.hrv_title"
+            static let selectDataSourceHrv = "performance.hrv.select_data_source_hrv"
+        }
+        
+        enum HeartRateZone {
+            // Zone Names
+            static let zone1Name = "performance.heart_rate_zone.zone1_name"
+            static let zone2Name = "performance.heart_rate_zone.zone2_name" 
+            static let zone3Name = "performance.heart_rate_zone.zone3_name"
+            static let zone4Name = "performance.heart_rate_zone.zone4_name"
+            static let zone5Name = "performance.heart_rate_zone.zone5_name"
+            
+            // Zone Descriptions
+            static let zone1Description = "performance.heart_rate_zone.zone1_description"
+            static let zone2Description = "performance.heart_rate_zone.zone2_description"
+            static let zone3Description = "performance.heart_rate_zone.zone3_description" 
+            static let zone4Description = "performance.heart_rate_zone.zone4_description"
+            static let zone5Description = "performance.heart_rate_zone.zone5_description"
+            
+            // Zone Benefits
+            static let zone1Benefit = "performance.heart_rate_zone.zone1_benefit"
+            static let zone2Benefit = "performance.heart_rate_zone.zone2_benefit"
+            static let zone3Benefit = "performance.heart_rate_zone.zone3_benefit"
+            static let zone4Benefit = "performance.heart_rate_zone.zone4_benefit"
+            static let zone5Benefit = "performance.heart_rate_zone.zone5_benefit"
+        }
     }
     
     // MARK: - Settings

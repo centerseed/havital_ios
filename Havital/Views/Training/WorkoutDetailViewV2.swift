@@ -327,7 +327,7 @@ struct WorkoutDetailViewV2: View {
                                 .scaleEffect(0.8)
                                 .frame(width: 60, height: 28)
                         } else {
-                            Label("重新上傳", systemImage: "arrow.triangle.2.circlepath")
+                            Label(L10n.WorkoutDetail.reupload.localized, systemImage: "arrow.triangle.2.circlepath")
                                 .font(.caption)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -343,18 +343,18 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
-        .alert("重新上傳運動記錄", isPresented: $showReuploadAlert) {
-            Button("取消", role: .cancel) { }
-            Button("確認上傳", role: .destructive) {
+        .alert(L10n.WorkoutDetail.reuploadAlert.localized, isPresented: $showReuploadAlert) {
+            Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) { }
+            Button(L10n.WorkoutDetail.confirmUpload.localized, role: .destructive) {
                 Task {
                     await reuploadWorkout()
                 }
             }
         } message: {
-            Text("確定要重新上傳此運動記錄嗎？這將會覆蓋現有資料並嘗試重新獲取所有感測器數據（包含心率）。")
+            Text(L10n.WorkoutDetail.reuploadMessage.localized)
         }
-        .alert("重新上傳結果", isPresented: .constant(reuploadErrorMessage != nil)) {
-            Button("確定") {
+        .alert(L10n.WorkoutDetail.reuploadResult.localized, isPresented: .constant(reuploadErrorMessage != nil)) {
+            Button(L10n.WorkoutDetail.confirm.localized) {
                 reuploadErrorMessage = nil
             }
         } message: {
@@ -362,17 +362,17 @@ struct WorkoutDetailViewV2: View {
                 Text(errorMessage)
             }
         }
-        .alert("心率資料不足", isPresented: $showInsufficientHeartRateAlert) {
-            Button("取消", role: .cancel) { 
+        .alert(L10n.WorkoutDetail.insufficientHeartRate.localized, isPresented: $showInsufficientHeartRateAlert) {
+            Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) { 
                 isReuploadingWorkout = false
             }
-            Button("仍要上傳", role: .destructive) {
+            Button(L10n.WorkoutDetail.stillUpload.localized, role: .destructive) {
                 Task {
                     await forceReuploadWithInsufficientHeartRate()
                 }
             }
         } message: {
-            Text("此運動記錄的心率資料過少（只有 \(heartRateCount) 個數據點），可能會影響進階指標的準確度。\n\n建議檢查 Apple Watch 或心率帶是否正確配戴。\n\n您仍要繼續上傳嗎？")
+            Text(String(format: L10n.WorkoutDetail.insufficientHeartRateMessage.localized, heartRateCount))
         }
     }
     
@@ -395,9 +395,9 @@ struct WorkoutDetailViewV2: View {
             } else {
                 // 簡化的空狀態顯示
                 VStack {
-                    Text("心率數據")
+                    Text(L10n.WorkoutDetail.heartRateData.localized)
                         .font(.headline)
-                    Text("無心率數據")
+                    Text(L10n.WorkoutDetail.noHeartRateData.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -437,9 +437,9 @@ struct WorkoutDetailViewV2: View {
             } else {
                 // 簡化的空狀態顯示
                 VStack {
-                    Text("步態分析")
+                    Text(L10n.WorkoutDetail.gaitAnalysis.localized)
                         .font(.headline)
-                    Text("無步態數據")
+                    Text(L10n.WorkoutDetail.noGaitData.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -454,21 +454,21 @@ struct WorkoutDetailViewV2: View {
     
     private var advancedMetricsCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("進階指標")
+            Text(L10n.WorkoutDetail.advancedMetrics.localized)
                 .font(.headline)
                 .fontWeight(.semibold)
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
                 if let dynamicVdot = viewModel.workout.advancedMetrics?.dynamicVdot {
-                    DataItem(title: "動態跑力", value: String(format: "%.1f", dynamicVdot), icon: "chart.line.uptrend.xyaxis")
+                    DataItem(title: L10n.WorkoutDetail.dynamicVdot.localized, value: String(format: "%.1f", dynamicVdot), icon: "chart.line.uptrend.xyaxis")
                 }
                 
                 if let tss = viewModel.workout.advancedMetrics?.tss {
-                    DataItem(title: "訓練負荷", value: String(format: "%.1f", tss), icon: "heart.circle")
+                    DataItem(title: L10n.WorkoutDetail.trainingLoad.localized, value: String(format: "%.1f", tss), icon: "heart.circle")
                 }
                 
                 if let avgVerticalRatio = viewModel.workout.advancedMetrics?.avgVerticalRatioPercent {
-                    DataItem(title: "移動效率", value: String(format: "%.1f%%", avgVerticalRatio), icon: "arrow.up.and.down.circle")
+                    DataItem(title: L10n.WorkoutDetail.movementEfficiency.localized, value: String(format: "%.1f%%", avgVerticalRatio), icon: "arrow.up.and.down.circle")
                 }
             }
         }
@@ -482,7 +482,7 @@ struct WorkoutDetailViewV2: View {
     private func heartRateZoneCard(_ hrZones: V2ZoneDistribution) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("心率區間分佈")
+                Text(L10n.WorkoutDetail.heartRateZones.localized)
                     .font(.headline)
                     .fontWeight(.semibold)
                 
@@ -496,22 +496,22 @@ struct WorkoutDetailViewV2: View {
             
             VStack(spacing: 8) {
                 if let recovery = hrZones.recovery {
-                    ZoneRow(title: "恢復區", percentage: recovery, color: .green)
+                    ZoneRow(title: L10n.WorkoutDetail.recoveryZone.localized, percentage: recovery, color: .green)
                 }
                 if let easy = hrZones.easy {
-                    ZoneRow(title: "有氧區", percentage: easy, color: .blue)
+                    ZoneRow(title: L10n.WorkoutDetail.aerobicZone.localized, percentage: easy, color: .blue)
                 }
                 if let marathon = hrZones.marathon {
-                    ZoneRow(title: "馬拉松區", percentage: marathon, color: .yellow)
+                    ZoneRow(title: L10n.WorkoutDetail.marathonZone.localized, percentage: marathon, color: .yellow)
                 }
                 if let threshold = hrZones.threshold {
-                    ZoneRow(title: "閾值區", percentage: threshold, color: .orange)
+                    ZoneRow(title: L10n.WorkoutDetail.thresholdZone.localized, percentage: threshold, color: .orange)
                 }
                 if let interval = hrZones.interval {
-                    ZoneRow(title: "間歇區", percentage: interval, color: .red)
+                    ZoneRow(title: L10n.WorkoutDetail.intervalZone.localized, percentage: interval, color: .red)
                 }
                 if let anaerobic = hrZones.anaerobic {
-                    ZoneRow(title: "無氧區", percentage: anaerobic, color: .purple)
+                    ZoneRow(title: L10n.WorkoutDetail.anaerobicZone.localized, percentage: anaerobic, color: .purple)
                 }
             }
         }
@@ -527,28 +527,28 @@ struct WorkoutDetailViewV2: View {
     
     private func paceZoneCard(_ paceZones: V2ZoneDistribution) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("配速區間分佈")
+            Text(L10n.WorkoutDetail.paceZones.localized)
                 .font(.headline)
                 .fontWeight(.semibold)
             
             VStack(spacing: 8) {
                 if let recovery = paceZones.recovery {
-                    ZoneRow(title: "恢復配速", percentage: recovery, color: .green)
+                    ZoneRow(title: L10n.WorkoutDetail.recoveryPace.localized, percentage: recovery, color: .green)
                 }
                 if let easy = paceZones.easy {
-                    ZoneRow(title: "輕鬆配速", percentage: easy, color: .blue)
+                    ZoneRow(title: L10n.WorkoutDetail.easyPace.localized, percentage: easy, color: .blue)
                 }
                 if let marathon = paceZones.marathon {
-                    ZoneRow(title: "馬拉松配速", percentage: marathon, color: .yellow)
+                    ZoneRow(title: L10n.WorkoutDetail.marathonPace.localized, percentage: marathon, color: .yellow)
                 }
                 if let threshold = paceZones.threshold {
-                    ZoneRow(title: "閾值配速", percentage: threshold, color: .orange)
+                    ZoneRow(title: L10n.WorkoutDetail.thresholdPace.localized, percentage: threshold, color: .orange)
                 }
                 if let interval = paceZones.interval {
-                    ZoneRow(title: "間歇配速", percentage: interval, color: .red)
+                    ZoneRow(title: L10n.WorkoutDetail.intervalPace.localized, percentage: interval, color: .red)
                 }
                 if let anaerobic = paceZones.anaerobic {
-                    ZoneRow(title: "無氧配速", percentage: anaerobic, color: .purple)
+                    ZoneRow(title: L10n.WorkoutDetail.anaerobicPace.localized, percentage: anaerobic, color: .purple)
                 }
             }
         }
@@ -562,7 +562,7 @@ struct WorkoutDetailViewV2: View {
     private func combinedZoneDistributionCard(hrZones: V2ZoneDistribution, paceZones: V2ZoneDistribution) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("區間分佈")
+                Text(L10n.WorkoutDetail.zoneDistribution.localized)
                     .font(.headline)
                     .fontWeight(.semibold)
                 
@@ -577,7 +577,7 @@ struct WorkoutDetailViewV2: View {
             }
             
             // 標籤選擇器
-            Picker("區間類型", selection: $selectedZoneTab) {
+            Picker(L10n.WorkoutDetail.zoneType.localized, selection: $selectedZoneTab) {
                 ForEach(ZoneTab.allCases, id: \.self) { tab in
                     Text(tab.title).tag(tab)
                 }
@@ -605,42 +605,42 @@ struct WorkoutDetailViewV2: View {
     private func zoneRows(for zones: V2ZoneDistribution, isHeartRate: Bool) -> some View {
         if let recovery = zones.recovery {
             ZoneRow(
-                title: isHeartRate ? "恢復區" : "恢復配速",
+                title: isHeartRate ? L10n.WorkoutDetail.recoveryZone.localized : L10n.WorkoutDetail.recoveryPace.localized,
                 percentage: recovery,
                 color: .green
             )
         }
         if let easy = zones.easy {
             ZoneRow(
-                title: isHeartRate ? "有氧區" : "輕鬆配速",
+                title: isHeartRate ? L10n.WorkoutDetail.aerobicZone.localized : L10n.WorkoutDetail.easyPace.localized,
                 percentage: easy,
                 color: .blue
             )
         }
         if let marathon = zones.marathon {
             ZoneRow(
-                title: isHeartRate ? "馬拉松區" : "馬拉松配速",
+                title: isHeartRate ? L10n.WorkoutDetail.marathonZone.localized : L10n.WorkoutDetail.marathonPace.localized,
                 percentage: marathon,
                 color: .yellow
             )
         }
         if let threshold = zones.threshold {
             ZoneRow(
-                title: isHeartRate ? "閾值區" : "閾值配速",
+                title: isHeartRate ? L10n.WorkoutDetail.thresholdZone.localized : L10n.WorkoutDetail.thresholdPace.localized,
                 percentage: threshold,
                 color: .orange
             )
         }
         if let interval = zones.interval {
             ZoneRow(
-                title: isHeartRate ? "間歇區" : "間歇配速",
+                title: isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
                 percentage: interval,
                 color: .red
             )
         }
         if let anaerobic = zones.anaerobic {
             ZoneRow(
-                title: isHeartRate ? "無氧區" : "無氧配速",
+                title: isHeartRate ? L10n.WorkoutDetail.anaerobicZone.localized : L10n.WorkoutDetail.anaerobicPace.localized,
                 percentage: anaerobic,
                 color: .purple
             )
@@ -653,7 +653,7 @@ struct WorkoutDetailViewV2: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
-            Text("載入運動詳情中...")
+            Text(L10n.WorkoutDetail.loadingDetails.localized)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -669,7 +669,7 @@ struct WorkoutDetailViewV2: View {
                 .font(.title2)
                 .foregroundColor(.red)
             
-            Text("載入失敗")
+            Text(L10n.WorkoutDetail.loadFailed.localized)
                 .font(.headline)
                 .fontWeight(.semibold)
             
@@ -698,7 +698,9 @@ struct WorkoutDetailViewV2: View {
     
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy年M月d日 HH:mm"
+        formatter.dateStyle = .long
+        formatter.timeStyle = .short
+        formatter.locale = Locale.current
         return formatter.string(from: date)
     }
     
@@ -706,13 +708,13 @@ struct WorkoutDetailViewV2: View {
         var parts: [String] = []
         
         if let low = intensityMinutes.low, low > 0 {
-            parts.append("低: \(String(format: "%.0f", low))分")
+            parts.append("\(L10n.WorkoutDetail.low.localized): \(String(format: "%.0f", low))\(L10n.WorkoutDetail.minutes.localized)")
         }
         if let medium = intensityMinutes.medium, medium > 0 {
-            parts.append("中: \(String(format: "%.0f", medium))分")
+            parts.append("\(L10n.WorkoutDetail.medium.localized): \(String(format: "%.0f", medium))\(L10n.WorkoutDetail.minutes.localized)")
         }
         if let high = intensityMinutes.high, high > 0 {
-            parts.append("高: \(String(format: "%.0f", high))分")
+            parts.append("\(L10n.WorkoutDetail.high.localized): \(String(format: "%.0f", high))\(L10n.WorkoutDetail.minutes.localized)")
         }
         
         return parts.isEmpty ? "-" : parts.joined(separator: "\n")
@@ -867,10 +869,12 @@ struct ZoneRow: View {
     let color: Color
     
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text(title)
                 .font(.subheadline)
-                .frame(width: 80, alignment: .leading)
+                .frame(minWidth: 60, maxWidth: 120, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {

@@ -102,7 +102,7 @@ struct OnboardingView: View {
                 
                 Section(header: Text(NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time")), footer: Text(NSLocalizedString("onboarding.target_time_description", comment: "Target time description"))) {
                     HStack {
-                        Picker("時", selection: $viewModel.targetHours) {
+                        Picker(L10n.Onboarding.hoursLabel.localized, selection: $viewModel.targetHours) {
                             ForEach(0...6, id: \.self) { hour in
                                 Text("\(hour)")
                             }
@@ -112,7 +112,7 @@ struct OnboardingView: View {
                         
                         Text(NSLocalizedString("onboarding.hours", comment: "hours"))
                         
-                        Picker("分", selection: $viewModel.targetMinutes) {
+                        Picker(L10n.Onboarding.minutesLabel.localized, selection: $viewModel.targetMinutes) {
                             ForEach(0..<60, id: \.self) { minute in
                                 Text("\(minute)")
                             }

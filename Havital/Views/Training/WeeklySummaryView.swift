@@ -15,11 +15,11 @@ struct WeeklySummaryView: View {
                 // 標題與分享按鈕
                 HStack {
                     if let weekNumber = weekNumber {
-                        Text("第\(weekNumber)週訓練回顧")
+                        Text(L10n.Training.Review.weekReview.localized(with: weekNumber))
                             .font(.title2)
                             .fontWeight(.bold)
                     } else {
-                        Text("上週訓練回顧")
+                        Text(L10n.Training.Review.lastWeekReview.localized)
                             .font(.title2)
                             .fontWeight(.bold)
                     }
@@ -59,7 +59,7 @@ struct WeeklySummaryView: View {
                     } label: {
                         HStack {
                             Image(systemName: "calendar.badge.plus")
-                            Text("產生下週課表")
+                            Text(L10n.Training.Review.generateNextWeekPlan.localized)
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -83,7 +83,7 @@ struct WeeklySummaryView: View {
     // 訓練完成度區塊
     private var completionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("訓練完成度")
+            Text(L10n.Training.Review.trainingCompletion.localized)
                 .font(.headline)
             
             HStack(spacing: 20) {
@@ -122,22 +122,22 @@ struct WeeklySummaryView: View {
     // 訓練分析區塊
     private var analysisSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("訓練分析")
+            Text(L10n.Training.Review.trainingAnalysis.localized)
                 .font(.headline)
             
             // 心率分析
             VStack(alignment: .leading, spacing: 8) {
-                Label("心率表現", systemImage: "heart.fill")
+                Label(L10n.Training.Review.heartRatePerformance.localized, systemImage: "heart.fill")
                     .font(.subheadline)
                     .foregroundColor(.red)
                 
                 HStack {
-                    Text("平均: \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
+                    Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
                         .font(.caption)
                     
                     Spacer()
                     
-                    Text("最高: \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
+                    Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
                         .font(.caption)
                 }
                 
@@ -151,17 +151,17 @@ struct WeeklySummaryView: View {
             
             // 配速分析
             VStack(alignment: .leading, spacing: 8) {
-                Label("配速表現", systemImage: "speedometer")
+                Label(L10n.Training.Review.pacePerformance.localized, systemImage: "speedometer")
                     .font(.subheadline)
                     .foregroundColor(.green)
                 
                 HStack {
-                    Text("平均: \(summary.trainingAnalysis.pace.average) /km")
+                    Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) /km")
                         .font(.caption)
                     
                     Spacer()
                     
-                    Text("趨勢: \(summary.trainingAnalysis.pace.trend)")
+                    Text("\(L10n.Training.Review.trend.localized): \(summary.trainingAnalysis.pace.trend)")
                         .font(.caption)
                 }
                 
@@ -175,12 +175,12 @@ struct WeeklySummaryView: View {
             
             // 距離分析
             VStack(alignment: .leading, spacing: 8) {
-                Label("跑量表現", systemImage: "figure.run")
+                Label(L10n.Training.Review.distancePerformance.localized, systemImage: "figure.run")
                     .font(.subheadline)
                     .foregroundColor(.blue)
                 
                 HStack {
-                    Text("總距離: \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
+                    Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
                         .font(.caption)
                     
                     Spacer()
@@ -205,7 +205,7 @@ struct WeeklySummaryView: View {
     // 下週建議區塊
     private var suggestionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("下週訓練重點")
+            Text(L10n.Training.Review.nextWeekFocus.localized)
                 .font(.headline)
             
             Text(summary.nextWeekSuggestions.focus)
@@ -234,7 +234,7 @@ struct WeeklySummaryView: View {
     // 調整建議區塊
     private var adjustmentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("課表調整建議")
+            Text(L10n.Training.Review.planAdjustmentSuggestions.localized)
                 .font(.headline)
             
             VStack(alignment: .leading, spacing: 12) {
@@ -250,14 +250,14 @@ struct WeeklySummaryView: View {
                 if let modifications = summary.nextWeekAdjustments.modifications {
                     if let intervalTraining = modifications.intervalTraining {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("間歇訓練")
+                            Text(L10n.Training.Review.intervalTraining.localized)
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.orange)
                             
                             HStack(alignment: .top) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("原計畫")
+                                    Text(L10n.Training.Review.originalPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                     
@@ -269,7 +269,7 @@ struct WeeklySummaryView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("調整後")
+                                    Text(L10n.Training.Review.adjustedPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                     
@@ -286,14 +286,14 @@ struct WeeklySummaryView: View {
                     
                     if let longRun = modifications.longRun {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("長跑訓練")
+                            Text(L10n.Training.Review.longRunTraining.localized)
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                             
                             HStack(alignment: .top) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("原計畫")
+                                    Text(L10n.Training.Review.originalPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                     
@@ -305,7 +305,7 @@ struct WeeklySummaryView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("調整後")
+                                    Text(L10n.Training.Review.adjustedPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                     
@@ -355,13 +355,13 @@ struct WeeklySummaryView: View {
                 // 標題部分（截圖時不包含分享按鈕）
                 VStack(alignment: .leading, spacing: 8) {
                     if let weekNumber = weekNumber {
-                        Text("第\(weekNumber)週訓練回顧")
+                        Text(L10n.Training.Review.weekReview.localized(with: weekNumber))
                             .font(.title2)
                             .fontWeight(.bold)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
-                        Text("上週訓練回顧")
+                        Text(L10n.Training.Review.lastWeekReview.localized)
                             .font(.title2)
                             .fontWeight(.bold)
                             .lineLimit(nil)
@@ -452,19 +452,19 @@ struct WeeklySummaryView: View {
             
             // 心率分析
             VStack(alignment: .leading, spacing: 8) {
-                Label("心率表現", systemImage: "heart.fill")
+                Label(L10n.Training.Review.heartRatePerformance.localized, systemImage: "heart.fill")
                     .font(.subheadline)
                     .foregroundColor(.red)
                     .lineLimit(nil)
                 
                 HStack {
-                    Text("平均: \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
+                    Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
                         .font(.caption)
                         .lineLimit(nil)
                     
                     Spacer()
                     
-                    Text("最高: \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
+                    Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
                         .font(.caption)
                         .lineLimit(nil)
                 }
@@ -481,19 +481,19 @@ struct WeeklySummaryView: View {
             
             // 配速分析
             VStack(alignment: .leading, spacing: 8) {
-                Label("配速表現", systemImage: "speedometer")
+                Label(L10n.Training.Review.pacePerformance.localized, systemImage: "speedometer")
                     .font(.subheadline)
                     .foregroundColor(.green)
                     .lineLimit(nil)
                 
                 HStack {
-                    Text("平均: \(summary.trainingAnalysis.pace.average) /km")
+                    Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) /km")
                         .font(.caption)
                         .lineLimit(nil)
                     
                     Spacer()
                     
-                    Text("趨勢: \(summary.trainingAnalysis.pace.trend)")
+                    Text("\(L10n.Training.Review.trend.localized): \(summary.trainingAnalysis.pace.trend)")
                         .font(.caption)
                         .lineLimit(nil)
                 }
@@ -510,13 +510,13 @@ struct WeeklySummaryView: View {
             
             // 距離分析
             VStack(alignment: .leading, spacing: 8) {
-                Label("跑量表現", systemImage: "figure.run")
+                Label(L10n.Training.Review.distancePerformance.localized, systemImage: "figure.run")
                     .font(.subheadline)
                     .foregroundColor(.blue)
                     .lineLimit(nil)
                 
                 HStack {
-                    Text("總距離: \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
+                    Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
                         .font(.caption)
                         .lineLimit(nil)
                     
@@ -545,7 +545,7 @@ struct WeeklySummaryView: View {
     // 為截圖優化的下週建議區塊
     private var screenshotSuggestionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("下週訓練重點")
+            Text(L10n.Training.Review.nextWeekFocus.localized)
                 .font(.headline)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
@@ -580,7 +580,7 @@ struct WeeklySummaryView: View {
     // 為截圖優化的調整建議區塊
     private var screenshotAdjustmentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("課表調整建議")
+            Text(L10n.Training.Review.planAdjustmentSuggestions.localized)
                 .font(.headline)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
@@ -600,7 +600,7 @@ struct WeeklySummaryView: View {
                 if let modifications = summary.nextWeekAdjustments.modifications {
                     if let intervalTraining = modifications.intervalTraining {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("間歇訓練")
+                            Text(L10n.Training.Review.intervalTraining.localized)
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.orange)
@@ -608,7 +608,7 @@ struct WeeklySummaryView: View {
                             
                             VStack(alignment: .leading, spacing: 8) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("原計畫")
+                                    Text(L10n.Training.Review.originalPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
@@ -622,7 +622,7 @@ struct WeeklySummaryView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("調整後")
+                                    Text(L10n.Training.Review.adjustedPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
@@ -641,7 +641,7 @@ struct WeeklySummaryView: View {
                     
                     if let longRun = modifications.longRun {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("長跑訓練")
+                            Text(L10n.Training.Review.longRunTraining.localized)
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
@@ -649,7 +649,7 @@ struct WeeklySummaryView: View {
                             
                             VStack(alignment: .leading, spacing: 8) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("原計畫")
+                                    Text(L10n.Training.Review.originalPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
@@ -663,7 +663,7 @@ struct WeeklySummaryView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("調整後")
+                                    Text(L10n.Training.Review.adjustedPlan.localized)
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
@@ -702,10 +702,10 @@ struct WeeklySummaryLoadingView: View {
             ProgressView()
                 .scaleEffect(1.5)
             
-            Text("正在分析訓練數據...")
+            Text(L10n.Training.Review.analyzingData.localized)
                 .font(.headline)
             
-            Text("請稍候，我們正在為您準備詳細的訓練回顧")
+            Text(L10n.Training.Review.loadingMessage.localized)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -729,7 +729,7 @@ struct WeeklySummaryErrorView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.orange)
             
-            Text("無法加載訓練回顧")
+            Text(L10n.Training.Review.loadingError.localized)
                 .font(.headline)
             
             Text(error.localizedDescription)
@@ -742,7 +742,7 @@ struct WeeklySummaryErrorView: View {
                 Button {
                     onRetry()
                 } label: {
-                    Text("重試")
+                    Text(L10n.Training.Review.retry.localized)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 8)
                         .background(Color.blue)

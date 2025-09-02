@@ -45,6 +45,9 @@ actor DefaultHTTPClient: HTTPClient {
         
         // 增強日誌：記錄請求詳情
         Logger.debug("[HTTPClient] 發送請求: \(method.rawValue) \(path)")
+        if let acceptLanguage = request.value(forHTTPHeaderField: "Accept-Language") {
+            Logger.debug("[HTTPClient] Accept-Language: \(acceptLanguage)")
+        }
         if let bodyData = body {
             Logger.debug("[HTTPClient] 請求體大小: \(bodyData.count) bytes")
         }
@@ -64,6 +67,11 @@ actor DefaultHTTPClient: HTTPClient {
             }
             
             Logger.debug("[HTTPClient] \(method.rawValue) \(path) -> \(httpResponse.statusCode), 響應大小: \(data.count) bytes")
+            
+            // 記錄 Content-Language 回應標頭
+            if let contentLanguage = httpResponse.value(forHTTPHeaderField: "Content-Language") {
+                Logger.debug("[HTTPClient] Content-Language: \(contentLanguage)")
+            }
             
             // 檢查 HTTP 狀態碼
             try validateHTTPResponse(httpResponse, data: data)

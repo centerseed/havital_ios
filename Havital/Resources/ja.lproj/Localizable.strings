@@ -57,6 +57,31 @@
 "onboarding.complete" = "設定完了";
 "onboarding.skip_for_now" = "後で設定";
 
+// Data Source Selection
+"onboarding.choose_data_source" = "データソースを選択";
+"onboarding.select_platform_description" = "ワークアウトデータを同期するプラットフォームを選択してください";
+"onboarding.processing" = "処理中...";
+"onboarding.continue" = "続行";
+
+// Apple Health
+"onboarding.apple_health_subtitle" = "iPhoneとApple Watchの健康データを使用";
+"onboarding.apple_health_description" = "ワークアウト記録、心拍数、歩数などの健康情報を含むApple Healthデータを同期します。";
+
+// Garmin
+"onboarding.garmin_subtitle" = "Garminアカウントのアクティビティを同期";
+"onboarding.garmin_description" = "Garmin Connect™アカウントに接続して、スポーツウォッチ、フィットネストラッカーなどのデバイスからアクティビティデータを同期します。このオプションを使用することで、Garminの利用規約に同意したものとみなされます。";
+
+// Time units
+"onboarding.hours_label" = "時間";
+"onboarding.minutes_label" = "分";
+
+// Alerts
+"onboarding.garmin_already_bound" = "Garmin Connect™アカウントが既にリンクされています";
+"onboarding.garmin_already_bound_message" = "このGarmin Connect™アカウントは既に他のPacerizアカウントにリンクされています。まず元々リンクされていたPacerizアカウントでログインし、プロフィールページでGarmin Connect™のリンクを解除してから、このアカウントで接続してください。";
+"onboarding.i_understand" = "了解しました";
+"onboarding.error" = "エラー";
+"onboarding.confirm" = "確認";
+
 // MARK: - Profile
 "profile.title" = "プロフィール";
 "profile.personal_info" = "個人情報";
@@ -111,6 +136,39 @@
 "training.edit_volume" = "週間走行距離を編集";
 "training.edit_days" = "トレーニング日を編集";
 
+// MARK: - Loading Animation Messages
+"training.loading.analyzing_fitness" = "体力状況を分析中...";
+"training.loading.planning_intensity" = "今週のトレーニング強度を計画中...";
+"training.loading.preparing_custom_plan" = "カスタマイズされた計画を準備中...";
+"training.loading.analyzing_training_data" = "今週のトレーニングデータを分析中...";
+"training.loading.evaluating_progress" = "今週のトレーニング状況を評価中...";
+"training.loading.preparing_review" = "素晴らしい！トレーニングレビューが準備完了です！";
+
+// MARK: - Training Review Sections
+"training.review.weekly_review" = "週間トレーニングレビュー";
+"training.review.last_week_review" = "先週のトレーニングレビュー";
+"training.review.week_review" = "第%d週トレーニングレビュー";
+"training.review.generate_next_week_plan" = "来週の計画を作成";
+"training.review.training_completion" = "トレーニング完了度";
+"training.review.training_analysis" = "トレーニング分析";
+"training.review.next_week_focus" = "来週のトレーニング重点";
+"training.review.plan_adjustment_suggestions" = "プラン調整提案";
+"training.review.heart_rate_performance" = "心拍数パフォーマンス";
+"training.review.pace_performance" = "ペースパフォーマンス";
+"training.review.distance_performance" = "距離パフォーマンス";
+"training.review.interval_training" = "インターバルトレーニング";
+"training.review.long_run_training" = "ロングラントレーニング";
+"training.review.original_plan" = "元の計画";
+"training.review.adjusted_plan" = "調整後";
+"training.review.average" = "平均";
+"training.review.maximum" = "最大";
+"training.review.total_distance" = "総距離";
+"training.review.trend" = "傾向";
+"training.review.analyzing_data" = "トレーニングデータを分析中...";
+"training.review.loading_message" = "詳細なトレーニングレビューを準備中です";
+"training.review.loading_error" = "トレーニングレビューを読み込めませんでした";
+"training.review.retry" = "再試行";
+
 // MARK: - Training Plan Info Card
 "training.plan_info" = "トレーニング計画情報";
 "training.ai_analysis" = "AI分析";
@@ -124,7 +182,7 @@
 // MARK: - Training Types
 "training.type.easy" = "イージーラン";
 "training.type.tempo" = "テンポラン";
-"training.type.interval" = "インターバルトレーニング";
+"training.type.interval" = "インターバル走";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";
 "training.type.race" = "レースペース";
@@ -134,6 +192,79 @@
 "training.type.lsd" = "LSDラン";
 "training.type.threshold" = "閾値ラン";
 "training.type.progression" = "プログレッションラン";
+"training.type.rest" = "休息";
+"training.type.cross_training" = "クロストレーニング";
+"training.type.hiking" = "ハイキング";
+"training.type.strength" = "筋力トレーニング";
+"training.type.yoga" = "ヨガ";
+"training.type.cycling" = "サイクリング";
+"training.type.rest_day" = "休息日";
+
+// MARK: - Heart Rate Zones
+"training.zone.anaerobic" = "無酸素";
+"training.zone.easy" = "イージー";
+"training.zone.interval" = "インターバル";
+"training.zone.marathon" = "マラソン";
+"training.zone.recovery" = "リカバリー";
+"training.zone.threshold" = "閾値";
+
+// MARK: - Workout Detail
+"workout.detail.reupload" = "再アップロード";
+"workout.detail.reupload_alert" = "ワークアウトを再アップロード";
+"workout.detail.cancel" = "キャンセル";
+"workout.detail.confirm" = "OK";
+"workout.detail.confirm_upload" = "アップロード確認";
+"workout.detail.reupload_message" = "このワークアウトを再アップロードしますか？既存データが上書きされ、すべてのセンサーデータ（心拍数を含む）を再取得します。";
+"workout.detail.reupload_result" = "再アップロード結果";
+"workout.detail.insufficient_heart_rate" = "心拍数データ不足";
+"workout.detail.still_upload" = "それでもアップロード";
+"workout.detail.insufficient_heart_rate_message" = "このワークアウトの心拍数データが不足しています（%d データポイントのみ）。高度な指標の精度に影響する可能性があります。\n\nApple Watchまたは心拍数モニターが正しく装着されているか確認してください。\n\nそれでもアップロードを続行しますか？";
+"workout.detail.heart_rate_data" = "心拍数データ";
+"workout.detail.no_heart_rate_data" = "心拍数データなし";
+"workout.detail.gait_analysis" = "歩行解析";
+"workout.detail.no_gait_data" = "歩行データなし";
+"workout.detail.advanced_metrics" = "高度な指標";
+"workout.detail.heart_rate_zones" = "心拍数ゾーン分布";
+"workout.detail.pace_zones" = "ペースゾーン分布";
+"workout.detail.zone_distribution" = "ゾーン分布";
+"workout.detail.zone_type" = "ゾーンタイプ";
+"workout.detail.dynamic_vdot" = "ダイナミックVDOT";
+"workout.detail.training_load" = "トレーニング負荷";
+"workout.detail.movement_efficiency" = "動作効率";
+"workout.detail.recovery_zone" = "リカバリーゾーン";
+"workout.detail.aerobic_zone" = "有酸素ゾーン";
+"workout.detail.marathon_zone" = "マラソンゾーン";
+"workout.detail.threshold_zone" = "閾値ゾーン";
+"workout.detail.interval_zone" = "インターバルゾーン";
+"workout.detail.anaerobic_zone" = "無酸素ゾーン";
+"workout.detail.recovery_pace" = "リカバリーペース";
+"workout.detail.easy_pace" = "イージーペース";
+"workout.detail.marathon_pace" = "マラソンペース";
+"workout.detail.threshold_pace" = "閾値ペース";
+"workout.detail.interval_pace" = "インターバルペース";
+"workout.detail.anaerobic_pace" = "無酸素ペース";
+"workout.detail.loading_details" = "ワークアウト詳細を読み込み中...";
+"workout.detail.load_failed" = "読み込み失敗";
+"workout.detail.intensity_low" = "低";
+"workout.detail.intensity_medium" = "中";
+"workout.detail.intensity_high" = "高";
+"workout.detail.minutes" = "分";
+
+// MARK: - Workout Metrics
+"workout.metrics.distance" = "距離";
+"workout.metrics.time" = "時間";
+"workout.metrics.calories" = "カロリー";
+
+// MARK: - Activity Types
+"activity.type.running" = "ランニング";
+"activity.type.cycling" = "サイクリング";
+"activity.type.swimming" = "水泳";
+"activity.type.walking" = "ウォーキング";
+"activity.type.hiking" = "ハイキング";
+"activity.type.strength_training" = "筋力トレーニング";
+"activity.type.yoga" = "ヨガ";
+"activity.type.pilates" = "ピラティス";
+"activity.type.other" = "その他";
 
 // MARK: - Training Record
 "record.title" = "トレーニング記録";
@@ -149,7 +280,15 @@
 "record.elevation" = "標高";
 "record.cadence" = "ケイデンス";
 "record.no_records" = "トレーニング記録なし";
+"record.no_records_description" = "ワークアウト記録がありません。運動を開始すると、ここに表示されます";
 "record.view_details" = "詳細を見る";
+
+// Device Info
+"record.device_info.title" = "デバイスデータ情報";
+"record.device_info.description" = "情報";
+"record.device_info.native_support" = "PacerizはGarminとApple Watchをネイティブサポートしています。Corosなどの他のデバイスについては、元のアプリを使用してトレーニングデータをApple Health（HealthKit）に同期するだけで、Pacerizが自動的にトレーニング記録を読み取ります。";
+"record.device_info.limitations" = "多くのサードパーティデバイスは、Apple Healthと統合する際に部分的で限定的な情報のみを書き込むことにご注意ください。そのため、Pacerizが表示するデータは元のアプリと異なる場合がありますが、これは正常な現象です。";
+"record.device_info.future_support" = "より完全で正確なスポーツ体験を提供するために、より多くの異なるブランドのデバイスを段階的にサポートしていきます。";
 
 // MARK: - Performance
 "performance.title" = "パフォーマンス";
@@ -191,7 +330,7 @@
 "language.zh-TW" = "繁體中文";
 "language.en-US" = "English";
 "language.ja-JP" = "日本語";
-"language.change_confirm" = "言語を変更してもよろしいですか？";
+"language.change_confirm" = "言語変更後、アプリは自動的に再起動されます。続行しますか？";
 "language.changed" = "言語が変更されました";
 
 // MARK: - Errors
@@ -265,3 +404,347 @@
 "alert.delete_workout_confirm" = "このワークアウトを削除してもよろしいですか？";
 "alert.disconnect_source" = "データソースを切断";
 "alert.disconnect_confirm" = "%@を切断してもよろしいですか？";
+
+// MARK: - Additional Training Strings
+"training.current_week_progress" = "現在のトレーニング進捗は第";
+"training.paceriz_plan_description" = "Pacerizがあなたのトレーニング状況に基づいて個別の週間スケジュールを作成します。今週のトレーニング状況を確認して新しいスケジュールを作成しましょう！";
+"training.get_weekly_review" = "週間レビューを取得 ";
+"training.daily_training" = "日々のトレーニング";
+"training.cycle_completed_message" = "素晴らしい！トレーニングサイクルが完了しました。トレーニングをレビューした後、次のトレーニング目標を設定することを忘れないでください！";
+"training.set_new_goal" = "新しい目標を設定";
+"training.loading_plan" = "トレーニング計画を読み込み中...";
+"training.share_schedule" = "スケジュールを共有";
+"training.overview" = "トレーニング概要";
+"training.progress" = "トレーニング進捗";
+"training.modify_schedule" = "スケジュールを変更";
+"training.cannot_load_overview" = "トレーニング計画概要を読み込めません";
+"training.cannot_load_plan" = "トレーニング計画を読み込めません";
+"training.week_schedule" = "週間スケジュール";
+"training.no_schedule_generated" = "今週のスケジュールはまだ作成されていません";
+"training.generate_review_first" = "個別トレーニング推奨事項を取得するため、まず週間レビューを作成してください";
+"training.loading_records" = "トレーニング記録を読み込み中...";
+"training.loading_more_records" = "さらに記録を読み込み中...";
+"training.pace_zone" = "ペースゾーン";
+
+// MARK: - Common Additional
+"common.generating" = "作成中...";
+"common.later" = "後で";
+"common.reload" = "再読み込み";
+"common.ok" = "OK";
+
+// MARK: - Workout Details
+"workout.details" = "ワークアウト詳細";
+"workout.start_time" = "開始時刻";
+"workout.reupload_success" = "ワークアウトが正常に再アップロードされました！";
+"workout.upload_success_insufficient_hr" = "ワークアウトがアップロードされましたが、心拍数データが不十分です。";
+"workout.reupload_error" = "再アップロード中にエラーが発生しました：";
+"workout.reupload_failed" = "再アップロードに失敗しました。後でもう一度お試しください。";
+"workout.provider" = "プロバイダー";
+"workout.activity_type" = "アクティビティタイプ";
+"workout.resync_data" = "データを再同期";
+"workout.force_reupload_description" = "このワークアウト記録を強制再アップロードし、心拍数データの再取得を試行します";
+
+// MARK: - Record Additional
+"record.avg_heart_rate" = "平均心拍数";
+"record.max_heart_rate" = "最大心拍数";
+"record.no_records_description" = "ワークアウト記録がありません。運動を開始すると、ここに表示されます";
+
+// MARK: - Performance
+"performance.weekly_volume_trend" = "週間走行距離トレンド";
+"performance.weekly_volume_trend_description" = "週間ランニング距離の変化を表示し、トレーニング量のトレンドを追跡してトレーニング計画を調整するのに役立ちます。";
+"performance.select_data_source_hrv" = "HRVトレンドを表示するデータソースを選択してください";
+"performance.select_data_source_resting_hr" = "安静時心拍数トレンドを表示するデータソースを選択してください";
+
+// MARK: - Error Additional
+"error.load_failed" = "読み込みエラー";
+"error.network_connection_failed" = "ネットワーク接続に失敗しました。後でもう一度お試しください";
+"error.network_or_server_error" = "ネットワーク接続またはサーバーエラー。ネットワーク接続を確認して再読み込みしてください";
+"error.server_unavailable" = "サーバーが一時的にデータを提供できません";
+"error.cannot_get_health_data" = "ヘルスデータを取得できません";
+"error.cannot_load_health_data" = "ヘルスデータを読み込めません";
+
+// MARK: - Alert Additional
+"alert.garmin_disconnected" = "Garmin接続が中断されました";
+"alert.reconnect_garmin" = "Garminに再接続";
+"alert.switch_to_apple_health" = "Apple Healthに切り替え";
+"alert.garmin_not_connected_message" = "あなたのアカウントはGarminデータを使用する設定になっていますが、現在Garminアカウントに接続されていません。Garminに再接続するかApple Healthに戻すかを選択してください。";
+
+// MARK: - Performance Chart Strings
+"performance.loading_hrv" = "HRVデータを読み込み中...";
+"performance.loading_resting_hr" = "安静時心拍数データを読み込み中...";
+"performance.no_hrv_data" = "HRVデータなし";
+"performance.no_resting_hr_data" = "安静時心拍数データなし";
+"performance.hrv_title" = "心拍変動（HRV）トレンド";
+"performance.resting_hr_title" = "睡眠時安静心拍数";
+"performance.updating" = "更新中...";
+"performance.load_failed" = "読み込みに失敗";
+"performance.cannot_load_chart_data" = "チャートデータを読み込めません";
+
+// MARK: - Training Progress Strings  
+"training.current_progress" = "現在の進捗";
+"training.current_week_of_total" = "第%d週 / 全%d週";
+"training.current_stage" = "現在のステージ：%@";
+"training.week_range" = "第%d-%d週";
+"training.cannot_get_progress" = "現在のトレーニング進捗を取得できません";
+"training.target_race" = "目標レース";
+"training.race_assessment" = "レース評価";  
+"training.training_stages" = "トレーニングステージ";
+"training.cannot_get_stages" = "トレーニングステージ情報を取得できません";
+"training.week_number" = "第%d週";
+"training.view_schedule" = "スケジュールを表示";
+"training.training_review" = "トレーニングレビュー";
+"training.generate_schedule" = "スケジュールを作成";
+
+// MARK: - Training Overview Strings
+"training.total_weeks" = "総週数：%d週";
+"training.goal_assessment" = "目標評価"; 
+"training.plan_highlights" = "計画のハイライト";
+"training.training_stages" = "トレーニングステージ";
+"training.updating_plan" = "トレーニング計画を更新中...";
+"training.plan_regenerated" = "最新の目標に基づいてトレーニング計画が再作成されました";
+"training.update_failed" = "トレーニング計画の更新に失敗しました：%@";
+
+// MARK: - Onboarding Strings
+"onboarding.welcome_to_paceriz" = "Pacerizへようこそ！";
+"onboarding.ready_to_start" = "ランニングの旅を始める準備はできましたか？Pacerizがあなたの個人的な目標とフィットネスレベルに合わせた科学的なトレーニング計画を作成し、より遠く、より速く、より健康に走れるようにサポートします。";
+"onboarding.training_focus" = "私たちのトレーニング計画は専門的なランニング知識を取り入れ、以下に焦点を当てています：";
+"onboarding.goal_oriented" = "目標指向";
+"onboarding.goal_oriented_desc" = "初回5K完走、マラソン挑戦、自己記録更新など、あなたの目標に応じて明確な道筋を計画します。";
+"onboarding.progressive" = "段階的トレーニング";
+"onboarding.progressive_desc" = "トレーニング強度と量を合理的に配置することで、フィットネスを段階的に向上させ、スポーツ傷害を効果的に予防します。";
+"onboarding.heart_rate_guided" = "心拍数ガイド";
+"onboarding.heart_rate_guided_desc" = "心拍ゾーンを使ったトレーニング方法を学び、各ランを効率的にし、トレーニング効果を最大化します。";
+"onboarding.setup_guide" = "次に、あなたのニーズをより理解するための簡単な設定をガイドします。始めましょう！";
+"onboarding.start_setup" = "セットアップ開始";
+"onboarding.your_running_goal" = "あなたのランニング目標";
+"onboarding.goal_description" = "特定のレースがない場合は、「初回5K完走」や「10Kスピード向上」などの挑戦目標を設定できます。";
+"onboarding.goal_name_placeholder" = "目標名（例：台北マラソンまたはマイ5Kチャレンジ）";
+"onboarding.goal_date" = "目標日";
+"onboarding.weeks_until_race" = "レースまでの週数：%d";
+"onboarding.race_distance" = "レース距離";
+"onboarding.select_distance" = "距離を選択";
+"onboarding.target_finish_time" = "目標完走時間";
+"onboarding.target_time_description" = "達成したい時間を設定してください。";
+"onboarding.hours" = "時間";
+"onboarding.minutes" = "分";
+"onboarding.average_pace" = "平均ペース：%@ /km";
+"onboarding.next_step" = "次のステップ";
+"onboarding.set_training_goal" = "トレーニング目標を設定";
+"onboarding.back" = "戻る";
+"onboarding.my_training_goal" = "私のトレーニング目標";
+"onboarding.target_created" = "トレーニング目標が作成されました";
+
+// MARK: - Distance Labels
+"distance.5k" = "5K";
+"distance.10k" = "10K"; 
+"distance.half_marathon" = "ハーフマラソン";
+"distance.full_marathon" = "フルマラソン";
+
+// MARK: - Heart Rate Zone Strings
+"hr_zone.settings" = "心拍ゾーン設定";
+"hr_zone.description" = "心拍ゾーンは心拍予備量（HRR）方式を使用して計算され、より個別化されたトレーニング強度ゾーンを提供します。";
+"hr_zone.max_hr" = "最大心拍数";
+"hr_zone.resting_hr" = "安静時心拍数";
+"hr_zone.max_hr_placeholder" = "最大心拍数（bpm）";
+"hr_zone.resting_hr_placeholder" = "安静時心拍数（bpm）";
+"hr_zone.preview" = "心拍ゾーンプレビュー";
+"hr_zone.zone" = "ゾーン%d：%@";
+"hr_zone.save_settings" = "設定を保存";
+"hr_zone.current_settings" = "現在の設定";
+"hr_zone.info" = "心拍ゾーン情報";
+"hr_zone.details" = "心拍ゾーン詳細";
+"hr_zone.loading" = "読み込み中...";
+"hr_zone.benefit" = "効果：%@";
+"hr_zone.max_hr_info_title" = "最大心拍数";
+"hr_zone.max_hr_info_message" = "最大心拍数は極度の運動中に到達できる最高心拍数です。\n\n一般的には220-年齢の公式で推定できますが、実際の値は個人差があります。\n\n推奨範囲：100-250 bpm";
+"hr_zone.resting_hr_info_title" = "安静時心拍数";
+"hr_zone.resting_hr_info_message" = "安静時心拍数は完全にリラックスした状態（朝起きたときなど）での心拍数です。\n\n一般成人の安静時心拍数は60-100 bpmで、アスリートはより低い場合があります。\n\n推奨範囲：30-120 bpm";
+"hr_zone.invalid_input" = "有効な心拍数値を入力してください";
+"hr_zone.max_greater_than_resting" = "最大心拍数は安静時心拍数より大きくなければなりません";
+"hr_zone.max_hr_range" = "最大心拍数は100-250 bpmの間にしてください";
+"hr_zone.resting_hr_range" = "安静時心拍数は30-120 bpmの間にしてください";
+"hr_zone.save_failed" = "保存に失敗しました：%@";
+"hr_zone.understand" = "理解しました";
+
+// MARK: - Training Days Editor
+"training_days.select_general_days" = "一般的なトレーニング日を選択";
+"training_days.long_run_day_weekend" = "ロングラン日（週末推奨）";
+"training_days.long_run_day" = "ロングラン日";
+"training_days.edit_title" = "トレーニング日を編集";
+"training_days.save" = "保存";
+
+// MARK: - Login Strings  
+"login.tagline" = "健康とフィットネスへの道のりを簡単に始めましょう";
+"login.google_signin" = "Googleでサインイン";
+"login.apple_signin" = "Appleでサインイン";
+"login.failed" = "ログインに失敗";
+"login.email_title" = "メールログイン";
+"login.email_not_verified_resend" = "確認メールを再送信";
+"login.resend_success_title" = "お知らせ";
+
+// MARK: - Data Sync Strings
+"sync.title" = "データ同期";
+"sync.sync_data" = "%@データを同期";
+"sync.syncing_records" = "ワークアウト記録を同期中...";
+"sync.complete" = "同期完了";
+"sync.failed" = "同期失敗";
+"sync.retry" = "再試行";
+"sync.skip" = "スキップ";
+"sync.error_records_failed" = "%d件の記録の処理に失敗";
+"sync.checking_health_auth" = "Apple Health認証を確認中...";
+"sync.getting_30_day_records" = "過去30日間のワークアウト記録を取得中...";
+"sync.no_health_records" = "過去30日間のApple Healthワークアウト記録が見つかりません。iPhoneまたはApple Watchがワークアウトデータを記録していることを確認してください。";
+"sync.uploading_records" = "ワークアウト記録をクラウドにアップロード中（全%d件）...";
+"sync.uploading_record_progress" = "ワークアウト記録をアップロード中 %d/%d...";
+"sync.all_records_failed" = "すべてのワークアウト記録のアップロードに失敗しました。最後のエラー：%@";
+"sync.reload_data" = "ワークアウトデータを再読み込み中...";
+"sync.apple_health_failed" = "Apple Health同期に失敗：%@";
+"sync.checking_garmin_status" = "Garmin処理状況を確認中...";
+"sync.garmin_processing_detected" = "Garminデータが処理中であることを検出...\n進捗の監視を継続";
+"sync.garmin_processing_continue" = "Garmin処理が進行中であることを検出、ポーリングモードに直接入ります";
+"sync.start_garmin_historical" = "Garmin履歴データ処理を開始...";
+"sync.processing_garmin_data" = "Garminデータを処理中...\n推定時間：%@";
+"sync.garmin_historical_success" = "新しいGarmin履歴データ処理のトリガーに成功";
+"sync.processing_in_progress" = "処理が進行中であることを検出...\n進行中の処理に接続";
+"sync.cannot_connect_garmin" = "進行中のGarmin処理に接続できません：%@";
+"sync.garmin_sync_failed" = "Garmin同期に失敗：%@";
+"sync.processing_garmin_progress" = "Garminデータを処理中...\n進捗：%d/%d（%d%%）";
+"sync.processing_garmin_initializing" = "Garminデータを処理中...\n処理を初期化中...";
+
+// MARK: - Weekly Volume & Intensity Strings
+"weekly_volume.trend" = "週間走行距離トレンド";
+"weekly_volume.loading" = "読み込み中...";
+"weekly_volume.no_data" = "週間走行距離データがありません";
+"weekly_volume.no_data_message" = "週間走行距離データがありません。トレーニング記録があることを確認してください";
+"weekly_volume.week_number" = "第%d週";
+"weekly_volume.kilometers" = "%.1f km";
+"weekly_volume.no_running_records" = "ランニング記録なし";
+"weekly_volume.load_failed" = "読み込み失敗：%@";
+"weekly_volume.load_cancelled" = "週間走行距離データの読み込みがキャンセルされました、エラーを無視";
+
+// MARK: - Intensity Distribution Strings  
+"intensity.low" = "低";
+"intensity.medium" = "中";
+"intensity.high" = "高";
+"intensity.minutes" = "%d分";
+"intensity.minutes_progress" = "%d / %d分";
+"intensity.not_scheduled" = "スケジュールなし";
+"intensity.unscheduled" = "（スケジュールなし）";
+
+// MARK: - Training Plan View Strings
+"training_plan.week_overview" = "週間概要";
+"training_plan.weekly_volume_load" = "週間走行距離";
+"training_plan.week_target" = "週間目標";
+"training_plan.today" = "今日";
+"training_plan.tip" = "ヒント：%@";
+"training_plan.segment" = "セグメント%d";
+"training_plan.heart_rate_zone" = "心拍ゾーン：%@";
+"training_plan.interval_training" = "インターバルトレーニング";
+"training_plan.repeats" = "%d × リピート";
+"training_plan.sprint_segment" = "スプリントセグメント";
+"training_plan.recovery_segment" = "リカバリーセグメント";
+"training_plan.rest_in_place" = "その場で休憩";
+"training_plan.cycle_completed" = "トレーニングサイクル完了";
+"training_plan.congratulations" = "このトレーニングサイクルの完了おめでとうございます！";
+"training_plan.loading_schedule" = "スケジュールを読み込み中...";
+
+// MARK: - Weekday Names (Full and Short)
+"weekday.monday" = "月曜日";
+"weekday.tuesday" = "火曜日";
+"weekday.wednesday" = "水曜日";
+"weekday.thursday" = "木曜日";
+"weekday.friday" = "金曜日";
+"weekday.saturday" = "土曜日";
+"weekday.sunday" = "日曜日";
+
+"weekday.mon_short" = "月";
+"weekday.tue_short" = "火";
+"weekday.wed_short" = "水";
+"weekday.thu_short" = "木";
+"weekday.fri_short" = "金";
+"weekday.sat_short" = "土";
+"weekday.sun_short" = "日";
+
+// MARK: - Training Intensity Levels
+"intensity.low" = "低";
+"intensity.medium" = "中";
+"intensity.high" = "高";
+
+// MARK: - Weekly Progress Strings
+"progress.weekly_volume" = "走行距離";
+"progress.training_progress" = "トレーニング進捗";
+"progress.week_unit" = "週";
+
+// MARK: - Profile Actions
+"profile.reset_goal" = "目標を再設定";
+"profile.reset_goal_confirm_title" = "目標設定プロセスを再開してもよろしいですか？";
+"profile.reset_goal_confirm_message" = "すべてのトレーニング設定がリセットされ、トレーニング設定を再構成する必要があります。現在のトレーニング計画はクリアされ、復元できません。";
+
+// MARK: - Data Source Additional
+"datasource.select_primary_message" = "トレーニング記録を同期するため、メインデータソースを選択してください";
+"datasource.apple_health_subtitle" = "iPhoneとApple Watchからヘルスデータを使用";
+"datasource.garmin_subtitle" = "Garminアカウントのアクティビティを同期";
+"datasource.currently_active" = "現在アクティブなデータソース";
+"datasource.switch_to_this" = "このデータソースに切り替え";
+
+// MARK: - Achievement View Performance
+"performance.vdot_trend" = "VDOTトレンド";
+"performance.vdot_explanation" = "VDOTは、ランニングパフォーマンスに基づいて計算された有酸素能力指標です。トレーニングが進むにつれて、VDOT値は徐々に向上します。";
+
+// Performance Time Range
+"performance.time_range.week" = "1週間";
+"performance.time_range.month" = "1ヶ月";
+"performance.time_range.three_months" = "3ヶ月";
+
+// Performance Data Source Errors
+"performance.data_source.server_error" = "サーバーが一時的にデータを提供できません";
+"performance.data_source.no_health_data" = "ヘルスデータを取得できません";
+"performance.data_source.load_data_error" = "ヘルスデータを読み込めません";
+"performance.data_source.load_health_data_error" = "ヘルスデータを読み込めません";
+
+// Performance Chart Labels
+"performance.chart.date" = "日付";
+"performance.chart.resting_heart_rate" = "安静時心拍数";
+"performance.chart.vdot_value" = "VDOT";
+"performance.chart.loading" = "読み込み中...";
+
+// VDOT Performance Terms
+"performance.vdot.dynamic_vdot" = "ダイナミックVDOT";
+"performance.vdot.weighted_vdot" = "加重VDOT";
+"performance.vdot.latest_vdot" = "最新VDOT";
+"performance.vdot.vdot_title" = "ダイナミックVDOT";
+"performance.vdot.what_is_vdot" = "ダイナミックVDOTとは？";
+"performance.vdot.vdot_description" = "ダイナミックVDOTは、ランニングパフォーマンスと心拍数データを総合的に計算した指標で、真のランニング能力を反映します。\n\nダイナミックVDOTは、トレーニングタイプ、気温、日々の身体状態によって変動します。トレーニングが進むにつれて、体力向上によりダイナミックVDOTは上昇傾向を示します。\n\n加重VDOTは目標レース距離を参考に適切な重み付けを行い、一定期間のダイナミックVDOTの加重平均を計算し、目標レースに対する現在のランニング能力をより正確に評価できます！";
+"performance.vdot.set_heart_rate_zones" = "心拍数ゾーン設定";
+"performance.vdot.calculating_vdot" = "ダイナミックVDOT計算中...";
+"performance.vdot.average_weighted_vdot" = "平均加重VDOT";
+"performance.vdot.latest_dynamic_vdot" = "最新ダイナミックVDOT";
+"performance.vdot.heart_rate_zone_prompt" = "より正確なトレーニング強度の指導を得るために、心拍数ゾーンを設定してください";
+"performance.vdot.no_statistics" = "統計情報なし";
+"performance.vdot.data_point_count" = "データポイント数";
+"performance.vdot.trend" = "トレンド";
+
+// HRV Performance Terms
+"performance.hrv.loading_hrv" = "HRVデータ読み込み中...";
+"performance.hrv.no_hrv_data" = "HRVデータなし";
+"performance.hrv.hrv_title" = "心拍変動（HRV）トレンド";
+"performance.hrv.select_data_source_hrv" = "HRVトレンドを表示するためにデータソースを選択してください";
+
+// Heart Rate Zone
+"performance.heart_rate_zone.zone1_name" = "イージー (E)";
+"performance.heart_rate_zone.zone2_name" = "マラソン (M)";
+"performance.heart_rate_zone.zone3_name" = "閾値 (T)";
+"performance.heart_rate_zone.zone4_name" = "無酸素 (A)";
+"performance.heart_rate_zone.zone5_name" = "インターバル (I)";
+
+"performance.heart_rate_zone.zone1_description" = "基礎持久力トレーニング、長時間維持可能なイージーペース";
+"performance.heart_rate_zone.zone2_description" = "マラソンペーストレーニング、長距離ランニングの持久力向上";
+"performance.heart_rate_zone.zone3_description" = "乳酸閾値トレーニング、スピード持久力向上、約10K〜ハーフマラソンペース";
+"performance.heart_rate_zone.zone4_description" = "有酸素循環では対応できない運動強度、約3〜5Kのペース";
+"performance.heart_rate_zone.zone5_description" = "高強度インターバルトレーニング、爆発力とスピードの向上";
+
+"performance.heart_rate_zone.zone1_benefit" = "有酸素ベースを構築し、ミトコンドリア数を増加させます。十分なトレーニング時間がある場合、イージーランはトレーニングの60〜80%を占めるべきで、強度のバランスを保ちます。";
+"performance.heart_rate_zone.zone2_benefit" = "理論上、フルマラソンを走るのに適した心拍範囲です。この心拍ゾーンでのトレーニング効果は比較的低く、通常はサイクル後期にレースペースに慣れるために追加されます。";
+"performance.heart_rate_zone.zone3_benefit" = "有酸素循環システムの限界点をトレーニングし、適切なトレーニングで乳酸除去能力を向上させ、より高いペースでの持久力を増加させます。";
+"performance.heart_rate_zone.zone4_benefit" = "最大酸素摂取量を向上させ、ランニングフォームを改善し、筋力を強化します。";
+"performance.heart_rate_zone.zone5_benefit" = "無酸素能力と筋持久力を向上させ、最大酸素摂取量を増加させます。適度なインターバルトレーニングは明らかな改善をもたらしますが、過度なトレーニングは避けてください。";

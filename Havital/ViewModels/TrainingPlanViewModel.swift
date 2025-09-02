@@ -662,18 +662,21 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         updatePromptViews()
     }
     
-    func loadWeeklyPlan(skipCache: Bool = false) async {
+    func loadWeeklyPlan(skipCache: Bool = false, targetWeek: Int? = nil) async {
         await executeTask(id: "load_weekly_plan") {
-            await self.performLoadWeeklyPlan(skipCache: skipCache)
+            await self.performLoadWeeklyPlan(skipCache: skipCache, targetWeek: targetWeek)
         }
     }
     
     /// 執行實際的載入邏輯
-    private func performLoadWeeklyPlan(skipCache: Bool = false) async {
+    private func performLoadWeeklyPlan(skipCache: Bool = false, targetWeek: Int? = nil) async {
         // 修正：在載入計畫前，務必先重新計算當前週數，確保資料最新
         if let overview = trainingOverview, !overview.createdAt.isEmpty {
             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? self.currentWeek
         }
+        
+        // 決定要載入的週數：如果有指定目標週數則使用，否則使用選擇的週數
+        let weekToLoad = targetWeek ?? selectedWeek
         
         // 僅在已有 trainingOverview.id 時才載入週計劃，避免無 overview 時報錯
         guard let overview = trainingOverview, !overview.id.isEmpty else { return }
@@ -682,7 +685,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         let shouldSkipCache = skipCache || shouldBypassCacheForWeeklyPlan()
         
         // 先檢查本地緩存（除非被要求跳過）
-        if !shouldSkipCache, let savedPlan = TrainingPlanStorage.loadWeeklyPlan(forWeek: currentWeek) {
+        if !shouldSkipCache, let savedPlan = TrainingPlanStorage.loadWeeklyPlan(forWeek: weekToLoad) {
             // 立即使用緩存數據更新 UI，不顯示 loading 狀態
             let cw = calculateCurrentTrainingWeek() ?? 0
             let status: PlanStatus = cw > overview.totalWeeks ? .completed : .ready(savedPlan)
@@ -692,9 +695,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             Task {
                 do {
                     guard let overviewId = trainingOverview?.id else { throw NSError() }
-                    Logger.info("Load weekly plan with planId: \(overviewId)_\(currentWeek).")
+                    Logger.info("Load weekly plan with planId: \(overviewId)_\(weekToLoad).")
                     let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                        planId: "\(overviewId)_\(self.currentWeek)")
+                        planId: "\(overviewId)_\(weekToLoad)")
                     
                     // 檢查計劃是否有變更
                     let planChanged = savedPlan.id != newPlan.id || savedPlan.weekOfPlan != newPlan.weekOfPlan
@@ -736,6 +739,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                             "overview_id": trainingOverview?.id ?? "unknown",
                             "current_week": currentWeek,
                             "selected_week": selectedWeek,
+                            "week_to_load": weekToLoad,
                             "context": "background_refresh_weekly_plan",
                             "has_cached_plan": weeklyPlan != nil
                         ]
@@ -770,13 +774,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 Logger.debug("cw: \(calculateCurrentTrainingWeek() ?? 0)")
                 Logger.debug("self.currentWeek: \(self.currentWeek)")
                 Logger.debug("self.selectedWeek: \(self.selectedWeek)")
-                Logger.debug("準備載入週計劃 ID: \(overviewId)_\(self.currentWeek)")
+                Logger.debug("weekToLoad: \(weekToLoad)")
+                Logger.debug("準備載入週計劃 ID: \(overviewId)_\(weekToLoad)")
                 
-                if (calculateCurrentTrainingWeek() ?? 0 > trainingOverview!.totalWeeks) {
-                    Logger.debug("當前週數超過總週數，設置 .completed 狀態")
+                if weekToLoad > trainingOverview!.totalWeeks {
+                    Logger.debug("要載入的週數超過總週數，設置 .completed 狀態")
                     await updateWeeklyPlanUI(plan: nil, status: .completed)
                 } else {
-                    let planId = "\(overviewId)_\(self.currentWeek)"
+                    let planId = "\(overviewId)_\(weekToLoad)"
                     Logger.debug("呼叫 API 載入週計劃，planId: \(planId)")
                     let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(planId: planId)
                     
@@ -835,6 +840,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     "overview_id": trainingOverview?.id ?? "unknown",
                     "current_week": currentWeek,
                     "selected_week": selectedWeek,
+                    "week_to_load": weekToLoad,
                     "plan_status": String(describing: planStatus),
                     "context": "load_weekly_plan"
                 ]
@@ -882,8 +888,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             self.selectedWeek = week
         }
         
-        // 使用統一的載入方法
-        await loadWeeklyPlan(skipCache: true)
+        // 使用統一的載入方法，指定載入目標週數
+        await loadWeeklyPlan(skipCache: true, targetWeek: week)
         
         // 載入相關數據
         await loadWorkoutsForCurrentWeek()
@@ -1333,10 +1339,13 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     private func shouldIncludeInTrainingLoad(activityType: String) -> Bool {
         // 包含有氧運動類型，排除瑜伽、普拉提、重量訓練等
         let aerobicActivityTypes: Set<String> = [
-            "run",           // 跑步
-            "walk",          // 步行
+            "running",       // 跑步 (API 使用的是 "running")
+            "run",           // 跑步 (保持向後相容)
+            "walking",       // 步行 (API 使用的是 "walking")
+            "walk",          // 步行 (保持向後相容)
             "cycling",       // 騎車
-            "swim",          // 游泳
+            "swimming",      // 游泳 (API 使用的是 "swimming")
+            "swim",          // 游泳 (保持向後相容)
             "hiit",          // 高強度間歇訓練
             "mixedCardio",   // 混合有氧
             "hiking"         // 健行
@@ -1351,18 +1360,34 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         var totalMedium: Double = 0
         var totalHigh: Double = 0
         
+        Logger.debug("開始計算訓練強度，總共有 \(workouts.count) 筆運動記錄")
+        
         for workout in workouts {
+            Logger.debug("處理運動: \(workout.id), 類型: \(workout.activityType)")
+            
             // 直接使用 API 提供的 intensity_minutes 數據
-            if let intensityMinutes = workout.advancedMetrics?.intensityMinutes {
-                totalLow += intensityMinutes.low ?? 0.0
-                totalMedium += intensityMinutes.medium ?? 0.0
-                totalHigh += intensityMinutes.high ?? 0.0
+            if let advancedMetrics = workout.advancedMetrics {
+                Logger.debug("AdvancedMetrics 存在")
                 
-                Logger.debug("運動 \(workout.id): 低=\(intensityMinutes.low ?? 0), 中=\(intensityMinutes.medium ?? 0), 高=\(intensityMinutes.high ?? 0)")
+                if let intensityMinutes = advancedMetrics.intensityMinutes {
+                    let low = intensityMinutes.low ?? 0.0
+                    let medium = intensityMinutes.medium ?? 0.0
+                    let high = intensityMinutes.high ?? 0.0
+                    
+                    totalLow += low
+                    totalMedium += medium
+                    totalHigh += high
+                    
+                    Logger.debug("運動 \(workout.id) - 低強度: \(low), 中強度: \(medium), 高強度: \(high)")
+                } else {
+                    Logger.debug("運動 \(workout.id) - AdvancedMetrics 存在但 intensityMinutes 為 nil")
+                }
             } else {
-                Logger.debug("運動 \(workout.id) 沒有 intensity_minutes 數據")
+                Logger.debug("運動 \(workout.id) - AdvancedMetrics 不存在")
             }
         }
+        
+        Logger.debug("計算完成 - 總低強度: \(totalLow), 總中強度: \(totalMedium), 總高強度: \(totalHigh)")
         
         return TrainingIntensityManager.IntensityMinutes(
             low: totalLow,

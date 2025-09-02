@@ -41,7 +41,7 @@ struct WorkoutV2RowView: View {
                     .cornerRadius(6)
                 }
                 if isToday(date: workout.startDate) {
-                    Text("今天")
+                    Text(L10n.Training.today.localized)
                         .font(.caption)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
@@ -72,7 +72,7 @@ struct WorkoutV2RowView: View {
             HStack {
                 // 距離
                 VStack(alignment: .leading) {
-                    Text("距離")
+                    Text(L10n.WorkoutMetrics.distance.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -90,7 +90,7 @@ struct WorkoutV2RowView: View {
                 
                 // 時間
                 VStack(alignment: .leading) {
-                    Text("時間")
+                    Text(L10n.WorkoutMetrics.time.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(formatDuration(workout.duration))
@@ -101,7 +101,7 @@ struct WorkoutV2RowView: View {
                 
                 // 卡路里
                 VStack(alignment: .leading) {
-                    Text("卡路里")
+                    Text(L10n.WorkoutMetrics.calories.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -175,26 +175,26 @@ struct WorkoutV2RowView: View {
     
     private func formatTrainingType(_ trainingType: String) -> String {
         switch trainingType.lowercased() {
-        case "easy_run":
-            return "輕鬆跑"
+        case "easy_run", "easy":
+            return L10n.Training.TrainingType.easy.localized
         case "recovery_run":
-            return "恢復跑"
+            return L10n.Training.TrainingType.recovery.localized
         case "long_run":
-            return "長跑"
+            return L10n.Training.TrainingType.long.localized
         case "tempo":
-            return "節奏跑"
+            return L10n.Training.TrainingType.tempo.localized
         case "threshold":
-            return "閾值跑"
+            return L10n.Training.TrainingType.threshold.localized
         case "interval":
-            return "間歇跑"
+            return L10n.Training.TrainingType.interval.localized
         case "fartlek":
-            return "法特萊克"
+            return L10n.Training.TrainingType.fartlek.localized
         case "hill_training":
-            return "坡道訓練"
+            return L10n.Training.TrainingType.hill.localized
         case "race":
-            return "比賽"
+            return L10n.Training.TrainingType.race.localized
         case "rest":
-            return "休息"
+            return L10n.Training.TrainingType.rest.localized
         default:
             return trainingType
         }

@@ -82,4 +82,9 @@ struct ViewModelUtils {
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         return formatter.string(from: date)
     }
+    
+    /// 檢查當前語言是否為中文
+    static func isCurrentLanguageChinese() -> Bool {
+        return LanguageManager.shared.currentLanguage == .traditionalChinese
+    }
 }

@@ -12,16 +12,22 @@ enum ZoneType: String, Codable, CaseIterable {
 }
 
 extension ZoneType {
-    /// 中文名稱
-    var chineseName: String {
+    /// 本地化名稱
+    var localizedName: String {
         switch self {
-        case .anaerobic: return "無氧"
-        case .easy: return "輕鬆"
-        case .interval: return "間歇"
-        case .marathon: return "馬拉松"
-        case .recovery: return "恢復"
-        case .threshold: return "閾值"
+        case .anaerobic: return L10n.Training.Zone.anaerobic.localized
+        case .easy: return L10n.Training.Zone.easy.localized
+        case .interval: return L10n.Training.Zone.interval.localized
+        case .marathon: return L10n.Training.Zone.marathon.localized
+        case .recovery: return L10n.Training.Zone.recovery.localized
+        case .threshold: return L10n.Training.Zone.threshold.localized
         }
+    }
+    
+    /// 中文名稱（已棄用，請使用 localizedName）
+    @available(*, deprecated, message: "Use localizedName instead")
+    var chineseName: String {
+        return localizedName
     }
 
     /// 英文名稱（對應 rawValue）

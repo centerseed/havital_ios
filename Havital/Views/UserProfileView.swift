@@ -167,7 +167,7 @@ struct UserProfileView: View {
                 }) {
                     HStack {
                         Image(systemName: "arrow.clockwise")
-                        Text("Re-Onboard")
+                        Text(NSLocalizedString("profile.reset_goal", comment: "Reset Goal"))
                     }
                 }
                 
@@ -291,7 +291,7 @@ struct UserProfileView: View {
         }
         // 重新 OnBoarding 確認對話框
         .confirmationDialog(
-            "Are you sure you want to restart the onboarding process?",
+            NSLocalizedString("profile.reset_goal_confirm_title", comment: "Are you sure you want to restart the goal setting process?"),
             isPresented: $showOnboardingConfirmation,
             titleVisibility: .visible
         ) {
@@ -300,7 +300,7 @@ struct UserProfileView: View {
             }
             Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
         } message: {
-            Text("This will reset all your training settings and require you to reconfigure your training preferences. Your current training plan will be cleared and cannot be recovered.")
+            Text(NSLocalizedString("profile.reset_goal_confirm_message", comment: "This will reset all your training settings and require you to reconfigure your training preferences. Your current training plan will be cleared and cannot be recovered."))
         }
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
@@ -391,7 +391,7 @@ struct UserProfileView: View {
                 Spacer()
                 
                 ForEach(userData.preferWeekDays?.filter { !(userData.preferWeekDaysLongrun?.contains($0) ?? false) }.sorted() ?? [], id: \.self) { day in
-                    Text(viewModel.weekdayName(for: day).suffix(1))
+                    Text(viewModel.weekdayShortName(for: day))
                         .font(.caption)
                         .fontWeight(.medium)
                         .frame(width: 24, height: 24)
@@ -411,7 +411,7 @@ struct UserProfileView: View {
                     Spacer()
                     
                     ForEach(userData.preferWeekDaysLongrun?.sorted() ?? [], id: \.self) { day in
-                        Text(viewModel.weekdayName(for: day).suffix(1))
+                        Text(viewModel.weekdayShortName(for: day))
                             .font(.caption)
                             .fontWeight(.medium)
                             .frame(width: 24, height: 24)
@@ -447,7 +447,7 @@ struct UserProfileView: View {
                             Text(NSLocalizedString("datasource.not_connected", comment: "Not Connected"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            Text("Please select a primary data source to sync your training records")
+                            Text(NSLocalizedString("datasource.select_primary_message", comment: "Please select a primary data source to sync your training records"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -464,7 +464,7 @@ struct UserProfileView: View {
                     type: .appleHealth,
                     icon: "heart.fill",
                     title: "Apple Health",
-                    subtitle: "Use health data from iPhone and Apple Watch"
+                    subtitle: NSLocalizedString("datasource.apple_health_subtitle", comment: "Use health data from iPhone and Apple Watch")
                 )
                 .id("apple-health-row")
                 
@@ -478,7 +478,7 @@ struct UserProfileView: View {
                         type: .garmin,
                         icon: "clock.arrow.circlepath",
                         title: "Garmin Connect™",
-                        subtitle: "Sync your Garmin account activities"
+                        subtitle: NSLocalizedString("datasource.garmin_subtitle", comment: "Sync your Garmin account activities")
                     )
                     .id("garmin-row")
                 }
@@ -609,11 +609,11 @@ struct UserProfileView: View {
                 // 操作提示
                 HStack {
                     if isCurrentSource {
-                        Text("Currently active data source")
+                        Text(NSLocalizedString("datasource.currently_active", comment: "Currently active data source"))
                             .font(.subheadline)
                             .foregroundColor(.green)
                     } else {
-                        Text(isUnbound ? NSLocalizedString("datasource.connect", comment: "Connect") : "Switch to this data source")
+                        Text(isUnbound ? NSLocalizedString("datasource.connect", comment: "Connect") : NSLocalizedString("datasource.switch_to_this", comment: "Switch to this data source"))
                             .font(.subheadline)
                             .foregroundColor(.primary)
                     }

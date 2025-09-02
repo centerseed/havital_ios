@@ -40,26 +40,26 @@ struct WorkoutSummaryRow: View {
                 // 顯示動態跑力 (Dynamic VDOT)
                 if workout.workoutActivityType == .running {
                     if isLoadingVDOT {
-                        Text("計算動態跑力中...")
+                        Text(L10n.Performance.VDOT.calculatingVdot.localized)
                             .font(.subheadline)
                             .foregroundColor(.white)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else if let vdot = dynamicVDOT {
-                        Text("動態跑力：\(String(format: "%.1f", vdot))")
+                        Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：\(String(format: "%.1f", vdot))")
                             .font(.subheadline)
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
-                        Text("動態跑力：--")
+                        Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
                             .font(.subheadline)
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
-                    Text("動態跑力：--")
+                    Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
                         .font(.subheadline)
                         .foregroundColor(.primary)
                         .lineLimit(nil)
@@ -277,20 +277,20 @@ struct WorkoutV2SummaryRow: View {
                 // 顯示動態跑力 (Dynamic VDOT)
                 if workout.activityType == "running" {
                     if let vdot = workout.dynamicVdot {
-                        Text("動態跑力：\(String(format: "%.1f", vdot))")
+                        Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：\(String(format: "%.1f", vdot))")
                             .font(.subheadline)
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
-                        Text("動態跑力：--")
+                        Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
                             .font(.subheadline)
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
-                    Text("動態跑力：--")
+                    Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
                         .font(.subheadline)
                         .foregroundColor(.primary)
                         .lineLimit(nil)

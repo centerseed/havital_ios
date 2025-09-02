@@ -120,7 +120,7 @@ struct MockVDOTChartView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Title
             HStack {
-                Text("动态跑力 (VDOT)")
+                Text(L10n.Performance.VDOT.vdotTitle.localized)
                     .font(.headline)
                 
                 Button {
@@ -143,7 +143,7 @@ struct MockVDOTChartView: View {
                         y: .value("跑力", point.value)
                     )
                     .interpolationMethod(.catmullRom)
-                    .foregroundStyle(by: .value("种类", "动态跑力"))
+                    .foregroundStyle(by: .value("种类", L10n.Performance.VDOT.dynamicVdot.localized))
                     
                     // 加权跑力曲线
                     if let weight = point.weightVdot {
@@ -152,7 +152,7 @@ struct MockVDOTChartView: View {
                             y: .value("跑力", weight)
                         )
                         .interpolationMethod(.catmullRom)
-                        .foregroundStyle(by: .value("种类", "加权跑力"))
+                        .foregroundStyle(by: .value("种类", L10n.Performance.VDOT.weightedVdot.localized))
                     }
                     
                     // 动态跑力点
@@ -160,7 +160,7 @@ struct MockVDOTChartView: View {
                         x: .value("日期", point.date),
                         y: .value("跑力", point.value)
                     )
-                    .foregroundStyle(by: .value("种类", "动态跑力"))
+                    .foregroundStyle(by: .value("种类", L10n.Performance.VDOT.dynamicVdot.localized))
                     
                     // 加权跑力点
                     if let weight = point.weightVdot {
@@ -168,13 +168,13 @@ struct MockVDOTChartView: View {
                             x: .value("日期", point.date),
                             y: .value("跑力", weight)
                         )
-                        .foregroundStyle(by: .value("种类", "加权跑力"))
+                        .foregroundStyle(by: .value("种类", L10n.Performance.VDOT.weightedVdot.localized))
                     }
                 }
             }
             .chartForegroundStyleScale([
-                "动态跑力": Color.blue,
-                "加权跑力": Color.orange
+                L10n.Performance.VDOT.dynamicVdot.localized: Color.blue,
+                L10n.Performance.VDOT.weightedVdot.localized: Color.orange
             ])
             .frame(height: 120) // Updated height
             .chartYScale(domain: yAxisRange)
@@ -194,13 +194,13 @@ struct MockVDOTChartView: View {
             // Stats
             HStack(alignment: .top, spacing: 12) {
                 statsBox(
-                    title: "加权跑力",
+                    title: L10n.Performance.VDOT.weightedVdot.localized,
                     value: String(format: "%.2f", testData.last?.weightVdot ?? 0),
                     backgroundColor: Color.blue.opacity(0.15)
                 )
                 
                 statsBox(
-                    title: "最新跑力",
+                    title: L10n.Performance.VDOT.latestVdot.localized,
                     value: String(format: "%.2f", testData.last?.value ?? 0),
                     backgroundColor: Color.green.opacity(0.15)
                 )

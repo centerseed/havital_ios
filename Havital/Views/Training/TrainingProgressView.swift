@@ -4,6 +4,7 @@ struct TrainingProgressView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedStageIndex: Int? = nil
+    @State private var isLoadingWeeklySummaries = false
     
     var body: some View {
         NavigationView {
@@ -32,6 +33,10 @@ struct TrainingProgressView: View {
                 }
             }
             .background(Color(UIColor.systemGroupedBackground))
+        }
+        .task {
+            // 初始載入週次數據，使用雙軌模式
+            await loadWeeklySummariesWithDualTrack()
         }
     }
     
@@ -237,66 +242,122 @@ struct TrainingProgressView: View {
     // 單週資訊行
     private func weekRow(weekNumber: Int) -> some View {
         let isCurrentWeek = viewModel.calculateCurrentTrainingWeek() == weekNumber
-        let hasWeekPlan = viewModel.weeklyPlan?.weekOfPlan == weekNumber
-        let hasSummary = viewModel.weeklySummary != nil && viewModel.lastFetchedWeekNumber == weekNumber
         
-        return HStack {
-            // 週數指示
-            Text(String(format: NSLocalizedString("training.week_number", comment: "Week %d"), weekNumber))
-                .font(.subheadline)
-                .fontWeight(isCurrentWeek ? .bold : .regular)
-                .foregroundColor(isCurrentWeek ? .primary : .secondary)
-            
-            Spacer()
-            
-            // 課表按鈕
-            if hasWeekPlan {
-                Button {
-                    // 這裡可以導向該週的詳細課表
-                } label: {
-                    Label(NSLocalizedString("training.view_schedule", comment: "View Schedule"), systemImage: "list.bullet")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(4)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            
-            // 週回顧按鈕
-            if hasSummary {
-                Button {
-                    // 導向該週的訓練回顧
-                } label: {
-                    Label(NSLocalizedString("training.training_review", comment: "Training Review"), systemImage: "chart.bar")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green.opacity(0.1))
-                        .foregroundColor(.green)
-                        .cornerRadius(4)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            
-            // 當前週或未來週但尚未產生課表
-            if isCurrentWeek && !hasWeekPlan {
-                Button {
-                    Task {
-                        await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
+        // 從weeklySummaries查找對應週次的數據
+        let weekSummary = viewModel.weeklySummaries.first { $0.weekIndex == weekNumber }
+        let hasWeekPlan = weekSummary?.weekPlan != nil
+        let hasSummary = weekSummary?.weekSummary != nil
+        let completionPercentage = weekSummary?.completionPercentage
+        
+        return VStack(spacing: 8) {
+            HStack {
+                // 週數指示
+                Text(String(format: NSLocalizedString("training.week_number", comment: "Week %d"), weekNumber))
+                    .font(.subheadline)
+                    .fontWeight(isCurrentWeek ? .bold : .regular)
+                    .foregroundColor(isCurrentWeek ? .primary : .secondary)
+                
+                // 完成度進度條
+                if let percent = completionPercentage {
+                    HStack(spacing: 8) {
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(.systemGray5))
+                                .frame(width: 40, height: 6)
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(LinearGradient(
+                                    gradient: Gradient(colors: [.blue, .teal]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ))
+                                .frame(width: 40 * min(percent, 100) / 100, height: 6)
+                        }
+                        Text("\(Int(percent))%")
+                            .fixedSize()
+                            .font(.footnote.bold())
+                            .foregroundColor(.blue)
                     }
-                } label: {
-                    Label(NSLocalizedString("training.generate_schedule", comment: "Generate Schedule"), systemImage: "plus.circle")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.1))
-                        .foregroundColor(.orange)
-                        .cornerRadius(4)
                 }
-                .buttonStyle(PlainButtonStyle())
+                
+                Spacer()
+                
+                // 功能按鈕區域
+                HStack(spacing: 8) {
+                    // 週回顧按鈕
+                    if hasSummary {
+                        Button {
+                            Task { 
+                                await viewModel.fetchWeeklySummary(weekNumber: weekNumber) 
+                                dismiss() // 關閉當前視圖以顯示回顧
+                            }
+                        } label: {
+                            HStack(alignment: .center, spacing: 4) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("回顧")
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                            }
+                            .fixedSize()
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    // 課表按鈕
+                    if hasWeekPlan {
+                        Button {
+                            Task {
+                                viewModel.selectedWeek = weekNumber
+                                await viewModel.fetchWeekPlan(week: weekNumber)
+                                dismiss() // 關閉當前視圖以顯示課表
+                            }
+                        } label: {
+                            HStack(alignment: .center, spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("課表")
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                            }
+                            .fixedSize()
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.green.opacity(0.1))
+                            .foregroundColor(.green)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    // 產生課表按鈕（當前週且沒有課表時）
+                    if isCurrentWeek && !hasWeekPlan {
+                        Button {
+                            Task {
+                                await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
+                            }
+                        } label: {
+                            HStack(alignment: .center, spacing: 4) {
+                                Image(systemName: "plus.circle")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("產生課表")
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                            }
+                            .fixedSize()
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.orange.opacity(0.1))
+                            .foregroundColor(.orange)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
             }
         }
         .padding(.vertical, 12)
@@ -319,6 +380,31 @@ struct TrainingProgressView: View {
     private func getStageColor(stageIndex: Int) -> Color {
         let colors: [Color] = [.blue, .green, .orange, .purple, .pink]
         return colors[stageIndex % colors.count]
+    }
+    
+    // MARK: - 雙軌載入實現
+    
+    /// 使用雙軌模式載入週次數據：先顯示緩存，背景更新
+    private func loadWeeklySummariesWithDualTrack() async {
+        // 如果已有數據，直接返回
+        guard viewModel.weeklySummaries.isEmpty else { return }
+        
+        isLoadingWeeklySummaries = true
+        
+        // 先嘗試從緩存載入
+        if !viewModel.weeklySummaries.isEmpty {
+            isLoadingWeeklySummaries = false
+            
+            // 背景更新
+            Task.detached { [weak viewModel] in
+                await viewModel?.fetchWeeklySummaries()
+            }
+            return
+        }
+        
+        // 沒有緩存數據時直接載入
+        await viewModel.fetchWeeklySummaries()
+        isLoadingWeeklySummaries = false
     }
 }
 

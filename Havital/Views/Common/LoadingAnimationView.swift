@@ -12,15 +12,15 @@ struct LoadingAnimationView: View {
             switch self {
             case .generatePlan:
                 return [
-                    "正在分析您的體能狀態...",
-                    "正在規劃這週的訓練強度...",
-                    "為您準備客製化課表，請稍後..."
+                    L10n.Training.LoadingAnimation.analyzingFitness.localized,
+                    L10n.Training.LoadingAnimation.planningIntensity.localized,
+                    L10n.Training.LoadingAnimation.preparingCustomPlan.localized
                 ]
             case .generateReview:
                 return [
-                    "正在分析本週訓練數據...",
-                    "正在評估這週的訓練狀況...",
-                    "太好了，訓練回顧即將準備好了！"
+                    L10n.Training.LoadingAnimation.analyzingTrainingData.localized,
+                    L10n.Training.LoadingAnimation.evaluatingProgress.localized,
+                    L10n.Training.LoadingAnimation.preparingReview.localized
                 ]
             case .custom(let messages):
                 return messages
@@ -130,25 +130,25 @@ struct LoadingAnimationView: View {
     }
 }
 
-// MARK: - 預覽視圖
+// MARK: - Preview Views
 struct LoadingAnimationView_Previews: PreviewProvider {
     static var previews: some View {
-        // 產生週課表預覽
+        // Generate Weekly Plan Preview
         LoadingAnimationView(type: .generatePlan)
-            .previewDisplayName("產生週課表")
+            .previewDisplayName("Generate Weekly Plan")
         
-        // 產生週回顧預覽
+        // Generate Weekly Review Preview
         LoadingAnimationView(type: .generateReview)
-            .previewDisplayName("產生週回顧")
+            .previewDisplayName("Generate Weekly Review")
             .previewLayout(.sizeThatFits)
         
-        // 深色模式預覽
+        // Dark Mode Preview
         LoadingAnimationView(type: .generatePlan)
             .preferredColorScheme(.dark)
-            .previewDisplayName("深色模式")
+            .previewDisplayName("Dark Mode")
         
-        // 自定義消息預覽
-        LoadingAnimationView(messages: ["正在處理中...", "請稍候..."])
-            .previewDisplayName("自定義消息")
+        // Custom Messages Preview
+        LoadingAnimationView(messages: ["Processing...", "Please wait..."])
+            .previewDisplayName("Custom Messages")
     }
 }

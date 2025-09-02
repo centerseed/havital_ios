@@ -36,6 +36,9 @@ class LanguageManager: ObservableObject {
         
         // Apply the language on init
         applyLanguage()
+        
+        // Debug: Print language initialization info
+        Logger.debug("LanguageManager initialized with: \(currentLanguage.rawValue) (API: \(currentLanguage.apiCode))")
     }
     
     /// Save language preference to UserDefaults
@@ -119,7 +122,7 @@ class LanguageManager: ObservableObject {
         }
     }
     
-    /// Change app language with confirmation
+    /// Change app language with confirmation and automatic restart
     func changeLanguage(to language: SupportedLanguage, completion: @escaping (Bool) -> Void) {
         // Show confirmation alert
         let alert = UIAlertController(
@@ -139,7 +142,7 @@ class LanguageManager: ObservableObject {
             title: L10n.Common.confirm.localized,
             style: .default
         ) { [weak self] _ in
-            self?.currentLanguage = language
+            self?.performLanguageChange(to: language)
             completion(true)
         })
         
@@ -150,9 +153,85 @@ class LanguageManager: ObservableObject {
         }
     }
     
+    /// Perform language change and restart app
+    private func performLanguageChange(to language: SupportedLanguage) {
+        // Update language
+        self.currentLanguage = language
+        
+        // Schedule app restart after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.restartApp()
+        }
+    }
+    
+    /// Public method for direct language change with restart (used by settings)
+    func performLanguageChangeWithRestart(to language: SupportedLanguage) {
+        performLanguageChange(to: language)
+    }
+    
+    /// Restart the application
+    private func restartApp() {
+        // Method 1: Try to trigger a scene refresh
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            // Save a flag to indicate language was changed
+            UserDefaults.standard.set(true, forKey: "language_changed_restart")
+            
+            // Request scene refresh
+            UIApplication.shared.requestSceneSessionRefresh(windowScene.session)
+            
+            // Alternative: Force recreation of root view
+            for window in windowScene.windows {
+                window.rootViewController = nil
+                window.makeKeyAndVisible()
+            }
+            
+            Logger.firebase("App restart requested due to language change", level: .info)
+        } else {
+            // Method 2: Fallback - exit app (user will need to manually restart)
+            Logger.firebase("Fallback: Requesting app exit for language change", level: .info)
+            exit(0)
+        }
+    }
+    
     /// Get localized string for a key
     static func localized(_ key: String) -> String {
         return NSLocalizedString(key, comment: "")
+    }
+    
+    /// Debug function to print current language info
+    func debugPrintLanguageInfo() {
+        Logger.debug("LanguageManager Debug Info:")
+        Logger.debug("- Current language: \(currentLanguage.rawValue)")
+        Logger.debug("- API code: \(currentLanguage.apiCode)")
+        Logger.debug("- Display name: \(currentLanguage.displayName)")
+        Logger.debug("- System preferred: \(Bundle.main.preferredLocalizations.first ?? "unknown")")
+    }
+    
+    /// Test function to validate language API communication
+    func testLanguageAPIHeaderSupport() async {
+        Logger.debug("Testing language API header support...")
+        
+        // Print current language info
+        debugPrintLanguageInfo()
+        
+        // Test what would be sent in Accept-Language header
+        Logger.debug("Accept-Language header will be: \(currentLanguage.apiCode)")
+        
+        // Validate that API codes match the backend requirements
+        let supportedCodes = ["zh-TW", "en-US", "ja-JP"]
+        let currentCode = currentLanguage.apiCode
+        
+        if supportedCodes.contains(currentCode) {
+            Logger.debug("✅ Current language (\(currentCode)) is supported by backend")
+        } else {
+            Logger.error("❌ Current language (\(currentCode)) is not supported by backend")
+        }
+        
+        // Test all supported language mappings
+        Logger.debug("Testing all language mappings:")
+        for language in SupportedLanguage.allCases {
+            Logger.debug("- \(language.rawValue) → \(language.apiCode)")
+        }
     }
     
     /// Format date according to current locale

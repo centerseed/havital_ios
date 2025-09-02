@@ -148,25 +148,16 @@ struct LanguageSettingsView: View {
         isLoading = true
         
         do {
-            // Update language preference
-            languageManager.currentLanguage = selectedLanguage
-            
-            // Note: Unit preference update removed until backend supports imperial units
-            
-            // Sync with backend
+            // Sync with backend first
             try await updateBackendPreferences()
             
-            // Show success message
+            // Update language preference and trigger app restart
             await MainActor.run {
-                isLoading = false
-                dismiss()
+                self.isLoading = false
+                self.dismiss()
                 
-                // The app will need to be restarted for full language change
-                // In production, you might want to trigger an app restart here
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("LanguageChanged"),
-                    object: selectedLanguage
-                )
+                // Use LanguageManager's automatic restart functionality
+                LanguageManager.shared.performLanguageChangeWithRestart(to: selectedLanguage)
             }
         } catch {
             await MainActor.run {

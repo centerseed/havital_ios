@@ -3,6 +3,7 @@ import SwiftUI
 struct WeekProgressHeader: View {
     let plan: WeeklyPlan
     @Binding var showWeekSelector: Bool
+    @Binding var showTrainingProgress: Bool
     
     var body: some View {
         VStack(spacing: 6) {
@@ -18,7 +19,7 @@ struct WeekProgressHeader: View {
             
             WeekProgressBar(progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks))
                 .frame(height: 12)
-                .onTapGesture { showWeekSelector = true }
+                .onTapGesture { showTrainingProgress = true }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
@@ -39,6 +40,7 @@ struct WeekProgressHeader: View {
     
     return WeekProgressHeader(
         plan: mockPlan,
-        showWeekSelector: .constant(false)
+        showWeekSelector: .constant(false),
+        showTrainingProgress: .constant(false)
     )
 }

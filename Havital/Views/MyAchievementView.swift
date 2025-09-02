@@ -73,8 +73,8 @@ struct MyAchievementView: View {
                     // VDOT Chart Section - 所有數據源都顯示（從 API 獲取）
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(
-                            title: "VDOT 趨勢",
-                            explanation: "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。"
+                            title: L10n.Performance.vdotTrend.localized,
+                            explanation: L10n.Performance.vdotExplanation.localized
                         )
                         .padding(.horizontal)
                         
@@ -148,8 +148,8 @@ struct MyAchievementView: View {
                 // VDOT Chart Section
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitleWithInfo(
-                        title: "VDOT 趨勢",
-                        explanation: "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。"
+                        title: L10n.Performance.vdotTrend.localized,
+                        explanation: L10n.Performance.vdotExplanation.localized
                     )
                     .padding(.horizontal)
                     
@@ -164,8 +164,8 @@ struct MyAchievementView: View {
                 // Weekly Volume Chart Section
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitleWithInfo(
-                        title: "週跑量趨勢",
-                        explanation: "顯示您每週的跑步里程數變化，幫助您掌握訓練量的變化趨勢和調整訓練計劃。"
+                        title: NSLocalizedString("performance.weekly_volume_trend", comment: "Weekly Volume Trend"),
+                        explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
                     )
                     .padding(.horizontal)
                     
@@ -229,7 +229,7 @@ struct HRVChartSection: View {
                 
             case .unbound:
                 // 未綁定數據源
-                EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_hrv", comment: "Please select a data source to view HRV trends"))
+                EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
                     .padding()
             }
         }
@@ -281,9 +281,17 @@ struct RestingHeartRateChartSection: View {
 
 // MARK: - Common Time Range Enum
 enum ChartTimeRange: String, CaseIterable {
-    case week = "一週"
-    case month = "一個月"
-    case threeMonths = "三個月"
+    case week = "week"
+    case month = "month"
+    case threeMonths = "threeMonths"
+    
+    var localizedTitle: String {
+        switch self {
+        case .week: return L10n.Performance.TimeRange.week.localized
+        case .month: return L10n.Performance.TimeRange.month.localized
+        case .threeMonths: return L10n.Performance.TimeRange.threeMonths.localized
+        }
+    }
     
     var days: Int {
         switch self {
@@ -421,7 +429,7 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
             if !cachedData.isEmpty {
                 self.healthData = cachedData
                 self.error = nil
-                print("顯示緩存的健康數據，共 \(cachedData.count) 筆記錄")
+                print("Displaying cached health data: \(cachedData.count) records")
             } else {
                 // 沒有緩存數據時才顯示載入指示器
                 self.isLoading = true
@@ -446,41 +454,41 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
         
         // 使用統一架構的 HealthDataUploadManagerV2 獲取數據
         do {
-            print("使用 HealthDataUploadManagerV2 獲取健康數據...")
+            print("Using HealthDataUploadManagerV2 to get health data...")
             await HealthDataUploadManagerV2.shared.loadData()
             
             await MainActor.run {
                 // 從 HealthDataUploadManagerV2 獲取指定天數的數據
                 if let collection = HealthDataUploadManagerV2.shared.healthDataCollections[14] {
                     let newHealthData = collection.records
-                    print("HealthDataUploadManagerV2 返回: \(newHealthData.count) 筆健康記錄")
+                    print("HealthDataUploadManagerV2 returned: \(newHealthData.count) health records")
                     
                     if !newHealthData.isEmpty {
                         self.healthData = newHealthData
                         self.error = nil
                     } else {
-                        self.error = "伺服器暫時無法提供數據"
+                        self.error = L10n.Performance.DataSource.serverError.localized
                     }
                 } else {
-                    self.error = "無法獲取健康數據"
+                    self.error = L10n.Performance.DataSource.noHealthData.localized
                 }
                 self.isLoading = false
                 self.isRefreshing = false
             }
         } catch {
-            print("APIClient 直接調用失敗: \(error)")
+            print("APIClient direct call failed: \(error)")
             
             // 回退到原來的方法
             let newHealthData = await healthDataUploadManager.getHealthData(days: 14)
             
-            print("回退到 HealthDataUploadManager: \(newHealthData.count) 筆健康記錄")
+            print("Fallback to HealthDataUploadManager: \(newHealthData.count) health records")
             
             await MainActor.run {
                 if !newHealthData.isEmpty {
                     self.healthData = newHealthData
                     self.error = nil
                 } else if self.healthData.isEmpty {
-                    self.error = "無法載入健康數據"
+                    self.error = L10n.Performance.DataSource.loadHealthDataError.localized
                 }
                 self.isLoading = false
                 self.isRefreshing = false
@@ -530,13 +538,13 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
             self.healthData = newHealthData
             self.isRefreshing = false
             if newHealthData.isEmpty {
-                self.error = "無法載入健康數據"
+                self.error = L10n.Performance.DataSource.loadDataError.localized
             }
         }
         
         // 如果沒有數據，拋出錯誤
         if newHealthData.isEmpty {
-            throw NSError(domain: "SharedHealthDataManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "無法載入健康數據"])
+            throw NSError(domain: "SharedHealthDataManager", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.Performance.DataSource.loadHealthDataError.localized])
         }
     }
 }
@@ -619,14 +627,14 @@ struct SharedHealthDataChartView: View {
     
     private var loadingMessage: String {
         switch chartType {
-        case .hrv: return NSLocalizedString("performance.loading_hrv", comment: "Loading HRV data...")
+        case .hrv: return L10n.Performance.HRV.loadingHrv.localized
         case .restingHeartRate: return NSLocalizedString("performance.loading_resting_hr", comment: "Loading resting heart rate data...")
         }
     }
     
     private var noDataMessage: String {
         switch chartType {
-        case .hrv: return NSLocalizedString("performance.no_hrv_data", comment: "No HRV data")
+        case .hrv: return L10n.Performance.HRV.noHrvData.localized
         case .restingHeartRate: return NSLocalizedString("performance.no_resting_hr_data", comment: "No resting heart rate data")
         }
     }
@@ -640,7 +648,7 @@ struct SharedHealthDataChartView: View {
     
     private var chartTitle: String {
         switch chartType {
-        case .hrv: return NSLocalizedString("performance.hrv_title", comment: "Heart Rate Variability (HRV) Trend")
+        case .hrv: return L10n.Performance.HRV.hrvTitle.localized
         case .restingHeartRate: return NSLocalizedString("performance.resting_hr_title", comment: "Sleep Resting Heart Rate")
         }
     }
@@ -682,7 +690,7 @@ struct SharedHealthDataChartView: View {
                     case .hrv:
                         if let hrv = record.hrvLastNightAvg {
                             LineMark(
-                                x: .value("日期", formatDateForChart(record.date)),
+                                x: .value(L10n.Performance.Chart.date.localized, formatDateForChart(record.date)),
                                 y: .value("HRV", hrv)
                             )
                             .foregroundStyle(.blue)
@@ -691,8 +699,8 @@ struct SharedHealthDataChartView: View {
                     case .restingHeartRate:
                         if let rhr = record.restingHeartRate {
                             LineMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("靜息心率", rhr)
+                                x: .value(L10n.Performance.Chart.date.localized, formatDateForChart(record.date)),
+                                y: .value(L10n.Performance.Chart.restingHeartRate.localized, rhr)
                             )
                             .foregroundStyle(.red)
                         }
@@ -837,7 +845,7 @@ struct APIBasedHRVChartView: View {
     var body: some View {
         VStack {
             if isLoading {
-                ProgressView(NSLocalizedString("performance.loading_hrv", comment: "Loading HRV data..."))
+                ProgressView(L10n.Performance.HRV.loadingHrv.localized)
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else if let error = error, !usingFallback {
                 if fallbackToHealthKit {
@@ -865,7 +873,7 @@ struct APIBasedHRVChartView: View {
                             let record = healthData[index]
                             if let hrv = record.hrvLastNightAvg {
                                 LineMark(
-                                    x: .value("日期", formatDateForChart(record.date)),
+                                    x: .value(L10n.Performance.Chart.date.localized, formatDateForChart(record.date)),
                                     y: .value("HRV", hrv)
                                 )
                                 .foregroundStyle(.blue)
@@ -924,7 +932,7 @@ struct APIBasedHRVChartView: View {
             error = nil
         } else if healthData.isEmpty {
             // 只有在沒有現有數據時才設為錯誤狀態
-            error = NSLocalizedString("performance.no_hrv_data", comment: "No HRV data")
+            error = L10n.Performance.HRV.noHrvData.localized
         }
     }
     
@@ -1020,8 +1028,8 @@ struct APIBasedRestingHeartRateChartView: View {
                         let record = healthData[index]
                         if let rhr = record.restingHeartRate {
                             LineMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("靜息心率", rhr)
+                                x: .value(L10n.Performance.Chart.date.localized, formatDateForChart(record.date)),
+                                y: .value(L10n.Performance.Chart.restingHeartRate.localized, rhr)
                             )
                             .foregroundStyle(.red)
                         }

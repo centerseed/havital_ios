@@ -6,6 +6,7 @@ struct WeekOverviewCard: View {
     let plan: WeeklyPlan
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var showWeekSelector = false
+    @State private var showTrainingProgress = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -19,11 +20,13 @@ struct WeekOverviewCard: View {
                 VStack(spacing: 16) {
                     // 當有強度數據時才顯示頂部進度條
                     if plan.intensityTotalMinutes != nil {
-                        WeekProgressHeader(plan: plan, showWeekSelector: $showWeekSelector)
+                        WeekProgressHeader(plan: plan, showWeekSelector: $showWeekSelector, showTrainingProgress: $showTrainingProgress)
                     }
 
                     HStack(spacing: 8) {
-                        Text(NSLocalizedString("training_plan.weekly_volume_load", comment: "Weekly Volume and Training Load"))
+                        Text(ViewModelUtils.isCurrentLanguageChinese() 
+                             ? NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量")
+                             : NSLocalizedString("training_plan.weekly_volume_load", comment: "Weekly Volume and Training Load"))
                             .font(.system(size: 14, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
@@ -36,7 +39,8 @@ struct WeekOverviewCard: View {
                             planIntensity: intensity,                // 計劃目標值
                             actualIntensity: viewModel.currentWeekIntensity, // 實際計算出的值
                             currentWeekDistance: viewModel.currentWeekDistance,
-                            formatDistance: { viewModel.formatDistance($0, unit: nil) }
+                            formatDistance: { viewModel.formatDistance($0, unit: nil) },
+                            showTrainingProgress: $showTrainingProgress
                         )
                     } else {
                         // 沒有強度數據時顯示週進度環和跑量環
@@ -44,7 +48,8 @@ struct WeekOverviewCard: View {
                             plan: plan,
                             currentWeekDistance: viewModel.currentWeekDistance,
                             formatDistance: { viewModel.formatDistance($0, unit: nil) },
-                            showWeekSelector: $showWeekSelector
+                            showWeekSelector: $showWeekSelector,
+                            showTrainingProgress: $showTrainingProgress
                         )
                     }
                     
@@ -82,6 +87,9 @@ struct WeekOverviewCard: View {
                     isVisible: $viewModel.showWeeklySummary
                 )
             }
+        }
+        .sheet(isPresented: $showTrainingProgress) {
+            TrainingProgressView(viewModel: viewModel)
         }
     }
 }

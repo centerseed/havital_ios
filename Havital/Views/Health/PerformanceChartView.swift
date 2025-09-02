@@ -38,7 +38,7 @@ struct PerformanceChartView: View {
                                 Circle()
                                     .fill(Color.blue)
                                     .frame(width: 8, height: 8)
-                                Text("休息日")
+                                Text(L10n.Training.TrainingType.restDay.localized)
                                     .font(.caption)
                             }
                         }
@@ -226,7 +226,7 @@ struct PerformanceChartView: View {
                         workoutName: nil
                     )
                     points.append(point)
-                    print("添加休息日性能點 - 日期: \(currentDate), 性能: \(point.performance)")
+                    print("添加\(L10n.Training.TrainingType.restDay.localized)性能點 - 日期: \(currentDate), 性能: \(point.performance)")
                 }
                 
                 // 移至下一天

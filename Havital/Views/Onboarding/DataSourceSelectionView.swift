@@ -27,12 +27,12 @@ struct DataSourceSelectionView: View {
                                 .frame(width: 80, height: 80)
                                 .foregroundColor(.accentColor)
                             
-                            Text("選擇您的數據來源")
+                            Text(L10n.Onboarding.chooseDataSource.localized)
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .multilineTextAlignment(.center)
                             
-                            Text("選擇您希望從哪個平台同步您的運動數據")
+                            Text(L10n.Onboarding.selectPlatformDescription.localized)
                                 .font(.body)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -46,8 +46,8 @@ struct DataSourceSelectionView: View {
                                 type: .appleHealth,
                                 icon: "heart.fill",
                                 title: "Apple Health",
-                                subtitle: "使用 iPhone 和 Apple Watch 的健康資料",
-                                description: "同步您的 Apple Health 數據，包括運動記錄、心率、步數等健康資訊。"
+                                subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
+                                description: L10n.Onboarding.appleHealthDescription.localized
                             )
                             
                             // Garmin 選項 - 根據 Feature Flag 顯示
@@ -56,8 +56,8 @@ struct DataSourceSelectionView: View {
                                     type: .garmin,
                                     icon: "clock.arrow.circlepath",
                                     title: "Garmin Connect™",
-                                    subtitle: "同步您的 Garmin 帳號活動",
-                                    description: "連接您的 Garmin Connect™ 帳號，同步運動手錶、手環等設備的活動數據。使用此選項即表示您同意 Garmin 的使用條款。"
+                                    subtitle: L10n.Onboarding.garminSubtitle.localized,
+                                    description: L10n.Onboarding.garminDescription.localized
                                 )
                             }
                         }
@@ -75,7 +75,7 @@ struct DataSourceSelectionView: View {
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                         .scaleEffect(0.8)
                                 }
-                                Text(isProcessing ? "處理中..." : "繼續")
+                                Text(isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized)
                                     .font(.headline)
                                     .foregroundColor(.white)
                             }
@@ -103,18 +103,18 @@ struct DataSourceSelectionView: View {
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .alert("Garmin Connect™ 帳號已被綁定", isPresented: $showGarminAlreadyBoundAlert) {
-            Button("我知道了", role: .cancel) {
+        .alert(L10n.Onboarding.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
+            Button(L10n.Onboarding.iUnderstand.localized, role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
             }
         } message: {
-            Text(garminManager.garminAlreadyBoundMessage ?? "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin Connect™ 綁定後，再用本帳號進行連接。")
+            Text(garminManager.garminAlreadyBoundMessage ?? L10n.Onboarding.garminAlreadyBoundMessage.localized)
         }
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
         }
-        .alert("錯誤", isPresented: $showError) {
-            Button("確定", role: .cancel) {}
+        .alert(L10n.Onboarding.error.localized, isPresented: $showError) {
+            Button(L10n.Onboarding.confirm.localized, role: .cancel) {}
         } message: {
             Text(errorMessage)
         }

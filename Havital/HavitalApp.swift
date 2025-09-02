@@ -66,6 +66,9 @@ struct HavitalApp: App {
             // 6. Firebase 初始化完成後才創建 FeatureFlagManager
             // 注意：這裡不能直接設定 @State 變數，需要在 view 中設定
         }
+        
+        // 7. 檢查是否因語言變更而重啟
+        checkLanguageChangeRestart()
     }
     
     var body: some Scene {
@@ -345,6 +348,17 @@ struct HavitalApp: App {
             print("  - 期望 path: /garmin，實際: \(url.path)")
         }
     }
+    
+    /// 檢查是否因語言變更而重啟
+    private func checkLanguageChangeRestart() {
+        if UserDefaults.standard.bool(forKey: "language_changed_restart") {
+            // 清除標記
+            UserDefaults.standard.removeObject(forKey: "language_changed_restart")
+            
+            // 可以在這裡添加額外的語言變更後處理邏輯
+            print("🌍 App 因語言變更而重啟")
+        }
+    }
 }
 
 // MARK: - 背景任務排程
@@ -384,6 +398,7 @@ extension AuthenticationService {
             UserDefaults.standard.set(newValue, forKey: "isFirstLogin")
         }
     }
+    
 }
 
 class FirebaseLogConfigurator {

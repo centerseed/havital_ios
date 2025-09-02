@@ -57,6 +57,31 @@
 "onboarding.complete" = "Complete Setup";
 "onboarding.skip_for_now" = "Set Up Later";
 
+// Data Source Selection
+"onboarding.choose_data_source" = "Choose Your Data Source";
+"onboarding.select_platform_description" = "Select which platform you'd like to sync your workout data from";
+"onboarding.processing" = "Processing...";
+"onboarding.continue" = "Continue";
+
+// Apple Health
+"onboarding.apple_health_subtitle" = "Use iPhone and Apple Watch health data";
+"onboarding.apple_health_description" = "Sync your Apple Health data, including workout records, heart rate, steps and other health information.";
+
+// Garmin
+"onboarding.garmin_subtitle" = "Sync your Garmin account activities";
+"onboarding.garmin_description" = "Connect your Garmin Connect™ account to sync activity data from sports watches, fitness trackers and other devices. Using this option indicates your agreement to Garmin's terms of use.";
+
+// Time units
+"onboarding.hours_label" = "hours";
+"onboarding.minutes_label" = "min";
+
+// Alerts
+"onboarding.garmin_already_bound" = "Garmin Connect™ Account Already Bound";
+"onboarding.garmin_already_bound_message" = "This Garmin Connect™ account is already linked to another Paceriz account. Please first log in with the originally linked Paceriz account, unbind Garmin Connect™ in the profile page, then use this account to connect.";
+"onboarding.i_understand" = "I understand";
+"onboarding.error" = "Error";
+"onboarding.confirm" = "Confirm";
+
 // MARK: - Profile
 "profile.title" = "Profile";
 "profile.personal_info" = "Personal Info";
@@ -111,6 +136,39 @@
 "training.edit_volume" = "Edit Weekly Volume";
 "training.edit_days" = "Edit Training Days";
 
+// MARK: - Loading Animation Messages
+"training.loading.analyzing_fitness" = "Analyzing your fitness condition...";
+"training.loading.planning_intensity" = "Planning this week's training intensity...";
+"training.loading.preparing_custom_plan" = "Preparing a personalized training plan for you...";
+"training.loading.analyzing_training_data" = "Analyzing this week's training data...";
+"training.loading.evaluating_progress" = "Evaluating this week's training progress...";
+"training.loading.preparing_review" = "Great! Your training review is almost ready!";
+
+// MARK: - Training Review Sections
+"training.review.weekly_review" = "Weekly Training Review";
+"training.review.last_week_review" = "Last Week Training Review";
+"training.review.week_review" = "Week %d Training Review";
+"training.review.generate_next_week_plan" = "Generate Next Week Plan";
+"training.review.training_completion" = "Training Completion";
+"training.review.training_analysis" = "Training Analysis";
+"training.review.next_week_focus" = "Next Week Training Focus";
+"training.review.plan_adjustment_suggestions" = "Plan Adjustment Suggestions";
+"training.review.heart_rate_performance" = "Heart Rate Performance";
+"training.review.pace_performance" = "Pace Performance";
+"training.review.distance_performance" = "Distance Performance";
+"training.review.interval_training" = "Interval Training";
+"training.review.long_run_training" = "Long Run Training";
+"training.review.original_plan" = "Original Plan";
+"training.review.adjusted_plan" = "Adjusted";
+"training.review.average" = "Average";
+"training.review.maximum" = "Max";
+"training.review.total_distance" = "Total Distance";
+"training.review.trend" = "Trend";
+"training.review.analyzing_data" = "Analyzing training data...";
+"training.review.loading_message" = "Please wait, we're preparing your detailed training review";
+"training.review.loading_error" = "Unable to load training review";
+"training.review.retry" = "Retry";
+
 // MARK: - Training Plan Info Card
 "training.plan_info" = "Training Plan Info";
 "training.ai_analysis" = "AI Analysis";
@@ -134,6 +192,79 @@
 "training.type.lsd" = "LSD Run";
 "training.type.threshold" = "Threshold Run";
 "training.type.progression" = "Progression Run";
+"training.type.rest" = "Rest";
+"training.type.cross_training" = "Cross Training";
+"training.type.hiking" = "Hiking";
+"training.type.strength" = "Strength Training";
+"training.type.yoga" = "Yoga";
+"training.type.cycling" = "Cycling";
+"training.type.rest_day" = "Rest Day";
+
+// MARK: - Heart Rate Zones
+"training.zone.anaerobic" = "Anaerobic";
+"training.zone.easy" = "Easy";
+"training.zone.interval" = "Interval";
+"training.zone.marathon" = "Marathon";
+"training.zone.recovery" = "Recovery";
+"training.zone.threshold" = "Threshold";
+
+// MARK: - Workout Detail
+"workout.detail.reupload" = "Re-upload";
+"workout.detail.reupload_alert" = "Re-upload Workout";
+"workout.detail.cancel" = "Cancel";
+"workout.detail.confirm" = "OK";
+"workout.detail.confirm_upload" = "Confirm Upload";
+"workout.detail.reupload_message" = "Are you sure you want to re-upload this workout? This will overwrite existing data and attempt to retrieve all sensor data (including heart rate).";
+"workout.detail.reupload_result" = "Re-upload Result";
+"workout.detail.insufficient_heart_rate" = "Insufficient Heart Rate Data";
+"workout.detail.still_upload" = "Upload Anyway";
+"workout.detail.insufficient_heart_rate_message" = "This workout has insufficient heart rate data (only %d data points), which may affect the accuracy of advanced metrics.\n\nPlease check if your Apple Watch or heart rate monitor is properly worn.\n\nDo you still want to continue uploading?";
+"workout.detail.heart_rate_data" = "Heart Rate Data";
+"workout.detail.no_heart_rate_data" = "No Heart Rate Data";
+"workout.detail.gait_analysis" = "Gait Analysis";
+"workout.detail.no_gait_data" = "No Gait Data";
+"workout.detail.advanced_metrics" = "Advanced Metrics";
+"workout.detail.heart_rate_zones" = "Heart Rate Zone Distribution";
+"workout.detail.pace_zones" = "Pace Zone Distribution";
+"workout.detail.zone_distribution" = "Zone Distribution";
+"workout.detail.zone_type" = "Zone Type";
+"workout.detail.dynamic_vdot" = "Dynamic VDOT";
+"workout.detail.training_load" = "Training Load";
+"workout.detail.movement_efficiency" = "Movement Efficiency";
+"workout.detail.recovery_zone" = "Recovery Zone";
+"workout.detail.aerobic_zone" = "Aerobic Zone";
+"workout.detail.marathon_zone" = "Marathon Zone";
+"workout.detail.threshold_zone" = "Threshold Zone";
+"workout.detail.interval_zone" = "Interval Zone";
+"workout.detail.anaerobic_zone" = "Anaerobic Zone";
+"workout.detail.recovery_pace" = "Recovery Pace";
+"workout.detail.easy_pace" = "Easy Pace";
+"workout.detail.marathon_pace" = "Marathon Pace";
+"workout.detail.threshold_pace" = "Threshold Pace";
+"workout.detail.interval_pace" = "Interval Pace";
+"workout.detail.anaerobic_pace" = "Anaerobic Pace";
+"workout.detail.loading_details" = "Loading workout details...";
+"workout.detail.load_failed" = "Load Failed";
+"workout.detail.intensity_low" = "Low";
+"workout.detail.intensity_medium" = "Medium";
+"workout.detail.intensity_high" = "High";
+"workout.detail.minutes" = "min";
+
+// MARK: - Workout Metrics
+"workout.metrics.distance" = "Distance";
+"workout.metrics.time" = "Time";
+"workout.metrics.calories" = "Calories";
+
+// MARK: - Activity Types
+"activity.type.running" = "Running";
+"activity.type.cycling" = "Cycling";
+"activity.type.swimming" = "Swimming";
+"activity.type.walking" = "Walking";
+"activity.type.hiking" = "Hiking";
+"activity.type.strength_training" = "Strength Training";
+"activity.type.yoga" = "Yoga";
+"activity.type.pilates" = "Pilates";
+"activity.type.other" = "Other";
 
 // MARK: - Training Record
 "record.title" = "Training Log";
@@ -149,7 +280,15 @@
 "record.elevation" = "Elevation";
 "record.cadence" = "Cadence";
 "record.no_records" = "No Training Records";
+"record.no_records_description" = "No workout records available, they will appear here after you start exercising";
 "record.view_details" = "View Details";
+
+// Device Info
+"record.device_info.title" = "Device Data Information";
+"record.device_info.description" = "Information";
+"record.device_info.native_support" = "Paceriz natively supports Garmin and Apple Watch. For other devices like Coros, you just need to sync your training data to Apple Health (HealthKit) using the original app, and Paceriz will automatically read your training records.";
+"record.device_info.limitations" = "Please note that many third-party devices only write partial and limited information when integrating with Apple Health. Therefore, the data presented by Paceriz may differ from the original app, which is normal.";
+"record.device_info.future_support" = "We will gradually support more different brands of devices to provide you with a more complete and accurate sports experience.";
 
 // MARK: - Performance
 "performance.title" = "Performance";
@@ -191,7 +330,7 @@
 "language.zh-TW" = "繁體中文";
 "language.en-US" = "English";
 "language.ja-JP" = "日本語";
-"language.change_confirm" = "Are you sure you want to change the language?";
+"language.change_confirm" = "The app will automatically restart after changing the language. Do you want to continue?";
 "language.changed" = "Language Changed";
 
 // MARK: - Errors
@@ -535,3 +674,77 @@
 "progress.weekly_volume" = "Volume";
 "progress.training_progress" = "Training Progress";
 "progress.week_unit" = "Week";
+
+// MARK: - Profile Actions
+"profile.reset_goal" = "Reset Goal";
+"profile.reset_goal_confirm_title" = "Are you sure you want to restart the goal setting process?";
+"profile.reset_goal_confirm_message" = "This will reset all your training settings and require you to reconfigure your training preferences. Your current training plan will be cleared and cannot be recovered.";
+
+// MARK: - Data Source Additional
+"datasource.select_primary_message" = "Please select a primary data source to sync your training records";
+"datasource.apple_health_subtitle" = "Use health data from iPhone and Apple Watch";
+"datasource.garmin_subtitle" = "Sync your Garmin account activities";
+"datasource.currently_active" = "Currently active data source";
+"datasource.switch_to_this" = "Switch to this data source";
+
+// MARK: - Achievement View Performance
+"performance.vdot_trend" = "VDOT Trend";
+"performance.vdot_explanation" = "VDOT is an aerobic capacity indicator calculated based on your running performance. As your training progresses, your VDOT value will gradually improve.";
+
+// Performance Time Range
+"performance.time_range.week" = "1 Week";
+"performance.time_range.month" = "1 Month";
+"performance.time_range.three_months" = "3 Months";
+
+// Performance Data Source Errors
+"performance.data_source.server_error" = "Server temporarily unable to provide data";
+"performance.data_source.no_health_data" = "Unable to get health data";
+"performance.data_source.load_data_error" = "Unable to load health data";
+"performance.data_source.load_health_data_error" = "Unable to load health data";
+
+// Performance Chart Labels
+"performance.chart.date" = "Date";
+"performance.chart.resting_heart_rate" = "Resting Heart Rate";
+"performance.chart.vdot_value" = "VDOT";
+"performance.chart.loading" = "Loading...";
+
+// VDOT Performance Terms
+"performance.vdot.dynamic_vdot" = "Dynamic VDOT";
+"performance.vdot.weighted_vdot" = "Weighted VDOT";
+"performance.vdot.latest_vdot" = "Latest VDOT";
+"performance.vdot.vdot_title" = "Dynamic VDOT";
+"performance.vdot.what_is_vdot" = "What is Dynamic VDOT?";
+"performance.vdot.vdot_description" = "Dynamic VDOT is an indicator that comprehensively calculates your running performance and heart rate data, reflecting your true running ability.\n\nDynamic VDOT fluctuates based on training type, temperature, and daily physical condition. As training progresses, dynamic VDOT tends to increase due to improved fitness.\n\nWeighted VDOT references your target race distance and applies appropriate weighting to calculate a weighted average of dynamic VDOT over time, providing a better assessment of your current running power for target races!";
+"performance.vdot.set_heart_rate_zones" = "Set Heart Rate Zones";
+"performance.vdot.calculating_vdot" = "Calculating Dynamic VDOT...";
+"performance.vdot.average_weighted_vdot" = "Average Weighted VDOT";
+"performance.vdot.latest_dynamic_vdot" = "Latest Dynamic VDOT";
+"performance.vdot.heart_rate_zone_prompt" = "Please set your heart rate zones for more accurate training intensity guidance";
+"performance.vdot.no_statistics" = "No statistics available";
+"performance.vdot.data_point_count" = "Data points";
+"performance.vdot.trend" = "Trend";
+
+// HRV Performance Terms
+"performance.hrv.loading_hrv" = "Loading HRV data...";
+"performance.hrv.no_hrv_data" = "No HRV data";
+"performance.hrv.hrv_title" = "Heart Rate Variability (HRV) Trend";
+"performance.hrv.select_data_source_hrv" = "Please select a data source to view HRV trends";
+
+// Heart Rate Zone
+"performance.heart_rate_zone.zone1_name" = "Easy (E)";
+"performance.heart_rate_zone.zone2_name" = "Marathon (M)";
+"performance.heart_rate_zone.zone3_name" = "Threshold (T)";
+"performance.heart_rate_zone.zone4_name" = "Anaerobic (A)";
+"performance.heart_rate_zone.zone5_name" = "Interval (I)";
+
+"performance.heart_rate_zone.zone1_description" = "Base endurance training, easy pace that can be maintained for long periods";
+"performance.heart_rate_zone.zone2_description" = "Marathon pace training, improving endurance for long-distance running";
+"performance.heart_rate_zone.zone3_description" = "Lactate threshold training, improving speed endurance, approximately 10K-half marathon pace";
+"performance.heart_rate_zone.zone4_description" = "Exercise intensity beyond aerobic capacity, approximately 3-5K pace";
+"performance.heart_rate_zone.zone5_description" = "High-intensity interval training, improving explosive power and speed";
+
+"performance.heart_rate_zone.zone1_benefit" = "Build aerobic base and increase mitochondrial count. With sufficient training time, easy runs should account for 60-80% of training to balance intensity.";
+"performance.heart_rate_zone.zone2_benefit" = "Theoretically suitable heart rate range for running a full marathon. Training benefits in this zone are relatively low, usually added in the later stages to adapt to race pace.";
+"performance.heart_rate_zone.zone3_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
+"performance.heart_rate_zone.zone4_benefit" = "Improve VO2 max, enhance running form and strengthen muscles.";
+"performance.heart_rate_zone.zone5_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";

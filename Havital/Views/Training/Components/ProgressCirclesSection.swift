@@ -5,6 +5,7 @@ struct ProgressCirclesSection: View {
     let currentWeekDistance: Double
     let formatDistance: (Double) -> String
     @Binding var showWeekSelector: Bool
+    @Binding var showTrainingProgress: Bool
     
     var body: some View {
         GeometryReader { geometry in
@@ -18,7 +19,7 @@ struct ProgressCirclesSection: View {
                         unit: NSLocalizedString("progress.week_unit", comment: "Week")
                     )
                     .frame(width: 100, height: 100)
-                    .onTapGesture { showWeekSelector = true }
+                    .onTapGesture { showTrainingProgress = true }
                 }
                 .frame(width: geometry.size.width * 0.45, alignment: .center)
                 
@@ -27,7 +28,9 @@ struct ProgressCirclesSection: View {
                     CircleProgressView(
                         progress: min(currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
                         distanceInfo: "\(formatDistance(currentWeekDistance))/\(formatDistance(plan.totalDistance))",
-                        title: NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
+                        title: ViewModelUtils.isCurrentLanguageChinese() 
+                            ? NSLocalizedString("progress.weekly_volume_zh", comment: "週跑量")
+                            : NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
                     )
                     .frame(width: 100, height: 100)
                 }
@@ -45,6 +48,7 @@ struct ProgressWithIntensitySection: View {
     let actualIntensity: TrainingIntensityManager.IntensityMinutes  // 實際計算出的值
     let currentWeekDistance: Double
     let formatDistance: (Double) -> String
+    @Binding var showTrainingProgress: Bool
     
     var body: some View {
         GeometryReader { geometry in
@@ -54,9 +58,12 @@ struct ProgressWithIntensitySection: View {
                     CircleProgressView(
                         progress: min(currentWeekDistance / max(plan.totalDistance, 1.0), 1.0),
                         distanceInfo: "\(formatDistance(currentWeekDistance))/\(formatDistance(plan.totalDistance))",
-                        title: NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
+                        title: ViewModelUtils.isCurrentLanguageChinese() 
+                            ? NSLocalizedString("progress.weekly_volume_zh", comment: "週跑量")
+                            : NSLocalizedString("progress.weekly_volume", comment: "Weekly Volume")
                     )
                     .frame(width: 100, height: 100)
+                    .onTapGesture { showTrainingProgress = true }
                 }
                 .frame(width: geometry.size.width * 0.45, alignment: .center)
                 
@@ -94,7 +101,8 @@ struct ProgressWithIntensitySection: View {
             plan: mockPlan,
             currentWeekDistance: 25.5,
             formatDistance: { String(format: "%.1f km", $0) },
-            showWeekSelector: .constant(false)
+            showWeekSelector: .constant(false),
+            showTrainingProgress: .constant(false)
         )
         .padding()
         
@@ -103,7 +111,8 @@ struct ProgressWithIntensitySection: View {
             planIntensity: mockIntensity,
             actualIntensity: TrainingIntensityManager.IntensityMinutes(low: 90, medium: 30, high: 10),
             currentWeekDistance: 25.5,
-            formatDistance: { String(format: "%.1f km", $0) }
+            formatDistance: { String(format: "%.1f km", $0) },
+            showTrainingProgress: .constant(false)
         )
         .padding()
     }

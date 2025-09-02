@@ -13,7 +13,7 @@ struct VDOTChartView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Title
             HStack {
-                Text("動態跑力 (VDOT)")
+                Text(L10n.Performance.VDOT.vdotTitle.localized)
                     .font(.headline)
                 
                 Button {
@@ -22,10 +22,10 @@ struct VDOTChartView: View {
                     Image(systemName: "info.circle")
                         .foregroundStyle(.secondary)
                 }
-                .alert("什麼是動態跑力？", isPresented: $showingInfo) {
-                    Button("了解", role: .cancel) {}
+                .alert(L10n.Performance.VDOT.whatIsVdot.localized, isPresented: $showingInfo) {
+                    Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {}
                 } message: {
-                    Text("動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。\n\n加權跑力會參考您的目標賽事距離，做出適當的加權來計算一段時間內的動態跑力的加權平均值，更能反映當下對於目標賽事的跑力評估喔！")
+                    Text(L10n.Performance.VDOT.vdotDescription.localized)
                 }
                 
                 Spacer()
@@ -39,13 +39,13 @@ struct VDOTChartView: View {
                         Image(systemName: "heart.fill")
                             .foregroundColor(.red)
                         
-                        Text("請設定您的心率區間以獲得更準確的訓練強度指導")
+                        Text(L10n.Performance.VDOT.heartRateZonePrompt.localized)
                             .font(.subheadline)
                         
                         Spacer()
                     }
                     
-                    Button("設定心率區間") {
+                    Button(L10n.Performance.VDOT.setHeartRateZones.localized) {
                         showingHeartRateZoneEditor = true
                     }
                     .font(.subheadline)
@@ -63,7 +63,7 @@ struct VDOTChartView: View {
             
             if viewModel.isLoading {
                 VStack {
-                    ProgressView("載入中...")
+                    ProgressView(L10n.Performance.Chart.loading.localized)
                         .foregroundColor(.secondary)
                 }
                 .frame(height: 80)
@@ -108,14 +108,14 @@ struct VDOTChartView: View {
             if let point = selectedPoint {
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("日期: \(dateFormatter.string(from: point.date))")
+                        Text("\(L10n.Performance.Chart.date.localized): \(dateFormatter.string(from: point.date))")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("動態跑力: \(String(format: "%.2f", point.value))")
+                        Text("\(L10n.Performance.VDOT.dynamicVdot.localized): \(String(format: "%.2f", point.value))")
                             .font(.subheadline)
                             .foregroundColor(.blue)
                         if let weight = point.weightVdot {
-                            Text("加權跑力: \(String(format: "%.2f", weight))")
+                            Text("\(L10n.Performance.VDOT.weightedVdot.localized): \(String(format: "%.2f", weight))")
                                 .font(.subheadline)
                                 .foregroundColor(.orange)
                         }
@@ -140,42 +140,42 @@ struct VDOTChartView: View {
                 ForEach(viewModel.vdotPoints) { point in
                     // 動態跑力曲線
                     LineMark(
-                        x: .value("日期", point.date),
-                        y: .value("跑力", point.value)
+                        x: .value(L10n.Performance.Chart.date.localized, point.date),
+                        y: .value(L10n.Performance.Chart.vdotValue.localized, point.value)
                     )
                     .interpolationMethod(.catmullRom)
-                    .foregroundStyle(by: .value("種類", "動態跑力"))
+                    .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.dynamicVdot.localized))
                     
                     // 加權跑力曲線
                     if let weight = point.weightVdot {
                         LineMark(
-                            x: .value("日期", point.date),
-                            y: .value("跑力", weight)
+                            x: .value(L10n.Performance.Chart.date.localized, point.date),
+                            y: .value(L10n.Performance.Chart.vdotValue.localized, weight)
                         )
                         .interpolationMethod(.catmullRom)
-                        .foregroundStyle(by: .value("種類", "加權跑力"))
+                        .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.weightedVdot.localized))
                     }
                     
                     // 動態跑力點
                     PointMark(
-                        x: .value("日期", point.date),
-                        y: .value("跑力", point.value)
+                        x: .value(L10n.Performance.Chart.date.localized, point.date),
+                        y: .value(L10n.Performance.Chart.vdotValue.localized, point.value)
                     )
-                    .foregroundStyle(by: .value("種類", "動態跑力"))
+                    .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.dynamicVdot.localized))
                     
                     // 加權跑力點
                     if let weight = point.weightVdot {
                         PointMark(
-                            x: .value("日期", point.date),
-                            y: .value("跑力", weight)
+                            x: .value(L10n.Performance.Chart.date.localized, point.date),
+                            y: .value(L10n.Performance.Chart.vdotValue.localized, weight)
                         )
-                        .foregroundStyle(by: .value("種類", "加權跑力"))
+                        .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.weightedVdot.localized))
                     }
                 }
             }
             .chartForegroundStyleScale([
-                "動態跑力": Color.blue,
-                "加權跑力": Color.orange
+                L10n.Performance.VDOT.dynamicVdot.localized: Color.blue,
+                L10n.Performance.VDOT.weightedVdot.localized: Color.orange
             ])
             .frame(height: 120)
             .chartYScale(domain: viewModel.yAxisRange)
@@ -231,13 +231,13 @@ struct VDOTChartView: View {
             // Stats
             HStack(alignment: .top, spacing: 12) {
                 statsBox(
-                    title: "加權跑力",
+                    title: L10n.Performance.VDOT.weightedVdot.localized,
                     value: String(format: "%.2f", viewModel.averageVdot),
                     backgroundColor: Color.blue.opacity(0.15)
                 )
                 
                 statsBox(
-                    title: "最新跑力",
+                    title: L10n.Performance.VDOT.latestVdot.localized,
                     value: String(format: "%.2f", viewModel.latestVdot),
                     backgroundColor: Color.green.opacity(0.15)
                 )
