@@ -8,23 +8,23 @@ struct TrainingItemDetailView: View {
     var body: some View {
         List {
             if let explanation = explanation {
-                Section("目的") {
+                Section(L10n.TrainingItemDetail.purpose.localized) {
                     Text(explanation.purpose)
                 }
-                
-                Section("效果") {
+
+                Section(L10n.TrainingItemDetail.benefits.localized) {
                     Text(explanation.benefits)
                 }
-                
-                Section("實行方式") {
+
+                Section(L10n.TrainingItemDetail.method.localized) {
                     Text(explanation.method)
                 }
-                
-                Section("注意事項") {
+
+                Section(L10n.TrainingItemDetail.precautions.localized) {
                     Text(explanation.precautions)
                 }
             } else {
-                Text("無法找到該運動項目的說明")
+                Text(L10n.TrainingItemDetail.notFound.localized)
                     .foregroundColor(.secondary)
             }
         }

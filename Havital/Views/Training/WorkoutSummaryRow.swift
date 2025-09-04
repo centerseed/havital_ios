@@ -93,7 +93,7 @@ struct WorkoutSummaryRow: View {
                     
                     // 新增：顯示平均心率
                     if isLoadingHeartRate {
-                        Text("心率計算中...")
+                        Text(L10n.WorkoutSummaryRow.calculatingHeartRate.localized)
                             .font(.caption)
                             .foregroundColor(.gray)
                     } else if let avgHR = averageHeartRate {

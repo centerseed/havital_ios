@@ -36,11 +36,11 @@ struct TrainingStageCard: View {
                         .foregroundColor(stageColors.0)
                     
                     if let weekEnd = stage.weekEnd {
-                        Text("第\(stage.weekStart)-\(weekEnd)週")
+                        Text(L10n.TrainingStageCard.weekRange.localized(with: stage.weekStart, weekEnd))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     } else {
-                        Text("第\(stage.weekStart)週開始")
+                        Text(L10n.TrainingStageCard.weekStart.localized(with: stage.weekStart))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -61,7 +61,7 @@ struct TrainingStageCard: View {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "flame.fill")
                         .foregroundColor(stageColors.0)
-                    Text("重點訓練:")
+                    Text(L10n.TrainingStageCard.trainingFocus.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }

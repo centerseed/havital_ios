@@ -9,7 +9,7 @@ struct LapAnalysisView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Header with Garmin attribution
             HStack {
-                Text("圈速分析")
+                Text(L10n.LapAnalysisView.title.localized)
                     .font(.headline)
                     .fontWeight(.semibold)
                 
@@ -30,7 +30,7 @@ struct LapAnalysisView: View {
                         .font(.title2)
                         .foregroundColor(.secondary)
                     
-                    Text("無圈速數據")
+                    Text(L10n.LapAnalysisView.noLapData.localized)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -42,31 +42,31 @@ struct LapAnalysisView: View {
                     VStack(spacing: 0) {
                         // Table header
                         HStack(spacing: 4) {
-                            Text("圈")
+                            Text(L10n.LapAnalysisView.lapColumn.localized)
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.1, alignment: .center)
                             
-                            Text("距離")
+                            Text(L10n.LapAnalysisView.distanceColumn.localized)
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
-                            Text("時間")
+                            Text(L10n.LapAnalysisView.timeColumn.localized)
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
-                            Text("配速")
+                            Text(L10n.LapAnalysisView.paceColumn.localized)
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
-                            Text("心率")
+                            Text(L10n.LapAnalysisView.heartRateColumn.localized)
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)

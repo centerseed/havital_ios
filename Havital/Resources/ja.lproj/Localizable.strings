@@ -31,6 +31,7 @@
 "common.pause" = "一時停止";
 "common.resume" = "再開";
 "common.finish" = "終了";
+"common.week_unit" = "週";
 
 // MARK: - Authentication
 "auth.welcome" = "Havitalへようこそ";
@@ -44,6 +45,143 @@
 "auth.sign_up" = "新規登録";
 "auth.login_failed" = "ログインに失敗しました";
 "auth.logout_confirm" = "ログアウトしてもよろしいですか？";
+"auth.register_title" = "アカウント作成";
+"auth.register" = "登録";
+"auth.register_failed" = "登録に失敗しました";
+"auth.register_success" = "登録成功";
+"auth.register_success_message" = "メールを確認し、確認リンクをクリックして認証を完了してから、ここに戻ってログインしてください。";
+"auth.verify_email_title" = "メール認証";
+"auth.verify_code_placeholder" = "認証コード (oobCode)";
+"auth.verify_email" = "メール認証";
+"auth.verify_failed" = "認証に失敗しました";
+"auth.verify_success" = "認証成功";
+
+// MARK: - Calendar Sync Setup
+"calendar_sync_setup.title" = "カレンダーに同期";
+"calendar_sync_setup.description" = "トレーニング日をカレンダーに同期して、時間をより良く管理できるようにします。";
+"calendar_sync_setup.sync_method" = "同期方法";
+"calendar_sync_setup.all_day" = "終日イベント";
+"calendar_sync_setup.specific_time" = "指定時間";
+"calendar_sync_setup.training_time" = "トレーニング時間";
+"calendar_sync_setup.start_time" = "開始時間";
+"calendar_sync_setup.end_time" = "終了時間";
+"calendar_sync_setup.adjust_note" = "後でカレンダーで時間を調整できます";
+"calendar_sync_setup.start_sync" = "同期開始";
+"calendar_sync_setup.access_error" = "設定でHavitalにカレンダーへのアクセスを許可してください";
+
+// MARK: - Edit Target View
+"edit_target.title" = "レース目標編集";
+"edit_target.race_info" = "レース情報";
+"edit_target.race_name" = "レース名";
+"edit_target.race_date" = "レース日";
+"edit_target.remaining_weeks" = "レースまで%d週間";
+"edit_target.race_distance" = "レース距離";
+"edit_target.select_distance" = "距離を選択";
+"edit_target.target_time" = "目標完走時間";
+"edit_target.hours_unit" = "時間";
+"edit_target.minutes_unit" = "分";
+"edit_target.average_pace" = "平均ペース：%@ /km";
+"edit_target.distance_3k" = "3K";
+"edit_target.distance_5k" = "5K";
+"edit_target.distance_10k" = "10K";
+"edit_target.distance_15k" = "15K";
+"edit_target.distance_half" = "ハーフマラソン";
+"edit_target.distance_full" = "フルマラソン";
+"edit_target.add_title" = "サポート大会追加";
+"edit_target.edit_title" = "サポート大会編集";
+"edit_target.delete_race" = "大会削除";
+"edit_target.delete_confirm_title" = "削除確認";
+"edit_target.delete_confirm_message" = "このサポート大会を削除してもよろしいですか？この操作は元に戻せません。";
+
+// MARK: - Weekly Distance Editor View
+"weekly_distance_editor.title" = "週間走行距離編集";
+"weekly_distance_editor.weekly_distance" = "週間走行距離：%d km";
+"weekly_distance_editor.next_week_notice" = "週間走行距離の変更は来週のトレーニングプランに反映されます";
+
+// MARK: - Training Item Detail View
+"training_item_detail.purpose" = "目的";
+"training_item_detail.benefits" = "効果";
+"training_item_detail.method" = "実施方法";
+"training_item_detail.precautions" = "注意事項";
+"training_item_detail.not_found" = "この運動項目の説明が見つかりません";
+
+// MARK: - Training Progress View
+"training_progress.review" = "振り返り";
+"training_progress.schedule" = "スケジュール";
+"training_progress.generate_schedule" = "スケジュール作成";
+
+// MARK: - Training Plan View
+"training_plan.cycle_completed" = "トレーニングサイクル完了";
+"training_plan.congratulations" = "このトレーニングサイクルを完了おめでとうございます！";
+"training_plan.loading_schedule" = "スケジュール読み込み中...";
+
+// MARK: - Workout Summary Row
+"workout_summary_row.calculating_heart_rate" = "心拍数を計算中...";
+
+// MARK: - Next Week Planning View
+"next_week_planning.title" = "来週計画設定";
+"next_week_planning.weekly_feeling" = "今週のトレーニングの感想（0-最悪、5-最高）";
+"next_week_planning.overall_feeling" = "全体的な感想：";
+"next_week_planning.training_expectation" = "来週のトレーニングの期待について、Vitaは実際の状況に基づいて調整を行い、新しく生成された運動計画を自由に編集することもできます";
+"next_week_planning.difficulty_adjustment" = "難易度調整";
+"next_week_planning.days_adjustment" = "トレーニング日数調整";
+"next_week_planning.training_item_adjustment" = "トレーニング項目変更調整";
+"next_week_planning.start_generating" = "次回計画の生成を開始";
+"next_week_planning.generating_plan" = "Vitaがあなたのトレーニング計画を作成しています...";
+"next_week_planning.please_wait" = "お待ちください";
+"next_week_planning.cancel" = "キャンセル";
+"next_week_planning.adjustment.decrease" = "減少";
+"next_week_planning.adjustment.keep_same" = "そのまま";
+"next_week_planning.adjustment.increase" = "増加";
+
+// MARK: - Training Plan Overview View
+"training_plan_overview.title" = "トレーニング計画概要";
+"training_plan_overview.target_evaluation" = "目標評価";
+"training_plan_overview.training_method" = "トレーニング方法";
+"training_plan_overview.training_stages" = "トレーニング段階";
+"training_plan_overview.week_range" = "第%d-%d週";
+"training_plan_overview.generate_plan" = "第%d週トレーニング計画を作成";
+"training_plan_overview.error_title" = "エラー";
+"training_plan_overview.error_confirm" = "OK";
+
+// MARK: - Week Selector Sheet
+"week_selector.week_number" = "第%d週";
+"week_selector.review" = "振り返り";
+"week_selector.schedule" = "スケジュール";
+"week_selector.close" = "閉じる";
+
+// MARK: - Pace Chart View
+"pace_chart.title" = "ペース変化";
+"pace_chart.unit" = "(分/km)";
+"pace_chart.loading" = "ペースデータを読み込み中...";
+"pace_chart.try_again" = "後でもう一度お試しください";
+"pace_chart.no_data" = "ペースデータなし";
+"pace_chart.unable_to_get_data" = "このワークアウトのペースデータを取得できません";
+"pace_chart.fastest" = "最速:";
+"pace_chart.slowest" = "最低:";
+
+// MARK: - Heart Rate Chart View
+"heart_rate_chart.title" = "心拍数変化";
+"heart_rate_chart.loading" = "心拍数データを読み込み中...";
+"heart_rate_chart.try_again" = "後でもう一度お試しください";
+"heart_rate_chart.no_data" = "心拍数データなし";
+"heart_rate_chart.unable_to_get_data" = "このワークアウトの心拍数データを取得できません";
+
+// MARK: - Gait Analysis Chart View
+"gait_analysis_chart.title" = "歩行分析";
+"gait_analysis_chart.loading" = "歩行分析データを読み込み中...";
+"gait_analysis_chart.try_again" = "後でもう一度お試しください";
+"gait_analysis_chart.no_data" = "歩行データなし";
+"gait_analysis_chart.unable_to_get_data" = "このワークアウトの歩行分析データを取得できません";
+"gait_analysis_chart.average" = "平均値";
+"gait_analysis_chart.minimum" = "最小値";
+"gait_analysis_chart.maximum" = "最大値";
+"gait_analysis_chart.gait_tab.stance_time" = "接地時間";
+"gait_analysis_chart.gait_tab.vertical_ratio" = "移動効率";
+"gait_analysis_chart.gait_tab.cadence" = "ケイデンス";
+"gait_analysis_chart.gait_tab.stance_time_description" = "足が地面に接触する時間、短い時間ほど効率的な走り方を示します";
+"gait_analysis_chart.gait_tab.vertical_ratio_description" = "垂直移動と総移動距離の比率、低い比率ほど移動効率が良い";
+"gait_analysis_chart.gait_tab.cadence_description" = "毎分の歩数、理想的な範囲は約180前後";
 
 // MARK: - Onboarding
 "onboarding.welcome" = "Havitalへようこそ";
@@ -539,6 +677,122 @@
 "distance.10k" = "10K"; 
 "distance.half_marathon" = "ハーフマラソン";
 "distance.full_marathon" = "フルマラソン";
+
+// MARK: - Target Race Examples
+"onboarding.target_race_example" = "東京マラソン";
+
+// MARK: - Personal Best View
+"onboarding.personal_best_title" = "あなたのランニング経験";
+"onboarding.personal_best_description" = "最近または最速のランニング成績を教えてください。Havitalがより正確に初期トレーニング強度を設定するのに役立ちます。不明な場合や関連する経験がない場合は、「個人ベストがわからない」を選択できます。";
+"onboarding.has_personal_best" = "個人ベストがあります";
+"onboarding.personal_best_details" = "ベスト記録詳細";
+"onboarding.select_distance_time" = "最近のベスト記録の距離と時間を選択してください。";
+"onboarding.distance_selection" = "距離を選択";
+"onboarding.time_hours" = "時間";
+"onboarding.time_minutes" = "分";
+"onboarding.average_pace_calculation" = "平均ペース";
+"onboarding.per_kilometer" = "/km";
+"onboarding.enter_valid_time" = "ペースを計算するために有効な時間を入力してください。";
+"onboarding.skip_personal_best" = "個人ベストをスキップ";
+"onboarding.skip_personal_best_message" = "問題ありません！Pacerizはトレーニングの進捗に基づいて強度を調整します。";
+"onboarding.personal_best_title_nav" = "個人ベスト";
+"onboarding.next" = "次へ";
+
+// MARK: - Training Days Setup
+"onboarding.training_days_title" = "トレーニング設定";
+"onboarding.select_training_days" = "都合の良いトレーニング日を選択";
+"onboarding.training_days_description" = "通常ランニングトレーニングをスケジュールできる曜日を選択してください。Pacerizは目標とフィットネスレベルに基づいて、これらの日に異なるタイプのランニングスケジュールを配置します。最低%d日選択することをお勧めします。";
+"onboarding.setup_long_run_day" = "ロングラン日の設定";
+"onboarding.long_run_day_description" = "ロングランは持久力向上の鍵です。選択したトレーニング日の中からロングラン日として1日選んでください。通常は週末や十分な回復時間がある日をお勧めします。";
+"onboarding.select_long_run_day" = "ロングラン日を選択";
+"onboarding.long_run_day_must_be_training_day" = "ロングラン日は選択したトレーニング日の一つでなければなりません。";
+"onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、土曜日をロングラン日に設定することをお勧めします。";
+"onboarding.save_preferences_preview" = "設定を保存してプランをプレビュー";
+"onboarding.complete_setup_view_schedule" = "設定を完了して第1週のスケジュールを表示";
+
+// MARK: - WeeklyDistanceSetupView (if it exists)
+"onboarding.weekly_distance_setup" = "週間距離設定";
+
+// MARK: - Loading Messages for Training Days
+"onboarding.analyzing_preferences" = "トレーニング設定を分析中...";
+"onboarding.calculating_intensity" = "最適なトレーニング強度を計算中...";
+"onboarding.almost_ready" = "もうすぐ完了！個人向けスケジュールを準備中...";
+"onboarding.evaluating_goal" = "目標イベントを評価中";
+"onboarding.calculating_training_intensity" = "トレーニング強度を計算中";
+"onboarding.generating_overview" = "トレーニング概要を生成中";
+
+// MARK: - Weekday Names for Training Days
+"onboarding.monday" = "月曜日";
+"onboarding.tuesday" = "火曜日";
+"onboarding.wednesday" = "水曜日";
+"onboarding.thursday" = "木曜日";
+"onboarding.friday" = "金曜日";
+"onboarding.saturday" = "土曜日";
+"onboarding.sunday" = "日曜日";
+
+// MARK: - Training Days Error Messages
+"onboarding.select_at_least_one_day" = "少なくとも1日はトレーニング日を選択してください。";
+
+// MARK: - Weekly Distance Setup
+"onboarding.current_weekly_distance" = "現在の週間ランニング量";
+"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはHavitalが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
+"onboarding.target_distance_label" = "目標距離：%.1f km";
+"onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
+"onboarding.weekly_volume_label" = "週間量：%.0f km";
+"onboarding.km_label" = "%.0f km";
+"onboarding.weekly_distance_title" = "あなたの週間ランニング量";
+"onboarding.skip" = "スキップ";
+"onboarding.back" = "戻る";
+"onboarding.next_step" = "次へ";
+
+// MARK: - Workout Row Component
+"workout_row.today" = "今日";
+"workout_row.synced" = "同期済み";
+"workout_row.not_synced" = "未同期";
+"workout_row.distance" = "距離";
+"workout_row.time" = "時間";
+"workout_row.calories" = "カロリー";
+
+// MARK: - Circular Progress Component
+"circular_progress.week" = "週";
+
+// MARK: - Target Race Card Component
+"target_race_card.target_finish_time" = "目標完走時間";
+"target_race_card.target_pace" = "目標ペース";
+"target_race_card.per_kilometer" = "/km";
+
+// MARK: - Training Stage Card Component
+"training_stage_card.week_range" = "第%d-%d週";
+"training_stage_card.week_start" = "第%d週開始";
+"training_stage_card.training_focus" = "重点トレーニング:";
+
+// MARK: - Lap Analysis View Component
+"lap_analysis_view.title" = "ラップ分析";
+"lap_analysis_view.no_lap_data" = "ラップデータなし";
+"lap_analysis_view.lap_column" = "ラップ";
+"lap_analysis_view.distance_column" = "距離";
+"lap_analysis_view.time_column" = "時間";
+"lap_analysis_view.pace_column" = "ペース";
+"lap_analysis_view.heart_rate_column" = "心拍数";
+
+// MARK: - App Loading View Component
+"app_loading_view.initialization_failed" = "アプリケーションの初期化に失敗しました";
+"app_loading_view.check_connection" = "ネットワーク接続を確認して、再度お試しください";
+"app_loading_view.restart" = "再起動";
+
+// MARK: - Supporting Races Card Component
+"supporting_races_card.title" = "サポート大会";
+"supporting_races_card.no_races" = "サポート大会がありません";
+"supporting_races_card.past_races" = "過去の大会";
+"supporting_races_card.days_remaining" = "残り%d日";
+"supporting_races_card.km_unit" = "km";
+"supporting_races_card.pace_unit" = "/km";
+
+// MARK: - Garmin Reconnection Alert Component
+"garmin_reconnection_alert.title" = "Garminアカウントの再接続が必要です";
+"garmin_reconnection_alert.default_message" = "お使いのGarmin Connect™アカウントが他のアカウントに関連付けられている可能性があります。データの同期を確実にするため、再接続してください。";
+"garmin_reconnection_alert.reconnect_button" = "Garminを再接続";
+"garmin_reconnection_alert.remind_later_button" = "後で通知";
 
 // MARK: - Heart Rate Zone Strings
 "hr_zone.settings" = "心拍ゾーン設定";

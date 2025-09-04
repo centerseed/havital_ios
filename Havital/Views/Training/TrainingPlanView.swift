@@ -559,10 +559,10 @@ struct TrainingPlanView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.green)
                         
-                        Text("訓練週期已完成")
+                        Text(L10n.TrainingPlan.cycleCompleted.localized)
                             .font(.headline)
-                        
-                        Text("恭喜您完成這個訓練週期！")
+
+                        Text(L10n.TrainingPlan.congratulations.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -577,7 +577,7 @@ struct TrainingPlanView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.gray)
                         
-                        Text("課表載入中...")
+                        Text(L10n.TrainingPlan.loadingSchedule.localized)
                             .font(.headline)
                     }
                     .padding()

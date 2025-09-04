@@ -30,7 +30,7 @@ struct WeeklyDistanceEditorView: View {
                                 }
                             }
                         ), in: 5...120 ) {
-                            Text("週跑量：\(editingDistance) 公里")
+                            Text(L10n.WeeklyDistanceEditor.weeklyDistance.localized(with: editingDistance))
                         }
                         
                         // 可選：添加滑塊以便更直觀地調整
@@ -45,11 +45,11 @@ struct WeeklyDistanceEditorView: View {
                         .padding(.vertical)
                     }
                     
-                    Text("當週跑量的修改會在下一週的課表生效")
+                    Text(L10n.WeeklyDistanceEditor.nextWeekNotice.localized)
                         .font(.body)
                 }
             }
-            .navigationTitle("編輯週跑量")
+            .navigationTitle(L10n.WeeklyDistanceEditor.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

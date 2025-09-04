@@ -12,13 +12,13 @@ struct GarminReconnectionAlert: View {
                 .foregroundColor(.orange)
             
             // 標題
-            Text("Garmin 帳號需要重新綁定")
+            Text(L10n.GarminReconnectionAlert.title.localized)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
             
             // 訊息
-            Text(garminManager.reconnectionMessage ?? "您的 Garmin Connect™ 帳號可能被其他帳號綁定，請重新綁定以確保數據正常同步。")
+            Text(garminManager.reconnectionMessage ?? L10n.GarminReconnectionAlert.defaultMessage.localized)
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
@@ -34,7 +34,7 @@ struct GarminReconnectionAlert: View {
                 } label: {
                     HStack {
                         Image(systemName: "link")
-                        Text("重新綁定 Garmin")
+                        Text(L10n.GarminReconnectionAlert.reconnectButton.localized)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -48,7 +48,7 @@ struct GarminReconnectionAlert: View {
                     garminManager.clearReconnectionMessage()
                     dismiss()
                 } label: {
-                    Text("稍後提醒")
+                    Text(L10n.GarminReconnectionAlert.remindLaterButton.localized)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.gray.opacity(0.2))

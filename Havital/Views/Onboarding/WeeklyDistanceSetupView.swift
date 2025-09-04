@@ -52,7 +52,7 @@ class WeeklyDistanceViewModel: ObservableObject {
             ] as [String: Any]
             
             try await UserService.shared.updateUserData(userData)
-            print("略過週跑量設定，設定為 \(skippedWeeklyDistance) 公里")
+            print("Skipped weekly distance setup, set to \(skippedWeeklyDistance) km")
             navigateToTrainingDays = true
         } catch {
             self.error = error.localizedDescription
@@ -73,15 +73,15 @@ struct WeeklyDistanceSetupView: View {
     var body: some View {
         Form {
             Section(
-                header: Text("目前每週跑步量").padding(.top, 10),
-                footer: Text("週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Havital 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。")
+                header: Text(NSLocalizedString("onboarding.current_weekly_distance", comment: "Current Weekly Distance")).padding(.top, 10),
+                footer: Text(NSLocalizedString("onboarding.weekly_distance_description", comment: "Weekly Distance Description"))
             ) {
-                Text("您的目標距離：\(String(format: "%.1f", viewModel.targetDistance)) 公里")
+                Text(String(format: NSLocalizedString("onboarding.target_distance_label", comment: "Target Distance Label"), viewModel.targetDistance))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.bottom, 5)
                 
-                Text("請滑動調整您目前平均每週的跑步總量。")
+                Text(NSLocalizedString("onboarding.adjust_weekly_volume", comment: "Adjust Weekly Volume"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.bottom, 10)
@@ -90,7 +90,7 @@ struct WeeklyDistanceSetupView: View {
                 let sliderMaxDistance = max(viewModel.targetDistance * 1.5, 50.0) // 例如上限50km或目標的1.5倍
                 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("本週跑量：\(String(format: "%.0f", viewModel.weeklyDistance)) 公里") // 改為顯示整數
+                    Text(String(format: NSLocalizedString("onboarding.weekly_volume_label", comment: "Weekly Volume Label"), viewModel.weeklyDistance))
                         .fontWeight(.medium)
                     
                     Slider(
@@ -100,11 +100,11 @@ struct WeeklyDistanceSetupView: View {
                     )
                     
                     HStack {
-                        Text("\(String(format: "%.0f", viewModel.minimumWeeklyDistance)) 公里")
+                        Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), viewModel.minimumWeeklyDistance))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("\(String(format: "%.0f", sliderMaxDistance)) 公里")
+                        Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), sliderMaxDistance))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -119,19 +119,19 @@ struct WeeklyDistanceSetupView: View {
                 }
             }
         }
-        .navigationTitle("您的週跑量") // 修改標題
+        .navigationTitle(NSLocalizedString("onboarding.weekly_distance_title", comment: "Weekly Distance Title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) { // 修改為明確的返回按鈕
                 Button {
                     dismiss()
                 } label: {
-                    Text("返回")
+                    Text(NSLocalizedString("onboarding.back", comment: "Back"))
                 }
             }
             
             ToolbarItemGroup(placement: .navigationBarTrailing) { // 將略過和下一步放在一起
-                Button("略過") {
+                Button(NSLocalizedString("onboarding.skip", comment: "Skip")) {
                     Task {
                         await viewModel.skipSetup()
                     }
@@ -147,7 +147,7 @@ struct WeeklyDistanceSetupView: View {
                             await viewModel.saveWeeklyDistance()
                         }
                     }) {
-                        Text("下一步")
+                        Text(NSLocalizedString("onboarding.next_step", comment: "Next Step"))
                     }
                     .disabled(viewModel.isLoading) // 下一步按鈕在加載時也禁用
                 }

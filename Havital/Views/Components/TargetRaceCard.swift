@@ -73,7 +73,7 @@ struct TargetRaceCard: View {
                     // 目標完賽時間與配速
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("目標完賽時間")
+                            Text(NSLocalizedString("target_race_card.target_finish_time", comment: "Target Finish Time"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
@@ -85,11 +85,11 @@ struct TargetRaceCard: View {
                             .frame(height: 30)
                         
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("目標配速")
+                            Text(NSLocalizedString("target_race_card.target_pace", comment: "Target Pace"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            Text("\(target.targetPace) /公里")
+                            Text("\(target.targetPace) \(NSLocalizedString("target_race_card.per_kilometer", comment: "Per Kilometer"))")
                                 .font(.headline)
                         }
                     }

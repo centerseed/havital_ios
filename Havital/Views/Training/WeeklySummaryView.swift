@@ -401,7 +401,7 @@ struct WeeklySummaryView: View {
     // 為截圖優化的訓練完成度區塊
     private var screenshotCompletionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("訓練完成度")
+            Text(L10n.Training.Review.trainingCompletion.localized)
                 .font(.headline)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
@@ -445,7 +445,7 @@ struct WeeklySummaryView: View {
     // 為截圖優化的訓練分析區塊
     private var screenshotAnalysisSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("訓練分析")
+            Text(L10n.Training.Review.trainingAnalysis.localized)
                 .font(.headline)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)

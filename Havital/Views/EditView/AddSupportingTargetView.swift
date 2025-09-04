@@ -7,18 +7,18 @@ struct AddSupportingTargetView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("賽事資訊")) {
-                    TextField("賽事名稱", text: $viewModel.raceName)
+                Section(header: Text(L10n.EditTarget.raceInfo.localized)) {
+                    TextField(L10n.EditTarget.raceName.localized, text: $viewModel.raceName)
                         .textContentType(.name)
                     
-                    DatePicker("賽事日期",
+                    DatePicker(L10n.EditTarget.raceDate.localized,
                               selection: $viewModel.raceDate,
                               in: Date()...,
                               displayedComponents: .date)
                 }
                 
-                Section(header: Text("比賽距離")) {
-                    Picker("選擇距離", selection: $viewModel.selectedDistance) {
+                Section(header: Text(L10n.EditTarget.raceDistance.localized)) {
+                    Picker(L10n.EditTarget.selectDistance.localized, selection: $viewModel.selectedDistance) {
                         ForEach(Array(viewModel.availableDistances.keys.sorted()), id: \.self) { key in
                             Text(viewModel.availableDistances[key] ?? key)
                                 .tag(key)
@@ -27,9 +27,9 @@ struct AddSupportingTargetView: View {
                     .pickerStyle(.menu)
                 }
                 
-                Section(header: Text("目標完賽時間")) {
+                Section(header: Text(L10n.EditTarget.targetTime.localized)) {
                     HStack {
-                        Picker("時", selection: $viewModel.targetHours) {
+                        Picker(L10n.EditTarget.hoursUnit.localized, selection: $viewModel.targetHours) {
                             ForEach(0...6, id: \.self) { hour in
                                 Text("\(hour)")
                             }
@@ -37,9 +37,9 @@ struct AddSupportingTargetView: View {
                         .pickerStyle(.wheel)
                         .frame(width: 100)
                         
-                        Text("時")
+                        Text(L10n.EditTarget.hoursUnit.localized)
                         
-                        Picker("分", selection: $viewModel.targetMinutes) {
+                        Picker(L10n.EditTarget.minutesUnit.localized, selection: $viewModel.targetMinutes) {
                             ForEach(0..<60, id: \.self) { minute in
                                 Text("\(minute)")
                             }
@@ -47,11 +47,11 @@ struct AddSupportingTargetView: View {
                         .pickerStyle(.wheel)
                         .frame(width: 100)
                         
-                        Text("分")
+                        Text(L10n.EditTarget.minutesUnit.localized)
                     }
                     .padding(.vertical, 8)
                     
-                    Text("平均配速：\(viewModel.targetPace) /公里")
+                    Text(L10n.EditTarget.averagePace.localized(with: viewModel.targetPace))
                         .foregroundColor(.secondary)
                 }
                 
@@ -62,7 +62,7 @@ struct AddSupportingTargetView: View {
                     }
                 }
             }
-            .navigationTitle("添加支援賽事")
+            .navigationTitle(L10n.EditTarget.addTitle.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

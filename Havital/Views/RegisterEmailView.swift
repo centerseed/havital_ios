@@ -25,11 +25,11 @@ struct RegisterEmailView: View {
                 Task {
                     await viewModel.register()
                     if let error = viewModel.errorMessage {
-                        alertTitle = "註冊失敗"
+                        alertTitle = L10n.Auth.registerFailed.localized
                         alertMessage = error
                     } else {
-                        alertTitle = "註冊成功"
-                        alertMessage = "請至您的電子信箱點擊確認連結，完成驗證後返回此處登入。"
+                        alertTitle = L10n.Auth.registerSuccess.localized
+                        alertMessage = L10n.Auth.registerSuccessMessage.localized
                     }
                     showAlert = true
                 }
@@ -40,7 +40,7 @@ struct RegisterEmailView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("註冊")
+                    Text(L10n.Auth.register.localized)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(AppTheme.shared.primaryColor)
@@ -53,7 +53,7 @@ struct RegisterEmailView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("註冊帳號")
+        .navigationTitle(L10n.Auth.registerTitle.localized)
         .alert(alertTitle, isPresented: $showAlert) {
             Button("確定", role: .cancel) { presentationMode.wrappedValue.dismiss() }
         } message: {

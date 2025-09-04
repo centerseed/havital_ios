@@ -247,9 +247,10 @@ struct SimpleTrainingView: View {
     
     // 檢查是否應該隱藏配速資訊
     private var shouldHidePace: Bool {
-        return day.type == .easyRun || 
-               day.type == .easy || 
-               day.type == .recovery_run
+        return day.type == .easyRun ||
+               day.type == .easy ||
+               day.type == .recovery_run ||
+               day.type == .lsd
     }
     
     var body: some View {
@@ -417,11 +418,14 @@ struct RegularTrainingItemsView: View {
         let itemName = item.name.lowercased()
         let easyRunName = L10n.Training.TrainingType.easy.localized.lowercased()
         let recoveryRunName = L10n.Training.TrainingType.recovery.localized.lowercased()
-        return itemName.contains(easyRunName) || 
+        let lsdRunName = L10n.Training.TrainingType.lsd.localized.lowercased()
+        return itemName.contains(easyRunName) ||
                itemName.contains(recoveryRunName) ||
-               day.type == .easyRun || 
-               day.type == .easy || 
-               day.type == .recovery_run
+               itemName.contains(lsdRunName) ||
+               day.type == .easyRun ||
+               day.type == .easy ||
+               day.type == .recovery_run ||
+               day.type == .lsd
     }
     
     var body: some View {

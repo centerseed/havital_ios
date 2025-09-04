@@ -42,13 +42,13 @@ class TrainingDaysViewModel: ObservableObject {
 
     func savePreferencesAndGetOverview() async { // 原 savePreferences
         guard !selectedWeekdays.isEmpty else {
-            error = "請至少選擇一個訓練日。"
+            error = NSLocalizedString("onboarding.select_at_least_one_day", comment: "Select at least one day")
             return
         }
         
         // 確保長跑日是選擇的訓練日之一
         if !selectedWeekdays.contains(selectedLongRunDay) {
-            error = "長跑日必須是您選擇的訓練日之一。請重新選擇。"
+            error = NSLocalizedString("onboarding.long_run_day_must_be_training_day", comment: "Long run day must be training day")
             return
         }
 
@@ -122,9 +122,14 @@ class TrainingDaysViewModel: ObservableObject {
     // Helper for init and saving preferences
     private func getWeekdayNameStatic(_ weekday: Int) -> String {
         switch weekday {
-        case 1: return "週一"; case 2: return "週二"; case 3: return "週三";
-        case 4: return "週四"; case 5: return "週五"; case 6: return "週六";
-        case 7: return "週日"; default: return ""
+        case 1: return NSLocalizedString("onboarding.monday", comment: "Monday")
+        case 2: return NSLocalizedString("onboarding.tuesday", comment: "Tuesday") 
+        case 3: return NSLocalizedString("onboarding.wednesday", comment: "Wednesday")
+        case 4: return NSLocalizedString("onboarding.thursday", comment: "Thursday")
+        case 5: return NSLocalizedString("onboarding.friday", comment: "Friday")
+        case 6: return NSLocalizedString("onboarding.saturday", comment: "Saturday")
+        case 7: return NSLocalizedString("onboarding.sunday", comment: "Sunday")
+        default: return ""
         }
     }
 }
@@ -154,8 +159,8 @@ struct TrainingDaysSetupView: View {
         ScrollViewReader { proxy in
             Form {
                 Section(
-                    header: Text("選擇您方便的訓練日"),
-                    footer: Text("請選擇您一週內通常可以安排跑步訓練的日子。Paceriz會根據您的目標和體能狀況，在這些日子裡安排不同類型的跑步課表。建議至少選擇 \(viewModel.recommendedMinTrainingDays) 天。")
+                    header: Text(NSLocalizedString("onboarding.select_training_days", comment: "Select Training Days")),
+                    footer: Text(String(format: NSLocalizedString("onboarding.training_days_description", comment: "Training Days Description"), viewModel.recommendedMinTrainingDays))
                 ) {
                     ForEach(1..<8, id: \.self) { weekday in // 週一到週日
                         Button(action: {
@@ -180,12 +185,12 @@ struct TrainingDaysSetupView: View {
                 }
                 
                 Section(
-                    header: Text("設定您的長跑日"),
-                    footer: Text("長跑是提升耐力的關鍵。請從您選擇的訓練日中挑選一天作為長跑日。通常建議安排在週末或您有較充裕時間的日子，以便身體有足夠時間恢復。")
+                    header: Text(NSLocalizedString("onboarding.setup_long_run_day", comment: "Setup Long Run Day")),
+                    footer: Text(NSLocalizedString("onboarding.long_run_day_description", comment: "Long Run Day Description"))
                 ) {
                     // 只有在有選擇訓練日時，提供長跑日選項
                     let longRunOptions = viewModel.selectedWeekdays.isEmpty ? [6] : Array(viewModel.selectedWeekdays).sorted()
-                    Picker("選擇長跑日", selection: $viewModel.selectedLongRunDay) {
+                    Picker(NSLocalizedString("onboarding.select_long_run_day", comment: "Select Long Run Day"), selection: $viewModel.selectedLongRunDay) {
                         ForEach(longRunOptions, id: \.self) { weekday in
                             Text(getWeekdayName(weekday)).tag(weekday)
                         }
@@ -215,9 +220,9 @@ struct TrainingDaysSetupView: View {
                     }
                     // 如果長跑日不在已選的訓練日中，顯示提示
                     if !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay) {
-                        Text("長跑日必須是您選擇的訓練日之一").foregroundColor(.red)
+                        Text(NSLocalizedString("onboarding.long_run_day_must_be_training_day", comment: "Long run day must be training day")).foregroundColor(.red)
                     } else if !viewModel.selectedWeekdays.contains(6) && !viewModel.showOverview {
-                        Text("建議將週六設為長跑日，以便有充分時間進行長距離訓練。").foregroundColor(.orange)
+                        Text(NSLocalizedString("onboarding.suggest_saturday_long_run", comment: "Suggest Saturday long run")).foregroundColor(.orange)
                     }
                 }              
                 if let error = viewModel.error {
@@ -242,7 +247,7 @@ struct TrainingDaysSetupView: View {
                                 if viewModel.isLoading && !viewModel.showOverview { // Loading for overview
                                     ProgressView()
                                 } else {
-                                    Text("儲存偏好並預覽計畫")
+                                    Text(NSLocalizedString("onboarding.save_preferences_preview", comment: "Save Preferences Preview"))
                                 }
                                 Spacer()
                             }
@@ -268,7 +273,7 @@ struct TrainingDaysSetupView: View {
                             }) {
                                 HStack {
                                     Spacer()
-                                    Text("完成設定並查看第一週課表")
+                                    Text(NSLocalizedString("onboarding.complete_setup_view_schedule", comment: "Complete Setup View Schedule"))
                                     Spacer()
                                 }
                             }
@@ -280,11 +285,11 @@ struct TrainingDaysSetupView: View {
             .onAppear {
                 viewModel.updateButtonStates() // 初始檢查按鈕狀態
             }
-            .navigationTitle("訓練偏好設定")
+            .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("返回") {
+                    Button(NSLocalizedString("common.back", comment: "Back")) {
                         dismiss()
                     }
                 }
@@ -294,21 +299,34 @@ struct TrainingDaysSetupView: View {
             get: { viewModel.isLoading && !viewModel.showOverview },
             set: { _ in }
         )) {
-            LoadingAnimationView(messages: previewLoadingMessages, totalDuration: previewLoadingDuration)
+            LoadingAnimationView(messages: [
+                NSLocalizedString("onboarding.evaluating_goal", comment: "Evaluating Goal"),
+                NSLocalizedString("onboarding.calculating_training_intensity", comment: "Calculating Training Intensity"),
+                NSLocalizedString("onboarding.generating_overview", comment: "Generating Overview")
+            ], totalDuration: previewLoadingDuration)
         }
         .fullScreenCover(isPresented: Binding(
             get: { viewModel.isLoading && viewModel.showOverview },
             set: { _ in }
         )) {
-            LoadingAnimationView(messages: loadingMessages, totalDuration: loadingDuration)
+            LoadingAnimationView(messages: [
+                NSLocalizedString("onboarding.analyzing_preferences", comment: "Analyzing Preferences"),
+                NSLocalizedString("onboarding.calculating_intensity", comment: "Calculating Intensity"),
+                NSLocalizedString("onboarding.almost_ready", comment: "Almost Ready")
+            ], totalDuration: loadingDuration)
         }
     }
     
-    private func getWeekdayName(_ weekday: Int) -> String { // 保持 View 內的 helper
+    private func getWeekdayName(_ weekday: Int) -> String {
         switch weekday {
-        case 1: return "週一"; case 2: return "週二"; case 3: return "週三";
-        case 4: return "週四"; case 5: return "週五"; case 6: return "週六";
-        case 7: return "週日"; default: return ""
+        case 1: return NSLocalizedString("onboarding.monday", comment: "Monday")
+        case 2: return NSLocalizedString("onboarding.tuesday", comment: "Tuesday") 
+        case 3: return NSLocalizedString("onboarding.wednesday", comment: "Wednesday")
+        case 4: return NSLocalizedString("onboarding.thursday", comment: "Thursday")
+        case 5: return NSLocalizedString("onboarding.friday", comment: "Friday")
+        case 6: return NSLocalizedString("onboarding.saturday", comment: "Saturday")
+        case 7: return NSLocalizedString("onboarding.sunday", comment: "Sunday")
+        default: return ""
         }
     }
 }

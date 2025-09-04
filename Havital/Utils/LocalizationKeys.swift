@@ -34,6 +34,7 @@ enum L10n {
         static let pause = "common.pause"
         static let resume = "common.resume"
         static let finish = "common.finish"
+        static let weekUnit = "common.week_unit" // "週"
     }
     
     // MARK: - Authentication
@@ -49,7 +50,177 @@ enum L10n {
         static let signUp = "auth.sign_up"
         static let loginFailed = "auth.login_failed"
         static let logoutConfirm = "auth.logout_confirm"
+        static let registerTitle = "auth.register_title" // "註冊帳號"
+        static let register = "auth.register" // "註冊"
+        static let registerFailed = "auth.register_failed" // "註冊失敗"
+        static let registerSuccess = "auth.register_success" // "註冊成功"
+        static let registerSuccessMessage = "auth.register_success_message" // "請至您的電子信箱點擊確認連結，完成驗證後返回此處登入。"
+        static let verifyEmailTitle = "auth.verify_email_title" // "驗證 Email"
+        static let verifyCodePlaceholder = "auth.verify_code_placeholder" // "驗證碼 (oobCode)"
+        static let verifyEmail = "auth.verify_email" // "驗證 Email"
+        static let verifyFailed = "auth.verify_failed" // "驗證失敗"
+        static let verifySuccess = "auth.verify_success" // "驗證成功"
     }
+    
+    // MARK: - Calendar Sync Setup
+    enum CalendarSyncSetup {
+        static let title = "calendar_sync_setup.title" // "同步至行事曆"
+        static let description = "calendar_sync_setup.description" // "將訓練日同步到你的行事曆，幫助你更好地安排時間。"
+        static let syncMethod = "calendar_sync_setup.sync_method" // "同步方式"
+        static let allDay = "calendar_sync_setup.all_day" // "全天活動"
+        static let specificTime = "calendar_sync_setup.specific_time" // "指定時間"
+        static let trainingTime = "calendar_sync_setup.training_time" // "訓練時間"
+        static let startTime = "calendar_sync_setup.start_time" // "開始時間"
+        static let endTime = "calendar_sync_setup.end_time" // "結束時間"
+        static let adjustNote = "calendar_sync_setup.adjust_note" // "你可以之後在行事曆中調整時間"
+        static let startSync = "calendar_sync_setup.start_sync" // "開始同步"
+        static let accessError = "calendar_sync_setup.access_error" // "請在設定中允許 Havital 存取行事曆"
+    }
+    
+    // MARK: - Edit Target View
+    enum EditTarget {
+        static let title = "edit_target.title" // "編輯賽事目標"
+        static let raceInfo = "edit_target.race_info" // "賽事資訊"
+        static let raceName = "edit_target.race_name" // "賽事名稱"
+        static let raceDate = "edit_target.race_date" // "賽事日期"
+        static let remainingWeeks = "edit_target.remaining_weeks" // "距離比賽還有 %d 週"
+        static let raceDistance = "edit_target.race_distance" // "比賽距離"
+        static let selectDistance = "edit_target.select_distance" // "選擇距離"
+        static let targetTime = "edit_target.target_time" // "目標完賽時間"
+        static let hoursUnit = "edit_target.hours_unit" // "時"
+        static let minutesUnit = "edit_target.minutes_unit" // "分"
+        static let averagePace = "edit_target.average_pace" // "平均配速：%@ /公里"
+        static let distance3k = "edit_target.distance_3k" // "3公里"
+        static let distance5k = "edit_target.distance_5k" // "5公里"
+        static let distance10k = "edit_target.distance_10k" // "10公里"
+        static let distance15k = "edit_target.distance_15k" // "15公里"
+        static let distanceHalf = "edit_target.distance_half" // "半程馬拉松"
+        static let distanceFull = "edit_target.distance_full" // "全程馬拉松"
+        static let addTitle = "edit_target.add_title" // "添加支援賽事"
+        static let editTitle = "edit_target.edit_title" // "編輯支援賽事"
+        static let deleteRace = "edit_target.delete_race" // "刪除賽事"
+        static let deleteConfirmTitle = "edit_target.delete_confirm_title" // "確認刪除"
+        static let deleteConfirmMessage = "edit_target.delete_confirm_message" // "確定要刪除這個支援賽事嗎？此操作無法復原。"
+    }
+    
+    // MARK: - Weekly Distance Editor View
+    enum WeeklyDistanceEditor {
+        static let title = "weekly_distance_editor.title" // "編輯週跑量"
+        static let weeklyDistance = "weekly_distance_editor.weekly_distance" // "週跑量：%d 公里"
+        static let nextWeekNotice = "weekly_distance_editor.next_week_notice" // "當週跑量的修改會在下一週的課表生效"
+    }
+
+    // MARK: - Training Item Detail View
+enum TrainingItemDetail {
+    static let purpose = "training_item_detail.purpose" // "目的"
+    static let benefits = "training_item_detail.benefits" // "效果"
+    static let method = "training_item_detail.method" // "實行方式"
+    static let precautions = "training_item_detail.precautions" // "注意事項"
+    static let notFound = "training_item_detail.not_found" // "無法找到該運動項目的說明"
+}
+
+// MARK: - Training Progress View
+enum TrainingProgress {
+    static let review = "training_progress.review" // "回顧"
+    static let schedule = "training_progress.schedule" // "課表"
+    static let generateSchedule = "training_progress.generate_schedule" // "產生課表"
+}
+
+// MARK: - Training Plan View
+enum TrainingPlan {
+    static let cycleCompleted = "training_plan.cycle_completed" // "訓練週期已完成"
+    static let congratulations = "training_plan.congratulations" // "恭喜您完成這個訓練週期！"
+    static let loadingSchedule = "training_plan.loading_schedule" // "課表載入中..."
+}
+
+// MARK: - Workout Summary Row
+enum WorkoutSummaryRow {
+    static let calculatingHeartRate = "workout_summary_row.calculating_heart_rate" // "心率計算中..."
+}
+
+// MARK: - Next Week Planning View
+enum NextWeekPlanning {
+    static let title = "next_week_planning.title" // "下週計劃設定"
+    static let weeklyFeeling = "next_week_planning.weekly_feeling" // "本週訓練感受（0-最差，5-最佳）"
+    static let overallFeeling = "next_week_planning.overall_feeling" // "整體感受："
+    static let trainingExpectation = "next_week_planning.training_expectation" // "對於下週的訓練期望，Vita會依據實際情況做出調整，也可以自由的編輯新產生的運動計畫"
+    static let difficultyAdjustment = "next_week_planning.difficulty_adjustment" // "難度調整"
+    static let daysAdjustment = "next_week_planning.days_adjustment" // "運動天數調整"
+    static let trainingItemAdjustment = "next_week_planning.training_item_adjustment" // "運動項目變化調整"
+    static let startGenerating = "next_week_planning.start_generating" // "開始產生下次計劃"
+    static let generatingPlan = "next_week_planning.generating_plan" // "Vita 正在為你產生訓練計劃..."
+    static let pleaseWait = "next_week_planning.please_wait" // "請稍候"
+    static let cancel = "next_week_planning.cancel" // "取消"
+
+    enum Adjustment {
+        static let decrease = "next_week_planning.adjustment.decrease" // "減少"
+        static let keepSame = "next_week_planning.adjustment.keep_same" // "維持不變"
+        static let increase = "next_week_planning.adjustment.increase" // "增加"
+    }
+}
+
+    // MARK: - Training Plan Overview View
+    enum TrainingPlanOverview {
+        static let title = "training_plan_overview.title" // "訓練計劃總覽"
+        static let targetEvaluation = "training_plan_overview.target_evaluation" // "目標評估"
+        static let trainingMethod = "training_plan_overview.training_method" // "訓練方法"
+        static let trainingStages = "training_plan_overview.training_stages" // "訓練階段"
+        static let weekRange = "training_plan_overview.week_range" // "第%d-%d週"
+        static let generatePlan = "training_plan_overview.generate_plan" // "產生第%d週訓練計劃"
+        static let errorTitle = "training_plan_overview.error_title" // "錯誤"
+        static let errorConfirm = "training_plan_overview.error_confirm" // "確定"
+    }
+
+    // MARK: - Week Selector Sheet
+    enum WeekSelector {
+        static let weekNumber = "week_selector.week_number" // "第 %d 週"
+        static let review = "week_selector.review" // "回顧"
+        static let schedule = "week_selector.schedule" // "課表"
+        static let close = "week_selector.close" // "關閉"
+    }
+
+    // MARK: - Pace Chart View
+enum PaceChart {
+    static let title = "pace_chart.title" // "配速變化"
+    static let unit = "pace_chart.unit" // "(分鐘/公里)"
+    static let loading = "pace_chart.loading" // "載入配速數據中..."
+    static let tryAgain = "pace_chart.try_again" // "請稍後再試"
+    static let noData = "pace_chart.no_data" // "沒有配速數據"
+    static let unableToGetData = "pace_chart.unable_to_get_data" // "無法獲取此次訓練的配速數據"
+    static let fastest = "pace_chart.fastest" // "最快:"
+    static let slowest = "pace_chart.slowest" // "最慢:"
+}
+
+// MARK: - Heart Rate Chart View
+enum HeartRateChart {
+    static let title = "heart_rate_chart.title" // "心率變化"
+    static let loading = "heart_rate_chart.loading" // "載入心率數據中..."
+    static let tryAgain = "heart_rate_chart.try_again" // "請稍後再試"
+    static let noData = "heart_rate_chart.no_data" // "沒有心率數據"
+    static let unableToGetData = "heart_rate_chart.unable_to_get_data" // "無法獲取此次訓練的心率數據"
+}
+
+// MARK: - Gait Analysis Chart View
+enum GaitAnalysisChart {
+    static let title = "gait_analysis_chart.title" // "步態分析"
+    static let loading = "gait_analysis_chart.loading" // "載入步態分析數據中..."
+    static let tryAgain = "gait_analysis_chart.try_again" // "請稍後再試"
+    static let noData = "gait_analysis_chart.no_data" // "沒有步態分析數據"
+    static let unableToGetData = "gait_analysis_chart.unable_to_get_data" // "無法獲取此次訓練的步態分析數據"
+    static let average = "gait_analysis_chart.average" // "平均值"
+    static let minimum = "gait_analysis_chart.minimum" // "最小值"
+    static let maximum = "gait_analysis_chart.maximum" // "最大值"
+
+    enum GaitTab {
+        static let stanceTime = "gait_analysis_chart.gait_tab.stance_time" // "觸地時間"
+        static let verticalRatio = "gait_analysis_chart.gait_tab.vertical_ratio" // "移動效率"
+        static let cadence = "gait_analysis_chart.gait_tab.cadence" // "步頻"
+
+        static let stanceTimeDescription = "gait_analysis_chart.gait_tab.stance_time_description" // "腳部接觸地面的時間，越短代表跑姿越有效率"
+        static let verticalRatioDescription = "gait_analysis_chart.gait_tab.vertical_ratio_description" // "垂直移動與總移動距離的比率，越低代表移動效率越好"
+        static let cadenceDescription = "gait_analysis_chart.gait_tab.cadence_description" // "每分鐘步數，理想範圍約180左右"
+    }
+}
     
     // MARK: - Onboarding
     enum Onboarding {
@@ -88,6 +259,120 @@ enum L10n {
         static let iUnderstand = "onboarding.i_understand"
         static let error = "onboarding.error"
         static let confirm = "onboarding.confirm"
+        
+        // Target Race Examples
+        static let targetRaceExample = "onboarding.target_race_example"
+        
+        // Personal Best View
+        static let personalBestTitle = "onboarding.personal_best_title"
+        static let personalBestDescription = "onboarding.personal_best_description"
+        static let hasPersonalBest = "onboarding.has_personal_best"
+        static let personalBestDetails = "onboarding.personal_best_details"
+        static let selectDistanceTime = "onboarding.select_distance_time"
+        static let distanceSelection = "onboarding.distance_selection"
+        static let timeHours = "onboarding.time_hours"
+        static let timeMinutes = "onboarding.time_minutes"
+        static let averagePaceCalculation = "onboarding.average_pace_calculation"
+        static let perKilometer = "onboarding.per_kilometer"
+        static let enterValidTime = "onboarding.enter_valid_time"
+        static let skipPersonalBest = "onboarding.skip_personal_best"
+        static let skipPersonalBestMessage = "onboarding.skip_personal_best_message"
+        static let personalBestTitleNav = "onboarding.personal_best_title_nav"
+        static let next = "onboarding.next"
+        
+        // Training Days Setup
+        static let trainingDaysTitle = "onboarding.training_days_title"
+        static let selectTrainingDays = "onboarding.select_training_days"
+        static let trainingDaysDescription = "onboarding.training_days_description"
+        static let setupLongRunDay = "onboarding.setup_long_run_day"
+        static let longRunDayDescription = "onboarding.long_run_day_description"
+        static let selectLongRunDay = "onboarding.select_long_run_day"
+        static let longRunDayMustBeTrainingDay = "onboarding.long_run_day_must_be_training_day"
+        static let suggestSaturdayLongRun = "onboarding.suggest_saturday_long_run"
+        static let savePreferencesPreview = "onboarding.save_preferences_preview"
+        static let completeSetupViewSchedule = "onboarding.complete_setup_view_schedule"
+        
+        // Loading Messages
+        static let analyzingPreferences = "onboarding.analyzing_preferences"
+        static let calculatingIntensity = "onboarding.calculating_intensity"
+        static let almostReady = "onboarding.almost_ready"
+        static let evaluatingGoal = "onboarding.evaluating_goal"
+        static let calculatingTrainingIntensity = "onboarding.calculating_training_intensity"
+        static let generatingOverview = "onboarding.generating_overview"
+        
+        // Weekday Names
+        static let monday = "onboarding.monday"
+        static let tuesday = "onboarding.tuesday"
+        static let wednesday = "onboarding.wednesday"
+        static let thursday = "onboarding.thursday"
+        static let friday = "onboarding.friday"
+        static let saturday = "onboarding.saturday"
+        static let sunday = "onboarding.sunday"
+    }
+    
+    // MARK: - Workout Row Component
+    enum WorkoutRow {
+        static let today = "workout_row.today"
+        static let synced = "workout_row.synced"
+        static let notSynced = "workout_row.not_synced"
+        static let distance = "workout_row.distance"
+        static let time = "workout_row.time"
+        static let calories = "workout_row.calories"
+    }
+    
+    // MARK: - Circular Progress Component
+    enum CircularProgress {
+        static let week = "circular_progress.week"
+    }
+    
+    // MARK: - Target Race Card Component
+    enum TargetRaceCard {
+        static let targetFinishTime = "target_race_card.target_finish_time"
+        static let targetPace = "target_race_card.target_pace"
+        static let perKilometer = "target_race_card.per_kilometer"
+    }
+    
+    // MARK: - Training Stage Card Component
+    enum TrainingStageCard {
+        static let weekRange = "training_stage_card.week_range" // "第{start}-{end}週"
+        static let weekStart = "training_stage_card.week_start" // "第{start}週開始"
+        static let trainingFocus = "training_stage_card.training_focus" // "重點訓練:"
+    }
+    
+    // MARK: - Lap Analysis View Component
+    enum LapAnalysisView {
+        static let title = "lap_analysis_view.title" // "圈速分析"
+        static let noLapData = "lap_analysis_view.no_lap_data" // "無圈速數據"
+        static let lapColumn = "lap_analysis_view.lap_column" // "圈"
+        static let distanceColumn = "lap_analysis_view.distance_column" // "距離"
+        static let timeColumn = "lap_analysis_view.time_column" // "時間"
+        static let paceColumn = "lap_analysis_view.pace_column" // "配速"
+        static let heartRateColumn = "lap_analysis_view.heart_rate_column" // "心率"
+    }
+    
+    // MARK: - App Loading View Component
+    enum AppLoadingView {
+        static let initializationFailed = "app_loading_view.initialization_failed" // "應用程式初始化失敗"
+        static let checkConnection = "app_loading_view.check_connection" // "請確認網路連線正常，然後重新嘗試"
+        static let restart = "app_loading_view.restart" // "重新啟動"
+    }
+    
+    // MARK: - Supporting Races Card Component
+    enum SupportingRacesCard {
+        static let title = "supporting_races_card.title" // "支援賽事"
+        static let noRaces = "supporting_races_card.no_races" // "暫無支援賽事"
+        static let pastRaces = "supporting_races_card.past_races" // "之前的賽事"
+        static let daysRemaining = "supporting_races_card.days_remaining" // "剩餘 %d 天"
+        static let kmUnit = "supporting_races_card.km_unit" // "公里"
+        static let paceUnit = "supporting_races_card.pace_unit" // "/km"
+    }
+    
+    // MARK: - Garmin Reconnection Alert Component
+    enum GarminReconnectionAlert {
+        static let title = "garmin_reconnection_alert.title" // "Garmin 帳號需要重新綁定"
+        static let defaultMessage = "garmin_reconnection_alert.default_message" // "您的 Garmin Connect™ 帳號可能被其他帳號綁定，請重新綁定以確保數據正常同步。"
+        static let reconnectButton = "garmin_reconnection_alert.reconnect_button" // "重新綁定 Garmin"
+        static let remindLaterButton = "garmin_reconnection_alert.remind_later_button" // "稍後提醒"
     }
     
     // MARK: - Profile

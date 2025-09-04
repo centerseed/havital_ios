@@ -294,7 +294,7 @@ struct TrainingProgressView: View {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "doc.text.magnifyingglass")
                                     .font(.system(size: 12, weight: .medium))
-                                Text("回顧")
+                                Text(L10n.TrainingProgress.review.localized)
                                     .font(.footnote)
                                     .fontWeight(.medium)
                             }
@@ -320,7 +320,7 @@ struct TrainingProgressView: View {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "calendar")
                                     .font(.system(size: 12, weight: .medium))
-                                Text("課表")
+                                Text(L10n.TrainingProgress.schedule.localized)
                                     .font(.footnote)
                                     .fontWeight(.medium)
                             }
@@ -344,7 +344,7 @@ struct TrainingProgressView: View {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "plus.circle")
                                     .font(.system(size: 12, weight: .medium))
-                                Text("產生課表")
+                                Text(L10n.TrainingProgress.generateSchedule.localized)
                                     .font(.footnote)
                                     .fontWeight(.medium)
                             }

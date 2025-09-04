@@ -16,7 +16,7 @@ struct WeekSelectorSheet: View {
                     List(viewModel.weeklySummaries, id: \.weekIndex) { item in
                         HStack {
                             // 左側：週次與完成率
-                            Text("第 \(item.weekIndex) 週")
+                            Text(L10n.WeekSelector.weekNumber.localized(with: item.weekIndex))
                                 .font(.headline)
                                 .foregroundColor(.primary)
                             // 顯示完成率（若有）
@@ -51,7 +51,7 @@ struct WeekSelectorSheet: View {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "doc.text.magnifyingglass")
                                                 .font(.system(size: 12, weight: .medium))
-                                            Text("回顧")
+                                            Text(L10n.WeekSelector.review.localized)
                                                 .font(.footnote)
                                                 .fontWeight(.medium)
                                         }
@@ -76,7 +76,7 @@ struct WeekSelectorSheet: View {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "calendar")
                                                 .font(.system(size: 12, weight: .medium))
-                                            Text("課表")
+                                            Text(L10n.WeekSelector.schedule.localized)
                                                 .font(.footnote)
                                                 .fontWeight(.medium)
                                         }
@@ -116,7 +116,7 @@ struct WeekSelectorSheet: View {
                     } label: {
                         HStack {
                             Image(systemName: "xmark")
-                            Text("關閉")
+                            Text(L10n.WeekSelector.close.localized)
                         }
                         .foregroundColor(.blue)
                     }

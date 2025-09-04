@@ -191,7 +191,7 @@ struct PaceChartView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack { // Group title and unit
-                Text("配速變化")
+                Text(L10n.PaceChart.title.localized)
                     .font(.headline)
                 Spacer()
                 
@@ -203,7 +203,7 @@ struct PaceChartView: View {
                         displayStyle: .compact
                     )
                     
-                    Text("(分鐘/公里)")
+                    Text(L10n.PaceChart.unit.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -211,7 +211,7 @@ struct PaceChartView: View {
 
             if isLoading {
                 VStack {
-                    ProgressView("載入配速數據中...")
+                    ProgressView(L10n.PaceChart.loading.localized)
                 }
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
@@ -219,14 +219,14 @@ struct PaceChartView: View {
                 ContentUnavailableView(
                     error,
                     systemImage: "figure.walk.motion",
-                    description: Text("請稍後再試")
+                    description: Text(L10n.PaceChart.tryAgain.localized)
                 )
                 .frame(height: 200)
             } else if filteredPaces.isEmpty {
                 ContentUnavailableView(
-                    "沒有配速數據",
+                    L10n.PaceChart.noData.localized,
                     systemImage: "figure.walk.motion",
-                    description: Text("無法獲取此次訓練的配速數據")
+                    description: Text(L10n.PaceChart.unableToGetData.localized)
                 )
                 .frame(height: 200)
             } else {
@@ -234,7 +234,7 @@ struct PaceChartView: View {
                     // 配速圖表範圍和標籤
                     HStack {
                         HStack(spacing: 4) {
-                            Text("最快:")
+                            Text(L10n.PaceChart.fastest.localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text(formatPaceFromSeconds(getMaxPace()))
@@ -246,7 +246,7 @@ struct PaceChartView: View {
                         Spacer()
 
                         HStack(spacing: 4) {
-                            Text("最慢:")
+                            Text(L10n.PaceChart.slowest.localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text(formatPaceFromSeconds(getMinPace()))

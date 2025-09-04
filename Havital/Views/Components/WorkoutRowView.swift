@@ -15,7 +15,7 @@ struct WorkoutRowView: View {
                         .font(.headline)
                     
                     if isToday(date: workout.startDate) {
-                        Text("今天")
+                        Text(NSLocalizedString("workout_row.today", comment: "Today"))
                             .font(.caption)
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
@@ -32,13 +32,13 @@ struct WorkoutRowView: View {
                     if isUploaded {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                        Text("已同步")
+                        Text(NSLocalizedString("workout_row.synced", comment: "Synced"))
                             .font(.caption)
                             .foregroundColor(.green)
                     } else {
                         Image(systemName: "arrow.up.circle")
                             .foregroundColor(.orange)
-                        Text("未同步")
+                        Text(NSLocalizedString("workout_row.not_synced", comment: "Not Synced"))
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
@@ -49,7 +49,7 @@ struct WorkoutRowView: View {
             HStack {
                 // 距離
                 VStack(alignment: .leading) {
-                    Text("距離")
+                    Text(NSLocalizedString("workout_row.distance", comment: "Distance"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -69,7 +69,7 @@ struct WorkoutRowView: View {
                 
                 // 時間
                 VStack(alignment: .leading) {
-                    Text("時間")
+                    Text(NSLocalizedString("workout_row.time", comment: "Time"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(WorkoutUtils.formatDuration(workout.duration))
@@ -80,7 +80,7 @@ struct WorkoutRowView: View {
                 
                 // 卡路里
                 VStack(alignment: .leading) {
-                    Text("卡路里")
+                    Text(NSLocalizedString("workout_row.calories", comment: "Calories"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     

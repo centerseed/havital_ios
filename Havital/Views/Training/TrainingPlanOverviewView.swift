@@ -16,10 +16,10 @@ struct TrainingPlanOverviewView: View {
                 // 訓練計劃總覽
                 if let overview = planOverview["training_plan_overview"] as? [String] {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("訓練計劃總覽")
+                        Text(L10n.TrainingPlanOverview.title.localized)
                             .font(.headline)
                             .font(.system(size: 16))
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(overview, id: \.self) { item in
                                 Text("• \(item)")
@@ -34,12 +34,12 @@ struct TrainingPlanOverviewView: View {
                     .shadow(radius: 2)
                 } else if let overview = planOverview["training_plan_overview"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("訓練計劃總覽")
+                        Text(L10n.TrainingPlanOverview.title.localized)
                             .font(.headline)
                             .font(.system(size: 16))
                         Text(overview)
                             .font(.body)
-                            .font(.system(size: 14))       
+                            .font(.system(size: 14))
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
@@ -50,12 +50,12 @@ struct TrainingPlanOverviewView: View {
                 // 目標評估
                 if let evaluation = planOverview["target_evaluate"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("目標評估")
+                        Text(L10n.TrainingPlanOverview.targetEvaluation.localized)
                             .font(.headline)
                             .font(.system(size: 16))
                         Text(evaluation)
                             .font(.body)
-                            .font(.system(size: 14))       
+                            .font(.system(size: 14))
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
@@ -66,12 +66,12 @@ struct TrainingPlanOverviewView: View {
                 // 訓練方法
                 if let trainingHighlight = planOverview["training_highlight"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("訓練方法")
+                        Text(L10n.TrainingPlanOverview.trainingMethod.localized)
                             .font(.headline)
                             .font(.system(size: 16))
                         Text(trainingHighlight)
                             .font(.body)
-                            .font(.system(size: 14))       
+                            .font(.system(size: 14))
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
@@ -82,7 +82,7 @@ struct TrainingPlanOverviewView: View {
                 // 訓練階段
                 if let stages = planOverview["training_stages"] as? [[String: Any]] {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("訓練階段")
+                        Text(L10n.TrainingPlanOverview.trainingStages.localized)
                             .font(.headline)
                             .font(.system(size: 16))
                         
@@ -93,7 +93,7 @@ struct TrainingPlanOverviewView: View {
                                let weekStart = stage["week_start"] as? Int,
                                let weekEnd = stage["week_end"] as? Int {
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text("\(stageName) (第\(weekStart)-\(weekEnd)週)")
+                                    Text("\(stageName) (\(L10n.TrainingPlanOverview.weekRange.localized(with: weekStart, weekEnd)))")
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                     Text(description)
@@ -121,7 +121,7 @@ struct TrainingPlanOverviewView: View {
                     }
                 }) {
                     HStack {
-                        Text("產生第\(UserPreferenceManager.shared.weekOfTraining ?? 1)週訓練計劃")
+                        Text(L10n.TrainingPlanOverview.generatePlan.localized(with: UserPreferenceManager.shared.weekOfTraining ?? 1))
                             .fontWeight(.semibold)
                         if isGeneratingPlan {
                             ProgressView()
@@ -140,8 +140,8 @@ struct TrainingPlanOverviewView: View {
             }
             .padding()
         }
-        .alert("錯誤", isPresented: $showError) {
-            Button("確定", role: .cancel) {}
+        .alert(L10n.TrainingPlanOverview.errorTitle.localized, isPresented: $showError) {
+            Button(L10n.TrainingPlanOverview.errorConfirm.localized, role: .cancel) {}
         } message: {
             Text(errorMessage)
         }

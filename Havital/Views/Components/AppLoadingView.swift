@@ -43,11 +43,11 @@ struct AppLoadingView: View {
                                 .font(.system(size: 32))
                                 .foregroundColor(.orange)
                             
-                            Text("應用程式初始化失敗")
+                            Text(L10n.AppLoadingView.initializationFailed.localized)
                                 .font(.headline)
                                 .foregroundColor(.white)
                             
-                            Text("請確認網路連線正常，然後重新嘗試")
+                            Text(L10n.AppLoadingView.checkConnection.localized)
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
@@ -60,7 +60,7 @@ struct AppLoadingView: View {
                         }) {
                             HStack(spacing: 8) {
                                 Image(systemName: "arrow.clockwise")
-                                Text("重新啟動")
+                                Text(L10n.AppLoadingView.restart.localized)
                             }
                             .font(.body)
                             .fontWeight(.medium)

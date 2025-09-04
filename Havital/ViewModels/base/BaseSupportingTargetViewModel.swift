@@ -11,14 +11,16 @@ class BaseSupportingTargetViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     
-    let availableDistances = [
-        "3": "3公里",
-        "5": "5公里",
-        "10": "10公里",
-        "15": "15公里",
-        "21.0975": "半程馬拉松",
-        "42.195": "全程馬拉松"
-    ]
+    var availableDistances: [String: String] {
+        [
+            "3": L10n.EditTarget.distance3k.localized,
+            "5": L10n.EditTarget.distance5k.localized,
+            "10": L10n.EditTarget.distance10k.localized,
+            "15": L10n.EditTarget.distance15k.localized,
+            "21.0975": L10n.EditTarget.distanceHalf.localized,
+            "42.195": L10n.EditTarget.distanceFull.localized
+        ]
+    }
     
     var remainingWeeks: Int {
         let calendar = Calendar.current

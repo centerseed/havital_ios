@@ -18,9 +18,9 @@ struct GaitAnalysisChartView: View {
         
         var title: String {
             switch self {
-            case .stanceTime: return "觸地時間"
-            case .verticalRatio: return "移動效率"
-            case .cadence: return "步頻"
+            case .stanceTime: return L10n.GaitAnalysisChart.GaitTab.stanceTime.localized
+            case .verticalRatio: return L10n.GaitAnalysisChart.GaitTab.verticalRatio.localized
+            case .cadence: return L10n.GaitAnalysisChart.GaitTab.cadence.localized
             }
         }
         
@@ -42,9 +42,9 @@ struct GaitAnalysisChartView: View {
         
         var description: String {
             switch self {
-            case .stanceTime: return "腳部接觸地面的時間，越短代表跑姿越有效率"
-            case .verticalRatio: return "垂直移動與總移動距離的比率，越低代表移動效率越好"
-            case .cadence: return "每分鐘步數，理想範圍約180左右"
+            case .stanceTime: return L10n.GaitAnalysisChart.GaitTab.stanceTimeDescription.localized
+            case .verticalRatio: return L10n.GaitAnalysisChart.GaitTab.verticalRatioDescription.localized
+            case .cadence: return L10n.GaitAnalysisChart.GaitTab.cadenceDescription.localized
             }
         }
     }
@@ -147,7 +147,7 @@ struct GaitAnalysisChartView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("步態分析")
+                Text(L10n.GaitAnalysisChart.title.localized)
                     .font(.headline)
                     .fontWeight(.semibold)
                 
@@ -172,7 +172,7 @@ struct GaitAnalysisChartView: View {
 
             if isLoading {
                 VStack {
-                    ProgressView("載入步態數據中...")
+                    ProgressView(L10n.GaitAnalysisChart.loading.localized)
                 }
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
@@ -180,14 +180,14 @@ struct GaitAnalysisChartView: View {
                 ContentUnavailableView(
                     error,
                     systemImage: "figure.run",
-                    description: Text("請稍後再試")
+                    description: Text(L10n.GaitAnalysisChart.tryAgain.localized)
                 )
                 .frame(height: 200)
             } else if stanceTimes.isEmpty && verticalRatios.isEmpty && cadences.isEmpty {
                 ContentUnavailableView(
-                    "沒有步態數據",
+                    L10n.GaitAnalysisChart.noData.localized,
                     systemImage: "figure.run",
-                    description: Text("無法獲取此次訓練的步態分析數據")
+                    description: Text(L10n.GaitAnalysisChart.unableToGetData.localized)
                 )
                 .frame(height: 200)
             } else {
@@ -225,9 +225,9 @@ struct GaitAnalysisChartView: View {
                     
                     // Statistics row
                     HStack(spacing: 24) {
-                        StatItem(title: "平均值", value: currentStats.average, color: selectedGaitTab.color)
-                        StatItem(title: "最小值", value: currentStats.min, color: selectedGaitTab.color)
-                        StatItem(title: "最大值", value: currentStats.max, color: selectedGaitTab.color)
+                        StatItem(title: L10n.GaitAnalysisChart.average.localized, value: currentStats.average, color: selectedGaitTab.color)
+                        StatItem(title: L10n.GaitAnalysisChart.minimum.localized, value: currentStats.min, color: selectedGaitTab.color)
+                        StatItem(title: L10n.GaitAnalysisChart.maximum.localized, value: currentStats.max, color: selectedGaitTab.color)
                         
                         Spacer()
                     }

@@ -42,7 +42,7 @@ struct OldCircularProgressView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
                 
-                Text("週")
+                Text(NSLocalizedString("circular_progress.week", comment: "Week"))
                     .font(.caption)
                     .foregroundColor(.gray)
             }

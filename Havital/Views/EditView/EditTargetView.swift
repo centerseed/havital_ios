@@ -13,21 +13,21 @@ struct EditTargetView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("賽事資訊")) {
-                    TextField("賽事名稱", text: $targetModel.raceName)
+                Section(header: Text(L10n.EditTarget.raceInfo.localized)) {
+                    TextField(L10n.EditTarget.raceName.localized, text: $targetModel.raceName)
                         .textContentType(.name)
                     
-                    DatePicker("賽事日期",
+                    DatePicker(L10n.EditTarget.raceDate.localized,
                               selection: $targetModel.raceDate,
                               in: Date()...,
                               displayedComponents: .date)
                     
-                    Text("距離比賽還有 \(targetModel.remainingWeeks) 週")
+                    Text(L10n.EditTarget.remainingWeeks.localized(with: targetModel.remainingWeeks))
                         .foregroundColor(.secondary)
                 }
                 
-                Section(header: Text("比賽距離")) {
-                    Picker("選擇距離", selection: $targetModel.selectedDistance) {
+                Section(header: Text(L10n.EditTarget.raceDistance.localized)) {
+                    Picker(L10n.EditTarget.selectDistance.localized, selection: $targetModel.selectedDistance) {
                         ForEach(Array(targetModel.availableDistances.keys.sorted()), id: \.self) { key in
                             Text(targetModel.availableDistances[key] ?? key)
                                 .tag(key)
@@ -36,9 +36,9 @@ struct EditTargetView: View {
                     .pickerStyle(.menu)
                 }
                 
-                Section(header: Text("目標完賽時間")) {
+                Section(header: Text(L10n.EditTarget.targetTime.localized)) {
                     HStack {
-                        Picker("時", selection: $targetModel.targetHours) {
+                        Picker(L10n.EditTarget.hoursUnit.localized, selection: $targetModel.targetHours) {
                             ForEach(0...6, id: \.self) { hour in
                                 Text("\(hour)")
                             }
@@ -46,9 +46,9 @@ struct EditTargetView: View {
                         .pickerStyle(.wheel)
                         .frame(width: 100)
                         
-                        Text("時")
+                        Text(L10n.EditTarget.hoursUnit.localized)
                         
-                        Picker("分", selection: $targetModel.targetMinutes) {
+                        Picker(L10n.EditTarget.minutesUnit.localized, selection: $targetModel.targetMinutes) {
                             ForEach(0..<60, id: \.self) { minute in
                                 Text("\(minute)")
                             }
@@ -56,11 +56,11 @@ struct EditTargetView: View {
                         .pickerStyle(.wheel)
                         .frame(width: 100)
                         
-                        Text("分")
+                        Text(L10n.EditTarget.minutesUnit.localized)
                     }
                     .padding(.vertical, 8)
                     
-                    Text("平均配速：\(targetModel.targetPace) /公里")
+                    Text(L10n.EditTarget.averagePace.localized(with: targetModel.targetPace))
                         .foregroundColor(.secondary)
                 }
                 
@@ -71,7 +71,7 @@ struct EditTargetView: View {
                     }
                 }
             }
-            .navigationTitle("編輯賽事目標")
+            .navigationTitle(L10n.EditTarget.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -117,12 +117,15 @@ class EditTargetViewModel: ObservableObject {
     private let originalDistance: String
     private let originalTargetTime: Int
     
-    let availableDistances = [
-        "5": "5公里",
-        "10": "10公里",
-        "21.0975": "半程馬拉松",
-        "42.195": "全程馬拉松"
-    ]
+    // 移動到類別層級的可用距離選項
+    var availableDistances: [String: String] {
+        [
+            "5": L10n.EditTarget.distance5k.localized,
+            "10": L10n.EditTarget.distance10k.localized,
+            "21.0975": L10n.EditTarget.distanceHalf.localized,
+            "42.195": L10n.EditTarget.distanceFull.localized
+        ]
+    }
     
     var remainingWeeks: Int {
         let isoFormatter = ISO8601DateFormatter()
@@ -162,11 +165,20 @@ class EditTargetViewModel: ObservableObject {
         self.raceName = target.name
         self.raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
         
+        // 創建臨時的可用距離字典來查找匹配的距離
+        let distances: [String: String] = [
+            "5": L10n.EditTarget.distance5k.localized,
+            "10": L10n.EditTarget.distance10k.localized,
+            "21.0975": L10n.EditTarget.distanceHalf.localized,
+            "42.195": L10n.EditTarget.distanceFull.localized
+        ]
+        
         // 設置距離並保存原始距離值
-        if let distanceStr = availableDistances.keys.first(where: { Int(Double($0) ?? 0) == target.distanceKm }) {
+        if let distanceStr = distances.keys.first(where: { Int(Double($0) ?? 0) == target.distanceKm }) {
             self.selectedDistance = distanceStr
             self.originalDistance = distanceStr
         } else {
+            self.selectedDistance = "42.195" // 預設值
             self.originalDistance = "42.195" // 預設值
         }
         

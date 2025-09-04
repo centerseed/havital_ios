@@ -88,20 +88,20 @@ struct PersonalBestView: View {
         ZStack {
             Form {
                 Section(
-                    header: Text("您的跑步經驗").padding(.top, 10),
-                    footer: Text("告訴我們您最近或最快的跑步成績，能幫助 Havital 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。")
+                    header: Text(NSLocalizedString("onboarding.personal_best_title", comment: "Personal Best Title")).padding(.top, 10),
+                    footer: Text(NSLocalizedString("onboarding.personal_best_description", comment: "Personal Best Description"))
                 ) {
-                    Toggle("我有個人最佳成績", isOn: $viewModel.hasPersonalBest)
+                    Toggle(NSLocalizedString("onboarding.has_personal_best", comment: "Has Personal Best"), isOn: $viewModel.hasPersonalBest)
                 }
 
                 if viewModel.hasPersonalBest {
-                    Section(header: Text("最佳成績詳情")) {
-                        Text("請選擇您近期跑出最佳成績的距離與時間。")
+                    Section(header: Text(NSLocalizedString("onboarding.personal_best_details", comment: "Personal Best Details"))) {
+                        Text(NSLocalizedString("onboarding.select_distance_time", comment: "Select Distance and Time"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.bottom, 5)
                         
-                        Picker("選擇距離", selection: $viewModel.selectedDistance) {
+                        Picker(NSLocalizedString("onboarding.distance_selection", comment: "Distance Selection"), selection: $viewModel.selectedDistance) {
                             ForEach(Array(viewModel.availableDistances.keys.sorted(by: { Double($0)! < Double($1)! })), id: \.self) { key in
                                 Text(viewModel.availableDistances[key] ?? key)
                                     .tag(key)
@@ -110,42 +110,42 @@ struct PersonalBestView: View {
                         .pickerStyle(.menu)
                         
                         HStack {
-                            Picker("時", selection: $viewModel.targetHours) {
+                            Picker(NSLocalizedString("onboarding.time_hours", comment: "Hours"), selection: $viewModel.targetHours) {
                                 ForEach(0...6, id: \.self) { hour in
                                     Text("\(hour)")
                                 }
                             }
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
-                            Text("時")
+                            Text(NSLocalizedString("onboarding.time_hours", comment: "Hours"))
                             
-                            Picker("分", selection: $viewModel.targetMinutes) {
+                            Picker(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"), selection: $viewModel.targetMinutes) {
                                 ForEach(0...59, id: \.self) { minute in
                                     Text("\(minute)")
                                 }
                             }
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
-                            Text("分")
+                            Text(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"))
                         }
                         .padding(.vertical, 8)
                         
                         if !viewModel.currentPace.isEmpty {
                             HStack {
-                                Text("平均配速")
+                                Text(NSLocalizedString("onboarding.average_pace_calculation", comment: "Average Pace"))
                                 Spacer()
-                                Text("\(viewModel.currentPace) /公里")
+                                Text("\(viewModel.currentPace) \(NSLocalizedString("onboarding.per_kilometer", comment: "Per Kilometer"))")
                             }
                             .foregroundColor(.secondary)
                         } else if viewModel.hasPersonalBest && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0 {
-                            Text("請輸入有效的時間以計算配速。")
+                            Text(NSLocalizedString("onboarding.enter_valid_time", comment: "Enter Valid Time"))
                                 .font(.caption)
                                 .foregroundColor(.orange)
                         }
                     }
                 } else {
-                    Section(header: Text("跳過個人最佳成績")) {
-                        Text("沒問題！Paceriz 會根據您的訓練狀況調整課表強度")
+                    Section(header: Text(NSLocalizedString("onboarding.skip_personal_best", comment: "Skip Personal Best"))) {
+                        Text(NSLocalizedString("onboarding.skip_personal_best_message", comment: "Skip Personal Best Message"))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -168,14 +168,14 @@ struct PersonalBestView: View {
             }
             .hidden()
         }
-        .navigationTitle("個人最佳成績")
+        .navigationTitle(NSLocalizedString("onboarding.personal_best_title_nav", comment: "Personal Best"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) { // 返回按鈕
                 Button {
                     dismiss()
                 } label: {
-                    Text("返回")
+                    Text(NSLocalizedString("common.back", comment: "Back"))
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -188,7 +188,7 @@ struct PersonalBestView: View {
                         if viewModel.isLoading {
                             ProgressView()
                         } else {
-                            Text("下一步")
+                            Text(NSLocalizedString("onboarding.next", comment: "Next"))
                         }
                     }
                 }

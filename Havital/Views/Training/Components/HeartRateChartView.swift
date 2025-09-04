@@ -27,7 +27,7 @@ struct HeartRateChartView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("心率變化")
+                Text(L10n.HeartRateChart.title.localized)
                     .font(.headline)
                 
                 Spacer()
@@ -42,7 +42,7 @@ struct HeartRateChartView: View {
 
             if isLoading {
                 VStack {
-                    ProgressView("載入心率數據中...")
+                    ProgressView(L10n.HeartRateChart.loading.localized)
                 }
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
@@ -50,14 +50,14 @@ struct HeartRateChartView: View {
                 ContentUnavailableView(
                     error,
                     systemImage: "heart.slash",
-                    description: Text("請稍後再試")
+                    description: Text(L10n.HeartRateChart.tryAgain.localized)
                 )
                 .frame(height: 200)
             } else if heartRates.isEmpty {
                 ContentUnavailableView(
-                    "沒有心率數據",
+                    L10n.HeartRateChart.noData.localized,
                     systemImage: "heart.slash",
-                    description: Text("無法獲取此次訓練的心率數據")
+                    description: Text(L10n.HeartRateChart.unableToGetData.localized)
                 )
                 .frame(height: 200)
             } else {

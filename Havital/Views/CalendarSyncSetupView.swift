@@ -13,14 +13,14 @@ struct CalendarSyncSetupView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    Text("將訓練日同步到你的行事曆，幫助你更好地安排時間。")
+                    Text(L10n.CalendarSyncSetup.description.localized)
                         .foregroundStyle(.secondary)
                         .padding()
                     
-                    Picker("同步方式", selection: $selectedPreference) {
-                        Text("全天活動")
+                    Picker(L10n.CalendarSyncSetup.syncMethod.localized, selection: $selectedPreference) {
+                        Text(L10n.CalendarSyncSetup.allDay.localized)
                             .tag(CalendarManager.SyncPreference.allDay)
-                        Text("指定時間")
+                        Text(L10n.CalendarSyncSetup.specificTime.localized)
                             .tag(CalendarManager.SyncPreference.specificTime)
                     }
                     .pickerStyle(.segmented)
@@ -28,13 +28,13 @@ struct CalendarSyncSetupView: View {
                     
                     if selectedPreference == .specificTime {
                         VStack(alignment: .leading, spacing: 24) {
-                            Text("訓練時間")
+                            Text(L10n.CalendarSyncSetup.trainingTime.localized)
                                 .font(.headline)
                                 .padding(.horizontal)
                             
                             VStack(spacing: 16) {
                                 HStack {
-                                    Text("開始時間")
+                                    Text(L10n.CalendarSyncSetup.startTime.localized)
                                         .foregroundStyle(.secondary)
                                     Spacer()
                                     DatePicker("",
@@ -59,7 +59,7 @@ struct CalendarSyncSetupView: View {
                                 .padding(.horizontal)
                                 
                                 HStack {
-                                    Text("結束時間")
+                                    Text(L10n.CalendarSyncSetup.endTime.localized)
                                         .foregroundStyle(.secondary)
                                     Spacer()
                                     DatePicker("",
@@ -88,7 +88,7 @@ struct CalendarSyncSetupView: View {
                             .cornerRadius(10)
                             .padding(.horizontal)
                             
-                            Text("你可以之後在行事曆中調整時間")
+                            Text(L10n.CalendarSyncSetup.adjustNote.localized)
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal)
@@ -98,7 +98,7 @@ struct CalendarSyncSetupView: View {
                     Spacer()
                 }
             }
-            .navigationTitle("同步至行事曆")
+            .navigationTitle(L10n.CalendarSyncSetup.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -108,7 +108,7 @@ struct CalendarSyncSetupView: View {
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("開始同步") {
+                    Button(L10n.CalendarSyncSetup.startSync.localized) {
                         startSync()
                     }
                     .disabled(isLoading)
@@ -139,7 +139,7 @@ struct CalendarSyncSetupView: View {
                     }
                 } else {
                     await MainActor.run {
-                        error = "請在設定中允許 Havital 存取行事曆"
+                        error = L10n.CalendarSyncSetup.accessError.localized
                     }
                 }
             }

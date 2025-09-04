@@ -17,9 +17,17 @@ struct NextWeekPlanningView: View {
     @State private var showLoadingView = false
     
     enum DifficultyAdjustment: String, CaseIterable {
-        case decrease = "減少"
-        case keepTheSame = "維持不變"
-        case increase = "增加"
+        case decrease
+        case keepTheSame
+        case increase
+
+        var localizedString: String {
+            switch self {
+            case .decrease: return L10n.NextWeekPlanning.Adjustment.decrease.localized
+            case .keepTheSame: return L10n.NextWeekPlanning.Adjustment.keepSame.localized
+            case .increase: return L10n.NextWeekPlanning.Adjustment.increase.localized
+            }
+        }
         
         var jsonValue: String {
             switch self {
@@ -31,9 +39,17 @@ struct NextWeekPlanningView: View {
     }
 
     enum DaysAdjustment: String, CaseIterable {
-        case decrease = "減少"
-        case keepTheSame = "維持不變"
-        case increase = "增加"
+        case decrease
+        case keepTheSame
+        case increase
+
+        var localizedString: String {
+            switch self {
+            case .decrease: return L10n.NextWeekPlanning.Adjustment.decrease.localized
+            case .keepTheSame: return L10n.NextWeekPlanning.Adjustment.keepSame.localized
+            case .increase: return L10n.NextWeekPlanning.Adjustment.increase.localized
+            }
+        }
         
         var jsonValue: String {
             switch self {
@@ -45,9 +61,17 @@ struct NextWeekPlanningView: View {
     }
 
     enum TrainingItemAdjustment: String, CaseIterable {
-        case decrease = "減少"
-        case keepTheSame = "維持不變"
-        case increase = "增加"
+        case decrease
+        case keepTheSame
+        case increase
+
+        var localizedString: String {
+            switch self {
+            case .decrease: return L10n.NextWeekPlanning.Adjustment.decrease.localized
+            case .keepTheSame: return L10n.NextWeekPlanning.Adjustment.keepSame.localized
+            case .increase: return L10n.NextWeekPlanning.Adjustment.increase.localized
+            }
+        }
         
         var jsonValue: String {
             switch self {
@@ -64,41 +88,41 @@ struct NextWeekPlanningView: View {
         NavigationView {
             ZStack {
                 Form {
-                    Section(header: Text("本週訓練感受（0-最差，5-最佳）")) {
+                    Section(header: Text(L10n.NextWeekPlanning.weeklyFeeling.localized)) {
                         Stepper(value: $feelingRating, in: 1...5) {
                             HStack {
-                                Text("整體感受：")
+                                Text(L10n.NextWeekPlanning.overallFeeling.localized)
                                 Text(String(repeating: "⭐️", count: feelingRating))
                             }
                         }
                     }
                     
-                    Text("對於下週的訓練期望，Vita會依據實際情況做出調整，也可以自由的編輯新產生的運動計畫")
+                    Text(L10n.NextWeekPlanning.trainingExpectation.localized)
                         .font(.headline)
                         .foregroundColor(.primary)
                     
-                    Section(header: Text("難度調整")) {
-                        Picker("難度", selection: $difficultyAdjustment) {
+                    Section(header: Text(L10n.NextWeekPlanning.difficultyAdjustment.localized)) {
+                        Picker(L10n.NextWeekPlanning.difficultyAdjustment.localized, selection: $difficultyAdjustment) {
                             ForEach(DifficultyAdjustment.allCases, id: \.self) { type in
-                                Text(type.rawValue).tag(type)
+                                Text(type.localizedString).tag(type)
                             }
                         }
                         .pickerStyle(.segmented)
                     }
                     
-                    Section(header: Text("運動天數調整")) {
-                        Picker("運動天數", selection: $daysAdjustment) {
+                    Section(header: Text(L10n.NextWeekPlanning.daysAdjustment.localized)) {
+                        Picker(L10n.NextWeekPlanning.daysAdjustment.localized, selection: $daysAdjustment) {
                             ForEach(DaysAdjustment.allCases, id: \.self) { type in
-                                Text(type.rawValue).tag(type)
+                                Text(type.localizedString).tag(type)
                             }
                         }
                         .pickerStyle(.segmented)
                     }
                     
-                    Section(header: Text("運動項目變化調整")) {
-                        Picker("運動項目", selection: $trainingItemAdjustment) {
+                    Section(header: Text(L10n.NextWeekPlanning.trainingItemAdjustment.localized)) {
+                        Picker(L10n.NextWeekPlanning.trainingItemAdjustment.localized, selection: $trainingItemAdjustment) {
                             ForEach(TrainingItemAdjustment.allCases, id: \.self) { type in
-                                Text(type.rawValue).tag(type)
+                                Text(type.localizedString).tag(type)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -115,7 +139,7 @@ struct NextWeekPlanningView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle())
                             } else {
-                                Text("開始產生下次計劃")
+                                Text(L10n.NextWeekPlanning.startGenerating.localized)
                             }
                         }
                         .disabled(showLoadingView)
@@ -134,11 +158,11 @@ struct NextWeekPlanningView: View {
                         ProgressView()
                             .scaleEffect(1.5)
                         
-                        Text("Vita 正在為你產生訓練計劃...")
+                        Text(L10n.NextWeekPlanning.generatingPlan.localized)
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
-                        Text("請稍候")
+
+                        Text(L10n.NextWeekPlanning.pleaseWait.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -146,11 +170,11 @@ struct NextWeekPlanningView: View {
                     .background(Color(.systemBackground).opacity(0.9))
                 }
             }
-            .navigationTitle("下週計劃設定")
+            .navigationTitle(L10n.NextWeekPlanning.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(L10n.NextWeekPlanning.cancel.localized) {
                         dismiss()
                     }
                     .disabled(showLoadingView)

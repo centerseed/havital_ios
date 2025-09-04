@@ -11,7 +11,7 @@ struct SupportingRacesCard: View {
             VStack(alignment: .leading, spacing: 16) {
                 // 標題與添加按鈕
                 HStack {
-                    SectionHeader(title: "支援賽事", systemImage: "flag.2.crossed")
+                    SectionHeader(title: L10n.SupportingRacesCard.title.localized, systemImage: "flag.2.crossed")
                     
                     Spacer()
                     
@@ -26,7 +26,7 @@ struct SupportingRacesCard: View {
                 if supportingTargets.isEmpty {
                     HStack {
                         Spacer()
-                        Text("暫無支援賽事")
+                        Text(L10n.SupportingRacesCard.noRaces.localized)
                             .foregroundColor(.secondary)
                             .padding(.vertical, 8)
                         Spacer()
@@ -47,7 +47,7 @@ struct SupportingRacesCard: View {
                     // 分隔標題：之前的賽事
                     if !past.isEmpty {
                         Divider()
-                        Text("之前的賽事")
+                        Text(L10n.SupportingRacesCard.pastRaces.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.vertical, 4)
@@ -88,7 +88,7 @@ struct SupportingRaceRow: View {
                         .foregroundColor(.secondary)
                     
                     // 距離
-                    Text("\(target.distanceKm)公里")
+                    Text("\(target.distanceKm)" + L10n.SupportingRacesCard.kmUnit.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 6)
@@ -99,7 +99,7 @@ struct SupportingRaceRow: View {
                         )
                     
                     // 配速
-                    Text("\(target.targetPace)/km")
+                    Text("\(target.targetPace)" + L10n.SupportingRacesCard.paceUnit.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 6)
@@ -122,7 +122,7 @@ struct SupportingRaceRow: View {
                 } else {
                     let daysRemaining = TrainingDateUtils.calculateDaysRemaining(raceDate: target.raceDate)
                     if daysRemaining <= 30 {
-                        Text("剩餘 \(daysRemaining) 天")
+                        Text(L10n.SupportingRacesCard.daysRemaining.localized(with: daysRemaining))
                             .font(.caption)
                             .foregroundColor(daysRemaining <= 7 ? .red : .orange)
                             .padding(.top, 2)

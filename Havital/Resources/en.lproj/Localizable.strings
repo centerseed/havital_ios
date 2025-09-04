@@ -31,6 +31,7 @@
 "common.pause" = "Pause";
 "common.resume" = "Resume";
 "common.finish" = "Finish";
+"common.week_unit" = "week";
 
 // MARK: - Authentication
 "auth.welcome" = "Welcome to Havital";
@@ -44,6 +45,143 @@
 "auth.sign_up" = "Sign Up";
 "auth.login_failed" = "Login Failed";
 "auth.logout_confirm" = "Are you sure you want to log out?";
+"auth.register_title" = "Create Account";
+"auth.register" = "Register";
+"auth.register_failed" = "Registration Failed";
+"auth.register_success" = "Registration Successful";
+"auth.register_success_message" = "Please check your email and click the confirmation link to complete verification, then return here to log in.";
+"auth.verify_email_title" = "Verify Email";
+"auth.verify_code_placeholder" = "Verification Code (oobCode)";
+"auth.verify_email" = "Verify Email";
+"auth.verify_failed" = "Verification Failed";
+"auth.verify_success" = "Verification Successful";
+
+// MARK: - Calendar Sync Setup
+"calendar_sync_setup.title" = "Sync to Calendar";
+"calendar_sync_setup.description" = "Sync training days to your calendar to help you better schedule your time.";
+"calendar_sync_setup.sync_method" = "Sync Method";
+"calendar_sync_setup.all_day" = "All Day Event";
+"calendar_sync_setup.specific_time" = "Specific Time";
+"calendar_sync_setup.training_time" = "Training Time";
+"calendar_sync_setup.start_time" = "Start Time";
+"calendar_sync_setup.end_time" = "End Time";
+"calendar_sync_setup.adjust_note" = "You can adjust the time in the calendar later";
+"calendar_sync_setup.start_sync" = "Start Sync";
+"calendar_sync_setup.access_error" = "Please allow Havital to access Calendar in Settings";
+
+// MARK: - Edit Target View
+"edit_target.title" = "Edit Race Goal";
+"edit_target.race_info" = "Race Information";
+"edit_target.race_name" = "Race Name";
+"edit_target.race_date" = "Race Date";
+"edit_target.remaining_weeks" = "%d weeks until race";
+"edit_target.race_distance" = "Race Distance";
+"edit_target.select_distance" = "Select Distance";
+"edit_target.target_time" = "Target Finish Time";
+"edit_target.hours_unit" = "hr";
+"edit_target.minutes_unit" = "min";
+"edit_target.average_pace" = "Average Pace: %@ /km";
+"edit_target.distance_3k" = "3K";
+"edit_target.distance_5k" = "5K";
+"edit_target.distance_10k" = "10K";
+"edit_target.distance_15k" = "15K";
+"edit_target.distance_half" = "Half Marathon";
+"edit_target.distance_full" = "Full Marathon";
+"edit_target.add_title" = "Add Supporting Race";
+"edit_target.edit_title" = "Edit Supporting Race";
+"edit_target.delete_race" = "Delete Race";
+"edit_target.delete_confirm_title" = "Confirm Delete";
+"edit_target.delete_confirm_message" = "Are you sure you want to delete this supporting race? This action cannot be undone.";
+
+// MARK: - Weekly Distance Editor View
+"weekly_distance_editor.title" = "Edit Weekly Distance";
+"weekly_distance_editor.weekly_distance" = "Weekly Distance: %d km";
+"weekly_distance_editor.next_week_notice" = "Changes to weekly distance will take effect in next week's training plan";
+
+// MARK: - Training Item Detail View
+"training_item_detail.purpose" = "Purpose";
+"training_item_detail.benefits" = "Benefits";
+"training_item_detail.method" = "Method";
+"training_item_detail.precautions" = "Precautions";
+"training_item_detail.not_found" = "Unable to find explanation for this exercise";
+
+// MARK: - Training Progress View
+"training_progress.review" = "Review";
+"training_progress.schedule" = "Schedule";
+"training_progress.generate_schedule" = "Generate Schedule";
+
+// MARK: - Training Plan View
+"training_plan.cycle_completed" = "Training Cycle Completed";
+"training_plan.congratulations" = "Congratulations on completing this training cycle!";
+"training_plan.loading_schedule" = "Loading schedule...";
+
+// MARK: - Workout Summary Row
+"workout_summary_row.calculating_heart_rate" = "Calculating heart rate...";
+
+// MARK: - Next Week Planning View
+"next_week_planning.title" = "Next Week Planning";
+"next_week_planning.weekly_feeling" = "This week's training feeling (0-worst, 5-best)";
+"next_week_planning.overall_feeling" = "Overall feeling: ";
+"next_week_planning.training_expectation" = "For next week's training expectations, Vita will make adjustments based on actual conditions, and you can also freely edit the newly generated exercise plan";
+"next_week_planning.difficulty_adjustment" = "Difficulty Adjustment";
+"next_week_planning.days_adjustment" = "Training Days Adjustment";
+"next_week_planning.training_item_adjustment" = "Training Item Variation Adjustment";
+"next_week_planning.start_generating" = "Start Generating Next Plan";
+"next_week_planning.generating_plan" = "Vita is generating your training plan...";
+"next_week_planning.please_wait" = "Please wait";
+"next_week_planning.cancel" = "Cancel";
+"next_week_planning.adjustment.decrease" = "Decrease";
+"next_week_planning.adjustment.keep_same" = "Keep the same";
+"next_week_planning.adjustment.increase" = "Increase";
+
+// MARK: - Training Plan Overview View
+"training_plan_overview.title" = "Training Plan Overview";
+"training_plan_overview.target_evaluation" = "Goal Assessment";
+"training_plan_overview.training_method" = "Training Method";
+"training_plan_overview.training_stages" = "Training Stages";
+"training_plan_overview.week_range" = "Week %d-%d";
+"training_plan_overview.generate_plan" = "Generate Week %d Training Plan";
+"training_plan_overview.error_title" = "Error";
+"training_plan_overview.error_confirm" = "OK";
+
+// MARK: - Week Selector Sheet
+"week_selector.week_number" = "Week %d";
+"week_selector.review" = "Review";
+"week_selector.schedule" = "Schedule";
+"week_selector.close" = "Close";
+
+// MARK: - Pace Chart View
+"pace_chart.title" = "Pace Change";
+"pace_chart.unit" = "(min/km)";
+"pace_chart.loading" = "Loading pace data...";
+"pace_chart.try_again" = "Please try again later";
+"pace_chart.no_data" = "No pace data";
+"pace_chart.unable_to_get_data" = "Unable to get pace data for this workout";
+"pace_chart.fastest" = "Fastest:";
+"pace_chart.slowest" = "Slowest:";
+
+// MARK: - Heart Rate Chart View
+"heart_rate_chart.title" = "Heart Rate Change";
+"heart_rate_chart.loading" = "Loading heart rate data...";
+"heart_rate_chart.try_again" = "Please try again later";
+"heart_rate_chart.no_data" = "No heart rate data";
+"heart_rate_chart.unable_to_get_data" = "Unable to get heart rate data for this workout";
+
+// MARK: - Gait Analysis Chart View
+"gait_analysis_chart.title" = "Gait Analysis";
+"gait_analysis_chart.loading" = "Loading gait analysis data...";
+"gait_analysis_chart.try_again" = "Please try again later";
+"gait_analysis_chart.no_data" = "No gait data";
+"gait_analysis_chart.unable_to_get_data" = "Unable to get gait analysis data for this workout";
+"gait_analysis_chart.average" = "Average";
+"gait_analysis_chart.minimum" = "Minimum";
+"gait_analysis_chart.maximum" = "Maximum";
+"gait_analysis_chart.gait_tab.stance_time" = "Stance Time";
+"gait_analysis_chart.gait_tab.vertical_ratio" = "Vertical Ratio";
+"gait_analysis_chart.gait_tab.cadence" = "Cadence";
+"gait_analysis_chart.gait_tab.stance_time_description" = "Time when foot contacts the ground, shorter time indicates more efficient running form";
+"gait_analysis_chart.gait_tab.vertical_ratio_description" = "Ratio of vertical movement to total movement distance, lower ratio indicates better movement efficiency";
+"gait_analysis_chart.gait_tab.cadence_description" = "Steps per minute, ideal range is around 180";
 
 // MARK: - Onboarding
 "onboarding.welcome" = "Welcome to Havital";
@@ -539,6 +677,122 @@
 "distance.10k" = "10K"; 
 "distance.half_marathon" = "Half Marathon";
 "distance.full_marathon" = "Full Marathon";
+
+// MARK: - Target Race Examples
+"onboarding.target_race_example" = "Boston Marathon";
+
+// MARK: - Personal Best View
+"onboarding.personal_best_title" = "Your Running Experience";
+"onboarding.personal_best_description" = "Tell us your recent or fastest running performance to help Havital set more accurate initial training intensity. If you're unsure or don't have relevant experience, you can select 'I'm not sure about my personal best'.";
+"onboarding.has_personal_best" = "I have a personal best";
+"onboarding.personal_best_details" = "Personal Best Details";
+"onboarding.select_distance_time" = "Please select the distance and time of your recent best performance.";
+"onboarding.distance_selection" = "Select Distance";
+"onboarding.time_hours" = "hours";
+"onboarding.time_minutes" = "minutes";
+"onboarding.average_pace_calculation" = "Average Pace";
+"onboarding.per_kilometer" = "/km";
+"onboarding.enter_valid_time" = "Please enter a valid time to calculate pace.";
+"onboarding.skip_personal_best" = "Skip Personal Best";
+"onboarding.skip_personal_best_message" = "No problem! Paceriz will adjust training intensity based on your training progress.";
+"onboarding.personal_best_title_nav" = "Personal Best";
+"onboarding.next" = "Next";
+
+// MARK: - Training Days Setup
+"onboarding.training_days_title" = "Training Preferences";
+"onboarding.select_training_days" = "Select Your Convenient Training Days";
+"onboarding.training_days_description" = "Please select the days of the week when you can usually arrange running training. Paceriz will arrange different types of running schedules on these days based on your goals and fitness level. We recommend selecting at least %d days.";
+"onboarding.setup_long_run_day" = "Set Your Long Run Day";
+"onboarding.long_run_day_description" = "Long runs are key to building endurance. Please select one day from your chosen training days as your long run day. It's usually recommended to schedule it on weekends or days when you have more time for adequate recovery.";
+"onboarding.select_long_run_day" = "Select Long Run Day";
+"onboarding.long_run_day_must_be_training_day" = "Long run day must be one of your selected training days.";
+"onboarding.suggest_saturday_long_run" = "We recommend setting Saturday as your long run day for sufficient time for long-distance training.";
+"onboarding.save_preferences_preview" = "Save Preferences and Preview Plan";
+"onboarding.complete_setup_view_schedule" = "Complete Setup and View First Week Schedule";
+
+// MARK: - WeeklyDistanceSetupView (if it exists)
+"onboarding.weekly_distance_setup" = "Weekly Distance Setup";
+
+// MARK: - Loading Messages for Training Days
+"onboarding.analyzing_preferences" = "Analyzing your training preferences...";
+"onboarding.calculating_intensity" = "Calculating optimal training intensity...";
+"onboarding.almost_ready" = "Almost ready! Preparing your personalized schedule...";
+"onboarding.evaluating_goal" = "Evaluating your target event";
+"onboarding.calculating_training_intensity" = "Calculating training intensity";
+"onboarding.generating_overview" = "Generating training overview";
+
+// MARK: - Weekday Names for Training Days
+"onboarding.monday" = "Monday";
+"onboarding.tuesday" = "Tuesday";
+"onboarding.wednesday" = "Wednesday";
+"onboarding.thursday" = "Thursday";
+"onboarding.friday" = "Friday";
+"onboarding.saturday" = "Saturday";
+"onboarding.sunday" = "Sunday";
+
+// MARK: - Training Days Error Messages
+"onboarding.select_at_least_one_day" = "Please select at least one training day.";
+
+// MARK: - Weekly Distance Setup
+"onboarding.current_weekly_distance" = "Current Weekly Running Volume";
+"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Havital understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
+"onboarding.target_distance_label" = "Your target distance: %.1f km";
+"onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
+"onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
+"onboarding.km_label" = "%.0f km";
+"onboarding.weekly_distance_title" = "Your Weekly Running Volume";
+"onboarding.skip" = "Skip";
+"onboarding.back" = "Back";
+"onboarding.next_step" = "Next";
+
+// MARK: - Workout Row Component
+"workout_row.today" = "Today";
+"workout_row.synced" = "Synced";
+"workout_row.not_synced" = "Not Synced";
+"workout_row.distance" = "Distance";
+"workout_row.time" = "Time";
+"workout_row.calories" = "Calories";
+
+// MARK: - Circular Progress Component
+"circular_progress.week" = "Week";
+
+// MARK: - Target Race Card Component
+"target_race_card.target_finish_time" = "Target Finish Time";
+"target_race_card.target_pace" = "Target Pace";
+"target_race_card.per_kilometer" = "/km";
+
+// MARK: - Training Stage Card Component
+"training_stage_card.week_range" = "Week %d-%d";
+"training_stage_card.week_start" = "Week %d Starts";
+"training_stage_card.training_focus" = "Training Focus:";
+
+// MARK: - Lap Analysis View Component
+"lap_analysis_view.title" = "Lap Analysis";
+"lap_analysis_view.no_lap_data" = "No Lap Data";
+"lap_analysis_view.lap_column" = "Lap";
+"lap_analysis_view.distance_column" = "Distance";
+"lap_analysis_view.time_column" = "Time";
+"lap_analysis_view.pace_column" = "Pace";
+"lap_analysis_view.heart_rate_column" = "HR";
+
+// MARK: - App Loading View Component
+"app_loading_view.initialization_failed" = "Application initialization failed";
+"app_loading_view.check_connection" = "Please check your network connection and try again";
+"app_loading_view.restart" = "Restart";
+
+// MARK: - Supporting Races Card Component
+"supporting_races_card.title" = "Supporting Races";
+"supporting_races_card.no_races" = "No supporting races";
+"supporting_races_card.past_races" = "Past Races";
+"supporting_races_card.days_remaining" = "%d days remaining";
+"supporting_races_card.km_unit" = "km";
+"supporting_races_card.pace_unit" = "/km";
+
+// MARK: - Garmin Reconnection Alert Component
+"garmin_reconnection_alert.title" = "Garmin Account Needs Reconnection";
+"garmin_reconnection_alert.default_message" = "Your Garmin Connect™ account may have been linked to another account. Please reconnect to ensure data synchronization.";
+"garmin_reconnection_alert.reconnect_button" = "Reconnect Garmin";
+"garmin_reconnection_alert.remind_later_button" = "Remind Later";
 
 // MARK: - Heart Rate Zone Strings
 "hr_zone.settings" = "Heart Rate Zone Settings";

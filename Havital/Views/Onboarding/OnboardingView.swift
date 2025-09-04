@@ -78,7 +78,7 @@ struct OnboardingView: View {
         VStack {
             Form {
                 Section(header: Text(NSLocalizedString("onboarding.your_running_goal", comment: "Your Running Goal")), footer: Text(NSLocalizedString("onboarding.goal_description", comment: "Goal description"))) {
-                    TextField(NSLocalizedString("onboarding.goal_name_placeholder", comment: "Goal name placeholder"), text: $viewModel.raceName)
+                    TextField(NSLocalizedString("onboarding.target_race_example", comment: "Target race example"), text: $viewModel.raceName)
                         .textContentType(.name)
                     
                     DatePicker(NSLocalizedString("onboarding.goal_date", comment: "Goal Date"),

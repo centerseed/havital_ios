@@ -8,7 +8,7 @@ struct VerifyEmailView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            TextField("驗證碼 (oobCode)", text: $viewModel.code)
+            TextField(L10n.Auth.verifyCodePlaceholder.localized, text: $viewModel.code)
                 .autocapitalization(.none)
                 .padding()
                 .background(Color(.secondarySystemBackground))
@@ -18,10 +18,10 @@ struct VerifyEmailView: View {
                 Task {
                     await viewModel.verify()
                     if let error = viewModel.errorMessage {
-                        alertTitle = "驗證失敗"
+                        alertTitle = L10n.Auth.verifyFailed.localized
                         alertMessage = error
                     } else if let success = viewModel.successMessage {
-                        alertTitle = "驗證成功"
+                        alertTitle = L10n.Auth.verifySuccess.localized
                         alertMessage = success
                     }
                     showAlert = true
@@ -33,7 +33,7 @@ struct VerifyEmailView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("驗證 Email")
+                    Text(L10n.Auth.verifyEmail.localized)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(AppTheme.shared.primaryColor)
@@ -46,7 +46,7 @@ struct VerifyEmailView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("驗證 Email")
+        .navigationTitle(L10n.Auth.verifyEmailTitle.localized)
         .alert(alertTitle, isPresented: $showAlert) {
             Button("確定", role: .cancel) {}
         } message: {

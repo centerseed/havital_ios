@@ -46,7 +46,7 @@ struct ClickableCircularProgressView: View {
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     
-                    Text("週")
+                    Text(L10n.Common.weekUnit.localized)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }

@@ -31,6 +31,7 @@
 "common.pause" = "暫停";
 "common.resume" = "繼續";
 "common.finish" = "完成";
+"common.week_unit" = "週";
 
 // MARK: - Authentication
 "auth.welcome" = "歡迎使用 Havital";
@@ -44,6 +45,143 @@
 "auth.sign_up" = "註冊";
 "auth.login_failed" = "登入失敗";
 "auth.logout_confirm" = "確定要登出嗎？";
+"auth.register_title" = "註冊帳號";
+"auth.register" = "註冊";
+"auth.register_failed" = "註冊失敗";
+"auth.register_success" = "註冊成功";
+"auth.register_success_message" = "請至您的電子信箱點擊確認連結，完成驗證後返回此處登入。";
+"auth.verify_email_title" = "驗證 Email";
+"auth.verify_code_placeholder" = "驗證碼 (oobCode)";
+"auth.verify_email" = "驗證 Email";
+"auth.verify_failed" = "驗證失敗";
+"auth.verify_success" = "驗證成功";
+
+// MARK: - Calendar Sync Setup
+"calendar_sync_setup.title" = "同步至行事曆";
+"calendar_sync_setup.description" = "將訓練日同步到你的行事曆，幫助你更好地安排時間。";
+"calendar_sync_setup.sync_method" = "同步方式";
+"calendar_sync_setup.all_day" = "全天活動";
+"calendar_sync_setup.specific_time" = "指定時間";
+"calendar_sync_setup.training_time" = "訓練時間";
+"calendar_sync_setup.start_time" = "開始時間";
+"calendar_sync_setup.end_time" = "結束時間";
+"calendar_sync_setup.adjust_note" = "你可以之後在行事曆中調整時間";
+"calendar_sync_setup.start_sync" = "開始同步";
+"calendar_sync_setup.access_error" = "請在設定中允許 Havital 存取行事曆";
+
+// MARK: - Edit Target View
+"edit_target.title" = "編輯賽事目標";
+"edit_target.race_info" = "賽事資訊";
+"edit_target.race_name" = "賽事名稱";
+"edit_target.race_date" = "賽事日期";
+"edit_target.remaining_weeks" = "距離比賽還有 %d 週";
+"edit_target.race_distance" = "比賽距離";
+"edit_target.select_distance" = "選擇距離";
+"edit_target.target_time" = "目標完賽時間";
+"edit_target.hours_unit" = "時";
+"edit_target.minutes_unit" = "分";
+"edit_target.average_pace" = "平均配速：%@ /公里";
+"edit_target.distance_3k" = "3公里";
+"edit_target.distance_5k" = "5公里";
+"edit_target.distance_10k" = "10公里";
+"edit_target.distance_15k" = "15公里";
+"edit_target.distance_half" = "半程馬拉松";
+"edit_target.distance_full" = "全程馬拉松";
+"edit_target.add_title" = "添加支援賽事";
+"edit_target.edit_title" = "編輯支援賽事";
+"edit_target.delete_race" = "刪除賽事";
+"edit_target.delete_confirm_title" = "確認刪除";
+"edit_target.delete_confirm_message" = "確定要刪除這個支援賽事嗎？此操作無法復原。";
+
+// MARK: - Weekly Distance Editor View
+"weekly_distance_editor.title" = "編輯週跑量";
+"weekly_distance_editor.weekly_distance" = "週跑量：%d 公里";
+"weekly_distance_editor.next_week_notice" = "當週跑量的修改會在下一週的課表生效";
+
+// MARK: - Training Item Detail View
+"training_item_detail.purpose" = "目的";
+"training_item_detail.benefits" = "效果";
+"training_item_detail.method" = "實行方式";
+"training_item_detail.precautions" = "注意事項";
+"training_item_detail.not_found" = "無法找到該運動項目的說明";
+
+// MARK: - Training Progress View
+"training_progress.review" = "回顧";
+"training_progress.schedule" = "課表";
+"training_progress.generate_schedule" = "產生課表";
+
+// MARK: - Training Plan View
+"training_plan.cycle_completed" = "訓練週期已完成";
+"training_plan.congratulations" = "恭喜您完成這個訓練週期！";
+"training_plan.loading_schedule" = "課表載入中...";
+
+// MARK: - Workout Summary Row
+"workout_summary_row.calculating_heart_rate" = "心率計算中...";
+
+// MARK: - Next Week Planning View
+"next_week_planning.title" = "下週計劃設定";
+"next_week_planning.weekly_feeling" = "本週訓練感受（0-最差，5-最佳）";
+"next_week_planning.overall_feeling" = "整體感受：";
+"next_week_planning.training_expectation" = "對於下週的訓練期望，Vita會依據實際情況做出調整，也可以自由的編輯新產生的運動計畫";
+"next_week_planning.difficulty_adjustment" = "難度調整";
+"next_week_planning.days_adjustment" = "運動天數調整";
+"next_week_planning.training_item_adjustment" = "運動項目變化調整";
+"next_week_planning.start_generating" = "開始產生下次計劃";
+"next_week_planning.generating_plan" = "Vita 正在為你產生訓練計劃...";
+"next_week_planning.please_wait" = "請稍候";
+"next_week_planning.cancel" = "取消";
+"next_week_planning.adjustment.decrease" = "減少";
+"next_week_planning.adjustment.keep_same" = "維持不變";
+"next_week_planning.adjustment.increase" = "增加";
+
+// MARK: - Training Plan Overview View
+"training_plan_overview.title" = "訓練計劃總覽";
+"training_plan_overview.target_evaluation" = "目標評估";
+"training_plan_overview.training_method" = "訓練方法";
+"training_plan_overview.training_stages" = "訓練階段";
+"training_plan_overview.week_range" = "第%d-%d週";
+"training_plan_overview.generate_plan" = "產生第%d週訓練計劃";
+"training_plan_overview.error_title" = "錯誤";
+"training_plan_overview.error_confirm" = "確定";
+
+// MARK: - Week Selector Sheet
+"week_selector.week_number" = "第 %d 週";
+"week_selector.review" = "回顧";
+"week_selector.schedule" = "課表";
+"week_selector.close" = "關閉";
+
+// MARK: - Pace Chart View
+"pace_chart.title" = "配速變化";
+"pace_chart.unit" = "(分鐘/公里)";
+"pace_chart.loading" = "載入配速數據中...";
+"pace_chart.try_again" = "請稍後再試";
+"pace_chart.no_data" = "沒有配速數據";
+"pace_chart.unable_to_get_data" = "無法獲取此次訓練的配速數據";
+"pace_chart.fastest" = "最快:";
+"pace_chart.slowest" = "最慢:";
+
+// MARK: - Heart Rate Chart View
+"heart_rate_chart.title" = "心率變化";
+"heart_rate_chart.loading" = "載入心率數據中...";
+"heart_rate_chart.try_again" = "請稍後再試";
+"heart_rate_chart.no_data" = "沒有心率數據";
+"heart_rate_chart.unable_to_get_data" = "無法獲取此次訓練的心率數據";
+
+// MARK: - Gait Analysis Chart View
+"gait_analysis_chart.title" = "步態分析";
+"gait_analysis_chart.loading" = "載入步態分析數據中...";
+"gait_analysis_chart.try_again" = "請稍後再試";
+"gait_analysis_chart.no_data" = "沒有步態數據";
+"gait_analysis_chart.unable_to_get_data" = "無法獲取此次訓練的步態分析數據";
+"gait_analysis_chart.average" = "平均值";
+"gait_analysis_chart.minimum" = "最小值";
+"gait_analysis_chart.maximum" = "最大值";
+"gait_analysis_chart.gait_tab.stance_time" = "觸地時間";
+"gait_analysis_chart.gait_tab.vertical_ratio" = "移動效率";
+"gait_analysis_chart.gait_tab.cadence" = "步頻";
+"gait_analysis_chart.gait_tab.stance_time_description" = "腳部接觸地面的時間，越短代表跑姿越有效率";
+"gait_analysis_chart.gait_tab.vertical_ratio_description" = "垂直移動與總移動距離的比率，越低代表移動效率越好";
+"gait_analysis_chart.gait_tab.cadence_description" = "每分鐘步數，理想範圍約180左右";
 
 // MARK: - Onboarding
 "onboarding.welcome" = "歡迎來到 Havital";
@@ -539,6 +677,122 @@
 "distance.10k" = "10K"; 
 "distance.half_marathon" = "半程馬拉松";
 "distance.full_marathon" = "全程馬拉松";
+
+// MARK: - Target Race Examples
+"onboarding.target_race_example" = "台北馬拉松";
+
+// MARK: - Personal Best View
+"onboarding.personal_best_title" = "您的跑步經驗";
+"onboarding.personal_best_description" = "告訴我們您最近或最快的跑步成績，能幫助 Havital 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。";
+"onboarding.has_personal_best" = "我有個人最佳成績";
+"onboarding.personal_best_details" = "最佳成績詳情";
+"onboarding.select_distance_time" = "請選擇您近期跑出最佳成績的距離與時間。";
+"onboarding.distance_selection" = "選擇距離";
+"onboarding.time_hours" = "時";
+"onboarding.time_minutes" = "分";
+"onboarding.average_pace_calculation" = "平均配速";
+"onboarding.per_kilometer" = "/公里";
+"onboarding.enter_valid_time" = "請輸入有效的時間以計算配速。";
+"onboarding.skip_personal_best" = "跳過個人最佳成績";
+"onboarding.skip_personal_best_message" = "沒問題！Paceriz 會根據您的訓練狀況調整課表強度";
+"onboarding.personal_best_title_nav" = "個人最佳成績";
+"onboarding.next" = "下一步";
+
+// MARK: - Training Days Setup
+"onboarding.training_days_title" = "訓練偏好設定";
+"onboarding.select_training_days" = "選擇您方便的訓練日";
+"onboarding.training_days_description" = "請選擇您一週內通常可以安排跑步訓練的日子。Paceriz會根據您的目標和體能狀況，在這些日子裡安排不同類型的跑步課表。建議至少選擇 %d 天。";
+"onboarding.setup_long_run_day" = "設定您的長跑日";
+"onboarding.long_run_day_description" = "長跑是提升耐力的關鍵。請從您選擇的訓練日中挑選一天作為長跑日。通常建議安排在週末或您有較充裕時間的日子，以便身體有足夠時間恢復。";
+"onboarding.select_long_run_day" = "選擇長跑日";
+"onboarding.long_run_day_must_be_training_day" = "長跑日必須是您選擇的訓練日之一。";
+"onboarding.suggest_saturday_long_run" = "建議將週六設為長跑日，以便有充分時間進行長距離訓練。";
+"onboarding.save_preferences_preview" = "儲存偏好並預覽計畫";
+"onboarding.complete_setup_view_schedule" = "完成設定並查看第一週課表";
+
+// MARK: - WeeklyDistanceSetupView (if it exists)
+"onboarding.weekly_distance_setup" = "週跑量設定";
+
+// MARK: - Loading Messages for Training Days
+"onboarding.analyzing_preferences" = "正在分析您的訓練偏好...";
+"onboarding.calculating_intensity" = "正在計算最佳訓練強度中...";
+"onboarding.almost_ready" = "就要完成了！正在為您準備專屬課表...";
+"onboarding.evaluating_goal" = "正在評估您的目標賽事";
+"onboarding.calculating_training_intensity" = "正在計算訓練強度";
+"onboarding.generating_overview" = "產生訓練概覽中";
+
+// MARK: - Weekday Names for Training Days
+"onboarding.monday" = "週一";
+"onboarding.tuesday" = "週二";
+"onboarding.wednesday" = "週三";
+"onboarding.thursday" = "週四";
+"onboarding.friday" = "週五";
+"onboarding.saturday" = "週六";
+"onboarding.sunday" = "週日";
+
+// MARK: - Training Days Error Messages
+"onboarding.select_at_least_one_day" = "請至少選擇一個訓練日。";
+
+// MARK: - Weekly Distance Setup
+"onboarding.current_weekly_distance" = "目前每週跑步量";
+"onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Havital 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
+"onboarding.target_distance_label" = "您的目標距離：%.1f 公里";
+"onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
+"onboarding.weekly_volume_label" = "本週跑量：%.0f 公里";
+"onboarding.km_label" = "%.0f 公里";
+"onboarding.weekly_distance_title" = "您的週跑量";
+"onboarding.skip" = "略過";
+"onboarding.back" = "返回";
+"onboarding.next_step" = "下一步";
+
+// MARK: - Workout Row Component
+"workout_row.today" = "今天";
+"workout_row.synced" = "已同步";
+"workout_row.not_synced" = "未同步";
+"workout_row.distance" = "距離";
+"workout_row.time" = "時間";
+"workout_row.calories" = "卡路里";
+
+// MARK: - Circular Progress Component
+"circular_progress.week" = "週";
+
+// MARK: - Target Race Card Component
+"target_race_card.target_finish_time" = "目標完賽時間";
+"target_race_card.target_pace" = "目標配速";
+"target_race_card.per_kilometer" = "/公里";
+
+// MARK: - Training Stage Card Component
+"training_stage_card.week_range" = "第%d-%d週";
+"training_stage_card.week_start" = "第%d週開始";
+"training_stage_card.training_focus" = "重點訓練:";
+
+// MARK: - Lap Analysis View Component
+"lap_analysis_view.title" = "圈速分析";
+"lap_analysis_view.no_lap_data" = "無圈速數據";
+"lap_analysis_view.lap_column" = "圈";
+"lap_analysis_view.distance_column" = "距離";
+"lap_analysis_view.time_column" = "時間";
+"lap_analysis_view.pace_column" = "配速";
+"lap_analysis_view.heart_rate_column" = "心率";
+
+// MARK: - App Loading View Component
+"app_loading_view.initialization_failed" = "應用程式初始化失敗";
+"app_loading_view.check_connection" = "請確認網路連線正常，然後重新嘗試";
+"app_loading_view.restart" = "重新啟動";
+
+// MARK: - Supporting Races Card Component
+"supporting_races_card.title" = "支援賽事";
+"supporting_races_card.no_races" = "暫無支援賽事";
+"supporting_races_card.past_races" = "之前的賽事";
+"supporting_races_card.days_remaining" = "剩餘 %d 天";
+"supporting_races_card.km_unit" = "公里";
+"supporting_races_card.pace_unit" = "/km";
+
+// MARK: - Garmin Reconnection Alert Component
+"garmin_reconnection_alert.title" = "Garmin 帳號需要重新綁定";
+"garmin_reconnection_alert.default_message" = "您的 Garmin Connect™ 帳號可能被其他帳號綁定，請重新綁定以確保數據正常同步。";
+"garmin_reconnection_alert.reconnect_button" = "重新綁定 Garmin";
+"garmin_reconnection_alert.remind_later_button" = "稍後提醒";
 
 // MARK: - Heart Rate Zone Strings
 "hr_zone.settings" = "心率區間設定";
