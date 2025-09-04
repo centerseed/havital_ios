@@ -470,6 +470,10 @@
 "language.ja-JP" = "日本語";
 "language.change_confirm" = "言語変更後、アプリは自動的に再起動されます。続行しますか？";
 "language.changed" = "言語が変更されました";
+"language.restart_message" = "言語変更を適用するために、アプリが再起動されます。";
+"language.sync_message" = "言語設定はアカウントに同期されます。";
+"language.metric_only_message" = "現在、メートル法単位（km、min/km）のみがサポートされています。";
+"language.restart_required_message" = "言語変更にはアプリの再起動が必要です。";
 
 // MARK: - Errors
 "error.network" = "ネットワーク接続エラー";
@@ -673,8 +677,10 @@
 "onboarding.target_created" = "トレーニング目標が作成されました";
 
 // MARK: - Distance Labels
-"distance.5k" = "5K";
-"distance.10k" = "10K"; 
+"distance.3k" = "3 km";
+"distance.5k" = "5 km";
+"distance.10k" = "10 km";
+"distance.15k" = "15 km";
 "distance.half_marathon" = "ハーフマラソン";
 "distance.full_marathon" = "フルマラソン";
 
@@ -757,9 +763,20 @@
 "circular_progress.week" = "週";
 
 // MARK: - Target Race Card Component
+"target_race_card.title" = "目標レース";
 "target_race_card.target_finish_time" = "目標完走時間";
 "target_race_card.target_pace" = "目標ペース";
 "target_race_card.per_kilometer" = "/km";
+"target_race_card.days_unit" = "日";
+"target_race_card.distance_unit" = "km";
+
+// MARK: - Goal Wheel Component
+"goal_wheel.target_heart_rate" = "目標心拍数";
+"goal_wheel.target_pace" = "目標ペース";
+"goal_wheel.per_kilometer" = "/km";
+"goal_wheel.bpm" = "bpm";
+"goal_wheel.done" = "完了";
+"goal_wheel.cancel" = "キャンセル";
 
 // MARK: - Training Stage Card Component
 "training_stage_card.week_range" = "第%d-%d週";
@@ -819,6 +836,8 @@
 "hr_zone.resting_hr_range" = "安静時心拍数は30-120 bpmの間にしてください";
 "hr_zone.save_failed" = "保存に失敗しました：%@";
 "hr_zone.understand" = "理解しました";
+"hr_zone.max_heart_rate_display" = "最大心拍数";
+"hr_zone.resting_heart_rate_display" = "安静時心拍数";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "一般的なトレーニング日を選択";

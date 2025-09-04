@@ -19,8 +19,15 @@ struct TrainingRecordView: View {
                     workoutList
                 }
             }
-            .navigationTitle(NSLocalizedString("record.title", comment: "Training Log"))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(NSLocalizedString("record.title", comment: "Training Log"))
+                        .font(.title3)
+                        .foregroundColor(.primary)
+                }
+
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showInfoSheet = true
@@ -47,15 +54,19 @@ struct TrainingRecordView: View {
     }
     
     private var workoutList: some View {
-        List {
-            ForEach(viewModel.workouts, id: \.id) { workout in
-                workoutRowWithPagination(workout)
+        VStack(spacing: 0) {
+            List {
+                ForEach(viewModel.workouts, id: \.id) { workout in
+                    workoutRowWithPagination(workout)
+                }
+
+                loadMoreIndicator
             }
-            
-            loadMoreIndicator
-        }
-        .overlay {
-            emptyStateView
+            .listStyle(.plain)
+            .padding(.top, 0)
+            .overlay {
+                emptyStateView
+            }
         }
         .alert(NSLocalizedString("error.load_failed", comment: "Load Error"), isPresented: errorBinding) {
             Button(NSLocalizedString("common.confirm", comment: "Confirm")) {
@@ -93,11 +104,14 @@ struct TrainingRecordView: View {
     @ViewBuilder
     private var emptyStateView: some View {
         if viewModel.workouts.isEmpty && !viewModel.isLoading {
-            ContentUnavailableView(
-                NSLocalizedString("record.no_records", comment: "No Training Records"),
-                systemImage: "figure.run",
-                description: Text(NSLocalizedString("record.no_records_description", comment: "No workout records available, they will appear here after you start exercising"))
-            )
+            VStack {
+                ContentUnavailableView(
+                    NSLocalizedString("record.no_records", comment: "No Training Records"),
+                    systemImage: "figure.run",
+                    description: Text(NSLocalizedString("record.no_records_description", comment: "No workout records available, they will appear here after you start exercising"))
+                )
+                Spacer()
+            }
         }
     }
     

@@ -80,25 +80,25 @@ struct WeeklyDistanceSetupView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.bottom, 5)
-                
+
                 Text(NSLocalizedString("onboarding.adjust_weekly_volume", comment: "Adjust Weekly Volume"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.bottom, 10)
-                
+
                 // Slider 的最大值可以基於目標距離動態調整，例如目標的1.5倍到2倍，但至少有一個合理的上限
                 let sliderMaxDistance = max(viewModel.targetDistance * 1.5, 50.0) // 例如上限50km或目標的1.5倍
-                
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text(String(format: NSLocalizedString("onboarding.weekly_volume_label", comment: "Weekly Volume Label"), viewModel.weeklyDistance))
                         .fontWeight(.medium)
-                    
+
                     Slider(
                         value: $viewModel.weeklyDistance,
                         in: viewModel.minimumWeeklyDistance...sliderMaxDistance, // 從 ViewModel 取最小跑量
                         step: 1
                     )
-                    
+
                     HStack {
                         Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), viewModel.minimumWeeklyDistance))
                             .font(.caption)

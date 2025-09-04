@@ -2,15 +2,15 @@ import SwiftUI
 
 struct TargetRaceCard: View {
     let target: Target
-    let onEditTap: () -> Void  // 添加一個回調函數
+    let onEditTap: () -> Void  // Add a callback function
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         SectionCard {
             VStack(alignment: .leading, spacing: 16) {
-                // 標題與編輯按鈕
+                // Title and edit button
                 HStack {
-                    SectionHeader(title: "目標賽事", systemImage: "flag.filled.and.flag.crossed")
+                    SectionHeader(title: NSLocalizedString("target_race_card.title", comment: "Target Race"), systemImage: "flag.filled.and.flag.crossed")
                     
                     Spacer()
                     
@@ -22,9 +22,9 @@ struct TargetRaceCard: View {
                     }
                 }
                 
-                // 賽事基本資訊
+                // Race basic information
                 VStack(alignment: .leading, spacing: 10) {
-                    // 名稱
+                    // Name
                     HStack(alignment: .center, spacing: 12) {
                         Text(target.name)
                             .font(.title3)
@@ -32,9 +32,9 @@ struct TargetRaceCard: View {
                         
                         Spacer()
                         
-                        // 計算賽事日期距今天數
+                        // Calculate days remaining until race date
                         let daysRemaining = TrainingDateUtils.calculateDaysRemaining(raceDate: target.raceDate)
-                        Text("\(daysRemaining)天")
+                        Text("\(daysRemaining) \(NSLocalizedString("target_race_card.days_unit", comment: "Days Unit"))")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .padding(.horizontal, 10)
@@ -45,9 +45,9 @@ struct TargetRaceCard: View {
                             )
                     }
                     
-                    // 日期、距離和倒數天數在同一行
+                    // Date, distance and countdown days in same row
                     HStack(alignment: .center, spacing: 12) {
-                        // 日期
+                        // Date
                         HStack {
                             Image(systemName: "calendar")
                                 .foregroundColor(.blue)
@@ -57,9 +57,9 @@ struct TargetRaceCard: View {
                         }
                         
                         Spacer()
-                        
-                        // 距離
-                        Text("\(target.distanceKm) 公里")
+
+                        // Distance
+                        Text("\(target.distanceKm) \(NSLocalizedString("target_race_card.distance_unit", comment: "Distance Unit"))")
                             .font(.subheadline)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
@@ -70,7 +70,7 @@ struct TargetRaceCard: View {
                         
                     }
                     
-                    // 目標完賽時間與配速
+                    // Target finish time and pace
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(NSLocalizedString("target_race_card.target_finish_time", comment: "Target Finish Time"))
@@ -103,17 +103,17 @@ struct TargetRaceCard: View {
         }
     }
 
-    // 格式化日期
+    // Format date
     private func formatDate(_ timestamp: Int) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let formatter = DateFormatter()
         formatter.dateStyle = .long
         formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "zh_TW")
+        formatter.locale = Locale.current
         return formatter.string(from: date)
     }
     
-    // 格式化時間
+    // Format time
     private func formatTime(_ seconds: Int) -> String {
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60

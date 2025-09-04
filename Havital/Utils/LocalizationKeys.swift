@@ -90,12 +90,12 @@ enum L10n {
         static let hoursUnit = "edit_target.hours_unit" // "時"
         static let minutesUnit = "edit_target.minutes_unit" // "分"
         static let averagePace = "edit_target.average_pace" // "平均配速：%@ /公里"
-        static let distance3k = "edit_target.distance_3k" // "3公里"
-        static let distance5k = "edit_target.distance_5k" // "5公里"
-        static let distance10k = "edit_target.distance_10k" // "10公里"
-        static let distance15k = "edit_target.distance_15k" // "15公里"
-        static let distanceHalf = "edit_target.distance_half" // "半程馬拉松"
-        static let distanceFull = "edit_target.distance_full" // "全程馬拉松"
+        static let distance3k = "distance.3k" // "3公里"
+        static let distance5k = "distance.5k" // "5公里"
+        static let distance10k = "distance.10k" // "10公里"
+        static let distance15k = "distance.15k" // "15公里"
+        static let distanceHalf = "distance.half_marathon" // "半程馬拉松"
+        static let distanceFull = "distance.full_marathon" // "全程馬拉松"
         static let addTitle = "edit_target.add_title" // "添加支援賽事"
         static let editTitle = "edit_target.edit_title" // "編輯支援賽事"
         static let deleteRace = "edit_target.delete_race" // "刪除賽事"
@@ -308,6 +308,18 @@ enum GaitAnalysisChart {
         static let friday = "onboarding.friday"
         static let saturday = "onboarding.saturday"
         static let sunday = "onboarding.sunday"
+
+        // Weekly Distance Setup
+        static let currentWeeklyDistance = "onboarding.current_weekly_distance"
+        static let weeklyDistanceDescription = "onboarding.weekly_distance_description"
+        static let targetDistanceLabel = "onboarding.target_distance_label"
+        static let adjustWeeklyVolume = "onboarding.adjust_weekly_volume"
+        static let weeklyVolumeLabel = "onboarding.weekly_volume_label"
+        static let kmLabel = "onboarding.km_label"
+        static let weeklyDistanceTitle = "onboarding.weekly_distance_title"
+        static let skip = "onboarding.skip"
+        static let back = "onboarding.back"
+        static let nextStep = "onboarding.next_step"
     }
     
     // MARK: - Workout Row Component
@@ -327,9 +339,22 @@ enum GaitAnalysisChart {
     
     // MARK: - Target Race Card Component
     enum TargetRaceCard {
+        static let title = "target_race_card.title"
         static let targetFinishTime = "target_race_card.target_finish_time"
         static let targetPace = "target_race_card.target_pace"
         static let perKilometer = "target_race_card.per_kilometer"
+        static let daysUnit = "target_race_card.days_unit"
+        static let distanceUnit = "target_race_card.distance_unit"
+    }
+
+    // MARK: - Goal Wheel Component
+    enum GoalWheel {
+        static let targetHeartRate = "goal_wheel.target_heart_rate"
+        static let targetPace = "goal_wheel.target_pace"
+        static let perKilometer = "goal_wheel.per_kilometer"
+        static let bpm = "goal_wheel.bpm"
+        static let done = "goal_wheel.done"
+        static let cancel = "goal_wheel.cancel"
     }
     
     // MARK: - Training Stage Card Component
@@ -749,6 +774,10 @@ enum GaitAnalysisChart {
         static let jaJP = "language.ja-JP"
         static let changeConfirm = "language.change_confirm"
         static let changed = "language.changed"
+        static let restartMessage = "language.restart_message"
+        static let syncMessage = "language.sync_message"
+        static let metricOnlyMessage = "language.metric_only_message"
+        static let restartRequiredMessage = "language.restart_required_message"
     }
     
     // MARK: - Errors
@@ -821,6 +850,37 @@ enum GaitAnalysisChart {
         static let sun = "date.sun"
     }
     
+    // MARK: - Heart Rate Zone
+    enum HeartRateZone {
+        static let settings = "hr_zone.settings"
+        static let description = "hr_zone.description"
+        static let currentSettings = "hr_zone.current_settings"
+        static let maxHr = "hr_zone.max_hr"
+        static let maxHrPlaceholder = "hr_zone.max_hr_placeholder"
+        static let restingHr = "hr_zone.resting_hr"
+        static let restingHrPlaceholder = "hr_zone.resting_hr_placeholder"
+        static let preview = "hr_zone.preview"
+        static let zone = "hr_zone.zone"
+        static let saveSettings = "hr_zone.save_settings"
+        static let info = "hr_zone.info"
+        static let details = "hr_zone.details"
+        static let loading = "hr_zone.loading"
+        static let benefit = "hr_zone.benefit"
+        static let maxHrInfoTitle = "hr_zone.max_hr_info_title"
+        static let maxHrInfoMessage = "hr_zone.max_hr_info_message"
+        static let restingHrInfoTitle = "hr_zone.resting_hr_info_title"
+        static let restingHrInfoMessage = "hr_zone.resting_hr_info_message"
+        static let invalidInput = "hr_zone.invalid_input"
+        static let maxGreaterThanResting = "hr_zone.max_greater_than_resting"
+        static let maxHrRange = "hr_zone.max_hr_range"
+        static let restingHrRange = "hr_zone.resting_hr_range"
+        static let saveFailed = "hr_zone.save_failed"
+        static let understand = "hr_zone.understand"
+        // Additional keys for HeartRateZoneInfoView
+        static let maxHeartRateDisplay = "hr_zone.max_heart_rate_display"
+        static let restingHeartRateDisplay = "hr_zone.resting_heart_rate_display"
+    }
+
     // MARK: - Alerts & Confirmations
     enum Alert {
         static let unsavedChanges = "alert.unsaved_changes"
