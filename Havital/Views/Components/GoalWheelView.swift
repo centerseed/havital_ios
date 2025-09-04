@@ -63,7 +63,7 @@ struct GoalWheelView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text(goalType == "heart_rate" ? "目標心率" : "目標配速")
+            Text(goalType == "heart_rate" ? NSLocalizedString("goal_wheel.target_heart_rate", comment: "Target Heart Rate") : NSLocalizedString("goal_wheel.target_pace", comment: "Target Pace"))
                 .font(.title2)
             
             Picker("", selection: $value) {
@@ -80,9 +80,9 @@ struct GoalWheelView: View {
             }
             
             if goalType == "pace" {
-                Text("/公里")
+                Text(NSLocalizedString("goal_wheel.per_kilometer", comment: "Per Kilometer"))
             } else if goalType == "heart_rate" {
-                Text("bpm")
+                Text(NSLocalizedString("goal_wheel.bpm", comment: "BPM"))
             }
             
             Spacer()
@@ -91,19 +91,19 @@ struct GoalWheelView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("完成") {
+                Button(NSLocalizedString("goal_wheel.done", comment: "Done")) {
                     dismiss()
                 }
             }
             
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("取消") {
+                Button(NSLocalizedString("goal_wheel.cancel", comment: "Cancel")) {
                     dismiss()
                 }
             }
         }
         .task {
-            // 確保初始值在有效範圍內
+            // Ensure initial value is within valid range
             if !wheelValues.contains(value) {
                 value = wheelValues[wheelValues.count / 2]
             }

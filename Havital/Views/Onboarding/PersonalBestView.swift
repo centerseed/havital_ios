@@ -11,12 +11,12 @@ class PersonalBestViewModel: ObservableObject {
     @Published var hasPersonalBest = true // 是否有個人最佳成績
     
     let targetDistance: Double // 從 OnboardingView 傳入的目標賽事距離
-    let availableDistances = [
-        "3": "3公里",
-        "5": "5公里",
-        "10": "10公里",
-        "21.0975": "半程馬拉松",
-        "42.195": "全程馬拉松"
+    let availableDistances: [String: String] = [
+        "3": NSLocalizedString("distance.3k", comment: "3K"),
+        "5": NSLocalizedString("distance.5k", comment: "5K"),
+        "10": NSLocalizedString("distance.10k", comment: "10K"),
+        "21.0975": NSLocalizedString("distance.half_marathon", comment: "Half Marathon"),
+        "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
     ]
     
     init(targetDistance: Double) {

@@ -470,6 +470,10 @@
 "language.ja-JP" = "日本語";
 "language.change_confirm" = "The app will automatically restart after changing the language. Do you want to continue?";
 "language.changed" = "Language Changed";
+"language.restart_message" = "The app will restart to apply the language change.";
+"language.sync_message" = "Language preference will be synced with your account.";
+"language.metric_only_message" = "Currently only metric units (km, min/km) are supported.";
+"language.restart_required_message" = "Changing the language requires app restart.";
 
 // MARK: - Errors
 "error.network" = "Network Connection Error";
@@ -673,8 +677,10 @@
 "onboarding.target_created" = "Training goal created";
 
 // MARK: - Distance Labels
-"distance.5k" = "5K";
-"distance.10k" = "10K"; 
+"distance.3k" = "3 km";
+"distance.5k" = "5 km";
+"distance.10k" = "10 km";
+"distance.15k" = "15 km";
 "distance.half_marathon" = "Half Marathon";
 "distance.full_marathon" = "Full Marathon";
 
@@ -757,9 +763,20 @@
 "circular_progress.week" = "Week";
 
 // MARK: - Target Race Card Component
+"target_race_card.title" = "Target Race";
 "target_race_card.target_finish_time" = "Target Finish Time";
 "target_race_card.target_pace" = "Target Pace";
 "target_race_card.per_kilometer" = "/km";
+"target_race_card.days_unit" = "days";
+"target_race_card.distance_unit" = "km";
+
+// MARK: - Goal Wheel Component
+"goal_wheel.target_heart_rate" = "Target Heart Rate";
+"goal_wheel.target_pace" = "Target Pace";
+"goal_wheel.per_kilometer" = "/km";
+"goal_wheel.bpm" = "bpm";
+"goal_wheel.done" = "Done";
+"goal_wheel.cancel" = "Cancel";
 
 // MARK: - Training Stage Card Component
 "training_stage_card.week_range" = "Week %d-%d";
@@ -819,6 +836,8 @@
 "hr_zone.resting_hr_range" = "Resting heart rate should be between 30-120 bpm";
 "hr_zone.save_failed" = "Save failed: %@";
 "hr_zone.understand" = "Understand";
+"hr_zone.max_heart_rate_display" = "Max Heart Rate";
+"hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "Select General Training Days";

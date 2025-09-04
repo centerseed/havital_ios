@@ -470,6 +470,10 @@
 "language.ja-JP" = "日本語";
 "language.change_confirm" = "更改語言後應用程式會自動重新啟動，確定要繼續嗎？";
 "language.changed" = "語言已更改";
+"language.restart_message" = "應用程式將重新啟動以應用語言變更。";
+"language.sync_message" = "語言偏好設定將與您的帳號同步。";
+"language.metric_only_message" = "目前僅支援公制單位 (公里，分鐘/公里)。";
+"language.restart_required_message" = "更改語言需要重新啟動應用程式。";
 
 // MARK: - Errors
 "error.network" = "網路連線錯誤";
@@ -673,8 +677,10 @@
 "onboarding.target_created" = "訓練目標已建立";
 
 // MARK: - Distance Labels
-"distance.5k" = "5K";
-"distance.10k" = "10K"; 
+"distance.3k" = "3公里";
+"distance.5k" = "5公里";
+"distance.10k" = "10公里";
+"distance.15k" = "15公里";
 "distance.half_marathon" = "半程馬拉松";
 "distance.full_marathon" = "全程馬拉松";
 
@@ -757,9 +763,20 @@
 "circular_progress.week" = "週";
 
 // MARK: - Target Race Card Component
+"target_race_card.title" = "目標賽事";
 "target_race_card.target_finish_time" = "目標完賽時間";
 "target_race_card.target_pace" = "目標配速";
 "target_race_card.per_kilometer" = "/公里";
+"target_race_card.days_unit" = "天";
+"target_race_card.distance_unit" = "公里";
+
+// MARK: - Goal Wheel Component
+"goal_wheel.target_heart_rate" = "目標心率";
+"goal_wheel.target_pace" = "目標配速";
+"goal_wheel.per_kilometer" = "/公里";
+"goal_wheel.bpm" = "bpm";
+"goal_wheel.done" = "完成";
+"goal_wheel.cancel" = "取消";
 
 // MARK: - Training Stage Card Component
 "training_stage_card.week_range" = "第%d-%d週";
@@ -819,6 +836,8 @@
 "hr_zone.resting_hr_range" = "安靜心率應介於 30-120 次/分";
 "hr_zone.save_failed" = "儲存失敗：%@";
 "hr_zone.understand" = "了解";
+"hr_zone.max_heart_rate_display" = "最大心率";
+"hr_zone.resting_heart_rate_display" = "靜息心率";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "選擇一般訓練日";

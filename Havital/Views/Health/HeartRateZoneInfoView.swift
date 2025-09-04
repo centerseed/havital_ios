@@ -19,14 +19,14 @@ struct HeartRateZoneInfoView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // 說明文字
+                    // Description text
                     Text(NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .padding(.horizontal)
                         .padding(.top)
                     
-                    // 心率設定資訊
+                    // Heart rate settings information
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(NSLocalizedString("hr_zone.current_settings", comment: "Current Settings"))
@@ -36,7 +36,7 @@ struct HeartRateZoneInfoView: View {
                             
                             Button(isEditing ? NSLocalizedString("common.cancel", comment: "Cancel") : NSLocalizedString("common.edit", comment: "Edit")) {
                                 if isEditing {
-                                    // 取消編輯，恢復原始值
+                                    // Cancel editing, restore original values
                                     loadCurrentValues()
                                 }
                                 isEditing.toggle()
@@ -46,7 +46,7 @@ struct HeartRateZoneInfoView: View {
                         .padding(.horizontal)
                         
                         if isEditing {
-                            // 編輯模式
+                            // Edit mode
                             VStack(spacing: 12) {
                                 HStack {
                                     Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
@@ -97,9 +97,9 @@ struct HeartRateZoneInfoView: View {
                                 .padding(.horizontal)
                             }
                         } else {
-                            // 顯示模式
+                            // Display mode
                             HStack {
-                                Text("最大心率")
+                                Text(NSLocalizedString("hr_zone.max_heart_rate_display", comment: "Max Heart Rate"))
                                     .font(.subheadline)
                                 Spacer()
                                 Text("\(maxHeartRate) bpm")
@@ -107,9 +107,9 @@ struct HeartRateZoneInfoView: View {
                                     .foregroundColor(.secondary)
                             }
                             .padding(.horizontal)
-                            
+
                             HStack {
-                                Text("靜息心率")
+                                Text(NSLocalizedString("hr_zone.resting_heart_rate_display", comment: "Resting Heart Rate"))
                                     .font(.subheadline)
                                 Spacer()
                                 Text("\(restingHeartRate) bpm")
@@ -124,7 +124,7 @@ struct HeartRateZoneInfoView: View {
                     Divider()
                         .padding(.horizontal)
                     
-                    // 心率區間詳情
+                    // Heart rate zone details
                     VStack(alignment: .leading, spacing: 8) {
                         Text(NSLocalizedString("hr_zone.details", comment: "Heart Rate Zone Details"))
                             .font(.headline)
@@ -203,16 +203,16 @@ struct HeartRateZoneInfoView: View {
     
     private func loadZoneData() async {
         isLoading = true
-        
-        // 確保區間資料已計算
+
+        // Ensure zone data is calculated
         await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
-        
-        // 獲取心率數據
+
+        // Load heart rate data
         loadCurrentValues()
-        
-        // 獲取心率區間
+
+        // Get heart rate zones
         zones = HeartRateZonesManager.shared.getHeartRateZones()
-        
+
         isLoading = false
     }
     
@@ -257,28 +257,28 @@ struct HeartRateZoneInfoView: View {
         }
         
         isSaving = true
-        
-        // 更新本地數據
+
+        // Update local data
         userPreferenceManager.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
-        
-        // 發送到後端 API
+
+        // Send to backend API
         Task {
             do {
                 let userData = [
                     "max_hr": maxHR,
                     "relaxing_hr": restingHR
                 ] as [String : Any]
-                
+
                 try await UserService.shared.updateUserData(userData)
-                
+
                 await MainActor.run {
                     isSaving = false
                     isEditing = false
                 }
-                
-                // 重新載入數據以更新顯示
+
+                // Reload data to update display
                 await loadZoneData()
-                
+
             } catch {
                 await MainActor.run {
                     isSaving = false

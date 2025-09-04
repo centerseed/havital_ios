@@ -109,7 +109,7 @@ struct LanguageSettingsView: View {
                 }
             }
         } message: {
-            Text("The app will restart to apply the language change.")
+            Text(L10n.Language.restartMessage.localized)
         }
         .alert(L10n.Error.unknown.localized, isPresented: $showError) {
             Button(L10n.Common.done.localized) { }
@@ -120,16 +120,16 @@ struct LanguageSettingsView: View {
     
     private var languageInfoFooter: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Language preference will be synced with your account.")
+            Text(L10n.Language.syncMessage.localized)
                 .font(.footnote)
                 .foregroundColor(.secondary)
             
-            Text("Currently only metric units (km, min/km) are supported.")
+            Text(L10n.Language.metricOnlyMessage.localized)
                 .font(.footnote)
                 .foregroundColor(.secondary)
             
             if selectedLanguage != languageManager.currentLanguage {
-                Text("Changing the language requires app restart.")
+                Text(L10n.Language.restartRequiredMessage.localized)
                     .font(.footnote)
                     .foregroundColor(.orange)
             }
