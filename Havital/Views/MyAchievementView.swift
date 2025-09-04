@@ -227,6 +227,11 @@ struct HRVChartSection: View {
                     .environmentObject(sharedHealthDataManager)
                     .padding()
                 
+            case .strava:
+                // Strava: 不支援 HRV 數據
+                EmptyDataSourceView(message: "Strava 不提供心率變異性數據")
+                    .padding()
+                
             case .unbound:
                 // 未綁定數據源
                 EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
@@ -264,6 +269,11 @@ struct RestingHeartRateChartSection: View {
                 // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
                 SleepHeartRateChartViewWithGarmin()
                     .environmentObject(healthKitManager)
+                    .padding()
+                
+            case .strava:
+                // Strava: 不支援靜息心率數據
+                EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
                     .padding()
                 
             case .unbound:

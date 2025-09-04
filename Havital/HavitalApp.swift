@@ -25,9 +25,10 @@ struct HavitalApp: App {
     @StateObject private var appViewModel = AppViewModel()
     @StateObject private var authService = AuthenticationService.shared
     @State private var featureFlagManager: FeatureFlagManager? = nil
+    @State private var shouldRefreshForLanguage = false
     
     init() {
-        // 1. 初始化 Firebase
+        // 1. 初始化 Firebase（必須最先執行，因為 Logger 依賴它）
         let configFileName = "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod")
         print("🔍 當前建置環境: \(isDebugBuild ? "DEBUG" : "PRODUCTION")")
         print("🔍 嘗試使用 Firebase 配置文件: \(configFileName)")
@@ -63,7 +64,11 @@ struct HavitalApp: App {
         } else {
             print("✅ Firebase 已成功初始化")
             
-            // 6. Firebase 初始化完成後才創建 FeatureFlagManager
+            // 6. 初始化語言管理器（Firebase 完成後才能安全使用 Logger.firebase）
+            _ = LanguageManager.shared
+            print("🌍 LanguageManager 已初始化")
+            
+            // 7. Firebase 初始化完成後才創建 FeatureFlagManager
             // 注意：這裡不能直接設定 @State 變數，需要在 view 中設定
         }
         
@@ -80,6 +85,7 @@ struct HavitalApp: App {
                         .environmentObject(healthKitManager)  // 注入 HealthKitManager
                         .environmentObject(appViewModel)      // 注入 AppViewModel
                         .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
+                        .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
                         .onAppear {
                             // App 啟動時使用新的狀態管理進行序列化初始化
                             Task {
@@ -92,6 +98,16 @@ struct HavitalApp: App {
                                 await setupPermissionsBasedOnUserState()
                                 
                                 print("✅ HavitalApp: 初始化流程完成")
+                            }
+                            
+                            // 監聽語言變更通知
+                            NotificationCenter.default.addObserver(
+                                forName: NSNotification.Name("AppShouldRefreshForLanguageChange"),
+                                object: nil,
+                                queue: .main
+                            ) { _ in
+                                print("🌍 收到語言變更通知，刷新 UI")
+                                shouldRefreshForLanguage.toggle() // Trigger UI refresh
                             }
                         }
                 } else {
@@ -170,6 +186,11 @@ struct HavitalApp: App {
                 
             case .garmin:
                 print("⌚ 設置 Garmin 用戶權限")
+                // 只需要通知授權
+                await requestNotificationAuthorization()
+                
+            case .strava:
+                print("🏃 設置 Strava 用戶權限")
                 // 只需要通知授權
                 await requestNotificationAuthorization()
                 
@@ -341,11 +362,18 @@ struct HavitalApp: App {
             Task {
                 await GarminManager.shared.handleCallback(url: url)
             }
+        }
+        // 檢查是否為 Strava OAuth 回調
+        else if url.scheme?.lowercased() == "paceriz" && url.host == "callback" && url.path == "/strava" {
+            print("✅ 識別為 Strava OAuth 回調，開始處理")
+            Task {
+                await StravaManager.shared.handleCallback(url: url)
+            }
         } else {
             print("❌ 未知的深度連結:")
             print("  - 期望 scheme: paceriz，實際: \(url.scheme ?? "nil")")
             print("  - 期望 host: callback，實際: \(url.host ?? "nil")")
-            print("  - 期望 path: /garmin，實際: \(url.path)")
+            print("  - 期望 path: /garmin 或 /strava，實際: \(url.path)")
         }
     }
     

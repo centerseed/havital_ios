@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import ObjectiveC
 
 /// Manager for handling app language preferences and localization
 class LanguageManager: ObservableObject {
@@ -34,11 +35,29 @@ class LanguageManager: ObservableObject {
             self.currentLanguage = SupportedLanguage(rawValue: preferredLanguage) ?? .traditionalChinese
         }
         
-        // Apply the language on init
-        applyLanguage()
+        // Apply the language on init (but don't sync with backend during init)
+        applyLanguageWithoutBackendSync()
         
         // Debug: Print language initialization info
         Logger.debug("LanguageManager initialized with: \(currentLanguage.rawValue) (API: \(currentLanguage.apiCode))")
+    }
+    
+    /// Apply language without backend sync (for initialization)
+    private func applyLanguageWithoutBackendSync() {
+        // Set the app's language
+        UserDefaults.standard.set([currentLanguage.rawValue], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+        
+        // Force refresh the main bundle's localization
+        Bundle.setLanguage(currentLanguage.rawValue)
+        
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: Self.languageChangedNotification,
+            object: currentLanguage
+        )
+        
+        Logger.firebase("Language applied on init: \(currentLanguage.rawValue)", level: .info)
     }
     
     /// Save language preference to UserDefaults
@@ -51,6 +70,10 @@ class LanguageManager: ObservableObject {
     private func applyLanguage() {
         // Set the app's language
         UserDefaults.standard.set([currentLanguage.rawValue], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+        
+        // Force refresh the main bundle's localization
+        Bundle.setLanguage(currentLanguage.rawValue)
         
         // Post notification for UI updates
         NotificationCenter.default.post(
@@ -176,20 +199,35 @@ class LanguageManager: ObservableObject {
             // Save a flag to indicate language was changed
             UserDefaults.standard.set(true, forKey: "language_changed_restart")
             
-            // Request scene refresh
-            UIApplication.shared.requestSceneSessionRefresh(windowScene.session)
+            // Post notification to trigger UI refresh in the main app
+            NotificationCenter.default.post(
+                name: NSNotification.Name("AppShouldRefreshForLanguageChange"),
+                object: currentLanguage
+            )
             
-            // Alternative: Force recreation of root view
-            for window in windowScene.windows {
-                window.rootViewController = nil
-                window.makeKeyAndVisible()
-            }
+            // Force UI refresh by requesting scene session refresh
+            UIApplication.shared.requestSceneSessionRefresh(windowScene.session)
             
             Logger.firebase("App restart requested due to language change", level: .info)
         } else {
-            // Method 2: Fallback - exit app (user will need to manually restart)
-            Logger.firebase("Fallback: Requesting app exit for language change", level: .info)
-            exit(0)
+            // Method 2: Fallback - Show alert to user to manually restart
+            Logger.firebase("Fallback: Requesting manual app restart", level: .info)
+            
+            let alert = UIAlertController(
+                title: "Language Changed",
+                message: "Please close and reopen the app to apply the language change.",
+                preferredStyle: .alert
+            )
+            
+            alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+                // Don't force exit, let user restart manually
+            })
+            
+            // Present alert
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                rootViewController.present(alert, animated: true)
+            }
         }
     }
     
@@ -310,5 +348,33 @@ extension View {
     /// Apply language manager to view hierarchy
     func withLanguageManager() -> some View {
         self.environment(\.languageManager, LanguageManager.shared)
+    }
+}
+
+// MARK: - Bundle Extension for Dynamic Language Switching
+extension Bundle {
+    private static var bundleKey: UInt8 = 0
+    
+    class LanguageBundle: Bundle {
+        override func localizedString(forKey key: String, value: String?, table tableName: String?) -> String {
+            return (objc_getAssociatedObject(self, &Bundle.bundleKey) as? Bundle)?
+                .localizedString(forKey: key, value: value, table: tableName) ?? 
+                super.localizedString(forKey: key, value: value, table: tableName)
+        }
+    }
+    
+    static func setLanguage(_ language: String) {
+        defer {
+            object_setClass(Bundle.main, LanguageBundle.self)
+        }
+        
+        guard let path = Bundle.main.path(forResource: language, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            Logger.firebase("Failed to find language bundle for: \(language)", level: .error)
+            return
+        }
+        
+        objc_setAssociatedObject(Bundle.main, &bundleKey, bundle, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        Logger.firebase("Language bundle set for: \(language)", level: .info)
     }
 }

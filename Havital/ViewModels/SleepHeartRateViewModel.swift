@@ -145,6 +145,36 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
                 
                 print("最終心率數據點數: \(points.count)")
                 
+            case .strava:
+                // 從 API 獲取 Strava 數據
+                await sharedHealthDataManager.loadHealthDataIfNeeded()
+                
+                let healthData = sharedHealthDataManager.healthData
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                
+                print("Strava 心率數據載入: 共 \(healthData.count) 筆健康記錄")
+                
+                // 調試：檢查每筆記錄的 restingHeartRate 字段
+                for record in healthData {
+                    print("記錄: 日期=\(record.date), restingHeartRate=\(record.restingHeartRate ?? -1)")
+                    
+                    if let date = dateFormatter.date(from: record.date),
+                       date >= startDate && date <= now {
+                        
+                        if let restingHeartRate = record.restingHeartRate {
+                            points.append((date, Double(restingHeartRate)))
+                            print("✅ 添加心率數據: 日期=\(record.date), 心率=\(restingHeartRate)")
+                        } else {
+                            print("❌ 該日期無靜息心率數據: \(record.date)")
+                        }
+                    } else {
+                        print("⏰ 日期超出範圍: \(record.date)")
+                    }
+                }
+                
+                print("最終 Strava 心率數據點數: \(points.count)")
+                
             case .unbound:
                 await MainActor.run {
                     self.error = "請先選擇數據來源"

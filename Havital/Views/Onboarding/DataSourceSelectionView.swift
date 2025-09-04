@@ -4,6 +4,7 @@ import HealthKit
 struct DataSourceSelectionView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var garminManager = GarminManager.shared
+    @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     
@@ -221,6 +222,8 @@ struct DataSourceSelectionView: View {
                     try await handleAppleHealthSelection()
                 case .garmin:
                     await handleGarminSelection()
+                case .strava:
+                    await handleStravaSelection()
                 case .unbound:
                     // 不應該到達這裡，因為 UI 中沒有提供 unbound 選項
                     print("DataSourceSelectionView: 意外的 unbound 選擇")
@@ -287,6 +290,36 @@ struct DataSourceSelectionView: View {
         Logger.firebase("Garmin OAuth 流程已啟動", level: .info, labels: [
             "module": "DataSourceSelectionView",
             "action": "garminSelection",
+            "result": "oauth_started"
+        ])
+        
+        // 不等待 OAuth 完成，直接繼續到下一步
+        // OAuth 流程會在後台進行，用戶可以稍後在設置中完成連接
+    }
+    
+    private func handleStravaSelection() async {
+        Logger.firebase("開始 Strava OAuth 流程", level: .info, labels: [
+            "module": "DataSourceSelectionView",
+            "action": "stravaSelection",
+            "step": "start"
+        ])
+        
+        // 設置數據源偏好為 Strava
+        userPreferenceManager.dataSourcePreference = .strava
+        
+        // 同步到後端
+        do {
+            try await UserService.shared.updateDataSource(DataSourceType.strava.rawValue)
+        } catch {
+            print("同步 Strava 數據源設定到後端失敗: \(error.localizedDescription)")
+        }
+        
+        // 開始 Strava OAuth 流程（不等待完成）
+        await stravaManager.startConnection()
+        
+        Logger.firebase("Strava OAuth 流程已啟動", level: .info, labels: [
+            "module": "DataSourceSelectionView",
+            "action": "stravaSelection",
             "result": "oauth_started"
         ])
         

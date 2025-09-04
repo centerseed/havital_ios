@@ -89,6 +89,11 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
             setupGarminDataRefresh()
             scheduleBackgroundSync()
             
+        case .strava:
+            // Strava: 只設置定期 API 刷新
+            setupStravaDataRefresh()
+            scheduleBackgroundSync()
+            
         case .unbound:
             print("數據源未綁定，跳過健康數據同步")
             return
@@ -712,6 +717,10 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
                 // Garmin: 強制刷新 API 數據
                 await refreshGarminHealthData()
                 
+            case .strava:
+                // Strava: 強制刷新 API 數據
+                await refreshStravaHealthData()
+                
             case .unbound:
                 print("數據源未綁定，跳過 HRV 重試同步")
             }
@@ -753,12 +762,53 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
         )
     }
     
+    /// 設置 Strava 數據定期刷新
+    private func setupStravaDataRefresh() {
+        print("設置 Strava 數據定期刷新機制")
+        
+        // 立即刷新一次數據
+        Task {
+            await refreshStravaHealthData()
+        }
+    }
+    
+    /// 刷新 Strava 健康數據
+    private func refreshStravaHealthData() async {
+        print("刷新 Strava 健康數據")
+        
+        // 清除緩存並重新獲取數據
+        clearHealthDataCache()
+        
+        // 通知 SharedHealthDataManager 刷新數據
+        await notifyStravaDataRefresh()
+        
+        Logger.firebase(
+            "Strava 健康數據刷新完成",
+            level: .info,
+            labels: [
+                "module": "HealthDataUploadManager",
+                "action": "refresh_strava_data"
+            ]
+        )
+    }
+    
     /// 通知 SharedHealthDataManager 刷新數據
     private func notifyGarminDataRefresh() async {
         // 發送通知給 UI 層刷新數據
         await MainActor.run {
             NotificationCenter.default.post(
                 name: .garminHealthDataRefresh,
+                object: nil
+            )
+        }
+    }
+    
+    /// 通知 SharedHealthDataManager 刷新 Strava 數據
+    private func notifyStravaDataRefresh() async {
+        // 發送通知給 UI 層刷新數據
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .stravaHealthDataRefresh,
                 object: nil
             )
         }

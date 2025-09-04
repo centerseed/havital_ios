@@ -5,6 +5,7 @@ import HealthKit
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
     @StateObject private var garminManager = GarminManager.shared
+    @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
@@ -23,6 +24,7 @@ struct UserProfileView: View {
     @State private var showDataSyncView = false  // 顯示數據同步畫面（已停用）
     @State private var syncDataSource: DataSourceType?  // 需要同步的數據源（已停用）
     @State private var showGarminAlreadyBoundAlert = false
+    @State private var showStravaAlreadyBoundAlert = false
     @State private var showLanguageSettings = false
     
     private var appVersion: String {
@@ -312,6 +314,16 @@ struct UserProfileView: View {
         } message: {
             Text(garminManager.garminAlreadyBoundMessage ?? "This Garmin Connect™ account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account and unbind Garmin Connect™ in the profile page, then connect with this account.")
         }
+        .onReceive(stravaManager.$stravaAlreadyBoundMessage) { msg in
+            showStravaAlreadyBoundAlert = (msg != nil)
+        }
+        .alert("Strava Account Already Bound", isPresented: $showStravaAlreadyBoundAlert) {
+            Button("OK", role: .cancel) {
+                stravaManager.stravaAlreadyBoundMessage = nil
+            }
+        } message: {
+            Text(stravaManager.stravaAlreadyBoundMessage ?? "This Strava account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account and unbind Strava in the profile page, then connect with this account.")
+        }
     }
     
     // 使用者頭像與名稱標頭
@@ -483,6 +495,18 @@ struct UserProfileView: View {
                     .id("garmin-row")
                 }
                 
+                // Strava 選項（總是顯示）
+                Divider()
+                    .padding(.vertical, 8)
+                
+                dataSourceRow(
+                    type: .strava,
+                    icon: "figure.run",
+                    title: "Strava",
+                    subtitle: NSLocalizedString("datasource.strava_subtitle", comment: "Sync your activities from Strava")
+                )
+                .id("strava-row")
+                
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }
             .padding(.vertical, 4)
@@ -510,6 +534,16 @@ struct UserProfileView: View {
                     Text("Switching to Apple Health will unbind your Garmin Connect™ connection and ensure the backend no longer receives Garmin data. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content. Do you want to continue?")
                 case (.appleHealth, .garmin):
                     Text("Switching to Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.")
+                case (.unbound, .strava):
+                    Text("Selecting Strava requires authorization. You will be redirected to the Strava website to log in and authorize. After successful authorization, your training records will be loaded from Strava.")
+                case (.appleHealth, .strava):
+                    Text("Switching to Strava requires authorization. You will be redirected to the Strava website to log in and authorize. After successful authorization, your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.")
+                case (.garmin, .strava):
+                    Text("Switching to Strava will unbind your Garmin Connect™ connection and require Strava authorization. Your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.")
+                case (.strava, .appleHealth):
+                    Text("Switching to Apple Health will unbind your Strava connection. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content.")
+                case (.strava, .garmin):
+                    Text("Switching to Garmin Connect™ will unbind your Strava connection and require Garmin authorization. Your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.")
                 case (_, .unbound):
                     Text("Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.")
                 default:
@@ -528,6 +562,8 @@ struct UserProfileView: View {
     ) -> some View {
         let isCurrentSource = userPreferenceManager.dataSourcePreference == type
         let isGarminConnecting = type == .garmin && garminManager.isConnecting
+        let isStravaConnecting = type == .strava && stravaManager.isConnecting
+        let isConnecting = isGarminConnecting || isStravaConnecting
         let isUnbound = userPreferenceManager.dataSourcePreference == .unbound
         
         Button(action: {
@@ -541,8 +577,8 @@ struct UserProfileView: View {
                 return
             }
             
-            // 如果Garmin正在連接中，不允許切換
-            if isGarminConnecting {
+            // 如果任何數據源正在連接中，不允許切換
+            if isConnecting {
                 return
             }
             
@@ -598,8 +634,8 @@ struct UserProfileView: View {
                             .foregroundColor(.orange)
                     }
                     
-                    // Garmin連接狀態
-                    if type == .garmin && isGarminConnecting {
+                    // 連接狀態
+                    if isConnecting {
                         ProgressView()
                             .scaleEffect(0.8)
                             .frame(width: 20, height: 20)
@@ -623,7 +659,7 @@ struct UserProfileView: View {
             }
             .padding(.vertical, 8)
         }
-        .disabled(isCurrentSource || isGarminConnecting)
+        .disabled(isCurrentSource || isConnecting)
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .id("\(type.rawValue)-row")
@@ -646,7 +682,7 @@ struct UserProfileView: View {
                 }
                 
             case .appleHealth:
-                // 切換到Apple Health時，先解除Garmin綁定
+                // 切換到Apple Health時，先解除Garmin和Strava綁定
                 if garminManager.isConnected {
                     do {
                         // 調用後端API解除Garmin綁定
@@ -660,6 +696,22 @@ struct UserProfileView: View {
                         print("Garmin解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
                         await garminManager.disconnect()
+                    }
+                }
+                
+                if stravaManager.isConnected {
+                    do {
+                        // 調用後端API解除Strava綁定
+                        let disconnectResult = try await StravaDisconnectService.shared.disconnectStrava()
+                        print("Strava解除綁定成功: \(disconnectResult.message)")
+                        
+                        // 本地斷開Strava連接
+                        await stravaManager.disconnect()
+                        
+                    } catch {
+                        print("Strava解除綁定失敗: \(error.localizedDescription)")
+                        // 即使解除綁定失敗，也繼續本地斷開連接
+                        await stravaManager.disconnect()
                     }
                 }
                 
@@ -710,6 +762,32 @@ struct UserProfileView: View {
                     print("Garmin OAuth 超時")
                 }
                 // 注意：數據源的更新會在OAuth成功後在GarminManager中處理
+            
+            case .strava:
+                // 切換到Strava時，總是啟動OAuth流程
+                // 這樣可以確保連接狀態是最新的，並且處理token過期的情況
+                await stravaManager.startConnection()
+                
+                // 等待 OAuth 流程完成
+                // 監聽連接狀態變化，最多等待 30 秒
+                let maxWaitTime = 30.0 // 30 秒
+                let startTime = Date()
+                
+                while stravaManager.isConnecting && Date().timeIntervalSince(startTime) < maxWaitTime {
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 秒
+                }
+                
+                if stravaManager.isConnected {
+                    // OAuth 成功，切換完成
+                    print("Strava 數據源切換完成")
+                } else if !stravaManager.isConnecting {
+                    // OAuth 流程已結束但未成功連接
+                    print("Strava OAuth 失敗或用戶取消")
+                } else {
+                    // 超時
+                    print("Strava OAuth 超時")
+                }
+                // 注意：數據源的更新會在OAuth成功後在StravaManager中處理
             }
         }
     }
