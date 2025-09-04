@@ -10,6 +10,7 @@ struct GaitAnalysisChartView: View {
     let error: String?
     let dataProvider: String?
     let deviceModel: String?
+    let forceShowStanceTimeTab: Bool
     
     @State private var selectedGaitTab: GaitTab = .stanceTime
     
@@ -49,7 +50,7 @@ struct GaitAnalysisChartView: View {
         }
     }
     
-    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil) {
+    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, forceShowStanceTimeTab: Bool = false) {
         self.stanceTimes = stanceTimes
         self.verticalRatios = verticalRatios
         self.cadences = cadences
@@ -57,6 +58,7 @@ struct GaitAnalysisChartView: View {
         self.error = error
         self.dataProvider = dataProvider
         self.deviceModel = deviceModel
+        self.forceShowStanceTimeTab = forceShowStanceTimeTab
     }
     
     // MARK: - Data Processing
@@ -199,7 +201,7 @@ struct GaitAnalysisChartView: View {
                 // Tab selector
                 let availableTabs = GaitTab.allCases.filter { tab in
                     switch tab {
-                    case .stanceTime: return !stanceTimes.isEmpty
+                    case .stanceTime: return forceShowStanceTimeTab || !stanceTimes.isEmpty
                     case .verticalRatio: return !verticalRatios.isEmpty
                     case .cadence: return !cadences.isEmpty
                     }
@@ -271,6 +273,7 @@ struct GaitAnalysisChartView: View {
                     }
                 }
                 .chartYScale(domain: yAxisRange.min...yAxisRange.max)
+                .chartXScale(domain: (xAxisDomain ?? (Date()...Date().addingTimeInterval(60))))
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .stride(by: yAxisStride)) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
@@ -285,13 +288,14 @@ struct GaitAnalysisChartView: View {
                 }
                 .frame(height: 180)
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .minute, count: 10)) { value in
+                    AxisMarks(values: xAxisTickDates) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
+                            .foregroundStyle(Color.primary.opacity(0.15))
+                        AxisTick()
                         if let date = value.as(Date.self) {
                             AxisValueLabel {
-                                Text(
-                                    "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
-                                )
-                                .font(.caption)
+                                Text(formatXAxisLabel(date))
+                                    .font(.caption2)
                             }
                         }
                     }
@@ -416,6 +420,92 @@ struct GaitAnalysisChartView: View {
             } else {
                 return 20
             }
+        }
+    }
+
+    private var xAxisStrideCount: Int {
+        guard !currentData.isEmpty else {
+            return 10 // Default fallback minutes
+        }
+
+        let times = currentData.map { $0.time }.sorted()
+        guard let startTime = times.first, let endTime = times.last else {
+            return 10
+        }
+
+        // Calculate total duration in minutes (ceil to avoid underestimation)
+        let seconds = max(1, endTime.timeIntervalSince(startTime))
+        let durationMinutes = max(1, Int(ceil(seconds / 60.0)))
+
+        // We want up to 4 labels; try to hit 4 when possible
+        let targetLabels = 4
+        var strideMinutes = max(1, durationMinutes / targetLabels)
+
+        // Snap stride to friendly intervals
+        if strideMinutes >= 45 {
+            strideMinutes = 30
+        } else if strideMinutes >= 25 {
+            strideMinutes = 20
+        } else if strideMinutes >= 15 {
+            strideMinutes = 10
+        } else if strideMinutes >= 10 {
+            strideMinutes = 5
+        } else if strideMinutes >= 5 {
+            strideMinutes = 2
+        } else {
+            strideMinutes = 1
+        }
+
+        return strideMinutes
+    }
+
+    private var xAxisTickDates: [Date] {
+        let data = currentData
+        guard !data.isEmpty else { return [] }
+        let times = data.map { $0.time }.sorted()
+        guard let startTime = times.first, let endTime = times.last else { return [] }
+
+        // 產生最多4個等距刻度（包含兩端）
+        let maxLabels = 4
+        var ticks: [Date] = []
+        if maxLabels <= 1 || endTime <= startTime {
+            return [startTime]
+        }
+
+        let total = endTime.timeIntervalSince(startTime)
+        let step = total / Double(maxLabels - 1)
+        for i in 0..<(maxLabels) {
+            let t = startTime.addingTimeInterval(Double(i) * step)
+            ticks.append(t)
+        }
+        return ticks
+    }
+
+    private var xAxisDomain: ClosedRange<Date>? {
+        let data = currentData
+        guard !data.isEmpty else { return nil }
+        let times = data.map { $0.time }.sorted()
+        guard let start = times.first, let end = times.last, end > start else { return nil }
+        return start...end
+    }
+
+    private func formatXAxisLabel(_ date: Date) -> String {
+        // 根據總時長動態選擇格式，短時長用 mm:ss，長時長用 HH:mm
+        if let domain = xAxisDomain {
+            let duration = domain.upperBound.timeIntervalSince(domain.lowerBound)
+            if duration < 3600 { // 小於1小時
+                let minutes = Calendar.current.component(.minute, from: date)
+                let seconds = Calendar.current.component(.second, from: date)
+                return String(format: "%d:%02d", minutes, seconds)
+            } else {
+                let hour = Calendar.current.component(.hour, from: date)
+                let minute = Calendar.current.component(.minute, from: date)
+                return String(format: "%d:%02d", hour, minute)
+            }
+        } else {
+            let hour = Calendar.current.component(.hour, from: date)
+            let minute = Calendar.current.component(.minute, from: date)
+            return String(format: "%d:%02d", hour, minute)
         }
     }
     

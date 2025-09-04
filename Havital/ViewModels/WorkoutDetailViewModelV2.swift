@@ -21,6 +21,8 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     @Published var verticalRatios: [DataPoint] = []
     @Published var groundContactTimes: [DataPoint] = []
     @Published var verticalOscillations: [DataPoint] = []
+    // 原始流是否存在（用於控制是否顯示分頁）
+    @Published var hasStanceTimeStream: Bool = false
     
     // 心率區間分佈
     @Published var hrZoneDistribution: [String: Double] = [:]
@@ -354,29 +356,43 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         // 處理步態分析數據 - 觸地時間 (毫秒)
         print("📊 [GaitAnalysis] 檢查觸地時間數據...")
         print("📊 [GaitAnalysis] stanceTimesMs 存在: \(timeSeries.stanceTimesMs != nil)")
+        print("📊 [GaitAnalysis] groundContactTimesMs 存在: \(timeSeries.groundContactTimesMs != nil)")
         print("📊 [GaitAnalysis] timestampsS 存在: \(timeSeries.timestampsS != nil)")
-        
-        if let stanceTimeData = timeSeries.stanceTimesMs,
+
+        // 優先使用 stance_times_ms，若缺失則回退到 ground_contact_times_ms
+        let stanceTimeSource: String
+        let stanceTimeDataFallback = timeSeries.stanceTimesMs ?? timeSeries.groundContactTimesMs
+        if timeSeries.stanceTimesMs != nil {
+            stanceTimeSource = "stance_times_ms"
+        } else if timeSeries.groundContactTimesMs != nil {
+            stanceTimeSource = "ground_contact_times_ms"
+        } else {
+            stanceTimeSource = "none"
+        }
+        self.hasStanceTimeStream = stanceTimeSource != "none"
+
+        if let stanceTimeData = stanceTimeDataFallback,
            let timestamps = timeSeries.timestampsS {
-            
+
+            print("📊 [GaitAnalysis] 使用資料來源: \(stanceTimeSource)")
             print("📊 [GaitAnalysis] 觸地時間原始數據點數: \(stanceTimeData.count)")
             print("📊 [GaitAnalysis] 時間戳數據點數: \(timestamps.count)")
-            
+
             var stanceTimePoints: [DataPoint] = []
             var validPointsCount = 0
             var invalidPointsCount = 0
-            
+
             for (index, stanceTime) in stanceTimeData.enumerated() {
                 if index < timestamps.count,
                    let timestamp = timestamps[index] {
                     let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
-                    
-                    // 處理觸地時間值 (根據截圖，數值範圍是267-289ms，很合理)
+
+                    // 合理的觸地時間範圍過濾 (50-600ms)
                     if let stanceValue = stanceTime,
                        stanceValue > 50 && stanceValue < 600 && stanceValue.isFinite {
                         stanceTimePoints.append(DataPoint(time: time, value: stanceValue))
                         validPointsCount += 1
-                        
+
                         if validPointsCount <= 5 { // 顯示前5個有效數據點
                             print("📊 [GaitAnalysis] 觸地時間[\(validPointsCount)]: \(String(format: "%.1f", stanceValue)) ms")
                         }
@@ -392,10 +408,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                     }
                 }
             }
-            
+
             print("📊 [GaitAnalysis] 有效觸地時間數據點: \(validPointsCount)")
             print("📊 [GaitAnalysis] 無效觸地時間數據點: \(invalidPointsCount)")
-            
+
             self.stanceTimes = downsampleData(stanceTimePoints, maxPoints: 500)
             print("📊 [GaitAnalysis] 降採樣後觸地時間數據點: \(self.stanceTimes.count)")
         } else {

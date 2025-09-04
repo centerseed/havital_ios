@@ -432,7 +432,8 @@ struct WorkoutDetailViewV2: View {
                     isLoading: viewModel.isLoading,
                     error: viewModel.error,
                     dataProvider: viewModel.workout.provider,
-                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                    forceShowStanceTimeTab: viewModel.hasStanceTimeStream
                 )
             } else {
                 // 簡化的空狀態顯示
