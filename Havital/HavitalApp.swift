@@ -25,6 +25,7 @@ struct HavitalApp: App {
     @StateObject private var appViewModel = AppViewModel()
     @StateObject private var authService = AuthenticationService.shared
     @State private var featureFlagManager: FeatureFlagManager? = nil
+    @State private var shouldRefreshForLanguage = false
     
     init() {
         // 1. 初始化 Firebase
@@ -63,7 +64,11 @@ struct HavitalApp: App {
         } else {
             print("✅ Firebase 已成功初始化")
             
-            // 6. Firebase 初始化完成後才創建 FeatureFlagManager
+            // 6. 初始化語言管理器（Firebase 完成後才能安全使用 Logger.firebase）
+            _ = LanguageManager.shared
+            print("🌍 LanguageManager 已初始化")
+            
+            // 7. Firebase 初始化完成後才創建 FeatureFlagManager
             // 注意：這裡不能直接設定 @State 變數，需要在 view 中設定
         }
         
@@ -80,6 +85,7 @@ struct HavitalApp: App {
                         .environmentObject(healthKitManager)  // 注入 HealthKitManager
                         .environmentObject(appViewModel)      // 注入 AppViewModel
                         .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
+                        .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
                         .onAppear {
                             // App 啟動時使用新的狀態管理進行序列化初始化
                             Task {
@@ -92,6 +98,16 @@ struct HavitalApp: App {
                                 await setupPermissionsBasedOnUserState()
                                 
                                 print("✅ HavitalApp: 初始化流程完成")
+                            }
+                            
+                            // 監聽語言變更通知
+                            NotificationCenter.default.addObserver(
+                                forName: NSNotification.Name("AppShouldRefreshForLanguageChange"),
+                                object: nil,
+                                queue: .main
+                            ) { _ in
+                                print("🌍 收到語言變更通知，刷新 UI")
+                                shouldRefreshForLanguage.toggle() // Trigger UI refresh
                             }
                         }
                 } else {
