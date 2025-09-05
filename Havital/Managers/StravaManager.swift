@@ -27,7 +27,7 @@ class StravaManager: NSObject, ObservableObject {
     
     // Strava OAuth 配置
     private let stravaAuthURL = "https://www.strava.com/oauth/authorize"
-    private let scope = "read,activity:read,profile:read"
+    private let scope = "read,activity:read,profile:read_all"
     
     // 環境相關配置
     private let clientID: String

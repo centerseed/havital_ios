@@ -9,9 +9,9 @@
 	<key>GarminClientID_Prod</key>
 	<string>0cddddf2-fe12-43e9-8209-4a5016f3fb58</string>
 	<key>StravaClientID_Dev</key>
-	<string>STRAVA_CLIENT_ID_DEV_NOT_SET</string>
+	<string>175355</string>
 	<key>StravaClientSecret_Dev</key>
-	<string>STRAVA_CLIENT_SECRET_DEV_NOT_SET</string>
+	<string>ea0c49aa44d1b92ea195068c69d092d679132775</string>
 	<key>StravaClientID_Prod</key>
 	<string>STRAVA_CLIENT_ID_PROD_NOT_SET</string>
 	<key>StravaClientSecret_Prod</key>
