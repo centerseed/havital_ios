@@ -330,6 +330,7 @@
 "training.type.lsd" = "LSDラン";
 "training.type.threshold" = "閾値ラン";
 "training.type.progression" = "プログレッションラン";
+"training.type.combination" = "コンビネーションラン";
 "training.type.rest" = "休息";
 "training.type.cross_training" = "クロストレーニング";
 "training.type.hiking" = "ハイキング";

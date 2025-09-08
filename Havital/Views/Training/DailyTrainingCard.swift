@@ -13,7 +13,7 @@ struct DayHeaderView: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.green
-        case .interval, .tempo, .progression, .threshold:
+        case .interval, .tempo, .progression, .threshold, .combination:
             return Color.orange
         case .longRun, .hiking, .cycling:
             return Color.blue
@@ -486,7 +486,7 @@ struct DailyTrainingCard: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.green
-        case .interval, .tempo, .progression, .threshold:
+        case .interval, .tempo, .progression, .threshold, .combination:
             return Color.orange
         case .longRun, .hiking, .cycling:
             return Color.blue

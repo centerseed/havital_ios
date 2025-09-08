@@ -533,6 +533,7 @@ enum GaitAnalysisChart {
             static let lsd = "training.type.lsd"
             static let threshold = "training.type.threshold"
             static let progression = "training.type.progression"
+            static let combination = "training.type.combination"
             static let rest = "training.type.rest"
             static let crossTraining = "training.type.cross_training"
             static let hiking = "training.type.hiking"

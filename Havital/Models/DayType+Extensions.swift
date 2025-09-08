@@ -16,6 +16,7 @@ extension DayType {
         case .crossTraining: return L10n.Training.TrainingType.crossTraining.localized
         case .lsd: return L10n.Training.TrainingType.lsd.localized
         case .progression: return L10n.Training.TrainingType.progression.localized
+        case .combination: return L10n.Training.TrainingType.combination.localized
         case .strength: return L10n.Training.TrainingType.strength.localized
         case .hiking: return L10n.Training.TrainingType.hiking.localized
         case .yoga: return L10n.Training.TrainingType.yoga.localized
@@ -33,7 +34,7 @@ extension DayType {
         switch self {
         case .easyRun, .easy, .recovery_run, .lsd, .yoga:
             return .green
-        case .interval, .tempo, .threshold, .progression:
+        case .interval, .tempo, .threshold, .progression, .combination:
             return .orange
         case .longRun:
             return .blue

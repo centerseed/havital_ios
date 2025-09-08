@@ -330,6 +330,7 @@
 "training.type.lsd" = "長距離慢跑";
 "training.type.threshold" = "閾值跑";
 "training.type.progression" = "漸進跑";
+"training.type.combination" = "組合訓練";
 "training.type.rest" = "休息";
 "training.type.cross_training" = "交叉訓練";
 "training.type.hiking" = "健走";

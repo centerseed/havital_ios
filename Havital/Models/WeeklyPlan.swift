@@ -245,6 +245,17 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     )
                     return [item]
                 }
+            case .combination:
+                if let _ = details.segments, let totalDistance = details.totalDistanceKm {
+                    let description = details.description ?? ""
+                    let item = WeeklyTrainingItem(
+                        name: L10n.Training.TrainingType.combination.localized,
+                        runDetails: description,
+                        durationMinutes: nil,
+                        goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
+                    )
+                    return [item]
+                }
             case .race:
                 let description = details.description ?? ""
                 let item = WeeklyTrainingItem(
@@ -381,7 +392,8 @@ enum DayType: String, Codable {
     case strength = "strength"
     case yoga = "yoga"
     case cycling = "cycling"
-    
+    case combination = "combination"
+
 }
 
 struct WeeklyTrainingItem: Identifiable {

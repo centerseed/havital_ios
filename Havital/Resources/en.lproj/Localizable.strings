@@ -330,6 +330,7 @@
 "training.type.lsd" = "LSD Run";
 "training.type.threshold" = "Threshold Run";
 "training.type.progression" = "Progression Run";
+"training.type.combination" = "Combination Run";
 "training.type.rest" = "Rest";
 "training.type.cross_training" = "Cross Training";
 "training.type.hiking" = "Hiking";

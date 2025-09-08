@@ -811,6 +811,8 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             return L10n.Training.TrainingType.interval.localized
         case "fartlek":
             return L10n.Training.TrainingType.fartlek.localized
+        case "combination":
+            return L10n.Training.TrainingType.combination.localized
         case "hill_training":
             return L10n.Training.TrainingType.hill.localized
         case "race":
