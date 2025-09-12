@@ -9,6 +9,9 @@
 "tab.performance_data" = "Performance";
 "tab.profile" = "Profile";
 
+// MARK: - Toast Messages
+"toast.network_error" = "Network connection issue, showing cached data";
+
 // MARK: - Common Actions
 "common.save" = "Save";
 "common.cancel" = "Cancel";
@@ -913,6 +916,14 @@
 "training_plan.tip" = "Tip: %@";
 "training_plan.segment" = "Segment %d";
 "training_plan.heart_rate_zone" = "Heart Rate Zone: %@";
+
+// MARK: - Combination Training Sequence
+"training.combination.sequence.start" = "Start";
+"training.combination.sequence.continue" = "Continue";
+"training.combination.sequence.finish" = "Finish";
+"training.combination.segment_prefix" = "Segment %d";
+"training.combination.pace_format" = "Pace %@";
+"training.combination.heart_rate_format" = "HR %@";
 "training_plan.interval_training" = "Interval Training";
 "training_plan.repeats" = "%d × Repeats";
 "training_plan.sprint_segment" = "Sprint Segment";

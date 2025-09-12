@@ -13,6 +13,7 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     @Published var isLoading = false
     @Published var lastSyncTime: Date?
     @Published var syncError: String?
+    @Published var showNetworkErrorToast = false
     
     // MARK: - Training Plan Specific Properties
     @Published var currentWeeklyPlan: WeeklyPlan?
@@ -84,11 +85,25 @@ class TrainingPlanManager: ObservableObject, DataManageable {
                 }
                 
                 await MainActor.run {
+                    // 雙軌架構核心：網路錯誤時顯示Toast，不影響現有緩存UI
                     self.syncError = error.localizedDescription
                     
-                    // 只有在沒有任何數據時才顯示錯誤狀態
+                    // 只有在沒有任何緩存數據時才顯示錯誤狀態
                     if self.currentWeeklyPlan == nil {
-                        self.updatePlanStatus(for: nil)
+                        // 檢查是否為404（需要顯示週回顧）還是網路錯誤
+                        if let httpError = error as? HTTPError, case .notFound(_) = httpError {
+                            self.updatePlanStatus(for: nil) // 404: 顯示週回顧
+                        } else if error is TrainingPlanService.WeeklyPlanError {
+                            self.updatePlanStatus(for: nil) // API層404: 顯示週回顧  
+                        } else {
+                            // 網路錯誤：不改變UI狀態，觸發Toast提示
+                            self.showNetworkErrorToast = true
+                            Logger.debug("網路錯誤，保持現有UI狀態，顯示Toast提示")
+                        }
+                    } else {
+                        // 如果有緩存數據，顯示Toast提示網路問題但保持現有UI
+                        self.showNetworkErrorToast = true
+                        Logger.debug("有緩存數據的情況下網路錯誤，顯示Toast提示但保持現有UI")
                     }
                 }
                 
@@ -132,6 +147,7 @@ class TrainingPlanManager: ObservableObject, DataManageable {
             showFinalWeekPrompt = false
             lastSyncTime = nil
             syncError = nil
+            showNetworkErrorToast = false
         }
         
         cacheManager.clearCache()
@@ -141,6 +157,13 @@ class TrainingPlanManager: ObservableObject, DataManageable {
             level: .info,
             labels: ["module": "TrainingPlanManager", "action": "clear_all_data"]
         )
+    }
+    
+    /// 清除網路錯誤Toast狀態
+    @MainActor
+    func clearNetworkErrorToast() {
+        showNetworkErrorToast = false
+        syncError = nil
     }
     
     // MARK: - Cacheable Implementation
@@ -268,16 +291,11 @@ class TrainingPlanManager: ObservableObject, DataManageable {
             // 背景更新失敗不影響已顯示的緩存內容
             await MainActor.run {
                 self.syncError = error.localizedDescription
+                // 背景更新失敗時顯示Toast提示，但保持現有UI
+                self.showNetworkErrorToast = true
             }
             
-            // 只有在沒有緩存數據時才設置錯誤狀態
-            if currentWeeklyPlan == nil {
-                await MainActor.run {
-                    self.updatePlanStatus(for: nil)
-                }
-            }
-            
-            Logger.debug("軌道 B: 背景更新失敗，保持現有緩存: \(error.localizedDescription)")
+            Logger.debug("軌道 B: 背景更新失敗，保持現有緩存，顯示Toast提示: \(error.localizedDescription)")
         }
     }
     

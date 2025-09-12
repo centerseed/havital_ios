@@ -299,6 +299,10 @@ struct TrainingPlanView: View {
         } message: {
             Text(viewModel.networkError?.localizedDescription ?? NSLocalizedString("error.network_connection_failed", comment: "Network connection failed, please try again later"))
         }
+        .networkErrorToast(
+            isPresented: $viewModel.showNetworkErrorToast,
+            message: NSLocalizedString("toast.network_error", comment: "Network error, showing cached data")
+        )
         .onAppear {
             if hasCompletedOnboarding {
                 Logger.debug("View onAppear: Onboarding completed")

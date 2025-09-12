@@ -9,6 +9,9 @@
 "tab.performance_data" = "パフォーマンス";
 "tab.profile" = "プロフィール";
 
+// MARK: - Toast Messages
+"toast.network_error" = "ネットワーク接続に問題があります。キャッシュデータを表示しています";
+
 // MARK: - Common Actions
 "common.save" = "保存";
 "common.cancel" = "キャンセル";
@@ -913,6 +916,14 @@
 "training_plan.tip" = "ヒント：%@";
 "training_plan.segment" = "セグメント%d";
 "training_plan.heart_rate_zone" = "心拍ゾーン：%@";
+
+// MARK: - Combination Training Sequence
+"training.combination.sequence.start" = "開始";
+"training.combination.sequence.continue" = "継続";
+"training.combination.sequence.finish" = "終了";
+"training.combination.segment_prefix" = "セグメント%d";
+"training.combination.pace_format" = "ペース %@";
+"training.combination.heart_rate_format" = "心拍 %@";
 "training_plan.interval_training" = "インターバルトレーニング";
 "training_plan.repeats" = "%d × リピート";
 "training_plan.sprint_segment" = "スプリントセグメント";

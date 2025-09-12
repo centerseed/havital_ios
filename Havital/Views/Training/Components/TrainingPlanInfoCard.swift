@@ -188,6 +188,8 @@ struct TrainingPlanInfoCard: View {
             return NSLocalizedString("training.type.lsd", comment: "LSD Run")
         case "progression":
             return NSLocalizedString("training.type.progression", comment: "Progression Run")
+        case "combination":
+            return NSLocalizedString("training.type.combination", comment: "Combination Training")
         default:
             return type
         }

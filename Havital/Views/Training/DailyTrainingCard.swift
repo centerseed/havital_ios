@@ -1,6 +1,12 @@
 import SwiftUI
 import HealthKit
 
+// Import model types
+import Foundation
+
+// These types are defined in the Models module but may need explicit imports
+// TrainingDay, WorkoutV2, ProgressionSegment are defined in Models/ files
+
 // MARK: - Supporting Views
 struct DayHeaderView: View {
     let day: TrainingDay
@@ -183,6 +189,92 @@ struct SegmentedTrainingView: View {
     let segments: [ProgressionSegment]
     let total: Double
     
+    // 檢查分段是否應該隱藏配速（基於分段描述）
+    private func shouldHidePaceForSegment(_ segment: ProgressionSegment) -> Bool {
+        guard let description = segment.description else { return false }
+        let desc = description.lowercased()
+        return desc.contains("輕鬆") || desc.contains("恢復") || desc.contains("easy") || desc.contains("recovery")
+    }
+
+    // 創建單個段落行視圖
+    private func segmentRowView(segment: ProgressionSegment, index: Int) -> some View {
+        HStack(spacing: 8) {
+            // 段落標籤
+            Text("第\(index + 1)段")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.orange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(0.15))
+                .cornerRadius(6)
+
+            // 分段描述
+            if let description = segment.description {
+                Text(description)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.gray.opacity(0.15))
+                    .cornerRadius(6)
+            }
+
+            // 配速（根據分段類型條件顯示）
+            if let pace = segment.pace, !shouldHidePaceForSegment(segment) {
+                HStack(spacing: 4) {
+                    Image(systemName: "speedometer")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                    Text(pace)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.15))
+                .cornerRadius(6)
+            }
+            
+           
+            
+            // 心率區間（用圖示節省空間，心率圖示靠左對齊）
+            if let hrRange = segment.heartRateRange, let displayText = hrRange.displayText {
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.fill")
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                    Text(displayText)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.green)
+                }
+                .frame(alignment: .leading)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.15))
+                .cornerRadius(6)
+            }
+            
+            Spacer()
+
+            // 距離
+            if let distance = segment.distanceKm {
+                Text(String(format: "%.1fkm", distance))
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.purple.opacity(0.8))
+                    .cornerRadius(6)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -206,34 +298,32 @@ struct SegmentedTrainingView: View {
                 .background(Color.orange.opacity(0.3))
                 .padding(.vertical, 2)
             
-            ForEach(segments.indices, id: \.self) { idx in
-                let seg = segments[idx]
-                HStack(spacing: 8) {
-                    Text(String(format: NSLocalizedString("training_plan.segment", comment: "Segment %d"), idx + 1))
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
-                    Spacer()
-                    if let distance = seg.distanceKm {
-                        Text(String(format: "%.1fkm", distance))
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(8)
+            // 簡潔的一段一行格式
+            VStack(spacing: 4) {
+                // 手動展開 segments 陣列，避免 ForEach 問題
+                Group {
+                    if segments.count > 0 {
+                        segmentRowView(segment: segments[0], index: 0)
                     }
-                    if let pace = seg.pace {
-                        Text(pace)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.15))
-                            .cornerRadius(8)
+                }
+                Group {
+                    if segments.count > 1 {
+                        segmentRowView(segment: segments[1], index: 1)
+                    }
+                }
+                Group {
+                    if segments.count > 2 {
+                        segmentRowView(segment: segments[2], index: 2)
+                    }
+                }
+                Group {
+                    if segments.count > 3 {
+                        segmentRowView(segment: segments[3], index: 3)
+                    }
+                }
+                Group {
+                    if segments.count > 4 {
+                        segmentRowView(segment: segments[4], index: 4)
                     }
                 }
             }
@@ -302,7 +392,7 @@ struct TrainingItemsView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if (day.type == .progression || day.type == .threshold), let segments = day.trainingDetails?.segments {
+            if (day.type == .progression || day.type == .threshold || day.type == .combination), let segments = day.trainingDetails?.segments {
                 SegmentedTrainingView(day: day, segments: segments, total: day.trainingDetails?.totalDistanceKm ?? 0)
             } else if day.type == .interval, !trainingItems.isEmpty, let repeats = trainingItems[0].goals.times {
                 IntervalTrainingHeaderView(repeats: repeats)

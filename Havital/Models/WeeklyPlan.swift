@@ -367,11 +367,13 @@ struct ProgressionSegment: Codable, Equatable {
     let distanceKm: Double?  // 改為可選，提高靈活性
     let pace: String?        // 改為可選，提高靈活性
     let description: String?
+    let heartRateRange: HeartRateRange?  // 新增心率區間支援
     
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
         case pace
         case description
+        case heartRateRange = "heart_rate_range"
     }
 }
 

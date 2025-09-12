@@ -9,6 +9,9 @@
 "tab.performance_data" = "表現數據";
 "tab.profile" = "個人";
 
+// MARK: - Toast Messages
+"toast.network_error" = "網路連線問題，正在顯示快取資料";
+
 // MARK: - Common Actions
 "common.save" = "儲存";
 "common.cancel" = "取消";
@@ -913,6 +916,14 @@
 "training_plan.tip" = "小提示：%@";
 "training_plan.segment" = "第 %d 段";
 "training_plan.heart_rate_zone" = "心率區間：%@";
+
+// MARK: - Combination Training Sequence
+"training.combination.sequence.start" = "開始";
+"training.combination.sequence.continue" = "接續";
+"training.combination.sequence.finish" = "結束";
+"training.combination.segment_prefix" = "第%d段";
+"training.combination.pace_format" = "配速 %@";
+"training.combination.heart_rate_format" = "心率 %@";
 "training_plan.interval_training" = "間歇訓練";
 "training_plan.repeats" = "%d × 趟次";
 "training_plan.sprint_segment" = "衝刺段";

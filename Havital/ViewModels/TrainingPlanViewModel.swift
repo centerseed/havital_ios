@@ -82,11 +82,19 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 網路錯誤處理
     @Published var networkError: NetworkError?
     @Published var showNetworkErrorAlert = false
+    @Published var showNetworkErrorToast = false
     
     // 週摘要列表
     @Published var weeklySummaries: [WeeklySummaryItem] = []
     @Published var isLoadingWeeklySummaries = false
     @Published var weeklySummariesError: Error?
+    
+    /// 清除網路錯誤Toast狀態
+    @MainActor
+    func clearNetworkErrorToast() {
+        showNetworkErrorToast = false
+        networkError = nil
+    }
     
     // 統一使用 UnifiedWorkoutManager
     private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
@@ -723,11 +731,16 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     if let networkError = self.handleNetworkError(error) {
                         await MainActor.run {
                             self.networkError = networkError
-                            self.showNetworkErrorAlert = true
+                            // 雙軌架構：背景更新失敗時顯示Toast而不是Alert
+                            self.showNetworkErrorToast = true
                         }
                     } else {
-                        // 其他錯誤: 保持使用本地數據
+                        // 其他錯誤: 保持使用本地數據，顯示Toast提示
                         Logger.error("API加載計劃失敗，保持使用本地數據: \(error)")
+                        
+                        await MainActor.run {
+                            self.showNetworkErrorToast = true
+                        }
                         
                         // 記錄背景更新失敗的詳細錯誤資訊到 Firebase
                         let errorDetails: [String: Any] = [
@@ -851,14 +864,30 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                               jsonPayload: errorDetails)
                 
                 if let networkError = self.handleNetworkError(error) {
-                    Logger.debug("識別為網路錯誤，顯示網路錯誤提示")
+                    Logger.debug("識別為網路錯誤，檢查是否有緩存數據")
                     await MainActor.run {
                         self.networkError = networkError
-                        self.showNetworkErrorAlert = true
+                        
+                        // 雙軌架構核心：如果沒有緩存數據才顯示錯誤畫面
+                        if self.weeklyPlan == nil {
+                            // 沒有任何數據，顯示錯誤畫面
+                            self.showNetworkErrorAlert = true
+                        } else {
+                            // 有緩存數據，只顯示Toast提示
+                            self.showNetworkErrorToast = true
+                        }
                     }
                 } else {
-                    Logger.debug("非網路錯誤，設置 .error 狀態顯示 ErrorView")
-                    await updateWeeklyPlanUI(plan: nil, status: .error(error))
+                    Logger.debug("非網路錯誤，檢查是否有緩存數據決定顯示方式")
+                    if self.weeklyPlan == nil {
+                        // 沒有緩存數據，顯示錯誤畫面  
+                        await updateWeeklyPlanUI(plan: nil, status: .error(error))
+                    } else {
+                        // 有緩存數據，顯示Toast提示但保持現有UI
+                        await MainActor.run {
+                            self.showNetworkErrorToast = true
+                        }
+                    }
                 }
             }
         }
