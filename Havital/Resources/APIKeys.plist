@@ -11,7 +11,7 @@
 	<key>StravaClientID_Dev</key>
 	<string>175355</string>
 	<key>StravaClientSecret_Dev</key>
-	<string>ea0c49aa44d1b92ea195068c69d092d679132775</string>
+	<string>8a21ddc6756e8a1d52cdd059acbfc4ddae61caa5</string>
 	<key>StravaClientID_Prod</key>
 	<string>STRAVA_CLIENT_ID_PROD_NOT_SET</string>
 	<key>StravaClientSecret_Prod</key>
