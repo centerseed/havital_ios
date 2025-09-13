@@ -326,7 +326,7 @@
 "training.type.interval" = "Interval Training";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";
-"training.type.race" = "Race Pace";
+"training.type.race" = "Race";
 "training.type.fartlek" = "Fartlek";
 "training.type.hill" = "Hill Training";
 "training.type.speed" = "Speed Work";
@@ -1033,3 +1033,24 @@
 "performance.heart_rate_zone.zone3_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
 "performance.heart_rate_zone.zone4_benefit" = "Improve VO2 max, enhance running form and strengthen muscles.";
 "performance.heart_rate_zone.zone5_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";
+
+// MARK: - Edit Schedule
+"edit_schedule.cannot_edit_past" = "Completed and past schedules, or race days cannot be edited";
+"edit_schedule.title" = "Edit Weekly Schedule";
+"edit_schedule.cancel" = "Cancel";
+"edit_schedule.save" = "Save";
+"edit_schedule.loading_data" = "Loading edit data...";
+"edit_schedule.unsaved_changes" = "Unsaved Changes";
+"edit_schedule.unsaved_changes_message" = "You have unsaved changes. Are you sure you want to discard them?";
+"edit_schedule.discard_changes" = "Discard Changes";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "Edit Distance";
+"edit_value.distance_message" = "Please enter distance (kilometers)";
+"edit_value.pace_title" = "Edit Pace";
+"edit_value.pace_message" = "Please enter pace (e.g., 5:30)";
+"edit_value.repeats_title" = "Edit Repeats";
+"edit_value.repeats_message" = "Please enter number of repeats";
+"edit_value.confirm" = "Confirm";
+"edit_value.cancel" = "Cancel";
+"edit_value.general_message" = "Please enter new value";

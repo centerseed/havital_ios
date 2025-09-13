@@ -326,7 +326,7 @@
 "training.type.interval" = "インターバル走";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";
-"training.type.race" = "レースペース";
+"training.type.race" = "レース";
 "training.type.fartlek" = "ファルトレク";
 "training.type.hill" = "ヒルトレーニング";
 "training.type.speed" = "スピードワーク";
@@ -1033,3 +1033,24 @@
 "performance.heart_rate_zone.zone3_benefit" = "有酸素循環システムの限界点をトレーニングし、適切なトレーニングで乳酸除去能力を向上させ、より高いペースでの持久力を増加させます。";
 "performance.heart_rate_zone.zone4_benefit" = "最大酸素摂取量を向上させ、ランニングフォームを改善し、筋力を強化します。";
 "performance.heart_rate_zone.zone5_benefit" = "無酸素能力と筋持久力を向上させ、最大酸素摂取量を増加させます。適度なインターバルトレーニングは明らかな改善をもたらしますが、過度なトレーニングは避けてください。";
+
+// MARK: - Edit Schedule
+"edit_schedule.cannot_edit_past" = "完了済みや過去のスケジュール、または当日のレースは編集できません";
+"edit_schedule.title" = "週間スケジュール編集";
+"edit_schedule.cancel" = "キャンセル";
+"edit_schedule.save" = "保存";
+"edit_schedule.loading_data" = "編集データを読み込み中...";
+"edit_schedule.unsaved_changes" = "未保存の変更";
+"edit_schedule.unsaved_changes_message" = "未保存の変更があります。破棄してもよろしいですか？";
+"edit_schedule.discard_changes" = "変更を破棄";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "距離を編集";
+"edit_value.distance_message" = "距離を入力してください（キロメートル）";
+"edit_value.pace_title" = "ペースを編集";
+"edit_value.pace_message" = "ペースを入力してください（例：5:30）";
+"edit_value.repeats_title" = "繰り返し回数を編集";
+"edit_value.repeats_message" = "繰り返し回数を入力してください";
+"edit_value.confirm" = "確認";
+"edit_value.cancel" = "キャンセル";
+"edit_value.general_message" = "新しい値を入力してください";

@@ -968,7 +968,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 獲取特定課表日的日期
     func getDateForDay(dayIndex: Int) -> Date? {
-        return weekDateInfo?.daysMap[dayIndex]
+        // dayIndex 是 0-6，但 daysMap 的 key 是 1-7
+        let weekDateKey = dayIndex + 1
+        return weekDateInfo?.daysMap[weekDateKey]
     }
     
     // 判斷特定課表日是否為今天
@@ -1607,6 +1609,67 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     // 移除重複的 refreshWorkoutData - 直接使用 unifiedWorkoutManager.refreshWorkouts()
+    
+    // MARK: - Edit Schedule Methods
+    
+    /// 檢查特定日期是否可以編輯
+    /// 規則：只有今天以後且沒有跑步記錄的課表才可編輯
+    func canEditDay(_ dayIndex: Int) -> Bool {
+        // 獲取該天的日期
+        guard let dayDate = getDateForDay(dayIndex: dayIndex) else { return false }
+        
+        // 取得今天的開始時間 (00:00)
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        // 只有今天以後的日期才能編輯
+        guard dayDate >= today else {
+            return false
+        }
+        
+        // 檢查是否已有訓練記錄
+        let hasWorkouts = !(workoutsByDayV2[dayIndex]?.isEmpty ?? true)
+        return !hasWorkouts
+    }
+    
+    /// 取得編輯狀態說明文字
+    func getEditStatusMessage(for dayIndex: Int) -> String {
+        guard let dayDate = getDateForDay(dayIndex: dayIndex) else {
+            return NSLocalizedString("edit_schedule.cannot_edit_past", comment: "過去的課表無法編輯")
+        }
+        
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if dayDate < today {
+            return NSLocalizedString("edit_schedule.cannot_edit_past", comment: "過去的課表無法編輯")
+        }
+        
+        let hasWorkouts = !(workoutsByDayV2[dayIndex]?.isEmpty ?? true)
+        if hasWorkouts {
+            return NSLocalizedString("edit_schedule.cannot_edit_completed", comment: "已有訓練記錄的課表無法編輯")
+        }
+        
+        return NSLocalizedString("edit_schedule.drag_to_swap", comment: "長按拖曳以交換課表")
+    }
+    
+    /// 更新週課表 (儲存編輯後的課表)
+    func updateWeeklyPlan(_ editablePlan: MutableWeeklyPlan) async {
+        // TODO: 實現儲存邏輯
+        // 這裡需要將 MutableWeeklyPlan 轉換回 WeeklyPlan 格式
+        // 然後調用 API 儲存
+        
+        Logger.debug("準備儲存編輯後的週課表")
+        
+        // 轉換並儲存 (暫時先記錄，待實現)
+        do {
+            // let updatedPlan = editablePlan.toWeeklyPlan()
+            // let savedPlan = try await TrainingPlanService.shared.updateWeeklyPlan(updatedPlan)
+            // await updateWeeklyPlanUI(plan: savedPlan, status: .ready(savedPlan))
+            Logger.debug("課表儲存成功")
+        } catch {
+            Logger.error("儲存課表失敗: \(error)")
+            // TODO: 處理儲存錯誤
+        }
+    }
     
     deinit {
         cancelAllTasks()

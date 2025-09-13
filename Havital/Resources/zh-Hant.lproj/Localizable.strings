@@ -326,7 +326,7 @@
 "training.type.interval" = "間歇訓練";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";
-"training.type.race" = "比賽配速";
+"training.type.race" = "比賽";
 "training.type.fartlek" = "法特萊克";
 "training.type.hill" = "爬坡訓練";
 "training.type.speed" = "速度訓練";
@@ -563,6 +563,7 @@
 "training.overview" = "訓練總覽";
 "training.progress" = "訓練進度";
 "training.modify_schedule" = "修改課表";
+"training.edit_schedule" = "編輯課表";
 "training.cannot_load_overview" = "無法載入訓練計畫總覽";
 "training.cannot_load_plan" = "無法載入訓練計畫";
 "training.week_schedule" = "週課表";
@@ -1040,3 +1041,35 @@
 "performance.heart_rate_zone.zone3_benefit" = "強度訓練有氧循環的臨界點，適當的訓練已提高乳酸清除能力，增加在較高配速的耐力。";
 "performance.heart_rate_zone.zone4_benefit" = "提升最大攝氧量，改善跑姿和強化肌力。";
 "performance.heart_rate_zone.zone5_benefit" = "提升無氧能力與肌耐力，並提升最大攝氧量。適度的加入間歇訓練可以明顯的感受到進步，但千萬不要過量";
+
+// MARK: - Edit Schedule
+"edit_schedule.title" = "編輯週課表";
+"edit_schedule.save" = "儲存";
+"edit_schedule.cancel" = "取消";
+"edit_schedule.discard_changes" = "放棄變更";
+"edit_schedule.unsaved_changes" = "未儲存的變更";
+"edit_schedule.unsaved_changes_message" = "您有未儲存的變更，確定要放棄嗎？";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "編輯距離";
+"edit_value.distance_message" = "請輸入距離（公里）";
+"edit_value.pace_title" = "編輯配速";
+"edit_value.pace_message" = "請輸入配速（例如：5:30）";
+"edit_value.repeats_title" = "編輯重複次數";
+"edit_value.repeats_message" = "請輸入重複次數";
+"edit_value.confirm" = "確定";
+"edit_value.cancel" = "取消";
+"edit_value.general_message" = "請輸入新的值";
+"edit_schedule.cannot_edit_past" = "已完成和過去的課表，或當日賽比賽無法編輯";
+"edit_schedule.cannot_edit_completed" = "已有訓練記錄的課表無法編輯";
+"edit_schedule.drag_to_swap" = "長按拖曳以交換課表";
+"edit_schedule.loading_data" = "載入編輯資料...";
+"edit_schedule.edit_training" = "編輯訓練";
+"edit_schedule.distance" = "距離";
+"edit_schedule.pace" = "配速";
+"edit_schedule.repeats" = "重複";
+"edit_schedule.sprint_segment" = "衝刺段";
+"edit_schedule.recovery_segment" = "恢復段";
+"edit_schedule.segment" = "區段";
+"edit_schedule.rest_in_place" = "原地休息";
+"edit_schedule.heart_rate" = "心率";
