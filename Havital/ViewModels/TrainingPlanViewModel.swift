@@ -743,12 +743,23 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                         }
                         
                         // 記錄背景更新失敗的詳細錯誤資訊到 Firebase
+                        // Create JSON-safe userInfo by converting non-serializable objects to strings
+                        let safeUserInfo: [String: String] = (error as NSError).userInfo.compactMapValues { value in
+                            if let stringValue = value as? String {
+                                return stringValue
+                            } else if let numberValue = value as? NSNumber {
+                                return numberValue.stringValue
+                            } else {
+                                return String(describing: value)
+                            }
+                        }
+
                         let errorDetails: [String: Any] = [
                             "error_type": String(describing: type(of: error)),
                             "error_description": error.localizedDescription,
                             "error_domain": (error as NSError).domain,
                             "error_code": (error as NSError).code,
-                            "error_userInfo": (error as NSError).userInfo,
+                            "error_userInfo": safeUserInfo,
                             "overview_id": trainingOverview?.id ?? "unknown",
                             "current_week": currentWeek,
                             "selected_week": selectedWeek,
@@ -844,12 +855,23 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 Logger.error("載入週計劃失敗: \(error.localizedDescription)")
                 
                 // 記錄詳細錯誤資訊到 Firebase Cloud Logging
+                // Create JSON-safe userInfo by converting non-serializable objects to strings
+                let safeUserInfo: [String: String] = (error as NSError).userInfo.compactMapValues { value in
+                    if let stringValue = value as? String {
+                        return stringValue
+                    } else if let numberValue = value as? NSNumber {
+                        return numberValue.stringValue
+                    } else {
+                        return String(describing: value)
+                    }
+                }
+
                 let errorDetails: [String: Any] = [
                     "error_type": String(describing: type(of: error)),
                     "error_description": error.localizedDescription,
                     "error_domain": (error as NSError).domain,
                     "error_code": (error as NSError).code,
-                    "error_userInfo": (error as NSError).userInfo,
+                    "error_userInfo": safeUserInfo,
                     "overview_id": trainingOverview?.id ?? "unknown",
                     "current_week": currentWeek,
                     "selected_week": selectedWeek,
