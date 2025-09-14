@@ -968,9 +968,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 獲取特定課表日的日期
     func getDateForDay(dayIndex: Int) -> Date? {
-        // dayIndex 是 0-6，但 daysMap 的 key 是 1-7
-        let weekDateKey = dayIndex + 1
-        return weekDateInfo?.daysMap[weekDateKey]
+        return weekDateInfo?.daysMap[dayIndex]
     }
     
     // 判斷特定課表日是否為今天

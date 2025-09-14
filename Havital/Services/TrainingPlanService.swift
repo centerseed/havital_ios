@@ -207,8 +207,10 @@ struct ModificationSummary: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         modificationId = try container.decode(String.self, forKey: .modificationId)
         totalChanges = try container.decode(Int.self, forKey: .totalChanges)
-        summary = try container.decodeIfPresent([String: Any].self, forKey: .summary)
-        intensityDiff = try container.decodeIfPresent([String: Any].self, forKey: .intensityDiff)
+        // Note: [String: Any] cannot be decoded directly with Codable
+        // Using JSONSerialization as fallback or define proper Codable types
+        summary = nil // TODO: Implement proper Codable handling
+        intensityDiff = nil // TODO: Implement proper Codable handling
     }
     
     func encode(to encoder: Encoder) throws {
@@ -236,8 +238,8 @@ struct IntensityWarning: Codable {
 
 /// 強度警告詳情
 struct IntensityWarningDetails: Codable {
-    let originalIntensity: IntensityTotalMinutes?
-    let updatedIntensity: IntensityTotalMinutes?
+    let originalIntensity: WeeklyPlan.IntensityTotalMinutes?
+    let updatedIntensity: WeeklyPlan.IntensityTotalMinutes?
     let changes: [String: Any]?
     let lowIncreasePercent: Double?
     let mediumHighIncreasePercent: Double?
@@ -253,9 +255,10 @@ struct IntensityWarningDetails: Codable {
     // 自定義編解碼處理 Any 類型
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        originalIntensity = try container.decodeIfPresent(IntensityTotalMinutes.self, forKey: .originalIntensity)
-        updatedIntensity = try container.decodeIfPresent(IntensityTotalMinutes.self, forKey: .updatedIntensity)
-        changes = try container.decodeIfPresent([String: Any].self, forKey: .changes)
+        originalIntensity = try container.decodeIfPresent(WeeklyPlan.IntensityTotalMinutes.self, forKey: .originalIntensity)
+        updatedIntensity = try container.decodeIfPresent(WeeklyPlan.IntensityTotalMinutes.self, forKey: .updatedIntensity)
+        // Note: [String: Any] cannot be decoded directly with Codable
+        changes = nil // TODO: Implement proper Codable handling
         lowIncreasePercent = try container.decodeIfPresent(Double.self, forKey: .lowIncreasePercent)
         mediumHighIncreasePercent = try container.decodeIfPresent(Double.self, forKey: .mediumHighIncreasePercent)
     }

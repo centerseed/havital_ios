@@ -238,8 +238,10 @@ struct MutableWeeklyPlan {
             weekOfPlan: 1,
             totalWeeks: 12,
             totalDistance: 0.0,
+            totalDistanceReason: nil,
             designReason: nil,
-            days: trainingDays
+            days: trainingDays,
+            intensityTotalMinutes: nil
         )
     }
 }

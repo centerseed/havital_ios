@@ -141,9 +141,19 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         case trainingDetails = "training_details"
     }
     
+    // Custom memberwise initializer
+    init(dayIndex: String, dayTarget: String, reason: String?, tips: String?, trainingType: String, trainingDetails: TrainingDetails?) {
+        self.dayIndex = dayIndex
+        self.dayTarget = dayTarget
+        self.reason = reason
+        self.tips = tips
+        self.trainingType = trainingType
+        self.trainingDetails = trainingDetails
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         // 支援 String 或 Int 格式的 day_index
         if let idx = try? container.decode(String.self, forKey: .dayIndex) {
             dayIndex = idx
