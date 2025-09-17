@@ -19,7 +19,7 @@ struct EditScheduleView: View {
                                 EditableDailyCard(
                                     day: editablePlan.days[dayIndex],
                                     dayIndex: dayIndex,
-                                    isEditable: canEditDay(dayIndex),
+                                    isEditable: canEditDay(editablePlan.days[dayIndex].dayIndexInt),
                                     viewModel: viewModel,
                                     onEdit: updateDay,
                                     onDragStarted: { draggedDay = $0 },
@@ -161,18 +161,15 @@ struct EditScheduleView: View {
                 intensityTotalMinutes: originalPlan.intensityTotalMinutes
             )
             
-            // TODO: 暫時關閉 API 調用，直接更新本地緩存測試
-            // let response = try await TrainingPlanService.shared.modifyWeeklyPlan(...)
-            
+            // 調用 API 保存到後端
+            let updatedPlanFromAPI = try await TrainingPlanService.shared.modifyWeeklyPlan(
+                planId: originalPlan.id,
+                updatedPlan: updatedPlan
+            )
+
             await MainActor.run {
-                // 直接更新 ViewModel 中的數據（雙軌架構 - 立即顯示）
-                viewModel.weeklyPlan = updatedPlan
-                
-                // 背景中可以稍後調用 API 同步到後端
-                // Task.detached {
-                //     try? await TrainingPlanService.shared.modifyWeeklyPlan(...)
-                // }
-                
+                // 使用 API 直接回傳的更新後資料，確保與後端一致
+                viewModel.updateWeeklyPlanFromEdit(updatedPlanFromAPI)
                 dismiss()
             }
             

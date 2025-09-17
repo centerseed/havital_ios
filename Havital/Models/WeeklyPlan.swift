@@ -170,6 +170,22 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         trainingType = try container.decode(String.self, forKey: .trainingType)
         trainingDetails = try container.decodeIfPresent(TrainingDetails.self, forKey: .trainingDetails)
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(dayIndex, forKey: .dayIndex)
+        try container.encode(dayTarget, forKey: .dayTarget)
+        try container.encodeIfPresent(reason, forKey: .reason)
+        try container.encodeIfPresent(tips, forKey: .tips)
+        try container.encode(trainingType, forKey: .trainingType)
+
+        // 只在有 trainingDetails 且不是休息日時才編碼 training_details
+        if let trainingDetails = trainingDetails, trainingType != "rest" {
+            try container.encode(trainingDetails, forKey: .trainingDetails)
+        }
+        // 對於休息日或 trainingDetails 為 nil 的情況，完全不包含 training_details 字段
+    }
     
     var type: DayType {
         return DayType(rawValue: trainingType) ?? .rest

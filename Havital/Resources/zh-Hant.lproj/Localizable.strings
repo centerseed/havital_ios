@@ -324,6 +324,7 @@
 "training.type.easy" = "輕鬆跑";
 "training.type.tempo" = "節奏跑";
 "training.type.interval" = "間歇訓練";
+"interval.static_rest" = "原地休息";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";
 "training.type.race" = "比賽";

@@ -136,12 +136,12 @@ final class TrainingPlanService {
     }
     
     /// 修改週訓練計劃
-    func modifyWeeklyPlan(planId: String, updatedPlan: WeeklyPlan) async throws -> WeeklyPlanModifyResponse {
+    func modifyWeeklyPlan(planId: String, updatedPlan: WeeklyPlan) async throws -> WeeklyPlan {
         let requestBody = WeeklyPlanModifyRequest(updatedPlan: updatedPlan)
         let bodyData = try JSONEncoder().encode(requestBody)
-        
+
         return try await makeAPICall(
-            WeeklyPlanModifyResponse.self,
+            WeeklyPlan.self,
             path: "/plan/race_run/weekly/\(planId)/modify",
             method: .PUT,
             body: bodyData
@@ -160,33 +160,7 @@ struct WeeklyPlanModifyRequest: Codable {
     }
 }
 
-/// 修改週課表回應
-struct WeeklyPlanModifyResponse: Codable {
-    let success: Bool
-    let data: WeeklyPlanModifyData?
-    let error: String?
-}
-
-/// 修改週課表回應數據
-struct WeeklyPlanModifyData: Codable {
-    let planId: String
-    let createdAt: String
-    let updatedAt: String
-    let weeklySchedule: WeeklyPlan
-    let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
-    let modificationSummary: ModificationSummary?
-    let intensityWarning: IntensityWarning?
-    
-    enum CodingKeys: String, CodingKey {
-        case planId = "plan_id"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case weeklySchedule = "weekly_schedule"
-        case intensityTotalMinutes = "intensity_total_minutes"
-        case modificationSummary = "modification_summary"
-        case intensityWarning = "intensity_warning"
-    }
-}
+// API 直接回傳 WeeklyPlan，不需要包裝結構
 
 /// 修改摘要
 struct ModificationSummary: Codable {

@@ -324,6 +324,7 @@
 "training.type.easy" = "Easy Run";
 "training.type.tempo" = "Tempo Run";
 "training.type.interval" = "Interval Training";
+"interval.static_rest" = "Static Rest";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";
 "training.type.race" = "Race";

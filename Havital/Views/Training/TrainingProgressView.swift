@@ -50,7 +50,7 @@ struct TrainingProgressView: View {
                     
                     Spacer()
                     
-                    Text(String(format: NSLocalizedString("training.current_week_of_total", comment: "Week %d / Total %d weeks"), currentWeek, plan.totalWeeks))
+                    Text(String(format: NSLocalizedString("training.current_week_of_total", comment: "Week %d / Total %d weeks"), currentWeek, viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -72,7 +72,7 @@ struct TrainingProgressView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(geometry.size.width * CGFloat(Double(currentWeek) / Double(plan.totalWeeks)), 0), height: 12)
+                            .frame(width: max(geometry.size.width * CGFloat(Double(currentWeek) / Double(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks)), 0), height: 12)
                     }
                 }
                 .frame(height: 12)

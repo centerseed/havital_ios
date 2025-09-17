@@ -324,6 +324,7 @@
 "training.type.easy" = "イージーラン";
 "training.type.tempo" = "テンポラン";
 "training.type.interval" = "インターバル走";
+"interval.static_rest" = "その場休憩";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";
 "training.type.race" = "レース";

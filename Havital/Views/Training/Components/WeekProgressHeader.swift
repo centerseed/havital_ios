@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WeekProgressHeader: View {
     let plan: WeeklyPlan
+    let overview: TrainingPlanOverview?
     @Binding var showWeekSelector: Bool
     @Binding var showTrainingProgress: Bool
     
@@ -12,12 +13,12 @@ struct WeekProgressHeader: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(plan.weekOfPlan) / \(plan.totalWeeks) 週")
+                Text("\(plan.weekOfPlan) / \(overview?.totalWeeks ?? plan.totalWeeks) 週")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.primary)
             }
-            
-            WeekProgressBar(progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks))
+
+            WeekProgressBar(progress: Double(plan.weekOfPlan) / Double(overview?.totalWeeks ?? plan.totalWeeks))
                 .frame(height: 12)
                 .onTapGesture { showTrainingProgress = true }
         }
@@ -40,6 +41,7 @@ struct WeekProgressHeader: View {
     
     return WeekProgressHeader(
         plan: mockPlan,
+        overview: nil,
         showWeekSelector: .constant(false),
         showTrainingProgress: .constant(false)
     )

@@ -20,7 +20,7 @@ struct WeekOverviewCard: View {
                 VStack(spacing: 16) {
                     // 當有強度數據時才顯示頂部進度條
                     if plan.intensityTotalMinutes != nil {
-                        WeekProgressHeader(plan: plan, showWeekSelector: $showWeekSelector, showTrainingProgress: $showTrainingProgress)
+                        WeekProgressHeader(plan: plan, overview: viewModel.trainingOverview, showWeekSelector: $showWeekSelector, showTrainingProgress: $showTrainingProgress)
                     }
 
                     HStack(spacing: 8) {
@@ -46,6 +46,7 @@ struct WeekOverviewCard: View {
                         // 沒有強度數據時顯示週進度環和跑量環
                         ProgressCirclesSection(
                             plan: plan,
+                            overview: viewModel.trainingOverview,
                             currentWeekDistance: viewModel.currentWeekDistance,
                             formatDistance: { viewModel.formatDistance($0, unit: nil) },
                             showWeekSelector: $showWeekSelector,

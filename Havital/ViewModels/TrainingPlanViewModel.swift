@@ -1690,7 +1690,18 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             // TODO: 處理儲存錯誤
         }
     }
-    
+
+    /// 從編輯畫面更新週計劃，確保緩存一致性
+    @MainActor
+    func updateWeeklyPlanFromEdit(_ updatedPlan: WeeklyPlan) {
+        Logger.debug("從編輯畫面更新週計劃: 週數=\(updatedPlan.weekOfPlan), ID=\(updatedPlan.id)")
+
+        // 使用統一的 updateWeeklyPlanUI 方法，確保緩存一致性
+        updateWeeklyPlanUI(plan: updatedPlan, status: .ready(updatedPlan))
+
+        Logger.debug("週計劃已更新並保存到緩存")
+    }
+
     deinit {
         cancelAllTasks()
     }
