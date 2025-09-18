@@ -720,6 +720,7 @@ enum GaitAnalysisChart {
             static let hrvTitle = "performance.hrv.hrv_title"
             static let selectDataSourceHrv = "performance.hrv.select_data_source_hrv"
         }
+
         
         enum HeartRateZone {
             // Zone Names

@@ -324,9 +324,10 @@
 "training.type.easy" = "Easy Run";
 "training.type.tempo" = "Tempo Run";
 "training.type.interval" = "Interval Training";
+"interval.static_rest" = "Static Rest";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";
-"training.type.race" = "Race Pace";
+"training.type.race" = "Race";
 "training.type.fartlek" = "Fartlek";
 "training.type.hill" = "Hill Training";
 "training.type.speed" = "Speed Work";
@@ -1015,6 +1016,18 @@
 "performance.hrv.hrv_title" = "Heart Rate Variability (HRV) Trend";
 "performance.hrv.select_data_source_hrv" = "Please select a data source to view HRV trends";
 
+// Training Load
+"performance.training_load.training_load_title" = "Training Load";
+"performance.training_load.training_load_explanation" = "Fitness index and training stress balance calculated based on training intensity and frequency, helping optimize your training plan and avoid overtraining";
+"performance.training_load.fitness_index" = "Fitness Index";
+"performance.training_load.fitness_index_explanation" = "An indicator of your current overall fitness level. Higher values indicate better fitness";
+"performance.training_load.tsb" = "Training Stress Balance (TSB)";
+"performance.training_load.tsb_explanation" = "An indicator of the balance between training fatigue and recovery. Positive values indicate good recovery, negative values indicate accumulated fatigue";
+"performance.training_load.insufficient_data" = "Insufficient workout data, at least 5 records needed";
+"performance.training_load.loading_training_load" = "Loading training load data...";
+"performance.training_load.no_training_load_data" = "No training load data";
+"performance.training_load.select_data_source_training_load" = "Please select a data source to view training load trends";
+
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "Easy (E)";
 "performance.heart_rate_zone.zone2_name" = "Marathon (M)";
@@ -1033,3 +1046,24 @@
 "performance.heart_rate_zone.zone3_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
 "performance.heart_rate_zone.zone4_benefit" = "Improve VO2 max, enhance running form and strengthen muscles.";
 "performance.heart_rate_zone.zone5_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";
+
+// MARK: - Edit Schedule
+"edit_schedule.cannot_edit_past" = "Completed and past schedules, or race days cannot be edited";
+"edit_schedule.title" = "Edit Weekly Schedule";
+"edit_schedule.cancel" = "Cancel";
+"edit_schedule.save" = "Save";
+"edit_schedule.loading_data" = "Loading edit data...";
+"edit_schedule.unsaved_changes" = "Unsaved Changes";
+"edit_schedule.unsaved_changes_message" = "You have unsaved changes. Are you sure you want to discard them?";
+"edit_schedule.discard_changes" = "Discard Changes";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "Edit Distance";
+"edit_value.distance_message" = "Please enter distance (kilometers)";
+"edit_value.pace_title" = "Edit Pace";
+"edit_value.pace_message" = "Please enter pace (e.g., 5:30)";
+"edit_value.repeats_title" = "Edit Repeats";
+"edit_value.repeats_message" = "Please enter number of repeats";
+"edit_value.confirm" = "Confirm";
+"edit_value.cancel" = "Cancel";
+"edit_value.general_message" = "Please enter new value";

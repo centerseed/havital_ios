@@ -46,6 +46,7 @@ struct WeekOverviewCard: View {
                         // 沒有強度數據時顯示週進度環和跑量環
                         ProgressCirclesSection(
                             plan: plan,
+                            overview: viewModel.trainingOverview,
                             currentWeekDistance: viewModel.currentWeekDistance,
                             formatDistance: { viewModel.formatDistance($0, unit: nil) },
                             showWeekSelector: $showWeekSelector,

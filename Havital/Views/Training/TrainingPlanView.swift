@@ -211,6 +211,7 @@ struct TrainingPlanView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
+    @State private var showEditSchedule = false
     
     
     var body: some View {
@@ -286,6 +287,9 @@ struct TrainingPlanView: View {
             if let shareImage = shareImage {
                 ActivityViewController(activityItems: [shareImage])
             }
+        }
+        .sheet(isPresented: $showEditSchedule) {
+            EditScheduleView(viewModel: viewModel)
         }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {
@@ -390,13 +394,13 @@ struct TrainingPlanView: View {
                     }) {
                         Label(NSLocalizedString("training.progress", comment: "Training Progress"), systemImage: "chart.line.uptrend.xyaxis")
                     }
-                    /*
+                    
                     Button(action: {
-                        showModifications = true
+                        showEditSchedule = true
                     }) {
-                        Label(NSLocalizedString("training.modify_schedule", comment: "Modify Schedule"), systemImage: "slider.horizontal.3")
+                        Label(NSLocalizedString("training.edit_schedule", comment: "Edit Schedule"), systemImage: "slider.horizontal.3")
                     }
-                    */
+                    .disabled(viewModel.planStatus == .loading || viewModel.weeklyPlan == nil)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
