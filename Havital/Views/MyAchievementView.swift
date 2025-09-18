@@ -1251,20 +1251,20 @@ struct TrainingLoadChartView: View {
                         xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                         xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
                         yStart: .value("下限", mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.lowerBound)),
-                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(-8))
+                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(-6))
                     )
                     .foregroundStyle(Color.orange.opacity(0.1))
 
-                    // 綠色區：-5 ≤ TSB ≤ +5（平衡狀態）
+                    // 綠色區：-6 ≤ TSB ≤ +5（平衡狀態）
                     RectangleMark(
                         xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                         xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(-8)),
+                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(-6)),
                         yEnd: .value("上限", mapTSBBoundaryToFitnessScale(5))
                     )
                     .foregroundStyle(Color.green.opacity(0.1))
 
-                    // 藍色區：TSB > +5（最佳狀態）
+                    // 藍色區：TSB > +4（最佳狀態）
                     RectangleMark(
                         xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                         xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
@@ -1352,7 +1352,7 @@ struct TrainingLoadChartView: View {
                     "體適能指數": .blue,
                     "TSB": .green
                 ])
-                .frame(height: 240)
+                .frame(height: 200)
                 .chartYAxis {
                     // 只顯示左軸 - 體適能指數（藍色）
                     AxisMarks(position: .leading) { value in

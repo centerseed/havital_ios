@@ -131,7 +131,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         self.trainingType = trainingType
         self.trainingDetails = trainingDetails
     }
-    
+
     static func == (lhs: TrainingDay, rhs: TrainingDay) -> Bool {
         return lhs.dayIndex == rhs.dayIndex &&
                lhs.dayTarget == rhs.dayTarget &&
@@ -140,7 +140,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                lhs.trainingType == rhs.trainingType &&
                lhs.trainingDetails == rhs.trainingDetails
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case dayIndex = "day_index"
         case dayTarget = "day_target"
@@ -148,16 +148,6 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         case tips
         case trainingType = "training_type"
         case trainingDetails = "training_details"
-    }
-    
-    // Custom memberwise initializer
-    init(dayIndex: String, dayTarget: String, reason: String?, tips: String?, trainingType: String, trainingDetails: TrainingDetails?) {
-        self.dayIndex = dayIndex
-        self.dayTarget = dayTarget
-        self.reason = reason
-        self.tips = tips
-        self.trainingType = trainingType
-        self.trainingDetails = trainingDetails
     }
 
     init(from decoder: Decoder) throws {
