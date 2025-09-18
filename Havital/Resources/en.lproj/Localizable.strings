@@ -1016,6 +1016,18 @@
 "performance.hrv.hrv_title" = "Heart Rate Variability (HRV) Trend";
 "performance.hrv.select_data_source_hrv" = "Please select a data source to view HRV trends";
 
+// Training Load
+"performance.training_load.training_load_title" = "Training Load";
+"performance.training_load.training_load_explanation" = "Fitness index and training stress balance calculated based on training intensity and frequency, helping optimize your training plan and avoid overtraining";
+"performance.training_load.fitness_index" = "Fitness Index";
+"performance.training_load.fitness_index_explanation" = "An indicator of your current overall fitness level. Higher values indicate better fitness";
+"performance.training_load.tsb" = "Training Stress Balance (TSB)";
+"performance.training_load.tsb_explanation" = "An indicator of the balance between training fatigue and recovery. Positive values indicate good recovery, negative values indicate accumulated fatigue";
+"performance.training_load.insufficient_data" = "Insufficient workout data, at least 5 records needed";
+"performance.training_load.loading_training_load" = "Loading training load data...";
+"performance.training_load.no_training_load_data" = "No training load data";
+"performance.training_load.select_data_source_training_load" = "Please select a data source to view training load trends";
+
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "Easy (E)";
 "performance.heart_rate_zone.zone2_name" = "Marathon (M)";

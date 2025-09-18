@@ -234,12 +234,128 @@ struct HealthRecord: Codable, Equatable {
     let dailyCalories: Int?
     let hrvLastNightAvg: Double?
     let restingHeartRate: Int?
-    
+
+    // TSB Metrics - 從嵌套的 tsb_metrics 對象中提取
+    let atl: Double?
+    let ctl: Double?
+    let fitness: Double?
+    let tsb: Double?
+    let updatedAt: Int?
+    let workoutTrigger: Bool?
+    let totalTss: Double?
+    let createdAt: String?
+
     enum CodingKeys: String, CodingKey {
         case date
         case dailyCalories = "daily_calories"
         case hrvLastNightAvg = "hrv_last_night_avg"
         case restingHeartRate = "resting_heart_rate"
+        case tsbMetrics = "tsb_metrics"
+    }
+
+    // 嵌套的 TSB Metrics 結構
+    struct TSBMetrics: Codable {
+        let atl: Double?
+        let ctl: Double?
+        let fitness: Double?
+        let tsb: Double?
+        let updatedAt: Int?
+        let workoutTrigger: Bool?
+        let totalTss: Double?
+        let createdAt: String?
+
+        enum CodingKeys: String, CodingKey {
+            case atl, ctl, fitness, tsb
+            case updatedAt = "updated_at"
+            case workoutTrigger = "workout_trigger"
+            case totalTss = "total_tss"
+            case createdAt = "created_at"
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        date = try container.decode(String.self, forKey: .date)
+        dailyCalories = try container.decodeIfPresent(Int.self, forKey: .dailyCalories)
+        hrvLastNightAvg = try container.decodeIfPresent(Double.self, forKey: .hrvLastNightAvg)
+        restingHeartRate = try container.decodeIfPresent(Int.self, forKey: .restingHeartRate)
+
+        // 解析嵌套的 tsb_metrics
+        if let tsbMetrics = try container.decodeIfPresent(TSBMetrics.self, forKey: .tsbMetrics) {
+            print("🔍 解析 TSBMetrics 成功，created_at: \(tsbMetrics.createdAt ?? "nil")")
+            atl = tsbMetrics.atl
+            ctl = tsbMetrics.ctl
+            fitness = tsbMetrics.fitness
+            tsb = tsbMetrics.tsb
+            updatedAt = tsbMetrics.updatedAt
+            workoutTrigger = tsbMetrics.workoutTrigger
+            totalTss = tsbMetrics.totalTss
+            createdAt = tsbMetrics.createdAt
+        } else {
+            print("❌ TSBMetrics 解析失敗或不存在")
+            atl = nil
+            ctl = nil
+            fitness = nil
+            tsb = nil
+            updatedAt = nil
+            workoutTrigger = nil
+            totalTss = nil
+            createdAt = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(date, forKey: .date)
+        try container.encodeIfPresent(dailyCalories, forKey: .dailyCalories)
+        try container.encodeIfPresent(hrvLastNightAvg, forKey: .hrvLastNightAvg)
+        try container.encodeIfPresent(restingHeartRate, forKey: .restingHeartRate)
+
+        // 編碼 TSB metrics 為嵌套對象
+        if atl != nil || ctl != nil || fitness != nil || tsb != nil || updatedAt != nil || workoutTrigger != nil || totalTss != nil || createdAt != nil {
+            let tsbMetrics = TSBMetrics(
+                atl: atl,
+                ctl: ctl,
+                fitness: fitness,
+                tsb: tsb,
+                updatedAt: updatedAt,
+                workoutTrigger: workoutTrigger,
+                totalTss: totalTss,
+                createdAt: createdAt
+            )
+            try container.encode(tsbMetrics, forKey: .tsbMetrics)
+        }
+    }
+
+    // 便利初始化器，保持向後兼容性
+    init(
+        date: String,
+        dailyCalories: Int? = nil,
+        hrvLastNightAvg: Double? = nil,
+        restingHeartRate: Int? = nil,
+        atl: Double? = nil,
+        ctl: Double? = nil,
+        fitness: Double? = nil,
+        tsb: Double? = nil,
+        updatedAt: Int? = nil,
+        workoutTrigger: Bool? = nil,
+        totalTss: Double? = nil,
+        createdAt: String? = nil
+    ) {
+        self.date = date
+        self.dailyCalories = dailyCalories
+        self.hrvLastNightAvg = hrvLastNightAvg
+        self.restingHeartRate = restingHeartRate
+        self.atl = atl
+        self.ctl = ctl
+        self.fitness = fitness
+        self.tsb = tsb
+        self.updatedAt = updatedAt
+        self.workoutTrigger = workoutTrigger
+        self.totalTss = totalTss
+        self.createdAt = createdAt
     }
 }
 

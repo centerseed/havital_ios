@@ -720,6 +720,19 @@ enum GaitAnalysisChart {
             static let hrvTitle = "performance.hrv.hrv_title"
             static let selectDataSourceHrv = "performance.hrv.select_data_source_hrv"
         }
+
+        enum TrainingLoad {
+            static let trainingLoadTitle = "performance.training_load.training_load_title"
+            static let trainingLoadExplanation = "performance.training_load.training_load_explanation"
+            static let fitnessIndex = "performance.training_load.fitness_index"
+            static let fitnessIndexExplanation = "performance.training_load.fitness_index_explanation"
+            static let tsb = "performance.training_load.tsb"
+            static let tsbExplanation = "performance.training_load.tsb_explanation"
+            static let insufficientData = "performance.training_load.insufficient_data"
+            static let loadingTrainingLoad = "performance.training_load.loading_training_load"
+            static let noTrainingLoadData = "performance.training_load.no_training_load_data"
+            static let selectDataSourceTrainingLoad = "performance.training_load.select_data_source_training_load"
+        }
         
         enum HeartRateZone {
             // Zone Names

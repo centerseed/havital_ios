@@ -1024,6 +1024,18 @@
 "performance.hrv.hrv_title" = "心率變異性 (HRV) 趨勢";
 "performance.hrv.select_data_source_hrv" = "請選擇資料來源以查看 HRV 趨勢";
 
+// Training Load
+"performance.training_load.training_load_title" = "訓練負荷";
+"performance.training_load.training_load_explanation" = "基於訓練強度和頻率計算的體適能指數和訓練壓力平衡，幫助您優化訓練計劃並避免過度訓練";
+"performance.training_load.fitness_index" = "體適能指數";
+"performance.training_load.fitness_index_explanation" = "反映您當前整體體適能水平的指標，數值越高表示體適能越佳";
+"performance.training_load.tsb" = "訓練壓力平衡 (TSB)";
+"performance.training_load.tsb_explanation" = "反映訓練疲勞與恢復平衡的指標。正值表示恢復良好，負值表示累積疲勞";
+"performance.training_load.insufficient_data" = "運動數據不足，需要至少 5 筆記錄";
+"performance.training_load.loading_training_load" = "載入訓練負荷數據中...";
+"performance.training_load.no_training_load_data" = "無訓練負荷數據";
+"performance.training_load.select_data_source_training_load" = "請選擇資料來源以查看訓練負荷趨勢";
+
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "輕鬆 (E)";
 "performance.heart_rate_zone.zone2_name" = "馬拉松 (M)";

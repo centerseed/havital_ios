@@ -413,7 +413,13 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
                 date: dateString,
                 dailyCalories: calories.flatMap { Int($0) },
                 hrvLastNightAvg: hrvData,
-                restingHeartRate: restingHR.flatMap { Int($0) }
+                restingHeartRate: restingHR.flatMap { Int($0) },
+                atl: nil,
+                ctl: nil,
+                fitness: nil,
+                tsb: nil,
+                updatedAt: nil,
+                workoutTrigger: nil
             )
             
             // 記錄數據完整性
@@ -429,7 +435,13 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
                 date: dateString,
                 dailyCalories: nil,
                 hrvLastNightAvg: nil,
-                restingHeartRate: nil
+                restingHeartRate: nil,
+                atl: nil,
+                ctl: nil,
+                fitness: nil,
+                tsb: nil,
+                updatedAt: nil,
+                workoutTrigger: nil
             )
             
             logDataCompleteness(for: dateString, record: record)
