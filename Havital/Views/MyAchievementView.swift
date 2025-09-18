@@ -1441,7 +1441,7 @@ struct TrainingLoadChartView: View {
             let center = (minValue + maxValue) / 2
             return (center - 1)...(center + 1)
         } else {
-            let margin = range * 0.05
+            let margin = range * 0.2
             return (minValue - margin)...(maxValue + margin)
         }
     }
@@ -1450,18 +1450,18 @@ struct TrainingLoadChartView: View {
     private var tsbYAxisDomainIndependent: ClosedRange<Double> {
         let tsbValues = chartHealthData.compactMap { $0.tsb }
         guard !tsbValues.isEmpty else { return -30...30 }
-        let minValue = tsbValues.min() ?? -20
-        let maxValue = tsbValues.max() ?? 20
+        let minValue = tsbValues.min() ?? -5
+        let maxValue = tsbValues.max() ?? 5
 
         // 確保包含 TSB 的關鍵分界線，並在上下界各加10
-        let expandedMin = min(minValue, -10) - 10
-        let expandedMax = max(maxValue, 10) + 10
+        let expandedMin = min(minValue, -5) - 2
+        let expandedMax = max(maxValue, 5) + 2
         let expandedRange = expandedMax - expandedMin
 
-        if expandedRange < 25 {
-            return -20...20
+        if expandedRange < 10 {
+            return -6...6
         } else {
-            let margin = expandedRange * 0.05
+            let margin = expandedRange * 0.2
             return (expandedMin - margin)...(expandedMax + margin)
         }
     }
