@@ -721,6 +721,7 @@ enum GaitAnalysisChart {
             static let selectDataSourceHrv = "performance.hrv.select_data_source_hrv"
         }
 
+<<<<<<< HEAD
         enum TrainingLoad {
             static let trainingLoadTitle = "performance.training_load.training_load_title"
             static let trainingLoadExplanation = "performance.training_load.training_load_explanation"
@@ -733,6 +734,8 @@ enum GaitAnalysisChart {
             static let noTrainingLoadData = "performance.training_load.no_training_load_data"
             static let selectDataSourceTrainingLoad = "performance.training_load.select_data_source_training_load"
         }
+=======
+>>>>>>> dev_plan_modified
         
         enum HeartRateZone {
             // Zone Names

@@ -122,6 +122,15 @@ struct TrainingDay: Codable, Identifiable, Equatable {
     let tips: String?
     let trainingType: String
     let trainingDetails: TrainingDetails?
+
+    init(dayIndex: String, dayTarget: String, reason: String?, tips: String?, trainingType: String, trainingDetails: TrainingDetails?) {
+        self.dayIndex = dayIndex
+        self.dayTarget = dayTarget
+        self.reason = reason
+        self.tips = tips
+        self.trainingType = trainingType
+        self.trainingDetails = trainingDetails
+    }
     
     static func == (lhs: TrainingDay, rhs: TrainingDay) -> Bool {
         return lhs.dayIndex == rhs.dayIndex &&
