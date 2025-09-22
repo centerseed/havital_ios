@@ -6,6 +6,8 @@ actor TrainingLoadDataManager {
 
     private let cacheKey = "training_load_health_data"
     private let lastSyncDateKey = "training_load_last_sync_date"
+    private let cacheVersionKey = "training_load_cache_version"
+    private let currentCacheVersion = 2  // 增加版本號
     private let maxCacheSize = 40
     private let initialLoadDays = 30
 
@@ -15,8 +17,21 @@ actor TrainingLoadDataManager {
 
     /// 獲取訓練負荷數據（優先使用緩存，背景更新）
     func getTrainingLoadData() async -> [HealthRecord] {
+        // 檢查緩存版本，如果格式不對就清除
+        await clearCacheIfIncompatible()
+
         // 立即返回緩存數據
         let cachedData = loadCachedData()
+
+        // 如果沒有緩存，強制載入
+        if cachedData.isEmpty {
+            do {
+                return try await forceRefreshData()
+            } catch {
+                Logger.error("[TrainingLoadDataManager] 強制載入失敗: \(error.localizedDescription)")
+                return []
+            }
+        }
 
         // 背景進行增量同步
         Task.detached {
@@ -166,5 +181,20 @@ actor TrainingLoadDataManager {
             UserDefaults.standard.removeObject(forKey: lastSyncDateKey)
         }
         Logger.debug("[TrainingLoadDataManager] 緩存已清除")
+    }
+
+    /// 檢查緩存兼容性，清除舊格式緩存
+    private func clearCacheIfIncompatible() async {
+        let savedVersion = await MainActor.run {
+            UserDefaults.standard.integer(forKey: cacheVersionKey)
+        }
+
+        if savedVersion != currentCacheVersion {
+            Logger.debug("[TrainingLoadDataManager] 緩存版本不匹配 (舊:\(savedVersion), 新:\(currentCacheVersion))，清除緩存")
+            await clearCache()
+            await MainActor.run {
+                UserDefaults.standard.set(currentCacheVersion, forKey: cacheVersionKey)
+            }
+        }
     }
 }

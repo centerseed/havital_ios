@@ -1127,10 +1127,26 @@ struct TrainingLoadChartSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionTitleWithInfo(
-                title: L10n.Performance.TrainingLoad.trainingLoadTitle.localized,
-                explanation: L10n.Performance.TrainingLoad.trainingLoadExplanation.localized
-            )
+            HStack {
+                SectionTitleWithInfo(
+                    title: L10n.Performance.TrainingLoad.trainingLoadTitle.localized,
+                    explanation: L10n.Performance.TrainingLoad.trainingLoadExplanation.localized
+                )
+
+                Spacer()
+
+                Button(action: {
+                    Task {
+                        await TrainingLoadDataManager.shared.clearCache()
+                        // 觸發重新載入
+                        NotificationCenter.default.post(name: NSNotification.Name("ReloadTrainingLoadData"), object: nil)
+                    }
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 16))
+                }
+            }
             .padding(.horizontal)
 
             switch dataSourcePreference {
@@ -1203,7 +1219,7 @@ struct TrainingLoadChartView: View {
                     record.fitness != nil || record.tsb != nil ? record : nil
                 }
 
-                if validTSBData.count < 3 {
+                if validTSBData.count < 1 {
                     VStack {
                         EmptyStateView(
                             type: .loadingFailed,
@@ -1218,6 +1234,11 @@ struct TrainingLoadChartView: View {
         }
         .task {
             await loadChartData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReloadTrainingLoadData"))) { _ in
+            Task {
+                await loadChartData()
+            }
         }
     }
 
@@ -1618,6 +1639,15 @@ struct TrainingLoadChartView: View {
             let validTSBData = cachedHealthData.compactMap { record in
                 record.fitness != nil || record.tsb != nil ? record : nil
             }
+
+            // 詳細調試：檢查每筆記錄的 fitness 和 tsb 值
+            print("🔍 驗證 TSB 數據有效性:")
+            for (index, record) in cachedHealthData.prefix(5).enumerated() {
+                let isValid = record.fitness != nil || record.tsb != nil
+                print("  記錄[\(index)]: date=\(record.date), fitness=\(record.fitness?.description ?? "nil"), tsb=\(record.tsb?.description ?? "nil"), 有效=\(isValid)")
+            }
+
+            print("🔍 UI 顯示檢查: 總數據=\(cachedHealthData.count), 有效TSB數據=\(validTSBData.count)")
 
             Logger.debug("TrainingLoadChartView: 載入完成，總記錄數：\(cachedHealthData.count)，有效TSB數據：\(validTSBData.count)")
 

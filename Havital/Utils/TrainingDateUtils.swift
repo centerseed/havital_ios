@@ -2,20 +2,27 @@ import Foundation
 
 struct TrainingDateUtils {
     /// 計算賽事日期距今天數
-    /// - Parameter raceDate: 賽事日期的時間戳（秒）
+    /// - Parameters:
+    ///   - raceDate: 賽事日期的時間戳（秒）
+    ///   - timezone: 賽事時區（選填，預設使用當前時區）
     /// - Returns: 剩餘天數
-    static func calculateDaysRemaining(raceDate: Int) -> Int {
+    static func calculateDaysRemaining(raceDate: Int, timezone: String? = nil) -> Int {
         let raceDay = Date(timeIntervalSince1970: TimeInterval(raceDate))
-        let calendar = Self.calendar
-        
+        var calendar = Self.calendar
+
+        // 如果指定了時區，使用指定的時區
+        if let timezoneId = timezone, let raceTimeZone = TimeZone(identifier: timezoneId) {
+            calendar.timeZone = raceTimeZone
+        }
+
         // 取得今天的開始時間（00:00:00）
         let today = calendar.startOfDay(for: Date())
         // 取得賽事日期的開始時間（00:00:00）
         let raceStartDay = calendar.startOfDay(for: raceDay)
-        
+
         // 計算兩個日期之間的天數差異
         let components = calendar.dateComponents([.day], from: today, to: raceStartDay)
-        
+
         return max(components.day ?? 0, 0) // 確保不為負數
     }
     

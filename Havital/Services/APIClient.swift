@@ -253,6 +253,20 @@ struct HealthRecord: Codable, Equatable {
         case tsbMetrics = "tsb_metrics"
     }
 
+    // 動態 CodingKeys 用於處理緩存格式
+    struct DynamicCodingKeys: CodingKey {
+        var stringValue: String
+        var intValue: Int?
+
+        init?(stringValue: String) {
+            self.stringValue = stringValue
+        }
+
+        init?(intValue: Int) {
+            return nil
+        }
+    }
+
     // 嵌套的 TSB Metrics 結構
     struct TSBMetrics: Codable {
         let atl: Double?
@@ -281,9 +295,10 @@ struct HealthRecord: Codable, Equatable {
         hrvLastNightAvg = try container.decodeIfPresent(Double.self, forKey: .hrvLastNightAvg)
         restingHeartRate = try container.decodeIfPresent(Int.self, forKey: .restingHeartRate)
 
-        // 解析嵌套的 tsb_metrics
+        // 嘗試解析嵌套的 tsb_metrics（來自 API 或緩存）
         if let tsbMetrics = try container.decodeIfPresent(TSBMetrics.self, forKey: .tsbMetrics) {
             print("🔍 解析 TSBMetrics 成功，created_at: \(tsbMetrics.createdAt ?? "nil")")
+            print("  📊 TSB 數據: fitness=\(tsbMetrics.fitness?.description ?? "nil"), tsb=\(tsbMetrics.tsb?.description ?? "nil"), atl=\(tsbMetrics.atl?.description ?? "nil"), ctl=\(tsbMetrics.ctl?.description ?? "nil")")
             atl = tsbMetrics.atl
             ctl = tsbMetrics.ctl
             fitness = tsbMetrics.fitness
@@ -293,15 +308,23 @@ struct HealthRecord: Codable, Equatable {
             totalTss = tsbMetrics.totalTss
             createdAt = tsbMetrics.createdAt
         } else {
-            print("❌ TSBMetrics 解析失敗或不存在")
-            atl = nil
-            ctl = nil
-            fitness = nil
-            tsb = nil
-            updatedAt = nil
-            workoutTrigger = nil
-            totalTss = nil
-            createdAt = nil
+            // 如果沒有 tsbMetrics 字段，可能是直接編碼的格式，嘗試直接讀取字段
+            let dynamicContainer = try decoder.container(keyedBy: DynamicCodingKeys.self)
+
+            atl = try dynamicContainer.decodeIfPresent(Double.self, forKey: DynamicCodingKeys(stringValue: "atl")!)
+            ctl = try dynamicContainer.decodeIfPresent(Double.self, forKey: DynamicCodingKeys(stringValue: "ctl")!)
+            fitness = try dynamicContainer.decodeIfPresent(Double.self, forKey: DynamicCodingKeys(stringValue: "fitness")!)
+            tsb = try dynamicContainer.decodeIfPresent(Double.self, forKey: DynamicCodingKeys(stringValue: "tsb")!)
+            updatedAt = try dynamicContainer.decodeIfPresent(Int.self, forKey: DynamicCodingKeys(stringValue: "updatedAt")!)
+            workoutTrigger = try dynamicContainer.decodeIfPresent(Bool.self, forKey: DynamicCodingKeys(stringValue: "workoutTrigger")!)
+            totalTss = try dynamicContainer.decodeIfPresent(Double.self, forKey: DynamicCodingKeys(stringValue: "totalTss")!)
+            createdAt = try dynamicContainer.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "createdAt")!)
+
+            if atl != nil || ctl != nil || fitness != nil || tsb != nil {
+                print("🔍 直接解析 TSB 字段成功: fitness=\(fitness?.description ?? "nil"), tsb=\(tsb?.description ?? "nil")")
+            } else {
+                print("❌ TSBMetrics 解析失敗或不存在")
+            }
         }
     }
 

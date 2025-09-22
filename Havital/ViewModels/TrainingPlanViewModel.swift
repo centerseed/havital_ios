@@ -1410,41 +1410,92 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         var totalLow: Double = 0
         var totalMedium: Double = 0
         var totalHigh: Double = 0
-        
+
         Logger.debug("開始計算訓練強度，總共有 \(workouts.count) 筆運動記錄")
-        
+
         for workout in workouts {
             Logger.debug("處理運動: \(workout.id), 類型: \(workout.activityType)")
-            
-            // 直接使用 API 提供的 intensity_minutes 數據
+
+            // 檢查是否有 intensity_minutes 數據
+            var foundIntensityData = false
+
             if let advancedMetrics = workout.advancedMetrics {
-                Logger.debug("AdvancedMetrics 存在")
-                
+                Logger.debug("AdvancedMetrics 存在，類型: \(type(of: advancedMetrics))")
+
+                // 嘗試處理 APIIntensityMinutes (AdvancedMetrics 類型)
                 if let intensityMinutes = advancedMetrics.intensityMinutes {
                     let low = intensityMinutes.low ?? 0.0
                     let medium = intensityMinutes.medium ?? 0.0
                     let high = intensityMinutes.high ?? 0.0
-                    
+
                     totalLow += low
                     totalMedium += medium
                     totalHigh += high
-                    
-                    Logger.debug("運動 \(workout.id) - 低強度: \(low), 中強度: \(medium), 高強度: \(high)")
-                } else {
-                    Logger.debug("運動 \(workout.id) - AdvancedMetrics 存在但 intensityMinutes 為 nil")
+                    foundIntensityData = true
+
+                    Logger.debug("運動 \(workout.id) - API格式 - 低強度: \(low), 中強度: \(medium), 高強度: \(high)")
                 }
-            } else {
-                Logger.debug("運動 \(workout.id) - AdvancedMetrics 不存在")
+            }
+
+            // 如果沒有找到數據，進行更詳細的調試
+            if !foundIntensityData {
+                Logger.debug("未找到強度數據，進行詳細檢查...")
+
+                // 詳細調試 advancedMetrics 的結構
+                if let advancedMetrics = workout.advancedMetrics {
+                    debugAdvancedMetricsStructure(advancedMetrics, workoutId: workout.id)
+                } else {
+                    Logger.debug("運動 \(workout.id) - 完全沒有 AdvancedMetrics")
+                }
+
+                // 作為備選方案，嘗試從運動持續時間估算低強度分鐘數
+                // 這確保至少有一些訓練負荷數據而不是顯示"資料不足"
+                let fallbackLowIntensity = Double(workout.durationSeconds) / 60.0
+                if fallbackLowIntensity > 0 {
+                    totalLow += fallbackLowIntensity
+                    Logger.debug("運動 \(workout.id) - 使用備選估算: 低強度 \(fallbackLowIntensity) 分鐘")
+                }
             }
         }
-        
+
         Logger.debug("計算完成 - 總低強度: \(totalLow), 總中強度: \(totalMedium), 總高強度: \(totalHigh)")
-        
+
+        // 如果沒有從 API 獲得任何強度數據，記錄這個問題
+        if totalLow == 0 && totalMedium == 0 && totalHigh == 0 && !workouts.isEmpty {
+            Logger.debug("⚠️ 警告: 所有運動都沒有強度數據，這可能導致訓練負荷顯示為'資料不足'")
+            Logger.debug("建議檢查 API 回應中是否包含 intensity_minutes 欄位")
+        }
+
         return TrainingIntensityManager.IntensityMinutes(
             low: totalLow,
             medium: totalMedium,
             high: totalHigh
         )
+    }
+
+    /// 調試 AdvancedMetrics 結構，幫助了解數據格式問題
+    private func debugAdvancedMetricsStructure(_ metrics: AdvancedMetrics, workoutId: String) {
+        Logger.debug("運動 \(workoutId) - AdvancedMetrics 詳細調試:")
+        Logger.debug("  - dynamicVdot: \(metrics.dynamicVdot?.description ?? "nil")")
+        Logger.debug("  - tss: \(metrics.tss?.description ?? "nil")")
+        Logger.debug("  - trainingType: \(metrics.trainingType ?? "nil")")
+        Logger.debug("  - intensityMinutes: \(String(describing: metrics.intensityMinutes))")
+
+        if let intensityMinutes = metrics.intensityMinutes {
+            Logger.debug("    - intensityMinutes.low: \(intensityMinutes.low?.description ?? "nil")")
+            Logger.debug("    - intensityMinutes.medium: \(intensityMinutes.medium?.description ?? "nil")")
+            Logger.debug("    - intensityMinutes.high: \(intensityMinutes.high?.description ?? "nil")")
+        }
+
+        Logger.debug("  - intervalCount: \(metrics.intervalCount?.description ?? "nil")")
+        Logger.debug("  - rpe: \(metrics.rpe?.description ?? "nil")")
+
+        // 使用反射檢查是否有其他我們遺漏的屬性
+        let mirror = Mirror(reflecting: metrics)
+        Logger.debug("  - AdvancedMetrics 所有屬性:")
+        for child in mirror.children {
+            Logger.debug("    - \(child.label ?? "unnamed"): \(child.value)")
+        }
     }
     
     func loadCurrentWeekDistance() async {
