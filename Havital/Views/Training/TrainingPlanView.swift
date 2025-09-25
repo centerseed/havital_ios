@@ -49,10 +49,10 @@ struct NewWeekPromptView: View {
                 // 正在加載訓練回顧時顯示載入狀態
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
-                // 加載失敗時顯示錯誤視圖
+                // 加載失敗時顯示錯誤視圖，使用強制更新模式重試
                 WeeklySummaryErrorView(error: error) {
                     Task {
-                        await viewModel.createWeeklySummary()
+                        await viewModel.retryCreateWeeklySummary()
                     }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
@@ -146,7 +146,7 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
                 WeeklySummaryErrorView(error: error) {
-                    Task { await viewModel.createWeeklySummary() }
+                    Task { await viewModel.retryCreateWeeklySummary() }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
                 WeeklySummaryView(
@@ -290,6 +290,23 @@ struct TrainingPlanView: View {
         }
         .sheet(isPresented: $showEditSchedule) {
             EditScheduleView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showAdjustmentConfirmation) {
+            if !viewModel.pendingAdjustments.isEmpty,
+               let summaryId = viewModel.pendingSummaryId {
+                AdjustmentConfirmationView(
+                    initialItems: viewModel.pendingAdjustments,
+                    summaryId: summaryId,
+                    onConfirm: { selectedItems in
+                        Task {
+                            await viewModel.confirmAdjustments(selectedItems)
+                        }
+                    },
+                    onCancel: {
+                        viewModel.cancelAdjustmentConfirmation()
+                    }
+                )
+            }
         }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {

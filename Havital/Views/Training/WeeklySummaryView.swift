@@ -49,9 +49,6 @@ struct WeeklySummaryView: View {
                 // 下週建議部分
                 suggestionSection
                 
-                // 調整建議部分
-                // adjustmentSection
-                
                 // 產生下週課表按鈕
                 if let onGenerateNextWeek = onGenerateNextWeek {
                     Button {
@@ -231,107 +228,6 @@ struct WeeklySummaryView: View {
         .cornerRadius(12)
     }
     
-    // 調整建議區塊
-    private var adjustmentSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L10n.Training.Review.planAdjustmentSuggestions.localized)
-                .font(.headline)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(summary.nextWeekAdjustments.status)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(summary.nextWeekAdjustments.status == "不需調整課表" ? .green : .orange)
-                    
-                    Spacer()
-                }
-                
-                if let modifications = summary.nextWeekAdjustments.modifications {
-                    if let intervalTraining = modifications.intervalTraining {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.Training.Review.intervalTraining.localized)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.orange)
-                            
-                            HStack(alignment: .top) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.originalPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text(intervalTraining.original)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(3)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.adjustedPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text(intervalTraining.adjusted)
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                        .lineLimit(3)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    
-                    if let longRun = modifications.longRun {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.Training.Review.longRunTraining.localized)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.blue)
-                            
-                            HStack(alignment: .top) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.originalPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text(longRun.original)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(3)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.adjustedPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text(longRun.adjusted)
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                        .lineLimit(3)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-                
-                Text(summary.nextWeekAdjustments.adjustmentReason)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
-            }
-        }
-        .padding()
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(12)
-    }
-    
     // 根據完成度返回顏色
     private var completionColor: Color {
         let percentage = summary.trainingCompletion.percentage
@@ -380,10 +276,6 @@ struct WeeklySummaryView: View {
                 // 下週建議部分（為截圖優化）
                 screenshotSuggestionSection
                 
-                // 如果有調整建議也包含進去（為截圖優化）
-                if summary.nextWeekAdjustments.status != "不需調整課表" {
-                    screenshotAdjustmentSection
-                }
             }
             .padding()
             .background(Color(UIColor.systemGroupedBackground))
@@ -576,123 +468,6 @@ struct WeeklySummaryView: View {
         .background(Color(UIColor.systemBackground))
         .cornerRadius(12)
     }
-    
-    // 為截圖優化的調整建議區塊
-    private var screenshotAdjustmentSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L10n.Training.Review.planAdjustmentSuggestions.localized)
-                .font(.headline)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(summary.nextWeekAdjustments.status)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(summary.nextWeekAdjustments.status == "不需調整課表" ? .green : .orange)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    Spacer()
-                }
-                
-                if let modifications = summary.nextWeekAdjustments.modifications {
-                    if let intervalTraining = modifications.intervalTraining {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.Training.Review.intervalTraining.localized)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.orange)
-                                .lineLimit(nil)
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.originalPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(nil)
-                                    
-                                    Text(intervalTraining.original)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(nil)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.adjustedPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(nil)
-                                    
-                                    Text(intervalTraining.adjusted)
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                        .lineLimit(nil)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    
-                    if let longRun = modifications.longRun {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.Training.Review.longRunTraining.localized)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.blue)
-                                .lineLimit(nil)
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.originalPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(nil)
-                                    
-                                    Text(longRun.original)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(nil)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(L10n.Training.Review.adjustedPlan.localized)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(nil)
-                                    
-                                    Text(longRun.adjusted)
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                        .lineLimit(nil)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-                
-                Text(summary.nextWeekAdjustments.adjustmentReason)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding()
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(12)
-    }
 }
 
 // 加載中的視圖
@@ -803,9 +578,14 @@ struct WeeklySummaryErrorView: View {
                     adjusted: "16公里，最後5公里加速至5:20/km"
                 )
             ),
-            adjustmentReason: "根據您的心率和配速表現，適當調整訓練強度和方式，在保持訓練效果的同時降低過度訓練風險。"
+            adjustmentReason: "根據您的心率和配速表現，適當調整訓練強度和方式，在保持訓練效果的同時降低過度訓練風險。",
+            items: [
+                AdjustmentItem(content: "建議安排休息週以促進恢復", apply: true),
+                AdjustmentItem(content: "增加恢復跑時間", apply: false),
+                AdjustmentItem(content: "減少間歇訓練強度", apply: true)
+            ]
         )
     )
     
-    return WeeklySummaryView(summary: summary, weekNumber: 3, isVisible: .constant(true))
+    WeeklySummaryView(summary: summary, weekNumber: 3, isVisible: .constant(true))
 }

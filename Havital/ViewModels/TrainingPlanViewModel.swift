@@ -78,6 +78,13 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var weeklySummaryError: Error?
     @Published var showWeeklySummary = false
     @Published var lastFetchedWeekNumber: Int?
+
+    // 調整建議確認相關屬性
+    @Published var showAdjustmentConfirmation = false
+    @Published var pendingAdjustments: [AdjustmentItem] = []
+    @Published var isUpdatingAdjustments = false
+    @Published var pendingTargetWeek: Int?
+    @Published var pendingSummaryId: String?
     
     // 網路錯誤處理
     @Published var networkError: NetworkError?
@@ -571,10 +578,69 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
     
+    // 重新嘗試產生週回顧（強制更新模式）
+    @MainActor
+    func retryCreateWeeklySummary() async {
+        await executeTask(id: "retry_create_weekly_summary") {
+            await self.performRetryCreateWeeklySummary()
+        }
+    }
+
+    private func performRetryCreateWeeklySummary() async {
+        await MainActor.run {
+            isLoadingAnimation = true // 顯示 Loading 動畫
+            isLoadingWeeklySummary = true
+            weeklySummaryError = nil
+        }
+
+        defer {
+            // 無論成功或失敗，最後都關閉動畫
+            Task { @MainActor in
+                isLoadingAnimation = false // 隱藏 Loading 動畫
+            }
+        }
+
+        do {
+            // 計算當前訓練週數
+            guard let currentWeek = calculateCurrentTrainingWeek() else {
+                throw NSError(
+                    domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
+            }
+
+            Logger.debug("重新嘗試產生週回顧（強制更新模式）: 週數 \(currentWeek)")
+
+            // 使用強制更新模式從API獲取週訓練回顧數據
+            let summary = try await weeklySummaryService.createWeeklySummary(forceUpdate: true)
+
+            // 保存到本地儲存
+            WeeklySummaryStorage.shared.saveWeeklySummary(summary, weekNumber: currentWeek)
+
+            await MainActor.run {
+                self.weeklySummary = summary
+                self.lastFetchedWeekNumber = currentWeek
+                self.showWeeklySummary = true
+                self.isLoadingWeeklySummary = false
+            }
+
+            // 更新訓練進度
+            await forceUpdateWeeklySummaries()
+
+            Logger.debug("強制更新週回顧成功")
+
+        } catch {
+            Logger.error("強制更新週回顧失敗: \(error)")
+
+            await MainActor.run {
+                self.weeklySummaryError = error
+                self.isLoadingWeeklySummary = false
+            }
+        }
+    }
+
     // 清除訓練回顧的方法
     func clearWeeklySummary() {
         WeeklySummaryStorage.shared.clearSavedWeeklySummary()
-        
+
         Task { @MainActor in
             self.weeklySummary = nil
             self.lastFetchedWeekNumber = nil
@@ -1087,6 +1153,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         
         do {
             Logger.debug("開始產生第 \(targetWeek) 週課表...")
+
+            // 檢查是否有調整建議需要確認
+            if await shouldShowAdjustmentConfirmation(for: targetWeek) {
+                return // 等待用戶確認調整建議後再繼續
+            }
+
             _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
             
             // 產生成功後重新載入課表
@@ -1595,7 +1667,44 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
         }
     }
-    
+
+    // 重新嘗試載入週訓練回顧（強制更新模式）
+    func retryLoadWeeklySummary() async {
+        await MainActor.run {
+            isLoadingWeeklySummary = true
+            weeklySummaryError = nil
+        }
+
+        do {
+            // 獲取當前訓練週數
+            guard let currentWeek = calculateCurrentTrainingWeek() else {
+                throw NSError(
+                    domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
+            }
+
+            Logger.debug("重新嘗試載入第\(currentWeek-1)週的週回顧（強制更新模式）")
+
+            // 使用強制更新模式從API獲取週訓練回顧數據
+            let summary = try await weeklySummaryService.createWeeklySummary(
+                weekNumber: currentWeek - 1, forceUpdate: true)
+
+            await MainActor.run {
+                self.weeklySummary = summary
+                self.isLoadingWeeklySummary = false
+            }
+
+            Logger.debug("強制更新載入週回顧成功")
+
+        } catch {
+            Logger.error("強制更新載入週回顧失敗: \(error)")
+
+            await MainActor.run {
+                self.weeklySummaryError = error
+                self.isLoadingWeeklySummary = false
+            }
+        }
+    }
+
     // 判斷是否應該顯示產生下週課表按鈕
     // 判斷是否應該顯示產生課表按鈕，並返回應該產生的週數
     func shouldShowNextWeekButton(plan: WeeklyPlan) -> (shouldShow: Bool, nextWeek: Int) {
@@ -1751,6 +1860,121 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         updateWeeklyPlanUI(plan: updatedPlan, status: .ready(updatedPlan))
 
         Logger.debug("週計劃已更新並保存到緩存")
+    }
+
+    // MARK: - 調整建議確認相關方法
+
+    /// 檢查是否需要顯示調整建議確認畫面
+    @MainActor
+    private func shouldShowAdjustmentConfirmation(for targetWeek: Int) async -> Bool {
+        // 檢查上一週是否有週總結且包含調整建議
+        let previousWeek = targetWeek - 1
+        guard previousWeek > 0 else {
+            // 即使是第一週，也允許用戶自行添加調整項目
+            pendingAdjustments = []
+            pendingTargetWeek = targetWeek
+            pendingSummaryId = "week_0_summary"  // 第一週使用特殊的 summaryId
+
+            // 顯示調整建議確認畫面
+            showAdjustmentConfirmation = true
+            return true
+        }
+
+        var existingAdjustments: [AdjustmentItem] = []
+
+        do {
+            let summary = try await WeeklySummaryService.shared.getWeeklySummary(weekNumber: previousWeek)
+
+            // 獲取現有的調整建議項目（如果有的話）
+            if let items = summary.nextWeekAdjustments.items {
+                existingAdjustments = items
+            }
+        } catch {
+            Logger.debug("無法獲取上週總結，但仍允許用戶自行添加調整項目: \(error)")
+        }
+
+        // 無論是否有現有的調整建議，都顯示調整確認畫面讓用戶可以自行添加
+        pendingAdjustments = existingAdjustments
+        pendingTargetWeek = targetWeek
+        pendingSummaryId = "week_\(previousWeek)_summary"
+
+        // 顯示調整建議確認畫面
+        showAdjustmentConfirmation = true
+        return true
+    }
+
+    /// 確認調整建議並繼續產生週課表
+    @MainActor
+    func confirmAdjustments(_ selectedItems: [AdjustmentItem]) async {
+        guard let targetWeek = pendingTargetWeek,
+              let summaryId = pendingSummaryId else {
+            Logger.error("缺少必要的參數來確認調整建議")
+            return
+        }
+
+        isUpdatingAdjustments = true
+
+        do {
+            // 更新調整建議到後端
+            _ = try await WeeklySummaryService.shared.updateAdjustments(
+                summaryId: summaryId,
+                items: selectedItems
+            )
+
+            // 隱藏確認畫面
+            showAdjustmentConfirmation = false
+
+            // 繼續產生週課表
+            await generateNextWeekPlanAfterAdjustment(targetWeek: targetWeek)
+
+        } catch {
+            Logger.error("更新調整建議失敗: \(error)")
+            // 可以選擇繼續產生課表或顯示錯誤
+            await generateNextWeekPlanAfterAdjustment(targetWeek: targetWeek)
+        }
+
+        // 清理狀態
+        isUpdatingAdjustments = false
+        pendingAdjustments = []
+        pendingTargetWeek = nil
+        pendingSummaryId = nil
+    }
+
+    /// 取消調整建議確認
+    @MainActor
+    func cancelAdjustmentConfirmation() {
+        showAdjustmentConfirmation = false
+        pendingAdjustments = []
+        pendingTargetWeek = nil
+        pendingSummaryId = nil
+
+        // 停止載入動畫
+        isLoadingAnimation = false
+        planStatus = weeklyPlan != nil ? .ready(weeklyPlan!) : .noPlan
+    }
+
+    /// 確認調整建議後繼續產生週課表
+    @MainActor
+    private func generateNextWeekPlanAfterAdjustment(targetWeek: Int) async {
+        do {
+            Logger.debug("調整建議確認完成，繼續產生第 \(targetWeek) 週課表...")
+            _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
+
+            // 產生成功後重新載入課表
+            guard let overviewId = trainingOverview?.id else { throw NSError() }
+            let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                planId: "\(overviewId)_\(self.currentWeek)")
+
+            updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
+
+            Logger.debug("第 \(targetWeek) 週課表產生完成")
+        } catch {
+            Logger.error("產生課表失敗: \(error)")
+            await MainActor.run {
+                self.error = error
+                self.planStatus = .error(error)
+            }
+        }
     }
 
     deinit {

@@ -1018,9 +1018,9 @@
 
 // Training Load
 "performance.training_load.training_load_title" = "トレーニング負荷";
-"performance.training_load.training_load_explanation" = "トレーニング強度と頻度に基づいて計算された体力指数とトレーニングストレスバランス。トレーニング計画の最適化とオーバートレーニングの防止に役立ちます";
+"performance.training_load.training_load_explanation" = "体力指数で運動能力の変化を追跡し、TSB指標で疲労と回復のバランスを把握します。詳細説明と使用のコツについてはタップしてください";
 "performance.training_load.fitness_index" = "体力指数";
-"performance.training_load.fitness_index_explanation" = "現在の総合的な体力レベルを示す指標。数値が高いほど体力が良いことを示します";
+"performance.training_load.fitness_index_explanation" = "過去の実績と比較した相対的な運動能力レベルを示します。上昇トレンドは体力向上を示しますが疲労蓄積に注意。下降トレンドは通常テーパリング期間で、TSBとHRVの回復を観察しましょう";
 "performance.training_load.tsb" = "トレーニングストレスバランス（TSB）";
 "performance.training_load.tsb_explanation" = "トレーニング疲労と回復のバランスを示す指標。正の値は良い回復を、負の値は蓄積された疲労を示します";
 "performance.training_load.insufficient_data" = "運動データが不足しています。少なくとも5つのレコードが必要です";

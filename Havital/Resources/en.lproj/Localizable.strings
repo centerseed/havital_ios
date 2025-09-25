@@ -1018,9 +1018,9 @@
 
 // Training Load
 "performance.training_load.training_load_title" = "Training Load";
-"performance.training_load.training_load_explanation" = "Fitness index and training stress balance calculated based on training intensity and frequency, helping optimize your training plan and avoid overtraining";
+"performance.training_load.training_load_explanation" = "Track your fitness progress with the Fitness Index and monitor fatigue-recovery balance with TSB indicators. Tap to learn detailed explanations and usage tips";
 "performance.training_load.fitness_index" = "Fitness Index";
-"performance.training_load.fitness_index_explanation" = "An indicator of your current overall fitness level. Higher values indicate better fitness";
+"performance.training_load.fitness_index_explanation" = "Shows your fitness level relative to your past performance. Upward trends indicate improvement but watch for fatigue accumulation. Downward trends are often tapering periods - monitor TSB and HRV recovery";
 "performance.training_load.tsb" = "Training Stress Balance (TSB)";
 "performance.training_load.tsb_explanation" = "An indicator of the balance between training fatigue and recovery. Positive values indicate good recovery, negative values indicate accumulated fatigue";
 "performance.training_load.insufficient_data" = "Insufficient workout data, at least 5 records needed";

@@ -77,6 +77,7 @@ struct MyAchievementView: View {
                             explanation: L10n.Performance.vdotExplanation.localized
                         )
                         .padding(.horizontal)
+                        .padding(.top, 12)
                         
                         VDOTChartView()
                             .padding()
@@ -98,6 +99,7 @@ struct MyAchievementView: View {
                             explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
                         )
                         .padding(.horizontal)
+                        .padding(.top, 12)
                         
                         WeeklyVolumeChartView(showTitle: false)
                             .padding()
@@ -107,13 +109,8 @@ struct MyAchievementView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                     .padding(.horizontal)
                     
-                    // HRV 趨勢圖 - 根據數據源選擇顯示方式
-                    HRVChartSection()
-                        .environmentObject(healthKitManager)
-                        .environmentObject(sharedHealthDataManager)
-                    
-                    // 睡眠靜息心率圖 - 根據數據源選擇顯示方式
-                    RestingHeartRateChartSection()
+                    // 合併的心率圖表 - HRV 和睡眠靜息心率
+                    CombinedHeartRateChartSection()
                         .environmentObject(healthKitManager)
                         .environmentObject(sharedHealthDataManager)
                 }
@@ -157,6 +154,7 @@ struct MyAchievementView: View {
                         explanation: L10n.Performance.vdotExplanation.localized
                     )
                     .padding(.horizontal)
+                    .padding(.top, 12)
                     
                     VDOTChartView()
                         .padding()
@@ -178,6 +176,7 @@ struct MyAchievementView: View {
                         explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
                     )
                     .padding(.horizontal)
+                    .padding(.top, 12)
                     
                     WeeklyVolumeChartView(showTitle: false)
                         .padding()
@@ -187,13 +186,8 @@ struct MyAchievementView: View {
                 .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                 .padding(.horizontal)
                 
-                // HRV Chart Section
-                HRVChartSection()
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                
-                // Resting Heart Rate Chart Section
-                RestingHeartRateChartSection()
+                // Combined Heart Rate Chart Section
+                CombinedHeartRateChartSection()
                     .environmentObject(healthKitManager)
                     .environmentObject(sharedHealthDataManager)
 
@@ -214,83 +208,111 @@ struct MyAchievementView: View {
     }
 }
 
-// MARK: - HRV Chart Section
-struct HRVChartSection: View {
+// MARK: - Combined Heart Rate Chart Section
+struct CombinedHeartRateChartSection: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
-    
+
+    @State private var selectedTab: HeartRateChartTab = .hrv
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
         UserPreferenceManager.shared.dataSourcePreference
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            
-            switch dataSourcePreference {
-            case .appleHealth:
-                // Apple Health: 優先使用 API，失敗時回退到 HealthKit
-                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                    .padding()
-                
-            case .garmin:
-                // Garmin: 僅使用 API 數據
-                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                    .padding()
-                
-            case .unbound:
-                // 未綁定數據源
-                EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
-                    .padding()
+            // 標題和選項卡
+            VStack(spacing: 8) {
+                // 統一標題
+                HStack {
+                    Text("心率數據趨勢")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .padding(.top, 12)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+
+                // 選項卡切換
+                Picker("Heart Rate Chart Type", selection: $selectedTab) {
+                    ForEach(HeartRateChartTab.allCases, id: \.self) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
             }
+
+            // 圖表內容
+            Group {
+                switch selectedTab {
+                case .hrv:
+                    hrvChartContent
+                case .restingHeartRate:
+                    restingHeartRateChartContent
+                }
+            }
+            .padding()
         }
         .background(Color(UIColor.systemBackground))
         .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var hrvChartContent: some View {
+        switch dataSourcePreference {
+        case .appleHealth:
+            // Apple Health: 優先使用 API，失敗時回退到 HealthKit
+            SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
+
+        case .garmin:
+            // Garmin: 僅使用 API 數據
+            SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
+
+        case .unbound:
+            // 未綁定數據源
+            EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
+        }
+    }
+
+    @ViewBuilder
+    private var restingHeartRateChartContent: some View {
+        switch dataSourcePreference {
+        case .appleHealth:
+            // Apple Health: 使用現有的 HealthKit 數據
+            SleepHeartRateChartView()
+                .environmentObject(healthKitManager)
+
+        case .garmin:
+            // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
+            SleepHeartRateChartViewWithGarmin()
+                .environmentObject(healthKitManager)
+
+        case .unbound:
+            // 未綁定數據源
+            EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
+        }
     }
 }
 
-// MARK: - Resting Heart Rate Chart Section
-struct RestingHeartRateChartSection: View {
-    @EnvironmentObject var healthKitManager: HealthKitManager
-    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
-    
-    // 當前數據源設定
-    private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            
-            switch dataSourcePreference {
-            case .appleHealth:
-                // Apple Health: 使用現有的 HealthKit 數據
-                SleepHeartRateChartView()
-                    .environmentObject(healthKitManager)
-                    .padding()
-                
-            case .garmin:
-                // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
-                SleepHeartRateChartViewWithGarmin()
-                    .environmentObject(healthKitManager)
-                    .padding()
-                
-            case .unbound:
-                // 未綁定數據源
-                EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
-                    .padding()
-            }
+// MARK: - Heart Rate Chart Tab Enum
+enum HeartRateChartTab: String, CaseIterable {
+    case hrv = "hrv"
+    case restingHeartRate = "restingHeartRate"
+
+    var title: String {
+        switch self {
+        case .hrv: return L10n.Performance.HRV.hrvTitle.localized
+        case .restingHeartRate: return NSLocalizedString("performance.resting_hr_title", comment: "Sleep Resting Heart Rate")
         }
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-        .padding(.horizontal)
     }
 }
 
@@ -1130,7 +1152,11 @@ struct TrainingLoadChartSection: View {
             HStack {
                 SectionTitleWithInfo(
                     title: L10n.Performance.TrainingLoad.trainingLoadTitle.localized,
-                    explanation: L10n.Performance.TrainingLoad.trainingLoadExplanation.localized
+                    explanation: L10n.Performance.TrainingLoad.trainingLoadExplanation.localized,
+                    useSheet: true,
+                    sheetContent: {
+                        AnyView(TrainingLoadDetailExplanationView())
+                    }
                 )
 
                 Spacer()
@@ -1148,6 +1174,7 @@ struct TrainingLoadChartSection: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.top, 12)
 
             switch dataSourcePreference {
             case .appleHealth, .garmin:
@@ -1707,6 +1734,338 @@ struct TrainingLoadChartView: View {
             }
 
             Logger.error("TrainingLoadChartView: 強制刷新失敗 - \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Training Load Detail Explanation View
+struct TrainingLoadDetailExplanationView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("訓練負荷詳細說明")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+
+                        Text("了解您的體適能指數和訓練壓力平衡，幫助您優化訓練計劃")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // 體適能指數 Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            Text("體適能指數 (Fitness Index)")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("體適能指數反映您**相對於自己過往表現**的運動能力水平。這個數值會根據您最近的訓練強度、頻率和持續時間動態調整，重點在於觀察**趨勢變化**。")
+                            .font(.body)
+
+                        // 體適能指數趨勢說明
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("如何解讀趨勢：")
+                                .font(.headline)
+                                .padding(.top, 8)
+
+                            fitnessRangeView(range: "↗️", description: "持續上升 - 體適能向上提升，但要注意疲勞的累積", color: .green, icon: "arrow.up.circle.fill")
+                            fitnessRangeView(range: "➡️", description: "穩定維持 - 體能保持良好狀態", color: .blue, icon: "minus.circle.fill")
+                            fitnessRangeView(range: "↘️", description: "下降趨勢 - 通常為減量期，關注TSB和HRV恢復", color: .orange, icon: "arrow.down.circle.fill")
+                            Text("💡 重點：關注線條的**走向**比單一數值更重要")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                        }
+                        .padding(.leading, 12)
+                    }
+
+                    Divider()
+
+                    // TSB Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "gauge.medium")
+                                .foregroundColor(.green)
+                                .font(.title2)
+                            Text("訓練壓力平衡 (TSB)")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("TSB 反映您當前的訓練疲勞與恢復狀態之間的平衡。這個指標幫助您了解何時需要休息，何時可以增加訓練強度。")
+                            .font(.body)
+
+                        // TSB 狀態說明
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TSB 狀態解讀：")
+                                .font(.headline)
+                                .padding(.top, 8)
+
+                            tsbStatusView(
+                                range: "+5 以上",
+                                title: "最佳狀態",
+                                description: "身體已充分恢復，適合進行高強度訓練或比賽",
+                                color: .blue,
+                                icon: "star.circle.fill",
+                                backgroundColor: Color.blue.opacity(0.1)
+                            )
+
+                            tsbStatusView(
+                                range: "-5 到 +5",
+                                title: "平衡狀態",
+                                description: "訓練與恢復達到良好平衡，可維持規律訓練",
+                                color: .green,
+                                icon: "checkmark.circle.fill",
+                                backgroundColor: Color.green.opacity(0.1)
+                            )
+
+                            tsbStatusView(
+                                range: "-5 以下",
+                                title: "疲勞累積",
+                                description: "體能消耗較大，建議降低訓練強度或增加休息",
+                                color: .orange,
+                                icon: "exclamationmark.triangle.fill",
+                                backgroundColor: Color.orange.opacity(0.1)
+                            )
+                        }
+                        .padding(.leading, 12)
+                    }
+
+                    Divider()
+
+                    // 圖表解讀 Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "chart.xyaxis.line")
+                                .foregroundColor(.purple)
+                                .font(.title2)
+                            Text("圖表解讀指南")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            chartLegendView(
+                                color: .blue,
+                                title: "藍色線條 - 體適能指數",
+                                description: "顯示您相對於過往表現的體能變化趨勢。重點觀察線條走向：上升代表進步，平穩代表維持，下降提醒調整訓練。"
+                            )
+
+                            chartLegendView(
+                                color: .green,
+                                title: "綠色線條 - TSB 值",
+                                description: "顯示您的疲勞恢復狀態。觀察這條線的變化，可以幫助您決定訓練強度。"
+                            )
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("圓點標記說明")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
+                                HStack(alignment: .center, spacing: 8) {
+                                    Circle()
+                                        .fill(Color.blue)
+                                        .frame(width: 12, height: 12)
+                                    Text("實心圓點：有訓練的日子")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                HStack(alignment: .center, spacing: 8) {
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .frame(width: 12, height: 12)
+                                    Text("空心圓點：當日無訓練")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // 實用建議 Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "lightbulb.fill")
+                                .foregroundColor(.yellow)
+                                .font(.title2)
+                            Text("實用建議")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            suggestionView(
+                                icon: "arrow.up.circle.fill",
+                                iconColor: .green,
+                                title: "體適能指數上升 + TSB值偏高",
+                                suggestion: "體能提升且恢復良好，可適當增加訓練強度，但需監控疲勞累積"
+                            )
+
+                            suggestionView(
+                                icon: "checkmark.circle.fill",
+                                iconColor: .blue,
+                                title: "體適能指數穩定 + TSB平衡",
+                                suggestion: "理想的訓練狀態，維持當前節奏並觀察長期趨勢"
+                            )
+
+                            suggestionView(
+                                icon: "arrow.down.circle.fill",
+                                iconColor: .orange,
+                                title: "體適能指數下降",
+                                suggestion: "可能處於減量期或需要恢復，關注TSB回升和HRV改善趨勢"
+                            )
+
+                            suggestionView(
+                                icon: "exclamationmark.triangle.fill",
+                                iconColor: .red,
+                                title: "持續疲勞累積 (TSB <-10)",
+                                suggestion: "建議進入恢復期，降低訓練量直到TSB和HRV顯示恢復跡象"
+                            )
+                        }
+                        .padding(.leading, 12)
+                    }
+
+                    Divider()
+
+                    // 注意事項
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("重要提醒")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+
+                        Text("• 訓練負荷數據需要至少 2-3 週的運動記錄才能提供準確的趨勢分析")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• 體適能指數下降不一定是壞事，可能代表正在進行有計畫的減量或恢復期")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• 建議同時觀察 TSB 和 HRV 趨勢，綜合判斷身體的恢復狀態")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 16)
+                }
+                .padding()
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func fitnessRangeView(range: String, description: String, color: Color, icon: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 20)
+
+            Text(range)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .frame(width: 40, alignment: .leading)
+
+            Text(description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func tsbStatusView(
+        range: String,
+        title: String,
+        description: String,
+        color: Color,
+        icon: String,
+        backgroundColor: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .frame(width: 20)
+
+                Text(range)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .frame(width: 60, alignment: .leading)
+
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+
+            Text(description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.leading, 32)
+        }
+        .padding(12)
+        .background(backgroundColor)
+        .cornerRadius(8)
+    }
+
+    @ViewBuilder
+    private func chartLegendView(color: Color, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Rectangle()
+                .fill(color)
+                .frame(width: 4, height: 20)
+                .cornerRadius(2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func suggestionView(icon: String, iconColor: Color, title: String, suggestion: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text(suggestion)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 }

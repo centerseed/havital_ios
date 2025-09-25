@@ -353,10 +353,10 @@ struct TrainingProgressView: View {
                             .foregroundColor(.gray)
                             .cornerRadius(8)
                         } else if viewModel.weeklySummaryError != nil {
-                            // 載入失敗時顯示重試按鈕
+                            // 載入失敗時顯示重試按鈕，使用強制更新模式
                             Button {
                                 Task {
-                                    await viewModel.createWeeklySummary()
+                                    await viewModel.retryCreateWeeklySummary()
                                     dismiss() // 關閉當前視圖以顯示回顧
                                 }
                             } label: {

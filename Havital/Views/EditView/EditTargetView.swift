@@ -116,6 +116,7 @@ class EditTargetViewModel: ObservableObject {
     // 儲存原始值用於變更檢測
     private let originalDistance: String
     private let originalTargetTime: Int
+    private let originalTrainingWeeks: Int
     
     // 移動到類別層級的可用距離選項
     var availableDistances: [String: String] {
@@ -157,10 +158,11 @@ class EditTargetViewModel: ObservableObject {
     
     init(target: Target) {
         self.targetId = target.id
-        
+
         // 先初始化原始值
         self.originalTargetTime = target.targetTime
-        
+        self.originalTrainingWeeks = target.trainingWeeks
+
         // 初始化當前值
         self.raceName = target.name
         self.raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
@@ -207,9 +209,12 @@ class EditTargetViewModel: ObservableObject {
             // 更新目標賽事
             _ = try await TargetService.shared.updateTarget(id: targetId, target: target)
             
-            // 檢查是否有重要變更（距離或完賽時間）
+            // 檢查是否有重要變更（距離、完賽時間或訓練週數）
             let currentTargetTime = targetHours * 3600 + targetMinutes * 60
-            let hasSignificantChange = (selectedDistance != originalDistance) || (currentTargetTime != originalTargetTime)
+            let currentTrainingWeeks = remainingWeeks
+            let hasSignificantChange = (selectedDistance != originalDistance) ||
+                                     (currentTargetTime != originalTargetTime) ||
+                                     (currentTrainingWeeks != originalTrainingWeeks)
             
             print("賽事目標已更新，重要變更: \(hasSignificantChange)")
             isLoading = false
