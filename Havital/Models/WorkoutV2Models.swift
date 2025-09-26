@@ -1242,11 +1242,22 @@ struct DailyPlanSegment: Codable {
 
 struct AISummary: Codable {
     let analysis: String
-    
+
     enum CodingKeys: String, CodingKey {
         case analysis
     }
 }
 
+// MARK: - Lap Data Models
 
-
+struct LapData: Codable {
+    let lapNumber: Int                   // 分圈序號（從 1 開始）
+    let startTime: TimeInterval          // 分圈開始時間
+    let endTime: TimeInterval            // 分圈結束時間
+    let duration: TimeInterval           // 分圈持續時間（秒）
+    let distance: Double?                // 分圈距離（米）
+    let averagePace: Double?             // 平均配速（秒/公里）
+    let averageHeartRate: Double?        // 平均心率（BPM）
+    let type: String                     // 分圈類型："manual", "auto", "segment"
+    let metadata: [String: String]?      // 額外的元數據
+}
