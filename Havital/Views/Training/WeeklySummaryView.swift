@@ -537,6 +537,7 @@ struct WeeklySummaryErrorView: View {
 #Preview {
     // 創建預覽數據
     let summary = WeeklyTrainingSummary(
+        id: "preview_summary_id",
         trainingCompletion: TrainingCompletion(
             percentage: 85,
             evaluation: "本週訓練完成度良好，繼續保持這樣的訓練節奏可以有效提升您的跑步能力。"

@@ -1882,8 +1882,13 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
 
         var existingAdjustments: [AdjustmentItem] = []
 
+        var actualSummaryId = "week_\(previousWeek)_summary" // 預設值
+
         do {
             let summary = try await WeeklySummaryService.shared.getWeeklySummary(weekNumber: previousWeek)
+
+            // 使用實際的 summary ID
+            actualSummaryId = summary.id
 
             // 獲取現有的調整建議項目（如果有的話）
             if let items = summary.nextWeekAdjustments.items {
@@ -1896,7 +1901,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         // 無論是否有現有的調整建議，都顯示調整確認畫面讓用戶可以自行添加
         pendingAdjustments = existingAdjustments
         pendingTargetWeek = targetWeek
-        pendingSummaryId = "week_\(previousWeek)_summary"
+        pendingSummaryId = actualSummaryId
 
         // 顯示調整建議確認畫面
         showAdjustmentConfirmation = true

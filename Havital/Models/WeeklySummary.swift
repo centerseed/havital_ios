@@ -3,12 +3,14 @@ import SwiftUI
 
 // 定義符合API返回結構的模型
 struct WeeklyTrainingSummary: Codable {
+    let id: String
     let trainingCompletion: TrainingCompletion
     let trainingAnalysis: TrainingAnalysis
     let nextWeekSuggestions: NextWeekSuggestions
     let nextWeekAdjustments: NextWeekAdjustments
-    
+
     enum CodingKeys: String, CodingKey {
+        case id
         case trainingCompletion = "training_completion"
         case trainingAnalysis = "training_analysis"
         case nextWeekSuggestions = "next_week_suggestions"
@@ -74,9 +76,9 @@ struct AdjustmentItem: Codable, Identifiable {
 }
 
 struct NextWeekAdjustments: Codable {
-    let status: String
+    let status: String?
     let modifications: Modifications?
-    let adjustmentReason: String
+    let adjustmentReason: String?
     let items: [AdjustmentItem]?
 
     enum CodingKeys: String, CodingKey {

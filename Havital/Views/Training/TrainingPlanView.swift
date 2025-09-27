@@ -292,21 +292,18 @@ struct TrainingPlanView: View {
             EditScheduleView(viewModel: viewModel)
         }
         .sheet(isPresented: $viewModel.showAdjustmentConfirmation) {
-            if !viewModel.pendingAdjustments.isEmpty,
-               let summaryId = viewModel.pendingSummaryId {
-                AdjustmentConfirmationView(
-                    initialItems: viewModel.pendingAdjustments,
-                    summaryId: summaryId,
-                    onConfirm: { selectedItems in
-                        Task {
-                            await viewModel.confirmAdjustments(selectedItems)
-                        }
-                    },
-                    onCancel: {
-                        viewModel.cancelAdjustmentConfirmation()
+            AdjustmentConfirmationView(
+                initialItems: viewModel.pendingAdjustments, // 可以是空陣列
+                summaryId: viewModel.pendingSummaryId ?? "unknown", // 提供預設值
+                onConfirm: { selectedItems in
+                    Task {
+                        await viewModel.confirmAdjustments(selectedItems)
                     }
-                )
-            }
+                },
+                onCancel: {
+                    viewModel.cancelAdjustmentConfirmation()
+                }
+            )
         }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {

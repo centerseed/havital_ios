@@ -37,8 +37,8 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     private init() {
         loadCachedState()
-        setupBackgroundTaskHandler()
-        
+        // setupBackgroundTaskHandler() // 背景任務現在在 HavitalApp.swift 中統一註冊
+
         // 註冊到 CacheEventBus
         CacheEventBus.shared.register(self)
     }
@@ -82,12 +82,12 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
             // Apple Health: 上傳本地數據 + 設置觀察者
             await uploadPendingHealthData()
             setupHealthKitObserver()
-            scheduleBackgroundSync()
-            
+            // scheduleBackgroundSync() // 背景任務現在在 HavitalApp.swift 中統一處理
+
         case .garmin:
             // Garmin: 只設置定期 API 刷新
             setupGarminDataRefresh()
-            scheduleBackgroundSync()
+            // scheduleBackgroundSync() // 背景任務現在在 HavitalApp.swift 中統一處理
             
         case .unbound:
             print("數據源未綁定，跳過健康數據同步")
@@ -170,29 +170,66 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     /// 執行實際的健康數據獲取邏輯
     private func performGetHealthData(days: Int) async -> [HealthRecord] {
+        print("🔍 [HealthDataUploadManager] performGetHealthData 開始，days: \(days)")
+
+        let dataSource = UserPreferenceManager.shared.dataSourcePreference
+        print("🔍 [HealthDataUploadManager] 用戶數據來源: \(dataSource)")
+
+        // Apple Health 用戶直接使用本地 HealthKit 數據
+        if dataSource == .appleHealth {
+            print("🔍 [HealthDataUploadManager] Apple Health 用戶，直接使用本地 HealthKit 數據")
+            let localData = await getLocalHealthData(days: days)
+
+            let hrvCount = localData.filter { $0.hrvLastNightAvg != nil }.count
+            print("🔍 [HealthDataUploadManager] 從 HealthKit 載入健康數據:")
+            print("   - 總記錄數: \(localData.count)")
+            print("   - HRV 有效記錄: \(hrvCount)")
+
+            return localData
+        }
+
+        // Garmin 用戶使用 API 數據流程
+        print("🔍 [HealthDataUploadManager] Garmin 用戶，使用 API 數據流程")
+
         // 首先檢查緩存
         if let cachedData = getCachedHealthData(days: days) {
-            print("從緩存載入健康數據，共 \(cachedData.count) 筆記錄")
+            let hrvCount = cachedData.filter { $0.hrvLastNightAvg != nil }.count
+            print("🔍 [HealthDataUploadManager] 從緩存載入健康數據:")
+            print("   - 總記錄數: \(cachedData.count)")
+            print("   - HRV 有效記錄: \(hrvCount)")
             return cachedData
         }
-        
+
+        print("🔍 [HealthDataUploadManager] 緩存為空，嘗試從 API 獲取")
+
         // 嘗試從 API 獲取
         do {
             let response = try await apiClient.fetchHealthDaily(limit: days)
             let healthData = response.healthData
-            
+
+            let hrvCount = healthData.filter { $0.hrvLastNightAvg != nil }.count
+            print("🔍 [HealthDataUploadManager] 從 API 載入健康數據:")
+            print("   - 總記錄數: \(healthData.count)")
+            print("   - HRV 有效記錄: \(hrvCount)")
+
             // 緩存 API 數據
             cacheHealthData(healthData, days: days)
-            print("從 API 載入健康數據並緩存，共 \(healthData.count) 筆記錄")
-            
+            print("🔍 [HealthDataUploadManager] API 數據已緩存")
+
             return healthData
         } catch {
-            print("從 API 獲取健康數據失敗，嘗試本地數據: \(error)")
-            
+            print("🔍 [HealthDataUploadManager] 從 API 獲取健康數據失敗，嘗試本地數據:")
+            print("   - 錯誤: \(error)")
+
             // 回退到本地 HealthKit 數據
+            print("🔍 [HealthDataUploadManager] 開始從 HealthKit 獲取本地數據")
             let localData = await getLocalHealthData(days: days)
-            print("從 HealthKit 載入健康數據，共 \(localData.count) 筆記錄")
-            
+
+            let hrvCount = localData.filter { $0.hrvLastNightAvg != nil }.count
+            print("🔍 [HealthDataUploadManager] 從 HealthKit 載入健康數據:")
+            print("   - 總記錄數: \(localData.count)")
+            print("   - HRV 有效記錄: \(hrvCount)")
+
             return localData
         }
     }
@@ -361,17 +398,21 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
     
     /// 從 HealthKit 生成健康記錄
     private func generateHealthRecords(days: Int) async -> [HealthRecord] {
+        print("🔍 [HealthDataUploadManager] generateHealthRecords 開始，天數: \(days)")
+
         var records: [HealthRecord] = []
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        
+
         for i in 0..<days {
             guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
-            
+
+            print("🔍 [HealthDataUploadManager] 處理第 \(i) 天: \(date)")
             let record = await generateHealthRecord(for: date)
             records.append(record)
         }
-        
+
+        print("🔍 [HealthDataUploadManager] generateHealthRecords 完成，生成 \(records.count) 筆記錄")
         return records
     }
     
@@ -387,19 +428,37 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
             var calories: Double? = nil
             
             // HRV 數據處理：昨晚的 HRV 通常在早上才可用
+            print("🔍 [HealthDataUploadManager] 檢查日期 \(dateString) 的 HRV 數據:")
+            print("   - isToday: \(isToday)")
+            print("   - shouldFetchTodayHRV(): \(shouldFetchTodayHRV())")
+
             if !isToday || shouldFetchTodayHRV() {
                 let startOfDay = Calendar.current.startOfDay(for: date)
                 let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) ?? date
-                
+
+                print("🔍 [HealthDataUploadManager] 開始獲取 HRV 數據:")
+                print("   - 查詢範圍: \(startOfDay) ~ \(endOfDay)")
+
                 let hrvDataPoints = try await healthKitManager.fetchHRVData(start: startOfDay, end: endOfDay)
-                hrvData = hrvDataPoints.isEmpty ? nil : hrvDataPoints.map { $0.1 }.reduce(0, +) / Double(hrvDataPoints.count)
-                
+                print("🔍 [HealthDataUploadManager] HRV 查詢結果:")
+                print("   - 原始數據點數量: \(hrvDataPoints.count)")
+
+                if !hrvDataPoints.isEmpty {
+                    let values = hrvDataPoints.map { $0.1 }
+                    let average = values.reduce(0, +) / Double(values.count)
+                    hrvData = average
+                    print("   - HRV 平均值: \(average) ms")
+                } else {
+                    hrvData = nil
+                    print("   - HRV 數據為空")
+                }
+
                 // 如果是今天且還沒有 HRV 數據，可能需要等待
                 if isToday && hrvData == nil {
                     print("今天的 HRV 數據尚未可用，將在後續上傳中重試")
                 }
             } else {
-                print("今天的 HRV 數據可能還未生成，跳過獲取")
+                print("🔍 [HealthDataUploadManager] 跳過今天的 HRV 數據獲取 (shouldFetchTodayHRV = false)")
             }
             
             // 靜息心率：通常當天就有
@@ -454,7 +513,12 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
         let now = Date()
         let calendar = Calendar.current
         let hour = calendar.component(.hour, from: now)
-        
+
+        print("🔍 [HealthDataUploadManager] shouldFetchTodayHRV 檢查:")
+        print("   - 當前時間: \(now)")
+        print("   - 當前小時: \(hour)")
+        print("   - 是否 >= 8 點: \(hour >= 8)")
+
         // 早上 8 點之後才嘗試獲取昨晚的 HRV 數據
         return hour >= 8
     }
@@ -661,7 +725,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
         }
         
         // HRV 專用同步（每天早上8:30執行，確保獲取昨晚的HRV）
-        scheduleHRVRetrySync()
+        // scheduleHRVRetrySync() // 背景任務現在在 HavitalApp.swift 中統一處理
     }
     
     private func scheduleHRVRetrySync() {
@@ -703,7 +767,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
             task.setTaskCompleted(success: true)
             
             // 安排下一次背景同步
-            scheduleBackgroundSync()
+            // scheduleBackgroundSync() // 背景任務現在在 HavitalApp.swift 中統一處理
         }
     }
     
@@ -731,7 +795,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
             task.setTaskCompleted(success: true)
             
             // 安排下一次 HRV 重試同步
-            scheduleHRVRetrySync()
+            // scheduleHRVRetrySync() // 背景任務現在在 HavitalApp.swift 中統一處理
         }
     }
     
