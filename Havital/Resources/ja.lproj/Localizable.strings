@@ -1067,3 +1067,17 @@
 "edit_value.confirm" = "確認";
 "edit_value.cancel" = "キャンセル";
 "edit_value.general_message" = "新しい値を入力してください";
+
+// MARK: - Adjustment Confirmation
+"adjustment.title" = "調整確認";
+"adjustment.header_title" = "来週のトレーニング調整";
+"adjustment.description_with_items" = "適用したい調整を選択してください。ご自身のトレーニング要件も追加できます。";
+"adjustment.description_no_items" = "ご自身のトレーニング要件を追加できます";
+"adjustment.no_suggestions" = "現在調整提案はありません";
+"adjustment.add_custom_title" = "カスタム調整を追加";
+"adjustment.text_field_placeholder" = "トレーニングのニーズや調整提案を入力してください...";
+"adjustment.add_button" = "調整を追加";
+"adjustment.ignore_all" = "すべて無視";
+"adjustment.apply_selected" = "選択した項目を適用";
+"adjustment.generate_weekly_plan" = "今週の計画を生成";
+"adjustment.content_placeholder" = "調整内容";

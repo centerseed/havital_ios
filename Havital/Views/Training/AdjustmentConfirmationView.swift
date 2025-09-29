@@ -4,6 +4,7 @@ struct AdjustmentConfirmationView: View {
     @State private var adjustmentItems: [EditableAdjustmentItem]
     @State private var newAdjustmentText: String = ""
     @State private var isUpdating: Bool = false
+    @State private var isAddingAdjustment: Bool = false
 
     let summaryId: String
     let onConfirm: ([AdjustmentItem]) -> Void
@@ -17,40 +18,60 @@ struct AdjustmentConfirmationView: View {
     }
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                headerSection
+        GeometryReader { geometry in
+            NavigationView {
+                VStack(spacing: 0) {
+                    headerSection
 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        adjustmentItemsList
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            adjustmentItemsList
 
-                        addNewAdjustmentSection
+                            addNewAdjustmentSection
+
+                            // 在 ScrollView 內部添加主要操作按鈕
+                            VStack(spacing: 16) {
+                                Button {
+                                    print("產生本週課表 button tapped")
+                                    confirmAdjustments()
+                                } label: {
+                                    HStack {
+                                        if isUpdating {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        }
+                                        Text(NSLocalizedString("adjustment.generate_weekly_plan", comment: "Generate this week's training plan button"))
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .disabled(isUpdating)
+                                .background(isUpdating ? Color.gray.opacity(0.5) : Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
+                            .padding(.top, 20)
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
-
-                actionButtons
+                .navigationTitle(NSLocalizedString("adjustment.title", comment: "Adjustment confirmation screen title"))
+                .navigationBarTitleDisplayMode(.inline)
             }
-            .navigationTitle("調整建議確認")
-            .navigationBarTitleDisplayMode(.large)
-            .navigationBarItems(
-                leading: Button("取消") { onCancel() },
-                trailing: Button("完成") { confirmAdjustments() }
-                    .disabled(isUpdating)
-            )
         }
-        .disabled(isUpdating)
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("下週課表調整建議")
-                .font(.title2)
+            Text(NSLocalizedString("adjustment.header_title", comment: "Header title for adjustment suggestions"))
+                .font(.headline)
                 .fontWeight(.bold)
 
-            Text("請選擇要應用的調整建議。您也可以新增自己的訓練需求。")
-                .font(.body)
+            Text(adjustmentItems.isEmpty ?
+                 NSLocalizedString("adjustment.description_no_items", comment: "Description when no adjustment items") :
+                 NSLocalizedString("adjustment.description_with_items", comment: "Description when adjustment items exist"))
+                .font(.callout)
                 .foregroundColor(.secondary)
         }
         .padding()
@@ -61,7 +82,8 @@ struct AdjustmentConfirmationView: View {
     private var adjustmentItemsList: some View {
         VStack(spacing: 12) {
             if adjustmentItems.isEmpty {
-                Text("目前沒有調整建議")
+                Text(NSLocalizedString("adjustment.no_suggestions", comment: "No adjustment suggestions available"))
+                    .font(.callout)
                     .foregroundColor(.secondary)
                     .padding()
             } else {
@@ -85,11 +107,12 @@ struct AdjustmentConfirmationView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     if adjustmentItems[index].isEditing {
-                        TextField("調整建議內容", text: $adjustmentItems[index].content)
+                        TextField(NSLocalizedString("adjustment.content_placeholder", comment: "Placeholder for adjustment content"), text: $adjustmentItems[index].content, axis: .vertical)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .lineLimit(2...6)
                     } else {
                         Text(adjustmentItems[index].content)
-                            .font(.body)
+                            .font(.callout)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -120,23 +143,35 @@ struct AdjustmentConfirmationView: View {
 
     private var addNewAdjustmentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("新增自訂調整")
-                .font(.headline)
+            Text(NSLocalizedString("adjustment.add_custom_title", comment: "Add custom adjustment title"))
+                .font(.subheadline)
+                .fontWeight(.medium)
 
             VStack(spacing: 8) {
-                TextField("輸入您的訓練需求或調整建議...", text: $newAdjustmentText, axis: .vertical)
+                TextField(NSLocalizedString("adjustment.text_field_placeholder", comment: "Placeholder for new adjustment text field"), text: $newAdjustmentText, axis: .vertical)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .lineLimit(2...4)
 
-                Button("新增調整建議") {
+                Button(action: {
+                    print("新增調整建議 button tapped")
                     addNewAdjustment()
+                }) {
+                    HStack {
+                        if isAddingAdjustment {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        }
+                        Text(NSLocalizedString("adjustment.add_button", comment: "Add adjustment button"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
                 }
-                .disabled(newAdjustmentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(newAdjustmentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                .disabled(newAdjustmentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isUpdating || isAddingAdjustment)
+                .background((newAdjustmentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isUpdating || isAddingAdjustment) ? Color.gray.opacity(0.3) : Color.blue)
                 .foregroundColor(.white)
                 .cornerRadius(8)
+                .contentShape(Rectangle()) // 確保整個按鈕區域都可點擊
             }
         }
         .padding()
@@ -144,38 +179,26 @@ struct AdjustmentConfirmationView: View {
         .cornerRadius(12)
     }
 
-    private var actionButtons: some View {
-        HStack(spacing: 16) {
-            Button("忽略所有調整") {
-                let emptyItems: [AdjustmentItem] = []
-                onConfirm(emptyItems)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.gray.opacity(0.3))
-            .foregroundColor(.black)
-            .cornerRadius(8)
-
-            Button("應用選擇的調整") {
-                confirmAdjustments()
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-            .disabled(isUpdating)
-        }
-        .padding()
-    }
 
     private func addNewAdjustment() {
         let trimmedText = newAdjustmentText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty else { return }
+        print("addNewAdjustment called with text: '\(trimmedText)'")
+        guard !trimmedText.isEmpty else {
+            print("Text is empty, returning early")
+            return
+        }
 
-        let newItem = EditableAdjustmentItem(content: trimmedText, apply: true)
-        adjustmentItems.append(newItem)
-        newAdjustmentText = ""
+        // 如果需要顯示 loading 指示器，可以短暫設置
+        isAddingAdjustment = true
+
+        // 延遲執行以顯示 loading 效果
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            let newItem = EditableAdjustmentItem(content: trimmedText, apply: true)
+            self.adjustmentItems.append(newItem)
+            print("Added new item, total items: \(self.adjustmentItems.count)")
+            self.newAdjustmentText = ""
+            self.isAddingAdjustment = false
+        }
     }
 
     private func confirmAdjustments() {

@@ -1086,3 +1086,17 @@
 "edit_schedule.segment" = "區段";
 "edit_schedule.rest_in_place" = "原地休息";
 "edit_schedule.heart_rate" = "心率";
+
+// MARK: - Adjustment Confirmation
+"adjustment.title" = "調整建議確認";
+"adjustment.header_title" = "下週課表調整建議";
+"adjustment.description_with_items" = "請選擇要應用的調整建議。您也可以新增自己的訓練需求。";
+"adjustment.description_no_items" = "您可以新增自己的訓練需求";
+"adjustment.no_suggestions" = "目前沒有調整建議";
+"adjustment.add_custom_title" = "新增自訂調整";
+"adjustment.text_field_placeholder" = "輸入您的訓練需求或調整建議...";
+"adjustment.add_button" = "新增調整建議";
+"adjustment.ignore_all" = "忽略所有調整";
+"adjustment.apply_selected" = "應用選擇的調整";
+"adjustment.generate_weekly_plan" = "產生本週課表";
+"adjustment.content_placeholder" = "調整建議內容";

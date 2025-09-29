@@ -1123,9 +1123,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 產生指定週數的課表
     @MainActor
     func generateNextWeekPlan(targetWeek: Int) async {
-        isLoadingAnimation = true // 開始時顯示動畫
         var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-        
+
         // 開始背景任務
         backgroundTaskID = UIApplication.shared.beginBackgroundTask {
             if backgroundTaskID != .invalid {
@@ -1133,7 +1132,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 backgroundTaskID = .invalid
             }
         }
-        
+
         // 在 defer 區塊外定義一個函數來結束背景任務
         func endBackgroundTask() {
             if backgroundTaskID != .invalid {
@@ -1141,22 +1140,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 backgroundTaskID = .invalid
             }
         }
-        
-        // Defer ending the background task to ensure it's called
-        defer {
-            endBackgroundTask()
-            Task { @MainActor in
-                isLoadingAnimation = false // 結束時隱藏動畫
-            }
-        }
-        planStatus = .loading
-        
+
         do {
             Logger.debug("開始產生第 \(targetWeek) 週課表...")
 
             // 檢查是否有調整建議需要確認
             if await shouldShowAdjustmentConfirmation(for: targetWeek) {
+                endBackgroundTask() // 結束背景任務但不顯示載入動畫
                 return // 等待用戶確認調整建議後再繼續
+            }
+
+            // 只有在不需要顯示調整確認時才開始載入動畫
+            isLoadingAnimation = true
+            planStatus = .loading
+
+            // Defer ending the background task to ensure it's called
+            defer {
+                endBackgroundTask()
+                Task { @MainActor in
+                    isLoadingAnimation = false // 結束時隱藏動畫
+                }
             }
 
             _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
@@ -1961,6 +1964,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     /// 確認調整建議後繼續產生週課表
     @MainActor
     private func generateNextWeekPlanAfterAdjustment(targetWeek: Int) async {
+        // 確保顯示正確的載入動畫類型（課表產生而非週回顧）
+        isLoadingWeeklySummary = false
+        // 開始載入動畫
+        isLoadingAnimation = true
+        planStatus = .loading
+
         do {
             Logger.debug("調整建議確認完成，繼續產生第 \(targetWeek) 週課表...")
             _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
@@ -1980,6 +1989,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 self.planStatus = .error(error)
             }
         }
+
+        // 結束載入動畫
+        isLoadingAnimation = false
     }
 
     deinit {
