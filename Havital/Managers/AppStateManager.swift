@@ -201,14 +201,18 @@ class AppStateManager: ObservableObject {
             
             // 同步用戶偏好設定（包括數據源）
             userService!.syncUserPreferences(with: user)
-            
+
+            // 🔥 重要：將用戶資料設置到 UserManager
+            await UserManager.shared.updateCurrentUser(user)
+
             // 使用同步後的數據源設定
             userDataSource = UserPreferenceManager.shared.dataSourcePreference
             subscriptionStatus = .free // 暫時設為免費版，未來可從 user.data 中獲取
-            
+
             print("✅ AppStateManager: 用戶資料同步完成")
             print("   - 最終數據源: \(userDataSource.rawValue)")
             print("   - 訂閱狀態: \(subscriptionStatus.rawValue)")
+            print("   - UserManager.currentUser 已設置: \(UserManager.shared.currentUser != nil)")
             
         } catch {
             print("❌ AppStateManager: 載入用戶資料失敗 - \(error.localizedDescription)")

@@ -1,6 +1,6 @@
 /* 
   Localizable.strings (Traditional Chinese)
-  Havital
+  Paceriz
 */
 
 // MARK: - Main Navigation
@@ -37,7 +37,7 @@
 "common.week_unit" = "週";
 
 // MARK: - Authentication
-"auth.welcome" = "歡迎使用 Havital";
+"auth.welcome" = "歡迎使用 Paceriz";
 "auth.login_title" = "登入";
 "auth.logout_title" = "登出";
 "auth.login_subtitle" = "登入以同步您的訓練資料";
@@ -70,7 +70,7 @@
 "calendar_sync_setup.end_time" = "結束時間";
 "calendar_sync_setup.adjust_note" = "你可以之後在行事曆中調整時間";
 "calendar_sync_setup.start_sync" = "開始同步";
-"calendar_sync_setup.access_error" = "請在設定中允許 Havital 存取行事曆";
+"calendar_sync_setup.access_error" = "請在設定中允許 Paceriz 存取行事曆";
 
 // MARK: - Edit Target View
 "edit_target.title" = "編輯賽事目標";
@@ -187,7 +187,7 @@
 "gait_analysis_chart.gait_tab.cadence_description" = "每分鐘步數，理想範圍約180左右";
 
 // MARK: - Onboarding
-"onboarding.welcome" = "歡迎來到 Havital";
+"onboarding.welcome" = "歡迎來到 Paceriz";
 "onboarding.set_goal" = "設定訓練目標";
 "onboarding.race_distance" = "比賽距離";
 "onboarding.target_time" = "目標完賽時間";
@@ -695,7 +695,7 @@
 
 // MARK: - Personal Best View
 "onboarding.personal_best_title" = "您的跑步經驗";
-"onboarding.personal_best_description" = "告訴我們您最近或最快的跑步成績，能幫助 Havital 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。";
+"onboarding.personal_best_description" = "告訴我們您最近或最快的跑步成績，能幫助 Paceriz 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。";
 "onboarding.has_personal_best" = "我有個人最佳成績";
 "onboarding.personal_best_details" = "最佳成績詳情";
 "onboarding.select_distance_time" = "請選擇您近期跑出最佳成績的距離與時間。";
@@ -747,7 +747,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "目前每週跑步量";
-"onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Havital 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
+"onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Paceriz 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
 "onboarding.target_distance_label" = "您的目標距離：%.1f 公里";
 "onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
 "onboarding.weekly_volume_label" = "本週跑量：%.0f 公里";
@@ -1100,3 +1100,13 @@
 "adjustment.apply_selected" = "應用選擇的調整";
 "adjustment.generate_weekly_plan" = "產生本週課表";
 "adjustment.content_placeholder" = "調整建議內容";
+
+// MARK: - App Rating
+"rating.prompt.title" = "喜歡 Paceriz 嗎？";
+"rating.prompt.subtitle" = "您的反饋對我們很重要！";
+"rating.prompt.later" = "稍後再說";
+"rating.prompt.submit" = "提交";
+"rating.success.title" = "感謝您的支持！";
+"rating.success.subtitle" = "您的評價對我們來說意義重大";
+"rating.success.share" = "分享 Paceriz";
+"rating.success.done" = "完成";

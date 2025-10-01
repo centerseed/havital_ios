@@ -1,6 +1,6 @@
 /* 
   Localizable.strings (Japanese)
-  Havital
+  Paceriz
 */
 
 // MARK: - Main Navigation
@@ -37,7 +37,7 @@
 "common.week_unit" = "週";
 
 // MARK: - Authentication
-"auth.welcome" = "Havitalへようこそ";
+"auth.welcome" = "Pacerizへようこそ";
 "auth.login_title" = "ログイン";
 "auth.logout_title" = "ログアウト";
 "auth.login_subtitle" = "トレーニングデータを同期するにはサインインしてください";
@@ -70,7 +70,7 @@
 "calendar_sync_setup.end_time" = "終了時間";
 "calendar_sync_setup.adjust_note" = "後でカレンダーで時間を調整できます";
 "calendar_sync_setup.start_sync" = "同期開始";
-"calendar_sync_setup.access_error" = "設定でHavitalにカレンダーへのアクセスを許可してください";
+"calendar_sync_setup.access_error" = "設定でPacerizにカレンダーへのアクセスを許可してください";
 
 // MARK: - Edit Target View
 "edit_target.title" = "レース目標編集";
@@ -187,7 +187,7 @@
 "gait_analysis_chart.gait_tab.cadence_description" = "毎分の歩数、理想的な範囲は約180前後";
 
 // MARK: - Onboarding
-"onboarding.welcome" = "Havitalへようこそ";
+"onboarding.welcome" = "Pacerizへようこそ";
 "onboarding.set_goal" = "トレーニング目標を設定";
 "onboarding.race_distance" = "レース距離";
 "onboarding.target_time" = "目標完走時間";
@@ -694,7 +694,7 @@
 
 // MARK: - Personal Best View
 "onboarding.personal_best_title" = "あなたのランニング経験";
-"onboarding.personal_best_description" = "最近または最速のランニング成績を教えてください。Havitalがより正確に初期トレーニング強度を設定するのに役立ちます。不明な場合や関連する経験がない場合は、「個人ベストがわからない」を選択できます。";
+"onboarding.personal_best_description" = "最近または最速のランニング成績を教えてください。Pacerizがより正確に初期トレーニング強度を設定するのに役立ちます。不明な場合や関連する経験がない場合は、「個人ベストがわからない」を選択できます。";
 "onboarding.has_personal_best" = "個人ベストがあります";
 "onboarding.personal_best_details" = "ベスト記録詳細";
 "onboarding.select_distance_time" = "最近のベスト記録の距離と時間を選択してください。";
@@ -746,7 +746,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "現在の週間ランニング量";
-"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはHavitalが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
+"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
 "onboarding.target_distance_label" = "目標距離：%.1f km";
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
 "onboarding.weekly_volume_label" = "週間量：%.0f km";
@@ -1081,3 +1081,13 @@
 "adjustment.apply_selected" = "選択した項目を適用";
 "adjustment.generate_weekly_plan" = "今週の計画を生成";
 "adjustment.content_placeholder" = "調整内容";
+
+// MARK: - App Rating
+"rating.prompt.title" = "Pacerizを楽しんでいますか？";
+"rating.prompt.subtitle" = "あなたのフィードバックは私たちにとって重要です！";
+"rating.prompt.later" = "後で";
+"rating.prompt.submit" = "送信";
+"rating.success.title" = "ご支援ありがとうございます！";
+"rating.success.subtitle" = "あなたの評価は私たちにとって大きな意味があります";
+"rating.success.share" = "Pacerizをシェア";
+"rating.success.done" = "完了";

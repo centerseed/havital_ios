@@ -328,6 +328,12 @@ struct TrainingPlanView: View {
                 if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
                     refreshWorkouts()
                 }
+
+                // 在訓練計劃載入後檢查評分提示
+                Task {
+                    // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
+                    await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
+                }
             }
         }
     }

@@ -17,7 +17,11 @@ struct User: Codable {
     let currentWeekDistance: Int?
     let personalBest: [String: [RaceBest]]?
     let dataSource: String?
-    
+
+    // App 評分相關欄位
+    let ratingPromptCount: Int?
+    let lastRatingPromptDate: String?
+
     // 自定義解碼方法處理可能的型別轉換
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -69,6 +73,10 @@ struct User: Codable {
         
         personalBest = try container.decodeIfPresent([String: [RaceBest]].self, forKey: .personalBest)
         dataSource = try container.decodeIfPresent(String.self, forKey: .dataSource)
+
+        // 處理 App 評分相關欄位
+        ratingPromptCount = try container.decodeIfPresent(Int.self, forKey: .ratingPromptCount)
+        lastRatingPromptDate = try container.decodeIfPresent(String.self, forKey: .lastRatingPromptDate)
     }
     
     enum CodingKeys: String, CodingKey {
@@ -87,6 +95,8 @@ struct User: Codable {
         case personalBest = "personal_best"
         case currentWeekDistance = "current_week_distance"
         case dataSource = "data_source"
+        case ratingPromptCount = "rating_prompt_count"
+        case lastRatingPromptDate = "last_rating_prompt_date"
     }
 }
 

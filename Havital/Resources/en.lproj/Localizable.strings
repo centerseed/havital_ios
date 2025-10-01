@@ -1,6 +1,6 @@
 /* 
   Localizable.strings (English)
-  Havital
+  Paceriz
 */
 
 // MARK: - Main Navigation
@@ -37,7 +37,7 @@
 "common.week_unit" = "week";
 
 // MARK: - Authentication
-"auth.welcome" = "Welcome to Havital";
+"auth.welcome" = "Welcome to Paceriz";
 "auth.login_title" = "Log In";
 "auth.logout_title" = "Log Out";
 "auth.login_subtitle" = "Sign in to sync your training data";
@@ -70,7 +70,7 @@
 "calendar_sync_setup.end_time" = "End Time";
 "calendar_sync_setup.adjust_note" = "You can adjust the time in the calendar later";
 "calendar_sync_setup.start_sync" = "Start Sync";
-"calendar_sync_setup.access_error" = "Please allow Havital to access Calendar in Settings";
+"calendar_sync_setup.access_error" = "Please allow Paceriz to access Calendar in Settings";
 
 // MARK: - Edit Target View
 "edit_target.title" = "Edit Race Goal";
@@ -187,7 +187,7 @@
 "gait_analysis_chart.gait_tab.cadence_description" = "Steps per minute, ideal range is around 180";
 
 // MARK: - Onboarding
-"onboarding.welcome" = "Welcome to Havital";
+"onboarding.welcome" = "Welcome to Paceriz";
 "onboarding.set_goal" = "Set Training Goal";
 "onboarding.race_distance" = "Race Distance";
 "onboarding.target_time" = "Target Finish Time";
@@ -694,7 +694,7 @@
 
 // MARK: - Personal Best View
 "onboarding.personal_best_title" = "Your Running Experience";
-"onboarding.personal_best_description" = "Tell us your recent or fastest running performance to help Havital set more accurate initial training intensity. If you're unsure or don't have relevant experience, you can select 'I'm not sure about my personal best'.";
+"onboarding.personal_best_description" = "Tell us your recent or fastest running performance to help Paceriz set more accurate initial training intensity. If you're unsure or don't have relevant experience, you can select 'I'm not sure about my personal best'.";
 "onboarding.has_personal_best" = "I have a personal best";
 "onboarding.personal_best_details" = "Personal Best Details";
 "onboarding.select_distance_time" = "Please select the distance and time of your recent best performance.";
@@ -746,7 +746,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "Current Weekly Running Volume";
-"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Havital understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
+"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Paceriz understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
 "onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
@@ -1081,3 +1081,13 @@
 "adjustment.apply_selected" = "Apply Selected";
 "adjustment.generate_weekly_plan" = "Generate This Week's Plan";
 "adjustment.content_placeholder" = "Adjustment content";
+
+// MARK: - App Rating
+"rating.prompt.title" = "Enjoying Paceriz?";
+"rating.prompt.subtitle" = "Your feedback matters to us!";
+"rating.prompt.later" = "Maybe Later";
+"rating.prompt.submit" = "Submit";
+"rating.success.title" = "Thank You for Your Support!";
+"rating.success.subtitle" = "Your rating means a lot to us";
+"rating.success.share" = "Share Paceriz";
+"rating.success.done" = "Done";

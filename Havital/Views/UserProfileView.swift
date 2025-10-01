@@ -214,6 +214,30 @@ struct UserProfileView: View {
                 }
                 .disabled(isDeletingAccount)
             }
+
+            // 開發者測試區（僅 Debug 模式）
+            #if DEBUG
+            Section(header: Text("🧪 開發者測試")) {
+                Button {
+                    AppRatingManager.shared.forceShowPrompt()
+                } label: {
+                    HStack {
+                        Image(systemName: "star.circle")
+                        Text("測試評分提示")
+                    }
+                }
+
+                Button {
+                    AppRatingManager.shared.clearLocalRatingCache()
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("清除評分快取")
+                    }
+                }
+                .foregroundColor(.orange)
+            }
+            #endif
         }
         .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
         .navigationBarTitleDisplayMode(.inline)

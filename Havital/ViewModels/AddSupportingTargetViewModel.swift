@@ -3,15 +3,15 @@ import SwiftUI
 
 @MainActor
 class AddSupportingTargetViewModel: BaseSupportingTargetViewModel {
-    
+
     func createTarget() async -> Bool {
         isLoading = true
         error = nil
-        
+
         do {
             // 使用基礎類的方法創建 Target 對象
             let target = createTargetObject(id: UUID().uuidString) // 臨時ID，實際會由API返回
-            
+
             // 創建目標賽事
             let createdTarget = try await TargetService.shared.createTarget(target)
             // 存儲到本地，以便後續顯示
