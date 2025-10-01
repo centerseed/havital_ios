@@ -1,6 +1,6 @@
 /* 
   Localizable.strings (Traditional Chinese)
-  Havital
+  Paceriz
 */
 
 // MARK: - Main Navigation
@@ -37,7 +37,7 @@
 "common.week_unit" = "週";
 
 // MARK: - Authentication
-"auth.welcome" = "歡迎使用 Havital";
+"auth.welcome" = "歡迎使用 Paceriz";
 "auth.login_title" = "登入";
 "auth.logout_title" = "登出";
 "auth.login_subtitle" = "登入以同步您的訓練資料";
@@ -70,7 +70,7 @@
 "calendar_sync_setup.end_time" = "結束時間";
 "calendar_sync_setup.adjust_note" = "你可以之後在行事曆中調整時間";
 "calendar_sync_setup.start_sync" = "開始同步";
-"calendar_sync_setup.access_error" = "請在設定中允許 Havital 存取行事曆";
+"calendar_sync_setup.access_error" = "請在設定中允許 Paceriz 存取行事曆";
 
 // MARK: - Edit Target View
 "edit_target.title" = "編輯賽事目標";
@@ -187,7 +187,7 @@
 "gait_analysis_chart.gait_tab.cadence_description" = "每分鐘步數，理想範圍約180左右";
 
 // MARK: - Onboarding
-"onboarding.welcome" = "歡迎來到 Havital";
+"onboarding.welcome" = "歡迎來到 Paceriz";
 "onboarding.set_goal" = "設定訓練目標";
 "onboarding.race_distance" = "比賽距離";
 "onboarding.target_time" = "目標完賽時間";
@@ -324,9 +324,10 @@
 "training.type.easy" = "輕鬆跑";
 "training.type.tempo" = "節奏跑";
 "training.type.interval" = "間歇訓練";
+"interval.static_rest" = "原地休息";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";
-"training.type.race" = "比賽配速";
+"training.type.race" = "比賽";
 "training.type.fartlek" = "法特萊克";
 "training.type.hill" = "爬坡訓練";
 "training.type.speed" = "速度訓練";
@@ -563,6 +564,7 @@
 "training.overview" = "訓練總覽";
 "training.progress" = "訓練進度";
 "training.modify_schedule" = "修改課表";
+"training.edit_schedule" = "編輯課表";
 "training.cannot_load_overview" = "無法載入訓練計畫總覽";
 "training.cannot_load_plan" = "無法載入訓練計畫";
 "training.week_schedule" = "週課表";
@@ -693,7 +695,7 @@
 
 // MARK: - Personal Best View
 "onboarding.personal_best_title" = "您的跑步經驗";
-"onboarding.personal_best_description" = "告訴我們您最近或最快的跑步成績，能幫助 Havital 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。";
+"onboarding.personal_best_description" = "告訴我們您最近或最快的跑步成績，能幫助 Paceriz 更精準地為您安排初始訓練強度。如果您不確定或沒有相關經驗，可以直接選擇「我不確定我的個人最佳成績」。";
 "onboarding.has_personal_best" = "我有個人最佳成績";
 "onboarding.personal_best_details" = "最佳成績詳情";
 "onboarding.select_distance_time" = "請選擇您近期跑出最佳成績的距離與時間。";
@@ -745,7 +747,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "目前每週跑步量";
-"onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Havital 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
+"onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Paceriz 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
 "onboarding.target_distance_label" = "您的目標距離：%.1f 公里";
 "onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
 "onboarding.weekly_volume_label" = "本週跑量：%.0f 公里";
@@ -1022,6 +1024,18 @@
 "performance.hrv.hrv_title" = "心率變異性 (HRV) 趨勢";
 "performance.hrv.select_data_source_hrv" = "請選擇資料來源以查看 HRV 趨勢";
 
+// Training Load
+"performance.training_load.training_load_title" = "訓練負荷";
+"performance.training_load.training_load_explanation" = "透過體適能指數追蹤您的運動能力變化，使用TSB指標了解疲勞與恢復平衡。點擊了解詳細說明和使用技巧";
+"performance.training_load.fitness_index" = "體適能指數";
+"performance.training_load.fitness_index_explanation" = "反映您相對於過往表現的運動能力水平，重點在於觀察趨勢變化而非絕對數值";
+"performance.training_load.tsb" = "訓練壓力平衡 (TSB)";
+"performance.training_load.tsb_explanation" = "反映訓練疲勞與恢復平衡的指標。正值表示恢復良好，負值表示累積疲勞";
+"performance.training_load.insufficient_data" = "運動數據不足，需要至少 5 筆記錄";
+"performance.training_load.loading_training_load" = "載入訓練負荷數據中...";
+"performance.training_load.no_training_load_data" = "無訓練負荷數據";
+"performance.training_load.select_data_source_training_load" = "請選擇資料來源以查看訓練負荷趨勢";
+
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "輕鬆 (E)";
 "performance.heart_rate_zone.zone2_name" = "馬拉松 (M)";
@@ -1040,3 +1054,59 @@
 "performance.heart_rate_zone.zone3_benefit" = "強度訓練有氧循環的臨界點，適當的訓練已提高乳酸清除能力，增加在較高配速的耐力。";
 "performance.heart_rate_zone.zone4_benefit" = "提升最大攝氧量，改善跑姿和強化肌力。";
 "performance.heart_rate_zone.zone5_benefit" = "提升無氧能力與肌耐力，並提升最大攝氧量。適度的加入間歇訓練可以明顯的感受到進步，但千萬不要過量";
+
+// MARK: - Edit Schedule
+"edit_schedule.title" = "編輯週課表";
+"edit_schedule.save" = "儲存";
+"edit_schedule.cancel" = "取消";
+"edit_schedule.discard_changes" = "放棄變更";
+"edit_schedule.unsaved_changes" = "未儲存的變更";
+"edit_schedule.unsaved_changes_message" = "您有未儲存的變更，確定要放棄嗎？";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "編輯距離";
+"edit_value.distance_message" = "請輸入距離（公里）";
+"edit_value.pace_title" = "編輯配速";
+"edit_value.pace_message" = "請輸入配速（例如：5:30）";
+"edit_value.repeats_title" = "編輯重複次數";
+"edit_value.repeats_message" = "請輸入重複次數";
+"edit_value.confirm" = "確定";
+"edit_value.cancel" = "取消";
+"edit_value.general_message" = "請輸入新的值";
+"edit_schedule.cannot_edit_past" = "已完成和過去的課表，或當日賽比賽無法編輯";
+"edit_schedule.cannot_edit_completed" = "已有訓練記錄的課表無法編輯";
+"edit_schedule.drag_to_swap" = "長按拖曳以交換課表";
+"edit_schedule.loading_data" = "載入編輯資料...";
+"edit_schedule.edit_training" = "編輯訓練";
+"edit_schedule.distance" = "距離";
+"edit_schedule.pace" = "配速";
+"edit_schedule.repeats" = "重複";
+"edit_schedule.sprint_segment" = "衝刺段";
+"edit_schedule.recovery_segment" = "恢復段";
+"edit_schedule.segment" = "區段";
+"edit_schedule.rest_in_place" = "原地休息";
+"edit_schedule.heart_rate" = "心率";
+
+// MARK: - Adjustment Confirmation
+"adjustment.title" = "調整建議確認";
+"adjustment.header_title" = "下週課表調整建議";
+"adjustment.description_with_items" = "請選擇要應用的調整建議。您也可以新增自己的訓練需求。";
+"adjustment.description_no_items" = "您可以新增自己的訓練需求";
+"adjustment.no_suggestions" = "目前沒有調整建議";
+"adjustment.add_custom_title" = "新增自訂調整";
+"adjustment.text_field_placeholder" = "輸入您的訓練需求或調整建議...";
+"adjustment.add_button" = "新增調整建議";
+"adjustment.ignore_all" = "忽略所有調整";
+"adjustment.apply_selected" = "應用選擇的調整";
+"adjustment.generate_weekly_plan" = "產生本週課表";
+"adjustment.content_placeholder" = "調整建議內容";
+
+// MARK: - App Rating
+"rating.prompt.title" = "喜歡 Paceriz 嗎？";
+"rating.prompt.subtitle" = "您的反饋對我們很重要！";
+"rating.prompt.later" = "稍後再說";
+"rating.prompt.submit" = "提交";
+"rating.success.title" = "感謝您的支持！";
+"rating.success.subtitle" = "您的評價對我們來說意義重大";
+"rating.success.share" = "分享 Paceriz";
+"rating.success.done" = "完成";

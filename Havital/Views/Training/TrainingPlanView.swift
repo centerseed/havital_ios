@@ -49,10 +49,10 @@ struct NewWeekPromptView: View {
                 // 正在加載訓練回顧時顯示載入狀態
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
-                // 加載失敗時顯示錯誤視圖
+                // 加載失敗時顯示錯誤視圖，使用強制更新模式重試
                 WeeklySummaryErrorView(error: error) {
                     Task {
-                        await viewModel.createWeeklySummary()
+                        await viewModel.retryCreateWeeklySummary()
                     }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
@@ -146,7 +146,7 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
                 WeeklySummaryErrorView(error: error) {
-                    Task { await viewModel.createWeeklySummary() }
+                    Task { await viewModel.retryCreateWeeklySummary() }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
                 WeeklySummaryView(
@@ -211,6 +211,7 @@ struct TrainingPlanView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
+    @State private var showEditSchedule = false
     
     
     var body: some View {
@@ -287,6 +288,23 @@ struct TrainingPlanView: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
+        .sheet(isPresented: $showEditSchedule) {
+            EditScheduleView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showAdjustmentConfirmation) {
+            AdjustmentConfirmationView(
+                initialItems: viewModel.pendingAdjustments, // 可以是空陣列
+                summaryId: viewModel.pendingSummaryId ?? "unknown", // 提供預設值
+                onConfirm: { selectedItems in
+                    Task {
+                        await viewModel.confirmAdjustments(selectedItems)
+                    }
+                },
+                onCancel: {
+                    viewModel.cancelAdjustmentConfirmation()
+                }
+            )
+        }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {
                 Task {
@@ -309,6 +327,12 @@ struct TrainingPlanView: View {
                 // 只在數據尚未載入時才刷新，避免不必要的重新載入
                 if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
                     refreshWorkouts()
+                }
+
+                // 在訓練計劃載入後檢查評分提示
+                Task {
+                    // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
+                    await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
                 }
             }
         }
@@ -390,13 +414,13 @@ struct TrainingPlanView: View {
                     }) {
                         Label(NSLocalizedString("training.progress", comment: "Training Progress"), systemImage: "chart.line.uptrend.xyaxis")
                     }
-                    /*
+                    
                     Button(action: {
-                        showModifications = true
+                        showEditSchedule = true
                     }) {
-                        Label(NSLocalizedString("training.modify_schedule", comment: "Modify Schedule"), systemImage: "slider.horizontal.3")
+                        Label(NSLocalizedString("training.edit_schedule", comment: "Edit Schedule"), systemImage: "slider.horizontal.3")
                     }
-                    */
+                    .disabled(viewModel.planStatus == .loading || viewModel.weeklyPlan == nil)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)

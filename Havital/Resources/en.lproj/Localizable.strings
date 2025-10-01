@@ -1,6 +1,6 @@
 /* 
   Localizable.strings (English)
-  Havital
+  Paceriz
 */
 
 // MARK: - Main Navigation
@@ -37,7 +37,7 @@
 "common.week_unit" = "week";
 
 // MARK: - Authentication
-"auth.welcome" = "Welcome to Havital";
+"auth.welcome" = "Welcome to Paceriz";
 "auth.login_title" = "Log In";
 "auth.logout_title" = "Log Out";
 "auth.login_subtitle" = "Sign in to sync your training data";
@@ -70,7 +70,7 @@
 "calendar_sync_setup.end_time" = "End Time";
 "calendar_sync_setup.adjust_note" = "You can adjust the time in the calendar later";
 "calendar_sync_setup.start_sync" = "Start Sync";
-"calendar_sync_setup.access_error" = "Please allow Havital to access Calendar in Settings";
+"calendar_sync_setup.access_error" = "Please allow Paceriz to access Calendar in Settings";
 
 // MARK: - Edit Target View
 "edit_target.title" = "Edit Race Goal";
@@ -187,7 +187,7 @@
 "gait_analysis_chart.gait_tab.cadence_description" = "Steps per minute, ideal range is around 180";
 
 // MARK: - Onboarding
-"onboarding.welcome" = "Welcome to Havital";
+"onboarding.welcome" = "Welcome to Paceriz";
 "onboarding.set_goal" = "Set Training Goal";
 "onboarding.race_distance" = "Race Distance";
 "onboarding.target_time" = "Target Finish Time";
@@ -324,9 +324,10 @@
 "training.type.easy" = "Easy Run";
 "training.type.tempo" = "Tempo Run";
 "training.type.interval" = "Interval Training";
+"interval.static_rest" = "Static Rest";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";
-"training.type.race" = "Race Pace";
+"training.type.race" = "Race";
 "training.type.fartlek" = "Fartlek";
 "training.type.hill" = "Hill Training";
 "training.type.speed" = "Speed Work";
@@ -693,7 +694,7 @@
 
 // MARK: - Personal Best View
 "onboarding.personal_best_title" = "Your Running Experience";
-"onboarding.personal_best_description" = "Tell us your recent or fastest running performance to help Havital set more accurate initial training intensity. If you're unsure or don't have relevant experience, you can select 'I'm not sure about my personal best'.";
+"onboarding.personal_best_description" = "Tell us your recent or fastest running performance to help Paceriz set more accurate initial training intensity. If you're unsure or don't have relevant experience, you can select 'I'm not sure about my personal best'.";
 "onboarding.has_personal_best" = "I have a personal best";
 "onboarding.personal_best_details" = "Personal Best Details";
 "onboarding.select_distance_time" = "Please select the distance and time of your recent best performance.";
@@ -745,7 +746,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "Current Weekly Running Volume";
-"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Havital understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
+"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Paceriz understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
 "onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
@@ -1015,6 +1016,18 @@
 "performance.hrv.hrv_title" = "Heart Rate Variability (HRV) Trend";
 "performance.hrv.select_data_source_hrv" = "Please select a data source to view HRV trends";
 
+// Training Load
+"performance.training_load.training_load_title" = "Training Load";
+"performance.training_load.training_load_explanation" = "Track your fitness progress with the Fitness Index and monitor fatigue-recovery balance with TSB indicators. Tap to learn detailed explanations and usage tips";
+"performance.training_load.fitness_index" = "Fitness Index";
+"performance.training_load.fitness_index_explanation" = "Shows your fitness level relative to your past performance. Upward trends indicate improvement but watch for fatigue accumulation. Downward trends are often tapering periods - monitor TSB and HRV recovery";
+"performance.training_load.tsb" = "Training Stress Balance (TSB)";
+"performance.training_load.tsb_explanation" = "An indicator of the balance between training fatigue and recovery. Positive values indicate good recovery, negative values indicate accumulated fatigue";
+"performance.training_load.insufficient_data" = "Insufficient workout data, at least 5 records needed";
+"performance.training_load.loading_training_load" = "Loading training load data...";
+"performance.training_load.no_training_load_data" = "No training load data";
+"performance.training_load.select_data_source_training_load" = "Please select a data source to view training load trends";
+
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "Easy (E)";
 "performance.heart_rate_zone.zone2_name" = "Marathon (M)";
@@ -1033,3 +1046,48 @@
 "performance.heart_rate_zone.zone3_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
 "performance.heart_rate_zone.zone4_benefit" = "Improve VO2 max, enhance running form and strengthen muscles.";
 "performance.heart_rate_zone.zone5_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";
+
+// MARK: - Edit Schedule
+"edit_schedule.cannot_edit_past" = "Completed and past schedules, or race days cannot be edited";
+"edit_schedule.title" = "Edit Weekly Schedule";
+"edit_schedule.cancel" = "Cancel";
+"edit_schedule.save" = "Save";
+"edit_schedule.loading_data" = "Loading edit data...";
+"edit_schedule.unsaved_changes" = "Unsaved Changes";
+"edit_schedule.unsaved_changes_message" = "You have unsaved changes. Are you sure you want to discard them?";
+"edit_schedule.discard_changes" = "Discard Changes";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "Edit Distance";
+"edit_value.distance_message" = "Please enter distance (kilometers)";
+"edit_value.pace_title" = "Edit Pace";
+"edit_value.pace_message" = "Please enter pace (e.g., 5:30)";
+"edit_value.repeats_title" = "Edit Repeats";
+"edit_value.repeats_message" = "Please enter number of repeats";
+"edit_value.confirm" = "Confirm";
+"edit_value.cancel" = "Cancel";
+"edit_value.general_message" = "Please enter new value";
+
+// MARK: - Adjustment Confirmation
+"adjustment.title" = "Adjustment Confirmation";
+"adjustment.header_title" = "Next Week Training Adjustments";
+"adjustment.description_with_items" = "Please select the adjustments you want to apply. You can also add your own training requirements.";
+"adjustment.description_no_items" = "You can add your own training requirements";
+"adjustment.no_suggestions" = "No adjustment suggestions available";
+"adjustment.add_custom_title" = "Add Custom Adjustment";
+"adjustment.text_field_placeholder" = "Enter your training needs or adjustment suggestions...";
+"adjustment.add_button" = "Add Adjustment";
+"adjustment.ignore_all" = "Ignore All";
+"adjustment.apply_selected" = "Apply Selected";
+"adjustment.generate_weekly_plan" = "Generate This Week's Plan";
+"adjustment.content_placeholder" = "Adjustment content";
+
+// MARK: - App Rating
+"rating.prompt.title" = "Enjoying Paceriz?";
+"rating.prompt.subtitle" = "Your feedback matters to us!";
+"rating.prompt.later" = "Maybe Later";
+"rating.prompt.submit" = "Submit";
+"rating.success.title" = "Thank You for Your Support!";
+"rating.success.subtitle" = "Your rating means a lot to us";
+"rating.success.share" = "Share Paceriz";
+"rating.success.done" = "Done";

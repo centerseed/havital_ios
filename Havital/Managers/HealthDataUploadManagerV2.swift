@@ -524,7 +524,13 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                     date: dateString,
                     dailyCalories: nil,
                     hrvLastNightAvg: avgHRV,
-                    restingHeartRate: nil
+                    restingHeartRate: nil,
+                    atl: nil,
+                    ctl: nil,
+                    fitness: nil,
+                    tsb: nil,
+                    updatedAt: nil,
+                    workoutTrigger: nil
                 )
                 records.append(record)
             }
@@ -538,7 +544,13 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                     date: dateString,
                     dailyCalories: nil,
                     hrvLastNightAvg: nil,
-                    restingHeartRate: Int(restingHR)
+                    restingHeartRate: Int(restingHR),
+                    atl: nil,
+                    ctl: nil,
+                    fitness: nil,
+                    tsb: nil,
+                    updatedAt: nil,
+                    workoutTrigger: nil
                 )
                 records.append(record)
             }

@@ -78,6 +78,13 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var weeklySummaryError: Error?
     @Published var showWeeklySummary = false
     @Published var lastFetchedWeekNumber: Int?
+
+    // 調整建議確認相關屬性
+    @Published var showAdjustmentConfirmation = false
+    @Published var pendingAdjustments: [AdjustmentItem] = []
+    @Published var isUpdatingAdjustments = false
+    @Published var pendingTargetWeek: Int?
+    @Published var pendingSummaryId: String?
     
     // 網路錯誤處理
     @Published var networkError: NetworkError?
@@ -571,10 +578,69 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         }
     }
     
+    // 重新嘗試產生週回顧（強制更新模式）
+    @MainActor
+    func retryCreateWeeklySummary() async {
+        await executeTask(id: "retry_create_weekly_summary") {
+            await self.performRetryCreateWeeklySummary()
+        }
+    }
+
+    private func performRetryCreateWeeklySummary() async {
+        await MainActor.run {
+            isLoadingAnimation = true // 顯示 Loading 動畫
+            isLoadingWeeklySummary = true
+            weeklySummaryError = nil
+        }
+
+        defer {
+            // 無論成功或失敗，最後都關閉動畫
+            Task { @MainActor in
+                isLoadingAnimation = false // 隱藏 Loading 動畫
+            }
+        }
+
+        do {
+            // 計算當前訓練週數
+            guard let currentWeek = calculateCurrentTrainingWeek() else {
+                throw NSError(
+                    domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
+            }
+
+            Logger.debug("重新嘗試產生週回顧（強制更新模式）: 週數 \(currentWeek)")
+
+            // 使用強制更新模式從API獲取週訓練回顧數據
+            let summary = try await weeklySummaryService.createWeeklySummary(forceUpdate: true)
+
+            // 保存到本地儲存
+            WeeklySummaryStorage.shared.saveWeeklySummary(summary, weekNumber: currentWeek)
+
+            await MainActor.run {
+                self.weeklySummary = summary
+                self.lastFetchedWeekNumber = currentWeek
+                self.showWeeklySummary = true
+                self.isLoadingWeeklySummary = false
+            }
+
+            // 更新訓練進度
+            await forceUpdateWeeklySummaries()
+
+            Logger.debug("強制更新週回顧成功")
+
+        } catch {
+            Logger.error("強制更新週回顧失敗: \(error)")
+
+            await MainActor.run {
+                self.weeklySummaryError = error
+                self.isLoadingWeeklySummary = false
+            }
+        }
+    }
+
     // 清除訓練回顧的方法
     func clearWeeklySummary() {
         WeeklySummaryStorage.shared.clearSavedWeeklySummary()
-        
+
         Task { @MainActor in
             self.weeklySummary = nil
             self.lastFetchedWeekNumber = nil
@@ -1057,9 +1123,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 產生指定週數的課表
     @MainActor
     func generateNextWeekPlan(targetWeek: Int) async {
-        isLoadingAnimation = true // 開始時顯示動畫
         var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-        
+
         // 開始背景任務
         backgroundTaskID = UIApplication.shared.beginBackgroundTask {
             if backgroundTaskID != .invalid {
@@ -1067,7 +1132,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 backgroundTaskID = .invalid
             }
         }
-        
+
         // 在 defer 區塊外定義一個函數來結束背景任務
         func endBackgroundTask() {
             if backgroundTaskID != .invalid {
@@ -1075,18 +1140,28 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 backgroundTaskID = .invalid
             }
         }
-        
-        // Defer ending the background task to ensure it's called
-        defer {
-            endBackgroundTask()
-            Task { @MainActor in
-                isLoadingAnimation = false // 結束時隱藏動畫
-            }
-        }
-        planStatus = .loading
-        
+
         do {
             Logger.debug("開始產生第 \(targetWeek) 週課表...")
+
+            // 檢查是否有調整建議需要確認
+            if await shouldShowAdjustmentConfirmation(for: targetWeek) {
+                endBackgroundTask() // 結束背景任務但不顯示載入動畫
+                return // 等待用戶確認調整建議後再繼續
+            }
+
+            // 只有在不需要顯示調整確認時才開始載入動畫
+            isLoadingAnimation = true
+            planStatus = .loading
+
+            // Defer ending the background task to ensure it's called
+            defer {
+                endBackgroundTask()
+                Task { @MainActor in
+                    isLoadingAnimation = false // 結束時隱藏動畫
+                }
+            }
+
             _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
             
             // 產生成功後重新載入課表
@@ -1410,41 +1485,92 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         var totalLow: Double = 0
         var totalMedium: Double = 0
         var totalHigh: Double = 0
-        
+
         Logger.debug("開始計算訓練強度，總共有 \(workouts.count) 筆運動記錄")
-        
+
         for workout in workouts {
             Logger.debug("處理運動: \(workout.id), 類型: \(workout.activityType)")
-            
-            // 直接使用 API 提供的 intensity_minutes 數據
+
+            // 檢查是否有 intensity_minutes 數據
+            var foundIntensityData = false
+
             if let advancedMetrics = workout.advancedMetrics {
-                Logger.debug("AdvancedMetrics 存在")
-                
+                Logger.debug("AdvancedMetrics 存在，類型: \(type(of: advancedMetrics))")
+
+                // 嘗試處理 APIIntensityMinutes (AdvancedMetrics 類型)
                 if let intensityMinutes = advancedMetrics.intensityMinutes {
                     let low = intensityMinutes.low ?? 0.0
                     let medium = intensityMinutes.medium ?? 0.0
                     let high = intensityMinutes.high ?? 0.0
-                    
+
                     totalLow += low
                     totalMedium += medium
                     totalHigh += high
-                    
-                    Logger.debug("運動 \(workout.id) - 低強度: \(low), 中強度: \(medium), 高強度: \(high)")
-                } else {
-                    Logger.debug("運動 \(workout.id) - AdvancedMetrics 存在但 intensityMinutes 為 nil")
+                    foundIntensityData = true
+
+                    Logger.debug("運動 \(workout.id) - API格式 - 低強度: \(low), 中強度: \(medium), 高強度: \(high)")
                 }
-            } else {
-                Logger.debug("運動 \(workout.id) - AdvancedMetrics 不存在")
+            }
+
+            // 如果沒有找到數據，進行更詳細的調試
+            if !foundIntensityData {
+                Logger.debug("未找到強度數據，進行詳細檢查...")
+
+                // 詳細調試 advancedMetrics 的結構
+                if let advancedMetrics = workout.advancedMetrics {
+                    debugAdvancedMetricsStructure(advancedMetrics, workoutId: workout.id)
+                } else {
+                    Logger.debug("運動 \(workout.id) - 完全沒有 AdvancedMetrics")
+                }
+
+                // 作為備選方案，嘗試從運動持續時間估算低強度分鐘數
+                // 這確保至少有一些訓練負荷數據而不是顯示"資料不足"
+                let fallbackLowIntensity = Double(workout.durationSeconds) / 60.0
+                if fallbackLowIntensity > 0 {
+                    totalLow += fallbackLowIntensity
+                    Logger.debug("運動 \(workout.id) - 使用備選估算: 低強度 \(fallbackLowIntensity) 分鐘")
+                }
             }
         }
-        
+
         Logger.debug("計算完成 - 總低強度: \(totalLow), 總中強度: \(totalMedium), 總高強度: \(totalHigh)")
-        
+
+        // 如果沒有從 API 獲得任何強度數據，記錄這個問題
+        if totalLow == 0 && totalMedium == 0 && totalHigh == 0 && !workouts.isEmpty {
+            Logger.debug("⚠️ 警告: 所有運動都沒有強度數據，這可能導致訓練負荷顯示為'資料不足'")
+            Logger.debug("建議檢查 API 回應中是否包含 intensity_minutes 欄位")
+        }
+
         return TrainingIntensityManager.IntensityMinutes(
             low: totalLow,
             medium: totalMedium,
             high: totalHigh
         )
+    }
+
+    /// 調試 AdvancedMetrics 結構，幫助了解數據格式問題
+    private func debugAdvancedMetricsStructure(_ metrics: AdvancedMetrics, workoutId: String) {
+        Logger.debug("運動 \(workoutId) - AdvancedMetrics 詳細調試:")
+        Logger.debug("  - dynamicVdot: \(metrics.dynamicVdot?.description ?? "nil")")
+        Logger.debug("  - tss: \(metrics.tss?.description ?? "nil")")
+        Logger.debug("  - trainingType: \(metrics.trainingType ?? "nil")")
+        Logger.debug("  - intensityMinutes: \(String(describing: metrics.intensityMinutes))")
+
+        if let intensityMinutes = metrics.intensityMinutes {
+            Logger.debug("    - intensityMinutes.low: \(intensityMinutes.low?.description ?? "nil")")
+            Logger.debug("    - intensityMinutes.medium: \(intensityMinutes.medium?.description ?? "nil")")
+            Logger.debug("    - intensityMinutes.high: \(intensityMinutes.high?.description ?? "nil")")
+        }
+
+        Logger.debug("  - intervalCount: \(metrics.intervalCount?.description ?? "nil")")
+        Logger.debug("  - rpe: \(metrics.rpe?.description ?? "nil")")
+
+        // 使用反射檢查是否有其他我們遺漏的屬性
+        let mirror = Mirror(reflecting: metrics)
+        Logger.debug("  - AdvancedMetrics 所有屬性:")
+        for child in mirror.children {
+            Logger.debug("    - \(child.label ?? "unnamed"): \(child.value)")
+        }
     }
     
     func loadCurrentWeekDistance() async {
@@ -1544,7 +1670,44 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
         }
     }
-    
+
+    // 重新嘗試載入週訓練回顧（強制更新模式）
+    func retryLoadWeeklySummary() async {
+        await MainActor.run {
+            isLoadingWeeklySummary = true
+            weeklySummaryError = nil
+        }
+
+        do {
+            // 獲取當前訓練週數
+            guard let currentWeek = calculateCurrentTrainingWeek() else {
+                throw NSError(
+                    domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
+            }
+
+            Logger.debug("重新嘗試載入第\(currentWeek-1)週的週回顧（強制更新模式）")
+
+            // 使用強制更新模式從API獲取週訓練回顧數據
+            let summary = try await weeklySummaryService.createWeeklySummary(
+                weekNumber: currentWeek - 1, forceUpdate: true)
+
+            await MainActor.run {
+                self.weeklySummary = summary
+                self.isLoadingWeeklySummary = false
+            }
+
+            Logger.debug("強制更新載入週回顧成功")
+
+        } catch {
+            Logger.error("強制更新載入週回顧失敗: \(error)")
+
+            await MainActor.run {
+                self.weeklySummaryError = error
+                self.isLoadingWeeklySummary = false
+            }
+        }
+    }
+
     // 判斷是否應該顯示產生下週課表按鈕
     // 判斷是否應該顯示產生課表按鈕，並返回應該產生的週數
     func shouldShowNextWeekButton(plan: WeeklyPlan) -> (shouldShow: Bool, nextWeek: Int) {
@@ -1630,6 +1793,207 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 移除重複的 refreshWorkoutData - 直接使用 unifiedWorkoutManager.refreshWorkouts()
     
+    // MARK: - Edit Schedule Methods
+    
+    /// 檢查特定日期是否可以編輯
+    /// 規則：只有今天以後且沒有跑步記錄的課表才可編輯
+    func canEditDay(_ dayIndex: Int) -> Bool {
+        // 獲取該天的日期
+        guard let dayDate = getDateForDay(dayIndex: dayIndex) else { return false }
+        
+        // 取得今天的開始時間 (00:00)
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        // 只有今天以後的日期才能編輯
+        guard dayDate >= today else {
+            return false
+        }
+        
+        // 檢查是否已有訓練記錄
+        let hasWorkouts = !(workoutsByDayV2[dayIndex]?.isEmpty ?? true)
+        return !hasWorkouts
+    }
+    
+    /// 取得編輯狀態說明文字
+    func getEditStatusMessage(for dayIndex: Int) -> String {
+        guard let dayDate = getDateForDay(dayIndex: dayIndex) else {
+            return NSLocalizedString("edit_schedule.cannot_edit_past", comment: "過去的課表無法編輯")
+        }
+        
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if dayDate < today {
+            return NSLocalizedString("edit_schedule.cannot_edit_past", comment: "過去的課表無法編輯")
+        }
+        
+        let hasWorkouts = !(workoutsByDayV2[dayIndex]?.isEmpty ?? true)
+        if hasWorkouts {
+            return NSLocalizedString("edit_schedule.cannot_edit_completed", comment: "已有訓練記錄的課表無法編輯")
+        }
+        
+        return NSLocalizedString("edit_schedule.drag_to_swap", comment: "長按拖曳以交換課表")
+    }
+    
+    /// 更新週課表 (儲存編輯後的課表)
+    func updateWeeklyPlan(_ editablePlan: MutableWeeklyPlan) async {
+        // TODO: 實現儲存邏輯
+        // 這裡需要將 MutableWeeklyPlan 轉換回 WeeklyPlan 格式
+        // 然後調用 API 儲存
+        
+        Logger.debug("準備儲存編輯後的週課表")
+        
+        // 轉換並儲存 (暫時先記錄，待實現)
+        do {
+            // let updatedPlan = editablePlan.toWeeklyPlan()
+            // let savedPlan = try await TrainingPlanService.shared.updateWeeklyPlan(updatedPlan)
+            // await updateWeeklyPlanUI(plan: savedPlan, status: .ready(savedPlan))
+            Logger.debug("課表儲存成功")
+        } catch {
+            Logger.error("儲存課表失敗: \(error)")
+            // TODO: 處理儲存錯誤
+        }
+    }
+
+    /// 從編輯畫面更新週計劃，確保緩存一致性
+    @MainActor
+    func updateWeeklyPlanFromEdit(_ updatedPlan: WeeklyPlan) {
+        Logger.debug("從編輯畫面更新週計劃: 週數=\(updatedPlan.weekOfPlan), ID=\(updatedPlan.id)")
+
+        // 使用統一的 updateWeeklyPlanUI 方法，確保緩存一致性
+        updateWeeklyPlanUI(plan: updatedPlan, status: .ready(updatedPlan))
+
+        Logger.debug("週計劃已更新並保存到緩存")
+    }
+
+    // MARK: - 調整建議確認相關方法
+
+    /// 檢查是否需要顯示調整建議確認畫面
+    @MainActor
+    private func shouldShowAdjustmentConfirmation(for targetWeek: Int) async -> Bool {
+        // 檢查上一週是否有週總結且包含調整建議
+        let previousWeek = targetWeek - 1
+        guard previousWeek > 0 else {
+            // 即使是第一週，也允許用戶自行添加調整項目
+            pendingAdjustments = []
+            pendingTargetWeek = targetWeek
+            pendingSummaryId = "week_0_summary"  // 第一週使用特殊的 summaryId
+
+            // 顯示調整建議確認畫面
+            showAdjustmentConfirmation = true
+            return true
+        }
+
+        var existingAdjustments: [AdjustmentItem] = []
+
+        var actualSummaryId = "week_\(previousWeek)_summary" // 預設值
+
+        do {
+            let summary = try await WeeklySummaryService.shared.getWeeklySummary(weekNumber: previousWeek)
+
+            // 使用實際的 summary ID
+            actualSummaryId = summary.id
+
+            // 獲取現有的調整建議項目（如果有的話）
+            if let items = summary.nextWeekAdjustments.items {
+                existingAdjustments = items
+            }
+        } catch {
+            Logger.debug("無法獲取上週總結，但仍允許用戶自行添加調整項目: \(error)")
+        }
+
+        // 無論是否有現有的調整建議，都顯示調整確認畫面讓用戶可以自行添加
+        pendingAdjustments = existingAdjustments
+        pendingTargetWeek = targetWeek
+        pendingSummaryId = actualSummaryId
+
+        // 顯示調整建議確認畫面
+        showAdjustmentConfirmation = true
+        return true
+    }
+
+    /// 確認調整建議並繼續產生週課表
+    @MainActor
+    func confirmAdjustments(_ selectedItems: [AdjustmentItem]) async {
+        guard let targetWeek = pendingTargetWeek,
+              let summaryId = pendingSummaryId else {
+            Logger.error("缺少必要的參數來確認調整建議")
+            return
+        }
+
+        isUpdatingAdjustments = true
+
+        do {
+            // 更新調整建議到後端
+            _ = try await WeeklySummaryService.shared.updateAdjustments(
+                summaryId: summaryId,
+                items: selectedItems
+            )
+
+            // 隱藏確認畫面
+            showAdjustmentConfirmation = false
+
+            // 繼續產生週課表
+            await generateNextWeekPlanAfterAdjustment(targetWeek: targetWeek)
+
+        } catch {
+            Logger.error("更新調整建議失敗: \(error)")
+            // 可以選擇繼續產生課表或顯示錯誤
+            await generateNextWeekPlanAfterAdjustment(targetWeek: targetWeek)
+        }
+
+        // 清理狀態
+        isUpdatingAdjustments = false
+        pendingAdjustments = []
+        pendingTargetWeek = nil
+        pendingSummaryId = nil
+    }
+
+    /// 取消調整建議確認
+    @MainActor
+    func cancelAdjustmentConfirmation() {
+        showAdjustmentConfirmation = false
+        pendingAdjustments = []
+        pendingTargetWeek = nil
+        pendingSummaryId = nil
+
+        // 停止載入動畫
+        isLoadingAnimation = false
+        planStatus = weeklyPlan != nil ? .ready(weeklyPlan!) : .noPlan
+    }
+
+    /// 確認調整建議後繼續產生週課表
+    @MainActor
+    private func generateNextWeekPlanAfterAdjustment(targetWeek: Int) async {
+        // 確保顯示正確的載入動畫類型（課表產生而非週回顧）
+        isLoadingWeeklySummary = false
+        // 開始載入動畫
+        isLoadingAnimation = true
+        planStatus = .loading
+
+        do {
+            Logger.debug("調整建議確認完成，繼續產生第 \(targetWeek) 週課表...")
+            _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
+
+            // 產生成功後重新載入課表
+            guard let overviewId = trainingOverview?.id else { throw NSError() }
+            let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
+                planId: "\(overviewId)_\(self.currentWeek)")
+
+            updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
+
+            Logger.debug("第 \(targetWeek) 週課表產生完成")
+        } catch {
+            Logger.error("產生課表失敗: \(error)")
+            await MainActor.run {
+                self.error = error
+                self.planStatus = .error(error)
+            }
+        }
+
+        // 結束載入動畫
+        isLoadingAnimation = false
+    }
+
     deinit {
         cancelAllTasks()
     }

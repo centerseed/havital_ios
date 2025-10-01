@@ -77,6 +77,7 @@ struct MyAchievementView: View {
                             explanation: L10n.Performance.vdotExplanation.localized
                         )
                         .padding(.horizontal)
+                        .padding(.top, 12)
                         
                         VDOTChartView()
                             .padding()
@@ -85,7 +86,12 @@ struct MyAchievementView: View {
                     .cornerRadius(10)
                     .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                     .padding(.horizontal)
-                    
+
+                    // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
+                    TrainingLoadChartSection()
+                        .environmentObject(healthKitManager)
+                        .environmentObject(sharedHealthDataManager)
+
                     // Weekly Volume Chart Section - 週跑量趨勢圖
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitleWithInfo(
@@ -93,6 +99,7 @@ struct MyAchievementView: View {
                             explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
                         )
                         .padding(.horizontal)
+                        .padding(.top, 12)
                         
                         WeeklyVolumeChartView(showTitle: false)
                             .padding()
@@ -102,13 +109,8 @@ struct MyAchievementView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                     .padding(.horizontal)
                     
-                    // HRV 趨勢圖 - 根據數據源選擇顯示方式
-                    HRVChartSection()
-                        .environmentObject(healthKitManager)
-                        .environmentObject(sharedHealthDataManager)
-                    
-                    // 睡眠靜息心率圖 - 根據數據源選擇顯示方式
-                    RestingHeartRateChartSection()
+                    // 合併的心率圖表 - HRV 和睡眠靜息心率
+                    CombinedHeartRateChartSection()
                         .environmentObject(healthKitManager)
                         .environmentObject(sharedHealthDataManager)
                 }
@@ -152,6 +154,7 @@ struct MyAchievementView: View {
                         explanation: L10n.Performance.vdotExplanation.localized
                     )
                     .padding(.horizontal)
+                    .padding(.top, 12)
                     
                     VDOTChartView()
                         .padding()
@@ -160,7 +163,12 @@ struct MyAchievementView: View {
                 .cornerRadius(10)
                 .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                 .padding(.horizontal)
-                
+
+                // Training Load Chart Section
+                TrainingLoadChartSection()
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+
                 // Weekly Volume Chart Section
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitleWithInfo(
@@ -168,6 +176,7 @@ struct MyAchievementView: View {
                         explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
                     )
                     .padding(.horizontal)
+                    .padding(.top, 12)
                     
                     WeeklyVolumeChartView(showTitle: false)
                         .padding()
@@ -177,13 +186,13 @@ struct MyAchievementView: View {
                 .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                 .padding(.horizontal)
                 
-                // HRV Chart Section
-                HRVChartSection()
+                // Combined Heart Rate Chart Section
+                CombinedHeartRateChartSection()
                     .environmentObject(healthKitManager)
                     .environmentObject(sharedHealthDataManager)
-                
-                // Resting Heart Rate Chart Section
-                RestingHeartRateChartSection()
+
+                // Training Load Chart Section
+                TrainingLoadChartSection()
                     .environmentObject(healthKitManager)
                     .environmentObject(sharedHealthDataManager)
             }
@@ -199,83 +208,127 @@ struct MyAchievementView: View {
     }
 }
 
-// MARK: - HRV Chart Section
-struct HRVChartSection: View {
+// MARK: - Combined Heart Rate Chart Section
+struct CombinedHeartRateChartSection: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
-    
+
+    @State private var selectedTab: HeartRateChartTab = .hrv
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
         UserPreferenceManager.shared.dataSourcePreference
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            
-            switch dataSourcePreference {
-            case .appleHealth:
-                // Apple Health: 優先使用 API，失敗時回退到 HealthKit
-                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                    .padding()
-                
-            case .garmin:
-                // Garmin: 僅使用 API 數據
-                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                    .padding()
-                
-            case .unbound:
-                // 未綁定數據源
-                EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
-                    .padding()
+            // 標題和選項卡
+            VStack(spacing: 8) {
+                // 統一標題
+                HStack {
+                    Text("心率數據趨勢")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .padding(.top, 12)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+
+                // 選項卡切換
+                Picker("Heart Rate Chart Type", selection: $selectedTab) {
+                    ForEach(HeartRateChartTab.allCases, id: \.self) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
             }
+
+            // 圖表內容
+            Group {
+                switch selectedTab {
+                case .hrv:
+                    hrvChartContent
+                case .restingHeartRate:
+                    restingHeartRateChartContent
+                }
+            }
+            .padding()
         }
         .background(Color(UIColor.systemBackground))
         .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var hrvChartContent: some View {
+        let _ = print("🔍 [CombinedHeartRateChartSection] 顯示 HRV 圖表，數據來源: \(dataSourcePreference)")
+
+        switch dataSourcePreference {
+        case .appleHealth:
+            // Apple Health: 優先使用 API，失敗時回退到 HealthKit
+            let _ = print("🔍 [CombinedHeartRateChartSection] Apple Health 用戶，使用 SharedHealthDataChartView + fallback")
+            SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
+
+        case .garmin:
+            // Garmin: 僅使用 API 數據
+            SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
+
+        case .unbound:
+            // 未綁定數據源
+            EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
+        }
+    }
+
+    @ViewBuilder
+    private var restingHeartRateChartContent: some View {
+        switch dataSourcePreference {
+        case .appleHealth:
+            // Apple Health: 使用現有的 HealthKit 數據
+            SleepHeartRateChartView()
+                .environmentObject(healthKitManager)
+
+        case .garmin:
+            // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
+            SleepHeartRateChartViewWithGarmin()
+                .environmentObject(healthKitManager)
+
+        case .unbound:
+            // 未綁定數據源
+            EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
+        }
     }
 }
 
-// MARK: - Resting Heart Rate Chart Section
-struct RestingHeartRateChartSection: View {
-    @EnvironmentObject var healthKitManager: HealthKitManager
-    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
-    
-    // 當前數據源設定
-    private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            
-            switch dataSourcePreference {
-            case .appleHealth:
-                // Apple Health: 使用現有的 HealthKit 數據
-                SleepHeartRateChartView()
-                    .environmentObject(healthKitManager)
-                    .padding()
-                
-            case .garmin:
-                // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
-                SleepHeartRateChartViewWithGarmin()
-                    .environmentObject(healthKitManager)
-                    .padding()
-                
-            case .unbound:
-                // 未綁定數據源
-                EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
-                    .padding()
-            }
+// MARK: - Heart Rate Chart Tab Enum
+enum HeartRateChartTab: String, CaseIterable {
+    case hrv = "hrv"
+    case restingHeartRate = "restingHeartRate"
+
+    var title: String {
+        switch self {
+        case .hrv: return L10n.Performance.HRV.hrvTitle.localized
+        case .restingHeartRate: return NSLocalizedString("performance.resting_hr_title", comment: "Sleep Resting Heart Rate")
         }
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-        .padding(.horizontal)
+    }
+}
+
+// MARK: - Training Load Chart Tab Enum
+enum TrainingLoadChartTab: String, CaseIterable {
+    case fitness = "fitness"
+    case tsb = "tsb"
+
+    var title: String {
+        switch self {
+        case .fitness: return "訓練指數"
+        case .tsb: return "訓練平衡TSB"
+        }
     }
 }
 
@@ -783,15 +836,27 @@ struct SharedHealthDataChartView: View {
             isLoadingChartData = true
             chartError = nil
         }
-        
+
+        print("🔍 [SharedHealthDataChartView] 開始載入圖表數據，類型: \(chartType), fallback: \(fallbackToHealthKit)")
+
         do {
             // 使用 HealthDataUploadManager 獲取指定天數的數據
+            print("🔍 [SharedHealthDataChartView] 調用 HealthDataUploadManager.getHealthData(days: \(selectedTimeRange.days))")
             let newHealthData = await HealthDataUploadManager.shared.getHealthData(days: selectedTimeRange.days)
             
+            print("🔍 [SharedHealthDataChartView] 獲取到健康數據: \(newHealthData.count) 筆記錄")
+            if chartType == .hrv {
+                let hrvRecords = newHealthData.filter { $0.hrvLastNightAvg != nil }
+                print("🔍 [SharedHealthDataChartView] HRV 有效記錄: \(hrvRecords.count) 筆")
+                for record in hrvRecords.prefix(3) {
+                    print("   - 日期: \(record.date), HRV: \(record.hrvLastNightAvg ?? 0)")
+                }
+            }
+
             await MainActor.run {
                 chartHealthData = newHealthData
                 isLoadingChartData = false
-                
+
                 if newHealthData.isEmpty {
                     chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "Unable to load chart data")
                 }
@@ -956,7 +1021,13 @@ struct APIBasedHRVChartView: View {
                     date: ISO8601DateFormatter().string(from: date),
                     dailyCalories: nil,
                     hrvLastNightAvg: avgHRV,
-                    restingHeartRate: nil
+                    restingHeartRate: nil,
+                    atl: nil,
+                    ctl: nil,
+                    fitness: nil,
+                    tsb: nil,
+                    updatedAt: nil,
+                    workoutTrigger: nil
                 )
                 records.append(record)
             } catch {
@@ -1091,6 +1162,1695 @@ struct EmptyDataSourceView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 100)
+    }
+}
+
+// MARK: - Training Load Chart Section
+struct TrainingLoadChartSection: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
+
+    @State private var selectedTab: TrainingLoadChartTab = .fitness
+
+    // 當前數據源設定
+    private var dataSourcePreference: DataSourceType {
+        UserPreferenceManager.shared.dataSourcePreference
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 標題和選項卡
+            VStack(spacing: 8) {
+                // 統一標題
+                HStack {
+                    SectionTitleWithInfo(
+                        title: L10n.Performance.TrainingLoad.trainingLoadTitle.localized,
+                        explanation: L10n.Performance.TrainingLoad.trainingLoadExplanation.localized,
+                        useSheet: true,
+                        sheetContent: {
+                            AnyView(TrainingLoadDetailExplanationView())
+                        }
+                    )
+
+                    Spacer()
+
+                    Button(action: {
+                        Task {
+                            await TrainingLoadDataManager.shared.clearCache()
+                            // 觸發重新載入
+                            NotificationCenter.default.post(name: NSNotification.Name("ReloadTrainingLoadData"), object: nil)
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 16))
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 12)
+
+                // 選項卡切換
+                Picker("Training Load Chart Type", selection: $selectedTab) {
+                    ForEach(TrainingLoadChartTab.allCases, id: \.self) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+            }
+
+            // 圖表內容
+            switch dataSourcePreference {
+            case .appleHealth, .garmin:
+                Group {
+                    switch selectedTab {
+                    case .fitness:
+                        FitnessIndexChartView()
+                            .environmentObject(healthKitManager)
+                            .environmentObject(sharedHealthDataManager)
+                    case .tsb:
+                        TSBChartView()
+                            .environmentObject(healthKitManager)
+                            .environmentObject(sharedHealthDataManager)
+                    }
+                }
+                .padding()
+
+            case .unbound:
+                // 未綁定數據源
+                EmptyDataSourceView(message: L10n.Performance.TrainingLoad.selectDataSourceTrainingLoad.localized)
+                    .padding()
+            }
+        }
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Training Load Chart View
+struct TrainingLoadChartView: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
+    @StateObject private var trainingPlanViewModel = TrainingPlanViewModel()
+
+    @State private var chartHealthData: [HealthRecord] = []
+    @State private var isLoadingChartData = false
+    @State private var chartError: String?
+
+    var body: some View {
+        VStack {
+            if isLoadingChartData {
+                ProgressView(L10n.Performance.TrainingLoad.loadingTrainingLoad.localized)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else if let error = chartError {
+                EmptyStateView(
+                    type: .loadingFailed,
+                    customMessage: error,
+                    showRetryButton: true
+                ) {
+                    Task {
+                        await loadChartData()
+                    }
+                }
+            } else if chartHealthData.isEmpty {
+                VStack {
+                    // Title for empty state
+                    HStack {
+                        ConditionalGarminAttributionView(
+                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    .padding(.bottom, 8)
+
+                    EmptyStateView(
+                        type: .loadingFailed,
+                        customMessage: L10n.Performance.TrainingLoad.noTrainingLoadData.localized
+                    )
+                }
+                .frame(maxWidth: .infinity, minHeight: 100)
+            } else {
+                // 檢查是否有足夠的TSB數據
+                let validTSBData = chartHealthData.compactMap { record in
+                    record.fitness != nil || record.tsb != nil ? record : nil
+                }
+
+                if validTSBData.count < 1 {
+                    VStack {
+                        EmptyStateView(
+                            type: .loadingFailed,
+                            customMessage: L10n.Performance.TrainingLoad.insufficientData.localized
+                        )
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                } else {
+                    trainingLoadChartView
+                }
+            }
+        }
+        .task {
+            await loadChartData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReloadTrainingLoadData"))) { _ in
+            Task {
+                await loadChartData()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trainingLoadChartView: some View {
+        VStack(spacing: 20) {
+            // Chart title and status indicators
+
+            // Combined Fitness & TSB Chart
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("體適能指數 & 訓練壓力平衡")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                    if isLoadingChartData {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("同步中...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.bottom, 8)
+                
+
+                Chart {
+                    // TSB 背景色分區（映射到fitness軸）
+                    // 橙色區：TSB < -5（進步中但疲勞累積）
+                    RectangleMark(
+                        xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                        xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.lowerBound)),
+                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(-6))
+                    )
+                    .foregroundStyle(Color.orange.opacity(0.1))
+
+                    // 綠色區：-6 ≤ TSB ≤ +5（平衡狀態）
+                    RectangleMark(
+                        xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                        xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(-6)),
+                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(5))
+                    )
+                    .foregroundStyle(Color.green.opacity(0.1))
+
+                    // 藍色區：TSB > +4（最佳狀態）
+                    RectangleMark(
+                        xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                        xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(5)),
+                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.upperBound))
+                    )
+                    .foregroundStyle(Color.blue.opacity(0.1))
+
+                    // Fitness Index line (左軸) - Y軸值乘以10顯示
+                    ForEach(chartHealthData.indices, id: \.self) { index in
+                        let record = chartHealthData[index]
+                        if let fitness = record.fitness {
+                            LineMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("體適能指數", fitness * 10),
+                                series: .value("類型", "體適能指數")
+                            )
+                            .foregroundStyle(.blue)
+                            .lineStyle(StrokeStyle(lineWidth: 3))
+                        }
+                    }
+
+                    // Fitness 線上的點 - 根據 total_tss 決定實心或空心，Y軸值乘以10顯示
+                    ForEach(chartHealthData.indices, id: \.self) { index in
+                        let record = chartHealthData[index]
+                        if let fitness = record.fitness {
+                            if let totalTss = record.totalTss, totalTss == 0 {
+                                // 空心圓 - total_tss = 0
+                                PointMark(
+                                    x: .value("日期", formatDateForChart(record.date)),
+                                    y: .value("體適能指數", fitness * 10)
+                                )
+                                .foregroundStyle(.blue)
+                                .symbol(.circle)
+                                .symbolSize(40)
+
+                                PointMark(
+                                    x: .value("日期", formatDateForChart(record.date)),
+                                    y: .value("體適能指數", fitness * 10)
+                                )
+                                .foregroundStyle(.white)
+                                .symbol(.circle)
+                                .symbolSize(10)
+                            } else {
+                                // 實心圓 - total_tss > 0
+                                PointMark(
+                                    x: .value("日期", formatDateForChart(record.date)),
+                                    y: .value("體適能指數", fitness * 10)
+                                )
+                                .foregroundStyle(.blue)
+                                .symbol(.circle)
+                                .symbolSize(30)
+                            }
+                        }
+                    }
+
+                    // TSB line (右軸，映射到fitness軸範圍)
+                    ForEach(chartHealthData.indices, id: \.self) { index in
+                        let record = chartHealthData[index]
+                        if let tsb = record.tsb {
+                            LineMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("TSB", mapTSBToFitnessScale(tsb)),
+                                series: .value("類型", "TSB")
+                            )
+                            .foregroundStyle(.green)
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+                        }
+                    }
+
+                    // TSB 分界線（映射到fitness軸範圍）
+                    RuleMark(y: .value("TSB +5", mapTSBBoundaryToFitnessScale(5)))
+                        .foregroundStyle(.blue.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+
+                    RuleMark(y: .value("TSB 0", mapTSBBoundaryToFitnessScale(0)))
+                        .foregroundStyle(.gray)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+
+                    RuleMark(y: .value("TSB -5", mapTSBBoundaryToFitnessScale(-5)))
+                        .foregroundStyle(.orange.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                }
+                .chartForegroundStyleScale([
+                    "體適能指數": .blue,
+                    "TSB": .green
+                ])
+                .frame(height: 200)
+                .chartYAxis {
+                    // 只顯示左軸 - 體適能指數（藍色）
+                    AxisMarks(position: .leading) { value in
+                        AxisValueLabel {
+                            if let doubleValue = value.as(Double.self) {
+                                Text(String(format: "%.0f", doubleValue))
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                        AxisTick()
+                    }
+                    // TSB 右軸已隱藏
+                }
+                .chartYScale(domain: fitnessYAxisDomain)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel {
+                                Text(formatWeekForDisplay(date))
+                                    .font(.caption2)
+                            }
+                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                            AxisTick()
+                        }
+                    }
+                }
+
+                // TSB 狀態說明
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("TSB 狀態指標")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+
+                    HStack(spacing: 16) {
+                        // 橙色區說明
+                        HStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.orange.opacity(0.3))
+                                .frame(width: 12, height: 12)
+                            Text("疲勞累積")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        // 綠色區說明
+                        HStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.green.opacity(0.3))
+                                .frame(width: 12, height: 12)
+                            Text("平衡狀態")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        // 藍色區說明
+                        HStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.blue.opacity(0.3))
+                                .frame(width: 12, height: 12)
+                            Text("最佳狀態")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                }
+            }
+
+        }
+    }
+
+
+    /// Fitness Y-axis domain (左軸) - 獨立範圍，值乘以10顯示
+    private var fitnessYAxisDomain: ClosedRange<Double> {
+        let fitnessValues = chartHealthData.compactMap { $0.fitness }.map { $0 * 10 }
+        guard !fitnessValues.isEmpty else { return 0...100 }
+        let minValue = fitnessValues.min() ?? 0
+        let maxValue = fitnessValues.max() ?? 100
+        let range = maxValue - minValue
+        if range < 20 {
+            let center = (minValue + maxValue) / 2
+            return (center - 10)...(center + 10)
+        } else {
+            let margin = range * 0.2
+            return (minValue - margin)...(maxValue + margin)
+        }
+    }
+
+    /// TSB Y-axis domain (右軸) - 獨立範圍，上下界各擴展10
+    private var tsbYAxisDomainIndependent: ClosedRange<Double> {
+        let tsbValues = chartHealthData.compactMap { $0.tsb }
+        guard !tsbValues.isEmpty else { return -30...30 }
+        let minValue = tsbValues.min() ?? -5
+        let maxValue = tsbValues.max() ?? 5
+
+        // 確保包含 TSB 的關鍵分界線，並在上下界各加10
+        let expandedMin = min(minValue, -5) - 2
+        let expandedMax = max(maxValue, 5) + 2
+        let expandedRange = expandedMax - expandedMin
+
+        if expandedRange < 10 {
+            return -6...6
+        } else {
+            let margin = expandedRange * 0.2
+            return (expandedMin - margin)...(expandedMax + margin)
+        }
+    }
+
+    /// 將TSB值映射到fitness軸範圍（實現雙軸效果）
+    private func mapTSBToFitnessScale(_ tsbValue: Double) -> Double {
+        let tsbDomain = tsbYAxisDomainIndependent
+        let fitnessDomain = fitnessYAxisDomain
+
+        // 將TSB值從其範圍映射到fitness範圍
+        let tsbRange = tsbDomain.upperBound - tsbDomain.lowerBound
+        let fitnessRange = fitnessDomain.upperBound - fitnessDomain.lowerBound
+
+        let normalizedTSB = (tsbValue - tsbDomain.lowerBound) / tsbRange
+        return fitnessDomain.lowerBound + (normalizedTSB * fitnessRange)
+    }
+
+    /// 將背景區域的TSB值映射到fitness軸範圍
+    private func mapTSBBoundaryToFitnessScale(_ tsbBoundary: Double) -> Double {
+        let tsbDomain = tsbYAxisDomainIndependent
+        let fitnessDomain = fitnessYAxisDomain
+
+        let tsbRange = tsbDomain.upperBound - tsbDomain.lowerBound
+        let fitnessRange = fitnessDomain.upperBound - fitnessDomain.lowerBound
+
+        let normalizedTSB = (tsbBoundary - tsbDomain.lowerBound) / tsbRange
+        return fitnessDomain.lowerBound + (normalizedTSB * fitnessRange)
+    }
+
+    /// 將fitness軸值反向映射為TSB值（用於右軸標籤顯示）
+    private func reverseMappingToTSBScale(_ fitnessValue: Double) -> Double {
+        let tsbDomain = tsbYAxisDomainIndependent
+        let fitnessDomain = fitnessYAxisDomain
+
+        let tsbRange = tsbDomain.upperBound - tsbDomain.lowerBound
+        let fitnessRange = fitnessDomain.upperBound - fitnessDomain.lowerBound
+
+        let normalizedFitness = (fitnessValue - fitnessDomain.lowerBound) / fitnessRange
+        return tsbDomain.lowerBound + (normalizedFitness * tsbRange)
+    }
+
+    private var tsbYAxisDomain: ClosedRange<Double> {
+        let tsbValues = chartHealthData.compactMap { $0.tsb }
+        guard !tsbValues.isEmpty else { return -50...50 }
+
+        let minValue = tsbValues.min() ?? -50
+        let maxValue = tsbValues.max() ?? 50
+        let range = maxValue - minValue
+
+        if range < 10 {
+            let center = (minValue + maxValue) / 2
+            return (center - 25)...(center + 25)
+        } else {
+            let margin = range * 0.2
+            return (minValue - margin)...(maxValue + margin)
+        }
+    }
+
+    private func formatDateForChart(_ dateString: String) -> Date {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: dateString) ?? Date()
+    }
+
+    private func formatDateForDisplay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd"
+        return formatter.string(from: date)
+    }
+
+    /// 格式化週數顯示（例如: w23, w24, w25, w26）
+    private func formatWeekForDisplay(_ date: Date) -> String {
+        // 簡化邏輯：基於當前週數和數據範圍計算週數標籤
+        let currentWeek = trainingPlanViewModel.currentWeek
+        if currentWeek == 0 {
+            let calendar = Calendar.current
+            let weekOfYear = calendar.component(.weekOfYear, from: date)
+            return "w\(weekOfYear)"
+        }
+
+        // 獲取數據的日期範圍，計算相對週數
+        let sortedData = chartHealthData.sorted { $0.date < $1.date }
+        guard !sortedData.isEmpty else { return "w\(currentWeek)" }
+
+        let dateString = formatDateString(date)
+        if let index = sortedData.firstIndex(where: { $0.date == dateString }) {
+            // 最新數據對應當前週數，往前推算
+            let totalDataPoints = sortedData.count
+            let weeksSpan = max(4, totalDataPoints / 7) // 數據跨越的週數
+            let relativePosition = Double(index) / Double(totalDataPoints - 1)
+            let displayWeek = max(1, currentWeek - weeksSpan + Int(relativePosition * Double(weeksSpan)) + 1)
+            return "w\(displayWeek)"
+        }
+
+        return "w\(currentWeek)"
+    }
+
+    /// 將 Date 轉換為 yyyy-MM-dd 格式的字串
+    private func formatDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: date)
+    }
+
+    /// 將 ISO 8601 格式或其他格式的日期字串轉換為 yyyy-MM-dd 格式
+    private func convertToDateString(_ dateString: String) -> String {
+        // 如果已經是 yyyy-MM-dd 格式，直接返回
+        if dateString.count == 10 && dateString.contains("-") {
+            return dateString
+        }
+
+        // 嘗試解析 ISO 8601 格式
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        if let date = isoFormatter.date(from: dateString) {
+            let outputFormatter = DateFormatter()
+            outputFormatter.dateFormat = "yyyy-MM-dd"
+            outputFormatter.timeZone = TimeZone.current
+            return outputFormatter.string(from: date)
+        }
+
+        // 回退：返回原字串或默認值
+        return dateString.isEmpty ? "2025-07-01" : dateString
+    }
+
+    // MARK: - Independent Data Loading
+    private func loadChartData() async {
+        await MainActor.run {
+            isLoadingChartData = true
+            chartError = nil
+        }
+
+        do {
+            // 使用新的訓練負荷數據管理器（智能緩存 + 增量同步）
+            Logger.debug("TrainingLoadChartView: 開始載入訓練負荷數據")
+            let cachedHealthData = await TrainingLoadDataManager.shared.getTrainingLoadData()
+
+            // 立即顯示緩存數據
+            await MainActor.run {
+                chartHealthData = cachedHealthData
+                isLoadingChartData = false
+
+                // 調試：檢查載入的數據是否包含 createdAt
+                print("🔍 載入的數據筆數: \(cachedHealthData.count)")
+                for (index, record) in cachedHealthData.prefix(3).enumerated() {
+                    print("  記錄[\(index)]: date=\(record.date), createdAt=\(record.createdAt ?? "nil"), atl=\(record.atl?.description ?? "nil"), tsb=\(record.tsb?.description ?? "nil")")
+                }
+            }
+
+            // 驗證數據質量
+            let validTSBData = cachedHealthData.compactMap { record in
+                record.fitness != nil || record.tsb != nil ? record : nil
+            }
+
+            // 詳細調試：檢查每筆記錄的 fitness 和 tsb 值
+            print("🔍 驗證 TSB 數據有效性:")
+            for (index, record) in cachedHealthData.prefix(5).enumerated() {
+                let isValid = record.fitness != nil || record.tsb != nil
+                print("  記錄[\(index)]: date=\(record.date), fitness=\(record.fitness?.description ?? "nil"), tsb=\(record.tsb?.description ?? "nil"), 有效=\(isValid)")
+            }
+
+            print("🔍 UI 顯示檢查: 總數據=\(cachedHealthData.count), 有效TSB數據=\(validTSBData.count)")
+
+            Logger.debug("TrainingLoadChartView: 載入完成，總記錄數：\(cachedHealthData.count)，有效TSB數據：\(validTSBData.count)")
+
+            // 如果沒有足夠的數據，嘗試強制刷新
+            if validTSBData.count < 5 && cachedHealthData.count < 10 {
+                Logger.debug("TrainingLoadChartView: 數據不足，執行強制刷新")
+
+                await MainActor.run { isLoadingChartData = true }
+
+                let freshData = try await TrainingLoadDataManager.shared.forceRefreshData()
+
+                await MainActor.run {
+                    chartHealthData = freshData
+                    isLoadingChartData = false
+
+                    if freshData.isEmpty {
+                        chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "Unable to load chart data")
+                    }
+                }
+
+                Logger.debug("TrainingLoadChartView: 強制刷新完成，獲得 \(freshData.count) 筆記錄")
+            }
+        } catch {
+            await MainActor.run {
+                chartError = error.localizedDescription
+                isLoadingChartData = false
+            }
+        }
+    }
+
+    /// 強制刷新訓練負荷數據
+    private func forceRefreshTrainingLoadData() async {
+        await MainActor.run {
+            isLoadingChartData = true
+            chartError = nil
+        }
+
+        do {
+            Logger.debug("TrainingLoadChartView: 用戶觸發強制刷新")
+            let freshData = try await TrainingLoadDataManager.shared.forceRefreshData()
+
+            await MainActor.run {
+                chartHealthData = freshData
+                isLoadingChartData = false
+
+                if freshData.isEmpty {
+                    chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "Unable to load chart data")
+                }
+            }
+
+            Logger.debug("TrainingLoadChartView: 強制刷新成功，獲得 \(freshData.count) 筆記錄")
+
+        } catch {
+            await MainActor.run {
+                chartError = error.localizedDescription
+                isLoadingChartData = false
+            }
+
+            Logger.error("TrainingLoadChartView: 強制刷新失敗 - \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Fitness Index Chart View (Training Index)
+struct FitnessIndexChartView: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
+    @StateObject private var trainingPlanViewModel = TrainingPlanViewModel()
+
+    @State private var chartHealthData: [HealthRecord] = []
+    @State private var isLoadingChartData = false
+    @State private var chartError: String?
+
+    var body: some View {
+        VStack {
+            if isLoadingChartData {
+                ProgressView("載入訓練指數數據...")
+                    .frame(maxWidth: .infinity, minHeight: 100)
+            } else if let error = chartError {
+                EmptyStateView(
+                    type: .loadingFailed,
+                    customMessage: error,
+                    showRetryButton: true
+                ) {
+                    Task {
+                        await loadChartData()
+                    }
+                }
+            } else if chartHealthData.isEmpty {
+                VStack {
+                    HStack {
+                        ConditionalGarminAttributionView(
+                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    .padding(.bottom, 8)
+
+                    EmptyStateView(
+                        type: .loadingFailed,
+                        customMessage: "暫無訓練指數數據"
+                    )
+                }
+                .frame(maxWidth: .infinity, minHeight: 100)
+            } else {
+                // 檢查是否有足夠的訓練指數數據（ATL）
+                let validFitnessData = chartHealthData.compactMap { record in
+                    record.atl != nil ? record : nil
+                }
+
+                if validFitnessData.count < 1 {
+                    VStack {
+                        EmptyStateView(
+                            type: .loadingFailed,
+                            customMessage: "訓練指數數據不足"
+                        )
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                } else {
+                    fitnessIndexChartView
+                }
+            }
+        }
+        .task {
+            await loadChartData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReloadTrainingLoadData"))) { _ in
+            Task {
+                await loadChartData()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var fitnessIndexChartView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 移除標題，因為已在tab中顯示
+            if isLoadingChartData {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("同步中...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 8)
+            }
+
+            Chart {
+                // 動態綠色區域（CTL × 0.5 到 CTL × 1.5 範圍）- 先畫背景
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
+                    if let ctl = record.ctl {
+                        AreaMark(
+                            x: .value("日期", formatDateForChart(record.date)),
+                            yStart: .value("CTL下界", max(0, (ctl * 0.7) * 10)),
+                            yEnd: .value("CTL上界", (ctl * 1.3) * 10)
+                        )
+                        .foregroundStyle(Color.green.opacity(0.15))
+                        .interpolationMethod(.catmullRom)
+                    }
+                }
+
+                // 動態 CTL 上界線（CTL × 1.5）
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
+                    if let ctl = record.ctl {
+                        LineMark(
+                            x: .value("日期", formatDateForChart(record.date)),
+                            y: .value("CTL上界", (ctl * 1.3) * 10),
+                            series: .value("線條", "CTL上界")
+                        )
+                        .foregroundStyle(.orange.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                        .interpolationMethod(.catmullRom)
+                    }
+                }
+
+                // 動態 CTL 下界線（CTL × 0.5，最小值為0）
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
+                    if let ctl = record.ctl {
+                        LineMark(
+                            x: .value("日期", formatDateForChart(record.date)),
+                            y: .value("CTL下界", max(0, (ctl * 0.7) * 10)),
+                            series: .value("線條", "CTL下界")
+                        )
+                        .foregroundStyle(.orange.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                        .interpolationMethod(.catmullRom)
+                    }
+                }
+
+                // ATL line (改用 ATL 作為體適能指數) - ATL乘以10顯示，使用 series 形成連續線
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
+                    if let atl = record.atl {
+                        LineMark(
+                            x: .value("日期", formatDateForChart(record.date)),
+                            y: .value("訓練指數", atl * 10),
+                            series: .value("線條", "ATL")
+                        )
+                        .foregroundStyle(.blue)
+                        .lineStyle(StrokeStyle(lineWidth: 3))
+                        .interpolationMethod(.catmullRom)
+                    }
+                }
+
+                // ATL 線上的點 - 根據 total_tss 決定實心或空心，ATL乘以10顯示
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
+                    if let atl = record.atl {
+                        if let totalTss = record.totalTss, totalTss == 0 {
+                            // 空心圓 - total_tss = 0
+                            PointMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("訓練指數", atl * 10)
+                            )
+                            .foregroundStyle(.blue)
+                            .symbol(.circle)
+                            .symbolSize(40)
+
+                            PointMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("訓練指數", atl * 10)
+                            )
+                            .foregroundStyle(.white)
+                            .symbol(.circle)
+                            .symbolSize(10)
+                        } else {
+                            // 實心圓 - total_tss > 0
+                            PointMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("訓練指數", atl * 10)
+                            )
+                            .foregroundStyle(.blue)
+                            .symbol(.circle)
+                            .symbolSize(30)
+                        }
+                    }
+                }
+            }
+            .frame(height: 160)
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisValueLabel {
+                        if let doubleValue = value.as(Double.self) {
+                            Text(String(format: "%.0f", doubleValue))
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                    AxisTick()
+                }
+            }
+            .chartYScale(domain: fitnessYAxisDomain)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            Text(formatWeekForDisplay(date))
+                                .font(.caption2)
+                        }
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                        AxisTick()
+                    }
+                }
+            }
+
+            // 圓點標記說明和CTL區間說明
+            VStack(alignment: .leading, spacing: 4) {
+                Text("標記說明")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
+
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 12, height: 12)
+                        Text("有訓練")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 4) {
+                        Circle()
+                            .stroke(Color.blue, lineWidth: 2)
+                            .frame(width: 12, height: 12)
+                        Text("休息日")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+
+                // 簡化說明
+                let hasCtlData = !chartHealthData.compactMap { $0.ctl }.isEmpty
+                if hasCtlData {
+                    HStack(spacing: 16) {
+                        HStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.green.opacity(0.4))
+                                .frame(width: 12, height: 12)
+                            Text("合理訓練負荷區域")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.top, 4)
+                }
+            }
+        }
+    }
+
+    /// Fitness Y-axis domain - 基於CTL值，綠區佔70%
+    private var fitnessYAxisDomain: ClosedRange<Double> {
+        let atlValues = chartHealthData.compactMap { $0.atl }
+        guard !atlValues.isEmpty else { return 0...100 }
+
+        // 基於CTL數據計算動態範圍（CTL × 0.5 到 CTL × 1.5）
+        let ctlValues = chartHealthData.compactMap { $0.ctl }
+        if !ctlValues.isEmpty {
+            // 計算所有CTL點的動態範圍（CTL × 0.5 到 CTL × 1.5）
+            let ctlUpperBounds = ctlValues.map { ($0 * 1.5) * 10 }
+            let ctlLowerBounds = ctlValues.map { max(0, ($0 * 0.5) * 10) }
+
+            let ctlMin = ctlLowerBounds.min() ?? 0
+            let ctlMax = ctlUpperBounds.max() ?? 100
+
+            // 確保ATL數據也在範圍內
+            let atlValuesScaled = atlValues.map { $0 * 10 }
+            let atlMin = atlValuesScaled.min() ?? ctlMin
+            let atlMax = atlValuesScaled.max() ?? ctlMax
+
+            // 計算最終範圍，添加少量緩衝
+            let finalMin = max(0, min(ctlMin, atlMin) - 5)
+            let finalMax = max(ctlMax, atlMax) + 5
+
+            return finalMin...finalMax
+        } else {
+            // 没有CTL数据时，回退到ATL范围（ATL也乘以10）
+            let atlValuesScaled = atlValues.map { $0 * 10 }
+            let minValue = atlValuesScaled.min() ?? 0
+            let maxValue = atlValuesScaled.max() ?? 100
+            let range = maxValue - minValue
+            if range < 20 {
+                let center = (minValue + maxValue) / 2
+                return (center - 10)...(center + 10)
+            } else {
+                let margin = range * 0.2
+                return (minValue - margin)...(maxValue + margin)
+            }
+        }
+    }
+
+    /// 計算CTL基線值
+    private func calculateCTLBaseline() -> Double? {
+        let ctlValues = chartHealthData.compactMap { $0.ctl }
+        guard !ctlValues.isEmpty else { return nil }
+
+        // 使用CTL值的平均值作為基線
+        let baseline = ctlValues.reduce(0, +) / Double(ctlValues.count)
+
+        // 確保CTL基線在合理範圍內（與ATL數據相近）
+        let atlValues = chartHealthData.compactMap { $0.atl }
+        if !atlValues.isEmpty {
+            let atlAverage = atlValues.reduce(0, +) / Double(atlValues.count)
+            // 如果CTL與ATL相差太大，使用ATL平均值作為基線
+            if abs(baseline - atlAverage) > 3 {
+                return atlAverage
+            }
+        }
+
+        return baseline
+    }
+
+    /// 將CTL值映射到顯示值
+    private func mapCTLToDisplayValue(_ ctlValue: Double) -> Double {
+        // 直接返回CTL值（已經在調用時乘以10），因為我們的Y軸域已經基於CTL*10計算
+        return ctlValue
+    }
+
+    private func formatDateForChart(_ dateString: String) -> Date {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: dateString) ?? Date()
+    }
+
+    private func formatWeekForDisplay(_ date: Date) -> String {
+        let currentWeek = trainingPlanViewModel.currentWeek
+        if currentWeek == 0 {
+            let calendar = Calendar.current
+            let weekOfYear = calendar.component(.weekOfYear, from: date)
+            return "w\(weekOfYear)"
+        }
+
+        let sortedData = chartHealthData.sorted { $0.date < $1.date }
+        guard !sortedData.isEmpty else { return "w\(currentWeek)" }
+
+        let dateString = formatDateString(date)
+        if let index = sortedData.firstIndex(where: { $0.date == dateString }) {
+            let totalDataPoints = sortedData.count
+            let weeksSpan = max(4, totalDataPoints / 7)
+            let relativePosition = Double(index) / Double(totalDataPoints - 1)
+            let displayWeek = max(1, currentWeek - weeksSpan + Int(relativePosition * Double(weeksSpan)) + 1)
+            return "w\(displayWeek)"
+        }
+
+        return "w\(currentWeek)"
+    }
+
+    private func formatDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: date)
+    }
+
+    // MARK: - Data Loading
+    private func loadChartData() async {
+        await MainActor.run {
+            isLoadingChartData = true
+            chartError = nil
+        }
+
+        do {
+            let cachedHealthData = await TrainingLoadDataManager.shared.getTrainingLoadData()
+
+            await MainActor.run {
+                chartHealthData = cachedHealthData
+                isLoadingChartData = false
+
+                if cachedHealthData.isEmpty {
+                    chartError = "無法載入訓練指數數據"
+                }
+            }
+
+            let validFitnessData = cachedHealthData.compactMap { record in
+                record.atl != nil ? record : nil
+            }
+
+            if validFitnessData.count < 5 && cachedHealthData.count < 10 {
+                await MainActor.run { isLoadingChartData = true }
+
+                let freshData = try await TrainingLoadDataManager.shared.forceRefreshData()
+
+                await MainActor.run {
+                    chartHealthData = freshData
+                    isLoadingChartData = false
+
+                    if freshData.isEmpty {
+                        chartError = "無法載入訓練指數數據"
+                    }
+                }
+            }
+        } catch {
+            await MainActor.run {
+                chartError = error.localizedDescription
+                isLoadingChartData = false
+            }
+        }
+    }
+}
+
+// MARK: - TSB Chart View
+struct TSBChartView: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
+    @StateObject private var trainingPlanViewModel = TrainingPlanViewModel()
+
+    @State private var chartHealthData: [HealthRecord] = []
+    @State private var isLoadingChartData = false
+    @State private var chartError: String?
+
+    var body: some View {
+        VStack {
+            if isLoadingChartData {
+                ProgressView("載入TSB數據...")
+                    .frame(maxWidth: .infinity, minHeight: 100)
+            } else if let error = chartError {
+                EmptyStateView(
+                    type: .loadingFailed,
+                    customMessage: error,
+                    showRetryButton: true
+                ) {
+                    Task {
+                        await loadChartData()
+                    }
+                }
+            } else if chartHealthData.isEmpty {
+                VStack {
+                    HStack {
+                        ConditionalGarminAttributionView(
+                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            deviceModel: nil,
+                            displayStyle: .titleLevel
+                        )
+                    }
+                    .padding(.bottom, 8)
+
+                    EmptyStateView(
+                        type: .loadingFailed,
+                        customMessage: "暫無TSB數據"
+                    )
+                }
+                .frame(maxWidth: .infinity, minHeight: 100)
+            } else {
+                // 檢查是否有足夠的TSB數據
+                let validTSBData = chartHealthData.compactMap { record in
+                    record.tsb != nil ? record : nil
+                }
+
+                if validTSBData.count < 1 {
+                    VStack {
+                        EmptyStateView(
+                            type: .loadingFailed,
+                            customMessage: "TSB數據不足"
+                        )
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                } else {
+                    tsbChartView
+                }
+            }
+        }
+        .task {
+            await loadChartData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReloadTrainingLoadData"))) { _ in
+            Task {
+                await loadChartData()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tsbChartView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 移除標題，因為已在tab中顯示
+            if isLoadingChartData {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("同步中...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 8)
+            }
+
+            Chart {
+                // TSB 背景色分區
+                // 橙色區：TSB < -4（疲勞狀態）
+                RectangleMark(
+                    xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                    xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                    yStart: .value("下限", tsbYAxisDomain.lowerBound),
+                    yEnd: .value("上限", -4)
+                )
+                .foregroundStyle(Color.orange.opacity(0.1))
+
+                // 綠色區：-4 ≤ TSB ≤ +1（平衡狀態）
+                RectangleMark(
+                    xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                    xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                    yStart: .value("下限", -4),
+                    yEnd: .value("上限", 1)
+                )
+                .foregroundStyle(Color.green.opacity(0.1))
+
+                // 藍色區：TSB > +1（最佳狀態）
+                RectangleMark(
+                    xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                    xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                    yStart: .value("下限", 1),
+                    yEnd: .value("上限", tsbYAxisDomain.upperBound)
+                )
+                .foregroundStyle(Color.blue.opacity(0.1))
+
+                // TSB line
+                ForEach(chartHealthData.indices, id: \.self) { index in
+                    let record = chartHealthData[index]
+                    if let tsb = record.tsb {
+                        LineMark(
+                            x: .value("日期", formatDateForChart(record.date)),
+                            y: .value("TSB", tsb)
+                        )
+                        .foregroundStyle(.green)
+                        .lineStyle(StrokeStyle(lineWidth: 3))
+
+                        PointMark(
+                            x: .value("日期", formatDateForChart(record.date)),
+                            y: .value("TSB", tsb)
+                        )
+                        .foregroundStyle(.green)
+                        .symbol(.circle)
+                        .symbolSize(25)
+                    }
+                }
+
+                // TSB 分界線
+                RuleMark(y: .value("TSB +1", 1))
+                    .foregroundStyle(.blue.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+
+                RuleMark(y: .value("TSB 0", 0))
+                    .foregroundStyle(.gray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+
+                RuleMark(y: .value("TSB -4", -4))
+                    .foregroundStyle(.orange.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+            }
+            .frame(height: 160)
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisValueLabel {
+                        if let doubleValue = value.as(Double.self) {
+                            Text(String(format: "%.0f", doubleValue))
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    }
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                    AxisTick()
+                }
+            }
+            .chartYScale(domain: tsbYAxisDomain)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            Text(formatWeekForDisplay(date))
+                                .font(.caption2)
+                        }
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                        AxisTick()
+                    }
+                }
+            }
+
+            // TSB 狀態說明
+            VStack(alignment: .leading, spacing: 4) {
+                Text("TSB 狀態指標")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
+
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Rectangle()
+                            .fill(Color.orange.opacity(0.3))
+                            .frame(width: 12, height: 12)
+                        Text("疲勞狀態")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 4) {
+                        Rectangle()
+                            .fill(Color.green.opacity(0.3))
+                            .frame(width: 12, height: 12)
+                        Text("平衡狀態")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 4) {
+                        Rectangle()
+                            .fill(Color.blue.opacity(0.3))
+                            .frame(width: 12, height: 12)
+                        Text("最佳狀態")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    /// TSB Y-axis domain
+    private var tsbYAxisDomain: ClosedRange<Double> {
+        let tsbValues = chartHealthData.compactMap { $0.tsb }
+        guard !tsbValues.isEmpty else { return -10...10 }
+        let minValue = tsbValues.min() ?? -5
+        let maxValue = tsbValues.max() ?? 2
+
+        // 確保包含 TSB 的關鍵分界線（-4, 0, +1）
+        let expandedMin = min(minValue, -4) - 1
+        let expandedMax = max(maxValue, 1) + 1
+        let expandedRange = expandedMax - expandedMin
+
+        if expandedRange < 6 {
+            return -5...3
+        } else {
+            let margin = expandedRange * 0.2
+            return (expandedMin - margin)...(expandedMax + margin)
+        }
+    }
+
+    private func formatDateForChart(_ dateString: String) -> Date {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: dateString) ?? Date()
+    }
+
+    private func formatWeekForDisplay(_ date: Date) -> String {
+        let currentWeek = trainingPlanViewModel.currentWeek
+        if currentWeek == 0 {
+            let calendar = Calendar.current
+            let weekOfYear = calendar.component(.weekOfYear, from: date)
+            return "w\(weekOfYear)"
+        }
+
+        let sortedData = chartHealthData.sorted { $0.date < $1.date }
+        guard !sortedData.isEmpty else { return "w\(currentWeek)" }
+
+        let dateString = formatDateString(date)
+        if let index = sortedData.firstIndex(where: { $0.date == dateString }) {
+            let totalDataPoints = sortedData.count
+            let weeksSpan = max(4, totalDataPoints / 7)
+            let relativePosition = Double(index) / Double(totalDataPoints - 1)
+            let displayWeek = max(1, currentWeek - weeksSpan + Int(relativePosition * Double(weeksSpan)) + 1)
+            return "w\(displayWeek)"
+        }
+
+        return "w\(currentWeek)"
+    }
+
+    private func formatDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: date)
+    }
+
+    // MARK: - Data Loading
+    private func loadChartData() async {
+        await MainActor.run {
+            isLoadingChartData = true
+            chartError = nil
+        }
+
+        do {
+            let cachedHealthData = await TrainingLoadDataManager.shared.getTrainingLoadData()
+
+            await MainActor.run {
+                chartHealthData = cachedHealthData
+                isLoadingChartData = false
+
+                if cachedHealthData.isEmpty {
+                    chartError = "無法載入TSB數據"
+                }
+            }
+
+            let validTSBData = cachedHealthData.compactMap { record in
+                record.tsb != nil ? record : nil
+            }
+
+            if validTSBData.count < 5 && cachedHealthData.count < 10 {
+                await MainActor.run { isLoadingChartData = true }
+
+                let freshData = try await TrainingLoadDataManager.shared.forceRefreshData()
+
+                await MainActor.run {
+                    chartHealthData = freshData
+                    isLoadingChartData = false
+
+                    if freshData.isEmpty {
+                        chartError = "無法載入TSB數據"
+                    }
+                }
+            }
+        } catch {
+            await MainActor.run {
+                chartError = error.localizedDescription
+                isLoadingChartData = false
+            }
+        }
+    }
+}
+
+// MARK: - Training Load Detail Explanation View
+struct TrainingLoadDetailExplanationView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("訓練負荷詳細說明")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+
+                        Text("了解您的體適能指數和訓練壓力平衡，幫助您優化訓練計劃")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // 體適能指數 Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            Text("體適能指數 (Fitness Index)")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("體適能指數反映您**相對於自己過往表現**的運動能力水平。這個數值會根據您最近的訓練強度、頻率和持續時間動態調整，重點在於觀察**趨勢變化**。")
+                            .font(.body)
+
+                        // 體適能指數趨勢說明
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("如何解讀趨勢：")
+                                .font(.headline)
+                                .padding(.top, 8)
+
+                            fitnessRangeView(range: "↗️", description: "持續上升 - 體適能向上提升，但要注意疲勞的累積", color: .green, icon: "arrow.up.circle.fill")
+                            fitnessRangeView(range: "➡️", description: "穩定維持 - 體能保持良好狀態", color: .blue, icon: "minus.circle.fill")
+                            fitnessRangeView(range: "↘️", description: "下降趨勢 - 通常為減量期，關注TSB和HRV恢復", color: .orange, icon: "arrow.down.circle.fill")
+                            Text("💡 重點：關注線條的**走向**比單一數值更重要")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                        }
+                        .padding(.leading, 12)
+                    }
+
+                    Divider()
+
+                    // TSB Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "gauge.medium")
+                                .foregroundColor(.green)
+                                .font(.title2)
+                            Text("訓練壓力平衡 (TSB)")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("TSB 反映您當前的訓練疲勞與恢復狀態之間的平衡。這個指標幫助您了解何時需要休息，何時可以增加訓練強度。")
+                            .font(.body)
+
+                        // TSB 狀態說明
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TSB 狀態解讀：")
+                                .font(.headline)
+                                .padding(.top, 8)
+
+                            tsbStatusView(
+                                range: "+1 以上",
+                                title: "最佳狀態",
+                                description: "身體已充分恢復，適合進行高強度訓練或比賽",
+                                color: .blue,
+                                icon: "star.circle.fill",
+                                backgroundColor: Color.blue.opacity(0.1)
+                            )
+
+                            tsbStatusView(
+                                range: "-4 到 +1",
+                                title: "平衡狀態",
+                                description: "訓練與恢復達到良好平衡，可維持規律訓練",
+                                color: .green,
+                                icon: "checkmark.circle.fill",
+                                backgroundColor: Color.green.opacity(0.1)
+                            )
+
+                            tsbStatusView(
+                                range: "-4 以下",
+                                title: "疲勞狀態",
+                                description: "體能消耗較大，建議降低訓練強度或增加休息",
+                                color: .orange,
+                                icon: "exclamationmark.triangle.fill",
+                                backgroundColor: Color.orange.opacity(0.1)
+                            )
+                        }
+                        .padding(.leading, 12)
+                    }
+
+                    Divider()
+
+                    // 圖表解讀 Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "chart.xyaxis.line")
+                                .foregroundColor(.purple)
+                                .font(.title2)
+                            Text("圖表解讀指南")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            chartLegendView(
+                                color: .blue,
+                                title: "藍色線條 - 體適能指數",
+                                description: "顯示您相對於過往表現的體能變化趨勢。重點觀察線條走向：上升代表進步，平穩代表維持，下降提醒調整訓練。"
+                            )
+
+                            chartLegendView(
+                                color: .green,
+                                title: "綠色線條 - TSB 值",
+                                description: "顯示您的疲勞恢復狀態。觀察這條線的變化，可以幫助您決定訓練強度。"
+                            )
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("圓點標記說明")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
+                                HStack(alignment: .center, spacing: 8) {
+                                    Circle()
+                                        .fill(Color.blue)
+                                        .frame(width: 12, height: 12)
+                                    Text("實心圓點：有訓練的日子")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                HStack(alignment: .center, spacing: 8) {
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .frame(width: 12, height: 12)
+                                    Text("空心圓點：當日無訓練")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // 實用建議 Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "lightbulb.fill")
+                                .foregroundColor(.yellow)
+                                .font(.title2)
+                            Text("實用建議")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            suggestionView(
+                                icon: "arrow.up.circle.fill",
+                                iconColor: .green,
+                                title: "ATL在合理負荷區域內 + TSB值偏高",
+                                suggestion: "體能提升且恢復良好，可適當增加訓練強度，但需監控疲勞累積"
+                            )
+
+                            suggestionView(
+                                icon: "checkmark.circle.fill",
+                                iconColor: .blue,
+                                title: "ATL在合理區域 + TSB平衡",
+                                suggestion: "理想的訓練狀態，維持當前節奏並觀察長期趨勢"
+                            )
+
+                            suggestionView(
+                                icon: "arrow.down.circle.fill",
+                                iconColor: .orange,
+                                title: "ATL超出合理負荷區域",
+                                suggestion: "訓練負荷過高，建議適度減量，關注TSB回升和HRV改善趨勢"
+                            )
+
+                            suggestionView(
+                                icon: "exclamationmark.triangle.fill",
+                                iconColor: .red,
+                                title: "持續疲勞狀態 (TSB <-4)",
+                                suggestion: "建議進入恢復期，降低訓練量直到TSB和HRV顯示恢復跡象"
+                            )
+                        }
+                        .padding(.leading, 12)
+                    }
+
+                    Divider()
+
+                    // 注意事項
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("重要提醒")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+
+                        Text("• 訓練負荷數據需要至少 2-3 週的運動記錄才能提供準確的趨勢分析")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• 體適能指數下降不一定是壞事，可能代表正在進行有計畫的減量或恢復期")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• 建議同時觀察 TSB 和 HRV 趨勢，綜合判斷身體的恢復狀態")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 16)
+                }
+                .padding()
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func fitnessRangeView(range: String, description: String, color: Color, icon: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 20)
+
+            Text(range)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .frame(width: 40, alignment: .leading)
+
+            Text(description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func tsbStatusView(
+        range: String,
+        title: String,
+        description: String,
+        color: Color,
+        icon: String,
+        backgroundColor: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .frame(width: 20)
+
+                Text(range)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .frame(width: 60, alignment: .leading)
+
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+
+            Text(description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.leading, 32)
+        }
+        .padding(12)
+        .background(backgroundColor)
+        .cornerRadius(8)
+    }
+
+    @ViewBuilder
+    private func chartLegendView(color: Color, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Rectangle()
+                .fill(color)
+                .frame(width: 4, height: 20)
+                .cornerRadius(2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func suggestionView(icon: String, iconColor: Color, title: String, suggestion: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text(suggestion)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 }
 

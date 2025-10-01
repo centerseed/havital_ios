@@ -5,6 +5,8 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.havital.workout-sync</string>
+		<string>com.havital.health-data-sync</string>
+		<string>com.havital.hrv-retry-sync</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hant</string>
@@ -82,10 +84,6 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>healthkit</string>
-	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

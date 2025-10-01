@@ -32,8 +32,8 @@ struct TargetRaceCard: View {
                         
                         Spacer()
                         
-                        // Calculate days remaining until race date
-                        let daysRemaining = TrainingDateUtils.calculateDaysRemaining(raceDate: target.raceDate)
+                        // Calculate days remaining until race date using target's timezone
+                        let daysRemaining = TrainingDateUtils.calculateDaysRemaining(raceDate: target.raceDate, timezone: target.timezone)
                         Text("\(daysRemaining) \(NSLocalizedString("target_race_card.days_unit", comment: "Days Unit"))")
                             .font(.headline)
                             .foregroundColor(.primary)
@@ -103,13 +103,19 @@ struct TargetRaceCard: View {
         }
     }
 
-    // Format date
+    // Format date with timezone
     private func formatDate(_ timestamp: Int) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let formatter = DateFormatter()
         formatter.dateStyle = .long
         formatter.timeStyle = .none
         formatter.locale = Locale.current
+
+        // 使用目標的時區
+        if let timeZone = TimeZone(identifier: target.timezone) {
+            formatter.timeZone = timeZone
+        }
+
         return formatter.string(from: date)
     }
     

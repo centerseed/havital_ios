@@ -62,18 +62,6 @@ struct ContentView: View {
                     Text(L10n.Tab.performanceData.localized)
                 }
         }
-        .onAppear {
-            // 當主畫面出現時，一次性請求所有必要權限並設置背景處理
-            // 這裡需要能夠呼叫 HavitalApp 中的 setupAllPermissionsAndBackgroundProcessing()
-            // 或者將該方法的邏輯移到一個 AppViewModel 或類似的地方，ContentView 可以存取
-            // 暫時，我們假設 AppViewModel 中有這個方法或可以觸發這個邏輯
-            // 如果 AppViewModel 是 @EnvironmentObject，則可以直接呼叫
-            // appViewModel.setupAllPermissionsAndBackgroundProcessing()
-            // 實際情況下，你可能需要將 HavitalApp 中的私有方法重構到 AppViewModel
-            // 為了演示，我們先註解掉，你需要在你的 AppViewModel 中實現類似功能並從這裡呼叫
-            // print("Main TabView appeared. Triggering permission setup.")
-            // appViewModel.requestPermissionsAndSetupBackgroundTasks() // 假設 AppViewModel 有此方法
-        }
         .alert(L10n.Error.healthPermission.localized, isPresented: $appViewModel.showHealthKitAlert) {
             Button(L10n.Common.settings.localized, role: .none) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {

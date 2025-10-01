@@ -3,12 +3,14 @@ import SwiftUI
 
 // 定義符合API返回結構的模型
 struct WeeklyTrainingSummary: Codable {
+    let id: String
     let trainingCompletion: TrainingCompletion
     let trainingAnalysis: TrainingAnalysis
     let nextWeekSuggestions: NextWeekSuggestions
     let nextWeekAdjustments: NextWeekAdjustments
-    
+
     enum CodingKeys: String, CodingKey {
+        case id
         case trainingCompletion = "training_completion"
         case trainingAnalysis = "training_analysis"
         case nextWeekSuggestions = "next_week_suggestions"
@@ -62,15 +64,28 @@ struct NextWeekSuggestions: Codable {
     let recommendations: [String]
 }
 
+struct AdjustmentItem: Codable, Identifiable {
+    let id = UUID()
+    let content: String
+    let apply: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case content
+        case apply
+    }
+}
+
 struct NextWeekAdjustments: Codable {
-    let status: String
+    let status: String?
     let modifications: Modifications?
-    let adjustmentReason: String
-    
+    let adjustmentReason: String?
+    let items: [AdjustmentItem]?
+
     enum CodingKeys: String, CodingKey {
         case status
         case modifications
         case adjustmentReason = "adjustment_reason"
+        case items
     }
 }
 
@@ -111,4 +126,31 @@ struct WeeklySummaryItem: Codable {
         case weekSummary = "week_summary"
         case completionPercentage = "completion_percentage"
     }
+}
+
+// MARK: - 調整建議 API 模型
+struct UpdateAdjustmentsRequest: Codable {
+    let items: [AdjustmentItem]
+}
+
+// MARK: - 強制更新週回顧 API 模型
+struct CreateWeeklySummaryRequest: Codable {
+    let forceUpdate: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case forceUpdate = "force_update"
+    }
+
+    init(forceUpdate: Bool? = nil) {
+        self.forceUpdate = forceUpdate
+    }
+}
+
+struct UpdateAdjustmentsResponse: Codable {
+    let success: Bool
+    let data: UpdateAdjustmentsData
+}
+
+struct UpdateAdjustmentsData: Codable {
+    let items: [AdjustmentItem]
 }

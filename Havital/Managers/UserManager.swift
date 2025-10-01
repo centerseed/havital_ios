@@ -390,7 +390,15 @@ class UserManager: ObservableObject, DataManageable {
     }
     
     // MARK: - Helper Methods
-    
+
+    /// 公開方法：更新當前用戶資料（供外部調用）
+    func updateCurrentUser(_ userData: User) async {
+        await MainActor.run {
+            updateUserData(userData)
+            print("✅ [UserManager] currentUser 已更新")
+        }
+    }
+
     private func updateUserData(_ userData: User) {
         currentUser = userData
         updateStatistics()
@@ -484,6 +492,30 @@ extension UserManager {
     /// 獲取當前數據源
     var currentDataSource: DataSourceType {
         return UserPreferenceManager.shared.dataSourcePreference
+    }
+
+    // MARK: - App Rating Management
+
+    /// 檢查是否應顯示評分提示
+    var shouldShowRatingPrompt: Bool {
+        guard let user = currentUser else { return false }
+
+        // 年度次數限制
+        let promptCount = user.ratingPromptCount ?? 0
+        if promptCount >= 3 { return false }
+
+        return true
+    }
+
+    /// 獲取評分提示次數
+    var ratingPromptCount: Int {
+        return currentUser?.ratingPromptCount ?? 0
+    }
+
+    /// 獲取上次評分提示日期
+    var lastRatingPromptDate: Date? {
+        guard let dateString = currentUser?.lastRatingPromptDate else { return nil }
+        return ISO8601DateFormatter().date(from: dateString)
     }
 }
 
