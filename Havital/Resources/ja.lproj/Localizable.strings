@@ -1091,3 +1091,31 @@
 "rating.success.subtitle" = "あなたの評価は私たちにとって大きな意味があります";
 "rating.success.share" = "Pacerizをシェア";
 "rating.success.done" = "完了";
+
+// MARK: - Feedback
+"feedback.title" = "フィードバック";
+"feedback.type" = "タイプ";
+"feedback.type.issue" = "問題";
+"feedback.type.suggestion" = "提案";
+"feedback.category" = "カテゴリー";
+"feedback.category.uncategorized" = "未分類";
+"feedback.category.weekly_plan_failed" = "週間プラン生成失敗";
+"feedback.category.weekly_summary_failed" = "週間サマリー生成失敗";
+"feedback.category.training_overview_failed" = "トレーニング概要生成失敗";
+"feedback.category.other" = "その他";
+"feedback.description" = "説明";
+"feedback.description_hint" = "問題または提案の詳細を記述してください";
+"feedback.contact_email" = "連絡先メール";
+"feedback.contact_email_hint" = "オプション。フォローアップのために使用します。";
+"feedback.contact_email_placeholder" = "your@email.com";
+"feedback.attachments" = "添付ファイル";
+"feedback.attachments_hint" = "オプション。画像1枚あたり最大5MB。";
+"feedback.add_image" = "画像を追加";
+"feedback.system_info" = "システム情報";
+"feedback.user_email" = "ユーザーメール";
+"feedback.app_version" = "アプリバージョン";
+"feedback.device_info" = "デバイス情報";
+"feedback.error.description_required" = "説明が必要です";
+"feedback.success_title" = "成功";
+"feedback.success_message" = "フィードバックをありがとうございます！";
+"common.submit" = "送信";

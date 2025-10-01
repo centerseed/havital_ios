@@ -24,6 +24,7 @@ struct UserProfileView: View {
     @State private var syncDataSource: DataSourceType?  // 需要同步的數據源（已停用）
     @State private var showGarminAlreadyBoundAlert = false
     @State private var showLanguageSettings = false
+    @State private var showFeedbackReport = false
     
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -151,6 +152,20 @@ struct UserProfileView: View {
                     HStack {
                         Image(systemName: "globe")
                         Text(NSLocalizedString("settings.language", comment: "Language"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+
+                // Feedback Report
+                Button(action: {
+                    showFeedbackReport = true
+                }) {
+                    HStack {
+                        Image(systemName: "exclamationmark.bubble")
+                        Text(NSLocalizedString("feedback.title", comment: "Feedback"))
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
@@ -312,6 +327,13 @@ struct UserProfileView: View {
         }
         .sheet(isPresented: $showLanguageSettings) {
             LanguageSettingsView()
+        }
+        .sheet(isPresented: $showFeedbackReport) {
+            if let userData = viewModel.userData {
+                FeedbackReportView(userEmail: userData.email ?? "")
+            } else {
+                FeedbackReportView(userEmail: "")
+            }
         }
         // 重新 OnBoarding 確認對話框
         .confirmationDialog(
