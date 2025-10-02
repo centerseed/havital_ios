@@ -168,22 +168,23 @@ struct LapRowView: View {
 
 extension LapData {
     static func previewData(lapNumber: Int, distance: Double, time: Int, pace: Double, heartRate: Int?) -> LapData {
-        // This is a simplified approach for preview - in real implementation this would come from JSON decoding
-        let encoder = JSONEncoder()
+        // Create preview data by constructing a JSON dictionary
         let decoder = JSONDecoder()
-        
-        let jsonData = """
-        {
-            "lap_number": \(lapNumber),
-            "start_time_offset_s": \((lapNumber - 1) * time),
-            "total_time_s": \(time),
-            "total_distance_m": \(distance),
-            "avg_speed_m_per_s": \(1000.0 / pace),
-            "avg_pace_s_per_km": \(pace),
-            "avg_heart_rate_bpm": \(heartRate ?? 0)
+
+        var jsonDict: [String: Any] = [
+            "lap_number": lapNumber,
+            "start_time_offset_s": (lapNumber - 1) * time,
+            "total_time_s": time,
+            "total_distance_m": distance,
+            "avg_speed_m_per_s": 1000.0 / pace,
+            "avg_pace_s_per_km": pace
+        ]
+
+        if let hr = heartRate {
+            jsonDict["avg_heart_rate_bpm"] = hr
         }
-        """.data(using: .utf8)!
-        
+
+        let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict)
         return try! decoder.decode(LapData.self, from: jsonData)
     }
 }

@@ -530,9 +530,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
         if let laps = workoutData.laps {
             optionalDataStatus["lap_count"] = laps.count
-            optionalDataStatus["lap_types"] = laps.map { $0.type }
-            optionalDataStatus["has_lap_distances"] = laps.contains { $0.distance != nil }
-            optionalDataStatus["has_lap_heart_rates"] = laps.contains { $0.averageHeartRate != nil }
+            optionalDataStatus["has_lap_distances"] = laps.contains { $0.totalDistanceM != nil }
+            optionalDataStatus["has_lap_heart_rates"] = laps.contains { $0.avgHeartRateBpm != nil }
         }
         errorReport["optional_data_status"] = optionalDataStatus
         

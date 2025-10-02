@@ -798,7 +798,7 @@ struct V2Metadata: Codable {
 
 struct LapData: Codable, Identifiable {
     let id: String = UUID().uuidString
-    
+
     let lapNumber: Int
     private let _startTimeOffsetS: SafeInt
     private let _totalTimeS: SafeInt?
@@ -806,7 +806,8 @@ struct LapData: Codable, Identifiable {
     private let _avgSpeedMPerS: SafeDouble?
     private let _avgPaceSPerKm: SafeDouble?
     private let _avgHeartRateBpm: SafeInt?
-    
+    let metadata: [String: String]?  // Apple Health 事件的原始 metadata
+
     // 公開的計算屬性
     var startTimeOffsetS: Int { _startTimeOffsetS.value ?? 0 }
     var totalTimeS: Int? { _totalTimeS?.value }
@@ -814,7 +815,7 @@ struct LapData: Codable, Identifiable {
     var avgSpeedMPerS: Double? { _avgSpeedMPerS?.value }
     var avgPaceSPerKm: Double? { _avgPaceSPerKm?.value }
     var avgHeartRateBpm: Int? { _avgHeartRateBpm?.value }
-    
+
     enum CodingKeys: String, CodingKey {
         case lapNumber = "lap_number"
         case _startTimeOffsetS = "start_time_offset_s"
@@ -823,11 +824,12 @@ struct LapData: Codable, Identifiable {
         case _avgSpeedMPerS = "avg_speed_m_per_s"
         case _avgPaceSPerKm = "avg_pace_s_per_km"
         case _avgHeartRateBpm = "avg_heart_rate_bpm"
+        case metadata = "metadata"
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         lapNumber = try container.decode(Int.self, forKey: .lapNumber)
         _startTimeOffsetS = try container.decode(SafeInt.self, forKey: ._startTimeOffsetS)
         _totalTimeS = try container.decodeIfPresent(SafeInt.self, forKey: ._totalTimeS)
@@ -835,6 +837,20 @@ struct LapData: Codable, Identifiable {
         _avgSpeedMPerS = try container.decodeIfPresent(SafeDouble.self, forKey: ._avgSpeedMPerS)
         _avgPaceSPerKm = try container.decodeIfPresent(SafeDouble.self, forKey: ._avgPaceSPerKm)
         _avgHeartRateBpm = try container.decodeIfPresent(SafeInt.self, forKey: ._avgHeartRateBpm)
+        metadata = try container.decodeIfPresent([String: String].self, forKey: .metadata)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(lapNumber, forKey: .lapNumber)
+        try container.encode(_startTimeOffsetS, forKey: ._startTimeOffsetS)
+        try container.encodeIfPresent(_totalTimeS, forKey: ._totalTimeS)
+        try container.encodeIfPresent(_totalDistanceM, forKey: ._totalDistanceM)
+        try container.encodeIfPresent(_avgSpeedMPerS, forKey: ._avgSpeedMPerS)
+        try container.encodeIfPresent(_avgPaceSPerKm, forKey: ._avgPaceSPerKm)
+        try container.encodeIfPresent(_avgHeartRateBpm, forKey: ._avgHeartRateBpm)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
     }
     
     // 便利屬性 - 格式化的配速顯示
@@ -1248,16 +1264,63 @@ struct AISummary: Codable {
     }
 }
 
-// MARK: - Lap Data Models
+// MARK: - Apple Health Lap Data Upload Helper Extension
 
-struct LapData: Codable {
-    let lapNumber: Int                   // 分圈序號（從 1 開始）
-    let startTime: TimeInterval          // 分圈開始時間
-    let endTime: TimeInterval            // 分圈結束時間
-    let duration: TimeInterval           // 分圈持續時間（秒）
-    let distance: Double?                // 分圈距離（米）
-    let averagePace: Double?             // 平均配速（秒/公里）
-    let averageHeartRate: Double?        // 平均心率（BPM）
-    let type: String                     // 分圈類型："manual", "auto", "segment"
-    let metadata: [String: String]?      // 額外的元數據
+extension LapData {
+    /// 從 Apple Health 分圈事件創建 LapData（用於上傳）
+    static func fromAppleHealth(
+        lapNumber: Int,
+        startTimeOffset: TimeInterval,  // 相對於運動開始時間的偏移秒數
+        duration: TimeInterval,
+        distance: Double?,
+        averagePace: Double?,
+        averageHeartRate: Double?,
+        type: String,
+        metadata: [String: String]?
+    ) -> LapData {
+        // 將 Apple Health 格式轉換為後端 API 格式
+        let startOffset = Int(startTimeOffset)  // 相對偏移，不是絕對時間戳
+        let totalTime = Int(duration)
+        let avgSpeed = distance.map { $0 / duration }
+        let avgHR = averageHeartRate.map { Int($0) }
+
+        // 構建 JSON 字典，只包含非 nil 值
+        var jsonDict: [String: Any] = [
+            "lap_number": lapNumber,
+            "start_time_offset_s": startOffset
+        ]
+
+        if let time = totalTime as Int? {
+            jsonDict["total_time_s"] = time
+        }
+
+        if let dist = distance {
+            jsonDict["total_distance_m"] = dist
+        }
+
+        if let speed = avgSpeed {
+            jsonDict["avg_speed_m_per_s"] = speed
+        }
+
+        if let pace = averagePace {
+            jsonDict["avg_pace_s_per_km"] = pace
+        }
+
+        if let hr = avgHR {
+            jsonDict["avg_heart_rate_bpm"] = hr
+        }
+
+        if let meta = metadata {
+            jsonDict["metadata"] = meta
+        }
+
+        // 創建 JSON 數據並解碼
+        if let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict),
+           let lapData = try? JSONDecoder().decode(LapData.self, from: jsonData) {
+            return lapData
+        }
+
+        // 備用方案：使用預設值
+        fatalError("Failed to create LapData from Apple Health data")
+    }
 }

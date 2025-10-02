@@ -1179,12 +1179,34 @@ class HealthKitManager: ObservableObject, TaskManageable {
             let workoutEvents = workout.workoutEvents ?? []
             print("🏃‍♂️ [LapData] 發現 \(workoutEvents.count) 個 workout events")
 
-            // 篩選分圈相關的事件
-            let lapEvents = workoutEvents.filter { event in
-                return event.type == .lap || event.type == .segment
+            // 先列出所有事件類型，幫助調試
+            print("🔍 [LapData] 所有事件類型詳情：")
+            for (index, event) in workoutEvents.enumerated() {
+                let typeName: String
+                switch event.type {
+                case .lap: typeName = "lap"
+                case .segment: typeName = "segment"
+                case .pause: typeName = "pause"
+                case .resume: typeName = "resume"
+                case .motionPaused: typeName = "motionPaused"
+                case .motionResumed: typeName = "motionResumed"
+                case .marker: typeName = "marker"
+                case .pauseOrResumeRequest: typeName = "pauseOrResumeRequest"
+                @unknown default: typeName = "unknown(\(event.type.rawValue))"
+                }
+                print("   [\(index+1)] 類型: \(typeName), 持續: \(String(format: "%.0f", event.dateInterval.duration))秒")
             }
 
-            print("🏃‍♂️ [LapData] 篩選出 \(lapEvents.count) 個分圈/分段事件")
+            // 篩選分圈相關的事件（.lap、.marker、.segment）
+            let lapEvents = workoutEvents.filter { event in
+                return event.type == .lap || event.type == .marker || event.type == .segment
+            }
+
+            let lapCount = workoutEvents.filter { $0.type == .lap }.count
+            let markerCount = workoutEvents.filter { $0.type == .marker }.count
+            let segmentCount = workoutEvents.filter { $0.type == .segment }.count
+
+            print("🏃‍♂️ [LapData] 篩選出 \(lapEvents.count) 個分圈事件 (lap: \(lapCount), marker: \(markerCount), segment: \(segmentCount))")
 
             if lapEvents.isEmpty {
                 print("🏃‍♂️ [LapData] 此運動沒有分圈資料")
@@ -1196,11 +1218,23 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
             var laps: [LapData] = []
 
+            // 累積計算每圈的開始時間偏移
+            var cumulativeOffset: TimeInterval = 0
+            print("🔍 [LapData] 開始計算累積偏移 - 初始值: \(cumulativeOffset)秒")
+
             for (index, event) in sortedEvents.enumerated() {
                 let lapNumber = index + 1
-                let startTime = event.dateInterval.start.timeIntervalSince1970
-                let endTime = event.dateInterval.end.timeIntervalSince1970
+
+                // 使用累積偏移作為該圈的開始時間
+                let startTimeOffset = cumulativeOffset
                 let duration = event.dateInterval.duration
+
+                print("🔍 [LapData] 第 \(lapNumber) 圈 BEFORE - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒, 本圈時長: \(String(format: "%.0f", duration))秒")
+
+                // 更新累積偏移，為下一圈做準備
+                cumulativeOffset += duration
+
+                print("🔍 [LapData] 第 \(lapNumber) 圈 AFTER  - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒")
 
                 // 嘗試從 metadata 獲取距離資訊
                 var distance: Double? = nil
@@ -1240,11 +1274,13 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 let lapType: String
                 switch event.type {
                 case .lap:
-                    lapType = "manual"  // 手動分圈
+                    lapType = "lap"         // 等距離圈數標記
+                case .marker:
+                    lapType = "marker"      // 興趣點標記
                 case .segment:
-                    lapType = "segment" // 運動分段
+                    lapType = "segment"     // 運動分段
                 default:
-                    lapType = "auto"    // 自動分圈
+                    lapType = "unknown"     // 未知類型
                 }
 
                 // 獲取該分圈時間範圍內的平均心率
@@ -1254,10 +1290,10 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     endTime: event.dateInterval.end
                 )
 
-                let lapData = LapData(
+                // 使用 LapData.fromAppleHealth 創建統一格式的分圈數據
+                let lapData = LapData.fromAppleHealth(
                     lapNumber: lapNumber,
-                    startTime: startTime,
-                    endTime: endTime,
+                    startTimeOffset: startTimeOffset,  // 使用相對偏移而非絕對時間
                     duration: duration,
                     distance: distance,
                     averagePace: averagePace,
@@ -1268,7 +1304,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
                 laps.append(lapData)
 
-                print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 時間: \(String(format: "%.1f", duration))秒, 距離: \(distance?.description ?? "N/A")米, 配速: \(averagePace?.description ?? "N/A")秒/公里")
+                print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 持續: \(String(format: "%.0f", duration))秒, 距離: \(distance?.description ?? "N/A")米, 配速: \(averagePace?.description ?? "N/A")秒/公里, 心率: \(averageHeartRate?.description ?? "N/A")bpm")
             }
 
             print("✅ [LapData] 成功提取 \(laps.count) 圈資料")
