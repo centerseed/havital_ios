@@ -95,7 +95,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var weeklySummaries: [WeeklySummaryItem] = []
     @Published var isLoadingWeeklySummaries = false
     @Published var weeklySummariesError: Error?
-    
+
+    // VDOT 和配速計算相關屬性
+    @Published var currentVDOT: Double?
+    @Published var calculatedPaces: [PaceCalculator.PaceZone: String] = [:]
+    @Published var isLoadingPaces = false
+
     /// 清除網路錯誤Toast狀態
     @MainActor
     func clearNetworkErrorToast() {
@@ -322,10 +327,13 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         
         // 4. 載入當前週數據
         await loadCurrentWeekData()
-        
-        // 5. 設置通知監聽器
+
+        // 5. 載入 VDOT 並計算配速
+        await loadVDOTAndCalculatePaces()
+
+        // 6. 設置通知監聽器
         await setupNotificationListeners()
-        
+
         Logger.debug("TrainingPlanViewModel: 統一初始化完成")
     }
     
@@ -1792,7 +1800,77 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     // 移除重複的 refreshWorkoutData - 直接使用 unifiedWorkoutManager.refreshWorkouts()
-    
+
+    // MARK: - VDOT and Pace Calculation
+
+    /// 載入 VDOT 並計算配速表
+    func loadVDOTAndCalculatePaces() async {
+        await MainActor.run {
+            isLoadingPaces = true
+        }
+
+        // 確保 VDOTManager 已載入緩存數據（先嘗試從緩存載入，這是同步操作）
+        if !VDOTManager.shared.hasData {
+            Logger.debug("TrainingPlanViewModel: VDOTManager 尚未載入數據，先載入本地緩存...")
+            // 先同步載入緩存，這樣可以立即使用加權跑力
+            VDOTManager.shared.loadLocalCacheSync()
+
+            // 等待主線程更新完成
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+            // 如果緩存也沒有數據，才等待 API 初始化
+            if !VDOTManager.shared.hasData {
+                Logger.debug("TrainingPlanViewModel: 本地緩存無數據，等待 API 初始化...")
+                await VDOTManager.shared.initialize()
+            }
+        }
+
+        // 從 VDOTManager 獲取當前 VDOT（使用 weight_vdot / averageVDOT）
+        let vdot = VDOTManager.shared.averageVDOT
+        let dynamicVdot = VDOTManager.shared.currentVDOT
+        Logger.debug("TrainingPlanViewModel: 從 VDOTManager 獲取 averageVDOT (加權跑力) = \(vdot), dynamicVDOT = \(dynamicVdot)")
+
+        await MainActor.run {
+            // 如果 VDOT 有效，則使用它；否則使用預設值
+            if PaceCalculator.isValidVDOT(vdot) {
+                self.currentVDOT = vdot
+                Logger.info("TrainingPlanViewModel: ✅ 使用實際加權跑力 VDOT = \(vdot)")
+            } else {
+                self.currentVDOT = PaceCalculator.defaultVDOT
+                Logger.warn("TrainingPlanViewModel: ⚠️ VDOT 無效 (\(vdot))，使用預設值 \(PaceCalculator.defaultVDOT)")
+            }
+
+            // 計算所有訓練區間的配速
+            if let vdot = self.currentVDOT {
+                self.calculatedPaces = PaceCalculator.calculateTrainingPaces(vdot: vdot)
+                Logger.debug("TrainingPlanViewModel: 配速計算完成，VDOT = \(vdot)")
+            }
+
+            isLoadingPaces = false
+        }
+    }
+
+    /// 根據訓練類型獲取建議配速
+    /// - Parameter trainingType: 訓練類型（例如："easy"、"tempo"、"interval"）
+    /// - Returns: 建議配速字串，格式為 mm:ss；如果無法計算則返回 nil
+    func getSuggestedPace(for trainingType: String) -> String? {
+        guard let vdot = currentVDOT else { return nil }
+        return PaceCalculator.getSuggestedPace(for: trainingType, vdot: vdot)
+    }
+
+    /// 獲取訓練類型對應的配速區間範圍
+    /// - Parameter trainingType: 訓練類型
+    /// - Returns: (下限配速, 上限配速) 的元組；如果無法計算則返回 nil
+    func getPaceRange(for trainingType: String) -> (min: String, max: String)? {
+        guard let vdot = currentVDOT else { return nil }
+        return PaceCalculator.getPaceRange(for: trainingType, vdot: vdot)
+    }
+
+    /// 重新計算配速（當 VDOT 更新時調用）
+    func recalculatePaces() async {
+        await loadVDOTAndCalculatePaces()
+    }
+
     // MARK: - Edit Schedule Methods
     
     /// 檢查特定日期是否可以編輯

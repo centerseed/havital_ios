@@ -189,10 +189,10 @@ struct WorkoutDetailViewV2: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     // MARK: - 計算屬性
     
     private var isAppleHealthSource: Bool {
@@ -341,7 +341,7 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .alert(L10n.WorkoutDetail.reuploadAlert.localized, isPresented: $showReuploadAlert) {
             Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) { }
@@ -402,12 +402,12 @@ struct WorkoutDetailViewV2: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color(.tertiarySystemGroupedBackground))
                 .cornerRadius(12)
             }
         }
     }
-    
+
     private var paceChartSection: some View {
         Group {
             if !viewModel.paces.isEmpty {
@@ -445,12 +445,12 @@ struct WorkoutDetailViewV2: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color(.tertiarySystemGroupedBackground))
                 .cornerRadius(12)
             }
         }
     }
-    
+
     // MARK: - 高級指標卡片
     
     private var advancedMetricsCard: some View {
@@ -474,10 +474,10 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     // MARK: - 心率區間分佈卡片
     
     private func heartRateZoneCard(_ hrZones: V2ZoneDistribution) -> some View {
@@ -517,13 +517,13 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
         }
     }
-    
+
     // MARK: - 配速區間分佈卡片
     
     private func paceZoneCard(_ paceZones: V2ZoneDistribution) -> some View {
@@ -554,10 +554,10 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     // MARK: - 合併區間分佈卡片
     
     private func combinedZoneDistributionCard(hrZones: V2ZoneDistribution, paceZones: V2ZoneDistribution) -> some View {
@@ -595,13 +595,13 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
         }
     }
-    
+
     @ViewBuilder
     private func zoneRows(for zones: V2ZoneDistribution, isHeartRate: Bool) -> some View {
         if let recovery = zones.recovery {
@@ -660,10 +660,10 @@ struct WorkoutDetailViewV2: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.tertiarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     private func errorView(_ error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
@@ -681,10 +681,10 @@ struct WorkoutDetailViewV2: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.tertiarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     // MARK: - 類型轉換方法
     
     private func convertToV2ZoneDistribution(_ zones: ZoneDistribution) -> V2ZoneDistribution {
@@ -769,7 +769,7 @@ struct WorkoutDetailViewV2: View {
                 sourceInfoCard
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color(.systemBackground))
         ) { image in
             DispatchQueue.main.async {
                 self.isGeneratingScreenshot = false

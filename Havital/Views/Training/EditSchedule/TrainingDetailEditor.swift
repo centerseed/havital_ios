@@ -5,14 +5,17 @@ import SwiftUI
 struct TrainingDetailEditor: View {
     let day: MutableTrainingDay
     let onSave: (MutableTrainingDay) -> Void
+    @ObservedObject var viewModel: TrainingPlanViewModel
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var editedDay: MutableTrainingDay
     @State private var showingSaveAlert = false
-    
-    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void) {
+    @State private var showingPaceTable = false
+
+    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, viewModel: TrainingPlanViewModel) {
         self.day = day
         self.onSave = onSave
+        self.viewModel = viewModel
         self._editedDay = State(initialValue: day)
     }
     
@@ -40,17 +43,17 @@ struct TrainingDetailEditor: View {
                     Group {
                         switch editedDay.type {
                         case .easyRun, .easy, .recovery_run, .lsd:
-                            EasyRunDetailEditor(day: $editedDay)
+                            EasyRunDetailEditor(day: $editedDay, viewModel: viewModel)
                         case .interval:
-                            IntervalDetailEditor(day: $editedDay)
+                            IntervalDetailEditor(day: $editedDay, viewModel: viewModel)
                         case .tempo, .threshold:
-                            TempoRunDetailEditor(day: $editedDay)
+                            TempoRunDetailEditor(day: $editedDay, viewModel: viewModel)
                         case .progression, .combination:
-                            CombinationDetailEditor(day: $editedDay)
+                            CombinationDetailEditor(day: $editedDay, viewModel: viewModel)
                         case .longRun:
-                            LongRunDetailEditor(day: $editedDay)
+                            LongRunDetailEditor(day: $editedDay, viewModel: viewModel)
                         default:
-                            SimpleTrainingDetailEditor(day: $editedDay)
+                            SimpleTrainingDetailEditor(day: $editedDay, viewModel: viewModel)
                         }
                     }
                     
@@ -66,12 +69,29 @@ struct TrainingDetailEditor: View {
                         dismiss()
                     }
                 }
-                
+
+                // 配速表按鈕
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("edit_schedule.save", comment: "儲存")) {
-                        onSave(editedDay)
-                        dismiss()
+                    HStack(spacing: 12) {
+                        if let vdot = viewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
+                            Button {
+                                showingPaceTable = true
+                            } label: {
+                                Image(systemName: "speedometer")
+                                    .font(.body)
+                            }
+                        }
+
+                        Button(NSLocalizedString("edit_schedule.save", comment: "儲存")) {
+                            onSave(editedDay)
+                            dismiss()
+                        }
                     }
+                }
+            }
+            .sheet(isPresented: $showingPaceTable) {
+                if let vdot = viewModel.currentVDOT {
+                    PaceTableView(vdot: vdot, calculatedPaces: viewModel.calculatedPaces)
                 }
             }
         }
@@ -99,13 +119,57 @@ struct TrainingDetailEditor: View {
 
 struct EasyRunDetailEditor: View {
     @Binding var day: MutableTrainingDay
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
     @State private var distance: String = ""
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("輕鬆跑設定")
                 .font(.headline)
                 .foregroundColor(.green)
+
+            // 顯示建議配速提示和配速區間
+            if let suggestedPace = getSuggestedPace() {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
+
+                        Text("建議配速: \(suggestedPace)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Button("套用") {
+                            applyPaceField(suggestedPace)
+                        }
+                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+
+                    // 配速區間範圍
+                    if let paceRange = getPaceRange() {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gauge.medium")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            Text("配速區間: \(paceRange.max) - \(paceRange.min)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.yellow.opacity(0.1))
+                .cornerRadius(8)
+            }
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("距離 (公里)")
@@ -139,16 +203,39 @@ struct EasyRunDetailEditor: View {
             if let distanceKm = day.trainingDetails?.distanceKm {
                 distance = String(format: "%.1f", distanceKm)
             }
+
+            // 自動填充建議配速（如果配速為空）
+            if day.trainingDetails?.pace == nil || day.trainingDetails?.pace?.isEmpty == true {
+                if let suggestedPace = getSuggestedPace() {
+                    applyPaceField(suggestedPace)
+                }
+            }
         }
         .onChange(of: distance) { oldValue, newValue in
             updateDistance(newValue)
         }
     }
-    
+
     private func updateDistance(_ distanceStr: String) {
         guard let distanceValue = Double(distanceStr) else { return }
         if day.trainingDetails != nil {
             day.trainingDetails?.distanceKm = distanceValue
+        }
+    }
+
+    private func getSuggestedPace() -> String? {
+        return viewModel.getSuggestedPace(for: day.trainingType)
+    }
+
+    private func getPaceRange() -> (min: String, max: String)? {
+        return viewModel.getPaceRange(for: day.trainingType)
+    }
+
+    private func applyPaceField(_ pace: String) {
+        if day.trainingDetails == nil {
+            day.trainingDetails = MutableTrainingDetails(pace: pace)
+        } else {
+            day.trainingDetails?.pace = pace
         }
     }
 }
@@ -157,15 +244,60 @@ struct EasyRunDetailEditor: View {
 
 struct TempoRunDetailEditor: View {
     @Binding var day: MutableTrainingDay
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
     @State private var distance: String = ""
     @State private var pace: String = ""
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("節奏跑設定")
                 .font(.headline)
                 .foregroundColor(.orange)
-            
+
+            // 顯示建議配速提示和配速區間
+            if let suggestedPace = getSuggestedPace() {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
+
+                        Text("建議配速: \(suggestedPace)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Button("套用") {
+                            pace = suggestedPace
+                            updatePace(suggestedPace)
+                        }
+                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+
+                    // 配速區間範圍
+                    if let paceRange = getPaceRange() {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gauge.medium")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            Text("配速區間: \(paceRange.max) - \(paceRange.min)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.yellow.opacity(0.1))
+                .cornerRadius(8)
+            }
+
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("距離 (公里)")
@@ -214,6 +346,14 @@ struct TempoRunDetailEditor: View {
                     pace = paceStr
                 }
             }
+
+            // 自動填充建議配速（如果配速為空）
+            if day.trainingDetails?.pace == nil || day.trainingDetails?.pace?.isEmpty == true {
+                if let suggestedPace = getSuggestedPace() {
+                    pace = suggestedPace
+                    updatePace(suggestedPace)
+                }
+            }
         }
         .onChange(of: distance) { oldValue, newValue in
             updateDistance(newValue)
@@ -222,18 +362,26 @@ struct TempoRunDetailEditor: View {
             updatePace(newValue)
         }
     }
-    
+
     private func updateDistance(_ distanceStr: String) {
         guard let distanceValue = Double(distanceStr) else { return }
         if day.trainingDetails != nil {
             day.trainingDetails?.distanceKm = distanceValue
         }
     }
-    
+
     private func updatePace(_ paceStr: String) {
         if day.trainingDetails != nil {
             day.trainingDetails?.pace = paceStr.isEmpty ? nil : paceStr
         }
+    }
+
+    private func getSuggestedPace() -> String? {
+        return viewModel.getSuggestedPace(for: day.trainingType)
+    }
+
+    private func getPaceRange() -> (min: String, max: String)? {
+        return viewModel.getPaceRange(for: day.trainingType)
     }
 }
 
@@ -241,19 +389,64 @@ struct TempoRunDetailEditor: View {
 
 struct IntervalDetailEditor: View {
     @Binding var day: MutableTrainingDay
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
     @State private var repeats: String = ""
     @State private var sprintDistance: String = ""
     @State private var sprintPace: String = ""
     @State private var recoveryDistance: String = ""
     @State private var recoveryPace: String = ""
     @State private var isRestInPlace: Bool = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("間歇訓練設定")
                 .font(.headline)
                 .foregroundColor(.orange)
-            
+
+            // 顯示建議配速提示和配速區間
+            if let suggestedPace = getSuggestedPace() {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
+
+                        Text("衝刺段建議配速: \(suggestedPace)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Button("套用") {
+                            sprintPace = suggestedPace
+                            updateSprintPace(suggestedPace)
+                        }
+                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+
+                    // 配速區間範圍
+                    if let paceRange = getPaceRange() {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gauge.medium")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            Text("間歇配速區間: \(paceRange.max) - \(paceRange.min)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.yellow.opacity(0.1))
+                .cornerRadius(8)
+            }
+
             // 重複次數
             VStack(alignment: .leading, spacing: 8) {
                 Text("重複次數")
@@ -365,20 +558,26 @@ struct IntervalDetailEditor: View {
     
     private func loadIntervalData() {
         guard let details = day.trainingDetails else { return }
-        
+
         if let reps = details.repeats {
             repeats = String(reps)
         }
-        
+
         if let work = details.work {
             if let distance = work.distanceKm {
                 sprintDistance = String(format: "%.1f", distance)
             }
             if let pace = work.pace {
                 sprintPace = pace
+            } else {
+                // 自動填充建議配速（如果配速為空）
+                if let suggestedPace = getSuggestedPace() {
+                    sprintPace = suggestedPace
+                    updateSprintPace(suggestedPace)
+                }
             }
         }
-        
+
         if let recovery = details.recovery {
             if let distance = recovery.distanceKm {
                 recoveryDistance = String(format: "%.1f", distance)
@@ -452,12 +651,22 @@ struct IntervalDetailEditor: View {
             recoveryPace = ""
         }
     }
+
+    private func getSuggestedPace() -> String? {
+        return viewModel.getSuggestedPace(for: day.trainingType)
+    }
+
+    private func getPaceRange() -> (min: String, max: String)? {
+        return viewModel.getPaceRange(for: day.trainingType)
+    }
 }
 
 // MARK: - Combination Detail Editor
 
 struct CombinationDetailEditor: View {
     @Binding var day: MutableTrainingDay
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
     @State private var segments: [EditableSegment] = []
     
     struct EditableSegment: Identifiable {
@@ -611,6 +820,8 @@ struct CombinationDetailEditor: View {
 
 struct LongRunDetailEditor: View {
     @Binding var day: MutableTrainingDay
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
     @State private var distance: String = ""
     
     var body: some View {
@@ -669,6 +880,8 @@ struct LongRunDetailEditor: View {
 
 struct SimpleTrainingDetailEditor: View {
     @Binding var day: MutableTrainingDay
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
     @State private var distance: String = ""
     
     var body: some View {

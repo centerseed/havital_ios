@@ -8,6 +8,7 @@ struct EditScheduleView: View {
     @State private var draggedDay: Int?
     @State private var showingUnsavedChangesAlert = false
     @State private var hasUnsavedChanges = false
+    @State private var showingPaceTable = false
     
     var body: some View {
         NavigationView {
@@ -46,14 +47,32 @@ struct EditScheduleView: View {
                         }
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("edit_schedule.save", comment: "儲存")) {
-                        Task {
-                            await saveChanges()
+                    HStack(spacing: 12) {
+                        // 配速表按鈕
+                        if let vdot = viewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
+                            Button {
+                                showingPaceTable = true
+                            } label: {
+                                Image(systemName: "speedometer")
+                                    .font(.body)
+                            }
                         }
+
+                        // 儲存按鈕
+                        Button(NSLocalizedString("edit_schedule.save", comment: "儲存")) {
+                            Task {
+                                await saveChanges()
+                            }
+                        }
+                        .disabled(!hasUnsavedChanges)
                     }
-                    .disabled(!hasUnsavedChanges)
+                }
+            }
+            .sheet(isPresented: $showingPaceTable) {
+                if let vdot = viewModel.currentVDOT {
+                    PaceTableView(vdot: vdot, calculatedPaces: viewModel.calculatedPaces)
                 }
             }
         }
