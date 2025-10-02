@@ -1,10 +1,11 @@
 import Foundation
+import UIKit
 
 // MARK: - Feedback Type
 
 enum FeedbackType: String, Codable, CaseIterable {
-    case issue = "問題"
-    case suggestion = "建議"
+    case issue = "issue"
+    case suggestion = "suggestion"
 
     var displayName: String {
         switch self {
@@ -19,21 +20,18 @@ enum FeedbackType: String, Codable, CaseIterable {
 // MARK: - Feedback Category
 
 enum FeedbackCategory: String, Codable, CaseIterable {
-    case uncategorized = "不分類"
-    case weeklyPlanGenerationFailed = "週課表無法產生"
-    case weeklySummaryGenerationFailed = "週回顧無法產生"
-    case trainingOverviewGenerationFailed = "訓練概覽無法產生"
-    case other = "其他"
+    case weeklyPlan = "weekly_plan"
+    case weeklyReview = "weekly_review"
+    case trainingOverview = "training_overview"
+    case other = "other"
 
     var displayName: String {
         switch self {
-        case .uncategorized:
-            return NSLocalizedString("feedback.category.uncategorized", comment: "Uncategorized")
-        case .weeklyPlanGenerationFailed:
+        case .weeklyPlan:
             return NSLocalizedString("feedback.category.weekly_plan_failed", comment: "Weekly Plan Generation Failed")
-        case .weeklySummaryGenerationFailed:
+        case .weeklyReview:
             return NSLocalizedString("feedback.category.weekly_summary_failed", comment: "Weekly Summary Generation Failed")
-        case .trainingOverviewGenerationFailed:
+        case .trainingOverview:
             return NSLocalizedString("feedback.category.training_overview_failed", comment: "Training Overview Generation Failed")
         case .other:
             return NSLocalizedString("feedback.category.other", comment: "Other")
@@ -45,9 +43,9 @@ enum FeedbackCategory: String, Codable, CaseIterable {
 
 struct FeedbackRequest: Codable {
     let type: String
-    let category: String?
+    let category: String
     let description: String
-    let email: String?
+    let email: String
     let appVersion: String
     let deviceInfo: String
     let images: [String]?
@@ -66,14 +64,12 @@ struct FeedbackRequest: Codable {
 // MARK: - Feedback Response
 
 struct FeedbackResponse: Codable {
-    let success: Bool
-    let message: String
-    let feedbackId: String?
+    let issueNumber: Int
+    let issueUrl: String
 
     enum CodingKeys: String, CodingKey {
-        case success
-        case message
-        case feedbackId = "feedback_id"
+        case issueNumber = "issue_number"
+        case issueUrl = "issue_url"
     }
 }
 

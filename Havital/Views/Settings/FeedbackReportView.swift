@@ -4,9 +4,10 @@ import PhotosUI
 @MainActor
 class FeedbackReportViewModel: ObservableObject, TaskManageable {
     @Published var selectedType: FeedbackType = .issue
-    @Published var selectedCategory: FeedbackCategory = .uncategorized
+    @Published var selectedCategory: FeedbackCategory = .other
     @Published var descriptionText: String = ""
     @Published var contactEmail: String = ""
+    @Published var hideEmail: Bool = false  // 隱藏郵箱開關
     @Published var selectedImages: [UIImage] = []
     @Published var isSubmitting = false
     @Published var error: String?
@@ -30,8 +31,16 @@ class FeedbackReportViewModel: ObservableObject, TaskManageable {
         await executeTask(id: TaskID("submit_feedback")) { [weak self] in
             guard let self = self else { return }
 
+            // Capture values to avoid async access issues
+            let descriptionText = await MainActor.run { self.descriptionText }
+            let selectedImages = await MainActor.run { self.selectedImages }
+            let selectedType = await MainActor.run { self.selectedType }
+            let selectedCategory = await MainActor.run { self.selectedCategory }
+            let contactEmail = await MainActor.run { self.contactEmail }
+            let hideEmail = await MainActor.run { self.hideEmail }
+
             // Validation
-            guard !self.descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            guard !descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 await MainActor.run {
                     self.error = NSLocalizedString("feedback.error.description_required", comment: "Description is required")
                 }
@@ -46,36 +55,37 @@ class FeedbackReportViewModel: ObservableObject, TaskManageable {
             do {
                 // Convert images to base64
                 var base64Images: [String]?
-                if !self.selectedImages.isEmpty {
-                    base64Images = self.selectedImages.compactMap { image in
+                if !selectedImages.isEmpty {
+                    base64Images = selectedImages.compactMap { image -> String? in
                         // Compress image to reduce size
                         guard let imageData = image.jpegData(compressionQuality: 0.7) else { return nil }
                         // Check size limit (5MB)
                         guard imageData.count < 5 * 1024 * 1024 else {
-                            Logger.warning("圖片大小超過 5MB，已跳過")
+                            Logger.warn("圖片大小超過 5MB，已跳過")
                             return nil
                         }
                         return "data:image/jpeg;base64,\(imageData.base64EncodedString())"
                     }
                 }
 
+                // 如果是"建議"類型，category 使用 .other
+                let finalCategory = selectedType == .issue ? selectedCategory : .other
+
+                // 如果用戶選擇隱藏郵箱，發送空字串
+                let finalEmail = hideEmail ? "" : contactEmail
+
                 let response = try await FeedbackService.shared.submitFeedback(
-                    type: self.selectedType,
-                    category: self.selectedType == .issue ? self.selectedCategory : nil,
-                    description: self.descriptionText,
-                    email: self.contactEmail.isEmpty ? nil : self.contactEmail,
-                    userEmail: self.userEmail,
+                    type: selectedType,
+                    category: finalCategory,
+                    description: descriptionText,
+                    email: finalEmail,
                     images: base64Images
                 )
 
                 await MainActor.run {
                     self.isSubmitting = false
-                    if response.success {
-                        self.showSuccess = true
-                        Logger.debug("回報提交成功: \(response.message)")
-                    } else {
-                        self.error = response.message
-                    }
+                    self.showSuccess = true
+                    Logger.debug("回報提交成功: issue #\(response.issueNumber) - \(response.issueUrl)")
                 }
             } catch {
                 let nsError = error as NSError
@@ -153,9 +163,21 @@ struct FeedbackReportView: View {
                     header: Text(NSLocalizedString("feedback.contact_email", comment: "Contact Email")),
                     footer: Text(NSLocalizedString("feedback.contact_email_hint", comment: "Optional. We'll use this to follow up with you."))
                 ) {
-                    TextField(NSLocalizedString("feedback.contact_email_placeholder", comment: "your@email.com"), text: $viewModel.contactEmail)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
+                    Toggle(NSLocalizedString("feedback.hide_email", comment: "Hide my email"), isOn: $viewModel.hideEmail)
+
+                    if !viewModel.hideEmail {
+                        if viewModel.userEmail.isEmpty || viewModel.userEmail.contains("privaterelay.appleid.com") {
+                            // Apple 登入用戶可以自行輸入 email
+                            TextField(NSLocalizedString("feedback.contact_email_placeholder", comment: "Default: "), text: $viewModel.contactEmail)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                        } else {
+                            // 一般用戶顯示帳號 email，也可編輯
+                            TextField(viewModel.userEmail, text: $viewModel.contactEmail)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                        }
+                    }
                 }
 
                 // Images
@@ -254,6 +276,16 @@ struct FeedbackReportView: View {
             }
             .navigationTitle(NSLocalizedString("feedback.title", comment: "Feedback"))
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // 如果 userEmail 為空或是 Apple 匿名信箱，預設開啟隱藏
+                if viewModel.userEmail.isEmpty || viewModel.userEmail.contains("privaterelay.appleid.com") {
+                    viewModel.hideEmail = true
+                    viewModel.contactEmail = ""
+                } else {
+                    viewModel.hideEmail = false
+                    viewModel.contactEmail = viewModel.userEmail
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(NSLocalizedString("common.cancel", comment: "Cancel")) {

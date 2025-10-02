@@ -1117,7 +1117,6 @@
 "feedback.type.issue" = "問題";
 "feedback.type.suggestion" = "建議";
 "feedback.category" = "問題分類";
-"feedback.category.uncategorized" = "不分類";
 "feedback.category.weekly_plan_failed" = "週課表無法產生";
 "feedback.category.weekly_summary_failed" = "週回顧無法產生";
 "feedback.category.training_overview_failed" = "訓練概覽無法產生";
@@ -1125,8 +1124,9 @@
 "feedback.description" = "描述";
 "feedback.description_hint" = "請詳細描述您遇到的問題或建議";
 "feedback.contact_email" = "聯絡信箱";
-"feedback.contact_email_hint" = "選填。我們會使用此信箱與您聯繫。";
-"feedback.contact_email_placeholder" = "your@email.com";
+"feedback.contact_email_hint" = "可選填您的聯絡信箱，以便我們回覆您的問題。";
+"feedback.contact_email_placeholder" = "選填信箱";
+"feedback.hide_email" = "不提供信箱";
 "feedback.attachments" = "附件";
 "feedback.attachments_hint" = "選填。每張圖片最大 5MB。";
 "feedback.add_image" = "新增圖片";

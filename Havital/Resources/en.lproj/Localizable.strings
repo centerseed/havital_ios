@@ -1098,7 +1098,6 @@
 "feedback.type.issue" = "Issue";
 "feedback.type.suggestion" = "Suggestion";
 "feedback.category" = "Category";
-"feedback.category.uncategorized" = "Uncategorized";
 "feedback.category.weekly_plan_failed" = "Weekly Plan Generation Failed";
 "feedback.category.weekly_summary_failed" = "Weekly Summary Generation Failed";
 "feedback.category.training_overview_failed" = "Training Overview Generation Failed";
@@ -1106,8 +1105,9 @@
 "feedback.description" = "Description";
 "feedback.description_hint" = "Please describe the issue or suggestion in detail";
 "feedback.contact_email" = "Contact Email";
-"feedback.contact_email_hint" = "Optional. We'll use this to follow up with you.";
-"feedback.contact_email_placeholder" = "your@email.com";
+"feedback.contact_email_hint" = "Optional. Provide your contact email so we can follow up with you.";
+"feedback.contact_email_placeholder" = "Optional email";
+"feedback.hide_email" = "Don't provide email";
 "feedback.attachments" = "Attachments";
 "feedback.attachments_hint" = "Optional. Maximum 5MB per image.";
 "feedback.add_image" = "Add Image";

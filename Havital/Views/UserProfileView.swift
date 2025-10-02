@@ -32,226 +32,16 @@ struct UserProfileView: View {
     
     var body: some View {
         List {
-            // Profile Section
-            Section {
-                if viewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView(NSLocalizedString("common.loading", comment: "Loading..."))
-                        Spacer()
-                    }
-                } else if let userData = viewModel.userData {
-                    profileHeader(userData)
-                } else if let error = viewModel.error {
-                    errorView(error)
-                }
-            }
-            
-            // 新增週跑量區塊 - 放在最前面的重要位置
-            if let userData = viewModel.userData {
-                Section(header: Text(NSLocalizedString("profile.training_info", comment: "Training Info"))) {
-                    // 週跑量資訊與編輯按鈕
-                    HStack {
-                        Label(NSLocalizedString("profile.weekly_mileage", comment: "Weekly Mileage"), systemImage: "figure.walk")
-                            .foregroundColor(.blue)
-                        Spacer()
-                        Text("\(userData.currentWeekDistance ?? 0) \(NSLocalizedString("unit.km", comment: "km"))")
-                            .fontWeight(.medium)
-                    }
-                    
-                    // 編輯週跑量按鈕
-                    Button(action: {
-                        // 將字串轉換為 Double
-                        currentWeekDistance = Int(userData.currentWeekDistance ?? 0)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            weeklyDistance = Int(userData.currentWeekDistance ?? 0)
-                            showWeeklyDistanceEditor = true
-                        }
-                    }) {
-                        HStack {
-                            Text(NSLocalizedString("training.edit_volume", comment: "Edit Weekly Volume"))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                        }
-                    }
-                }
-            }
-            
-            // 數據來源設定區塊
+            profileSection
+            weeklyDistanceSection
             dataSourceSection
-            
-            // Heart Rate Zones Section
-            if let userData = viewModel.userData {
-                Section(header: Text(NSLocalizedString("profile.heart_rate_info", comment: "Heart Rate Info"))) {
-                    // Display basic heart rate info
-                    HStack {
-                        Label(NSLocalizedString("profile.max_hr", comment: "Max Heart Rate"), systemImage: "heart.fill")
-                            .foregroundColor(.red)
-                        Spacer()
-                        Text(viewModel.formatHeartRate(userData.maxHr))
-                            .fontWeight(.medium)
-                    }
-                    
-                    HStack {
-                        Label(NSLocalizedString("profile.resting_hr", comment: "Resting Heart Rate"), systemImage: "heart")
-                            .foregroundColor(.blue)
-                        Spacer()
-                        Text(viewModel.formatHeartRate(userData.relaxingHr))
-                            .fontWeight(.medium)
-                    }
-                    
-                    // Heart Rate Zone Info Button
-                    Button(action: {
-                        showZoneEditor = true
-                    }) {
-                        HStack {
-                            Text(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone") + " " + NSLocalizedString("record.view_details", comment: "View Details"))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                        }
-                    }
-                    
-                    // Heart Rate Zones
-                    if viewModel.isLoadingZones {
-                        HStack {
-                            Spacer()
-                            ProgressView(NSLocalizedString("common.loading", comment: "Loading..."))
-                            Spacer()
-                        }
-                    } else {
-                        heartRateZonesView
-                    }
-                }
-                
-                // Training Days Section - More Compact
-                Section(header: Text(NSLocalizedString("onboarding.training_days", comment: "Training Days"))) {
-                    trainingDaysView(userData)
-                    // 編輯訓練日按鈕 (與編輯週跑量一致)
-                    Button(action: { showTrainingDaysEditor = true }) {
-                        HStack {
-                            Text(NSLocalizedString("training.edit_days", comment: "Edit Training Days"))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                        }
-                    }
-                }
-            }
-            
-            // Settings Section
-            Section(header: Text(NSLocalizedString("settings.title", comment: "Settings"))) {
-                // Language Settings
-                Button(action: {
-                    showLanguageSettings = true
-                }) {
-                    HStack {
-                        Image(systemName: "globe")
-                        Text(NSLocalizedString("settings.language", comment: "Language"))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                }
-
-                // Feedback Report
-                Button(action: {
-                    showFeedbackReport = true
-                }) {
-                    HStack {
-                        Image(systemName: "exclamationmark.bubble")
-                        Text(NSLocalizedString("feedback.title", comment: "Feedback"))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                }
-            }
-            
-            // Logout Section
-            Section {
-                // 在登出按鈕上方加入重新 OnBoarding 按鈕
-                Button(action: {
-                    showOnboardingConfirmation = true
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text(NSLocalizedString("profile.reset_goal", comment: "Reset Goal"))
-                    }
-                }
-                
-                Button(role: .destructive) {
-                    Task {
-                        do {
-                            try await AuthenticationService.shared.signOut()
-                        dismiss()
-                    } catch {
-                        print("登出失敗: \(error)")
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text(NSLocalizedString("common.logout", comment: "Log Out"))
-                    }
-                }
-            }
-            
-            // App Version Section
-            Section {
-                HStack {
-                    Spacer()
-                    Text(NSLocalizedString("settings.version", comment: "Version") + " \(appVersion)")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                
-                // 刪除帳戶按鈕
-                Button(role: .destructive) {
-                    showDeleteAccountConfirmation = true
-                } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text(NSLocalizedString("settings.delete_account", comment: "Delete Account"))
-                        if isDeletingAccount {
-                            Spacer()
-                            ProgressView()
-                                .padding(.leading, 8)
-                        }
-                    }
-                }
-                .disabled(isDeletingAccount)
-            }
-
-            // 開發者測試區（僅 Debug 模式）
+            heartRateSection
+            trainingDaysSection
+            settingsSection
+            logoutSection
+            appVersionSection
             #if DEBUG
-            Section(header: Text("🧪 開發者測試")) {
-                Button {
-                    AppRatingManager.shared.forceShowPrompt()
-                } label: {
-                    HStack {
-                        Image(systemName: "star.circle")
-                        Text("測試評分提示")
-                    }
-                }
-
-                Button {
-                    AppRatingManager.shared.clearLocalRatingCache()
-                } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text("清除評分快取")
-                    }
-                }
-                .foregroundColor(.orange)
-            }
+            developerSection
             #endif
         }
         .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
@@ -403,7 +193,237 @@ struct UserProfileView: View {
         }
         .padding(.vertical)
     }
-    
+
+    // MARK: - Section Computed Properties
+
+    @ViewBuilder
+    private var profileSection: some View {
+        Section {
+            if viewModel.isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView(NSLocalizedString("common.loading", comment: "Loading..."))
+                    Spacer()
+                }
+            } else if let userData = viewModel.userData {
+                profileHeader(userData)
+            } else if let error = viewModel.error {
+                errorView(error)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var weeklyDistanceSection: some View {
+        if let userData = viewModel.userData {
+            Section(header: Text(NSLocalizedString("profile.training_info", comment: "Training Info"))) {
+                HStack {
+                    Label(NSLocalizedString("profile.weekly_mileage", comment: "Weekly Mileage"), systemImage: "figure.walk")
+                        .foregroundColor(.blue)
+                    Spacer()
+                    Text("\(userData.currentWeekDistance ?? 0) \(NSLocalizedString("unit.km", comment: "km"))")
+                        .fontWeight(.medium)
+                }
+
+                Button(action: {
+                    currentWeekDistance = Int(userData.currentWeekDistance ?? 0)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        weeklyDistance = Int(userData.currentWeekDistance ?? 0)
+                        showWeeklyDistanceEditor = true
+                    }
+                }) {
+                    HStack {
+                        Text(NSLocalizedString("training.edit_volume", comment: "Edit Weekly Volume"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var heartRateSection: some View {
+        if let userData = viewModel.userData {
+            Section(header: Text(NSLocalizedString("profile.heart_rate_info", comment: "Heart Rate Info"))) {
+                HStack {
+                    Label(NSLocalizedString("profile.max_hr", comment: "Max Heart Rate"), systemImage: "heart.fill")
+                        .foregroundColor(.red)
+                    Spacer()
+                    Text(viewModel.formatHeartRate(userData.maxHr))
+                        .fontWeight(.medium)
+                }
+
+                HStack {
+                    Label(NSLocalizedString("profile.resting_hr", comment: "Resting Heart Rate"), systemImage: "heart")
+                        .foregroundColor(.blue)
+                    Spacer()
+                    Text(viewModel.formatHeartRate(userData.relaxingHr))
+                        .fontWeight(.medium)
+                }
+
+                Button(action: {
+                    showZoneEditor = true
+                }) {
+                    HStack {
+                        Text(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone") + " " + NSLocalizedString("record.view_details", comment: "View Details"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+
+                if viewModel.isLoadingZones {
+                    HStack {
+                        Spacer()
+                        ProgressView(NSLocalizedString("common.loading", comment: "Loading..."))
+                        Spacer()
+                    }
+                } else {
+                    heartRateZonesView
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trainingDaysSection: some View {
+        if let userData = viewModel.userData {
+            Section(header: Text(NSLocalizedString("onboarding.training_days", comment: "Training Days"))) {
+                trainingDaysView(userData)
+                Button(action: { showTrainingDaysEditor = true }) {
+                    HStack {
+                        Text(NSLocalizedString("training.edit_days", comment: "Edit Training Days"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var settingsSection: some View {
+        Section(header: Text(NSLocalizedString("settings.title", comment: "Settings"))) {
+            Button(action: {
+                showLanguageSettings = true
+            }) {
+                HStack {
+                    Image(systemName: "globe")
+                    Text(NSLocalizedString("settings.language", comment: "Language"))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+
+            Button(action: {
+                showFeedbackReport = true
+            }) {
+                HStack {
+                    Image(systemName: "exclamationmark.bubble")
+                    Text(NSLocalizedString("feedback.title", comment: "Feedback"))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var logoutSection: some View {
+        Section {
+            Button(action: {
+                showOnboardingConfirmation = true
+            }) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text(NSLocalizedString("profile.reset_goal", comment: "Reset Goal"))
+                }
+            }
+
+            Button(role: .destructive) {
+                Task {
+                    do {
+                        try await AuthenticationService.shared.signOut()
+                        dismiss()
+                    } catch {
+                        print("登出失敗: \(error)")
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    Text(NSLocalizedString("common.logout", comment: "Log Out"))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var appVersionSection: some View {
+        Section {
+            HStack {
+                Spacer()
+                Text(NSLocalizedString("settings.version", comment: "Version") + " \(appVersion)")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+
+            Button(role: .destructive) {
+                showDeleteAccountConfirmation = true
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text(NSLocalizedString("settings.delete_account", comment: "Delete Account"))
+                    if isDeletingAccount {
+                        Spacer()
+                        ProgressView()
+                            .padding(.leading, 8)
+                    }
+                }
+            }
+            .disabled(isDeletingAccount)
+        }
+    }
+
+    #if DEBUG
+    @ViewBuilder
+    private var developerSection: some View {
+        Section(header: Text("🧪 開發者測試")) {
+            Button {
+                Task {
+                    await AppRatingManager.shared.forceShowRating()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "star.circle")
+                    Text("測試評分提示")
+                }
+            }
+
+            Button {
+                AppRatingManager.shared.clearLocalRatingCache()
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text("清除評分快取")
+                }
+            }
+            .foregroundColor(.orange)
+        }
+    }
+    #endif
+
     private var heartRateZonesView: some View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(viewModel.heartRateZones, id: \.zone) { zone in

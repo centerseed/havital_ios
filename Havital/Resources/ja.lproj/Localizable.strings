@@ -1098,7 +1098,6 @@
 "feedback.type.issue" = "問題";
 "feedback.type.suggestion" = "提案";
 "feedback.category" = "カテゴリー";
-"feedback.category.uncategorized" = "未分類";
 "feedback.category.weekly_plan_failed" = "週間プラン生成失敗";
 "feedback.category.weekly_summary_failed" = "週間サマリー生成失敗";
 "feedback.category.training_overview_failed" = "トレーニング概要生成失敗";
@@ -1106,8 +1105,9 @@
 "feedback.description" = "説明";
 "feedback.description_hint" = "問題または提案の詳細を記述してください";
 "feedback.contact_email" = "連絡先メール";
-"feedback.contact_email_hint" = "オプション。フォローアップのために使用します。";
-"feedback.contact_email_placeholder" = "your@email.com";
+"feedback.contact_email_hint" = "任意。フォローアップのために連絡先メールを提供してください。";
+"feedback.contact_email_placeholder" = "任意メール";
+"feedback.hide_email" = "メールを提供しない";
 "feedback.attachments" = "添付ファイル";
 "feedback.attachments_hint" = "オプション。画像1枚あたり最大5MB。";
 "feedback.add_image" = "画像を追加";
