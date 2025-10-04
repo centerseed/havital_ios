@@ -1223,19 +1223,6 @@ class HealthKitManager: ObservableObject, TaskManageable {
             print("🔍 [LapData] 開始計算累積偏移 - 初始值: \(cumulativeOffset)秒")
 
             for (index, event) in sortedEvents.enumerated() {
-                let lapNumber = index + 1
-
-                // 使用累積偏移作為該圈的開始時間
-                let startTimeOffset = cumulativeOffset
-                let duration = event.dateInterval.duration
-
-                print("🔍 [LapData] 第 \(lapNumber) 圈 BEFORE - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒, 本圈時長: \(String(format: "%.0f", duration))秒")
-
-                // 更新累積偏移，為下一圈做準備
-                cumulativeOffset += duration
-
-                print("🔍 [LapData] 第 \(lapNumber) 圈 AFTER  - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒")
-
                 // 嘗試從 metadata 獲取距離資訊
                 var distance: Double? = nil
                 var metadata: [String: String]? = nil
@@ -1263,12 +1250,27 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     }
                 }
 
-                // 計算平均配速（如果有距離）
-                var averagePace: Double? = nil
-                if let lapDistance = distance, lapDistance > 0 {
-                    // 配速 = 時間（秒）/ 距離（公里）
-                    averagePace = duration / (lapDistance / 1000.0)
+                // 🚨 只處理有距離資訊的事件
+                guard let lapDistance = distance, lapDistance > 0 else {
+                    print("⏭️ [LapData] 跳過第 \(index + 1) 個事件 - 無距離資訊")
+                    continue
                 }
+
+                let lapNumber = laps.count + 1  // 使用實際加入的圈數
+                let duration = event.dateInterval.duration
+
+                // 使用累積偏移作為該圈的開始時間
+                let startTimeOffset = cumulativeOffset
+
+                print("🔍 [LapData] 第 \(lapNumber) 圈 BEFORE - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒, 本圈時長: \(String(format: "%.0f", duration))秒")
+
+                // 更新累積偏移，為下一圈做準備
+                cumulativeOffset += duration
+
+                print("🔍 [LapData] 第 \(lapNumber) 圈 AFTER  - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒")
+
+                // 計算平均配速
+                let averagePace = duration / (lapDistance / 1000.0)
 
                 // 確定分圈類型
                 let lapType: String
@@ -1295,7 +1297,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     lapNumber: lapNumber,
                     startTimeOffset: startTimeOffset,  // 使用相對偏移而非絕對時間
                     duration: duration,
-                    distance: distance,
+                    distance: lapDistance,
                     averagePace: averagePace,
                     averageHeartRate: averageHeartRate,
                     type: lapType,
@@ -1304,7 +1306,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
                 laps.append(lapData)
 
-                print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 持續: \(String(format: "%.0f", duration))秒, 距離: \(distance?.description ?? "N/A")米, 配速: \(averagePace?.description ?? "N/A")秒/公里, 心率: \(averageHeartRate?.description ?? "N/A")bpm")
+                print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 持續: \(String(format: "%.0f", duration))秒, 距離: \(lapDistance)米, 配速: \(String(format: "%.0f", averagePace))秒/公里, 心率: \(averageHeartRate?.description ?? "N/A")bpm")
             }
 
             print("✅ [LapData] 成功提取 \(laps.count) 圈資料")
