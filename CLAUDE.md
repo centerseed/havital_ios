@@ -1,7 +1,9 @@
-# Havital iOS App
+# Paceriz iOS App
 
 ## Project Overview
-A fitness tracking application supporting Apple Health and Garmin Connect integration with comprehensive training plan management.
+Paceriz is a fitness tracking application supporting Apple Health and Garmin Connect integration with comprehensive training plan management.
+
+**Important**: Product name is **Paceriz**, while technical identifiers (Bundle ID, Background Task IDs) remain as `com.havital.*` for App Store continuity.
 
 ## Project Structure
 - `Havital/Managers/` - Core business logic (UserManager, UnifiedWorkoutManager, etc.)
@@ -9,6 +11,8 @@ A fitness tracking application supporting Apple Health and Garmin Connect integr
 - `Havital/Services/` - API communication layer
 - `Havital/Views/` - SwiftUI views organized by feature
 - `Havital/Storage/` - Local data persistence and caching
+
+**Note**: Directory names remain as `Havital` for technical reasons, but all user-facing content uses **Paceriz**.
 
 ## Core Architecture Principles
 
