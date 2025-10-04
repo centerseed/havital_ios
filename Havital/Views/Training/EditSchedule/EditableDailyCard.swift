@@ -149,7 +149,8 @@ struct EditableDailyCard: View {
         .sheet(isPresented: $showingEditSheet) {
             TrainingEditSheet(
                 day: day,
-                onSave: onEdit
+                onSave: onEdit,
+                viewModel: viewModel
             )
         }
         .alert("無法編輯", isPresented: $showingInfoAlert) {
@@ -166,45 +167,61 @@ struct EditableDailyCard: View {
     private func updateTrainingType(_ newType: DayType) {
         var updatedDay = day
         updatedDay.trainingType = newType.rawValue
-        
-        // 根據訓練類型重置訓練詳情
+
+        // 從 ViewModel 獲取當前 VDOT 並計算建議配速
+        let vdot = viewModel.currentVDOT ?? PaceCalculator.defaultVDOT
+
+        // 根據訓練類型重置訓練詳情，並使用 PaceCalculator 計算配速
         switch newType {
         case .rest:
             updatedDay.trainingDetails = nil
+
         case .easyRun, .recovery_run:
+            let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "6:00"
             updatedDay.trainingDetails = MutableTrainingDetails(
                 distanceKm: 5.0,
-                pace: "6:00"
+                pace: suggestedPace
             )
+
         case .tempo, .threshold:
+            let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
             updatedDay.trainingDetails = MutableTrainingDetails(
                 distanceKm: 8.0,
-                pace: "5:00"
+                pace: suggestedPace
             )
+
         case .interval:
+            let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:30"
+            let recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "6:00"
             updatedDay.trainingDetails = MutableTrainingDetails(
-                work: MutableWorkoutSegment(distanceKm: 0.4, pace: "4:30"),
-                recovery: MutableWorkoutSegment(pace: "6:00"),
+                work: MutableWorkoutSegment(distanceKm: 0.4, pace: intervalPace),
+                recovery: MutableWorkoutSegment(pace: recoveryPace),
                 repeats: 4
             )
+
         case .longRun:
+            let marathonPace = PaceCalculator.getSuggestedPace(for: "marathon", vdot: vdot) ?? "6:30"
             updatedDay.trainingDetails = MutableTrainingDetails(
                 distanceKm: 15.0,
-                pace: "6:30"
+                pace: marathonPace
             )
+
         case .combination:
+            let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
+            let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
             updatedDay.trainingDetails = MutableTrainingDetails(
                 totalDistanceKm: 10.0,
                 segments: [
-                    MutableProgressionSegment(distanceKm: 3.0, pace: "6:00", description: "輕鬆跑"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: "5:30", description: "節奏跑"),
-                    MutableProgressionSegment(distanceKm: 2.0, pace: "6:30", description: "輕鬆跑")
+                    MutableProgressionSegment(distanceKm: 3.0, pace: easyPace, description: "輕鬆跑"),
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑"),
+                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "輕鬆跑")
                 ]
             )
+
         default:
             updatedDay.trainingDetails = MutableTrainingDetails(distanceKm: 6.0)
         }
-        
+
         onEdit(updatedDay)
     }
 }
@@ -877,9 +894,10 @@ struct CombinationSegmentEditView: View {
 struct TrainingEditSheet: View {
     let day: MutableTrainingDay
     let onSave: (MutableTrainingDay) -> Void
+    let viewModel: TrainingPlanViewModel
 
     var body: some View {
-        TrainingDetailEditor(day: day, onSave: onSave)
+        TrainingDetailEditor(day: day, onSave: onSave, viewModel: viewModel)
     }
 }
 

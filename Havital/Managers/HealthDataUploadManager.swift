@@ -436,12 +436,7 @@ class HealthDataUploadManager: ObservableObject, TaskManageable, Cacheable {
                 let startOfDay = Calendar.current.startOfDay(for: date)
                 let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) ?? date
 
-                print("🔍 [HealthDataUploadManager] 開始獲取 HRV 數據:")
-                print("   - 查詢範圍: \(startOfDay) ~ \(endOfDay)")
-
                 let hrvDataPoints = try await healthKitManager.fetchHRVData(start: startOfDay, end: endOfDay)
-                print("🔍 [HealthDataUploadManager] HRV 查詢結果:")
-                print("   - 原始數據點數量: \(hrvDataPoints.count)")
 
                 if !hrvDataPoints.isEmpty {
                     let values = hrvDataPoints.map { $0.1 }

@@ -965,3 +965,44 @@ enum SupportedLanguage: String, CaseIterable {
         return SupportedLanguage(rawValue: preferredLanguage) ?? .traditionalChinese
     }
 }
+
+// MARK: - Feedback
+
+extension L10n {
+    enum Feedback {
+        static let title = "feedback.title"
+        static let type = "feedback.type"
+        static let category = "feedback.category"
+        static let description = "feedback.description"
+        static let descriptionHint = "feedback.description_hint"
+        static let contactEmail = "feedback.contact_email"
+        static let contactEmailHint = "feedback.contact_email_hint"
+        static let contactEmailPlaceholder = "feedback.contact_email_placeholder"
+        static let attachments = "feedback.attachments"
+        static let attachmentsHint = "feedback.attachments_hint"
+        static let addImage = "feedback.add_image"
+        static let systemInfo = "feedback.system_info"
+        static let userEmail = "feedback.user_email"
+        static let appVersion = "feedback.app_version"
+        static let deviceInfo = "feedback.device_info"
+        static let successTitle = "feedback.success_title"
+        static let successMessage = "feedback.success_message"
+
+        enum FeedbackType {
+            static let issue = "feedback.type.issue"
+            static let suggestion = "feedback.type.suggestion"
+        }
+
+        enum Category {
+            static let uncategorized = "feedback.category.uncategorized"
+            static let weeklyPlanFailed = "feedback.category.weekly_plan_failed"
+            static let weeklySummaryFailed = "feedback.category.weekly_summary_failed"
+            static let trainingOverviewFailed = "feedback.category.training_overview_failed"
+            static let other = "feedback.category.other"
+        }
+
+        enum Error {
+            static let descriptionRequired = "feedback.error.description_required"
+        }
+    }
+}

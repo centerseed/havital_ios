@@ -1091,3 +1091,31 @@
 "rating.success.subtitle" = "Your rating means a lot to us";
 "rating.success.share" = "Share Paceriz";
 "rating.success.done" = "Done";
+
+// MARK: - Feedback
+"feedback.title" = "Feedback";
+"feedback.type" = "Type";
+"feedback.type.issue" = "Issue";
+"feedback.type.suggestion" = "Suggestion";
+"feedback.category" = "Category";
+"feedback.category.weekly_plan_failed" = "Weekly Plan Generation Failed";
+"feedback.category.weekly_summary_failed" = "Weekly Summary Generation Failed";
+"feedback.category.training_overview_failed" = "Training Overview Generation Failed";
+"feedback.category.other" = "Other";
+"feedback.description" = "Description";
+"feedback.description_hint" = "Please describe the issue or suggestion in detail";
+"feedback.contact_email" = "Contact Email";
+"feedback.contact_email_hint" = "Optional. Provide your contact email so we can follow up with you.";
+"feedback.contact_email_placeholder" = "Optional email";
+"feedback.hide_email" = "Don't provide email";
+"feedback.attachments" = "Attachments";
+"feedback.attachments_hint" = "Optional. Maximum 5MB per image.";
+"feedback.add_image" = "Add Image";
+"feedback.system_info" = "System Info";
+"feedback.user_email" = "User Email";
+"feedback.app_version" = "App Version";
+"feedback.device_info" = "Device Info";
+"feedback.error.description_required" = "Description is required";
+"feedback.success_title" = "Success";
+"feedback.success_message" = "Thank you for your feedback!";
+"common.submit" = "Submit";

@@ -1110,3 +1110,31 @@
 "rating.success.subtitle" = "您的評價對我們來說意義重大";
 "rating.success.share" = "分享 Paceriz";
 "rating.success.done" = "完成";
+
+// MARK: - Feedback
+"feedback.title" = "問題回報";
+"feedback.type" = "類型";
+"feedback.type.issue" = "問題";
+"feedback.type.suggestion" = "建議";
+"feedback.category" = "問題分類";
+"feedback.category.weekly_plan_failed" = "週課表無法產生";
+"feedback.category.weekly_summary_failed" = "週回顧無法產生";
+"feedback.category.training_overview_failed" = "訓練概覽無法產生";
+"feedback.category.other" = "其他";
+"feedback.description" = "描述";
+"feedback.description_hint" = "請詳細描述您遇到的問題或建議";
+"feedback.contact_email" = "聯絡信箱";
+"feedback.contact_email_hint" = "可選填您的聯絡信箱，以便我們回覆您的問題。";
+"feedback.contact_email_placeholder" = "選填信箱";
+"feedback.hide_email" = "不提供信箱";
+"feedback.attachments" = "附件";
+"feedback.attachments_hint" = "選填。每張圖片最大 5MB。";
+"feedback.add_image" = "新增圖片";
+"feedback.system_info" = "系統資訊";
+"feedback.user_email" = "用戶信箱";
+"feedback.app_version" = "App 版本";
+"feedback.device_info" = "裝置資訊";
+"feedback.error.description_required" = "請輸入描述內容";
+"feedback.success_title" = "提交成功";
+"feedback.success_message" = "感謝您的回報！";
+"common.submit" = "提交";
