@@ -435,32 +435,223 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                 lastError: nil
             )
         }
-        
-        // 實現實際的上傳邏輯
-        // 這裡應該調用 API 上傳數據
-        
-        await MainActor.run {
-            self.uploadStatus = HealthDataUploadStatus(
-                isUploading: false,
-                uploadProgress: 1.0,
-                lastUploadDate: Date(),
-                pendingUploadCount: 0,
-                failedUploadCount: 0,
-                lastError: nil
+
+        do {
+            // 從 HealthKit 獲取最近 7 天的數據
+            let healthData = await collectHealthDataForUpload(days: 7)
+
+            // 上傳到雲端
+            try await service.uploadHealthData(healthData)
+
+            await MainActor.run {
+                self.uploadStatus = HealthDataUploadStatus(
+                    isUploading: false,
+                    uploadProgress: 1.0,
+                    lastUploadDate: Date(),
+                    pendingUploadCount: 0,
+                    failedUploadCount: 0,
+                    lastError: nil
+                )
+            }
+
+            Logger.firebase(
+                "健康數據上傳成功",
+                level: .info,
+                labels: ["module": "HealthDataUploadManagerV2", "action": "upload_pending_data"],
+                jsonPayload: ["data_points": healthData.count]
+            )
+
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                Logger.debug("上傳任務被取消，忽略錯誤")
+                return
+            }
+
+            await MainActor.run {
+                self.uploadStatus = HealthDataUploadStatus(
+                    isUploading: false,
+                    uploadProgress: 0.0,
+                    lastUploadDate: self.uploadStatus.lastUploadDate,
+                    pendingUploadCount: self.uploadStatus.pendingUploadCount,
+                    failedUploadCount: self.uploadStatus.failedUploadCount + 1,
+                    lastError: error.localizedDescription
+                )
+            }
+
+            Logger.firebase(
+                "健康數據上傳失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: ["module": "HealthDataUploadManagerV2", "action": "upload_pending_data"]
             )
         }
-        
+
         // 保存上傳狀態
         saveUploadStatus()
     }
     
     private func performUploadRecentData() async {
-        // 實現最近數據上傳邏輯
-        await performUploadPendingData()
+        await MainActor.run {
+            self.uploadStatus = HealthDataUploadStatus(
+                isUploading: true,
+                uploadProgress: 0.0,
+                lastUploadDate: self.uploadStatus.lastUploadDate,
+                pendingUploadCount: self.uploadStatus.pendingUploadCount,
+                failedUploadCount: self.uploadStatus.failedUploadCount,
+                lastError: nil
+            )
+        }
+
+        do {
+            // 只上傳最近 1 天的數據（用於實時更新）
+            let healthData = await collectHealthDataForUpload(days: 1)
+
+            // 上傳到雲端
+            try await service.uploadHealthData(healthData)
+
+            await MainActor.run {
+                self.uploadStatus = HealthDataUploadStatus(
+                    isUploading: false,
+                    uploadProgress: 1.0,
+                    lastUploadDate: Date(),
+                    pendingUploadCount: 0,
+                    failedUploadCount: 0,
+                    lastError: nil
+                )
+            }
+
+            Logger.firebase(
+                "最近健康數據上傳成功",
+                level: .info,
+                labels: ["module": "HealthDataUploadManagerV2", "action": "upload_recent_data"],
+                jsonPayload: ["data_points": healthData.count]
+            )
+
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                Logger.debug("上傳任務被取消，忽略錯誤")
+                return
+            }
+
+            await MainActor.run {
+                self.uploadStatus = HealthDataUploadStatus(
+                    isUploading: false,
+                    uploadProgress: 0.0,
+                    lastUploadDate: self.uploadStatus.lastUploadDate,
+                    pendingUploadCount: self.uploadStatus.pendingUploadCount,
+                    failedUploadCount: self.uploadStatus.failedUploadCount + 1,
+                    lastError: error.localizedDescription
+                )
+            }
+
+            Logger.firebase(
+                "最近健康數據上傳失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: ["module": "HealthDataUploadManagerV2", "action": "upload_recent_data"]
+            )
+        }
+
+        // 保存上傳狀態
+        saveUploadStatus()
     }
     
+    // MARK: - Data Collection for Upload
+
+    /// 從 HealthKit 收集健康數據並格式化為上傳格式
+    private func collectHealthDataForUpload(days: Int) async -> [String: Any] {
+        let endDate = Date()
+        let startDate = Calendar.current.date(byAdding: .day, value: -days, to: endDate) ?? endDate
+
+        // 收集各種健康數據
+        async let hrvData = healthKitManager.fetchHRVData(start: startDate, end: endDate)
+        async let restingHR = healthKitManager.fetchRestingHeartRate()
+
+        do {
+            let hrv = try await hrvData
+            let rhr = await restingHR
+
+            // 將 HRV 數據按日期分組
+            let groupedHRV = Dictionary(grouping: hrv) { record in
+                Calendar.current.startOfDay(for: record.0).timeIntervalSince1970
+            }
+
+            // 構建上傳數據結構
+            var healthRecords: [[String: Any]] = []
+
+            // 處理 HRV 數據
+            for (dateInterval, values) in groupedHRV {
+                let date = Date(timeIntervalSince1970: dateInterval)
+                let avgHRV = values.map { $0.1 }.reduce(0, +) / Double(values.count)
+                let dateString = ISO8601DateFormatter().string(from: date)
+
+                var record: [String: Any] = [
+                    "date": dateString,
+                    "hrv_last_night_avg": avgHRV
+                ]
+
+                // 如果是今天的數據，添加靜息心率
+                if Calendar.current.isDateInToday(date) && rhr > 0 {
+                    record["resting_heart_rate"] = Int(rhr)
+                }
+
+                healthRecords.append(record)
+            }
+
+            // 如果有靜息心率但沒有今天的 HRV 數據，單獨添加靜息心率記錄
+            if rhr > 0 {
+                let todayHasHRV = groupedHRV.keys.contains { interval in
+                    let date = Date(timeIntervalSince1970: interval)
+                    return Calendar.current.isDateInToday(date)
+                }
+
+                if !todayHasHRV {
+                    let today = Calendar.current.startOfDay(for: Date())
+                    let dateString = ISO8601DateFormatter().string(from: today)
+
+                    healthRecords.append([
+                        "date": dateString,
+                        "resting_heart_rate": Int(rhr)
+                    ])
+                }
+            }
+
+            Logger.firebase(
+                "收集健康數據完成",
+                level: .info,
+                labels: ["module": "HealthDataUploadManagerV2", "action": "collect_health_data"],
+                jsonPayload: [
+                    "days": days,
+                    "hrv_points": hrv.count,
+                    "records_count": healthRecords.count,
+                    "has_resting_hr": rhr > 0
+                ]
+            )
+
+            return [
+                "health_data": healthRecords,
+                "data_source": "apple_health",
+                "upload_time": ISO8601DateFormatter().string(from: Date())
+            ]
+
+        } catch {
+            Logger.firebase(
+                "收集健康數據失敗: \(error.localizedDescription)",
+                level: .error,
+                labels: ["module": "HealthDataUploadManagerV2", "action": "collect_health_data"]
+            )
+
+            // 返回空數據
+            return [
+                "health_data": [],
+                "data_source": "apple_health",
+                "upload_time": ISO8601DateFormatter().string(from: Date())
+            ]
+        }
+    }
+
     // MARK: - Background Tasks
-    
+
     private func enableBackgroundSync() async {
         // 註冊背景任務
         let identifier = "com.havital.healthdata.sync"
