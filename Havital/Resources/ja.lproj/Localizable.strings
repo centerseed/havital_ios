@@ -261,6 +261,7 @@
 "training.plan_title" = "トレーニング計画";
 "training.weekly_plan" = "週間計画";
 "training.daily_training" = "日々のトレーニング";
+"training.design_reason" = "今週のトレーニング計画設計理由";
 "training.weekly_volume" = "週間走行距離";
 "training.training_review" = "トレーニングレビュー";
 "training.generate_plan" = "スケジュール作成";
@@ -342,6 +343,17 @@
 "training.type.yoga" = "ヨガ";
 "training.type.cycling" = "サイクリング";
 "training.type.rest_day" = "休息日";
+
+// MARK: - Training Descriptions
+"training.descriptions.distance_training" = "快適なペースでトレーニング";
+"training.descriptions.easy_run" = "会話できるペースでイージーラン";
+"training.descriptions.tempo_run" = "安定したペースでテンポラン";
+"training.descriptions.interval_training" = "高強度と回復を交互に行うインターバル";
+"training.descriptions.long_run" = "持久力を構築するロングラン";
+"training.descriptions.recovery_run" = "回復を促進するリカバリーラン";
+"training.descriptions.threshold_run" = "乳酸閾値強度で走る閾値ラン";
+"training.descriptions.progression_run" = "徐々にペースを上げるプログレッションラン";
+"training.descriptions.combination_training" = "複数のトレーニングタイプを組み合わせ";
 
 // MARK: - Heart Rate Zones
 "training.zone.anaerobic" = "無酸素";
@@ -933,6 +945,54 @@
 "training_plan.cycle_completed" = "トレーニングサイクル完了";
 "training_plan.congratulations" = "このトレーニングサイクルの完了おめでとうございます！";
 "training_plan.loading_schedule" = "スケジュールを読み込み中...";
+
+// MARK: - Training Type Info
+"training_type_info.how_to_run_title" = "走り方";
+"training_type_info.why_run_title" = "なぜ走るのか";
+"training_type_info.logic_title" = "トレーニングロジック";
+"training_type_info.role_title" = "週間スケジュールでの役割";
+
+// Recovery Run
+"training_type_info.recovery_run.title" = "リカバリーラン";
+"training_type_info.recovery_run.how_to_run" = "最もリラックスしたランニング方法。ゆっくりでも大丈夫—「良いデータ」より「体の快適さ」に焦点を当てましょう。";
+"training_type_info.recovery_run.why_run" = "リカバリーランはアクティブリカバリーの一部です。速すぎると修復を妨げ、遅すぎると効果がない—重要なのは「酸素を含んだ血液を疲れた筋肉に流すこと」です。";
+"training_type_info.recovery_run.logic" = "非常に低強度の有酸素トレーニング（<65% HRmax）、乳酸の除去を助け、代謝と神経系の回復を促進します。静的休息と比較して、次のセッションの準備が早くなります。";
+"training_type_info.recovery_run.role" = "通常、高強度ワークアウトやロングランの翌日にスケジュールされ、トレーニング結果を「吸収」するための鍵となります。";
+
+// Tempo Run
+"training_type_info.tempo.title" = "テンポラン";
+"training_type_info.tempo.how_to_run" = "安定した、やや困難だが持続可能なペース。「きつい、でも崩れない」と感じるべきです。";
+"training_type_info.tempo.why_run" = "テンポランはレースペースに慣れさせます。中高強度での呼吸とペースのコントロールを鍛え、持久力とスピードをつなぐ橋となります。";
+"training_type_info.tempo.logic" = "乳酸閾値付近（最大心拍数の約80–88%）、体の乳酸処理能力を改善し、「崩れずに高速度を維持する」パフォーマンスを向上させます。";
+"training_type_info.tempo.role" = "通常週の半ば、レースペースのシミュレーションとして、週末のロングランや週初めのイージーランと組み合わせて安定したリズムの週を形成します。";
+
+// Threshold Run
+"training_type_info.threshold.title" = "閾値ラン";
+"training_type_info.threshold.how_to_run" = "テンポランよりわずかにきついが、まだ持続可能。「挑戦的だがやり遂げられる」と感じ、心拍数は高いが制御されています。";
+"training_type_info.threshold.why_run" = "閾値ランは持久力の壁を破る鍵です。より長く高速度を維持できるようにし、マラソンパフォーマンスの向上に重要です。";
+"training_type_info.threshold.logic" = "乳酸閾値強度（最大心拍数の約85–90%）をターゲットとし、体が乳酸蓄積を遅らせ、疲労耐性を向上させます。長期的な実践により、持続スピードとレースパフォーマンスが大幅に向上します。";
+"training_type_info.threshold.role" = "通常、ピークトレーニング期間の週の半ばにスケジュールされ、イージーランでウォームアップし、リカバリーランで刺激を吸収します。";
+
+// Interval Run
+"training_type_info.interval.title" = "インターバルラン";
+"training_type_info.interval.how_to_run" = "短時間の全力スプリントと回復の交互、息切れし疲れますが、「すべてのセットを完了」する必要があります。";
+"training_type_info.interval.why_run" = "これはスピードと心肺パワーを向上させる鍵となるワークアウトです。高強度の刺激が体に「より速く走り、より速く回復する」ことを教えます。";
+"training_type_info.interval.logic" = "高強度インターバルトレーニング（HIIT）、VO₂maxと神経筋反応を刺激します。心拍出量、酸素供給、筋肉の酸化能力を向上させます。";
+"training_type_info.interval.role" = "通常週の半ば、週の「強度のスター」。イージーランや休息日と組み合わせて十分な回復時間を確保します。";
+
+// LSD (Long Slow Distance)
+"training_type_info.lsd.title" = "LSD（ロングスローディスタンス）";
+"training_type_info.lsd.how_to_run" = "ペースを落として時間を延ばします。永遠に走れるように感じるべきで、安定しているがきつくありません。";
+"training_type_info.lsd.why_run" = "長時間のランニングは精神的および肉体的持久力を鍛え、体が長時間脂肪を燃料として使用することを学びます—マラソントレーニングの古典的なコアワークアウト。";
+"training_type_info.lsd.logic" = "長時間低強度有酸素トレーニング、心肺機能、筋肉持久力、エネルギー利用効率を強化します。毛細血管の成長を促進し、筋肉の酸素使用を改善します。";
+"training_type_info.lsd.role" = "通常週末、週の「持久力の柱」。週の半ばのテンポランやインターバルランと組み合わせて完全な有酸素能力を構築します。";
+
+// Long Run
+"training_type_info.long_run.title" = "ロングラン";
+"training_type_info.long_run.how_to_run" = "イージーペースよりわずかに速く走りますが、全体を通して持続可能。レースペースをシミュレートしているように感じ、リズミカルな呼吸、前に集中。";
+"training_type_info.long_run.why_run" = "ロングランは持久力をテストし構築します。時間が延長されても安定した出力を維持することを習慣づけ、疲労の中でも体を機能させ続けることを訓練します。";
+"training_type_info.long_run.logic" = "中等強度の長時間有酸素トレーニング（最大心拍数の約70–80%）。この強度では、体は脂肪とグリコーゲンの両方を燃料として使用し、エネルギー利用効率と筋肉持久力を向上させます。また、「レースペースの安定性」と「精神的耐性」を強化する重要なワークアウト。";
+"training_type_info.long_run.role" = "通常週末、週で最も長いセッション。強化期やレース準備期間中、レース条件をシミュレートするコアトレーニングで、イージーランやリカバリーランと組み合わせて負荷を吸収します。";
 
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "月曜日";

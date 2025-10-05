@@ -66,6 +66,7 @@ struct EditableDailyCard: View {
                             Button("間歇訓練") { updateTrainingType(.interval) }
                             Button("組合訓練") { updateTrainingType(.combination) }
                             Button("長距離跑") { updateTrainingType(.longRun) }
+                            Button("長距離輕鬆跑") { updateTrainingType(.lsd) }
                             Button("恢復跑") { updateTrainingType(.recovery_run) }
                             Button("閾值跑") { updateTrainingType(.threshold) }
                             Button("休息") { updateTrainingType(.rest) }
@@ -200,10 +201,17 @@ struct EditableDailyCard: View {
             )
 
         case .longRun:
-            let marathonPace = PaceCalculator.getSuggestedPace(for: "marathon", vdot: vdot) ?? "6:30"
+            let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
             updatedDay.trainingDetails = MutableTrainingDetails(
                 distanceKm: 15.0,
-                pace: marathonPace
+                pace: tempoPace
+            )
+
+        case .lsd:
+            let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
+            updatedDay.trainingDetails = MutableTrainingDetails(
+                distanceKm: 20.0,
+                pace: easyPace
             )
 
         case .combination:
@@ -240,7 +248,7 @@ struct TrainingDetailsEditView: View {
                 EasyRunEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
             case .interval:
                 IntervalEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .tempo, .threshold:
+            case .tempo, .threshold, .longRun:
                 TempoRunEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
             case .progression, .combination:
                 CombinationEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)

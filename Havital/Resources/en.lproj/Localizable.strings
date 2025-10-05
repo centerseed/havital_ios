@@ -261,6 +261,7 @@
 "training.plan_title" = "Training Plan";
 "training.weekly_plan" = "Weekly Plan";
 "training.daily_training" = "Daily Training";
+"training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
 "training.training_review" = "Training Review";
 "training.generate_plan" = "Generate Schedule";
@@ -342,6 +343,17 @@
 "training.type.yoga" = "Yoga";
 "training.type.cycling" = "Cycling";
 "training.type.rest_day" = "Rest Day";
+
+// MARK: - Training Descriptions
+"training.descriptions.distance_training" = "Maintain a comfortable effort pace";
+"training.descriptions.easy_run" = "Easy run at conversational pace";
+"training.descriptions.tempo_run" = "Tempo run at steady effort pace";
+"training.descriptions.interval_training" = "Interval training with high intensity and recovery";
+"training.descriptions.long_run" = "Long run to build endurance";
+"training.descriptions.recovery_run" = "Recovery run for active recovery";
+"training.descriptions.threshold_run" = "Threshold run at lactate threshold intensity";
+"training.descriptions.progression_run" = "Progression run with gradually increasing pace";
+"training.descriptions.combination_training" = "Combination training with multiple types";
 
 // MARK: - Heart Rate Zones
 "training.zone.anaerobic" = "Anaerobic";
@@ -933,6 +945,54 @@
 "training_plan.cycle_completed" = "Training cycle completed";
 "training_plan.congratulations" = "Congratulations on completing this training cycle!";
 "training_plan.loading_schedule" = "Loading schedule...";
+
+// MARK: - Training Type Info
+"training_type_info.how_to_run_title" = "How to Run";
+"training_type_info.why_run_title" = "Why Run This";
+"training_type_info.logic_title" = "Training Logic";
+"training_type_info.role_title" = "Role in Weekly Schedule";
+
+// Recovery Run
+"training_type_info.recovery_run.title" = "Recovery Run";
+"training_type_info.recovery_run.how_to_run" = "The most relaxed running style. Slow is okay—focus on 'feeling comfortable' rather than 'good numbers.'";
+"training_type_info.recovery_run.why_run" = "Recovery runs are part of active recovery. Running too fast interferes with repair, too slow is ineffective—the key is 'letting oxygen-rich blood flow through tired muscles.'";
+"training_type_info.recovery_run.logic" = "Very low intensity aerobic training (<65% HRmax), helps clear lactate, promotes metabolism and nervous system recovery. Compared to static rest, prepares you faster for the next session.";
+"training_type_info.recovery_run.role" = "Usually scheduled the day after high-intensity workouts or long runs, it's the key to 'absorbing' training results.";
+
+// Tempo Run
+"training_type_info.tempo.title" = "Tempo Run";
+"training_type_info.tempo.how_to_run" = "Steady, somewhat challenging but sustainable pace. Should feel 'hard, but not collapsing.'";
+"training_type_info.tempo.why_run" = "Tempo runs familiarize you with race pace. They train breath and pace control at medium-high intensity, bridging endurance and speed.";
+"training_type_info.tempo.logic" = "Near lactate threshold (about 80–88% HRmax), improves body's lactate processing ability, enhances 'maintaining high speed without breaking down.'";
+"training_type_info.tempo.role" = "Usually mid-week, simulating race pace, paired with weekend long runs and easy runs for a steady rhythm week.";
+
+// Threshold Run
+"training_type_info.threshold.title" = "Threshold Run";
+"training_type_info.threshold.how_to_run" = "Slightly harder than tempo, still sustainable. Feels 'challenging but doable,' high heart rate but controlled.";
+"training_type_info.threshold.why_run" = "Threshold runs are key to breaking endurance plateaus. They allow you to sustain higher speeds longer, crucial for marathon performance.";
+"training_type_info.threshold.logic" = "Targets lactate threshold intensity (about 85–90% HRmax), trains body to delay lactate accumulation, improves fatigue tolerance. Long-term practice significantly boosts sustained speed and race performance.";
+"training_type_info.threshold.role" = "Usually mid-week during peak training, preceded by easy runs for warm-up, followed by recovery runs to absorb stimulus.";
+
+// Interval Run
+"training_type_info.interval.title" = "Interval Run";
+"training_type_info.interval.how_to_run" = "Short bursts of all-out effort alternating with recovery, will be breathless and tiring, but must 'complete all sets.'";
+"training_type_info.interval.why_run" = "This is the key workout for improving speed and cardiovascular power. High-intensity stimulus teaches the body to 'run faster and recover faster.'";
+"training_type_info.interval.logic" = "High-intensity interval training (HIIT), stimulates VO₂max and neuromuscular response. Improves cardiac output, oxygen delivery, and muscle oxidative capacity.";
+"training_type_info.interval.role" = "Usually mid-week, the 'intensity star' of the week. Paired with easy runs or rest days for adequate recovery time.";
+
+// LSD (Long Slow Distance)
+"training_type_info.lsd.title" = "LSD (Long Slow Distance)";
+"training_type_info.lsd.how_to_run" = "Slow down and extend time. Should feel like you can run forever, steady but not hard.";
+"training_type_info.lsd.why_run" = "Long runs build mental and physical endurance, teaching the body to use fat as fuel for extended periods—the classic core workout for marathon training.";
+"training_type_info.lsd.logic" = "Long-duration low-intensity aerobic training, strengthens cardiovascular function, muscle endurance, and energy utilization efficiency. Also promotes capillary growth, improving muscle oxygen usage.";
+"training_type_info.lsd.role" = "Usually on weekends, the 'endurance pillar' of the week. Combined with mid-week tempo or interval runs to build complete aerobic capacity.";
+
+// Long Run
+"training_type_info.long_run.title" = "Long Run";
+"training_type_info.long_run.how_to_run" = "Run slightly faster than easy pace, but sustainable throughout. Feels like simulating race pace, rhythmic breathing, focused forward.";
+"training_type_info.long_run.why_run" = "Long runs test and build endurance. They train you to maintain steady output over extended time, and keep your body functioning under fatigue.";
+"training_type_info.long_run.logic" = "Moderate-intensity long-duration aerobic training (about 70–80% HRmax). At this intensity, the body uses both fat and glycogen as fuel, improving energy utilization efficiency and muscle endurance. Also strengthens 'race pace stability' and 'mental resilience.'";
+"training_type_info.long_run.role" = "Usually on weekends, the longest session of the week. During build-up or race prep, it's core training for simulating race conditions, paired with easy or recovery runs to absorb the load.";
 
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "Monday";

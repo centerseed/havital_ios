@@ -208,7 +208,18 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             totalCalories = nil
             await reportHealthKitDataError(workout: workout, dataType: "calories", error: error)
         }
-        
+
+        // 獲取分圈資料（可選）
+        let lapData: [LapData]?
+        do {
+            lapData = try await healthKitManager.fetchLapData(for: workout)
+            print("🏃‍♂️ [Upload] 分圈資料獲取成功: \(lapData?.count ?? 0) 圈")
+        } catch {
+            lapData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "lap_data", error: error)
+            print("⚠️ [Upload] 分圈資料獲取失敗，將繼續上傳運動記錄")
+        }
+
         // 轉成 DataPoint
         let heartRates  = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
         let speeds      = speedData.map { DataPoint(time: $0.0, value: $0.1) }
@@ -225,6 +236,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      groundContactTimes: contacts,
                                      verticalOscillations: oscillations,
                                      totalCalories: totalCalories,
+                                     laps: lapData,
                                      source: actualSource,
                                      device: actualDevice)
         
@@ -302,6 +314,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     groundContactTimes: [DataPoint]? = nil,
                                     verticalOscillations: [DataPoint]? = nil,
                                     totalCalories: Double? = nil,
+                                    laps: [LapData]? = nil,
                                     source: String,
                                     device: String?) async throws {
         // 建立 WorkoutData 結構
@@ -320,6 +333,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             groundContactTimes: groundContactTimes?.map { GroundContactTimeData(time: $0.time.timeIntervalSince1970, value: $0.value) },
             verticalOscillations: verticalOscillations?.map { VerticalOscillationData(time: $0.time.timeIntervalSince1970, value: $0.value) },
             totalCalories: totalCalories,
+            laps: laps,
             source: source,
             device: device)
         
@@ -514,6 +528,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         if let oscillations = workoutData.verticalOscillations {
             optionalDataStatus["vertical_oscillation_samples"] = oscillations.count
         }
+        if let laps = workoutData.laps {
+            optionalDataStatus["lap_count"] = laps.count
+            optionalDataStatus["has_lap_distances"] = laps.contains { $0.totalDistanceM != nil }
+            optionalDataStatus["has_lap_heart_rates"] = laps.contains { $0.avgHeartRateBpm != nil }
+        }
         errorReport["optional_data_status"] = optionalDataStatus
         
         // 錯誤詳情
@@ -660,9 +679,15 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         } else if error is CancellationError {
             errorCategory = "cancellation_error"
         }
-        
-        // 取消錯誤和預期錯誤記為 warning
-        let isExpected = error is CancellationError || errorCategory == "cancellation_error"
+
+        // 分圈資料特殊處理 - 沒有分圈是正常現象，不應記為錯誤
+        var isExpected = error is CancellationError || errorCategory == "cancellation_error"
+        if dataType == "lap_data" {
+            // 分圈資料缺失通常是正常的（很多運動沒有分圈）
+            errorCategory = "no_lap_data_available"
+            isExpected = true
+            errorReport["is_lap_data_missing"] = true
+        }
         Logger.firebase(
             "HealthKit 數據獲取失敗 - \(dataType)",
             level: isExpected ? LogLevel.warn : LogLevel.error,
@@ -679,7 +704,9 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         )
         
         // 根據數據源類型提供不同的錯誤訊息
-        if isThirdPartySource {
+        if dataType == "lap_data" {
+            print("ℹ️ [分圈資料] 此運動沒有分圈資料，這是正常的")
+        } else if isThirdPartySource {
             print("⚠️ [第三方設備] 無法獲取來自 \(sourceName) 的 \(dataType) 數據: \(error.localizedDescription)")
         } else {
             print("⚠️ [HealthKit 錯誤] 無法獲取 \(dataType) 數據: \(error.localizedDescription)")
@@ -796,11 +823,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let heartRateTimeSpan: TimeInterval
         if let firstDate = heartRateData.first?.0, let lastDate = heartRateData.last?.0 {
             heartRateTimeSpan = lastDate.timeIntervalSince(firstDate)
+
+            // 計算最後一筆心率資料相對於訓練開始的 offset
+            let lastHROffset = lastDate.timeIntervalSince(workout.startDate)
+            let missingTime = workoutDuration - lastHROffset
+            print("   🔍 [心率時間] 最後一筆offset: \(String(format: "%.1f", lastHROffset))s | 訓練總時長: \(String(format: "%.1f", workoutDuration))s | 缺失: \(String(format: "%.1f", missingTime))s")
         } else {
             heartRateTimeSpan = 0
         }
         let coverageRatio = heartRateTimeSpan / workoutDuration
-        
+
         print("📊 [Validation] 心率時間覆蓋 - 運動時長: \(Int(workoutDuration))秒, 心率跨度: \(Int(heartRateTimeSpan))秒, 覆蓋率: \(String(format: "%.1f", coverageRatio * 100))%")
         
         // 心率數據應至少覆蓋運動時間的30%
@@ -856,6 +888,7 @@ struct WorkoutData: Codable {
     let groundContactTimes: [GroundContactTimeData]? // 觸地時間
     let verticalOscillations: [VerticalOscillationData]? // 垂直振幅
     let totalCalories: Double?               // 總卡路里
+    let laps: [LapData]?                     // 分圈資料
     let source: String?                       // 資料來源 (如: apple_health, garmin, polar 等)
     let device: String?                       // 裝置型號 (如: Apple Watch Series 7, Garmin Forerunner 945 等)
 }
@@ -889,7 +922,6 @@ struct VerticalOscillationData: Codable {
     let time: TimeInterval
     let value: Double  // 單位：m
 }
-
 
 
 struct EmptyResponse: Codable {}

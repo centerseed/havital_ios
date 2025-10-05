@@ -261,6 +261,7 @@
 "training.plan_title" = "訓練計劃";
 "training.weekly_plan" = "本週計劃";
 "training.daily_training" = "每日訓練";
+"training.design_reason" = "設計原因";
 "training.weekly_volume" = "週跑量";
 "training.training_review" = "訓練回顧";
 "training.generate_plan" = "產生課表";
@@ -331,7 +332,7 @@
 "training.type.fartlek" = "法特萊克";
 "training.type.hill" = "爬坡訓練";
 "training.type.speed" = "速度訓練";
-"training.type.lsd" = "長距離慢跑";
+"training.type.lsd" = "長距離輕鬆跑";
 "training.type.threshold" = "閾值跑";
 "training.type.progression" = "漸進跑";
 "training.type.combination" = "組合訓練";
@@ -342,6 +343,17 @@
 "training.type.yoga" = "瑜伽";
 "training.type.cycling" = "騎車";
 "training.type.rest_day" = "休息日";
+
+// MARK: - Training Descriptions
+"training.descriptions.distance_training" = "維持舒適的費力配速訓練";
+"training.descriptions.easy_run" = "輕鬆跑，維持對話配速";
+"training.descriptions.tempo_run" = "節奏跑，維持穩定的費力配速";
+"training.descriptions.interval_training" = "間歇訓練，高強度與恢復交替";
+"training.descriptions.long_run" = "長距離跑，建立耐力基礎";
+"training.descriptions.recovery_run" = "恢復跑，輕鬆慢跑促進恢復";
+"training.descriptions.threshold_run" = "閾值跑，維持在乳酸閾值強度";
+"training.descriptions.progression_run" = "漸進跑，配速逐漸加快";
+"training.descriptions.combination_training" = "組合訓練，結合多種訓練類型";
 
 // MARK: - Heart Rate Zones
 "training.zone.anaerobic" = "無氧";
@@ -934,6 +946,54 @@
 "training_plan.cycle_completed" = "訓練週期完成";
 "training_plan.congratulations" = "恭喜完成這個訓練週期！";
 "training_plan.loading_schedule" = "載入課表中...";
+
+// MARK: - Training Type Info
+"training_type_info.how_to_run_title" = "怎麼跑";
+"training_type_info.why_run_title" = "為什麼要跑這種課";
+"training_type_info.logic_title" = "背後的訓練邏輯";
+"training_type_info.role_title" = "放在週課表的角色";
+
+// Recovery Run
+"training_type_info.recovery_run.title" = "恢復跑 Recovery Run";
+"training_type_info.recovery_run.how_to_run" = "幾乎是最放鬆的跑步方式。速度慢沒關係，專注在「身體舒服」而非「數據好看」。";
+"training_type_info.recovery_run.why_run" = "恢復跑是主動恢復的一部分。跑得太快會干擾修復，跑得太慢反而無感——重點是「讓血液帶著氧氣流過疲憊的肌肉」。";
+"training_type_info.recovery_run.logic" = "屬於極低強度有氧訓練（<65% HRmax），幫助清除乳酸、促進代謝與神經系統恢復。相較靜態休息，能讓你更快準備好迎接下一堂課。";
+"training_type_info.recovery_run.role" = "通常安排在高強度課或長跑後的隔天，是讓訓練成果「被吸收」的關鍵環節。";
+
+// Tempo Run
+"training_type_info.tempo.title" = "節奏跑 Tempo Run";
+"training_type_info.tempo.how_to_run" = "穩定、有點吃力但能維持的速度。應該覺得「努力，但不會崩潰」。";
+"training_type_info.tempo.why_run" = "節奏跑讓你熟悉比賽時的穩定節奏。它訓練你在中高強度下保持呼吸與配速的控制，是連結耐力與速度的橋樑。";
+"training_type_info.tempo.logic" = "位於乳酸閾值附近（約最大心率的80–88%），改善身體處理乳酸的能力，提升「在不爆掉的前提下維持高速度」的表現。";
+"training_type_info.tempo.role" = "通常位於週中，作為比賽節奏的模擬課，搭配週末長跑與週初輕鬆跑，形成穩定節奏週。";
+
+// Threshold Run
+"training_type_info.threshold.title" = "閾值跑 Threshold Run";
+"training_type_info.threshold.how_to_run" = "比節奏跑再吃力一點，仍能穩定維持。感覺像「有挑戰，但能撐完」，心率高但仍可控制。";
+"training_type_info.threshold.why_run" = "閾值跑是突破耐力瓶頸的關鍵。它讓你能更久地維持高速度，也是提升馬拉松表現的重要訓練。";
+"training_type_info.threshold.logic" = "鎖定在乳酸閾值強度（約85–90% HRmax），訓練身體延後乳酸累積、提升疲勞耐受度。長期進行能明顯提升持續速度與競賽表現。";
+"training_type_info.threshold.role" = "通常在訓練高峰期週中安排，週前以輕鬆跑熱身，週後以恢復跑吸收刺激。";
+
+// Interval Run
+"training_type_info.interval.title" = "間歇跑 Interval Run";
+"training_type_info.interval.how_to_run" = "短時間全力衝刺與恢復交替，會喘、會累，但要能「撐完所有組」。";
+"training_type_info.interval.why_run" = "這是提升速度與心肺爆發力的關鍵課。高強度的刺激讓身體學會「更快運轉、也更快恢復」。";
+"training_type_info.interval.logic" = "屬於高強度間歇訓練（HIIT），刺激最大攝氧量（VO₂max）與神經肌肉反應。能提升心臟搏出量、氧氣運送與肌肉氧化能力。";
+"training_type_info.interval.role" = "通常安排在週中，是整週的「強度主角」。前後搭配輕鬆跑或休息日，讓身體有足夠恢復時間。";
+
+// LSD (Long Slow Distance)
+"training_type_info.lsd.title" = "LSD（長距離輕鬆跑 Long Slow Distance）";
+"training_type_info.lsd.how_to_run" = "放慢速度、拉長時間。應該覺得可以一直跑下去，節奏穩但不吃力。";
+"training_type_info.lsd.why_run" = "長時間跑步能鍛鍊意志與耐力，讓身體學會長時間利用脂肪作為燃料，是馬拉松訓練中最經典的核心課。";
+"training_type_info.lsd.logic" = "屬於長時間低強度有氧訓練，強化心肺功能、肌肉耐力與能量利用效率。也促進毛細血管生長，提升肌肉對氧氣的運用能力。";
+"training_type_info.lsd.role" = "通常安排在週末，是整週訓練的「耐力支柱」。搭配週中節奏跑或間歇跑，共同建立完整的有氧能力。";
+
+// Long Run
+"training_type_info.long_run.title" = "長距離跑 Long Run";
+"training_type_info.long_run.how_to_run" = "跑得比輕鬆跑再快一點，但要能穩定維持整程。感覺像在模擬比賽配速，呼吸有節奏、專注前進。";
+"training_type_info.long_run.why_run" = "長距離跑是測試與培養耐力的課。它讓你習慣在時間拉長後仍保持穩定輸出，同時訓練身體在疲勞中持續運作。";
+"training_type_info.long_run.logic" = "屬於中等強度的長時間有氧訓練（約最大心率 70–80%）。在這個強度下，身體會同時使用脂肪與糖原作為能量來源，幫助提升能量利用效率與肌肉耐力。也是強化「比賽節奏穩定性」與「心理耐受力」的重要課。";
+"training_type_info.long_run.role" = "通常安排在週末，是整週最長的一堂課。在強化期或比賽準備期中，它是模擬比賽情境的核心訓練，前後會搭配輕鬆跑或恢復跑讓身體吸收負荷。";
 
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "星期一";
