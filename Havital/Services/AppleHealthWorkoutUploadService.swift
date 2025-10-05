@@ -823,11 +823,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let heartRateTimeSpan: TimeInterval
         if let firstDate = heartRateData.first?.0, let lastDate = heartRateData.last?.0 {
             heartRateTimeSpan = lastDate.timeIntervalSince(firstDate)
+
+            // 計算最後一筆心率資料相對於訓練開始的 offset
+            let lastHROffset = lastDate.timeIntervalSince(workout.startDate)
+            let missingTime = workoutDuration - lastHROffset
+            print("   🔍 [心率時間] 最後一筆offset: \(String(format: "%.1f", lastHROffset))s | 訓練總時長: \(String(format: "%.1f", workoutDuration))s | 缺失: \(String(format: "%.1f", missingTime))s")
         } else {
             heartRateTimeSpan = 0
         }
         let coverageRatio = heartRateTimeSpan / workoutDuration
-        
+
         print("📊 [Validation] 心率時間覆蓋 - 運動時長: \(Int(workoutDuration))秒, 心率跨度: \(Int(heartRateTimeSpan))秒, 覆蓋率: \(String(format: "%.1f", coverageRatio * 100))%")
         
         // 心率數據應至少覆蓋運動時間的30%

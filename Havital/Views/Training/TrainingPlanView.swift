@@ -96,27 +96,80 @@ struct NewWeekPromptView: View {
     }
 }
 
+// Design Reason 顯示視圖
+struct DesignReasonView: View {
+    let designReason: [String]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "\(index + 1).circle.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+
+                            Text(reason)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(NSLocalizedString("training.design_reason", comment: "Design Reason"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.close", comment: "Close")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 // 拆分每日訓練列表視圖
 struct DailyTrainingListView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
-    
+    @State private var showDesignReason = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 添加標題
-            HStack {
+            HStack(alignment: .center) {
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
                     .font(.headline)
                     .foregroundColor(.primary)
-                    .padding(.top, 16)
-                
+
+                // Design Reason 圖示
+                if let designReason = plan.designReason, !designReason.isEmpty {
+                    Button(action: {
+                        showDesignReason = true
+                    }) {
+                        Image(systemName: "lightbulb.circle.fill")
+                            .foregroundColor(.orange)
+                            .font(.headline)
+                    }
+                    .sheet(isPresented: $showDesignReason) {
+                        DesignReasonView(designReason: designReason)
+                    }
+                }
+
                 Spacer()
-                
+
                 if viewModel.isLoadingWorkouts {
                     ProgressView()
                         .scaleEffect(0.7)
                 }
             }
+            .padding(.top, 16)
             .padding(.horizontal, 4)
             
             // 顯示今天的訓練

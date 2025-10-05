@@ -14,7 +14,8 @@ struct DayHeaderView: View {
     let isExpanded: Bool
     let viewModel: TrainingPlanViewModel
     let onToggle: () -> Void
-    
+    @State private var showTrainingTypeInfo = false
+
     private func getTypeColor() -> Color {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
@@ -31,33 +32,55 @@ struct DayHeaderView: View {
             return Color.purple
         }
     }
-    
+
     var body: some View {
-        Button(action: onToggle) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(viewModel.weekdayName(for: day.dayIndexInt))
-                            .font(.headline)
-                        if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
-                            Text(viewModel.formatShortDate(date))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        if isToday {
-                            Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                .font(.caption)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.blue)
-                                .cornerRadius(4)
+        HStack {
+            Button(action: onToggle) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(viewModel.weekdayName(for: day.dayIndexInt))
+                                .font(.headline)
+                            if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
+                                Text(viewModel.formatShortDate(date))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            if isToday {
+                                Text(NSLocalizedString("training_plan.today", comment: "Today"))
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.blue)
+                                    .cornerRadius(4)
+                            }
                         }
                     }
+
+                    Spacer()
                 }
-                
-                Spacer()
-                
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 訓練類型標籤（可點擊查看說明）
+            if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
+                Button(action: {
+                    showTrainingTypeInfo = true
+                }) {
+                    Text(day.type.localizedName)
+                        .font(.subheadline)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .foregroundColor(getTypeColor())
+                        .background(getTypeColor().opacity(0.2))
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.borderless)
+                .sheet(isPresented: $showTrainingTypeInfo) {
+                    TrainingTypeInfoView(trainingTypeInfo: trainingTypeInfo)
+                }
+            } else {
                 Text(day.type.localizedName)
                     .font(.subheadline)
                     .padding(.horizontal, 8)
@@ -65,14 +88,16 @@ struct DayHeaderView: View {
                     .foregroundColor(getTypeColor())
                     .background(getTypeColor().opacity(0.2))
                     .cornerRadius(8)
-                
+            }
+
+            Button(action: onToggle) {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .foregroundColor(.secondary)
                     .font(.caption)
                     .padding(.leading, 4)
             }
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -211,7 +236,7 @@ struct SegmentedTrainingView: View {
 
             // 分段描述
             if let description = segment.description {
-                Text(description)
+                Text(NSLocalizedString(description, comment: description))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
@@ -346,7 +371,7 @@ struct SimpleTrainingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let desc = details.description {
-                Text(desc)
+                Text(NSLocalizedString(desc, comment: desc))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(nil)

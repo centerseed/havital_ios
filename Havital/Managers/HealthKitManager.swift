@@ -423,12 +423,15 @@ class HealthKitManager: ObservableObject, TaskManageable {
             
             return try await withCheckedThrowingContinuation { continuation in
                 self.healthKitQueue.async {
+                    // 使用 workout.duration 計算的結束時間
+                    let calculatedEndDate = workout.startDate.addingTimeInterval(workout.duration)
+
                     let predicate = HKQuery.predicateForSamples(
                         withStart: workout.startDate,
-                        end: workout.endDate,
-                        options: .strictEndDate
+                        end: workout.endDate,  // 使用原始 endDate，不延長
+                        options: []
                     )
-                    
+
                     let query = HKSampleQuery(
                         sampleType: sampleType,
                         predicate: predicate,
@@ -440,18 +443,32 @@ class HealthKitManager: ObservableObject, TaskManageable {
                             continuation.resume(throwing: error)
                             return
                         }
-                        
+
                         guard let quantitySamples = samples as? [HKQuantitySample] else {
                             continuation.resume(returning: [])
                             return
                         }
-                        
-                        let dataPoints = quantitySamples.map { sample -> (Date, Double) in
+
+                        // 過濾掉訓練時間範圍外的資料點
+                        let filteredSamples = quantitySamples.filter { sample in
+                            let offset = sample.startDate.timeIntervalSince(workout.startDate)
+                            return offset >= 0 && offset <= workout.duration
+                        }
+
+                        let dataPoints = filteredSamples.map { sample -> (Date, Double) in
                             let value = sample.quantity.doubleValue(for: unit)
                             return (sample.startDate, value)
                         }
-                        
+
                         print("🔍 [TaskRegistry] 任務完成 - 獲得數據點: \(dataPoints.count)")
+
+                        // 如果有資料，顯示時間範圍
+                        if let first = dataPoints.first, let last = dataPoints.last {
+                            let firstOffset = first.0.timeIntervalSince(workout.startDate)
+                            let lastOffset = last.0.timeIntervalSince(workout.startDate)
+                            let coverage = (lastOffset - firstOffset) / workout.duration * 100
+                            print("   ⏱️ 資料範圍: \(String(format: "%.0f", firstOffset))s - \(String(format: "%.0f", lastOffset))s (覆蓋率: \(String(format: "%.1f", coverage))%)")
+                        }
                         
                         continuation.resume(returning: dataPoints)
                     }
@@ -488,7 +505,29 @@ class HealthKitManager: ObservableObject, TaskManageable {
         // 記錄心率數據獲取狀態
         let workoutStart = workout.startDate.formatted(date: .abbreviated, time: .shortened)
         print("❤️ [HealthKit] 心率數據獲取完成 - 運動時間: \(workoutStart), 數據點: \(result.count), 重試次數: \(retryAttempt), 強制刷新: \(forceRefresh)")
-        
+
+        // 分析心率資料的時間間隔
+        if result.count >= 2 {
+            var intervals: [TimeInterval] = []
+            for i in 1..<result.count {
+                let interval = result[i].0.timeIntervalSince(result[i-1].0)
+                intervals.append(interval)
+            }
+            let avgInterval = intervals.reduce(0, +) / Double(intervals.count)
+            let maxInterval = intervals.max() ?? 0
+            print("   📊 心率採樣間隔 - 平均: \(String(format: "%.1f", avgInterval))s | 最大: \(String(format: "%.1f", maxInterval))s")
+
+            // 找出超過 10 秒的大間隔
+            let largeGaps = intervals.enumerated().filter { $0.element > 10 }
+            if !largeGaps.isEmpty {
+                print("   ⚠️ 發現 \(largeGaps.count) 個超過 10 秒的心率間隔")
+                for gap in largeGaps.prefix(5) {
+                    let offset = result[gap.offset].0.timeIntervalSince(workout.startDate)
+                    print("      - offset \(String(format: "%.0f", offset))s: 間隔 \(String(format: "%.1f", gap.element))s")
+                }
+            }
+        }
+
         if result.count < 2 {
             print("⚠️ [HealthKit] 心率數據不足 - 運動: \(workout.uuid.uuidString.prefix(8))..., 獲得: \(result.count) 筆，需要至少: 2 筆")
         }
@@ -1175,38 +1214,98 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
             print("🏃‍♂️ [LapData] 開始提取分圈資料 - Workout: \(workout.uuid.uuidString.prefix(8))...")
 
-            // 提取 workout events
-            let workoutEvents = workout.workoutEvents ?? []
-            print("🏃‍♂️ [LapData] 發現 \(workoutEvents.count) 個 workout events")
+            // 檢查 workout activities (iOS 16+，包含間歇訓練分段和一般訓練)
+            var lapsFromActivities: [LapData] = []
+            if #available(iOS 16.0, *) {
+                let workoutActivities = workout.workoutActivities ?? []
 
-            // 先列出所有事件類型，幫助調試
-            print("🔍 [LapData] 所有事件類型詳情：")
-            for (index, event) in workoutEvents.enumerated() {
-                let typeName: String
-                switch event.type {
-                case .lap: typeName = "lap"
-                case .segment: typeName = "segment"
-                case .pause: typeName = "pause"
-                case .resume: typeName = "resume"
-                case .motionPaused: typeName = "motionPaused"
-                case .motionResumed: typeName = "motionResumed"
-                case .marker: typeName = "marker"
-                case .pauseOrResumeRequest: typeName = "pauseOrResumeRequest"
-                @unknown default: typeName = "unknown(\(event.type.rawValue))"
+                if !workoutActivities.isEmpty {
+                    for (index, activity) in workoutActivities.enumerated() {
+                        let startOffset = activity.startDate.timeIntervalSince(workout.startDate)
+                        let lapNumber = index + 1
+
+                        // 對於最後一個分圈，使用訓練總時長計算，避免遺漏結束後的數據
+                        let isLastLap = (index == workoutActivities.count - 1)
+                        let duration = isLastLap ? (workout.duration - startOffset) : activity.duration
+
+                        // 提取統計資料
+                        let statistics = activity.allStatistics
+                        var distance: Double = 0
+                        var avgSpeed: Double = 0
+                        var avgHeartRate: Double = 0
+
+                        if let distanceStats = statistics[HKQuantityType(.distanceWalkingRunning)] {
+                            distance = distanceStats.sumQuantity()?.doubleValue(for: .meter()) ?? 0
+                        }
+
+                        if let speedStats = statistics[HKQuantityType(.runningSpeed)] {
+                            avgSpeed = speedStats.averageQuantity()?.doubleValue(for: .meter().unitDivided(by: .second())) ?? 0
+                        }
+
+                        if let hrStats = statistics[HKQuantityType(.heartRate)] {
+                            avgHeartRate = hrStats.averageQuantity()?.doubleValue(for: .count().unitDivided(by: .minute())) ?? 0
+                        }
+
+                        // 計算配速（秒/公里）
+                        let avgPace = avgSpeed > 0 ? 1000.0 / avgSpeed : 0
+
+                        // 提取 metadata
+                        var metadataDict: [String: String]? = nil
+                        if let activityMetadata = activity.metadata {
+                            var meta: [String: String] = [:]
+                            for (key, value) in activityMetadata {
+                                if let stringValue = value as? String {
+                                    meta[key] = stringValue
+                                } else if let numberValue = value as? NSNumber {
+                                    meta[key] = numberValue.stringValue
+                                }
+                            }
+                            if !meta.isEmpty {
+                                metadataDict = meta
+                            }
+                        }
+
+                        // 創建 LapData
+                        let lapData = LapData.fromAppleHealth(
+                            lapNumber: lapNumber,
+                            startTimeOffset: startOffset,
+                            duration: duration,
+                            distance: distance,
+                            averagePace: avgPace,
+                            averageHeartRate: avgHeartRate > 0 ? avgHeartRate : nil,
+                            type: "activity",
+                            metadata: metadataDict
+                        )
+
+                        lapsFromActivities.append(lapData)
+
+                        // 對於最後一個分圈，打印詳細的時間資訊用於調試
+                        if isLastLap {
+                            let activityEndOffset = startOffset + activity.duration
+                            let workoutTotalDuration = workout.duration
+                            print("   🔍 [最後分圈] Activity結束: \(String(format: "%.1f", activityEndOffset))s | 調整後結束: \(String(format: "%.1f", startOffset + duration))s | 訓練總時長: \(String(format: "%.1f", workoutTotalDuration))s")
+                        }
+                    }
+
+                    print("✅ [LapData] 從 Workout Activities 提取 \(lapsFromActivities.count) 個分段")
                 }
-                print("   [\(index+1)] 類型: \(typeName), 持續: \(String(format: "%.0f", event.dateInterval.duration))秒")
             }
+
+            // 直接使用 workout activities 的分段資料
+            if !lapsFromActivities.isEmpty {
+                return lapsFromActivities
+            }
+
+            // 如果沒有 workout activities，檢查 workout events
+            let workoutEvents = workout.workoutEvents ?? []
+            let lapCount = workoutEvents.filter { $0.type == .lap }.count
+
+            print("🏃‍♂️ [Workout Events] 發現 \(workoutEvents.count) 個 events (lap: \(lapCount))")
 
             // 篩選分圈相關的事件（.lap、.marker、.segment）
             let lapEvents = workoutEvents.filter { event in
                 return event.type == .lap || event.type == .marker || event.type == .segment
             }
-
-            let lapCount = workoutEvents.filter { $0.type == .lap }.count
-            let markerCount = workoutEvents.filter { $0.type == .marker }.count
-            let segmentCount = workoutEvents.filter { $0.type == .segment }.count
-
-            print("🏃‍♂️ [LapData] 篩選出 \(lapEvents.count) 個分圈事件 (lap: \(lapCount), marker: \(markerCount), segment: \(segmentCount))")
 
             if lapEvents.isEmpty {
                 print("🏃‍♂️ [LapData] 此運動沒有分圈資料")
