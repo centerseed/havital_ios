@@ -14,6 +14,10 @@ struct WorkoutDetailViewV2: View {
     @State private var showInsufficientHeartRateAlert = false
     @State private var reuploadErrorMessage: String?
     @State private var heartRateCount = 0
+
+    // 分享卡相關狀態
+    @State private var showShareCardSheet = false
+    @State private var showPhotoPickersheet = false
     
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -100,19 +104,29 @@ struct WorkoutDetailViewV2: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    shareWorkout()
-                } label: {
-                    if isGeneratingScreenshot {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    } else {
-                        Image(systemName: "square.and.arrow.up")
+                HStack(spacing: 16) {
+                    // 分享卡按鈕 (新)
+                    Button {
+                        showShareCardSheet = true
+                    } label: {
+                        Image(systemName: "photo.on.rectangle.angled")
                     }
+
+                    // 原有的截圖分享按鈕
+                    Button {
+                        shareWorkout()
+                    } label: {
+                        if isGeneratingScreenshot {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                    .disabled(isGeneratingScreenshot)
                 }
-                .disabled(isGeneratingScreenshot)
             }
-            
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(NSLocalizedString("common.close", comment: "Close")) {
                     dismiss()
@@ -130,6 +144,12 @@ struct WorkoutDetailViewV2: View {
             if let shareImage = shareImage {
                 ActivityViewController(activityItems: [shareImage])
             }
+        }
+        .sheet(isPresented: $showShareCardSheet) {
+            WorkoutShareCardSheetView(
+                workout: viewModel.workout,
+                workoutDetail: viewModel.workoutDetail
+            )
         }
     }
     
@@ -918,6 +938,7 @@ struct ZoneRow: View {
         schemaVersion: nil,
         storagePath: nil,
         dailyPlanSummary: nil,
-        aiSummary: nil
+        aiSummary: nil,
+        shareCardContent: nil
     ))
 } 

@@ -23,7 +23,8 @@ struct WorkoutV2: Codable, Identifiable {
     let storagePath: String?
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
-    
+    let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+
     enum CodingKeys: String, CodingKey {
         case id, provider
         case activityType = "activity_type"
@@ -39,6 +40,7 @@ struct WorkoutV2: Codable, Identifiable {
         case storagePath = "storage_path"
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
+        case shareCardContent = "share_card_content"
     }
     
     // MARK: - Convenience Properties
@@ -1261,6 +1263,78 @@ struct AISummary: Codable {
 
     enum CodingKeys: String, CodingKey {
         case analysis
+    }
+}
+
+// MARK: - Share Card Content Models
+
+struct ShareCardContent: Codable {
+    let achievementTitle: String?      // 成就主語句,如「LSD 90 分鐘完成!」
+    let encouragementText: String?     // 鼓勵語,如「配速穩定,進步正在累積。」
+    let streakDays: Int?               // 連續訓練天數
+    let achievementBadge: String?      // 成就徽章類型
+
+    enum CodingKeys: String, CodingKey {
+        case achievementTitle = "achievement_title"
+        case encouragementText = "encouragement_text"
+        case streakDays = "streak_days"
+        case achievementBadge = "achievement_badge"
+    }
+}
+
+// MARK: - WorkoutV2 Share Card Extensions
+
+extension WorkoutV2 {
+    /// 分享卡專用格式化距離
+    var formattedDistance: String {
+        guard let distance = distanceMeters else { return "-" }
+        return String(format: "%.1f km", distance / 1000)
+    }
+
+    /// 分享卡專用格式化時長
+    var formattedDuration: String {
+        let hours = durationSeconds / 3600
+        let minutes = (durationSeconds % 3600) / 60
+        let seconds = durationSeconds % 60
+
+        if hours > 0 {
+            return "\(hours):\(String(format: "%02d", minutes)):\(String(format: "%02d", seconds))"
+        } else {
+            return "\(minutes):\(String(format: "%02d", seconds))"
+        }
+    }
+
+    /// 分享卡專用格式化配速
+    var formattedPace: String {
+        guard let pace = basicMetrics?.avgPaceSPerKm else { return "-" }
+        let minutes = Int(pace) / 60
+        let seconds = Int(pace) % 60
+        return String(format: "%d'%02d\"/km", minutes, seconds)
+    }
+
+    /// 平均心率字符串
+    var avgHeartRateString: String {
+        guard let hr = basicMetrics?.avgHeartRateBpm else { return "-" }
+        return "\(hr) bpm"
+    }
+
+    /// 核心指標 (最多兩項,用於分享卡)
+    var coreMetrics: [String] {
+        var metrics: [String] = []
+
+        if distanceMeters != nil {
+            metrics.append(formattedDistance)
+        }
+
+        if durationSeconds > 0 {
+            metrics.append(formattedDuration)
+        }
+
+        if basicMetrics?.avgPaceSPerKm != nil {
+            metrics.append(formattedPace)
+        }
+
+        return Array(metrics.prefix(2))  // 最多兩項
     }
 }
 

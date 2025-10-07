@@ -259,7 +259,8 @@ struct WorkoutV2RowView: View {
         schemaVersion: "1.0",
         storagePath: Optional<String>.none,
         dailyPlanSummary: Optional<DailyPlanSummary>.none,
-        aiSummary: Optional<AISummary>.none
+        aiSummary: Optional<AISummary>.none,
+        shareCardContent: Optional<ShareCardContent>.none
     )
     
     WorkoutV2RowView(
