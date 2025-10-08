@@ -1179,3 +1179,10 @@
 "feedback.success_title" = "成功";
 "feedback.success_message" = "フィードバックをありがとうございます！";
 "common.submit" = "送信";
+
+// MARK: - Workout Detail
+"workout.share_card" = "トレーニングカードをシェア";
+"workout.share_screenshot" = "スクリーンショットをシェア";
+
+// MARK: - Share Card
+"share_card.branding" = "Paceriz AIトレーニングレポート";

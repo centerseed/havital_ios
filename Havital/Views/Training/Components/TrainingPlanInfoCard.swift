@@ -255,7 +255,8 @@ struct TrainingInfoItem: View {
         ),
         aiSummary: AISummary(
             analysis: "這次長距離輕鬆跑訓練，您實際完成了約14.7公里，時間約101分鐘，配速約為6分43秒，與課表目標相當接近，建立耐力基礎的目標達成度很高。從心率分佈來看，大部分時間落在輕鬆和馬拉松配速區間，平均心率159 bpm，顯示訓練品質良好，有效地刺激了耐力系統。建議下次可以稍微增加距離，並注意到最大心率略高於預期，未來訓練中可嘗試更穩定的配速控制，確保心率維持在輕鬆跑的範圍內，以最大化訓練效果。"
-        )
+        ),
+        shareCardContent: Optional<ShareCardContent>.none
     ))
     .padding()
 }

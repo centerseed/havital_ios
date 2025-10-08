@@ -18,6 +18,7 @@ struct WorkoutDetailViewV2: View {
     // 分享卡相關狀態
     @State private var showShareCardSheet = false
     @State private var showPhotoPickersheet = false
+    @State private var showShareMenu = false  // 分享選單狀態
     
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -32,6 +33,15 @@ struct WorkoutDetailViewV2: View {
     
     init(workout: WorkoutV2) {
         _viewModel = StateObject(wrappedValue: WorkoutDetailViewModelV2(workout: workout))
+
+        // 調試：檢查 workout 的 shareCardContent
+        print("📋 [WorkoutDetailViewV2] Init with workout.id: \(workout.id)")
+        print("   - shareCardContent 是否為 nil: \(workout.shareCardContent == nil)")
+        if let content = workout.shareCardContent {
+            print("   - achievementTitle: \(content.achievementTitle ?? "nil")")
+            print("   - encouragementText: \(content.encouragementText ?? "nil")")
+            print("   - streakDays: \(content.streakDays?.description ?? "nil")")
+        }
     }
     
     var body: some View {
@@ -104,26 +114,31 @@ struct WorkoutDetailViewV2: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                HStack(spacing: 16) {
-                    // 分享卡按鈕 (新)
+                // 分享按鈕 - 點擊彈出選單
+                Menu {
+                    // 分享訓練成果（照片分享卡）
                     Button {
                         showShareCardSheet = true
                     } label: {
-                        Image(systemName: "photo.on.rectangle.angled")
+                        Label(NSLocalizedString("workout.share_card", comment: "Share Workout Card"),
+                              systemImage: "photo.on.rectangle.angled")
                     }
 
-                    // 原有的截圖分享按鈕
+                    // 分享長截圖
                     Button {
                         shareWorkout()
                     } label: {
-                        if isGeneratingScreenshot {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "square.and.arrow.up")
-                        }
+                        Label(NSLocalizedString("workout.share_screenshot", comment: "Share Screenshot"),
+                              systemImage: "camera.viewfinder")
                     }
                     .disabled(isGeneratingScreenshot)
+                } label: {
+                    if isGeneratingScreenshot {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
                 }
             }
 

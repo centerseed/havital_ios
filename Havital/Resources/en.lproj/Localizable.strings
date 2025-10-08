@@ -1179,3 +1179,10 @@
 "feedback.success_title" = "Success";
 "feedback.success_message" = "Thank you for your feedback!";
 "common.submit" = "Submit";
+
+// MARK: - Workout Detail
+"workout.share_card" = "Share Workout Card";
+"workout.share_screenshot" = "Share Screenshot";
+
+// MARK: - Share Card
+"share_card.branding" = "Paceriz AI Training Report";

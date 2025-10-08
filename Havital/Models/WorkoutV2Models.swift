@@ -422,7 +422,8 @@ struct WorkoutV2Detail: Codable {
     let laps: [LapData]?
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
-    
+    let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+
     enum CodingKeys: String, CodingKey {
         case id, provider, source
         case activityType = "activity_type"
@@ -448,6 +449,7 @@ struct WorkoutV2Detail: Codable {
         case laps = "laps"
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
+        case shareCardContent = "share_card_content"
     }
 }
 

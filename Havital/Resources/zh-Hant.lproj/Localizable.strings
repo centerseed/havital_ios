@@ -1198,3 +1198,10 @@
 "feedback.success_title" = "提交成功";
 "feedback.success_message" = "感謝您的回報！";
 "common.submit" = "提交";
+
+// MARK: - Workout Detail
+"workout.share_card" = "分享訓練成果";
+"workout.share_screenshot" = "分享長截圖";
+
+// MARK: - Share Card
+"share_card.branding" = "Paceriz AI 訓練報告";

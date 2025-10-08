@@ -6,27 +6,25 @@ struct WorkoutShareCardView: View {
     let size: ShareCardSize
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .center) {
             // 背景照片層
             if let photo = data.userPhoto {
-                BackgroundPhotoLayer(photo: photo, size: size)
+                BackgroundPhotoLayer(
+                    photo: photo,
+                    size: size,
+                    scale: data.photoScale,
+                    offset: data.photoOffset
+                )
+                .frame(width: size.width, height: size.height)
             } else {
                 // 無照片時的預設背景
                 DefaultBackgroundLayer()
+                    .frame(width: size.width, height: size.height)
             }
 
-            // 資訊浮層 (根據版型切換)
-            switch data.layoutMode {
-            case .bottom:
-                BottomInfoOverlay(data: data)
-            case .side:
-                SideInfoOverlay(data: data)
-            case .top:
-                TopInfoOverlay(data: data)
-            case .auto:
-                // Auto 模式在生成時已決定具體版型,不應到達此分支
-                BottomInfoOverlay(data: data)
-            }
+            // 資訊浮層 (統一使用底部版型)
+            BottomInfoOverlay(data: data)
+                .frame(width: size.width, height: size.height)
         }
         .frame(width: size.width, height: size.height)
         .clipped()
@@ -39,27 +37,78 @@ struct WorkoutShareCardView: View {
 struct BackgroundPhotoLayer: View {
     let photo: UIImage
     let size: ShareCardSize
+    var scale: CGFloat = 1.0
+    var offset: CGSize = .zero
 
     var body: some View {
-        Image(uiImage: photo)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(width: size.width, height: size.height)
-            .clipped()
+        ZStack {
+            // 1:1 比例時，用圖片主色調填充背景
+            if size == .instagram11 {
+                Color(uiColor: photo.averageColor ?? .gray)
+            }
+
+            // 圖片層（應用縮放和位移）
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: size == .instagram11 ? .fit : .fill)
+                .frame(width: size.width, height: size.height)
+                .scaleEffect(scale)
+                .offset(offset)
+        }
+    }
+}
+
+// MARK: - UIImage Extension for Average Color
+
+extension UIImage {
+    /// 計算圖片的平均顏色（主色調）
+    var averageColor: UIColor? {
+        guard let inputImage = CIImage(image: self) else { return nil }
+        let extentVector = CIVector(x: inputImage.extent.origin.x,
+                                     y: inputImage.extent.origin.y,
+                                     z: inputImage.extent.size.width,
+                                     w: inputImage.extent.size.height)
+
+        guard let filter = CIFilter(name: "CIAreaAverage",
+                                     parameters: [kCIInputImageKey: inputImage,
+                                                kCIInputExtentKey: extentVector]) else { return nil }
+        guard let outputImage = filter.outputImage else { return nil }
+
+        var bitmap = [UInt8](repeating: 0, count: 4)
+        let context = CIContext(options: [.workingColorSpace: kCFNull as Any])
+        context.render(outputImage,
+                      toBitmap: &bitmap,
+                      rowBytes: 4,
+                      bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                      format: .RGBA8,
+                      colorSpace: nil)
+
+        return UIColor(red: CGFloat(bitmap[0]) / 255,
+                      green: CGFloat(bitmap[1]) / 255,
+                      blue: CGFloat(bitmap[2]) / 255,
+                      alpha: CGFloat(bitmap[3]) / 255)
     }
 }
 
 /// 預設背景層 (無照片時)
 struct DefaultBackgroundLayer: View {
     var body: some View {
-        LinearGradient(
-            gradient: Gradient(colors: [
-                Color.blue.opacity(0.8),
-                Color.purple.opacity(0.8)
-            ]),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        // 使用 Assets 中的 share_bg 圖片作為預設背景
+        if let defaultImage = UIImage(named: "share_bg") {
+            Image(uiImage: defaultImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            // 備用漸層背景
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(red: 0.2, green: 0.3, blue: 0.4),
+                    Color(red: 0.1, green: 0.2, blue: 0.3)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
     }
 }
 

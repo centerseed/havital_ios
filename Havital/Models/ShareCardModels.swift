@@ -13,22 +13,39 @@ struct WorkoutShareCardData {
     let layoutMode: ShareCardLayoutMode
     let colorScheme: ShareCardColorScheme
 
+    // 圖片變換參數
+    var photoScale: CGFloat = 1.0
+    var photoOffset: CGSize = .zero
+
     // MARK: - 文案內容 (優先使用 API,回退到本地生成)
 
     /// 成就主語句
     var achievementTitle: String {
-        if let title = workout.shareCardContent?.achievementTitle {
+        // 詳細的調試信息
+        if workout.shareCardContent == nil {
+            print("⚠️ [ShareCardData] workout.shareCardContent 為 nil")
+        } else if let content = workout.shareCardContent {
+            print("📋 [ShareCardData] shareCardContent 存在: achievementTitle=\(content.achievementTitle ?? "nil"), encouragementText=\(content.encouragementText ?? "nil"), streakDays=\(content.streakDays?.description ?? "nil")")
+        }
+
+        if let title = workout.shareCardContent?.achievementTitle, !title.isEmpty {
+            print("✅ [ShareCardData] 使用 API 成就標題: \(title)")
             return title
         }
-        return generateLocalAchievementTitle()
+        let localTitle = generateLocalAchievementTitle()
+        print("⚠️ [ShareCardData] 使用本地生成標題: \(localTitle)")
+        return localTitle
     }
 
     /// 鼓勵語
     var encouragementText: String {
-        if let text = workout.shareCardContent?.encouragementText {
+        if let text = workout.shareCardContent?.encouragementText, !text.isEmpty {
+            print("✅ [ShareCardData] 使用 API 鼓勵語: \(text)")
             return text
         }
-        return generateLocalEncouragement()
+        let localText = generateLocalEncouragement()
+        print("⚠️ [ShareCardData] 使用本地生成鼓勵語: \(localText)")
+        return localText
     }
 
     /// 連續訓練資訊
