@@ -13,6 +13,7 @@ struct PaceCalculator {
         case tempo = "節奏跑配速[T]"
         case marathon = "全程馬拉松配速[M]"
         case threshold = "閾值跑配速[TH]"
+        case anaerobic = "無氧配速[AN]"
         case interval = "間歇跑配速[I]"
 
         /// 配速區間對應的百分比範圍 (pct_low, pct_high)
@@ -23,6 +24,7 @@ struct PaceCalculator {
             case .tempo:      return (0.75, 0.84)
             case .marathon:   return (0.78, 0.82)
             case .threshold:  return (0.83, 0.88)
+            case .anaerobic:  return (0.88, 0.95)
             case .interval:   return (0.95, 1.0)
             }
         }

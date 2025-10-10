@@ -934,11 +934,11 @@ struct PaceWheelPicker: View {
     @StateObject private var paceMemory = PaceMemoryManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    // 生成配速選項：3:00 到 8:00，每隔10秒
+    // 生成配速選項：3:00 到 8:00，每隔5秒
     private let paceOptions: [String] = {
         var options: [String] = []
         for minutes in 3...8 {
-            for seconds in stride(from: 0, to: 60, by: 10) {
+            for seconds in stride(from: 0, to: 60, by: 5) {
                 options.append(String(format: "%d:%02d", minutes, seconds))
             }
         }

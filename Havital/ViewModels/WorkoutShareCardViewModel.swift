@@ -124,8 +124,11 @@ class WorkoutShareCardViewModel: ObservableObject, TaskManageable {
     private func renderViewAsImage(view: AnyView, size: CGSize) async -> UIImage? {
         // 創建 UIHostingController
         let controller = UIHostingController(rootView: view)
-        controller.view.bounds = CGRect(origin: .zero, size: size)
-        controller.view.backgroundColor = .clear
+        controller.view.frame = CGRect(origin: .zero, size: size)
+        controller.view.backgroundColor = .black  // 使用黑色背景防止白色留白
+
+        // 強制佈局
+        controller.view.layoutIfNeeded()
 
         // 渲染為圖片
         let renderer = UIGraphicsImageRenderer(size: size)

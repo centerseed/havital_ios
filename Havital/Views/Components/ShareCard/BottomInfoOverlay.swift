@@ -88,13 +88,13 @@ struct BottomInfoOverlay: View {
                         }
                     }
 
-                    // 訓練負荷 TSS
-                    if let load = data.workout.advancedMetrics?.tss {
+                    // 動態跑力
+                    if let vdot = data.workout.advancedMetrics?.dynamicVdot {
                         HStack(spacing: 9) {
                             Image(systemName: "chart.line.uptrend.xyaxis")
                                 .font(.system(size: 36))
                                 .foregroundColor(.white.opacity(0.9))
-                            Text("TSS \(String(format: "%.0f", load))")
+                            Text("跑力 \(String(format: "%.1f", vdot))")
                                 .font(.system(size: 42))
                                 .foregroundColor(.white)
                         }

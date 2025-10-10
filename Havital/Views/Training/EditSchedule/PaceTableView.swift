@@ -96,6 +96,8 @@ struct PaceTableView: View {
             return "marathon"
         case .threshold:
             return "threshold"
+        case .anaerobic:
+            return "anaerobic"
         case .interval:
             return "interval"
         }
@@ -113,6 +115,8 @@ struct PaceTableView: View {
             return .orange
         case .threshold:
             return .orange
+        case .anaerobic:
+            return .purple
         case .interval:
             return .red
         }
@@ -130,6 +134,8 @@ struct PaceTableView: View {
             return "目標馬拉松比賽配速，長距離持續配速訓練"
         case .threshold:
             return "高強度有氧訓練，提升最大攝氧量"
+        case .anaerobic:
+            return "無氧耐力訓練，接近最大強度，提升無氧能力"
         case .interval:
             return "高強度間歇訓練，短距離快速，提升速度與爆發力"
         }
@@ -147,6 +153,8 @@ struct PaceTableView: View {
             return "效益：適應馬拉松配速、提升長距離耐力、模擬比賽強度"
         case .threshold:
             return "效益：提升最大攝氧量、增強有氧能力、改善速度耐力"
+        case .anaerobic:
+            return "效益：提升無氧耐力、增強高強度持續能力、改善乳酸耐受度"
         case .interval:
             return "效益：提升最大攝氧量、增強速度與爆發力、改善跑步效率"
         }

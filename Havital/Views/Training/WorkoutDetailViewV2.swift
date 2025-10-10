@@ -543,11 +543,11 @@ struct WorkoutDetailViewV2: View {
                 if let threshold = hrZones.threshold {
                     ZoneRow(title: L10n.WorkoutDetail.thresholdZone.localized, percentage: threshold, color: .orange)
                 }
-                if let interval = hrZones.interval {
-                    ZoneRow(title: L10n.WorkoutDetail.intervalZone.localized, percentage: interval, color: .red)
-                }
                 if let anaerobic = hrZones.anaerobic {
                     ZoneRow(title: L10n.WorkoutDetail.anaerobicZone.localized, percentage: anaerobic, color: .purple)
+                }
+                if let interval = hrZones.interval {
+                    ZoneRow(title: L10n.WorkoutDetail.intervalZone.localized, percentage: interval, color: .red)
                 }
             }
         }
@@ -580,11 +580,11 @@ struct WorkoutDetailViewV2: View {
                 if let threshold = paceZones.threshold {
                     ZoneRow(title: L10n.WorkoutDetail.thresholdPace.localized, percentage: threshold, color: .orange)
                 }
-                if let interval = paceZones.interval {
-                    ZoneRow(title: L10n.WorkoutDetail.intervalPace.localized, percentage: interval, color: .red)
-                }
                 if let anaerobic = paceZones.anaerobic {
                     ZoneRow(title: L10n.WorkoutDetail.anaerobicPace.localized, percentage: anaerobic, color: .purple)
+                }
+                if let interval = paceZones.interval {
+                    ZoneRow(title: L10n.WorkoutDetail.intervalPace.localized, percentage: interval, color: .red)
                 }
             }
         }
@@ -667,18 +667,18 @@ struct WorkoutDetailViewV2: View {
                 color: .orange
             )
         }
-        if let interval = zones.interval {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
-                percentage: interval,
-                color: .red
-            )
-        }
         if let anaerobic = zones.anaerobic {
             ZoneRow(
                 title: isHeartRate ? L10n.WorkoutDetail.anaerobicZone.localized : L10n.WorkoutDetail.anaerobicPace.localized,
                 percentage: anaerobic,
                 color: .purple
+            )
+        }
+        if let interval = zones.interval {
+            ZoneRow(
+                title: isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
+                percentage: interval,
+                color: .red
             )
         }
     }

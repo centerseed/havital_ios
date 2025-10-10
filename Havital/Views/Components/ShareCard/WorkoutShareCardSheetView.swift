@@ -358,7 +358,18 @@ struct WorkoutShareCardSheetView: View {
     private func exportAndShare() async {
         guard let cardData = viewModel.cardData else { return }
 
-        let shareCardView = WorkoutShareCardView(data: cardData, size: selectedSize)
+        // 創建包含用戶調整後變換參數的 cardData
+        let transformedData = WorkoutShareCardData(
+            workout: cardData.workout,
+            workoutDetail: cardData.workoutDetail,
+            userPhoto: cardData.userPhoto,
+            layoutMode: cardData.layoutMode,
+            colorScheme: cardData.colorScheme,
+            photoScale: photoScale,
+            photoOffset: photoOffset
+        )
+
+        let shareCardView = WorkoutShareCardView(data: transformedData, size: selectedSize)
 
         if let image = await viewModel.exportAsImage(size: selectedSize, view: AnyView(shareCardView)) {
             await MainActor.run {

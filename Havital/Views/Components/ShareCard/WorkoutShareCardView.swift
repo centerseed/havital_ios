@@ -6,7 +6,11 @@ struct WorkoutShareCardView: View {
     let size: ShareCardSize
 
     var body: some View {
-        ZStack(alignment: .center) {
+        ZStack {
+            // 黑色背景作為最底層
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+
             // 背景照片層
             if let photo = data.userPhoto {
                 BackgroundPhotoLayer(
@@ -15,7 +19,6 @@ struct WorkoutShareCardView: View {
                     scale: data.photoScale,
                     offset: data.photoOffset
                 )
-                .frame(width: size.width, height: size.height)
             } else {
                 // 無照片時的預設背景
                 DefaultBackgroundLayer()
@@ -27,7 +30,7 @@ struct WorkoutShareCardView: View {
                 .frame(width: size.width, height: size.height)
         }
         .frame(width: size.width, height: size.height)
-        .clipped()
+        .background(Color.black)
     }
 }
 
@@ -42,19 +45,19 @@ struct BackgroundPhotoLayer: View {
 
     var body: some View {
         ZStack {
-            // 1:1 比例時，用圖片主色調填充背景
-            if size == .instagram11 {
-                Color(uiColor: photo.averageColor ?? .gray)
-            }
+            // 使用略大的黑色底色確保覆蓋所有區域
+            Color.black
+                .frame(width: size.width * 1.1, height: size.height * 1.1)
 
-            // 圖片層（應用縮放和位移）
             Image(uiImage: photo)
                 .resizable()
-                .aspectRatio(contentMode: size == .instagram11 ? .fit : .fill)
+                .aspectRatio(contentMode: .fill)
                 .frame(width: size.width, height: size.height)
                 .scaleEffect(scale)
                 .offset(offset)
         }
+        .frame(width: size.width, height: size.height)
+        .clipped()
     }
 }
 
@@ -97,7 +100,8 @@ struct DefaultBackgroundLayer: View {
         if let defaultImage = UIImage(named: "share_bg") {
             Image(uiImage: defaultImage)
                 .resizable()
-                .scaledToFill()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
         } else {
             // 備用漸層背景
             LinearGradient(
@@ -108,6 +112,7 @@ struct DefaultBackgroundLayer: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            .ignoresSafeArea()
         }
     }
 }
