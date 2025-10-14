@@ -863,8 +863,8 @@
 "training_days.edit_title" = "トレーニング日を編集";
 "training_days.save" = "保存";
 
-// MARK: - Login Strings  
-"login.tagline" = "健康とフィットネスへの道のりを簡単に始めましょう";
+// MARK: - Login Strings
+"login.tagline" = "自分のペースで走り\nより良い自分になる";
 "login.google_signin" = "Googleでサインイン";
 "login.apple_signin" = "Appleでサインイン";
 "login.failed" = "ログインに失敗";
@@ -1069,6 +1069,49 @@
 "performance.vdot.no_statistics" = "統計情報なし";
 "performance.vdot.data_point_count" = "データポイント数";
 "performance.vdot.trend" = "トレンド";
+
+// MARK: - Training Readiness
+"training_readiness.title" = "トレーニング準備度";
+"training_readiness.description" = "トレーニング準備度は、スピード、持久力、レース適性、トレーニング負荷などの複数の指標に基づいて計算された総合スコアで、現在のトレーニング状態を把握するのに役立ちます。";
+"training_readiness.overall_score" = "総合準備度";
+"training_readiness.updated" = "更新";
+"training_readiness.no_data" = "トレーニング準備度データなし";
+"training_readiness.data_ready" = "準備度分析完了";
+"training_readiness.no_score" = "スコアなし";
+
+// Training Readiness Status
+"training_readiness.status_excellent" = "現在の状態は良好、質の高いワークアウトに適しています";
+"training_readiness.status_good" = "状態は良好";
+"training_readiness.status_needs_rest" = "休息と回復が必要";
+
+// Training Readiness Messages
+"training_readiness.message_excellent" = "すべての指標が良好、高強度トレーニングの準備ができています";
+"training_readiness.message_good" = "全体的なパフォーマンスは安定、現在のトレーニングリズムを維持してください";
+"training_readiness.message_needs_rest" = "過度なトレーニングを避けるため、休息時間を増やすことを検討してください";
+
+// Training Readiness Metrics
+"training_readiness.speed" = "スピード";
+"training_readiness.endurance" = "持久力";
+"training_readiness.race_fitness" = "レース適性";
+"training_readiness.training_load" = "トレーニング負荷";
+"training_readiness.recovery" = "回復";
+
+// Speed Metric
+"training_readiness.speed.achievement_rate" = "ペース達成率";
+"training_readiness.speed.pace_improving" = "ペース向上中";
+"training_readiness.speed.pace_stable" = "ペースパフォーマンス安定";
+
+// Endurance Metric
+"training_readiness.endurance.performance_stable" = "持久力パフォーマンス安定";
+"training_readiness.endurance.long_run_completion" = "ロングラン完走率";
+
+// Race Fitness Metric
+"training_readiness.race_fitness.readiness_excellent" = "レース適性優秀";
+"training_readiness.race_fitness.race_pace_quality" = "レースペーストレーニング品質";
+
+// Training Load Metric
+"training_readiness.training_load.balanced" = "トレーニング負荷バランス良好";
+"training_readiness.training_load.tsb" = "TSB";
 
 // HRV Performance Terms
 "performance.hrv.loading_hrv" = "HRVデータ読み込み中...";

@@ -72,8 +72,8 @@ struct LapAnalysisView: View {
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                         }
-                        .padding(.vertical, 6)
-                        .background(Color(.systemGray5))
+                        .padding(.vertical, 8)
+                        .background(Color(.tertiarySystemGroupedBackground))
                         
                         // Table rows - 移除 ScrollView 讓長截圖能完整顯示所有資料
                         VStack(spacing: 0) {
@@ -83,16 +83,15 @@ struct LapAnalysisView: View {
                             }
                         }
                     }
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    .cornerRadius(8)
                 }
                 .frame(height: CGFloat(laps.count * 35 + 40)) // 移除最大高度限制，讓所有資料都顯示
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 }
 
@@ -131,7 +130,7 @@ struct LapRowView: View {
                 .frame(width: width * 0.225, alignment: .center)
         }
         .frame(height: 35)
-        .background(isEven ? Color(.systemGray6).opacity(0.3) : Color(.systemBackground))
+        .background(isEven ? Color(.tertiarySystemGroupedBackground).opacity(0.5) : Color.clear)
     }
 }
 

@@ -109,7 +109,7 @@ class VDOTManager: ObservableObject, DataManageable {
     @Published var vdotDataPoints: [EnhancedVDOTDataPoint] = []
     @Published var statistics: VDOTStatistics?
     @Published var needUpdatedHrRange: Bool = false
-    @Published var dataLimit: Int = 14 // 預設顯示最近 14 筆數據
+    @Published var dataLimit: Int = 1 // 只獲取最新 1 筆數據（不再顯示圖表）
     
     // MARK: - Dependencies
     let service: VDOTService

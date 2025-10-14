@@ -49,17 +49,17 @@ struct WorkoutDetailViewV2: View {
             VStack(spacing: 16) {
                 // 基本資訊卡片（始終顯示）
                 basicInfoCard
-                
+
                 // 高級指標卡片
                 if viewModel.workout.advancedMetrics != nil {
                     advancedMetricsCard
                 }
-                
+
                 // 課表資訊和AI分析卡片
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
                     TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail)
                 }
-                
+
                 // 載入狀態或錯誤訊息
                 if viewModel.isLoading {
                     loadingView
@@ -70,17 +70,17 @@ struct WorkoutDetailViewV2: View {
                     LazyVStack(spacing: 16) {
                         // 心率變化圖表
                         heartRateChartSection
-                        
+
                         // 配速變化圖表
                         if !viewModel.paces.isEmpty {
                             paceChartSection
                         }
-                        
+
                         // 步態分析圖表
                         if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
                             gaitAnalysisChartSection
                         }
-                        
+
                         // 區間分佈卡片（合併顯示）
                         if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
                            let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
@@ -90,7 +90,7 @@ struct WorkoutDetailViewV2: View {
                         } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
                             paceZoneCard(convertToV2ZoneDistribution(paceZones))
                         }
-                        
+
                         // 圈速分析卡片 (在區間分佈後，數據來源前)
                         if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
                             LapAnalysisView(
@@ -101,12 +101,13 @@ struct WorkoutDetailViewV2: View {
                         }
                     }
                 }
-                
+
                 // 數據來源和設備信息卡片（移到最底下）
                 sourceInfoCard
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .refreshable {
             await viewModel.refreshWorkoutDetail()
         }
@@ -226,6 +227,7 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 
     // MARK: - 計算屬性
@@ -378,6 +380,7 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .alert(L10n.WorkoutDetail.reuploadAlert.localized, isPresented: $showReuploadAlert) {
             Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) { }
             Button(L10n.WorkoutDetail.confirmUpload.localized, role: .destructive) {
@@ -511,6 +514,7 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 
     // MARK: - 心率區間分佈卡片
@@ -554,6 +558,7 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
         }
@@ -591,6 +596,7 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 
     // MARK: - 合併區間分佈卡片
@@ -632,6 +638,7 @@ struct WorkoutDetailViewV2: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
         }

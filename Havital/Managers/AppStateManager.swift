@@ -60,7 +60,7 @@ class AppStateManager: ObservableObject {
     private var authService: AuthenticationService?
     private var userService: UserService?
     private var unifiedWorkoutManager: UnifiedWorkoutManager?
-    private var healthDataUploadManager: HealthDataUploadManager?
+    private var healthDataUploadManager: HealthDataUploadManagerV2?
     
     private init() {
         print("🏁 AppStateManager: 已初始化")
@@ -238,7 +238,7 @@ class AppStateManager: ObservableObject {
         
         // 初始化核心服務
         unifiedWorkoutManager = UnifiedWorkoutManager.shared
-        healthDataUploadManager = HealthDataUploadManager.shared
+        healthDataUploadManager = HealthDataUploadManagerV2.shared
         
         // 根據用戶狀態初始化服務
         if isUserAuthenticated {
@@ -247,7 +247,7 @@ class AppStateManager: ObservableObject {
             await unifiedWorkoutManager?.loadWorkouts()
             
             // 啟動健康數據同步
-            await healthDataUploadManager?.startHealthDataSync()
+            await healthDataUploadManager?.initialize()
             
             print("✅ AppStateManager: 已認證用戶服務設置完成")
         } else {

@@ -1946,50 +1946,42 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // MARK: - 調整建議確認相關方法
 
     /// 檢查是否需要顯示調整建議確認畫面
+    /// 簡化邏輯：只檢查一次，不做複雜的狀態管理
     @MainActor
     private func shouldShowAdjustmentConfirmation(for targetWeek: Int) async -> Bool {
-        // 檢查上一週是否有週總結且包含調整建議
+        // 檢查上一週是否有週總結
         let previousWeek = targetWeek - 1
-        guard previousWeek > 0 else {
-            // 即使是第一週，也允許用戶自行添加調整項目
-            pendingAdjustments = []
-            pendingTargetWeek = targetWeek
-            pendingSummaryId = "week_0_summary"  // 第一週使用特殊的 summaryId
-
-            // 顯示調整建議確認畫面
-            showAdjustmentConfirmation = true
-            return true
-        }
 
         var existingAdjustments: [AdjustmentItem] = []
+        var actualSummaryId = "week_\(previousWeek)_summary"
 
-        var actualSummaryId = "week_\(previousWeek)_summary" // 預設值
+        if previousWeek > 0 {
+            do {
+                let summary = try await WeeklySummaryService.shared.getWeeklySummary(weekNumber: previousWeek)
+                actualSummaryId = summary.id
 
-        do {
-            let summary = try await WeeklySummaryService.shared.getWeeklySummary(weekNumber: previousWeek)
-
-            // 使用實際的 summary ID
-            actualSummaryId = summary.id
-
-            // 獲取現有的調整建議項目（如果有的話）
-            if let items = summary.nextWeekAdjustments.items {
-                existingAdjustments = items
+                if let items = summary.nextWeekAdjustments.items {
+                    existingAdjustments = items
+                }
+            } catch {
+                Logger.debug("無法獲取上週總結: \(error)")
             }
-        } catch {
-            Logger.debug("無法獲取上週總結，但仍允許用戶自行添加調整項目: \(error)")
         }
 
-        // 無論是否有現有的調整建議，都顯示調整確認畫面讓用戶可以自行添加
+        // 設置待確認的調整建議
         pendingAdjustments = existingAdjustments
         pendingTargetWeek = targetWeek
         pendingSummaryId = actualSummaryId
 
         // 顯示調整建議確認畫面
         showAdjustmentConfirmation = true
+        isLoading = false
+
         return true
     }
 
     /// 確認調整建議並繼續產生週課表
+    /// 簡化邏輯：確認後直接產生課表，不再回到 generateNextWeekPlan
     @MainActor
     func confirmAdjustments(_ selectedItems: [AdjustmentItem]) async {
         guard let targetWeek = pendingTargetWeek,
@@ -1998,32 +1990,33 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             return
         }
 
-        isUpdatingAdjustments = true
+        // 🔧 修復：立即關閉調整建議畫面，防止重複點擊
+        showAdjustmentConfirmation = false
 
-        do {
-            // 更新調整建議到後端
-            _ = try await WeeklySummaryService.shared.updateAdjustments(
-                summaryId: summaryId,
-                items: selectedItems
-            )
-
-            // 隱藏確認畫面
-            showAdjustmentConfirmation = false
-
-            // 繼續產生週課表
-            await generateNextWeekPlanAfterAdjustment(targetWeek: targetWeek)
-
-        } catch {
-            Logger.error("更新調整建議失敗: \(error)")
-            // 可以選擇繼續產生課表或顯示錯誤
-            await generateNextWeekPlanAfterAdjustment(targetWeek: targetWeek)
-        }
-
-        // 清理狀態
-        isUpdatingAdjustments = false
+        // 清理調整建議相關狀態
+        let currentTargetWeek = targetWeek  // 保存週數，因為後面會清空
         pendingAdjustments = []
         pendingTargetWeek = nil
         pendingSummaryId = nil
+
+        // 清除週回顧狀態
+        clearWeeklySummary()
+
+        // 在背景更新調整建議到後端（不阻塞 UI）
+        Task.detached {
+            do {
+                _ = try await WeeklySummaryService.shared.updateAdjustments(
+                    summaryId: summaryId,
+                    items: selectedItems
+                )
+                Logger.debug("調整建議已更新到後端")
+            } catch {
+                Logger.error("更新調整建議失敗（不影響課表產生）: \(error)")
+            }
+        }
+
+        // 繼續產生週課表（不再經過 shouldShowAdjustmentConfirmation 檢查）
+        await generateNextWeekPlanAfterAdjustment(targetWeek: currentTargetWeek)
     }
 
     /// 取消調整建議確認

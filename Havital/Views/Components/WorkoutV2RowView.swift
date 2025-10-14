@@ -137,8 +137,9 @@ struct WorkoutV2RowView: View {
             
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
     
     private func isToday(date: Date) -> Bool {

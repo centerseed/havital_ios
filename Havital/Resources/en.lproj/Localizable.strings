@@ -863,8 +863,8 @@
 "training_days.edit_title" = "Edit Training Days";
 "training_days.save" = "Save";
 
-// MARK: - Login Strings  
-"login.tagline" = "Let's easily embark on the path to health and fitness";
+// MARK: - Login Strings
+"login.tagline" = "Run at your own pace\nBecome a better you";
 "login.google_signin" = "Sign in with Google";
 "login.apple_signin" = "Sign in with Apple";
 "login.failed" = "Login Failed";
@@ -1069,6 +1069,49 @@
 "performance.vdot.no_statistics" = "No statistics available";
 "performance.vdot.data_point_count" = "Data points";
 "performance.vdot.trend" = "Trend";
+
+// MARK: - Training Readiness
+"training_readiness.title" = "Training Readiness";
+"training_readiness.description" = "Training readiness is a comprehensive score calculated based on your speed, endurance, race fitness, and training load metrics to help you understand your current training status.";
+"training_readiness.overall_score" = "Overall Readiness";
+"training_readiness.updated" = "Updated";
+"training_readiness.no_data" = "No training readiness data available";
+"training_readiness.data_ready" = "Readiness analysis complete";
+"training_readiness.no_score" = "No score";
+
+// Training Readiness Status
+"training_readiness.status_excellent" = "Current condition is good, suitable for quality workouts";
+"training_readiness.status_good" = "Condition is decent";
+"training_readiness.status_needs_rest" = "Need rest and recovery";
+
+// Training Readiness Messages
+"training_readiness.message_excellent" = "All metrics performing well, ready for high-intensity training";
+"training_readiness.message_good" = "Overall performance is stable, maintain current training rhythm";
+"training_readiness.message_needs_rest" = "Consider increasing rest time to avoid overtraining";
+
+// Training Readiness Metrics
+"training_readiness.speed" = "Speed";
+"training_readiness.endurance" = "Endurance";
+"training_readiness.race_fitness" = "Race Fitness";
+"training_readiness.training_load" = "Training Load";
+"training_readiness.recovery" = "Recovery";
+
+// Speed Metric
+"training_readiness.speed.achievement_rate" = "Pace achievement rate";
+"training_readiness.speed.pace_improving" = "Pace improving";
+"training_readiness.speed.pace_stable" = "Pace performance stable";
+
+// Endurance Metric
+"training_readiness.endurance.performance_stable" = "Endurance performance stable";
+"training_readiness.endurance.long_run_completion" = "Long run completion";
+
+// Race Fitness Metric
+"training_readiness.race_fitness.readiness_excellent" = "Race fitness excellent";
+"training_readiness.race_fitness.race_pace_quality" = "Race pace training quality";
+
+// Training Load Metric
+"training_readiness.training_load.balanced" = "Training load balanced";
+"training_readiness.training_load.tsb" = "TSB";
 
 // HRV Performance Terms
 "performance.hrv.loading_hrv" = "Loading HRV data...";

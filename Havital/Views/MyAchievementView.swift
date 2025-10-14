@@ -57,29 +57,79 @@ extension View {
 struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
+    @ObservedObject private var trainingReadinessManager = TrainingReadinessManager.shared
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
-    
+    @State private var refreshRotation: Double = 0
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
         UserPreferenceManager.shared.dataSourcePreference
     }
-    
+
+    // 格式化更新時間
+    private var formattedUpdateTime: String? {
+        guard let lastSync = trainingReadinessManager.lastSyncTime else {
+            return nil
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone.current
+        return "\(formatter.string(from: lastSync)) 更新"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // VDOT Chart Section - 所有數據源都顯示（從 API 獲取）
+                    // Training Readiness Section - 訓練準備度
                     VStack(alignment: .leading, spacing: 12) {
-                        SectionTitleWithInfo(
-                            title: L10n.Performance.vdotTrend.localized,
-                            explanation: L10n.Performance.vdotExplanation.localized
-                        )
+                        HStack {
+                            SectionTitleWithInfo(
+                                title: NSLocalizedString("training_readiness.title", comment: ""),
+                                explanation: NSLocalizedString("training_readiness.description", comment: "")
+                            )
+
+                            Spacer()
+
+                            // Last updated time
+                            if let updateTime = formattedUpdateTime {
+                                Text(updateTime)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Button(action: {
+                                Task {
+                                    print("[MyAchievementView] 🔄 用戶點擊刷新按鈕")
+                                    await trainingReadinessManager.forceRefresh()
+                                }
+                            }) {
+                                Image(systemName: "arrow.clockwise")
+                                    .foregroundColor(trainingReadinessManager.isLoading ? .gray : .blue)
+                                    .font(.system(size: 16))
+                                    .rotationEffect(.degrees(refreshRotation))
+                            }
+                            .disabled(trainingReadinessManager.isLoading)
+                            .onChange(of: trainingReadinessManager.isLoading) { oldValue, newValue in
+                                if newValue {
+                                    // Start continuous rotation
+                                    withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                                        refreshRotation = 360
+                                    }
+                                } else {
+                                    // Stop rotation
+                                    withAnimation(.linear(duration: 0.2)) {
+                                        refreshRotation = 0
+                                    }
+                                }
+                            }
+                        }
                         .padding(.horizontal)
                         .padding(.top, 12)
-                        
-                        VDOTChartView()
+
+                        TrainingReadinessView()
                             .padding()
                     }
                     .background(Color(UIColor.systemBackground))
@@ -119,6 +169,12 @@ struct MyAchievementView: View {
             .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle(NSLocalizedString("performance.title", comment: "Performance"))
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // Load training readiness data when view appears
+                Task {
+                    await trainingReadinessManager.loadData()
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -147,16 +203,16 @@ struct MyAchievementView: View {
         
         LongScreenshotCapture.captureView(
             VStack(spacing: 20) {
-                // VDOT Chart Section
+                // Training Readiness Section
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitleWithInfo(
-                        title: L10n.Performance.vdotTrend.localized,
-                        explanation: L10n.Performance.vdotExplanation.localized
+                        title: NSLocalizedString("training_readiness.title", comment: ""),
+                        explanation: NSLocalizedString("training_readiness.description", comment: "")
                     )
                     .padding(.horizontal)
                     .padding(.top, 12)
-                    
-                    VDOTChartView()
+
+                    TrainingReadinessView()
                         .padding()
                 }
                 .background(Color(UIColor.systemBackground))
@@ -367,7 +423,7 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
     @Published var error: String?
     @Published var isRefreshing = false // 新增：區分初始載入和刷新
     
-    private let healthDataUploadManager = HealthDataUploadManager.shared
+    private let healthDataUploadManager = HealthDataUploadManagerV2.shared
     private var hasLoaded = false
     
     private init() {
@@ -585,7 +641,8 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
             self.error = nil
         }
         
-        let newHealthData = await healthDataUploadManager.refreshHealthData(days: 14)
+        await healthDataUploadManager.refreshData()
+        let newHealthData = await healthDataUploadManager.getHealthData(days: 14)
         
         await MainActor.run {
             self.healthData = newHealthData
@@ -842,7 +899,7 @@ struct SharedHealthDataChartView: View {
         do {
             // 使用 HealthDataUploadManager 獲取指定天數的數據
             print("🔍 [SharedHealthDataChartView] 調用 HealthDataUploadManager.getHealthData(days: \(selectedTimeRange.days))")
-            let newHealthData = await HealthDataUploadManager.shared.getHealthData(days: selectedTimeRange.days)
+            let newHealthData = await HealthDataUploadManagerV2.shared.getHealthData(days: selectedTimeRange.days)
             
             print("🔍 [SharedHealthDataChartView] 獲取到健康數據: \(newHealthData.count) 筆記錄")
             if chartType == .hrv {
@@ -984,7 +1041,7 @@ struct APIBasedHRVChartView: View {
         usingFallback = false
         
         // 優先嘗試從 API 獲取數據
-        let newHealthData = await HealthDataUploadManager.shared.getHealthData(days: 14)
+        let newHealthData = await HealthDataUploadManagerV2.shared.getHealthData(days: 14)
         
         // 無論如何都要更新 loading 狀態
         defer {
@@ -1132,7 +1189,7 @@ struct APIBasedRestingHeartRateChartView: View {
     private func loadHealthData() async {
         isLoading = true
         
-        healthData = await HealthDataUploadManager.shared.getHealthData(days: 14)
+        healthData = await HealthDataUploadManagerV2.shared.getHealthData(days: 14)
         error = nil
         
         isLoading = false
@@ -1346,20 +1403,20 @@ struct TrainingLoadChartView: View {
 
                 Chart {
                     // TSB 背景色分區（映射到fitness軸）
-                    // 橙色區：TSB < -5（進步中但疲勞累積）
+                    // 紅色區：TSB < -7（疲勞累積，需要休息）
                     RectangleMark(
                         xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                         xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
                         yStart: .value("下限", mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.lowerBound)),
-                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(-6))
+                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(-7))
                     )
-                    .foregroundStyle(Color.orange.opacity(0.1))
+                    .foregroundStyle(Color.red.opacity(0.1))
 
-                    // 綠色區：-6 ≤ TSB ≤ +5（平衡狀態）
+                    // 綠色區：-7 ≤ TSB ≤ +5（平衡狀態）
                     RectangleMark(
                         xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                         xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(-6)),
+                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(-7)),
                         yEnd: .value("上限", mapTSBBoundaryToFitnessScale(5))
                     )
                     .foregroundStyle(Color.green.opacity(0.1))
@@ -1444,8 +1501,8 @@ struct TrainingLoadChartView: View {
                         .foregroundStyle(.gray)
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
-                    RuleMark(y: .value("TSB -5", mapTSBBoundaryToFitnessScale(-5)))
-                        .foregroundStyle(.orange.opacity(0.5))
+                    RuleMark(y: .value("TSB -7", mapTSBBoundaryToFitnessScale(-7)))
+                        .foregroundStyle(.red.opacity(0.5))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
                 }
                 .chartForegroundStyleScale([
@@ -1491,10 +1548,10 @@ struct TrainingLoadChartView: View {
                         .padding(.top, 8)
 
                     HStack(spacing: 16) {
-                        // 橙色區說明
+                        // 紅色區說明
                         HStack(spacing: 4) {
                             Rectangle()
-                                .fill(Color.orange.opacity(0.3))
+                                .fill(Color.red.opacity(0.3))
                                 .frame(width: 12, height: 12)
                             Text("疲勞累積")
                                 .font(.caption2)
@@ -2288,20 +2345,20 @@ struct TSBChartView: View {
 
             Chart {
                 // TSB 背景色分區
-                // 橙色區：TSB < -4（疲勞狀態）
+                // 紅色區：TSB < -7（疲勞狀態，需要休息）
                 RectangleMark(
                     xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                     xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
                     yStart: .value("下限", tsbYAxisDomain.lowerBound),
-                    yEnd: .value("上限", -4)
+                    yEnd: .value("上限", -7)
                 )
-                .foregroundStyle(Color.orange.opacity(0.1))
+                .foregroundStyle(Color.red.opacity(0.1))
 
-                // 綠色區：-4 ≤ TSB ≤ +1（平衡狀態）
+                // 綠色區：-7 ≤ TSB ≤ +1（平衡狀態）
                 RectangleMark(
                     xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
                     xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                    yStart: .value("下限", -4),
+                    yStart: .value("下限", -7),
                     yEnd: .value("上限", 1)
                 )
                 .foregroundStyle(Color.green.opacity(0.1))
@@ -2345,8 +2402,8 @@ struct TSBChartView: View {
                     .foregroundStyle(.gray)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
-                RuleMark(y: .value("TSB -4", -4))
-                    .foregroundStyle(.orange.opacity(0.5))
+                RuleMark(y: .value("TSB -7", -7))
+                    .foregroundStyle(.red.opacity(0.5))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
             }
             .frame(height: 160)
@@ -2388,7 +2445,7 @@ struct TSBChartView: View {
                 HStack(spacing: 16) {
                     HStack(spacing: 4) {
                         Rectangle()
-                            .fill(Color.orange.opacity(0.3))
+                            .fill(Color.red.opacity(0.3))
                             .frame(width: 12, height: 12)
                         Text("疲勞狀態")
                             .font(.caption2)

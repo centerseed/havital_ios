@@ -864,8 +864,8 @@
 "training_days.edit_title" = "編輯訓練日";
 "training_days.save" = "儲存";
 
-// MARK: - Login Strings  
-"login.tagline" = "讓我們輕鬆踏上健康健身之路";
+// MARK: - Login Strings
+"login.tagline" = "用自己的配速\n跑出更好的自己";
 "login.google_signin" = "使用 Google 登入";
 "login.apple_signin" = "使用 Apple 登入";
 "login.failed" = "登入失敗";
@@ -1077,6 +1077,49 @@
 "performance.vdot.no_statistics" = "暫無統計信息";
 "performance.vdot.data_point_count" = "數據點數量";
 "performance.vdot.trend" = "趨勢";
+
+// MARK: - Training Readiness
+"training_readiness.title" = "訓練準備度";
+"training_readiness.description" = "訓練準備度是根據您的速度、耐力、比賽適能和訓練負荷等多項指標綜合計算的分數，幫助您了解當前的訓練狀態。";
+"training_readiness.overall_score" = "整體準備度";
+"training_readiness.updated" = "更新";
+"training_readiness.no_data" = "暫無訓練準備度數據";
+"training_readiness.data_ready" = "準備度分析完成";
+"training_readiness.no_score" = "無分數";
+
+// Training Readiness Status
+"training_readiness.status_excellent" = "目前狀態良好，適合進行品質課表";
+"training_readiness.status_good" = "狀態不錯";
+"training_readiness.status_needs_rest" = "需要休息恢復";
+
+// Training Readiness Messages
+"training_readiness.message_excellent" = "各項指標表現優異，可以進行高強度訓練";
+"training_readiness.message_good" = "整體表現穩定，建議維持當前訓練節奏";
+"training_readiness.message_needs_rest" = "建議增加休息時間，避免過度訓練";
+
+// Training Readiness Metrics
+"training_readiness.speed" = "速度";
+"training_readiness.endurance" = "耐力";
+"training_readiness.race_fitness" = "比賽適能";
+"training_readiness.training_load" = "訓練負荷";
+"training_readiness.recovery" = "恢復";
+
+// Speed Metric
+"training_readiness.speed.achievement_rate" = "配速達成率";
+"training_readiness.speed.pace_improving" = "配速進步中";
+"training_readiness.speed.pace_stable" = "配速表現穩定";
+
+// Endurance Metric
+"training_readiness.endurance.performance_stable" = "耐力表現穩定";
+"training_readiness.endurance.long_run_completion" = "長距離完成度";
+
+// Race Fitness Metric
+"training_readiness.race_fitness.readiness_excellent" = "比賽適能良好";
+"training_readiness.race_fitness.race_pace_quality" = "比賽配速訓練品質";
+
+// Training Load Metric
+"training_readiness.training_load.balanced" = "訓練負荷平衡";
+"training_readiness.training_load.tsb" = "TSB";
 
 // HRV Performance Terms
 "performance.hrv.loading_hrv" = "載入 HRV 數據中...";

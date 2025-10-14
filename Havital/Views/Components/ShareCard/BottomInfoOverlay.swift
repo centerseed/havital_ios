@@ -111,9 +111,12 @@ struct BottomInfoOverlay: View {
                     .frame(height: 1)
 
                 // 品牌標示區域
-                Text(NSLocalizedString("share_card.branding", comment: "Branding text"))
-                    .font(.system(size: 42, weight: .regular))
-                    .foregroundColor(.white.opacity(0.7))
+                Image("paceriz_light")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(.white)
+                    .frame(height: 50)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(Color.black.opacity(0.4))

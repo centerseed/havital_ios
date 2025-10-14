@@ -216,7 +216,7 @@ struct HavitalApp: App {
     /// 啟動健康數據同步
     private func startHealthDataSync() async {
         print("啟動健康數據同步...")
-        await HealthDataUploadManager.shared.startHealthDataSync()
+        await HealthDataUploadManagerV2.shared.initialize()
     }
     
     /// 請求 HealthKit 授權
