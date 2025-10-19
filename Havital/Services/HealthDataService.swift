@@ -59,18 +59,65 @@ class HealthDataService {
         return response
     }
     
-    /// 上傳健康數據到後端
-    /// - Parameter healthData: 要上傳的健康數據
-    func uploadHealthData(_ healthData: [String: Any]) async throws {
-        let bodyData = try JSONSerialization.data(withJSONObject: healthData)
-        
+    /// 批量上傳健康數據到後端（推薦）
+    /// - Parameter healthRecords: 健康記錄數組
+    func uploadHealthDataBatch(_ healthRecords: [[String: Any]]) async throws {
+        guard !healthRecords.isEmpty else {
+            print("🌐 [HealthDataService] 無數據需要上傳")
+            return
+        }
+
+        print("🌐 [HealthDataService] 準備批量上傳 \(healthRecords.count) 筆健康數據")
+
+        let requestBody: [String: Any] = ["data": healthRecords]
+        let bodyData = try JSONSerialization.data(withJSONObject: requestBody)
+
+        if let jsonString = String(data: bodyData, encoding: .utf8) {
+            print("🌐 [HealthDataService] 批量上傳請求 Body:\n\(jsonString)")
+        }
+
         try await makeAPICall(
             HealthDataEmptyResponse.self,
-            path: "/v2/health/upload",
+            path: "/v2/workouts/health_daily/batch",
             method: .POST,
             body: bodyData
         )
-        
+
+        print("🌐 [HealthDataService] ✅ 批量上傳成功")
+
+        Logger.firebase(
+            "批量上傳健康數據成功",
+            level: .info,
+            labels: [
+                "module": "HealthDataService",
+                "action": "upload_health_data_batch"
+            ],
+            jsonPayload: [
+                "records_count": healthRecords.count
+            ]
+        )
+    }
+
+    /// 上傳單筆健康數據到後端
+    /// - Parameter healthData: 要上傳的健康數據
+    func uploadHealthData(_ healthData: [String: Any]) async throws {
+        print("🌐 [HealthDataService] 準備上傳健康數據到 API")
+
+        let bodyData = try JSONSerialization.data(withJSONObject: healthData)
+
+        if let jsonString = String(data: bodyData, encoding: .utf8) {
+            print("🌐 [HealthDataService] 請求 Body:\n\(jsonString)")
+        }
+
+        try await makeAPICall(
+            HealthDataEmptyResponse.self,
+            path: "/v2/workouts/health_daily",
+            method: .POST,
+            body: bodyData
+        )
+
+        print("🌐 [HealthDataService] ✅ API 調用成功")
+
         Logger.firebase(
             "健康數據上傳成功",
             level: .info,

@@ -324,14 +324,13 @@ struct CombinedHeartRateChartSection: View {
 
         switch dataSourcePreference {
         case .appleHealth:
-            // Apple Health: 優先使用 API，失敗時回退到 HealthKit
-            let _ = print("🔍 [CombinedHeartRateChartSection] Apple Health 用戶，使用 SharedHealthDataChartView + fallback")
-            SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
+            // Apple Health: 直接使用 HealthKit 數據（與靜息心率保持一致）
+            let _ = print("🔍 [CombinedHeartRateChartSection] Apple Health 用戶，使用 HRVTrendChartView 直接讀取 HealthKit")
+            HRVTrendChartView()
                 .environmentObject(healthKitManager)
-                .environmentObject(sharedHealthDataManager)
 
         case .garmin:
-            // Garmin: 僅使用 API 數據
+            // Garmin: 使用 API 數據
             SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
                 .environmentObject(healthKitManager)
                 .environmentObject(sharedHealthDataManager)

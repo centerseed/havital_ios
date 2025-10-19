@@ -861,15 +861,15 @@ class HealthKitManager: ObservableObject, TaskManageable {
         guard let restingHRType = HKObjectType.quantityType(forIdentifier: .restingHeartRate) else {
             return 60.0 // 默認值
         }
-        
+
         let calendar = Calendar.current
         let now = Date()
         let startDate = calendar.date(byAdding: .month, value: -1, to: now)!
-        
+
         return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: startDate, end: now, options: .strictEndDate)
             let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-            
+
             let query = HKSampleQuery(
                 sampleType: restingHRType,
                 predicate: predicate,
@@ -881,7 +881,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     continuation.resume(returning: 60.0)
                     return
                 }
-                
+
                 if let sample = samples?.first as? HKQuantitySample {
                     let restingHR = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
                     continuation.resume(returning: restingHR)
@@ -889,7 +889,51 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     continuation.resume(returning: 60.0)
                 }
             }
-            
+
+            healthStore.execute(query)
+        }
+    }
+
+    /// 獲取指定日期範圍內的靜息心率數據（按日期分組）
+    /// - Parameters:
+    ///   - start: 開始日期
+    ///   - end: 結束日期
+    /// - Returns: [(日期, 靜息心率值)] 數組
+    func fetchRestingHeartRateData(start: Date, end: Date) async throws -> [(Date, Double)] {
+        guard let restingHRType = HKObjectType.quantityType(forIdentifier: .restingHeartRate) else {
+            return []
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictEndDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+            let query = HKSampleQuery(
+                sampleType: restingHRType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    print("獲取靜息心率數據時出錯: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let samples = samples as? [HKQuantitySample] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+
+                let results = samples.map { sample -> (Date, Double) in
+                    let value = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                    return (sample.startDate, value)
+                }
+
+                print("📊 [fetchRestingHeartRateData] 獲取到 \(results.count) 筆靜息心率數據")
+                continuation.resume(returning: results)
+            }
+
             healthStore.execute(query)
         }
     }
