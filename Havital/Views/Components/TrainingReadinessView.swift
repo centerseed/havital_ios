@@ -305,10 +305,11 @@ struct TrainingReadinessView: View {
                             Text(line)
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .frame(height: 28, alignment: .top)
+                    .frame(minHeight: 28, alignment: .top)
                     .padding(.top, 4)
                 }
             } else {
@@ -412,10 +413,11 @@ struct TrainingReadinessView: View {
                             Text(line)
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .frame(height: 28, alignment: .top)
+                    .frame(minHeight: 28, alignment: .top)
                     .padding(.top, 4)
                 }
             } else {
