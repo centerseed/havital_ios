@@ -15,18 +15,16 @@ struct EditScheduleView: View {
             ScrollView {
                 if let editablePlan = editableWeeklyPlan {
                     LazyVStack(spacing: 16) {
-                        ForEach(0..<7) { dayIndex in
-                            if dayIndex < editablePlan.days.count {
-                                EditableDailyCard(
-                                    day: editablePlan.days[dayIndex],
-                                    dayIndex: dayIndex,
-                                    isEditable: canEditDay(editablePlan.days[dayIndex].dayIndexInt),
-                                    viewModel: viewModel,
-                                    onEdit: updateDay,
-                                    onDragStarted: { draggedDay = $0 },
-                                    onDropped: handleDrop
-                                )
-                            }
+                        ForEach(Array(editablePlan.days.enumerated()), id: \.offset) { arrayIndex, day in
+                            EditableDailyCard(
+                                day: day,
+                                dayIndex: arrayIndex,  // 陣列位置索引（用於拖曳交換）
+                                isEditable: canEditDay(day.dayIndexInt),  // ✅ 修正：使用 day.dayIndexInt 而不是 arrayIndex
+                                viewModel: viewModel,
+                                onEdit: updateDay,
+                                onDragStarted: { draggedDay = $0 },
+                                onDropped: handleDrop
+                            )
                         }
                     }
                     .padding()
@@ -135,27 +133,33 @@ struct EditScheduleView: View {
         }
     }
     
-    private func handleDrop(from sourceDayIndex: Int, to targetDayIndex: Int) -> Bool {
-        // 驗證兩天都可以編輯
-        let canEditSource = canEditDay(sourceDayIndex)
-        let canEditTarget = canEditDay(targetDayIndex)
-        
+    private func handleDrop(from sourceArrayIndex: Int, to targetArrayIndex: Int) -> Bool {
         guard var editablePlan = editableWeeklyPlan else { return false }
-        
+
+        // ✅ 修正：從陣列索引取得實際的 day，再用 day.dayIndexInt（weekday number 1-7）檢查可編輯性
+        guard sourceArrayIndex < editablePlan.days.count,
+              targetArrayIndex < editablePlan.days.count else { return false }
+
+        let sourceDay = editablePlan.days[sourceArrayIndex]
+        let targetDay = editablePlan.days[targetArrayIndex]
+
+        let canEditSource = canEditDay(sourceDay.dayIndexInt)  // weekday number 1-7
+        let canEditTarget = canEditDay(targetDay.dayIndexInt)  // weekday number 1-7
+
         let success = DragDropHandler.handleDrop(
-            from: sourceDayIndex,
-            to: targetDayIndex,
+            from: sourceArrayIndex,  // 陣列索引 0-6
+            to: targetArrayIndex,    // 陣列索引 0-6
             in: &editablePlan,
             canEditSource: canEditSource,
             canEditTarget: canEditTarget
         )
-        
+
         if success {
             editableWeeklyPlan = editablePlan
             hasUnsavedChanges = true
             draggedDay = nil
         }
-        
+
         return success
     }
     

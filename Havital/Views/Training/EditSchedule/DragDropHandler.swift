@@ -78,50 +78,96 @@ struct DragDropModifier: ViewModifier {
     let isEditable: Bool
     let onDragStarted: (Int) -> Void
     let onDropped: (Int, Int) -> Bool
-    
+
     @State private var isDragging = false
     @State private var dragOffset = CGSize.zero
     @State private var longPressDetected = false
-    
+    @State private var isTargeted = false  // 🆕 是否為放置目標
+
     func body(content: Content) -> some View {
-        content
-            .scaleEffect(isDragging ? 1.05 : 1.0)
-            .offset(dragOffset)
-            .opacity(isDragging ? 0.8 : 1.0)
-            .background(isDragging ? Color.blue.opacity(0.1) : Color.clear)
-            .animation(.spring(response: 0.3), value: isDragging)
-            .animation(.interactiveSpring(), value: dragOffset)
-            .draggable(DraggableTrainingDay(dayIndex: dayIndex, day: day)) {
-                // 拖曳預覽
+        VStack(spacing: 0) {
+            // 🆕 頂部插入指示器
+            if isTargeted {
+                Rectangle()
+                    .fill(Color.blue)
+                    .frame(height: 4)
+                    .cornerRadius(2)
+                    .padding(.horizontal, 8)
+                    .transition(.opacity)
+            }
+
+            content
+                .scaleEffect(isDragging ? 1.05 : 1.0)
+                .offset(dragOffset)
+                .opacity(isDragging ? 0.5 : 1.0)  // 🔧 降低不透明度到 0.5，更明顯
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isDragging ? Color.blue.opacity(0.1) : Color.clear)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(
+                            isTargeted ? Color.blue : Color.clear,  // 🆕 目標邊框
+                            lineWidth: 3,
+                            antialiased: true
+                        )
+                )
+                .animation(.spring(response: 0.3), value: isDragging)
+                .animation(.spring(response: 0.2), value: isTargeted)
+                .animation(.interactiveSpring(), value: dragOffset)
+        }
+        .draggable(DraggableTrainingDay(dayIndex: dayIndex, day: day)) {
+            // 🔧 改善拖曳預覽
+            VStack(spacing: 8) {
                 HStack(spacing: 12) {
                     Image(systemName: "arrow.up.arrow.down.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.blue)
-                    
-                    VStack(alignment: .leading) {
-                        Text(day.type.localizedName)
+                        .foregroundColor(.white)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(weekdayName(for: day.dayIndexInt))
                             .font(.headline)
-                            .foregroundColor(.primary)
-                        Text("拖拽交換位置")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
+                        Text(day.type.localizedName)
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.9))
                     }
-                    
+
                     Spacer()
                 }
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(12)
-                .shadow(radius: 8)
+
+                Text("拖曳到目標位置")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
             }
-            .dropDestination(for: DraggableTrainingDay.self) { items, location in
-                guard let draggedItem = items.first,
-                      isEditable else { return false }
-                
-                return onDropped(draggedItem.dayIndex, dayIndex)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.blue)
+            )
+            .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
+            .frame(width: 280)
+        }
+        .dropDestination(for: DraggableTrainingDay.self) { items, location in
+            guard let draggedItem = items.first,
+                  isEditable else { return false }
+
+            return onDropped(draggedItem.dayIndex, dayIndex)
+        } isTargeted: { isTargeted in
+            // 🆕 追蹤是否為拖曳目標
+            withAnimation(.spring(response: 0.2)) {
+                self.isTargeted = isTargeted
             }
+        }
     }
-    
+
+    // 🆕 輔助方法：取得星期名稱
+    private func weekdayName(for dayIndex: Int) -> String {
+        let weekdays = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
+        let index = dayIndex - 1  // dayIndex 從 1 開始
+        guard index >= 0 && index < weekdays.count else { return "未知" }
+        return weekdays[index]
+    }
 }
 
 // MARK: - Drag Preview

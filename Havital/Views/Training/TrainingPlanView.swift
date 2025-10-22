@@ -374,6 +374,21 @@ struct TrainingPlanView: View {
             isPresented: $viewModel.showNetworkErrorToast,
             message: NSLocalizedString("toast.network_error", comment: "Network error, showing cached data")
         )
+        // 🆕 成功 Toast（產生課表成功）
+        .overlay(alignment: .top) {
+            if viewModel.showSuccessToast {
+                SuccessToast(message: viewModel.successMessage, isPresented: $viewModel.showSuccessToast)
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(), value: viewModel.showSuccessToast)
+                    .onAppear {
+                        // 3秒後自動消失
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            viewModel.clearSuccessToast()
+                        }
+                    }
+            }
+        }
         .onAppear {
             if hasCompletedOnboarding {
                 Logger.debug("View onAppear: Onboarding completed")
@@ -393,33 +408,52 @@ struct TrainingPlanView: View {
     
     // 拆分主內容視圖
     @ViewBuilder private var mainContentView: some View {
-        switch viewModel.planStatus {
-        case .noPlan:
-            // 尚未生成本週計畫
-            NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .ready(let plan):
-            WeekPlanContentView(
-                viewModel: viewModel,
-                plan: plan,
-                currentTrainingWeek: viewModel.currentWeek
-            )
-            .transition(.opacity)
-            .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .completed:
-            FinalWeekPromptView(viewModel: viewModel)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .error(let error):
-            ErrorView(error: error) {
-                Task { await viewModel.loadWeeklyPlan() }
+        VStack(spacing: 16) {
+            // 🆕 返回本週按鈕（查看未來週時顯示）
+            if viewModel.selectedWeek > viewModel.currentWeek {
+                ReturnToCurrentWeekButton(viewModel: viewModel)
+                    .padding(.horizontal)
             }
-            .transition(.opacity)
-            .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .loading:
-            // 空的佔位視圖，實際的 loading 狀態在 ZStack 中處理
-            EmptyView()
+
+            // 主內容
+            switch viewModel.planStatus {
+            case .noPlan:
+                // 尚未生成本週計畫
+                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .ready(let plan):
+                WeekPlanContentView(
+                    viewModel: viewModel,
+                    plan: plan,
+                    currentTrainingWeek: viewModel.currentWeek
+                )
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .completed:
+                FinalWeekPromptView(viewModel: viewModel)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .error(let error):
+                ErrorView(error: error) {
+                    Task { await viewModel.loadWeeklyPlan() }
+                }
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .loading:
+                // 空的佔位視圖，實際的 loading 狀態在 ZStack 中處理
+                EmptyView()
+            }
+
+            // 🆕 產生下週課表按鈕（週六日顯示）
+            if let nextWeekInfo = viewModel.nextWeekInfo,
+               nextWeekInfo.canGenerate,
+               !nextWeekInfo.hasPlan,
+               viewModel.selectedWeek == viewModel.currentWeek {
+                GenerateNextWeekButton(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
+                    .padding(.horizontal)
+                    .transition(.opacity)
+            }
         }
     }
     

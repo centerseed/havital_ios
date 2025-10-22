@@ -79,6 +79,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var showWeeklySummary = false
     @Published var lastFetchedWeekNumber: Int?
 
+    // 🆕 新增：訓練計畫狀態（來自後端 API）
+    @Published var planStatusResponse: PlanStatusResponse?
+    @Published var nextWeekInfo: NextWeekInfo?
+    @Published var showSuccessToast = false
+    @Published var successMessage: String = ""
+
     // 調整建議確認相關屬性
     @Published var showAdjustmentConfirmation = false
     @Published var pendingAdjustments: [AdjustmentItem] = []
@@ -349,17 +355,129 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
 
             if !savedOverview.createdAt.isEmpty {
                 self.trainingOverview = savedOverview
+                // 🔧 暫時保留本地計算，但會被 API 狀態覆蓋
                 self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
                 self.selectedWeek = self.currentWeek
             }
         }
-        
+
         // 載入訓練概覽
         await loadTrainingOverview()
-        
-        // 載入週計劃
+
+        // 🆕 載入訓練計畫狀態（使用新 API）
+        await loadPlanStatus()
+
+        // 根據狀態決定是否載入週計劃
         if weeklyPlan == nil {
+            await handlePlanStatusAction()
+        }
+    }
+
+    // MARK: - 🆕 新增：載入訓練計畫狀態
+
+    /// 載入訓練計畫狀態（使用後端 API）
+    func loadPlanStatus() async {
+        await executeTask(id: "load_plan_status") {
+            await self.performLoadPlanStatus()
+        }
+    }
+
+    private func performLoadPlanStatus() async {
+        Logger.debug("🔄 [PlanStatus] 開始呼叫 GET /plan/race_run/status")
+
+        do {
+            let status = try await TrainingPlanService.shared.getPlanStatus()
+
+            await MainActor.run {
+                self.planStatusResponse = status
+
+                // ✅ 使用後端計算的週數，覆蓋本地計算
+                self.currentWeek = status.currentWeek
+                self.selectedWeek = status.currentWeek
+
+                // 儲存下週資訊（如果有）
+                self.nextWeekInfo = status.nextWeekInfo
+
+                Logger.debug("""
+                ✅ [PlanStatus] 載入訓練狀態成功
+                   - currentWeek: \(status.currentWeek)
+                   - totalWeeks: \(status.totalWeeks)
+                   - nextAction: \(status.nextAction.rawValue)
+                   - canGenerateNextWeek: \(status.canGenerateNextWeek)
+                   - hasNextWeekInfo: \(status.nextWeekInfo != nil)
+                """)
+
+                if let nextWeekInfo = status.nextWeekInfo {
+                    Logger.debug("""
+                    📋 [PlanStatus] 下週資訊
+                       - weekNumber: \(nextWeekInfo.weekNumber)
+                       - canGenerate: \(nextWeekInfo.canGenerate)
+                       - hasPlan: \(nextWeekInfo.hasPlan)
+                       - requiresCurrentWeekSummary: \(nextWeekInfo.requiresCurrentWeekSummary)
+                       - nextAction: \(nextWeekInfo.nextAction)
+                    """)
+                }
+            }
+
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                Logger.debug("⚠️ [PlanStatus] 載入任務被取消，忽略錯誤")
+                return
+            }
+
+            Logger.error("❌ [PlanStatus] 載入失敗: \(error.localizedDescription)")
+
+            // 失敗時回退到本地計算
+            await MainActor.run {
+                if let overview = self.trainingOverview {
+                    let localWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
+                    self.currentWeek = localWeek
+                    self.selectedWeek = self.currentWeek
+
+                    Logger.debug("🔄 [PlanStatus] 回退到本地計算：currentWeek=\(localWeek)")
+                }
+            }
+        }
+    }
+
+    /// 根據 next_action 處理下一步操作
+    private func handlePlanStatusAction() async {
+        guard let status = planStatusResponse else {
+            // 沒有狀態資訊，使用舊邏輯
             await loadWeeklyPlan()
+            return
+        }
+
+        switch status.nextAction {
+        case .viewPlan:
+            // 載入並顯示課表
+            await loadWeeklyPlan()
+
+        case .createSummary:
+            // 顯示「產生週回顧」按鈕
+            await MainActor.run {
+                self.planStatus = .noPlan
+                self.showNewWeekPrompt = true
+            }
+
+        case .createPlan:
+            // 顯示「產生課表」按鈕
+            await MainActor.run {
+                self.planStatus = .noPlan
+                self.showNewWeekPrompt = true
+            }
+
+        case .trainingCompleted:
+            await MainActor.run {
+                self.planStatus = .completed
+            }
+
+        case .noActivePlan:
+            Logger.warn("用戶沒有啟動中的訓練計畫")
+            await MainActor.run {
+                self.planStatus = .noPlan
+            }
         }
     }
     
@@ -1952,8 +2070,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         // 檢查上一週是否有週總結
         let previousWeek = targetWeek - 1
 
+        // 🔧 修復：確保有 planId 才能構建正確的 summaryId
+        guard let planId = trainingOverview?.id, !planId.isEmpty else {
+            Logger.error("無法顯示調整建議：缺少 planId")
+            return false
+        }
+
         var existingAdjustments: [AdjustmentItem] = []
-        var actualSummaryId = "week_\(previousWeek)_summary"
+        var actualSummaryId: String?
 
         if previousWeek > 0 {
             do {
@@ -1968,10 +2092,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
         }
 
+        // 🔧 修復：如果無法從 API 獲取真實 ID，使用正確的格式構建
+        let summaryId = actualSummaryId ?? "\(planId)_\(previousWeek)_summary"
+        Logger.debug("📋 使用 summaryId: \(summaryId) (來源: \(actualSummaryId != nil ? "API" : "構建"))")
+
         // 設置待確認的調整建議
         pendingAdjustments = existingAdjustments
         pendingTargetWeek = targetWeek
-        pendingSummaryId = actualSummaryId
+        pendingSummaryId = summaryId
 
         // 顯示調整建議確認畫面
         showAdjustmentConfirmation = true
@@ -2063,6 +2191,121 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
 
         // 結束載入動畫
         isLoadingAnimation = false
+    }
+
+    // MARK: - 🆕 新增：週日產生下週課表流程
+
+    /// 產生下週課表（週日提前產生）
+    /// - Parameter nextWeekInfo: 下週資訊（來自 planStatusResponse）
+    func generateNextWeekPlan(nextWeekInfo: NextWeekInfo) async {
+        guard let status = planStatusResponse else {
+            Logger.error("❌ [NextWeekPlan] 無法產生：缺少 planStatusResponse")
+            return
+        }
+
+        let targetWeek = nextWeekInfo.weekNumber
+
+        Logger.debug("🎯 [NextWeekPlan] 開始產生第 \(targetWeek) 週課表")
+        Logger.debug("""
+        📝 [NextWeekPlan] 流程資訊
+           - 當前週: \(status.currentWeek)
+           - 目標週: \(targetWeek)
+           - 需要週回顧: \(nextWeekInfo.requiresCurrentWeekSummary)
+        """)
+
+        // 階段 1：如果需要先產生週回顧
+        if nextWeekInfo.requiresCurrentWeekSummary {
+            Logger.debug("⏸️ [NextWeekPlan] 需要先產生第 \(status.currentWeek) 週回顧，暫停流程")
+
+            // 產生當前週回顧
+            await createWeeklySummary()
+
+            // 等待用戶確認調整建議（在 showWeeklySummary view 中處理）
+            // 用戶確認後會調用 confirmAdjustmentsAndGenerateNextWeek(targetWeek:)
+            return
+        }
+
+        // 階段 2：直接產生下週課表（週回顧已完成或不需要）
+        Logger.debug("▶️ [NextWeekPlan] 週回顧已完成，直接產生課表")
+        await performGenerateNextWeekPlan(targetWeek: targetWeek)
+    }
+
+    /// 確認調整建議並產生下週課表
+    /// - Parameter targetWeek: 目標週數
+    func confirmAdjustmentsAndGenerateNextWeek(targetWeek: Int) async {
+        Logger.debug("✅ [NextWeekPlan] 用戶已確認調整建議，繼續產生第 \(targetWeek) 週課表")
+        // 用戶已確認調整建議，繼續產生課表
+        await performGenerateNextWeekPlan(targetWeek: targetWeek)
+    }
+
+    /// 執行產生下週課表（內部方法）
+    private func performGenerateNextWeekPlan(targetWeek: Int) async {
+        await MainActor.run {
+            self.isLoadingAnimation = true
+            self.planStatus = .loading
+        }
+
+        defer {
+            Task { @MainActor in
+                self.isLoadingAnimation = false
+            }
+        }
+
+        do {
+            Logger.debug("🔄 [NextWeekPlan] 呼叫 API: POST /plan/race_run/weekly/v2 {week_of_training: \(targetWeek)}")
+
+            // 呼叫 API 產生課表
+            let newPlan = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
+
+            Logger.debug("✅ [NextWeekPlan] API 回應成功，課表 ID: \(newPlan.id)")
+
+            // ✅ 產生成功，切換到下週並顯示課表
+            await MainActor.run {
+                Logger.debug("""
+                🔄 [NextWeekPlan] 更新 UI 狀態
+                   - selectedWeek: \(self.selectedWeek) → \(targetWeek)
+                   - planStatus: → ready
+                   - 顯示 Toast: true
+                """)
+
+                self.selectedWeek = targetWeek
+                self.weeklyPlan = newPlan
+                self.planStatus = .ready(newPlan)
+
+                // 顯示成功 Toast
+                self.showSuccessToast = true
+                self.successMessage = "第\(targetWeek)週課表已產生！"
+            }
+
+            // 保存到緩存
+            TrainingPlanStorage.saveWeeklyPlan(newPlan)
+            Logger.debug("💾 [NextWeekPlan] 已保存到本地緩存")
+
+            // 重新載入狀態（驗證）
+            Logger.debug("🔄 [NextWeekPlan] 重新載入狀態驗證...")
+            await loadPlanStatus()
+
+            // 更新訓練進度
+            await forceUpdateWeeklySummaries()
+
+            Logger.debug("✅ [NextWeekPlan] 完整流程結束，第 \(targetWeek) 週課表已成功產生並顯示")
+
+        } catch {
+            Logger.error("❌ [NextWeekPlan] 產生第 \(targetWeek) 週課表失敗: \(error.localizedDescription)")
+
+            await MainActor.run {
+                self.error = error
+                self.planStatus = .error(error)
+            }
+        }
+    }
+
+    /// 清除成功 Toast
+    func clearSuccessToast() {
+        Task { @MainActor in
+            self.showSuccessToast = false
+            self.successMessage = ""
+        }
     }
 
     deinit {

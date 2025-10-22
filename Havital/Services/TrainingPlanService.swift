@@ -91,7 +91,15 @@ final class TrainingPlanService {
     func getTrainingPlanOverview() async throws -> TrainingPlanOverview {
         return try await makeAPICall(TrainingPlanOverview.self, path: "/plan/race_run/overview")
     }
-    
+
+    // MARK: - Plan Status API
+
+    /// 獲取訓練計畫狀態（新 API）
+    /// - Returns: 包含當前週數、下一步操作、下週資訊等的完整狀態
+    func getPlanStatus() async throws -> PlanStatusResponse {
+        return try await makeAPICall(PlanStatusResponse.self, path: "/plan/race_run/status")
+    }
+
     /*
     func getWeeklyPlan(caller: String = #function) async throws -> WeeklyPlan {
         return try await APIClient.shared.request(WeeklyPlan.self,
