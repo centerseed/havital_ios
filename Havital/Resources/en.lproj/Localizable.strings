@@ -467,6 +467,7 @@
 "settings.privacy" = "Privacy";
 "settings.about" = "About";
 "settings.language" = "Language";
+"settings.timezone" = "Timezone";
 "settings.units" = "Units";
 "settings.metric" = "Metric";
 "settings.imperial" = "Imperial";
@@ -491,6 +492,17 @@
 "language.sync_message" = "Language preference will be synced with your account.";
 "language.metric_only_message" = "Currently only metric units (km, min/km) are supported.";
 "language.restart_required_message" = "Changing the language requires app restart.";
+
+// MARK: - Timezone Settings
+"timezone.title" = "Timezone Settings";
+"timezone.current" = "Current Timezone";
+"timezone.changeConfirm" = "Are you sure you want to change the timezone?";
+"timezone.change_warning_message" = "After changing the timezone, your training record statistics may show temporary discrepancies due to timezone boundary effects. This is because the system needs to recalculate training cycles based on the new timezone. The statistics will gradually become accurate in subsequent training sessions.";
+"timezone.detecting_timezone" = "Detecting timezone...";
+"timezone.auto_detected" = "Auto-detected";
+"timezone.select_timezone" = "Select Timezone";
+"timezone.common_timezones" = "Common Timezones";
+"timezone.sync_message" = "Timezone preference will be synced with your account.";
 
 // MARK: - Errors
 "error.network" = "Network Connection Error";

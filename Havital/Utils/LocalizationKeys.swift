@@ -766,6 +766,7 @@ enum GaitAnalysisChart {
         static let privacy = "settings.privacy"
         static let about = "settings.about"
         static let language = "settings.language"
+        static let timezone = "settings.timezone"
         static let units = "settings.units"
         static let metric = "settings.metric"
         static let imperial = "settings.imperial"
@@ -792,6 +793,19 @@ enum GaitAnalysisChart {
         static let syncMessage = "language.sync_message"
         static let metricOnlyMessage = "language.metric_only_message"
         static let restartRequiredMessage = "language.restart_required_message"
+    }
+
+    // MARK: - Timezone Settings
+    enum Timezone {
+        static let title = "timezone.title"
+        static let current = "timezone.current"
+        static let changeConfirm = "timezone.change_confirm"
+        static let changeWarningMessage = "timezone.change_warning_message"
+        static let detectingTimezone = "timezone.detecting_timezone"
+        static let autoDetected = "timezone.auto_detected"
+        static let selectTimezone = "timezone.select_timezone"
+        static let commonTimezones = "timezone.common_timezones"
+        static let syncMessage = "timezone.sync_message"
     }
     
     // MARK: - Errors

@@ -38,9 +38,19 @@ struct DefaultAPIParser: APIParser {
         } catch let decodingError as DecodingError {
             // 詳細的解析錯誤處理
             let errorDetail = analyzeDecodingError(decodingError, for: type, data: data)
-            Logger.error("[APIParser] JSON 解析失敗: \(errorDetail.description)")
-            Logger.error("[APIParser] 失敗的類型: \(String(describing: type))")
-            Logger.error("[APIParser] 原始響應數據: \(String(data: data, encoding: .utf8) ?? "無法解析為字串")")
+
+            // 輸出詳細的錯誤信息到控制台
+            Logger.error("[APIParser] ==================== JSON 解析失敗 ====================")
+            Logger.error("[APIParser] 錯誤類型: \(errorDetail.type)")
+            Logger.error("[APIParser] 錯誤描述: \(errorDetail.description)")
+            Logger.error("[APIParser] 缺少欄位: \(errorDetail.missingField ?? "N/A")")
+            Logger.error("[APIParser] 編碼路徑: \(errorDetail.codingPath.isEmpty ? "根層級" : errorDetail.codingPath)")
+            Logger.error("[APIParser] 期望類型: \(errorDetail.expectedType)")
+            Logger.error("[APIParser] 數據大小: \(data.count) bytes")
+            Logger.error("[APIParser] 響應預覽 (前 500 字元): \(errorDetail.responsePreview)")
+            Logger.error("[APIParser] 完整錯誤: \(errorDetail.debugDescription)")
+            Logger.error("[APIParser] ========================================================")
+            Logger.error("[APIParser] 原始響應數據 (完整): \(String(data: data, encoding: .utf8) ?? "無法解析為字串")")
             
             // 記錄詳細的 decode 錯誤到 Firebase Cloud Logging
             let errorDetails: [String: Any] = [

@@ -54,6 +54,47 @@ extension View {
     }
 }
 
+// MARK: - Card Style Modifier for Dark Mode Support
+struct CardStyleModifier: ViewModifier {
+    @Environment(\.colorScheme) var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                // Dark mode: 使用稍亮的灰色背景
+                // Light mode: 使用白色背景
+                colorScheme == .dark
+                    ? Color(UIColor.systemGray6)
+                    : Color(UIColor.systemBackground)
+            )
+            .cornerRadius(10)
+            .overlay(
+                // 添加微妙的邊框以增強卡片邊界
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.1)
+                            : Color.clear,
+                        lineWidth: 0.5
+                    )
+            )
+            .shadow(
+                color: colorScheme == .dark
+                    ? Color.white.opacity(0.08)  // Dark mode: 增強淺色陰影
+                    : Color.black.opacity(0.1),   // Light mode: 使用深色陰影
+                radius: colorScheme == .dark ? 5 : 1,
+                x: 0,
+                y: colorScheme == .dark ? 2 : 1
+            )
+    }
+}
+
+extension View {
+    func cardStyle() -> some View {
+        modifier(CardStyleModifier())
+    }
+}
+
 struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
@@ -132,9 +173,7 @@ struct MyAchievementView: View {
                         TrainingReadinessView()
                             .padding()
                     }
-                    .background(Color(UIColor.systemBackground))
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                    .cardStyle()
                     .padding(.horizontal)
 
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
@@ -154,9 +193,7 @@ struct MyAchievementView: View {
                         WeeklyVolumeChartView(showTitle: false)
                             .padding()
                     }
-                    .background(Color(UIColor.systemBackground))
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                    .cardStyle()
                     .padding(.horizontal)
                     
                     // 合併的心率圖表 - HRV 和睡眠靜息心率
@@ -215,9 +252,7 @@ struct MyAchievementView: View {
                     TrainingReadinessView()
                         .padding()
                 }
-                .background(Color(UIColor.systemBackground))
-                .cornerRadius(10)
-                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                .cardStyle()
                 .padding(.horizontal)
 
                 // Training Load Chart Section
@@ -237,11 +272,9 @@ struct MyAchievementView: View {
                     WeeklyVolumeChartView(showTitle: false)
                         .padding()
                 }
-                .background(Color(UIColor.systemBackground))
-                .cornerRadius(10)
-                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+                .cardStyle()
                 .padding(.horizontal)
-                
+
                 // Combined Heart Rate Chart Section
                 CombinedHeartRateChartSection()
                     .environmentObject(healthKitManager)
@@ -312,9 +345,7 @@ struct CombinedHeartRateChartSection: View {
             }
             .padding()
         }
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .cardStyle()
         .padding(.horizontal)
     }
 
@@ -1298,9 +1329,7 @@ struct TrainingLoadChartSection: View {
                     .padding()
             }
         }
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .cardStyle()
         .padding(.horizontal)
     }
 }

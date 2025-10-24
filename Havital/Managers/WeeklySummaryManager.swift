@@ -74,18 +74,18 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
             level: .info,
             labels: ["module": "WeeklySummaryManager", "action": "initialize"]
         )
-        
+
         // 先載入本地快取數據
-        loadLocalData()
-        
+        await loadLocalData()
+
         // 載入週總結數據
         await loadData()
     }
     
     func loadData() async {
         // 先同步載入本地緩存數據（如果有的話）
-        loadLocalData()
-        
+        await loadLocalData()
+
         await executeDataLoadingTask(id: "load_weekly_summaries") {
             try await self.performLoadWeeklySummaries()
         }
@@ -130,8 +130,8 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
     }
     
     // MARK: - Local Data Management
-    
-    private func loadLocalData() {
+
+    private func loadLocalData() async {
         if let cachedSummaries = cacheManager.loadFromCache() {
             Logger.firebase(
                 "載入本地快取的週總結數據",
@@ -141,8 +141,8 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
                     "cache_age_seconds": cacheManager.getCacheAge() ?? 0
                 ]
             )
-            
-            updateUIState(summaries: cachedSummaries)
+
+            await updateUIState(summaries: cachedSummaries)
         }
     }
     
@@ -162,28 +162,26 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
                 level: .debug,
                 jsonPayload: ["count": cachedSummaries.count]
             )
-            
+
             // 立即顯示快取數據
-            await MainActor.run {
-                updateUIState(summaries: cachedSummaries)
-            }
-            
+            await updateUIState(summaries: cachedSummaries)
+
             // 背景更新
             Task.detached { [weak self] in
                 await self?.executeTask(id: TaskID("background_refresh_weekly_summaries")) { [weak self] in
                     await self?.refreshInBackground()
                 }
             }
-            
+
             return cachedSummaries
         }
         
         // 沒有快取或已過期，直接從 API 載入
         let freshSummaries = try await service.fetchWeeklySummaries()
-        
+
         // 保存到快取
         cacheManager.saveToCache(freshSummaries)
-        
+
         Logger.firebase(
             "成功載入週總結數據",
             level: .info,
@@ -192,11 +190,9 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
                 "has_distance_data": freshSummaries.contains { $0.distanceKm != nil }
             ]
         )
-        
-        await MainActor.run {
-            updateUIState(summaries: freshSummaries)
-        }
-        
+
+        await updateUIState(summaries: freshSummaries)
+
         return freshSummaries
     }
     
@@ -218,21 +214,19 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
         }
         
         let summaries = try await service.fetchWeeklySummaries()
-        
+
         // 更新快取
         cacheManager.saveToCache(summaries)
         lastRefreshTime = Date()
-        
-        await MainActor.run {
-            updateUIState(summaries: summaries)
-        }
-        
+
+        await updateUIState(summaries: summaries)
+
         Logger.firebase(
             "週總結數據刷新完成",
             level: .info,
             jsonPayload: ["count": summaries.count]
         )
-        
+
         return summaries
     }
     
@@ -240,11 +234,9 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
         do {
             let latestSummaries = try await service.fetchWeeklySummaries()
             cacheManager.saveToCache(latestSummaries)
-            
-            await MainActor.run {
-                updateUIState(summaries: latestSummaries)
-            }
-            
+
+            await updateUIState(summaries: latestSummaries)
+
             Logger.firebase(
                 "背景更新週總結數據完成",
                 level: .debug,
@@ -261,13 +253,14 @@ class WeeklySummaryManager: ObservableObject, DataManageable {
     }
     
     // MARK: - UI State Management
-    
+
+    @MainActor
     private func updateUIState(summaries: [WeeklySummaryItem]) {
         weeklySummaries = summaries
         statistics = WeeklySummaryStatistics(from: summaries)
         lastSyncTime = Date()
         syncError = nil
-        
+
         Logger.firebase(
             "UI 狀態已更新",
             level: .debug,

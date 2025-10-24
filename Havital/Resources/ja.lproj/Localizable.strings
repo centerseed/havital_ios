@@ -467,6 +467,7 @@
 "settings.privacy" = "プライバシー";
 "settings.about" = "アプリについて";
 "settings.language" = "言語";
+"settings.timezone" = "タイムゾーン";
 "settings.units" = "単位";
 "settings.metric" = "メートル法";
 "settings.imperial" = "ヤード・ポンド法";
@@ -491,6 +492,17 @@
 "language.sync_message" = "言語設定はアカウントに同期されます。";
 "language.metric_only_message" = "現在、メートル法単位（km、min/km）のみがサポートされています。";
 "language.restart_required_message" = "言語変更にはアプリの再起動が必要です。";
+
+// MARK: - Timezone Settings
+"timezone.title" = "タイムゾーン設定";
+"timezone.current" = "現在のタイムゾーン";
+"timezone.changeConfirm" = "タイムゾーンを変更してもよろしいですか？";
+"timezone.change_warning_message" = "タイムゾーンを変更すると、タイムゾーン境界の影響により、トレーニング記録の統計に一時的なずれが生じる可能性があります。これは、システムが新しいタイムゾーンに基づいてトレーニングサイクルを再計算する必要があるためです。統計は、次のトレーニングで徐々に正確になります。";
+"timezone.detecting_timezone" = "タイムゾーンを検出中...";
+"timezone.auto_detected" = "自動検出";
+"timezone.select_timezone" = "タイムゾーンを選択";
+"timezone.common_timezones" = "よく使用するタイムゾーン";
+"timezone.sync_message" = "タイムゾーン設定はアカウントに同期されます。";
 
 // MARK: - Errors
 "error.network" = "ネットワーク接続エラー";

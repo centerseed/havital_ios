@@ -193,11 +193,6 @@ struct GaitAnalysisChartView: View {
                 )
                 .frame(height: 200)
             } else {
-                // Debug: 打印數據狀態
-                let _ = print("📊 [GaitChart] 觸地時間數據點: \(stanceTimes.count)")
-                let _ = print("📊 [GaitChart] 垂直比率數據點: \(verticalRatios.count)")
-                let _ = print("📊 [GaitChart] 步頻數據點: \(cadences.count)")
-                
                 // Tab selector
                 let availableTabs = GaitTab.allCases.filter { tab in
                     switch tab {
@@ -206,8 +201,15 @@ struct GaitAnalysisChartView: View {
                     case .cadence: return !cadences.isEmpty
                     }
                 }
-                
-                let _ = print("📊 [GaitChart] 可用標籤頁: \(availableTabs.map { $0.title })")
+
+                // 自動選擇第一個有數據的 tab
+                let _ = {
+                    if !availableTabs.contains(selectedGaitTab), let firstAvailable = availableTabs.first {
+                        DispatchQueue.main.async {
+                            selectedGaitTab = firstAvailable
+                        }
+                    }
+                }()
                 
                 if availableTabs.count > 1 {
                     Picker("步態指標", selection: $selectedGaitTab) {

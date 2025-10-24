@@ -135,6 +135,17 @@ class UserPreferenceManager: ObservableObject {
             LanguageManager.shared.currentLanguage = languagePreference
         }
     }
+
+    // MARK: - Timezone Preference
+    @Published var timezonePreference: String? {
+        didSet {
+            if let timezone = timezonePreference {
+                UserDefaults.standard.set(timezone, forKey: "timezone_preference")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "timezone_preference")
+            }
+        }
+    }
     
     // Note: Unit preference removed until backend supports imperial units
     // @Published var unitPreference: UnitPreference {
@@ -159,6 +170,9 @@ class UserPreferenceManager: ObservableObject {
         } else {
             self.languagePreference = SupportedLanguage.current
         }
+
+        // 載入時區偏好
+        self.timezonePreference = UserDefaults.standard.string(forKey: "timezone_preference")
         
         // Note: Unit preference initialization removed until backend supports imperial units
         // if let savedUnit = UserDefaults.standard.string(forKey: "unit_preference"),
@@ -393,7 +407,7 @@ extension UserPreferenceManager {
         let currentVDOT: Double?
         let targetVDOT: Double?
     }
-    
+
     // 获取存储的VDOT数据
     func getVDOTData() -> VDOTData? {
         if let currentVDOT = UserDefaults.standard.object(forKey: "current_vdot") as? Double,
@@ -402,11 +416,38 @@ extension UserPreferenceManager {
         }
         return nil
     }
-    
+
     // 保存VDOT数据
     func saveVDOTData(currentVDOT: Double, targetVDOT: Double) {
         UserDefaults.standard.set(currentVDOT, forKey: "current_vdot")
         UserDefaults.standard.set(targetVDOT, forKey: "target_vdot")
+    }
+
+    // MARK: - Timezone Helpers
+
+    /// 獲取裝置當前時區（IANA 格式）
+    static func getDeviceTimezone() -> String {
+        return TimeZone.current.identifier
+    }
+
+    /// 獲取時區的本地化顯示名稱
+    static func getTimezoneDisplayName(for identifier: String) -> String {
+        guard let timezone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        return timezone.localizedName(for: .standard, locale: Locale.current) ?? identifier
+    }
+
+    /// 檢查是否需要初始化時區設定
+    func needsTimezoneInitialization() -> Bool {
+        return timezonePreference == nil
+    }
+
+    /// 使用裝置時區初始化時區偏好
+    func initializeTimezoneFromDevice() {
+        let deviceTimezone = Self.getDeviceTimezone()
+        self.timezonePreference = deviceTimezone
+        Logger.firebase("時區已從裝置初始化: \(deviceTimezone)", level: .info)
     }
 }
 

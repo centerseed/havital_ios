@@ -108,12 +108,7 @@ struct DragDropModifier: ViewModifier {
                     RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(
                             isTargeted ? Color.blue : Color.clear,  // 🆕 目標邊框
-<<<<<<< HEAD
-                            lineWidth: 3,
-                            antialiased: true
-=======
                             lineWidth: 3
->>>>>>> dev
                         )
                 )
                 .animation(.spring(response: 0.3), value: isDragging)

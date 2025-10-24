@@ -398,24 +398,31 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 // 儲存下週資訊（如果有）
                 self.nextWeekInfo = status.nextWeekInfo
 
-                Logger.debug("""
-                ✅ [PlanStatus] 載入訓練狀態成功
-                   - currentWeek: \(status.currentWeek)
-                   - totalWeeks: \(status.totalWeeks)
-                   - nextAction: \(status.nextAction.rawValue)
-                   - canGenerateNextWeek: \(status.canGenerateNextWeek)
-                   - hasNextWeekInfo: \(status.nextWeekInfo != nil)
-                """)
+                Logger.debug("✅ [PlanStatus] 載入訓練狀態成功")
+                Logger.debug("📊 [PlanStatus] currentWeek: \(status.currentWeek) / totalWeeks: \(status.totalWeeks)")
+
+                // 對比本地保存的 totalWeeks
+                if let localOverview = self.trainingOverview {
+                    Logger.debug("📊 [Local] trainingOverview.totalWeeks: \(localOverview.totalWeeks)")
+                    if localOverview.totalWeeks != status.totalWeeks {
+                        Logger.warn("⚠️ [Mismatch] 後端返回 totalWeeks=\(status.totalWeeks)，但本地為 \(localOverview.totalWeeks)")
+                    }
+                }
+
+                Logger.debug("🎯 [PlanStatus] nextAction: \(status.nextAction.rawValue)")
+                Logger.debug("📋 [PlanStatus] hasCurrentWeekPlan: \(status.hasCurrentWeekPlan)")
+                Logger.debug("📝 [PlanStatus] hasPreviousWeekSummary: \(status.hasPreviousWeekSummary)")
+                Logger.debug("🚀 [PlanStatus] canGenerateNextWeek: \(status.canGenerateNextWeek)")
+                Logger.debug("📅 [PlanStatus] trainingStartDate: \(status.metadata.trainingStartDate)")
+                Logger.debug("📅 [PlanStatus] currentWeekStartDate: \(status.metadata.currentWeekStartDate)")
+                Logger.debug("⏰ [PlanStatus] serverTime: \(status.metadata.serverTime)")
 
                 if let nextWeekInfo = status.nextWeekInfo {
-                    Logger.debug("""
-                    📋 [PlanStatus] 下週資訊
-                       - weekNumber: \(nextWeekInfo.weekNumber)
-                       - canGenerate: \(nextWeekInfo.canGenerate)
-                       - hasPlan: \(nextWeekInfo.hasPlan)
-                       - requiresCurrentWeekSummary: \(nextWeekInfo.requiresCurrentWeekSummary)
-                       - nextAction: \(nextWeekInfo.nextAction)
-                    """)
+                    Logger.debug("📋 [NextWeek] weekNumber: \(nextWeekInfo.weekNumber)")
+                    Logger.debug("📋 [NextWeek] canGenerate: \(nextWeekInfo.canGenerate)")
+                    Logger.debug("📋 [NextWeek] hasPlan: \(nextWeekInfo.hasPlan)")
+                    Logger.debug("📋 [NextWeek] requiresCurrentWeekSummary: \(nextWeekInfo.requiresCurrentWeekSummary)")
+                    Logger.debug("📋 [NextWeek] nextAction: \(nextWeekInfo.nextAction)")
                 }
             }
 
@@ -444,41 +451,59 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     /// 根據 next_action 處理下一步操作
     private func handlePlanStatusAction() async {
         guard let status = planStatusResponse else {
-            // 沒有狀態資訊，使用舊邏輯
+            Logger.debug("⚠️ [Action] 無 planStatusResponse，使用舊邏輯載入課表")
             await loadWeeklyPlan()
             return
         }
 
+        Logger.debug("🔄 [Action] 開始處理 nextAction: \(status.nextAction.rawValue)")
+
         switch status.nextAction {
         case .viewPlan:
-            // 載入並顯示課表
+            Logger.debug("📖 [Action] viewPlan - 載入並顯示課表")
             await loadWeeklyPlan()
 
-        case .createSummary:
-            // 顯示「產生週回顧」按鈕
-            await MainActor.run {
-                self.planStatus = .noPlan
-                self.showNewWeekPrompt = true
-            }
-
-        case .createPlan:
-            // 顯示「產生課表」按鈕
-            await MainActor.run {
-                self.planStatus = .noPlan
-                self.showNewWeekPrompt = true
+        case .createSummary, .createPlan:
+            Logger.debug("🔍 [Action] \(status.nextAction.rawValue) - 檢查緩存...")
+            // ✅ 雙軌緩存策略：先檢查是否有緩存的當週課表
+            if let cachedPlan = TrainingPlanStorage.loadWeeklyPlan(forWeek: currentWeek) {
+                // 立即顯示緩存數據
+                Logger.debug("✅ [Cache] 找到緩存的第 \(currentWeek) 週課表（week: \(cachedPlan.weekOfPlan)）")
+                await updateWeeklyPlanUI(plan: cachedPlan, status: .ready(cachedPlan))
+                Logger.debug("✅ [Cache] 設置 planStatus = .ready，避免顯示 .noPlan 狀態")
+            } else {
+                // 沒有緩存時才顯示「產生週回顧/課表」按鈕
+                Logger.debug("📝 [Cache] 無緩存數據，設置 planStatus = .noPlan")
+                await MainActor.run {
+                    self.planStatus = .noPlan
+                    self.showNewWeekPrompt = true
+                }
             }
 
         case .trainingCompleted:
-            await MainActor.run {
-                self.planStatus = .completed
+            Logger.debug("🏁 [Action] trainingCompleted - 檢查緩存...")
+            // ✅ 雙軌緩存策略：先檢查是否有緩存的當週課表
+            if let cachedPlan = TrainingPlanStorage.loadWeeklyPlan(forWeek: currentWeek) {
+                // 立即顯示緩存數據，而不是直接顯示「訓練已完成」
+                Logger.debug("✅ [Cache] 找到緩存的第 \(currentWeek) 週課表（week: \(cachedPlan.weekOfPlan)）")
+                await updateWeeklyPlanUI(plan: cachedPlan, status: .ready(cachedPlan))
+                Logger.debug("✅ [Cache] 設置 planStatus = .ready，避免顯示 .completed 狀態")
+            } else {
+                // 沒有緩存時才顯示「訓練已完成」提示
+                Logger.debug("🎉 [Status] 無緩存數據，設置 planStatus = .completed")
+                await MainActor.run {
+                    self.planStatus = .completed
+                }
             }
 
         case .noActivePlan:
-            Logger.warn("用戶沒有啟動中的訓練計畫")
+            Logger.warn("⚠️ [Action] noActivePlan - 用戶沒有啟動中的訓練計畫")
             await MainActor.run {
                 self.planStatus = .noPlan
             }
         }
+
+        Logger.debug("✅ [Action] handlePlanStatusAction 完成")
     }
     
     // 等待用戶資料就緒

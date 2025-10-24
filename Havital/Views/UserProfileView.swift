@@ -24,6 +24,7 @@ struct UserProfileView: View {
     @State private var syncDataSource: DataSourceType?  // 需要同步的數據源（已停用）
     @State private var showGarminAlreadyBoundAlert = false
     @State private var showLanguageSettings = false
+    @State private var showTimezoneSettings = false
     @State private var showFeedbackReport = false
     
     private var appVersion: String {
@@ -117,6 +118,9 @@ struct UserProfileView: View {
         }
         .sheet(isPresented: $showLanguageSettings) {
             LanguageSettingsView()
+        }
+        .sheet(isPresented: $showTimezoneSettings) {
+            TimezoneSettingsView()
         }
         .sheet(isPresented: $showFeedbackReport) {
             if let userData = viewModel.userData {
@@ -317,6 +321,24 @@ struct UserProfileView: View {
                     Image(systemName: "globe")
                     Text(NSLocalizedString("settings.language", comment: "Language"))
                     Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+
+            Button(action: {
+                showTimezoneSettings = true
+            }) {
+                HStack {
+                    Image(systemName: "clock")
+                    Text(NSLocalizedString("settings.timezone", comment: "Timezone"))
+                    Spacer()
+                    if let timezone = userPreferenceManager.timezonePreference {
+                        Text(UserPreferenceManager.getTimezoneDisplayName(for: timezone))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                         .font(.caption)

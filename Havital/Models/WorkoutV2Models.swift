@@ -399,7 +399,7 @@ struct WorkoutV2Detail: Codable {
     let id: String
     let provider: String
     let activityType: String
-    let sportType: String
+    let sportType: String?        // 改為可選，Strava 數據可能為 null
     let startTime: String
     let endTime: String
     let userId: String
@@ -532,7 +532,13 @@ struct V2AdvancedMetrics: Codable {
     private let _dynamicVdot: SafeDouble?
     private let _avgStanceTimeMs: SafeDouble?
     private let _avgVerticalRatioPercent: SafeDouble?
-    
+
+    // 後端新增欄位 (Strava 數據增強)
+    let actualPaceZoneSpeeds: [String: V2PaceZoneSpeed]?
+    let cadencePaceDistribution: V2ZoneDistribution?
+    let stanceTimePaceDistribution: [String: Double]?
+    let verticalRatioPaceDistribution: [String: Double]?
+
     // 公開的計算屬性
     var rpe: Double? { _rpe?.value }
     var avgHrTop20Percent: Double? { _avgHrTop20Percent?.value }
@@ -541,7 +547,7 @@ struct V2AdvancedMetrics: Codable {
     var dynamicVdot: Double? { _dynamicVdot?.value }
     var avgStanceTimeMs: Double? { _avgStanceTimeMs?.value }
     var avgVerticalRatioPercent: Double? { _avgVerticalRatioPercent?.value }
-    
+
     enum CodingKeys: String, CodingKey {
         case _rpe = "rpe"
         case intensityMinutes = "intensity_minutes"
@@ -554,6 +560,12 @@ struct V2AdvancedMetrics: Codable {
         case _dynamicVdot = "dynamic_vdot"
         case _avgStanceTimeMs = "avg_stance_time_ms"
         case _avgVerticalRatioPercent = "avg_vertical_ratio_percent"
+
+        // 後端新增欄位
+        case actualPaceZoneSpeeds = "actual_pace_zone_speeds"
+        case cadencePaceDistribution = "cadence_pace_distribution"
+        case stanceTimePaceDistribution = "stance_time_pace_distribution"
+        case verticalRatioPaceDistribution = "vertical_ratio_pace_distribution"
     }
 }
 
@@ -588,7 +600,7 @@ struct V2ZoneDistribution: Codable {
     private let _threshold: SafeDouble?
     private let _anaerobic: SafeDouble?
     private let _easy: SafeDouble?
-    
+
     // 公開的計算屬性
     var marathon: Double? { _marathon?.value }
     var interval: Double? { _interval?.value }
@@ -596,7 +608,7 @@ struct V2ZoneDistribution: Codable {
     var threshold: Double? { _threshold?.value }
     var anaerobic: Double? { _anaerobic?.value }
     var easy: Double? { _easy?.value }
-    
+
     enum CodingKeys: String, CodingKey {
         case _marathon = "marathon"
         case _interval = "interval"
@@ -605,7 +617,7 @@ struct V2ZoneDistribution: Codable {
         case _anaerobic = "anaerobic"
         case _easy = "easy"
     }
-    
+
     // 便利初始化方法，用於從 ZoneDistribution 轉換
     init(from zones: ZoneDistribution) {
         self._marathon = SafeDouble(value: zones.marathon)
@@ -614,6 +626,25 @@ struct V2ZoneDistribution: Codable {
         self._threshold = SafeDouble(value: zones.threshold)
         self._anaerobic = SafeDouble(value: zones.anaerobic)
         self._easy = SafeDouble(value: zones.easy)
+    }
+}
+
+// MARK: - Pace Zone Speed (Strava 增強數據)
+
+/// 單個配速區間的速度統計
+struct V2PaceZoneSpeed: Codable {
+    private let _avgPaceSKm: SafeDouble?
+    private let _avgSpeedMS: SafeDouble?
+    private let _count: SafeDouble?
+
+    var avgPaceSKm: Double? { _avgPaceSKm?.value }
+    var avgSpeedMS: Double? { _avgSpeedMS?.value }
+    var count: Double? { _count?.value }
+
+    enum CodingKeys: String, CodingKey {
+        case _avgPaceSKm = "avg_pace_s_km"
+        case _avgSpeedMS = "avg_speed_m_s"
+        case _count = "count"
     }
 }
 

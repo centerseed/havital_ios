@@ -467,6 +467,7 @@
 "settings.privacy" = "隱私";
 "settings.about" = "關於";
 "settings.language" = "語言";
+"settings.timezone" = "時區";
 "settings.units" = "單位";
 "settings.metric" = "公制";
 "settings.imperial" = "英制";
@@ -491,6 +492,17 @@
 "language.sync_message" = "語言偏好設定將與您的帳號同步。";
 "language.metric_only_message" = "目前僅支援公制單位 (公里，分鐘/公里)。";
 "language.restart_required_message" = "更改語言需要重新啟動應用程式。";
+
+// MARK: - Timezone Settings
+"timezone.title" = "時區設定";
+"timezone.current" = "目前時區";
+"timezone.changeConfirm" = "確定要更改時區嗎？";
+"timezone.change_warning_message" = "更改時區後，由於時區邊界的影響，您的訓練紀錄統計可能會出現暫時性的偏差。這是因為系統需要根據新時區重新計算訓練週期。統計數據將在接下來的訓練中逐漸恢復準確。";
+"timezone.detecting_timezone" = "正在偵測時區...";
+"timezone.auto_detected" = "已自動偵測";
+"timezone.select_timezone" = "選擇時區";
+"timezone.common_timezones" = "常用時區";
+"timezone.sync_message" = "時區偏好設定將與您的帳號同步。";
 
 // MARK: - Errors
 "error.network" = "網路連線錯誤";
