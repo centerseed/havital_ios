@@ -72,8 +72,8 @@ struct LapAnalysisView: View {
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                         }
-                        .padding(.vertical, 6)
-                        .background(Color(.systemGray5))
+                        .padding(.vertical, 8)
+                        .background(Color(.tertiarySystemGroupedBackground))
                         
                         // Table rows - 移除 ScrollView 讓長截圖能完整顯示所有資料
                         VStack(spacing: 0) {
@@ -83,16 +83,15 @@ struct LapAnalysisView: View {
                             }
                         }
                     }
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    .cornerRadius(8)
                 }
                 .frame(height: CGFloat(laps.count * 35 + 40)) // 移除最大高度限制，讓所有資料都顯示
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 }
 
@@ -131,7 +130,7 @@ struct LapRowView: View {
                 .frame(width: width * 0.225, alignment: .center)
         }
         .frame(height: 35)
-        .background(isEven ? Color(.systemGray6).opacity(0.3) : Color(.systemBackground))
+        .background(isEven ? Color(.tertiarySystemGroupedBackground).opacity(0.5) : Color.clear)
     }
 }
 
@@ -168,22 +167,23 @@ struct LapRowView: View {
 
 extension LapData {
     static func previewData(lapNumber: Int, distance: Double, time: Int, pace: Double, heartRate: Int?) -> LapData {
-        // This is a simplified approach for preview - in real implementation this would come from JSON decoding
-        let encoder = JSONEncoder()
+        // Create preview data by constructing a JSON dictionary
         let decoder = JSONDecoder()
-        
-        let jsonData = """
-        {
-            "lap_number": \(lapNumber),
-            "start_time_offset_s": \((lapNumber - 1) * time),
-            "total_time_s": \(time),
-            "total_distance_m": \(distance),
-            "avg_speed_m_per_s": \(1000.0 / pace),
-            "avg_pace_s_per_km": \(pace),
-            "avg_heart_rate_bpm": \(heartRate ?? 0)
+
+        var jsonDict: [String: Any] = [
+            "lap_number": lapNumber,
+            "start_time_offset_s": (lapNumber - 1) * time,
+            "total_time_s": time,
+            "total_distance_m": distance,
+            "avg_speed_m_per_s": 1000.0 / pace,
+            "avg_pace_s_per_km": pace
+        ]
+
+        if let hr = heartRate {
+            jsonDict["avg_heart_rate_bpm"] = hr
         }
-        """.data(using: .utf8)!
-        
+
+        let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict)
         return try! decoder.decode(LapData.self, from: jsonData)
     }
 }

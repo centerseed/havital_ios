@@ -90,13 +90,16 @@ struct HavitalApp: App {
                             // App 啟動時使用新的狀態管理進行序列化初始化
                             Task {
                                 print("🚀 HavitalApp: 開始序列化初始化流程")
-                                
+
                                 // Step 1: App 核心初始化（用戶狀態優先）
                                 await appViewModel.initializeApp()
-                                
+
                                 // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
                                 await setupPermissionsBasedOnUserState()
-                                
+
+                                // Step 3: 檢查並初始化時區設定（僅限已認證用戶）
+                                await checkAndInitializeTimezone()
+
                                 print("✅ HavitalApp: 初始化流程完成")
                             }
                             
@@ -221,7 +224,7 @@ struct HavitalApp: App {
     /// 啟動健康數據同步
     private func startHealthDataSync() async {
         print("啟動健康數據同步...")
-        await HealthDataUploadManager.shared.startHealthDataSync()
+        await HealthDataUploadManagerV2.shared.initialize()
     }
     
     /// 請求 HealthKit 授權
@@ -382,9 +385,55 @@ struct HavitalApp: App {
         if UserDefaults.standard.bool(forKey: "language_changed_restart") {
             // 清除標記
             UserDefaults.standard.removeObject(forKey: "language_changed_restart")
-            
+
             // 可以在這裡添加額外的語言變更後處理邏輯
             print("🌍 App 因語言變更而重啟")
+        }
+    }
+
+    /// 檢查並初始化時區設定
+    private func checkAndInitializeTimezone() async {
+        // 僅在用戶已認證時執行
+        guard authService.isAuthenticated else {
+            print("⏰ 用戶未認證，跳過時區初始化")
+            return
+        }
+
+        let userPreferenceManager = UserPreferenceManager.shared
+
+        // 檢查是否需要初始化時區
+        if userPreferenceManager.needsTimezoneInitialization() {
+            print("⏰ 開始自動偵測並初始化時區")
+
+            // 獲取裝置時區
+            let deviceTimezone = UserPreferenceManager.getDeviceTimezone()
+            print("⏰ 偵測到裝置時區: \(deviceTimezone)")
+
+            // 更新本地偏好
+            userPreferenceManager.timezonePreference = deviceTimezone
+
+            // 同步到後端
+            do {
+                try await UserPreferencesService.shared.updateTimezone(deviceTimezone)
+                print("✅ 時區已自動初始化並同步到後端: \(deviceTimezone)")
+            } catch {
+                print("❌ 時區同步到後端失敗: \(error.localizedDescription)")
+                // 即使同步失敗，本地仍保留偵測到的時區
+            }
+        } else {
+            print("⏰ 時區已存在，無需初始化")
+
+            // 可選：檢查本地時區與後端是否一致
+            do {
+                let preferences = try await UserPreferencesService.shared.getPreferences()
+                if let localTimezone = userPreferenceManager.timezonePreference,
+                   localTimezone != preferences.timezone {
+                    print("⚠️ 本地時區與後端不一致，同步後端時區")
+                    userPreferenceManager.timezonePreference = preferences.timezone
+                }
+            } catch {
+                print("⚠️ 無法獲取後端時區設定: \(error.localizedDescription)")
+            }
         }
     }
 }

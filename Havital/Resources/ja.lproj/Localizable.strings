@@ -1,6 +1,6 @@
 /* 
   Localizable.strings (Japanese)
-  Havital
+  Paceriz
 */
 
 // MARK: - Main Navigation
@@ -8,6 +8,9 @@
 "tab.training_record" = "トレーニング記録";
 "tab.performance_data" = "パフォーマンス";
 "tab.profile" = "プロフィール";
+
+// MARK: - Toast Messages
+"toast.network_error" = "ネットワーク接続に問題があります。キャッシュデータを表示しています";
 
 // MARK: - Common Actions
 "common.save" = "保存";
@@ -34,7 +37,7 @@
 "common.week_unit" = "週";
 
 // MARK: - Authentication
-"auth.welcome" = "Havitalへようこそ";
+"auth.welcome" = "Pacerizへようこそ";
 "auth.login_title" = "ログイン";
 "auth.logout_title" = "ログアウト";
 "auth.login_subtitle" = "トレーニングデータを同期するにはサインインしてください";
@@ -67,7 +70,7 @@
 "calendar_sync_setup.end_time" = "終了時間";
 "calendar_sync_setup.adjust_note" = "後でカレンダーで時間を調整できます";
 "calendar_sync_setup.start_sync" = "同期開始";
-"calendar_sync_setup.access_error" = "設定でHavitalにカレンダーへのアクセスを許可してください";
+"calendar_sync_setup.access_error" = "設定でPacerizにカレンダーへのアクセスを許可してください";
 
 // MARK: - Edit Target View
 "edit_target.title" = "レース目標編集";
@@ -184,7 +187,7 @@
 "gait_analysis_chart.gait_tab.cadence_description" = "毎分の歩数、理想的な範囲は約180前後";
 
 // MARK: - Onboarding
-"onboarding.welcome" = "Havitalへようこそ";
+"onboarding.welcome" = "Pacerizへようこそ";
 "onboarding.set_goal" = "トレーニング目標を設定";
 "onboarding.race_distance" = "レース距離";
 "onboarding.target_time" = "目標完走時間";
@@ -258,6 +261,7 @@
 "training.plan_title" = "トレーニング計画";
 "training.weekly_plan" = "週間計画";
 "training.daily_training" = "日々のトレーニング";
+"training.design_reason" = "今週のトレーニング計画設計理由";
 "training.weekly_volume" = "週間走行距離";
 "training.training_review" = "トレーニングレビュー";
 "training.generate_plan" = "スケジュール作成";
@@ -321,15 +325,17 @@
 "training.type.easy" = "イージーラン";
 "training.type.tempo" = "テンポラン";
 "training.type.interval" = "インターバル走";
+"interval.static_rest" = "その場休憩";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";
-"training.type.race" = "レースペース";
+"training.type.race" = "レース";
 "training.type.fartlek" = "ファルトレク";
 "training.type.hill" = "ヒルトレーニング";
 "training.type.speed" = "スピードワーク";
 "training.type.lsd" = "LSDラン";
 "training.type.threshold" = "閾値ラン";
 "training.type.progression" = "プログレッションラン";
+"training.type.combination" = "コンビネーションラン";
 "training.type.rest" = "休息";
 "training.type.cross_training" = "クロストレーニング";
 "training.type.hiking" = "ハイキング";
@@ -337,6 +343,17 @@
 "training.type.yoga" = "ヨガ";
 "training.type.cycling" = "サイクリング";
 "training.type.rest_day" = "休息日";
+
+// MARK: - Training Descriptions
+"training.descriptions.distance_training" = "快適なペースでトレーニング";
+"training.descriptions.easy_run" = "会話できるペースでイージーラン";
+"training.descriptions.tempo_run" = "安定したペースでテンポラン";
+"training.descriptions.interval_training" = "高強度と回復を交互に行うインターバル";
+"training.descriptions.long_run" = "持久力を構築するロングラン";
+"training.descriptions.recovery_run" = "回復を促進するリカバリーラン";
+"training.descriptions.threshold_run" = "乳酸閾値強度で走る閾値ラン";
+"training.descriptions.progression_run" = "徐々にペースを上げるプログレッションラン";
+"training.descriptions.combination_training" = "複数のトレーニングタイプを組み合わせ";
 
 // MARK: - Heart Rate Zones
 "training.zone.anaerobic" = "無酸素";
@@ -450,6 +467,7 @@
 "settings.privacy" = "プライバシー";
 "settings.about" = "アプリについて";
 "settings.language" = "言語";
+"settings.timezone" = "タイムゾーン";
 "settings.units" = "単位";
 "settings.metric" = "メートル法";
 "settings.imperial" = "ヤード・ポンド法";
@@ -474,6 +492,17 @@
 "language.sync_message" = "言語設定はアカウントに同期されます。";
 "language.metric_only_message" = "現在、メートル法単位（km、min/km）のみがサポートされています。";
 "language.restart_required_message" = "言語変更にはアプリの再起動が必要です。";
+
+// MARK: - Timezone Settings
+"timezone.title" = "タイムゾーン設定";
+"timezone.current" = "現在のタイムゾーン";
+"timezone.changeConfirm" = "タイムゾーンを変更してもよろしいですか？";
+"timezone.change_warning_message" = "タイムゾーンを変更すると、タイムゾーン境界の影響により、トレーニング記録の統計に一時的なずれが生じる可能性があります。これは、システムが新しいタイムゾーンに基づいてトレーニングサイクルを再計算する必要があるためです。統計は、次のトレーニングで徐々に正確になります。";
+"timezone.detecting_timezone" = "タイムゾーンを検出中...";
+"timezone.auto_detected" = "自動検出";
+"timezone.select_timezone" = "タイムゾーンを選択";
+"timezone.common_timezones" = "よく使用するタイムゾーン";
+"timezone.sync_message" = "タイムゾーン設定はアカウントに同期されます。";
 
 // MARK: - Errors
 "error.network" = "ネットワーク接続エラー";
@@ -689,7 +718,7 @@
 
 // MARK: - Personal Best View
 "onboarding.personal_best_title" = "あなたのランニング経験";
-"onboarding.personal_best_description" = "最近または最速のランニング成績を教えてください。Havitalがより正確に初期トレーニング強度を設定するのに役立ちます。不明な場合や関連する経験がない場合は、「個人ベストがわからない」を選択できます。";
+"onboarding.personal_best_description" = "最近または最速のランニング成績を教えてください。Pacerizがより正確に初期トレーニング強度を設定するのに役立ちます。不明な場合や関連する経験がない場合は、「個人ベストがわからない」を選択できます。";
 "onboarding.has_personal_best" = "個人ベストがあります";
 "onboarding.personal_best_details" = "ベスト記録詳細";
 "onboarding.select_distance_time" = "最近のベスト記録の距離と時間を選択してください。";
@@ -741,7 +770,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "現在の週間ランニング量";
-"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはHavitalが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
+"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
 "onboarding.target_distance_label" = "目標距離：%.1f km";
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
 "onboarding.weekly_volume_label" = "週間量：%.0f km";
@@ -846,8 +875,8 @@
 "training_days.edit_title" = "トレーニング日を編集";
 "training_days.save" = "保存";
 
-// MARK: - Login Strings  
-"login.tagline" = "健康とフィットネスへの道のりを簡単に始めましょう";
+// MARK: - Login Strings
+"login.tagline" = "自分のペースで走り\nより良い自分になる";
 "login.google_signin" = "Googleでサインイン";
 "login.apple_signin" = "Appleでサインイン";
 "login.failed" = "ログインに失敗";
@@ -912,6 +941,14 @@
 "training_plan.tip" = "ヒント：%@";
 "training_plan.segment" = "セグメント%d";
 "training_plan.heart_rate_zone" = "心拍ゾーン：%@";
+
+// MARK: - Combination Training Sequence
+"training.combination.sequence.start" = "開始";
+"training.combination.sequence.continue" = "継続";
+"training.combination.sequence.finish" = "終了";
+"training.combination.segment_prefix" = "セグメント%d";
+"training.combination.pace_format" = "ペース %@";
+"training.combination.heart_rate_format" = "心拍 %@";
 "training_plan.interval_training" = "インターバルトレーニング";
 "training_plan.repeats" = "%d × リピート";
 "training_plan.sprint_segment" = "スプリントセグメント";
@@ -920,6 +957,54 @@
 "training_plan.cycle_completed" = "トレーニングサイクル完了";
 "training_plan.congratulations" = "このトレーニングサイクルの完了おめでとうございます！";
 "training_plan.loading_schedule" = "スケジュールを読み込み中...";
+
+// MARK: - Training Type Info
+"training_type_info.how_to_run_title" = "走り方";
+"training_type_info.why_run_title" = "なぜ走るのか";
+"training_type_info.logic_title" = "トレーニングロジック";
+"training_type_info.role_title" = "週間スケジュールでの役割";
+
+// Recovery Run
+"training_type_info.recovery_run.title" = "リカバリーラン";
+"training_type_info.recovery_run.how_to_run" = "最もリラックスしたランニング方法。ゆっくりでも大丈夫—「良いデータ」より「体の快適さ」に焦点を当てましょう。";
+"training_type_info.recovery_run.why_run" = "リカバリーランはアクティブリカバリーの一部です。速すぎると修復を妨げ、遅すぎると効果がない—重要なのは「酸素を含んだ血液を疲れた筋肉に流すこと」です。";
+"training_type_info.recovery_run.logic" = "非常に低強度の有酸素トレーニング（<65% HRmax）、乳酸の除去を助け、代謝と神経系の回復を促進します。静的休息と比較して、次のセッションの準備が早くなります。";
+"training_type_info.recovery_run.role" = "通常、高強度ワークアウトやロングランの翌日にスケジュールされ、トレーニング結果を「吸収」するための鍵となります。";
+
+// Tempo Run
+"training_type_info.tempo.title" = "テンポラン";
+"training_type_info.tempo.how_to_run" = "安定した、やや困難だが持続可能なペース。「きつい、でも崩れない」と感じるべきです。";
+"training_type_info.tempo.why_run" = "テンポランはレースペースに慣れさせます。中高強度での呼吸とペースのコントロールを鍛え、持久力とスピードをつなぐ橋となります。";
+"training_type_info.tempo.logic" = "乳酸閾値付近（最大心拍数の約80–88%）、体の乳酸処理能力を改善し、「崩れずに高速度を維持する」パフォーマンスを向上させます。";
+"training_type_info.tempo.role" = "通常週の半ば、レースペースのシミュレーションとして、週末のロングランや週初めのイージーランと組み合わせて安定したリズムの週を形成します。";
+
+// Threshold Run
+"training_type_info.threshold.title" = "閾値ラン";
+"training_type_info.threshold.how_to_run" = "テンポランよりわずかにきついが、まだ持続可能。「挑戦的だがやり遂げられる」と感じ、心拍数は高いが制御されています。";
+"training_type_info.threshold.why_run" = "閾値ランは持久力の壁を破る鍵です。より長く高速度を維持できるようにし、マラソンパフォーマンスの向上に重要です。";
+"training_type_info.threshold.logic" = "乳酸閾値強度（最大心拍数の約85–90%）をターゲットとし、体が乳酸蓄積を遅らせ、疲労耐性を向上させます。長期的な実践により、持続スピードとレースパフォーマンスが大幅に向上します。";
+"training_type_info.threshold.role" = "通常、ピークトレーニング期間の週の半ばにスケジュールされ、イージーランでウォームアップし、リカバリーランで刺激を吸収します。";
+
+// Interval Run
+"training_type_info.interval.title" = "インターバルラン";
+"training_type_info.interval.how_to_run" = "短時間の全力スプリントと回復の交互、息切れし疲れますが、「すべてのセットを完了」する必要があります。";
+"training_type_info.interval.why_run" = "これはスピードと心肺パワーを向上させる鍵となるワークアウトです。高強度の刺激が体に「より速く走り、より速く回復する」ことを教えます。";
+"training_type_info.interval.logic" = "高強度インターバルトレーニング（HIIT）、VO₂maxと神経筋反応を刺激します。心拍出量、酸素供給、筋肉の酸化能力を向上させます。";
+"training_type_info.interval.role" = "通常週の半ば、週の「強度のスター」。イージーランや休息日と組み合わせて十分な回復時間を確保します。";
+
+// LSD (Long Slow Distance)
+"training_type_info.lsd.title" = "LSD（ロングスローディスタンス）";
+"training_type_info.lsd.how_to_run" = "ペースを落として時間を延ばします。永遠に走れるように感じるべきで、安定しているがきつくありません。";
+"training_type_info.lsd.why_run" = "長時間のランニングは精神的および肉体的持久力を鍛え、体が長時間脂肪を燃料として使用することを学びます—マラソントレーニングの古典的なコアワークアウト。";
+"training_type_info.lsd.logic" = "長時間低強度有酸素トレーニング、心肺機能、筋肉持久力、エネルギー利用効率を強化します。毛細血管の成長を促進し、筋肉の酸素使用を改善します。";
+"training_type_info.lsd.role" = "通常週末、週の「持久力の柱」。週の半ばのテンポランやインターバルランと組み合わせて完全な有酸素能力を構築します。";
+
+// Long Run
+"training_type_info.long_run.title" = "ロングラン";
+"training_type_info.long_run.how_to_run" = "イージーペースよりわずかに速く走りますが、全体を通して持続可能。レースペースをシミュレートしているように感じ、リズミカルな呼吸、前に集中。";
+"training_type_info.long_run.why_run" = "ロングランは持久力をテストし構築します。時間が延長されても安定した出力を維持することを習慣づけ、疲労の中でも体を機能させ続けることを訓練します。";
+"training_type_info.long_run.logic" = "中等強度の長時間有酸素トレーニング（最大心拍数の約70–80%）。この強度では、体は脂肪とグリコーゲンの両方を燃料として使用し、エネルギー利用効率と筋肉持久力を向上させます。また、「レースペースの安定性」と「精神的耐性」を強化する重要なワークアウト。";
+"training_type_info.long_run.role" = "通常週末、週で最も長いセッション。強化期やレース準備期間中、レース条件をシミュレートするコアトレーニングで、イージーランやリカバリーランと組み合わせて負荷を吸収します。";
 
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "月曜日";
@@ -997,11 +1082,66 @@
 "performance.vdot.data_point_count" = "データポイント数";
 "performance.vdot.trend" = "トレンド";
 
+// MARK: - Training Readiness
+"training_readiness.title" = "トレーニング準備度";
+"training_readiness.description" = "トレーニング準備度は、スピード、持久力、レース適性、トレーニング負荷などの複数の指標に基づいて計算された総合スコアで、現在のトレーニング状態を把握するのに役立ちます。";
+"training_readiness.overall_score" = "総合準備度";
+"training_readiness.updated" = "更新";
+"training_readiness.no_data" = "トレーニング準備度データなし";
+"training_readiness.data_ready" = "準備度分析完了";
+"training_readiness.no_score" = "スコアなし";
+
+// Training Readiness Status
+"training_readiness.status_excellent" = "現在の状態は良好、質の高いワークアウトに適しています";
+"training_readiness.status_good" = "状態は良好";
+"training_readiness.status_needs_rest" = "休息と回復が必要";
+
+// Training Readiness Messages
+"training_readiness.message_excellent" = "すべての指標が良好、高強度トレーニングの準備ができています";
+"training_readiness.message_good" = "全体的なパフォーマンスは安定、現在のトレーニングリズムを維持してください";
+"training_readiness.message_needs_rest" = "過度なトレーニングを避けるため、休息時間を増やすことを検討してください";
+
+// Training Readiness Metrics
+"training_readiness.speed" = "スピード";
+"training_readiness.endurance" = "持久力";
+"training_readiness.race_fitness" = "レース適性";
+"training_readiness.training_load" = "トレーニング負荷";
+"training_readiness.recovery" = "回復";
+
+// Speed Metric
+"training_readiness.speed.achievement_rate" = "ペース達成率";
+"training_readiness.speed.pace_improving" = "ペース向上中";
+"training_readiness.speed.pace_stable" = "ペースパフォーマンス安定";
+
+// Endurance Metric
+"training_readiness.endurance.performance_stable" = "持久力パフォーマンス安定";
+"training_readiness.endurance.long_run_completion" = "ロングラン完走率";
+
+// Race Fitness Metric
+"training_readiness.race_fitness.readiness_excellent" = "レース適性優秀";
+"training_readiness.race_fitness.race_pace_quality" = "レースペーストレーニング品質";
+
+// Training Load Metric
+"training_readiness.training_load.balanced" = "トレーニング負荷バランス良好";
+"training_readiness.training_load.tsb" = "TSB";
+
 // HRV Performance Terms
 "performance.hrv.loading_hrv" = "HRVデータ読み込み中...";
 "performance.hrv.no_hrv_data" = "HRVデータなし";
 "performance.hrv.hrv_title" = "心拍変動（HRV）トレンド";
 "performance.hrv.select_data_source_hrv" = "HRVトレンドを表示するためにデータソースを選択してください";
+
+// Training Load
+"performance.training_load.training_load_title" = "トレーニング負荷";
+"performance.training_load.training_load_explanation" = "体力指数で運動能力の変化を追跡し、TSB指標で疲労と回復のバランスを把握します。詳細説明と使用のコツについてはタップしてください";
+"performance.training_load.fitness_index" = "体力指数";
+"performance.training_load.fitness_index_explanation" = "過去の実績と比較した相対的な運動能力レベルを示します。上昇トレンドは体力向上を示しますが疲労蓄積に注意。下降トレンドは通常テーパリング期間で、TSBとHRVの回復を観察しましょう";
+"performance.training_load.tsb" = "トレーニングストレスバランス（TSB）";
+"performance.training_load.tsb_explanation" = "トレーニング疲労と回復のバランスを示す指標。正の値は良い回復を、負の値は蓄積された疲労を示します";
+"performance.training_load.insufficient_data" = "運動データが不足しています。少なくとも5つのレコードが必要です";
+"performance.training_load.loading_training_load" = "トレーニング負荷データ読み込み中...";
+"performance.training_load.no_training_load_data" = "トレーニング負荷データなし";
+"performance.training_load.select_data_source_training_load" = "トレーニング負荷トレンドを表示するためにデータソースを選択してください";
 
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "イージー (E)";
@@ -1021,3 +1161,86 @@
 "performance.heart_rate_zone.zone3_benefit" = "有酸素循環システムの限界点をトレーニングし、適切なトレーニングで乳酸除去能力を向上させ、より高いペースでの持久力を増加させます。";
 "performance.heart_rate_zone.zone4_benefit" = "最大酸素摂取量を向上させ、ランニングフォームを改善し、筋力を強化します。";
 "performance.heart_rate_zone.zone5_benefit" = "無酸素能力と筋持久力を向上させ、最大酸素摂取量を増加させます。適度なインターバルトレーニングは明らかな改善をもたらしますが、過度なトレーニングは避けてください。";
+
+// MARK: - Edit Schedule
+"edit_schedule.cannot_edit_past" = "完了済みや過去のスケジュール、または当日のレースは編集できません";
+"edit_schedule.title" = "週間スケジュール編集";
+"edit_schedule.cancel" = "キャンセル";
+"edit_schedule.save" = "保存";
+"edit_schedule.loading_data" = "編集データを読み込み中...";
+"edit_schedule.unsaved_changes" = "未保存の変更";
+"edit_schedule.unsaved_changes_message" = "未保存の変更があります。破棄してもよろしいですか？";
+"edit_schedule.discard_changes" = "変更を破棄";
+
+// MARK: - Edit Value Dialogs
+"edit_value.distance_title" = "距離を編集";
+"edit_value.distance_message" = "距離を入力してください（キロメートル）";
+"edit_value.pace_title" = "ペースを編集";
+"edit_value.pace_message" = "ペースを入力してください（例：5:30）";
+"edit_value.repeats_title" = "繰り返し回数を編集";
+"edit_value.repeats_message" = "繰り返し回数を入力してください";
+"edit_value.confirm" = "確認";
+"edit_value.cancel" = "キャンセル";
+"edit_value.general_message" = "新しい値を入力してください";
+
+// MARK: - Adjustment Confirmation
+"adjustment.title" = "調整確認";
+"adjustment.header_title" = "来週のトレーニング調整";
+"adjustment.description_with_items" = "適用したい調整を選択してください。ご自身のトレーニング要件も追加できます。";
+"adjustment.description_no_items" = "ご自身のトレーニング要件を追加できます";
+"adjustment.no_suggestions" = "現在調整提案はありません";
+"adjustment.add_custom_title" = "カスタム調整を追加";
+"adjustment.text_field_placeholder" = "トレーニングのニーズや調整提案を入力してください...";
+"adjustment.add_button" = "調整を追加";
+"adjustment.ignore_all" = "すべて無視";
+"adjustment.apply_selected" = "選択した項目を適用";
+"adjustment.generate_weekly_plan" = "今週の計画を生成";
+"adjustment.content_placeholder" = "調整内容";
+
+// MARK: - App Rating
+"rating.prompt.title" = "Pacerizを楽しんでいますか？";
+"rating.prompt.subtitle" = "あなたのフィードバックは私たちにとって重要です！";
+"rating.prompt.later" = "後で";
+"rating.prompt.submit" = "送信";
+"rating.success.title" = "ご支援ありがとうございます！";
+"rating.success.subtitle" = "あなたの評価は私たちにとって大きな意味があります";
+"rating.success.share" = "Pacerizをシェア";
+"rating.success.done" = "完了";
+
+// MARK: - Feedback
+"feedback.title" = "フィードバック";
+"feedback.type" = "タイプ";
+"feedback.type.issue" = "問題";
+"feedback.type.suggestion" = "提案";
+"feedback.category" = "カテゴリー";
+"feedback.category.weekly_plan_failed" = "週間プラン生成失敗";
+"feedback.category.weekly_summary_failed" = "週間サマリー生成失敗";
+"feedback.category.training_overview_failed" = "トレーニング概要生成失敗";
+"feedback.category.other" = "その他";
+"feedback.description" = "説明";
+"feedback.description_hint" = "問題または提案の詳細を記述してください";
+"feedback.contact_email" = "連絡先メール";
+"feedback.contact_email_hint" = "任意。フォローアップのために連絡先メールを提供してください。";
+"feedback.contact_email_placeholder" = "任意メール";
+"feedback.hide_email" = "メールを提供しない";
+"feedback.attachments" = "添付ファイル";
+"feedback.attachments_hint" = "オプション。画像1枚あたり最大5MB。";
+"feedback.add_image" = "画像を追加";
+"feedback.system_info" = "システム情報";
+"feedback.user_email" = "ユーザーメール";
+"feedback.app_version" = "アプリバージョン";
+"feedback.device_info" = "デバイス情報";
+"feedback.error.description_required" = "説明が必要です";
+"feedback.success_title" = "成功";
+"feedback.success_message" = "フィードバックをありがとうございます！";
+"common.submit" = "送信";
+
+// MARK: - Workout Detail
+"workout.share_card" = "トレーニングカードをシェア";
+"workout.share_screenshot" = "スクリーンショットをシェア";
+
+// MARK: - Data Source
+"datasource.strava_subtitle" = "Stravaのアクティビティを同期";
+
+// MARK: - Share Card
+"share_card.branding" = "Paceriz AIトレーニングレポート";

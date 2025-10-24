@@ -34,11 +34,18 @@ class WeeklySummaryService {
     
     // MARK: - POST 週訓練回顧
     /// 建立或取得單週訓練摘要 (POST)
-    func createWeeklySummary(weekNumber: Int? = nil) async throws -> WeeklyTrainingSummary {
+    func createWeeklySummary(weekNumber: Int? = nil, forceUpdate: Bool = false) async throws -> WeeklyTrainingSummary {
         let path = weekNumber != nil ?
             "/summary/run_race/week/\(weekNumber!)" :
             "/summary/run_race/week"
-        return try await makeAPICall(WeeklyTrainingSummary.self, path: path, method: .POST)
+
+        var body: Data? = nil
+        if forceUpdate {
+            let request = CreateWeeklySummaryRequest(forceUpdate: true)
+            body = try JSONEncoder().encode(request)
+        }
+
+        return try await makeAPICall(WeeklyTrainingSummary.self, path: path, method: .POST, body: body)
     }
     
     func getWeeklySummary(weekNumber: Int? = nil) async throws -> WeeklyTrainingSummary {
@@ -52,5 +59,14 @@ class WeeklySummaryService {
     /// 取得所有週訓練摘要列表 (GET)
     func fetchWeeklySummaries(weekNumber: Int? = nil) async throws -> [WeeklySummaryItem] {
         return try await makeAPICall([WeeklySummaryItem].self, path: "/summary/weekly/")
+    }
+
+    // MARK: - PUT 更新調整建議
+    /// 更新週訓練回顧的調整建議 (PUT)
+    func updateAdjustments(summaryId: String, items: [AdjustmentItem]) async throws -> UpdateAdjustmentsResponse {
+        let requestBody = UpdateAdjustmentsRequest(items: items)
+        let jsonData = try JSONEncoder().encode(requestBody)
+        let path = "/summary/\(summaryId)/adjustments"
+        return try await makeAPICall(UpdateAdjustmentsResponse.self, path: path, method: .PUT, body: jsonData)
     }
 }

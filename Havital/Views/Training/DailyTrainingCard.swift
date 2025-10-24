@@ -1,6 +1,12 @@
 import SwiftUI
 import HealthKit
 
+// Import model types
+import Foundation
+
+// These types are defined in the Models module but may need explicit imports
+// TrainingDay, WorkoutV2, ProgressionSegment are defined in Models/ files
+
 // MARK: - Supporting Views
 struct DayHeaderView: View {
     let day: TrainingDay
@@ -8,12 +14,13 @@ struct DayHeaderView: View {
     let isExpanded: Bool
     let viewModel: TrainingPlanViewModel
     let onToggle: () -> Void
-    
+    @State private var showTrainingTypeInfo = false
+
     private func getTypeColor() -> Color {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.green
-        case .interval, .tempo, .progression, .threshold:
+        case .interval, .tempo, .progression, .threshold, .combination:
             return Color.orange
         case .longRun, .hiking, .cycling:
             return Color.blue
@@ -25,33 +32,55 @@ struct DayHeaderView: View {
             return Color.purple
         }
     }
-    
+
     var body: some View {
-        Button(action: onToggle) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(viewModel.weekdayName(for: day.dayIndexInt))
-                            .font(.headline)
-                        if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
-                            Text(viewModel.formatShortDate(date))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        if isToday {
-                            Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                .font(.caption)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.blue)
-                                .cornerRadius(4)
+        HStack {
+            Button(action: onToggle) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(viewModel.weekdayName(for: day.dayIndexInt))
+                                .font(.headline)
+                            if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
+                                Text(viewModel.formatShortDate(date))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            if isToday {
+                                Text(NSLocalizedString("training_plan.today", comment: "Today"))
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.blue)
+                                    .cornerRadius(4)
+                            }
                         }
                     }
+
+                    Spacer()
                 }
-                
-                Spacer()
-                
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 訓練類型標籤（可點擊查看說明）
+            if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
+                Button(action: {
+                    showTrainingTypeInfo = true
+                }) {
+                    Text(day.type.localizedName)
+                        .font(.subheadline)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .foregroundColor(getTypeColor())
+                        .background(getTypeColor().opacity(0.2))
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.borderless)
+                .sheet(isPresented: $showTrainingTypeInfo) {
+                    TrainingTypeInfoView(trainingTypeInfo: trainingTypeInfo)
+                }
+            } else {
                 Text(day.type.localizedName)
                     .font(.subheadline)
                     .padding(.horizontal, 8)
@@ -59,14 +88,16 @@ struct DayHeaderView: View {
                     .foregroundColor(getTypeColor())
                     .background(getTypeColor().opacity(0.2))
                     .cornerRadius(8)
-                
+            }
+
+            Button(action: onToggle) {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .foregroundColor(.secondary)
                     .font(.caption)
                     .padding(.leading, 4)
             }
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -133,25 +164,43 @@ struct WorkoutListView: View {
 
 struct TrainingDetailsView: View {
     let day: TrainingDay
-    
+
+    // 檢查是否為分段式訓練（已經在 SegmentedTrainingView 中顯示說明）
+    private var isSegmentedTraining: Bool {
+        if let details = day.trainingDetails, let segments = details.segments, !segments.isEmpty {
+            return true
+        }
+        return false
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider().padding(.vertical, 4)
-            
-            Text(day.dayTarget)
-                .font(.body)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-            
+
+            // 只在非分段式訓練時顯示 dayTarget（避免與 SegmentedTrainingView 重複）
+            if !isSegmentedTraining {
+                Text(day.dayTarget)
+                    .font(.body)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if day.isTrainingDay {
-                if day.trainingItems == nil, let details = day.trainingDetails {
+                // 分段式訓練（漸進跑、閾值跑、組合訓練）：顯示 trainingDetails
+                if let details = day.trainingDetails,
+                   let segments = details.segments,
+                   !segments.isEmpty {
                     TrainingDetailsContentView(day: day, details: details)
                 }
-                
-                if let trainingItems = day.trainingItems, !trainingItems.isEmpty {
+                // 一般訓練（輕鬆跑、間歇等）：顯示 trainingItems
+                else if let trainingItems = day.trainingItems, !trainingItems.isEmpty {
                     TrainingItemsView(day: day, trainingItems: trainingItems)
                 }
-                
+                // 沒有 segments 也沒有 trainingItems：顯示基本的 trainingDetails
+                else if let details = day.trainingDetails {
+                    TrainingDetailsContentView(day: day, details: details)
+                }
+
                 if let tips = day.tips {
                     Text(String(format: NSLocalizedString("training_plan.tip", comment: "Tip: %@"), tips))
                         .font(.caption2)
@@ -182,15 +231,105 @@ struct SegmentedTrainingView: View {
     let day: TrainingDay
     let segments: [ProgressionSegment]
     let total: Double
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(day.type.localizedName)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+
+    // 檢查分段是否應該隱藏配速（基於分段描述）
+    private func shouldHidePaceForSegment(_ segment: ProgressionSegment) -> Bool {
+        guard let description = segment.description else { return false }
+        let desc = description.lowercased()
+        return desc.contains("輕鬆") || desc.contains("恢復") || desc.contains("easy") || desc.contains("recovery")
+    }
+
+    // 創建單個段落行視圖
+    private func segmentRowView(segment: ProgressionSegment, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // 第一行：段落標籤、配速、心率、距離
+            HStack(spacing: 8) {
+                // 段落標籤
+                Text("第\(index + 1)段")
+                    .font(.caption)
+                    .fontWeight(.medium)
                     .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.15))
+                    .cornerRadius(6)
+
+                // 配速（根據分段類型條件顯示）
+                if let pace = segment.pace, !shouldHidePaceForSegment(segment) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "speedometer")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                        Text(pace)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.15))
+                    .cornerRadius(6)
+                }
+
+                // 心率區間（用圖示節省空間，心率圖示靠左對齊）
+                if let hrRange = segment.heartRateRange, let displayText = hrRange.displayText {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                        Text(displayText)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.green)
+                    }
+                    .frame(alignment: .leading)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.green.opacity(0.15))
+                    .cornerRadius(6)
+                }
+
                 Spacer()
+
+                // 距離（固定在右側，保持對齊）
+                if let distance = segment.distanceKm {
+                    Text(String(format: "%.1fkm", distance))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.purple.opacity(0.8))
+                        .cornerRadius(6)
+                }
+            }
+
+            // 第二行：分段描述（獨立一行，較小字體）
+            if let description = segment.description {
+                Text(NSLocalizedString(description, comment: description))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 4)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 第一行：說明文字 + 總距離（右上角）
+            // 移除訓練類型名稱（day.type.localizedName），因為已經在 day.dayTarget 中顯示
+            HStack(alignment: .top) {
+                Text(day.dayTarget)
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer()
+
                 Text(String(format: "%.1fkm", total))
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -200,40 +339,37 @@ struct SegmentedTrainingView: View {
                     .background(Color.orange.opacity(0.15))
                     .cornerRadius(12)
             }
-            .padding(.top, 4)
-            
+
             Divider()
                 .background(Color.orange.opacity(0.3))
                 .padding(.vertical, 2)
-            
-            ForEach(segments.indices, id: \.self) { idx in
-                let seg = segments[idx]
-                HStack(spacing: 8) {
-                    Text(String(format: NSLocalizedString("training_plan.segment", comment: "Segment %d"), idx + 1))
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
-                    Spacer()
-                    if let distance = seg.distanceKm {
-                        Text(String(format: "%.1fkm", distance))
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(8)
+
+            // 簡潔的一段一行格式
+            VStack(spacing: 4) {
+                // 手動展開 segments 陣列，避免 ForEach 問題
+                Group {
+                    if segments.count > 0 {
+                        segmentRowView(segment: segments[0], index: 0)
                     }
-                    if let pace = seg.pace {
-                        Text(pace)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.15))
-                            .cornerRadius(8)
+                }
+                Group {
+                    if segments.count > 1 {
+                        segmentRowView(segment: segments[1], index: 1)
+                    }
+                }
+                Group {
+                    if segments.count > 2 {
+                        segmentRowView(segment: segments[2], index: 2)
+                    }
+                }
+                Group {
+                    if segments.count > 3 {
+                        segmentRowView(segment: segments[3], index: 3)
+                    }
+                }
+                Group {
+                    if segments.count > 4 {
+                        segmentRowView(segment: segments[4], index: 4)
                     }
                 }
             }
@@ -256,7 +392,7 @@ struct SimpleTrainingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let desc = details.description {
-                Text(desc)
+                Text(NSLocalizedString(desc, comment: desc))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
@@ -299,15 +435,16 @@ struct SimpleTrainingView: View {
 struct TrainingItemsView: View {
     let day: TrainingDay
     let trainingItems: [WeeklyTrainingItem]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if (day.type == .progression || day.type == .threshold), let segments = day.trainingDetails?.segments {
-                SegmentedTrainingView(day: day, segments: segments, total: day.trainingDetails?.totalDistanceKm ?? 0)
-            } else if day.type == .interval, !trainingItems.isEmpty, let repeats = trainingItems[0].goals.times {
+            // 移除重複的 SegmentedTrainingView 調用
+            // SegmentedTrainingView 已經在 TrainingDetailsContentView 中渲染，此處不需要再次渲染
+
+            if day.type == .interval, !trainingItems.isEmpty, let repeats = trainingItems[0].goals.times {
                 IntervalTrainingHeaderView(repeats: repeats)
             }
-            
+
             if day.type == .interval {
                 IntervalTrainingItemsView(trainingItems: trainingItems)
             } else {
@@ -486,7 +623,7 @@ struct DailyTrainingCard: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.green
-        case .interval, .tempo, .progression, .threshold:
+        case .interval, .tempo, .progression, .threshold, .combination:
             return Color.orange
         case .longRun, .hiking, .cycling:
             return Color.blue

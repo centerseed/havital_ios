@@ -152,16 +152,16 @@ class CalendarManager: ObservableObject {
                                                     calendars: [eventStore.defaultCalendarForNewEvents].compactMap { $0 })
         
         let existingEvents = eventStore.events(matching: predicate)
-        let trainingEvents = existingEvents.filter { $0.title == "Havital 訓練日" }
-        
+        let trainingEvents = existingEvents.filter { $0.title == "Paceriz 訓練日" }
+
         for event in trainingEvents {
             try eventStore.remove(event, span: .thisEvent)
         }
     }
-    
+
     private func addTrainingEvent(on date: Date, preference: SyncPreference) throws {
         let event = EKEvent(eventStore: eventStore)
-        event.title = "Havital 訓練日"
+        event.title = "Paceriz 訓練日"
         event.notes = "今天是訓練日，記得按照計劃完成訓練！"
         
         let calendar = Calendar.current

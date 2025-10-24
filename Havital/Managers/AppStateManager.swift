@@ -60,7 +60,7 @@ class AppStateManager: ObservableObject {
     private var authService: AuthenticationService?
     private var userService: UserService?
     private var unifiedWorkoutManager: UnifiedWorkoutManager?
-    private var healthDataUploadManager: HealthDataUploadManager?
+    private var healthDataUploadManager: HealthDataUploadManagerV2?
     
     private init() {
         print("🏁 AppStateManager: 已初始化")
@@ -201,14 +201,18 @@ class AppStateManager: ObservableObject {
             
             // 同步用戶偏好設定（包括數據源）
             userService!.syncUserPreferences(with: user)
-            
+
+            // 🔥 重要：將用戶資料設置到 UserManager
+            await UserManager.shared.updateCurrentUser(user)
+
             // 使用同步後的數據源設定
             userDataSource = UserPreferenceManager.shared.dataSourcePreference
             subscriptionStatus = .free // 暫時設為免費版，未來可從 user.data 中獲取
-            
+
             print("✅ AppStateManager: 用戶資料同步完成")
             print("   - 最終數據源: \(userDataSource.rawValue)")
             print("   - 訂閱狀態: \(subscriptionStatus.rawValue)")
+            print("   - UserManager.currentUser 已設置: \(UserManager.shared.currentUser != nil)")
             
         } catch {
             print("❌ AppStateManager: 載入用戶資料失敗 - \(error.localizedDescription)")
@@ -234,7 +238,7 @@ class AppStateManager: ObservableObject {
         
         // 初始化核心服務
         unifiedWorkoutManager = UnifiedWorkoutManager.shared
-        healthDataUploadManager = HealthDataUploadManager.shared
+        healthDataUploadManager = HealthDataUploadManagerV2.shared
         
         // 根據用戶狀態初始化服務
         if isUserAuthenticated {
@@ -243,7 +247,7 @@ class AppStateManager: ObservableObject {
             await unifiedWorkoutManager?.loadWorkouts()
             
             // 啟動健康數據同步
-            await healthDataUploadManager?.startHealthDataSync()
+            await healthDataUploadManager?.initialize()
             
             print("✅ AppStateManager: 已認證用戶服務設置完成")
         } else {

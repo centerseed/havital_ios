@@ -6,6 +6,7 @@ import Combine
 import AuthenticationServices
 import CryptoKit // For SHA256 nonce
 import FirebaseMessaging // For FCM token
+import FirebaseAnalytics // For user ID tracking
 
 class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     @Published var user: FirebaseAuth.User?
@@ -38,7 +39,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             guard let self = self else { return }
             self.user = user
             self.isAuthenticated = user != nil
-            
+
+            // 設置或清除用戶ID追蹤
+            self.setUserIDForAnalytics(user?.uid)
+
             if user != nil {
                 // If user is authenticated with Firebase, fetch their profile from backend
                 self.fetchUserProfile()
@@ -117,6 +121,18 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             print("登入後更新週訓練計劃失敗: \(error)")
         }
     }
+
+    // MARK: - User ID Tracking for Analytics
+
+    /// 設置用戶ID用於Firebase Analytics追蹤
+    private func setUserIDForAnalytics(_ userID: String?) {
+        Analytics.setUserID(userID)
+        if let userID = userID {
+            print("✅ 已設置Analytics用戶ID: \(userID)")
+        } else {
+            print("✅ 已清除Analytics用戶ID")
+        }
+    }
     
     func signInWithGoogle() async {
         await executeTask(id: TaskID("sign_in_google")) {
@@ -161,7 +177,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             // 使用憑證登入 Firebase
             let authResult = try await Auth.auth().signIn(with: credential)
             self.user = authResult.user
-            
+
+            // 設置用戶ID追蹤
+            setUserIDForAnalytics(authResult.user.uid)
+
             // 從 Google 登入結果取出 profile，更新 Firebase 使用者檔案
             if let profile = result.user.profile {
                 let changeRequest = authResult.user.createProfileChangeRequest()
@@ -328,7 +347,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         
         try Auth.auth().signOut()
         try GIDSignIn.sharedInstance.signOut()
-        
+
+        // 清除用戶ID追蹤
+        setUserIDForAnalytics(nil)
+
         // 在登出時重置各種狀態
         appUser = nil
         hasCompletedOnboarding = false
@@ -540,7 +562,10 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
             do {
                 let authResult = try await Auth.auth().signIn(with: credential)
                 self.user = authResult.user
-                
+
+                // 設置用戶ID追蹤
+                self.setUserIDForAnalytics(authResult.user.uid)
+
                 let firebaseToken = try await authResult.user.getIDToken()
                 print("Apple Sign In: Successfully signed in with Firebase. Firebase ID token length: \(firebaseToken.count)")
                 

@@ -5,6 +5,8 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.havital.workout-sync</string>
+		<string>com.havital.health-data-sync</string>
+		<string>com.havital.hrv-retry-sync</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hant</string>
@@ -62,17 +64,17 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCalendarsUsageDescription</key>
-	<string>Havital 需要行事曆權限來同步您的訓練計劃</string>
+	<string>Paceriz 需要行事曆權限來同步您的訓練計劃</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
-	<string>Havital 需要行事曆寫入權限來同步您的訓練計劃</string>
+	<string>Paceriz 需要行事曆寫入權限來同步您的訓練計劃</string>
 	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
-	<string>Havital 需要存取健康記錄，以提供更完整的健康分析</string>
+	<string>Paceriz 需要存取健康記錄，以提供更完整的健康分析</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Havital 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議，並自動同步您的健身記錄</string>
+	<string>Paceriz 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議，並自動同步您的健身記錄</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Havital 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
+	<string>Paceriz 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
 	<key>NSUserNotificationUsageDescription</key>
-	<string>Havital 需要通知權限以告知您運動數據已成功同步</string>
+	<string>Paceriz 需要通知權限以告知您運動數據已成功同步</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -82,6 +84,21 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.havital.trainingday</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Training Day</string>
+			<key>UTTypeTagSpecification</key>
+			<dict/>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
@@ -90,10 +107,6 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>healthkit</string>
-	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

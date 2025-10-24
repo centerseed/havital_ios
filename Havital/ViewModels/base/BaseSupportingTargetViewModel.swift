@@ -51,6 +51,7 @@ class BaseSupportingTargetViewModel: ObservableObject {
             raceDate: Int(raceDate.timeIntervalSince1970),
             isMainRace: false, // 設為支援賽事
             trainingWeeks: remainingWeeks
+            // timezone 會自動使用預設的 "Asia/Taipei"
         )
     }
 }

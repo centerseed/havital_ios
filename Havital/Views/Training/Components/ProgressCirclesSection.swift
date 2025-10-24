@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProgressCirclesSection: View {
     let plan: WeeklyPlan
+    let overview: TrainingPlanOverview?
     let currentWeekDistance: Double
     let formatDistance: (Double) -> String
     @Binding var showWeekSelector: Bool
@@ -13,8 +14,8 @@ struct ProgressCirclesSection: View {
                 // 左側週進度環 (50%)
                 VStack(spacing: 8) {
                     CircleProgressView(
-                        progress: Double(plan.weekOfPlan) / Double(plan.totalWeeks),
-                        distanceInfo: "\(plan.weekOfPlan)/\(plan.totalWeeks)",
+                        progress: Double(plan.weekOfPlan) / Double(overview?.totalWeeks ?? plan.totalWeeks),
+                        distanceInfo: "\(plan.weekOfPlan)/\(overview?.totalWeeks ?? plan.totalWeeks)",
                         title: NSLocalizedString("progress.training_progress", comment: "Training Progress"),
                         unit: NSLocalizedString("progress.week_unit", comment: "Week")
                     )
@@ -99,6 +100,7 @@ struct ProgressWithIntensitySection: View {
         
         ProgressCirclesSection(
             plan: mockPlan,
+            overview: nil,
             currentWeekDistance: 25.5,
             formatDistance: { String(format: "%.1f km", $0) },
             showWeekSelector: .constant(false),

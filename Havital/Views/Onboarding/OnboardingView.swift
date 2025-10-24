@@ -54,6 +54,7 @@ class OnboardingViewModel: ObservableObject {
                 raceDate: Int(raceDate.timeIntervalSince1970),
                 isMainRace: true,
                 trainingWeeks: remainingWeeks
+                // timezone 會自動使用預設的 "Asia/Taipei"
             )
             
             try await UserService.shared.createTarget(target)

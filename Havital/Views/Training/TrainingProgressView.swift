@@ -50,7 +50,7 @@ struct TrainingProgressView: View {
                     
                     Spacer()
                     
-                    Text(String(format: NSLocalizedString("training.current_week_of_total", comment: "Week %d / Total %d weeks"), currentWeek, plan.totalWeeks))
+                    Text(String(format: NSLocalizedString("training.current_week_of_total", comment: "Week %d / Total %d weeks"), currentWeek, viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -72,7 +72,7 @@ struct TrainingProgressView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(geometry.size.width * CGFloat(Double(currentWeek) / Double(plan.totalWeeks)), 0), height: 12)
+                            .frame(width: max(geometry.size.width * CGFloat(Double(currentWeek) / Double(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks)), 0), height: 12)
                     }
                 }
                 .frame(height: 12)
@@ -334,28 +334,93 @@ struct TrainingProgressView: View {
                         .buttonStyle(PlainButtonStyle())
                     }
                     
-                    // 產生課表按鈕（當前週且沒有課表時）
+                    // 當前週且沒有課表時的按鈕邏輯 - 與 TrainingPlanView 保持一致
                     if isCurrentWeek && !hasWeekPlan {
-                        Button {
-                            Task {
-                                await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
-                            }
-                        } label: {
+                        // 使用與 TrainingPlanView 完全相同的邏輯
+                        if viewModel.isLoadingWeeklySummary {
+                            // 正在載入週回顧時顯示載入狀態
                             HStack(alignment: .center, spacing: 4) {
-                                Image(systemName: "plus.circle")
-                                    .font(.system(size: 12, weight: .medium))
-                                Text(L10n.TrainingProgress.generateSchedule.localized)
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("載入中...")
                                     .font(.footnote)
                                     .fontWeight(.medium)
                             }
                             .fixedSize()
                             .padding(.vertical, 4)
                             .padding(.horizontal, 8)
-                            .background(Color.orange.opacity(0.1))
-                            .foregroundColor(.orange)
+                            .background(Color.gray.opacity(0.1))
+                            .foregroundColor(.gray)
                             .cornerRadius(8)
+                        } else if viewModel.weeklySummaryError != nil {
+                            // 載入失敗時顯示重試按鈕，使用強制更新模式
+                            Button {
+                                Task {
+                                    await viewModel.retryCreateWeeklySummary()
+                                    dismiss() // 關閉當前視圖以顯示回顧
+                                }
+                            } label: {
+                                HStack(alignment: .center, spacing: 4) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text("重試")
+                                        .font(.footnote)
+                                        .fontWeight(.medium)
+                                }
+                                .fixedSize()
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        } else if viewModel.showWeeklySummary && viewModel.weeklySummary != nil {
+                            // 已有週回顧時顯示產生課表按鈕
+                            Button {
+                                Task {
+                                    await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
+                                }
+                            } label: {
+                                HStack(alignment: .center, spacing: 4) {
+                                    Image(systemName: "plus.circle")
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text(L10n.TrainingProgress.generateSchedule.localized)
+                                        .font(.footnote)
+                                        .fontWeight(.medium)
+                                }
+                                .fixedSize()
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundColor(.orange)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        } else {
+                            // 未獲取回顧時，顯示取得週回顧按鈕
+                            Button {
+                                Task {
+                                    await viewModel.createWeeklySummary()
+                                    dismiss() // 關閉當前視圖以顯示回顧
+                                }
+                            } label: {
+                                HStack(alignment: .center, spacing: 4) {
+                                    Image(systemName: "doc.text.magnifyingglass")
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text(NSLocalizedString("training.get_weekly_review", comment: "Get Weekly Review"))
+                                        .font(.footnote)
+                                        .fontWeight(.medium)
+                                }
+                                .fixedSize()
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                 }
             }

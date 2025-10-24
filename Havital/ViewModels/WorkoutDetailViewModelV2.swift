@@ -308,7 +308,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// 處理來自 API 的時間序列數據
     private func processTimeSeriesFromAPI(_ timeSeries: V2TimeSeries) {
         let baseTime = workout.startDate
-        
+
         // 處理心率數據
         if let heartRateData = timeSeries.heartRatesBpm,
            let timestamps = timeSeries.timestampsS {
@@ -327,7 +327,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             // 數據降採樣以提升效能
             self.heartRates = downsampleData(heartRatePoints, maxPoints: 500)
         }
-        
+
         // 處理配速數據，使用 paces_s_per_km 直接顯示配速
         if let pacesData = timeSeries.pacesSPerKm,
            let timestamps = timeSeries.timestampsS {
@@ -488,14 +488,14 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         // 處理步頻數據 (每分鐘步數)
         if let cadenceData = timeSeries.cadencesSpm,
            let timestamps = timeSeries.timestampsS {
-            
+
             var cadencePoints: [DataPoint] = []
-            
+
             for (index, cadence) in cadenceData.enumerated() {
                 if index < timestamps.count,
                    let timestamp = timestamps[index] {
                     let time = baseTime.addingTimeInterval(TimeInterval(timestamp))
-                    
+
                     // 只處理有效的步頻值 (120-220 spm是合理範圍)
                     if let cadenceValue = cadence,
                        cadenceValue > 100 && cadenceValue < 250 && cadenceValue != 0 {
@@ -503,7 +503,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                     }
                 }
             }
-            
+
             self.cadences = downsampleData(cadencePoints, maxPoints: 500)
         }
     }
@@ -644,7 +644,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     private func performLoadWorkoutDetail() async {
         isLoading = true
         error = nil
-        
+
         do {
             // 首先檢查快取（30 分鐘 TTL）
             if let cachedDetail = cacheManager.getCachedWorkoutDetail(workoutId: workout.id, maxAge: 30 * 60) {
@@ -653,10 +653,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                     level: .info,
                     labels: ["module": "WorkoutDetailViewModelV2", "action": "load_cached"]
                 )
-                
+
                 // 設置 workoutDetail 以便 UI 可以訪問設備信息等
                 self.workoutDetail = cachedDetail
-                
+
                 // 處理快取的時間序列數據
                 self.processTimeSeriesData(from: cachedDetail)
                 
@@ -811,6 +811,8 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             return L10n.Training.TrainingType.interval.localized
         case "fartlek":
             return L10n.Training.TrainingType.fartlek.localized
+        case "combination":
+            return L10n.Training.TrainingType.combination.localized
         case "hill_training":
             return L10n.Training.TrainingType.hill.localized
         case "race":

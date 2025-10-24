@@ -23,7 +23,8 @@ struct WorkoutV2: Codable, Identifiable {
     let storagePath: String?
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
-    
+    let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+
     enum CodingKeys: String, CodingKey {
         case id, provider
         case activityType = "activity_type"
@@ -39,6 +40,7 @@ struct WorkoutV2: Codable, Identifiable {
         case storagePath = "storage_path"
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
+        case shareCardContent = "share_card_content"
     }
     
     // MARK: - Convenience Properties
@@ -397,7 +399,7 @@ struct WorkoutV2Detail: Codable {
     let id: String
     let provider: String
     let activityType: String
-    let sportType: String
+    let sportType: String?        // 改為可選，Strava 數據可能為 null
     let startTime: String
     let endTime: String
     let userId: String
@@ -420,7 +422,8 @@ struct WorkoutV2Detail: Codable {
     let laps: [LapData]?
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
-    
+    let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+
     enum CodingKeys: String, CodingKey {
         case id, provider, source
         case activityType = "activity_type"
@@ -446,6 +449,7 @@ struct WorkoutV2Detail: Codable {
         case laps = "laps"
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
+        case shareCardContent = "share_card_content"
     }
 }
 
@@ -528,7 +532,13 @@ struct V2AdvancedMetrics: Codable {
     private let _dynamicVdot: SafeDouble?
     private let _avgStanceTimeMs: SafeDouble?
     private let _avgVerticalRatioPercent: SafeDouble?
-    
+
+    // 後端新增欄位 (Strava 數據增強)
+    let actualPaceZoneSpeeds: [String: V2PaceZoneSpeed]?
+    let cadencePaceDistribution: V2ZoneDistribution?
+    let stanceTimePaceDistribution: [String: Double]?
+    let verticalRatioPaceDistribution: [String: Double]?
+
     // 公開的計算屬性
     var rpe: Double? { _rpe?.value }
     var avgHrTop20Percent: Double? { _avgHrTop20Percent?.value }
@@ -537,7 +547,7 @@ struct V2AdvancedMetrics: Codable {
     var dynamicVdot: Double? { _dynamicVdot?.value }
     var avgStanceTimeMs: Double? { _avgStanceTimeMs?.value }
     var avgVerticalRatioPercent: Double? { _avgVerticalRatioPercent?.value }
-    
+
     enum CodingKeys: String, CodingKey {
         case _rpe = "rpe"
         case intensityMinutes = "intensity_minutes"
@@ -550,6 +560,12 @@ struct V2AdvancedMetrics: Codable {
         case _dynamicVdot = "dynamic_vdot"
         case _avgStanceTimeMs = "avg_stance_time_ms"
         case _avgVerticalRatioPercent = "avg_vertical_ratio_percent"
+
+        // 後端新增欄位
+        case actualPaceZoneSpeeds = "actual_pace_zone_speeds"
+        case cadencePaceDistribution = "cadence_pace_distribution"
+        case stanceTimePaceDistribution = "stance_time_pace_distribution"
+        case verticalRatioPaceDistribution = "vertical_ratio_pace_distribution"
     }
 }
 
@@ -584,7 +600,7 @@ struct V2ZoneDistribution: Codable {
     private let _threshold: SafeDouble?
     private let _anaerobic: SafeDouble?
     private let _easy: SafeDouble?
-    
+
     // 公開的計算屬性
     var marathon: Double? { _marathon?.value }
     var interval: Double? { _interval?.value }
@@ -592,7 +608,7 @@ struct V2ZoneDistribution: Codable {
     var threshold: Double? { _threshold?.value }
     var anaerobic: Double? { _anaerobic?.value }
     var easy: Double? { _easy?.value }
-    
+
     enum CodingKeys: String, CodingKey {
         case _marathon = "marathon"
         case _interval = "interval"
@@ -601,7 +617,7 @@ struct V2ZoneDistribution: Codable {
         case _anaerobic = "anaerobic"
         case _easy = "easy"
     }
-    
+
     // 便利初始化方法，用於從 ZoneDistribution 轉換
     init(from zones: ZoneDistribution) {
         self._marathon = SafeDouble(value: zones.marathon)
@@ -610,6 +626,25 @@ struct V2ZoneDistribution: Codable {
         self._threshold = SafeDouble(value: zones.threshold)
         self._anaerobic = SafeDouble(value: zones.anaerobic)
         self._easy = SafeDouble(value: zones.easy)
+    }
+}
+
+// MARK: - Pace Zone Speed (Strava 增強數據)
+
+/// 單個配速區間的速度統計
+struct V2PaceZoneSpeed: Codable {
+    private let _avgPaceSKm: SafeDouble?
+    private let _avgSpeedMS: SafeDouble?
+    private let _count: SafeDouble?
+
+    var avgPaceSKm: Double? { _avgPaceSKm?.value }
+    var avgSpeedMS: Double? { _avgSpeedMS?.value }
+    var count: Double? { _count?.value }
+
+    enum CodingKeys: String, CodingKey {
+        case _avgPaceSKm = "avg_pace_s_km"
+        case _avgSpeedMS = "avg_speed_m_s"
+        case _count = "count"
     }
 }
 
@@ -798,7 +833,7 @@ struct V2Metadata: Codable {
 
 struct LapData: Codable, Identifiable {
     let id: String = UUID().uuidString
-    
+
     let lapNumber: Int
     private let _startTimeOffsetS: SafeInt
     private let _totalTimeS: SafeInt?
@@ -806,7 +841,8 @@ struct LapData: Codable, Identifiable {
     private let _avgSpeedMPerS: SafeDouble?
     private let _avgPaceSPerKm: SafeDouble?
     private let _avgHeartRateBpm: SafeInt?
-    
+    let metadata: [String: String]?  // Apple Health 事件的原始 metadata
+
     // 公開的計算屬性
     var startTimeOffsetS: Int { _startTimeOffsetS.value ?? 0 }
     var totalTimeS: Int? { _totalTimeS?.value }
@@ -814,7 +850,7 @@ struct LapData: Codable, Identifiable {
     var avgSpeedMPerS: Double? { _avgSpeedMPerS?.value }
     var avgPaceSPerKm: Double? { _avgPaceSPerKm?.value }
     var avgHeartRateBpm: Int? { _avgHeartRateBpm?.value }
-    
+
     enum CodingKeys: String, CodingKey {
         case lapNumber = "lap_number"
         case _startTimeOffsetS = "start_time_offset_s"
@@ -823,11 +859,12 @@ struct LapData: Codable, Identifiable {
         case _avgSpeedMPerS = "avg_speed_m_per_s"
         case _avgPaceSPerKm = "avg_pace_s_per_km"
         case _avgHeartRateBpm = "avg_heart_rate_bpm"
+        case metadata = "metadata"
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         lapNumber = try container.decode(Int.self, forKey: .lapNumber)
         _startTimeOffsetS = try container.decode(SafeInt.self, forKey: ._startTimeOffsetS)
         _totalTimeS = try container.decodeIfPresent(SafeInt.self, forKey: ._totalTimeS)
@@ -835,6 +872,20 @@ struct LapData: Codable, Identifiable {
         _avgSpeedMPerS = try container.decodeIfPresent(SafeDouble.self, forKey: ._avgSpeedMPerS)
         _avgPaceSPerKm = try container.decodeIfPresent(SafeDouble.self, forKey: ._avgPaceSPerKm)
         _avgHeartRateBpm = try container.decodeIfPresent(SafeInt.self, forKey: ._avgHeartRateBpm)
+        metadata = try container.decodeIfPresent([String: String].self, forKey: .metadata)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(lapNumber, forKey: .lapNumber)
+        try container.encode(_startTimeOffsetS, forKey: ._startTimeOffsetS)
+        try container.encodeIfPresent(_totalTimeS, forKey: ._totalTimeS)
+        try container.encodeIfPresent(_totalDistanceM, forKey: ._totalDistanceM)
+        try container.encodeIfPresent(_avgSpeedMPerS, forKey: ._avgSpeedMPerS)
+        try container.encodeIfPresent(_avgPaceSPerKm, forKey: ._avgPaceSPerKm)
+        try container.encodeIfPresent(_avgHeartRateBpm, forKey: ._avgHeartRateBpm)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
     }
     
     // 便利屬性 - 格式化的配速顯示
@@ -1242,11 +1293,141 @@ struct DailyPlanSegment: Codable {
 
 struct AISummary: Codable {
     let analysis: String
-    
+
     enum CodingKeys: String, CodingKey {
         case analysis
     }
 }
 
+// MARK: - Share Card Content Models
 
+struct ShareCardContent: Codable {
+    let achievementTitle: String?      // 成就主語句,如「LSD 90 分鐘完成!」
+    let encouragementText: String?     // 鼓勵語,如「配速穩定,進步正在累積。」
+    let streakDays: Int?               // 連續訓練天數
+    let achievementBadge: String?      // 成就徽章類型
 
+    enum CodingKeys: String, CodingKey {
+        case achievementTitle = "achievement_title"
+        case encouragementText = "encouragement_text"
+        case streakDays = "streak_days"
+        case achievementBadge = "achievement_badge"
+    }
+}
+
+// MARK: - WorkoutV2 Share Card Extensions
+
+extension WorkoutV2 {
+    /// 分享卡專用格式化距離
+    var formattedDistance: String {
+        guard let distance = distanceMeters else { return "-" }
+        return String(format: "%.1f km", distance / 1000)
+    }
+
+    /// 分享卡專用格式化時長
+    var formattedDuration: String {
+        let hours = durationSeconds / 3600
+        let minutes = (durationSeconds % 3600) / 60
+        let seconds = durationSeconds % 60
+
+        if hours > 0 {
+            return "\(hours):\(String(format: "%02d", minutes)):\(String(format: "%02d", seconds))"
+        } else {
+            return "\(minutes):\(String(format: "%02d", seconds))"
+        }
+    }
+
+    /// 分享卡專用格式化配速
+    var formattedPace: String {
+        guard let pace = basicMetrics?.avgPaceSPerKm else { return "-" }
+        let minutes = Int(pace) / 60
+        let seconds = Int(pace) % 60
+        return String(format: "%d'%02d\"/km", minutes, seconds)
+    }
+
+    /// 平均心率字符串
+    var avgHeartRateString: String {
+        guard let hr = basicMetrics?.avgHeartRateBpm else { return "-" }
+        return "\(hr) bpm"
+    }
+
+    /// 核心指標 (最多兩項,用於分享卡)
+    var coreMetrics: [String] {
+        var metrics: [String] = []
+
+        if distanceMeters != nil {
+            metrics.append(formattedDistance)
+        }
+
+        if durationSeconds > 0 {
+            metrics.append(formattedDuration)
+        }
+
+        if basicMetrics?.avgPaceSPerKm != nil {
+            metrics.append(formattedPace)
+        }
+
+        return Array(metrics.prefix(2))  // 最多兩項
+    }
+}
+
+// MARK: - Apple Health Lap Data Upload Helper Extension
+
+extension LapData {
+    /// 從 Apple Health 分圈事件創建 LapData（用於上傳）
+    static func fromAppleHealth(
+        lapNumber: Int,
+        startTimeOffset: TimeInterval,  // 相對於運動開始時間的偏移秒數
+        duration: TimeInterval,
+        distance: Double?,
+        averagePace: Double?,
+        averageHeartRate: Double?,
+        type: String,
+        metadata: [String: String]?
+    ) -> LapData {
+        // 將 Apple Health 格式轉換為後端 API 格式
+        let startOffset = Int(startTimeOffset)  // 相對偏移，不是絕對時間戳
+        let totalTime = Int(duration)
+        let avgSpeed = distance.map { $0 / duration }
+        let avgHR = averageHeartRate.map { Int($0) }
+
+        // 構建 JSON 字典，只包含非 nil 值
+        var jsonDict: [String: Any] = [
+            "lap_number": lapNumber,
+            "start_time_offset_s": startOffset
+        ]
+
+        if let time = totalTime as Int? {
+            jsonDict["total_time_s"] = time
+        }
+
+        if let dist = distance {
+            jsonDict["total_distance_m"] = dist
+        }
+
+        if let speed = avgSpeed {
+            jsonDict["avg_speed_m_per_s"] = speed
+        }
+
+        if let pace = averagePace {
+            jsonDict["avg_pace_s_per_km"] = pace
+        }
+
+        if let hr = avgHR {
+            jsonDict["avg_heart_rate_bpm"] = hr
+        }
+
+        if let meta = metadata {
+            jsonDict["metadata"] = meta
+        }
+
+        // 創建 JSON 數據並解碼
+        if let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict),
+           let lapData = try? JSONDecoder().decode(LapData.self, from: jsonData) {
+            return lapData
+        }
+
+        // 備用方案：使用預設值
+        fatalError("Failed to create LapData from Apple Health data")
+    }
+}

@@ -533,6 +533,7 @@ enum GaitAnalysisChart {
             static let lsd = "training.type.lsd"
             static let threshold = "training.type.threshold"
             static let progression = "training.type.progression"
+            static let combination = "training.type.combination"
             static let rest = "training.type.rest"
             static let crossTraining = "training.type.cross_training"
             static let hiking = "training.type.hiking"
@@ -719,6 +720,19 @@ enum GaitAnalysisChart {
             static let hrvTitle = "performance.hrv.hrv_title"
             static let selectDataSourceHrv = "performance.hrv.select_data_source_hrv"
         }
+
+        enum TrainingLoad {
+            static let trainingLoadTitle = "performance.training_load.training_load_title"
+            static let trainingLoadExplanation = "performance.training_load.training_load_explanation"
+            static let fitnessIndex = "performance.training_load.fitness_index"
+            static let fitnessIndexExplanation = "performance.training_load.fitness_index_explanation"
+            static let tsb = "performance.training_load.tsb"
+            static let tsbExplanation = "performance.training_load.tsb_explanation"
+            static let insufficientData = "performance.training_load.insufficient_data"
+            static let loadingTrainingLoad = "performance.training_load.loading_training_load"
+            static let noTrainingLoadData = "performance.training_load.no_training_load_data"
+            static let selectDataSourceTrainingLoad = "performance.training_load.select_data_source_training_load"
+        }
         
         enum HeartRateZone {
             // Zone Names
@@ -752,6 +766,7 @@ enum GaitAnalysisChart {
         static let privacy = "settings.privacy"
         static let about = "settings.about"
         static let language = "settings.language"
+        static let timezone = "settings.timezone"
         static let units = "settings.units"
         static let metric = "settings.metric"
         static let imperial = "settings.imperial"
@@ -778,6 +793,19 @@ enum GaitAnalysisChart {
         static let syncMessage = "language.sync_message"
         static let metricOnlyMessage = "language.metric_only_message"
         static let restartRequiredMessage = "language.restart_required_message"
+    }
+
+    // MARK: - Timezone Settings
+    enum Timezone {
+        static let title = "timezone.title"
+        static let current = "timezone.current"
+        static let changeConfirm = "timezone.change_confirm"
+        static let changeWarningMessage = "timezone.change_warning_message"
+        static let detectingTimezone = "timezone.detecting_timezone"
+        static let autoDetected = "timezone.auto_detected"
+        static let selectTimezone = "timezone.select_timezone"
+        static let commonTimezones = "timezone.common_timezones"
+        static let syncMessage = "timezone.sync_message"
     }
     
     // MARK: - Errors
@@ -949,5 +977,46 @@ enum SupportedLanguage: String, CaseIterable {
     static var current: SupportedLanguage {
         let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
         return SupportedLanguage(rawValue: preferredLanguage) ?? .traditionalChinese
+    }
+}
+
+// MARK: - Feedback
+
+extension L10n {
+    enum Feedback {
+        static let title = "feedback.title"
+        static let type = "feedback.type"
+        static let category = "feedback.category"
+        static let description = "feedback.description"
+        static let descriptionHint = "feedback.description_hint"
+        static let contactEmail = "feedback.contact_email"
+        static let contactEmailHint = "feedback.contact_email_hint"
+        static let contactEmailPlaceholder = "feedback.contact_email_placeholder"
+        static let attachments = "feedback.attachments"
+        static let attachmentsHint = "feedback.attachments_hint"
+        static let addImage = "feedback.add_image"
+        static let systemInfo = "feedback.system_info"
+        static let userEmail = "feedback.user_email"
+        static let appVersion = "feedback.app_version"
+        static let deviceInfo = "feedback.device_info"
+        static let successTitle = "feedback.success_title"
+        static let successMessage = "feedback.success_message"
+
+        enum FeedbackType {
+            static let issue = "feedback.type.issue"
+            static let suggestion = "feedback.type.suggestion"
+        }
+
+        enum Category {
+            static let uncategorized = "feedback.category.uncategorized"
+            static let weeklyPlanFailed = "feedback.category.weekly_plan_failed"
+            static let weeklySummaryFailed = "feedback.category.weekly_summary_failed"
+            static let trainingOverviewFailed = "feedback.category.training_overview_failed"
+            static let other = "feedback.category.other"
+        }
+
+        enum Error {
+            static let descriptionRequired = "feedback.error.description_required"
+        }
     }
 }

@@ -14,6 +14,11 @@ struct WorkoutDetailViewV2: View {
     @State private var showInsufficientHeartRateAlert = false
     @State private var reuploadErrorMessage: String?
     @State private var heartRateCount = 0
+
+    // 分享卡相關狀態
+    @State private var showShareCardSheet = false
+    @State private var showPhotoPickersheet = false
+    @State private var showShareMenu = false  // 分享選單狀態
     
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -28,6 +33,15 @@ struct WorkoutDetailViewV2: View {
     
     init(workout: WorkoutV2) {
         _viewModel = StateObject(wrappedValue: WorkoutDetailViewModelV2(workout: workout))
+
+        // 調試：檢查 workout 的 shareCardContent
+        print("📋 [WorkoutDetailViewV2] Init with workout.id: \(workout.id)")
+        print("   - shareCardContent 是否為 nil: \(workout.shareCardContent == nil)")
+        if let content = workout.shareCardContent {
+            print("   - achievementTitle: \(content.achievementTitle ?? "nil")")
+            print("   - encouragementText: \(content.encouragementText ?? "nil")")
+            print("   - streakDays: \(content.streakDays?.description ?? "nil")")
+        }
     }
     
     var body: some View {
@@ -35,17 +49,17 @@ struct WorkoutDetailViewV2: View {
             VStack(spacing: 16) {
                 // 基本資訊卡片（始終顯示）
                 basicInfoCard
-                
+
                 // 高級指標卡片
                 if viewModel.workout.advancedMetrics != nil {
                     advancedMetricsCard
                 }
-                
+
                 // 課表資訊和AI分析卡片
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
                     TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail)
                 }
-                
+
                 // 載入狀態或錯誤訊息
                 if viewModel.isLoading {
                     loadingView
@@ -56,17 +70,17 @@ struct WorkoutDetailViewV2: View {
                     LazyVStack(spacing: 16) {
                         // 心率變化圖表
                         heartRateChartSection
-                        
+
                         // 配速變化圖表
                         if !viewModel.paces.isEmpty {
                             paceChartSection
                         }
-                        
+
                         // 步態分析圖表
                         if !viewModel.stanceTimes.isEmpty || !viewModel.verticalRatios.isEmpty || !viewModel.cadences.isEmpty {
                             gaitAnalysisChartSection
                         }
-                        
+
                         // 區間分佈卡片（合併顯示）
                         if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
                            let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
@@ -76,7 +90,7 @@ struct WorkoutDetailViewV2: View {
                         } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
                             paceZoneCard(convertToV2ZoneDistribution(paceZones))
                         }
-                        
+
                         // 圈速分析卡片 (在區間分佈後，數據來源前)
                         if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
                             LapAnalysisView(
@@ -87,12 +101,13 @@ struct WorkoutDetailViewV2: View {
                         }
                     }
                 }
-                
+
                 // 數據來源和設備信息卡片（移到最底下）
                 sourceInfoCard
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .refreshable {
             await viewModel.refreshWorkoutDetail()
         }
@@ -100,8 +115,24 @@ struct WorkoutDetailViewV2: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    shareWorkout()
+                // 分享按鈕 - 點擊彈出選單
+                Menu {
+                    // 分享訓練成果（照片分享卡）
+                    Button {
+                        showShareCardSheet = true
+                    } label: {
+                        Label(NSLocalizedString("workout.share_card", comment: "Share Workout Card"),
+                              systemImage: "photo.on.rectangle.angled")
+                    }
+
+                    // 分享長截圖
+                    Button {
+                        shareWorkout()
+                    } label: {
+                        Label(NSLocalizedString("workout.share_screenshot", comment: "Share Screenshot"),
+                              systemImage: "camera.viewfinder")
+                    }
+                    .disabled(isGeneratingScreenshot)
                 } label: {
                     if isGeneratingScreenshot {
                         ProgressView()
@@ -110,9 +141,8 @@ struct WorkoutDetailViewV2: View {
                         Image(systemName: "square.and.arrow.up")
                     }
                 }
-                .disabled(isGeneratingScreenshot)
             }
-            
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(NSLocalizedString("common.close", comment: "Close")) {
                     dismiss()
@@ -130,6 +160,12 @@ struct WorkoutDetailViewV2: View {
             if let shareImage = shareImage {
                 ActivityViewController(activityItems: [shareImage])
             }
+        }
+        .sheet(isPresented: $showShareCardSheet) {
+            WorkoutShareCardSheetView(
+                workout: viewModel.workout,
+                workoutDetail: viewModel.workoutDetail
+            )
         }
     }
     
@@ -189,10 +225,11 @@ struct WorkoutDetailViewV2: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
-    
+
     // MARK: - 計算屬性
     
     private var isAppleHealthSource: Bool {
@@ -273,16 +310,26 @@ struct WorkoutDetailViewV2: View {
                     Text(NSLocalizedString("workout.provider", comment: "Provider"))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    HStack(spacing: 8) {
-                        // For Garmin data: show Logo + Device Name
-                        if viewModel.workout.provider.lowercased().contains("garmin") {
-                            ConditionalGarminAttributionView(
-                                dataProvider: viewModel.workout.provider,
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Show Strava attribution if data source is Strava
+                        ConditionalStravaAttributionView(
+                            dataProvider: viewModel.workout.provider,
+                            displayStyle: .secondary
+                        )
+
+                        // Show Garmin attribution if device is Garmin
+                        if let deviceManufacturer = viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
+                           deviceManufacturer.lowercased() == "garmin" {
+                            GarminAttributionView(
                                 deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
                                 displayStyle: .secondary
                             )
-                        } else {
-                            // For non-Garmin data: show provider name
+                        }
+
+                        // Fallback: show provider name if neither Strava nor Garmin
+                        if viewModel.workout.provider.lowercased() != "strava" &&
+                           viewModel.workout.provider.lowercased() != "garmin" &&
+                           viewModel.workoutDetail?.deviceInfo?.deviceManufacturer?.lowercased() != "garmin" {
                             Text(viewModel.workout.provider)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -341,8 +388,9 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .alert(L10n.WorkoutDetail.reuploadAlert.localized, isPresented: $showReuploadAlert) {
             Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) { }
             Button(L10n.WorkoutDetail.confirmUpload.localized, role: .destructive) {
@@ -402,12 +450,12 @@ struct WorkoutDetailViewV2: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color(.tertiarySystemGroupedBackground))
                 .cornerRadius(12)
             }
         }
     }
-    
+
     private var paceChartSection: some View {
         Group {
             if !viewModel.paces.isEmpty {
@@ -445,12 +493,12 @@ struct WorkoutDetailViewV2: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color(.tertiarySystemGroupedBackground))
                 .cornerRadius(12)
             }
         }
     }
-    
+
     // MARK: - 高級指標卡片
     
     private var advancedMetricsCard: some View {
@@ -474,10 +522,11 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
-    
+
     // MARK: - 心率區間分佈卡片
     
     private func heartRateZoneCard(_ hrZones: V2ZoneDistribution) -> some View {
@@ -508,22 +557,23 @@ struct WorkoutDetailViewV2: View {
                 if let threshold = hrZones.threshold {
                     ZoneRow(title: L10n.WorkoutDetail.thresholdZone.localized, percentage: threshold, color: .orange)
                 }
-                if let interval = hrZones.interval {
-                    ZoneRow(title: L10n.WorkoutDetail.intervalZone.localized, percentage: interval, color: .red)
-                }
                 if let anaerobic = hrZones.anaerobic {
                     ZoneRow(title: L10n.WorkoutDetail.anaerobicZone.localized, percentage: anaerobic, color: .purple)
+                }
+                if let interval = hrZones.interval {
+                    ZoneRow(title: L10n.WorkoutDetail.intervalZone.localized, percentage: interval, color: .red)
                 }
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
         }
     }
-    
+
     // MARK: - 配速區間分佈卡片
     
     private func paceZoneCard(_ paceZones: V2ZoneDistribution) -> some View {
@@ -545,19 +595,20 @@ struct WorkoutDetailViewV2: View {
                 if let threshold = paceZones.threshold {
                     ZoneRow(title: L10n.WorkoutDetail.thresholdPace.localized, percentage: threshold, color: .orange)
                 }
-                if let interval = paceZones.interval {
-                    ZoneRow(title: L10n.WorkoutDetail.intervalPace.localized, percentage: interval, color: .red)
-                }
                 if let anaerobic = paceZones.anaerobic {
                     ZoneRow(title: L10n.WorkoutDetail.anaerobicPace.localized, percentage: anaerobic, color: .purple)
+                }
+                if let interval = paceZones.interval {
+                    ZoneRow(title: L10n.WorkoutDetail.intervalPace.localized, percentage: interval, color: .red)
                 }
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
-    
+
     // MARK: - 合併區間分佈卡片
     
     private func combinedZoneDistributionCard(hrZones: V2ZoneDistribution, paceZones: V2ZoneDistribution) -> some View {
@@ -595,13 +646,14 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .sheet(isPresented: $showHRZoneInfo) {
             HeartRateZoneInfoView()
         }
     }
-    
+
     @ViewBuilder
     private func zoneRows(for zones: V2ZoneDistribution, isHeartRate: Bool) -> some View {
         if let recovery = zones.recovery {
@@ -632,18 +684,18 @@ struct WorkoutDetailViewV2: View {
                 color: .orange
             )
         }
-        if let interval = zones.interval {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
-                percentage: interval,
-                color: .red
-            )
-        }
         if let anaerobic = zones.anaerobic {
             ZoneRow(
                 title: isHeartRate ? L10n.WorkoutDetail.anaerobicZone.localized : L10n.WorkoutDetail.anaerobicPace.localized,
                 percentage: anaerobic,
                 color: .purple
+            )
+        }
+        if let interval = zones.interval {
+            ZoneRow(
+                title: isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
+                percentage: interval,
+                color: .red
             )
         }
     }
@@ -660,10 +712,10 @@ struct WorkoutDetailViewV2: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.tertiarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     private func errorView(_ error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
@@ -681,10 +733,10 @@ struct WorkoutDetailViewV2: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.tertiarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     // MARK: - 類型轉換方法
     
     private func convertToV2ZoneDistribution(_ zones: ZoneDistribution) -> V2ZoneDistribution {
@@ -769,7 +821,7 @@ struct WorkoutDetailViewV2: View {
                 sourceInfoCard
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color(.systemBackground))
         ) { image in
             DispatchQueue.main.async {
                 self.isGeneratingScreenshot = false
@@ -918,6 +970,7 @@ struct ZoneRow: View {
         schemaVersion: nil,
         storagePath: nil,
         dailyPlanSummary: nil,
-        aiSummary: nil
+        aiSummary: nil,
+        shareCardContent: nil
     ))
 } 

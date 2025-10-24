@@ -64,7 +64,30 @@ class WorkoutV2Service {
         do {
             let rawData = try await httpClient.request(path: path, method: method, body: body)
             Logger.debug("[WorkoutV2Service] \(operationName) - 收到響應，數據大小: \(rawData.count) bytes")
-            
+
+            // 🔍 Debug: 檢查 share_card_content 是否存在於原始響應中
+            if operationName.contains("Workout V2") {
+                if let jsonString = String(data: rawData, encoding: .utf8) {
+                    if jsonString.contains("share_card_content") {
+                        Logger.debug("✅ [WorkoutV2Service] API 響應包含 share_card_content 欄位")
+                        // 提取並打印該欄位的內容
+                        if let jsonObject = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any] {
+                            if let data = jsonObject["data"] as? [String: Any],
+                               let shareCardContent = data["share_card_content"] {
+                                Logger.debug("📋 [WorkoutV2Service] share_card_content 內容: \(shareCardContent)")
+                            } else if let workouts = jsonObject["data"] as? [String: Any],
+                                      let workoutList = workouts["workouts"] as? [[String: Any]],
+                                      let firstWorkout = workoutList.first,
+                                      let shareCardContent = firstWorkout["share_card_content"] {
+                                Logger.debug("📋 [WorkoutV2Service] 第一筆 workout 的 share_card_content: \(shareCardContent)")
+                            }
+                        }
+                    } else {
+                        Logger.debug("⚠️ [WorkoutV2Service] API 響應不包含 share_card_content 欄位")
+                    }
+                }
+            }
+
             // 先嘗試使用統一解析器
             do {
                 let result = try ResponseProcessor.extractData(type, from: rawData, using: parser)

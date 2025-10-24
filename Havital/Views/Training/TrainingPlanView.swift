@@ -49,10 +49,10 @@ struct NewWeekPromptView: View {
                 // 正在加載訓練回顧時顯示載入狀態
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
-                // 加載失敗時顯示錯誤視圖
+                // 加載失敗時顯示錯誤視圖，使用強制更新模式重試
                 WeeklySummaryErrorView(error: error) {
                     Task {
-                        await viewModel.createWeeklySummary()
+                        await viewModel.retryCreateWeeklySummary()
                     }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
@@ -96,27 +96,80 @@ struct NewWeekPromptView: View {
     }
 }
 
+// Design Reason 顯示視圖
+struct DesignReasonView: View {
+    let designReason: [String]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "\(index + 1).circle.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+
+                            Text(reason)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(NSLocalizedString("training.design_reason", comment: "Design Reason"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.close", comment: "Close")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 // 拆分每日訓練列表視圖
 struct DailyTrainingListView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
-    
+    @State private var showDesignReason = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 添加標題
-            HStack {
+            HStack(alignment: .center) {
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
                     .font(.headline)
                     .foregroundColor(.primary)
-                    .padding(.top, 16)
-                
+
+                // Design Reason 圖示
+                if let designReason = plan.designReason, !designReason.isEmpty {
+                    Button(action: {
+                        showDesignReason = true
+                    }) {
+                        Image(systemName: "lightbulb.circle.fill")
+                            .foregroundColor(.orange)
+                            .font(.headline)
+                    }
+                    .sheet(isPresented: $showDesignReason) {
+                        DesignReasonView(designReason: designReason)
+                    }
+                }
+
                 Spacer()
-                
+
                 if viewModel.isLoadingWorkouts {
                     ProgressView()
                         .scaleEffect(0.7)
                 }
             }
+            .padding(.top, 16)
             .padding(.horizontal, 4)
             
             // 顯示今天的訓練
@@ -146,7 +199,7 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
                 WeeklySummaryErrorView(error: error) {
-                    Task { await viewModel.createWeeklySummary() }
+                    Task { await viewModel.retryCreateWeeklySummary() }
                 }
             } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
                 WeeklySummaryView(
@@ -211,6 +264,7 @@ struct TrainingPlanView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
+    @State private var showEditSchedule = false
     
     
     var body: some View {
@@ -287,6 +341,23 @@ struct TrainingPlanView: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
+        .sheet(isPresented: $showEditSchedule) {
+            EditScheduleView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showAdjustmentConfirmation) {
+            AdjustmentConfirmationView(
+                initialItems: viewModel.pendingAdjustments, // 可以是空陣列
+                summaryId: viewModel.pendingSummaryId ?? "unknown", // 提供預設值
+                onConfirm: { selectedItems in
+                    Task {
+                        await viewModel.confirmAdjustments(selectedItems)
+                    }
+                },
+                onCancel: {
+                    viewModel.cancelAdjustmentConfirmation()
+                }
+            )
+        }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {
                 Task {
@@ -299,6 +370,25 @@ struct TrainingPlanView: View {
         } message: {
             Text(viewModel.networkError?.localizedDescription ?? NSLocalizedString("error.network_connection_failed", comment: "Network connection failed, please try again later"))
         }
+        .networkErrorToast(
+            isPresented: $viewModel.showNetworkErrorToast,
+            message: NSLocalizedString("toast.network_error", comment: "Network error, showing cached data")
+        )
+        // 🆕 成功 Toast（產生課表成功）
+        .overlay(alignment: .top) {
+            if viewModel.showSuccessToast {
+                SuccessToast(message: viewModel.successMessage, isPresented: $viewModel.showSuccessToast)
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(), value: viewModel.showSuccessToast)
+                    .onAppear {
+                        // 3秒後自動消失
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            viewModel.clearSuccessToast()
+                        }
+                    }
+            }
+        }
         .onAppear {
             if hasCompletedOnboarding {
                 Logger.debug("View onAppear: Onboarding completed")
@@ -306,39 +396,64 @@ struct TrainingPlanView: View {
                 if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
                     refreshWorkouts()
                 }
+
+                // 在訓練計劃載入後檢查評分提示
+                Task {
+                    // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
+                    await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
+                }
             }
         }
     }
     
     // 拆分主內容視圖
     @ViewBuilder private var mainContentView: some View {
-        switch viewModel.planStatus {
-        case .noPlan:
-            // 尚未生成本週計畫
-            NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .ready(let plan):
-            WeekPlanContentView(
-                viewModel: viewModel,
-                plan: plan,
-                currentTrainingWeek: viewModel.currentWeek
-            )
-            .transition(.opacity)
-            .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .completed:
-            FinalWeekPromptView(viewModel: viewModel)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .error(let error):
-            ErrorView(error: error) {
-                Task { await viewModel.loadWeeklyPlan() }
+        VStack(spacing: 16) {
+            // 🆕 返回本週按鈕（查看未來週時顯示）
+            if viewModel.selectedWeek > viewModel.currentWeek {
+                ReturnToCurrentWeekButton(viewModel: viewModel)
+                    .padding(.horizontal)
             }
-            .transition(.opacity)
-            .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
-        case .loading:
-            // 空的佔位視圖，實際的 loading 狀態在 ZStack 中處理
-            EmptyView()
+
+            // 主內容
+            switch viewModel.planStatus {
+            case .noPlan:
+                // 尚未生成本週計畫
+                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: viewModel.currentWeek)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .ready(let plan):
+                WeekPlanContentView(
+                    viewModel: viewModel,
+                    plan: plan,
+                    currentTrainingWeek: viewModel.currentWeek
+                )
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .completed:
+                FinalWeekPromptView(viewModel: viewModel)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .error(let error):
+                ErrorView(error: error) {
+                    Task { await viewModel.loadWeeklyPlan() }
+                }
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
+            case .loading:
+                // 空的佔位視圖，實際的 loading 狀態在 ZStack 中處理
+                EmptyView()
+            }
+
+            // 🆕 產生下週課表按鈕（週六日顯示）
+            if let nextWeekInfo = viewModel.nextWeekInfo,
+               nextWeekInfo.canGenerate,
+               !nextWeekInfo.hasPlan,
+               viewModel.selectedWeek == viewModel.currentWeek {
+                GenerateNextWeekButton(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
+                    .padding(.horizontal)
+                    .transition(.opacity)
+            }
         }
     }
     
@@ -386,13 +501,13 @@ struct TrainingPlanView: View {
                     }) {
                         Label(NSLocalizedString("training.progress", comment: "Training Progress"), systemImage: "chart.line.uptrend.xyaxis")
                     }
-                    /*
+                    
                     Button(action: {
-                        showModifications = true
+                        showEditSchedule = true
                     }) {
-                        Label(NSLocalizedString("training.modify_schedule", comment: "Modify Schedule"), systemImage: "slider.horizontal.3")
+                        Label(NSLocalizedString("training.edit_schedule", comment: "Edit Schedule"), systemImage: "slider.horizontal.3")
                     }
-                    */
+                    .disabled(viewModel.planStatus == .loading || viewModel.weeklyPlan == nil)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)

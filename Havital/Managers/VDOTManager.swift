@@ -109,7 +109,7 @@ class VDOTManager: ObservableObject, DataManageable {
     @Published var vdotDataPoints: [EnhancedVDOTDataPoint] = []
     @Published var statistics: VDOTStatistics?
     @Published var needUpdatedHrRange: Bool = false
-    @Published var dataLimit: Int = 14 // 預設顯示最近 14 筆數據
+    @Published var dataLimit: Int = 1 // 只獲取最新 1 筆數據（不再顯示圖表）
     
     // MARK: - Dependencies
     let service: VDOTService
@@ -198,14 +198,25 @@ class VDOTManager: ObservableObject, DataManageable {
     }
     
     // MARK: - Core VDOT Logic
-    
+
+    /// 同步載入本地緩存數據（公開方法，供其他 ViewModel 使用）
+    func loadLocalCacheSync() {
+        loadLocalData()
+    }
+
     private func loadLocalData() {
         if let cachedData = cacheManager.loadFromCache() {
             DispatchQueue.main.async {
                 self.vdotDataPoints = cachedData.dataPoints
                 self.needUpdatedHrRange = cachedData.needUpdatedHrRange
                 self.statistics = VDOTStatistics(from: cachedData.dataPoints)
+                Logger.debug("VDOTManager: 從緩存載入 \(cachedData.dataPoints.count) 筆 VDOT 數據")
+                if let latest = cachedData.dataPoints.max(by: { $0.date < $1.date }) {
+                    Logger.debug("VDOTManager: 最新加權跑力 = \(latest.weightVdot ?? 0)")
+                }
             }
+        } else {
+            Logger.debug("VDOTManager: 本地緩存無數據")
         }
     }
     

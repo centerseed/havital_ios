@@ -6,29 +6,29 @@ struct LoginView: View {
     @StateObject private var authService = AuthenticationService.shared
     @State private var showError = false
     @State private var errorMessage = ""
-    
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
         NavigationView {
-            VStack(spacing: 40) {
+            VStack(spacing: 60) {
                 Spacer()
                 
                 // Title and Subtitle
                 VStack(spacing: 16) {
-                    Text("Paceriz")
-                        .font(.system(size: 48, weight: .bold))
+                    Image("paceriz_light")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
                         .foregroundColor(AppTheme.shared.primaryColor)
-                    
+                        .frame(height: 60)
+
                     Text(NSLocalizedString("login.tagline", comment: "Login tagline"))
                         .font(.title2)
                         .foregroundColor(AppTheme.TextColors.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                
-                // Welcome Image
-                Image("welcome")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 250)
-                    .padding(.horizontal)
+
+               
                 
                 Spacer()
                 

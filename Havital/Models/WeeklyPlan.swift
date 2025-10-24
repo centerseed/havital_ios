@@ -122,7 +122,16 @@ struct TrainingDay: Codable, Identifiable, Equatable {
     let tips: String?
     let trainingType: String
     let trainingDetails: TrainingDetails?
-    
+
+    init(dayIndex: String, dayTarget: String, reason: String?, tips: String?, trainingType: String, trainingDetails: TrainingDetails?) {
+        self.dayIndex = dayIndex
+        self.dayTarget = dayTarget
+        self.reason = reason
+        self.tips = tips
+        self.trainingType = trainingType
+        self.trainingDetails = trainingDetails
+    }
+
     static func == (lhs: TrainingDay, rhs: TrainingDay) -> Bool {
         return lhs.dayIndex == rhs.dayIndex &&
                lhs.dayTarget == rhs.dayTarget &&
@@ -131,7 +140,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                lhs.trainingType == rhs.trainingType &&
                lhs.trainingDetails == rhs.trainingDetails
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case dayIndex = "day_index"
         case dayTarget = "day_target"
@@ -140,10 +149,10 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         case trainingType = "training_type"
         case trainingDetails = "training_details"
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         // 支援 String 或 Int 格式的 day_index
         if let idx = try? container.decode(String.self, forKey: .dayIndex) {
             dayIndex = idx
@@ -159,6 +168,22 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         tips = try container.decodeIfPresent(String.self, forKey: .tips)
         trainingType = try container.decode(String.self, forKey: .trainingType)
         trainingDetails = try container.decodeIfPresent(TrainingDetails.self, forKey: .trainingDetails)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(dayIndex, forKey: .dayIndex)
+        try container.encode(dayTarget, forKey: .dayTarget)
+        try container.encodeIfPresent(reason, forKey: .reason)
+        try container.encodeIfPresent(tips, forKey: .tips)
+        try container.encode(trainingType, forKey: .trainingType)
+
+        // 只在有 trainingDetails 且不是休息日時才編碼 training_details
+        if let trainingDetails = trainingDetails, trainingType != "rest" {
+            try container.encode(trainingDetails, forKey: .trainingDetails)
+        }
+        // 對於休息日或 trainingDetails 為 nil 的情況，完全不包含 training_details 字段
     }
     
     var type: DayType {
@@ -239,6 +264,17 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     let description = details.description ?? ""
                     let item = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.progression.localized,
+                        runDetails: description,
+                        durationMinutes: nil,
+                        goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
+                    )
+                    return [item]
+                }
+            case .combination:
+                if let _ = details.segments, let totalDistance = details.totalDistanceKm {
+                    let description = details.description ?? ""
+                    let item = WeeklyTrainingItem(
+                        name: L10n.Training.TrainingType.combination.localized,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
@@ -356,11 +392,13 @@ struct ProgressionSegment: Codable, Equatable {
     let distanceKm: Double?  // 改為可選，提高靈活性
     let pace: String?        // 改為可選，提高靈活性
     let description: String?
+    let heartRateRange: HeartRateRange?  // 新增心率區間支援
     
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
         case pace
         case description
+        case heartRateRange = "heart_rate_range"
     }
 }
 
@@ -381,7 +419,8 @@ enum DayType: String, Codable {
     case strength = "strength"
     case yoga = "yoga"
     case cycling = "cycling"
-    
+    case combination = "combination"
+
 }
 
 struct WeeklyTrainingItem: Identifiable {

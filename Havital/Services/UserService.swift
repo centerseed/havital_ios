@@ -211,4 +211,15 @@ class UserService {
     func deleteUser(userId: String) async throws {
         try await makeAPICallNoResponse(path: "/user/\(userId)", method: .DELETE)
     }
+
+    // MARK: - App Rating
+
+    /// 記錄評分提示已顯示
+    func recordRatingPrompt(promptCount: Int, lastPromptDate: String) async throws {
+        let ratingData: [String: Any] = [
+            "rating_prompt_count": promptCount,
+            "last_rating_prompt_date": lastPromptDate
+        ]
+        try await updateUserData(ratingData)
+    }
 }

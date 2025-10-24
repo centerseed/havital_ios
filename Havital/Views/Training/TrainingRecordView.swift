@@ -63,6 +63,8 @@ struct TrainingRecordView: View {
                 loadMoreIndicator
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(UIColor.systemGroupedBackground))
             .padding(.top, 0)
             .overlay {
                 emptyStateView
@@ -82,6 +84,9 @@ struct TrainingRecordView: View {
     @ViewBuilder
     private func workoutRowWithPagination(_ workout: WorkoutV2) -> some View {
         workoutRow(workout)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
             .onAppear {
                 checkForLoadMore(workout)
             }
