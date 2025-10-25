@@ -196,13 +196,20 @@ struct PaceChartView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    // Garmin Attribution as required by brand guidelines
-                    ConditionalGarminAttributionView(
-                        dataProvider: dataProvider,
-                        deviceModel: deviceModel,
-                        displayStyle: .compact
-                    )
-                    
+                    // Strava/Garmin Attribution badges (only show one based on data source)
+                    HStack(spacing: 0) {
+                        ConditionalStravaAttributionView(
+                            dataProvider: dataProvider,
+                            displayStyle: .compact
+                        )
+
+                        ConditionalGarminAttributionView(
+                            dataProvider: dataProvider,
+                            deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                            displayStyle: .compact
+                        )
+                    }
+
                     Text(L10n.PaceChart.unit.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)

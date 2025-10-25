@@ -152,23 +152,21 @@ struct GaitAnalysisChartView: View {
                 Text(L10n.GaitAnalysisChart.title.localized)
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+
                 Spacer()
-                
-                // Garmin Attribution as required by brand guidelines
-                if let dataProvider = dataProvider, dataProvider.lowercased().contains("garmin") {
-                    HStack(spacing: 4) {
-                        Image("garmin_logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 12)
-                        
-                        if let deviceModel = deviceModel {
-                            Text(deviceModel)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+
+                // Strava/Garmin Attribution badges (only show one based on data source)
+                HStack(spacing: 0) {
+                    ConditionalStravaAttributionView(
+                        dataProvider: dataProvider,
+                        displayStyle: .compact
+                    )
+
+                    ConditionalGarminAttributionView(
+                        dataProvider: dataProvider,
+                        deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                        displayStyle: .compact
+                    )
                 }
             }
 

@@ -14,12 +14,12 @@ struct LapAnalysisView: View {
                     .fontWeight(.semibold)
                 
                 Spacer()
-                
-                // Garmin Attribution for lap data
+
+                // Garmin Attribution for lap data (badge only, no device name)
                 ConditionalGarminAttributionView(
                     dataProvider: dataProvider,
-                    deviceModel: deviceModel,
-                    displayStyle: .secondary
+                    deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                    displayStyle: .compact
                 )
             }
             

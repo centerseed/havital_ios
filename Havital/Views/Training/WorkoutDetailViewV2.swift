@@ -57,7 +57,10 @@ struct WorkoutDetailViewV2: View {
 
                 // 課表資訊和AI分析卡片
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
-                    TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail)
+                    TrainingPlanInfoCard(
+                        workoutDetail: viewModel.workoutDetail,
+                        dataProvider: viewModel.workout.provider
+                    )
                 }
 
                 // 載入狀態或錯誤訊息
@@ -191,13 +194,20 @@ struct WorkoutDetailViewV2: View {
                 }
 
                 Spacer()
-                
-                // Garmin Attribution for basic metrics
-                ConditionalGarminAttributionView(
-                    dataProvider: viewModel.workout.provider,
-                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
-                    displayStyle: .compact
-                )  
+
+                // Strava/Garmin Attribution badges (only show one based on data source)
+                HStack(spacing: 0) {
+                    ConditionalStravaAttributionView(
+                        dataProvider: viewModel.workout.provider,
+                        displayStyle: .compact
+                    )
+
+                    ConditionalGarminAttributionView(
+                        dataProvider: viewModel.workout.provider,
+                        deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                        displayStyle: .compact
+                    )
+                }  
             }
             
             // 運動數據網格
@@ -311,18 +321,18 @@ struct WorkoutDetailViewV2: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     VStack(alignment: .leading, spacing: 4) {
-                        // Show Strava attribution if data source is Strava
+                        // Show Strava attribution if data source is Strava (badge only, no device name)
                         ConditionalStravaAttributionView(
                             dataProvider: viewModel.workout.provider,
-                            displayStyle: .secondary
+                            displayStyle: .compact
                         )
 
-                        // Show Garmin attribution if device is Garmin
+                        // Show Garmin attribution if device is Garmin (badge only, no device name)
                         if let deviceManufacturer = viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
                            deviceManufacturer.lowercased() == "garmin" {
                             GarminAttributionView(
-                                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
-                                displayStyle: .secondary
+                                deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                                displayStyle: .compact
                             )
                         }
 
@@ -788,7 +798,11 @@ struct WorkoutDetailViewV2: View {
                 
                 // 課表資訊和AI分析卡片 (強制展開AI分析)
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
-                    TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail, forceExpandAnalysis: true)
+                    TrainingPlanInfoCard(
+                        workoutDetail: viewModel.workoutDetail,
+                        dataProvider: viewModel.workout.provider,
+                        forceExpandAnalysis: true
+                    )
                 }
                 
                 heartRateChartSection
