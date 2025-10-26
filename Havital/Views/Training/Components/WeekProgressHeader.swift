@@ -13,9 +13,21 @@ struct WeekProgressHeader: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(plan.weekOfPlan) / \(overview?.totalWeeks ?? plan.totalWeeks) 週")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.primary)
+
+                // 週數按鈕（可點擊開啟週選擇器）
+                Button {
+                    showWeekSelector = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("\(plan.weekOfPlan) / \(overview?.totalWeeks ?? plan.totalWeeks) 週")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.down.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
             }
 
             WeekProgressBar(progress: Double(plan.weekOfPlan) / Double(overview?.totalWeeks ?? plan.totalWeeks))

@@ -5,36 +5,37 @@ import SwiftUI
 struct GenerateNextWeekButton: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let nextWeekInfo: NextWeekInfo
+    @State private var showConfirmation = false
 
     var body: some View {
         VStack(spacing: 16) {
             // 標題
-            Text("🎯 準備好下週訓練了嗎？")
+            Text(NSLocalizedString("training.ready_for_next_week", comment: "🎯 準備好下週訓練了嗎？"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
             // 按鈕
             Button {
-                Task {
-                    await viewModel.generateNextWeekPlan(nextWeekInfo: nextWeekInfo)
-                }
+                // 顯示確認對話框
+                Logger.debug("🖱️ [GenerateNextWeekButton] 按鈕被點擊，顯示確認對話框")
+                showConfirmation = true
             } label: {
                 VStack(spacing: 8) {
-                    Text("產生第\(nextWeekInfo.weekNumber)週課表")
+                    Text(String(format: NSLocalizedString("training.generate_week_plan", comment: "產生第%d週課表"), nextWeekInfo.weekNumber))
                         .font(.headline)
 
                     // 提示文字
                     if nextWeekInfo.requiresCurrentWeekSummary {
                         HStack(spacing: 4) {
                             Image(systemName: "lightbulb.fill")
-                            Text("需要先完成本週回顧")
+                            Text(NSLocalizedString("training.need_complete_review", comment: "需要先完成本週回顧"))
                         }
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.8))
                     } else {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
-                            Text("本週回顧已完成")
+                            Text(NSLocalizedString("training.review_completed", comment: "本週回顧已完成"))
                         }
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.8))
@@ -47,6 +48,22 @@ struct GenerateNextWeekButton: View {
                 .cornerRadius(12)
             }
             .disabled(viewModel.isLoading || viewModel.isLoadingAnimation)
+            .alert(
+                NSLocalizedString("training.confirm_training_completed_title", comment: "確認訓練完成"),
+                isPresented: $showConfirmation
+            ) {
+                Button(NSLocalizedString("common.cancel", comment: "取消"), role: .cancel) {
+                    Logger.debug("❌ [GenerateNextWeekButton] 用戶取消產生課表")
+                }
+                Button(NSLocalizedString("common.confirm", comment: "確認")) {
+                    Logger.debug("✅ [GenerateNextWeekButton] 用戶確認產生課表")
+                    Task {
+                        await viewModel.generateNextWeekPlan(nextWeekInfo: nextWeekInfo)
+                    }
+                }
+            } message: {
+                Text(NSLocalizedString("training.confirm_training_completed_message", comment: "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。"))
+            }
         }
         .padding()
         .background(Color(.secondarySystemBackground))

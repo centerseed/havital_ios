@@ -311,6 +311,14 @@
 "training.review.loading_error" = "Unable to load training review";
 "training.review.retry" = "Retry";
 
+// MARK: - Generate Next Week
+"training.ready_for_next_week" = "🎯 Ready for Next Week's Training?";
+"training.generate_week_plan" = "Generate Week %d Plan";
+"training.need_complete_review" = "Need to complete this week's review first";
+"training.review_completed" = "This week's review completed";
+"training.confirm_training_completed_title" = "Confirm Training Completion";
+"training.confirm_training_completed_message" = "Please confirm that all this week's training has been completed. Generating the weekly review requires complete training data for accurate analysis.";
+
 // MARK: - Training Plan Info Card
 "training.plan_info" = "Training Plan Info";
 "training.ai_analysis" = "AI Analysis";
@@ -725,6 +733,7 @@
 "onboarding.distance_selection" = "Select Distance";
 "onboarding.time_hours" = "hours";
 "onboarding.time_minutes" = "minutes";
+"onboarding.time_seconds" = "seconds";
 "onboarding.average_pace_calculation" = "Average Pace";
 "onboarding.per_kilometer" = "/km";
 "onboarding.enter_valid_time" = "Please enter a valid time to calculate pace.";
@@ -1241,3 +1250,77 @@
 
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AI Training Report";
+
+// MARK: - Training Stages
+"stage.conversion" = "Conversion";
+"stage.base" = "Base";
+"stage.build" = "Build";
+"stage.peak" = "Peak";
+"stage.taper" = "Taper";
+
+// MARK: - Risk Levels
+"risk.low" = "Low";
+"risk.medium" = "Medium";
+"risk.high" = "High";
+
+// MARK: - Start Stage Selection
+"start_stage.title" = "Training Start Stage";
+"start_stage.time_notice_title" = "Training Timeline";
+"start_stage.time_notice" = "Your race is in %d weeks";
+"start_stage.training_habit_reminder" = "Recommended for runners with regular training habits to skip the base phase";
+"start_stage.recommendation" = "Recommended Start Stage";
+"start_stage.other_options" = "Other Options";
+"start_stage.training_distribution" = "Training Weeks Distribution";
+"start_stage.continue" = "Continue";
+"start_stage.risk_level" = "Risk Level: %@";
+"start_stage.weeks_count" = "%d weeks";
+
+// Start Stage Reasons
+"start_stage.too_short_reason" = "Less than 2 weeks until race, timeline is too tight";
+"start_stage.peak_reason" = "You have %d weeks. Recommended for runners with regular training habits to start from Peak phase";
+"start_stage.build_medium_reason" = "You have %d weeks. Recommended for runners with regular training habits to start from Build phase";
+"start_stage.build_low_reason" = "You have %d weeks. Recommended for runners with training experience to start from Build phase";
+"start_stage.base_reason" = "You have sufficient %d weeks to prepare. Recommended to start from Base phase for complete training";
+
+// Stage Alternatives
+"start_stage.peak_suitable" = "Experienced runners with solid training";
+"start_stage.peak_description" = "Suitable for runners with 40km+ weekly mileage";
+"start_stage.base_suitable" = "Complete Plan";
+"start_stage.base_description" = "Start from Base phase, build progressively";
+"start_stage.build_suitable" = "Runners with training habits";
+"start_stage.build_description" = "Safer choice";
+"start_stage.build_skip_base_description" = "If you already have 20-30km weekly mileage";
+"start_stage.base_short_time_description" = "Short timeline, training effectiveness may be compromised";
+"start_stage.base_very_short_description" = "Insufficient time to complete full training plan";
+
+// Stage Disabled Reasons
+"start_stage.build_disabled_reason" = "Insufficient time to complete Build phase training";
+"start_stage.base_disabled_reason" = "Insufficient time, recommend skipping Base phase for higher intensity training";
+"start_stage.not_supported" = "Not supported to start from this phase";
+
+// Time Warning
+"start_stage.time_too_short_title" = "Timeline is Tight";
+"start_stage.time_too_short_message" = "Less than 2 weeks until race, may not achieve expected training results. Consider choosing a later race date.";
+
+// Common
+"common.ok" = "OK";
+
+// MARK: - Timezone Settings
+"timezone.title" = "Timezone Settings";
+"timezone.current_device" = "Device Timezone";
+"timezone.device_timezone" = "Device Timezone";
+"timezone.use_device" = "Use Device Timezone";
+"timezone.common_timezones" = "Common Timezones";
+"timezone.sync_message" = "Timezone settings will sync to server and affect training plan week calculations";
+"timezone.change_warning" = "Changing timezone may affect training week calculations";
+
+// Timezone Names
+"timezone.taipei" = "Taipei";
+"timezone.tokyo" = "Tokyo";
+"timezone.hong_kong" = "Hong Kong";
+"timezone.singapore" = "Singapore";
+"timezone.seoul" = "Seoul";
+"timezone.new_york" = "New York";
+"timezone.los_angeles" = "Los Angeles";
+"timezone.london" = "London";
+"timezone.sydney" = "Sydney";

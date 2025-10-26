@@ -55,26 +55,12 @@ struct NewWeekPromptView: View {
                         await viewModel.retryCreateWeeklySummary()
                     }
                 }
-            } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
-                // 成功獲取訓練回顧後顯示回顧內容
-                WeeklySummaryView(
-                    summary: summary,
-                    weekNumber: viewModel.lastFetchedWeekNumber,
-                    isVisible: $viewModel.showWeeklySummary
-                ) {
-                    // 產生下週課表的回調
-                    Task {
-                        // 清除訓練回顧
-                        viewModel.clearWeeklySummary()
-                        // 產生新的週課表
-                        await viewModel.generateNextWeekPlan(targetWeek: currentTrainingWeek)
-                    }
-                }
             } else {
-                // 未獲取回顧時，顯示取得回顧按鈕
+                // 顯示取得回顧按鈕（週回顧會以 sheet 形式彈出）
                 Button(action: {
                     Task {
                         await viewModel.createWeeklySummary()
+                        // 週回顧會自動以 sheet 形式顯示（由全局 sheet 處理）
                     }
                 }) {
                     HStack {
@@ -201,33 +187,8 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryErrorView(error: error) {
                     Task { await viewModel.retryCreateWeeklySummary() }
                 }
-            } else if viewModel.showWeeklySummary, let summary = viewModel.weeklySummary {
-                WeeklySummaryView(
-                    summary: summary,
-                    weekNumber: viewModel.lastFetchedWeekNumber,
-                    isVisible: $viewModel.showWeeklySummary,
-                    onGenerateNextWeek: nil // 移除 WeeklySummaryView 內部的按鈕
-                )
-
-                // 新增「設定新目標」按鈕
-                Button(action: {
-                    Task {
-                        viewModel.clearWeeklySummary() // 清除當前回顧狀態
-                        AuthenticationService.shared.startReonboarding() // 觸發重新 Onboarding
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "target") // 可以換一個更合適的圖示
-                        Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green) // 使用醒目的顏色
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                }
-                .padding(.vertical)
             } else {
+                // 取得週回顧按鈕（週回顧會以 sheet 形式彈出）
                 Button(action: {
                     Task { await viewModel.createWeeklySummary() }
                 }) {
@@ -241,6 +202,25 @@ struct FinalWeekPromptView: View {
                     .cornerRadius(8)
                 }
                 .disabled(viewModel.isLoading)
+
+                // 設定新目標按鈕（訓練完成後）
+                Button(action: {
+                    Task {
+                        viewModel.clearWeeklySummary()
+                        AuthenticationService.shared.startReonboarding()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "target")
+                        Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .padding(.top, 8)
             }
         }
         .padding()
@@ -357,6 +337,44 @@ struct TrainingPlanView: View {
                     viewModel.cancelAdjustmentConfirmation()
                 }
             )
+        }
+        // 🆕 全局週回顧顯示（統一處理所有週回顧顯示邏輯）
+        .sheet(isPresented: $viewModel.showWeeklySummary) {
+            if let summary = viewModel.weeklySummary {
+                NavigationView {
+                    WeeklySummaryView(
+                        summary: summary,
+                        weekNumber: viewModel.lastFetchedWeekNumber,
+                        isVisible: $viewModel.showWeeklySummary
+                    ) {
+                        // 產生下週課表的回調
+                        Task {
+                            // 先保存目標週數（避免被 clearWeeklySummary 清除）
+                            let hasPendingWeek = viewModel.pendingTargetWeek != nil
+                            let targetWeekToProduce = viewModel.pendingTargetWeek ?? viewModel.currentWeek
+
+                            // 關閉週回顧
+                            viewModel.showWeeklySummary = false
+
+                            // 根據流程選擇對應方法
+                            if hasPendingWeek {
+                                // next_week_info 流程：產生指定週數
+                                await viewModel.confirmAdjustmentsAndGenerateNextWeek(targetWeek: targetWeekToProduce)
+                            } else {
+                                // 一般流程：產生當前週+1
+                                await viewModel.generateNextWeekPlan(targetWeek: targetWeekToProduce)
+                            }
+                        }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("關閉") {
+                                viewModel.clearWeeklySummary()
+                            }
+                        }
+                    }
+                }
+            }
         }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {

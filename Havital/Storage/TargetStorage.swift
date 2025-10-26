@@ -12,7 +12,7 @@ class TargetStorage {
     // 保存單一目標到主列表
     func saveTarget(_ target: Target) {
         var targets = getTargets() // 獲取當前所有目標
-        
+
         // 查找是否已存在此目標
         if let index = targets.firstIndex(where: { $0.id == target.id }) {
             // 更新現有目標
@@ -21,30 +21,26 @@ class TargetStorage {
             // 添加新目標
             targets.append(target)
         }
-        
-        // 保存更新後的完整列表
+
+        // 保存更新後的完整列表（會在 saveTargets 中發送通知）
         saveTargets(targets)
-        
-        // 發送通知，表示目標數據已更新 (可以根據需要決定是否保留或修改通知邏輯)
-        NotificationCenter.default.post(name: .targetUpdated, object: nil)
-        if !target.isMainRace {
-             NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
-        }
     }
-    
+
     // 保存目標陣列 (這是核心的保存方法)
     func saveTargets(_ targets: [Target]) {
         do {
             let data = try JSONEncoder().encode(targets)
             defaults.set(data, forKey: targetsKey)
             defaults.synchronize() // 確保立即寫入 UserDefaults (雖然通常不是絕對必要)
-            
-             // 發送通知，表示目標數據已更新
-            NotificationCenter.default.post(name: .targetUpdated, object: nil)
-            // 可選：如果需要區分主要和支援賽事更新，可以在此處添加更細緻的通知邏輯
-             if targets.contains(where: { !$0.isMainRace }) {
-                NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
-             }
+
+            // 🔧 在主線程發送通知，避免 UI 更新警告
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .targetUpdated, object: nil)
+                // 可選：如果需要區分主要和支援賽事更新，可以在此處添加更細緻的通知邏輯
+                if targets.contains(where: { !$0.isMainRace }) {
+                    NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
+                }
+            }
 
         } catch {
             print("保存目標清單失敗: \(error)")
@@ -87,25 +83,23 @@ class TargetStorage {
         var targets = getTargets()
         let initialCount = targets.count
         targets.removeAll { $0.id == id }
-        
-        // 只有在實際移除了目標時才重新保存
+
+        // 只有在實際移除了目標時才重新保存（會在 saveTargets 中發送通知）
         if targets.count < initialCount {
             saveTargets(targets) // 保存更新後的列表
-            
-            // 發送通知
-            NotificationCenter.default.post(name: .targetUpdated, object: nil)
-            // 如果你關心被移除的是否為支援賽事，可以在這裡檢查並發送 supportingTargetUpdated
-            // (但通常移除就是更新，targetUpdated 可能就夠了)
         }
     }
-    
+
     // 清除所有目標 (只需要移除一個鍵)
     func clearAllTargets() {
         defaults.removeObject(forKey: targetsKey)
         defaults.synchronize()
-        // 發送通知
-        NotificationCenter.default.post(name: .targetUpdated, object: nil)
-        NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil) // 清空也算支援賽事更新
+
+        // 🔧 在主線程發送通知，避免 UI 更新警告
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .targetUpdated, object: nil)
+            NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil) // 清空也算支援賽事更新
+        }
     }
     
     // 檢查是否有目標

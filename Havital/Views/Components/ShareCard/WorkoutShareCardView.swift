@@ -6,11 +6,7 @@ struct WorkoutShareCardView: View {
     let size: ShareCardSize
 
     var body: some View {
-        ZStack {
-            // 黑色背景作為最底層
-            Color.black
-                .edgesIgnoringSafeArea(.all)
-
+        ZStack(alignment: .center) {
             // 背景照片層
             if let photo = data.userPhoto {
                 BackgroundPhotoLayer(
@@ -19,6 +15,7 @@ struct WorkoutShareCardView: View {
                     scale: data.photoScale,
                     offset: data.photoOffset
                 )
+                .frame(width: size.width, height: size.height)
             } else {
                 // 無照片時的預設背景
                 DefaultBackgroundLayer()
@@ -28,9 +25,10 @@ struct WorkoutShareCardView: View {
             // 資訊浮層 (統一使用底部版型)
             BottomInfoOverlay(data: data)
                 .frame(width: size.width, height: size.height)
+                .allowsHitTesting(false)
         }
         .frame(width: size.width, height: size.height)
-        .background(Color.black)
+        .clipped()
     }
 }
 
@@ -44,20 +42,16 @@ struct BackgroundPhotoLayer: View {
     var offset: CGSize = .zero
 
     var body: some View {
-        ZStack {
-            // 使用略大的黑色底色確保覆蓋所有區域
-            Color.black
-                .frame(width: size.width * 1.1, height: size.height * 1.1)
-
-            Image(uiImage: photo)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: size.width, height: size.height)
-                .scaleEffect(scale)
-                .offset(offset)
-        }
-        .frame(width: size.width, height: size.height)
-        .clipped()
+        Color(photo.averageColor ?? .black)
+            .overlay(
+                Image(uiImage: photo)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .scaleEffect(max(scale, 1.0))
+                    .offset(offset)
+            )
+            .frame(width: size.width, height: size.height)
+            .clipped()
     }
 }
 

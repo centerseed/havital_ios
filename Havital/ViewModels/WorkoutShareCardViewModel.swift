@@ -38,13 +38,17 @@ class WorkoutShareCardViewModel: ObservableObject, TaskManageable {
         workoutDetail: WorkoutV2Detail?,
         userPhoto: UIImage?
     ) async {
+        // 立即設置載入狀態，確保 UI 即時更新
+        await MainActor.run {
+            self.isGenerating = true
+            self.error = nil
+        }
+
         await executeTask(id: TaskID("generate_share_card")) { [weak self] in
             guard let self = self else { return }
 
-            await MainActor.run { self.isGenerating = true }
-
             do {
-                // 照片分析
+                // 照片分析（僅在有照片時執行）
                 let photoAnalysis = userPhoto.map { self.photoAnalyzer.analyze($0) }
 
                 // 版型選擇 (優先使用用戶選擇,否則使用分析結果)
@@ -70,7 +74,6 @@ class WorkoutShareCardViewModel: ObservableObject, TaskManageable {
                 await MainActor.run {
                     self.cardData = data
                     self.isGenerating = false
-                    self.error = nil
                 }
 
                 print("✅ [WorkoutShareCardViewModel] 分享卡生成成功,版型: \(layout)")
@@ -105,7 +108,7 @@ class WorkoutShareCardViewModel: ObservableObject, TaskManageable {
     func exportAsImage(size: ShareCardSize, view: AnyView) async -> UIImage? {
         print("📸 [WorkoutShareCardViewModel] 開始導出圖片,尺寸: \(size.aspectRatio)")
 
-        // 使用 UIHostingController 將 SwiftUI View 轉換為 UIImage
+        // 使用標準渲染
         let image = await renderViewAsImage(view: view, size: size.cgSize)
 
         if let image = image {
@@ -122,19 +125,38 @@ class WorkoutShareCardViewModel: ObservableObject, TaskManageable {
     /// 將 SwiftUI View 渲染為 UIImage
     @MainActor
     private func renderViewAsImage(view: AnyView, size: CGSize) async -> UIImage? {
-        // 創建 UIHostingController
+        // 創建 hosting controller
         let controller = UIHostingController(rootView: view)
+
+        // 設置精確的大小
         controller.view.frame = CGRect(origin: .zero, size: size)
-        controller.view.backgroundColor = .black  // 使用黑色背景防止白色留白
+        controller.view.bounds = CGRect(origin: .zero, size: size)
+        controller.view.backgroundColor = .clear
+
+        // 添加到一個容器視圖中，確保正確佈局
+        let containerView = UIView(frame: CGRect(origin: .zero, size: size))
+        containerView.backgroundColor = .clear
+        containerView.addSubview(controller.view)
 
         // 強制佈局
+        controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
 
-        // 渲染為圖片
-        let renderer = UIGraphicsImageRenderer(size: size)
+        // 等待一幀確保 SwiftUI 完全渲染
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 秒
+
+        // 使用 UIGraphicsImageRenderer 渲染
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0
+        format.opaque = false
+
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         let image = renderer.image { context in
-            controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
+            containerView.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
         }
+
+        // 清理
+        controller.view.removeFromSuperview()
 
         return image
     }

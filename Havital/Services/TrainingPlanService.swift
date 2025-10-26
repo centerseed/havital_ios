@@ -131,14 +131,25 @@ final class TrainingPlanService {
         }
     }
     
-    func createWeeklyPlan(targetWeek: Int? = nil) async throws -> WeeklyPlan {
+    func createWeeklyPlan(targetWeek: Int? = nil, startFromStage: String? = nil) async throws -> WeeklyPlan {
         let bodyData: Data?
+
+        // 構建請求體參數
+        var params: [String: Any] = [:]
         if let week = targetWeek {
-            bodyData = try JSONSerialization.data(
-                withJSONObject: ["week_of_training": week])
+            params["week_of_training"] = week
+        }
+        if let stage = startFromStage {
+            params["start_from_stage"] = stage
+        }
+
+        // 如果有參數，轉換為 JSON
+        if !params.isEmpty {
+            bodyData = try JSONSerialization.data(withJSONObject: params)
         } else {
             bodyData = nil
         }
+
         return try await makeAPICall(WeeklyPlan.self,
             path: "/plan/race_run/weekly/v2", method: .POST, body: bodyData)
     }

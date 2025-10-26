@@ -311,6 +311,14 @@
 "training.review.loading_error" = "無法加載訓練回顧";
 "training.review.retry" = "重試";
 
+// MARK: - Generate Next Week
+"training.ready_for_next_week" = "🎯 準備好下週訓練了嗎？";
+"training.generate_week_plan" = "產生第%d週課表";
+"training.need_complete_review" = "需要先完成本週回顧";
+"training.review_completed" = "本週回顧已完成";
+"training.confirm_training_completed_title" = "確認訓練完成";
+"training.confirm_training_completed_message" = "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。";
+
 // MARK: - Training Plan Info Card
 "training.plan_info" = "課表資訊";
 "training.ai_analysis" = "AI 分析";
@@ -726,6 +734,7 @@
 "onboarding.distance_selection" = "選擇距離";
 "onboarding.time_hours" = "時";
 "onboarding.time_minutes" = "分";
+"onboarding.time_seconds" = "秒";
 "onboarding.average_pace_calculation" = "平均配速";
 "onboarding.per_kilometer" = "/公里";
 "onboarding.enter_valid_time" = "請輸入有效的時間以計算配速。";
@@ -1260,3 +1269,77 @@
 
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AI 訓練報告";
+
+// MARK: - Training Stages
+"stage.conversion" = "轉換期";
+"stage.base" = "基礎期";
+"stage.build" = "增強期";
+"stage.peak" = "巔峰期";
+"stage.taper" = "減量期";
+
+// MARK: - Risk Levels
+"risk.low" = "低";
+"risk.medium" = "中";
+"risk.high" = "高";
+
+// MARK: - Start Stage Selection
+"start_stage.title" = "訓練計劃起始階段";
+"start_stage.time_notice_title" = "訓練時間提醒";
+"start_stage.time_notice" = "你的賽事在 %d 週後";
+"start_stage.training_habit_reminder" = "建議有規律訓練習慣的跑者選擇跳過基礎期";
+"start_stage.recommendation" = "推薦起始階段";
+"start_stage.other_options" = "其他選項";
+"start_stage.training_distribution" = "訓練週數分配";
+"start_stage.continue" = "繼續";
+"start_stage.risk_level" = "風險等級: %@";
+"start_stage.weeks_count" = "%d 週";
+
+// Start Stage Reasons
+"start_stage.too_short_reason" = "距離賽事不足 2 週，時間過於緊迫";
+"start_stage.peak_reason" = "你有 %d 週時間，建議有規律訓練習慣的跑者從巔峰期開始";
+"start_stage.build_medium_reason" = "你有 %d 週時間，建議有規律訓練習慣的跑者從增強期開始";
+"start_stage.build_low_reason" = "你有 %d 週時間，建議有訓練基礎的跑者從增強期開始";
+"start_stage.base_reason" = "你有充足的 %d 週準備時間，建議從基礎期開始完整訓練";
+
+// Stage Alternatives
+"start_stage.peak_suitable" = "訓練充分的資深跑者";
+"start_stage.peak_description" = "適合週跑量 40km+ 的跑者";
+"start_stage.base_suitable" = "完整計劃";
+"start_stage.base_description" = "從基礎期開始，循序漸進";
+"start_stage.build_suitable" = "有訓練習慣的跑者";
+"start_stage.build_description" = "更安全的選擇";
+"start_stage.build_skip_base_description" = "如果已有週跑量 20-30km";
+"start_stage.base_short_time_description" = "時間較短，各階段訓練效果可能不佳";
+"start_stage.base_very_short_description" = "時間不足，無法完整執行訓練計劃";
+
+// Stage Disabled Reasons
+"start_stage.build_disabled_reason" = "時間不足，無法完整執行增強期訓練";
+"start_stage.base_disabled_reason" = "時間不足，建議跳過基礎期直接進入高強度訓練";
+"start_stage.not_supported" = "不支援從此階段開始";
+
+// Time Warning
+"start_stage.time_too_short_title" = "時間較為緊迫";
+"start_stage.time_too_short_message" = "距離賽事不足 2 週，可能無法達到預期的訓練效果。建議選擇更晚的賽事日期。";
+
+// Common
+"common.ok" = "確定";
+
+// MARK: - Timezone Settings
+"timezone.title" = "時區設定";
+"timezone.current_device" = "裝置時區";
+"timezone.device_timezone" = "裝置時區";
+"timezone.use_device" = "使用裝置時區";
+"timezone.common_timezones" = "常用時區";
+"timezone.sync_message" = "時區設定會同步到伺服器，影響訓練計劃的週數計算";
+"timezone.change_warning" = "變更時區可能影響訓練週數計算";
+
+// Timezone Names
+"timezone.taipei" = "台北";
+"timezone.tokyo" = "東京";
+"timezone.hong_kong" = "香港";
+"timezone.singapore" = "新加坡";
+"timezone.seoul" = "首爾";
+"timezone.new_york" = "紐約";
+"timezone.los_angeles" = "洛杉磯";
+"timezone.london" = "倫敦";
+"timezone.sydney" = "雪梨";

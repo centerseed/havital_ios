@@ -4,6 +4,7 @@ import SwiftUI
 class PersonalBestViewModel: ObservableObject {
     @Published var targetHours = 0
     @Published var targetMinutes = 0
+    @Published var targetSeconds = 0
     @Published var isLoading = false
     @Published var error: String?
     @Published var navigateToWeeklyDistance = false
@@ -31,10 +32,10 @@ class PersonalBestViewModel: ObservableObject {
     
     var currentPace: String {
         guard hasPersonalBest else { return "" } // 如果沒有PB，則不計算配速
-        let totalSeconds = (targetHours * 3600 + targetMinutes * 60)
-        // 如果時間未設定 (0時0分)，則不計算配速
+        let totalSeconds = (targetHours * 3600 + targetMinutes * 60 + targetSeconds)
+        // 如果時間未設定 (0時0分0秒)，則不計算配速
         guard totalSeconds > 0 else { return "" }
-        
+
         let distanceKm = Double(selectedDistance) ?? 5.0
         let paceSeconds = Int(Double(totalSeconds) / distanceKm)
         let paceMinutes = paceSeconds / 60
@@ -45,19 +46,19 @@ class PersonalBestViewModel: ObservableObject {
     func updatePersonalBest() async { // 移除參數，直接使用 ViewModel 的屬性
         isLoading = true
         error = nil
-        
+
         do {
             if hasPersonalBest {
                 // 確保時間已輸入
-                guard (targetHours * 3600 + targetMinutes * 60) > 0 else {
+                guard (targetHours * 3600 + targetMinutes * 60 + targetSeconds) > 0 else {
                     self.error = "請輸入有效的個人最佳時間。"
                     isLoading = false
                     return
                 }
-                
+
                 let userData = [
                     "distance_km": Double(selectedDistance) ?? 3.0,
-                    "complete_time": targetHours * 3600 + targetMinutes * 60
+                    "complete_time": targetHours * 3600 + targetMinutes * 60 + targetSeconds
                 ] as [String : Any]
                 
                 try await UserService.shared.updatePersonalBestData(userData)
@@ -118,7 +119,7 @@ struct PersonalBestView: View {
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
                             Text(NSLocalizedString("onboarding.time_hours", comment: "Hours"))
-                            
+
                             Picker(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"), selection: $viewModel.targetMinutes) {
                                 ForEach(0...59, id: \.self) { minute in
                                     Text("\(minute)")
@@ -127,6 +128,15 @@ struct PersonalBestView: View {
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
                             Text(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"))
+
+                            Picker(NSLocalizedString("onboarding.time_seconds", comment: "Seconds"), selection: $viewModel.targetSeconds) {
+                                ForEach(0...59, id: \.self) { second in
+                                    Text("\(second)")
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(maxWidth: .infinity)
+                            Text(NSLocalizedString("onboarding.time_seconds", comment: "Seconds"))
                         }
                         .padding(.vertical, 8)
                         
@@ -137,7 +147,7 @@ struct PersonalBestView: View {
                                 Text("\(viewModel.currentPace) \(NSLocalizedString("onboarding.per_kilometer", comment: "Per Kilometer"))")
                             }
                             .foregroundColor(.secondary)
-                        } else if viewModel.hasPersonalBest && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0 {
+                        } else if viewModel.hasPersonalBest && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60 + viewModel.targetSeconds) == 0 {
                             Text(NSLocalizedString("onboarding.enter_valid_time", comment: "Enter Valid Time"))
                                 .font(.caption)
                                 .foregroundColor(.orange)
@@ -193,7 +203,7 @@ struct PersonalBestView: View {
                     }
                 }
                 // 更新禁用邏輯
-                .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && viewModel.currentPace.isEmpty && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60) == 0))
+                .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && viewModel.currentPace.isEmpty && (viewModel.targetHours * 3600 + viewModel.targetMinutes * 60 + viewModel.targetSeconds) == 0))
             }
         }
     }

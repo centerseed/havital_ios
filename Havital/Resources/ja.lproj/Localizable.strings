@@ -311,6 +311,14 @@
 "training.review.loading_error" = "トレーニングレビューを読み込めませんでした";
 "training.review.retry" = "再試行";
 
+// MARK: - Generate Next Week
+"training.ready_for_next_week" = "🎯 来週のトレーニングの準備はできましたか？";
+"training.generate_week_plan" = "第%d週のプランを生成";
+"training.need_complete_review" = "今週のレビューを先に完了する必要があります";
+"training.review_completed" = "今週のレビューが完了しました";
+"training.confirm_training_completed_title" = "トレーニング完了の確認";
+"training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次レビューには完全なトレーニングデータが必要です。";
+
 // MARK: - Training Plan Info Card
 "training.plan_info" = "トレーニング計画情報";
 "training.ai_analysis" = "AI分析";
@@ -725,6 +733,7 @@
 "onboarding.distance_selection" = "距離を選択";
 "onboarding.time_hours" = "時間";
 "onboarding.time_minutes" = "分";
+"onboarding.time_seconds" = "秒";
 "onboarding.average_pace_calculation" = "平均ペース";
 "onboarding.per_kilometer" = "/km";
 "onboarding.enter_valid_time" = "ペースを計算するために有効な時間を入力してください。";
@@ -1241,3 +1250,72 @@
 
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AIトレーニングレポート";
+
+// MARK: - Training Stages
+"stage.conversion" = "転換期";
+"stage.base" = "基礎期";
+"stage.build" = "強化期";
+"stage.peak" = "ピーク期";
+"stage.taper" = "テーパー期";
+
+// MARK: - Risk Levels
+"risk.low" = "低";
+"risk.medium" = "中";
+"risk.high" = "高";
+
+// MARK: - Start Stage Selection
+"start_stage.title" = "トレーニング開始フェーズ";
+"start_stage.time_notice_title" = "トレーニング期間";
+"start_stage.time_notice" = "レースまで%d週間";
+"start_stage.training_habit_reminder" = "定期的なトレーニング習慣があるランナーには基礎期をスキップすることをお勧めします";
+"start_stage.recommendation" = "おすすめの開始フェーズ";
+"start_stage.other_options" = "その他のオプション";
+"start_stage.training_distribution" = "トレーニング週数配分";
+"start_stage.continue" = "続ける";
+"start_stage.risk_level" = "リスクレベル: %@";
+"start_stage.weeks_count" = "%d週";
+
+// Start Stage Reasons
+"start_stage.too_short_reason" = "レースまで2週間未満、期間が短すぎます";
+"start_stage.peak_reason" = "%d週間あります。定期的なトレーニング習慣があるランナーにはピーク期から開始することをお勧めします";
+"start_stage.build_medium_reason" = "%d週間あります。定期的なトレーニング習慣があるランナーには強化期から開始することをお勧めします";
+"start_stage.build_low_reason" = "%d週間あります。トレーニング経験があるランナーには強化期から開始することをお勧めします";
+"start_stage.base_reason" = "十分な%d週間の準備期間があります。基礎期から完全なトレーニングを開始することをお勧めします";
+
+// Stage Alternatives
+"start_stage.peak_suitable" = "十分なトレーニングを積んだ経験豊富なランナー";
+"start_stage.peak_description" = "週40km以上走るランナーに適しています";
+"start_stage.base_suitable" = "完全なプラン";
+"start_stage.base_description" = "基礎期から段階的に構築";
+"start_stage.build_suitable" = "トレーニング習慣があるランナー";
+"start_stage.build_description" = "より安全な選択";
+"start_stage.build_skip_base_description" = "既に週20-30kmのランニング量がある場合";
+"start_stage.base_short_time_description" = "期間が短く、各段階の効果が不十分になる可能性があります";
+"start_stage.base_very_short_description" = "時間不足、完全なトレーニング計画を実行できません";
+
+// Time Warning
+"start_stage.time_too_short_title" = "期間が短い";
+"start_stage.time_too_short_message" = "レースまで2週間未満、期待されるトレーニング効果が得られない可能性があります。より遅いレース日を選択することをお勧めします。";
+
+// Common
+"common.ok" = "OK";
+
+// MARK: - Timezone Settings
+"timezone.title" = "タイムゾーン設定";
+"timezone.current_device" = "デバイスのタイムゾーン";
+"timezone.device_timezone" = "デバイスのタイムゾーン";
+"timezone.use_device" = "デバイスのタイムゾーンを使用";
+"timezone.common_timezones" = "よく使うタイムゾーン";
+"timezone.sync_message" = "タイムゾーン設定はサーバーに同期され、トレーニング計画の週数計算に影響します";
+"timezone.change_warning" = "タイムゾーンを変更すると、トレーニング週数の計算に影響する可能性があります";
+
+// Timezone Names
+"timezone.taipei" = "台北";
+"timezone.tokyo" = "東京";
+"timezone.hong_kong" = "香港";
+"timezone.singapore" = "シンガポール";
+"timezone.seoul" = "ソウル";
+"timezone.new_york" = "ニューヨーク";
+"timezone.los_angeles" = "ロサンゼルス";
+"timezone.london" = "ロンドン";
+"timezone.sydney" = "シドニー";

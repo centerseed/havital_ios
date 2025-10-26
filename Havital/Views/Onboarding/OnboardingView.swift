@@ -11,6 +11,10 @@ class OnboardingViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     // @Published var navigateToTrainingDays = false // 這個狀態似乎沒有直接在這個 View 中使用來導航，而是 createTarget 成功後，間接觸發 showPersonalBest
+
+    // 起始階段選擇相關狀態
+    @Published var selectedStartStage: TrainingStagePhase? = nil
+    @Published var shouldShowStageSelection: Bool = false
     
     var availableDistances: [String: String] {
         [
@@ -73,6 +77,8 @@ struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showPersonalBest = false
+    @State private var showStageSelection = false
+    @State private var showTimeWarning = false
     // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
 
     var body: some View {
@@ -142,7 +148,7 @@ struct OnboardingView: View {
                 Button(action: {
                     Task {
                         if await viewModel.createTarget() {
-                            showPersonalBest = true
+                            handleNavigationAfterTargetCreation()
                         }
                     }
                 }) {
@@ -165,14 +171,44 @@ struct OnboardingView: View {
             }
             .background(Color(.systemGroupedBackground))
             
+            // 導航到個人最佳成績頁面
             NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
                 .navigationBarBackButtonHidden(true),
                            isActive: $showPersonalBest) {
                 EmptyView()
             }
+
+            // 導航到起始階段選擇頁面
+            NavigationLink(destination: StartStageSelectionView(
+                weeksRemaining: viewModel.remainingWeeks,
+                targetDistanceKm: Double(viewModel.selectedDistance) ?? 42.195,
+                onStageSelected: { stage in
+                    viewModel.selectedStartStage = stage
+                    // 保存到 UserDefaults 供後續使用
+                    if let stage = stage {
+                        UserDefaults.standard.set(stage.apiIdentifier, forKey: "selectedStartStage")
+                    } else {
+                        UserDefaults.standard.removeObject(forKey: "selectedStartStage")
+                    }
+                    showStageSelection = false
+                    showPersonalBest = true
+                }
+            ).navigationBarBackButtonHidden(true),
+               isActive: $showStageSelection) {
+                EmptyView()
+            }
         }
         .navigationTitle(NSLocalizedString("onboarding.set_training_goal", comment: "Set Training Goal"))
         .navigationBarTitleDisplayMode(.inline)
+        .alert(NSLocalizedString("start_stage.time_too_short_title", comment: "時間較為緊迫"),
+               isPresented: $showTimeWarning) {
+            Button(NSLocalizedString("common.ok", comment: "確定"), role: .cancel) {
+                showTimeWarning = false
+            }
+        } message: {
+            Text(NSLocalizedString("start_stage.time_too_short_message",
+                                  comment: "距離賽事不足 2 週，可能無法達到預期的訓練效果。建議選擇更晚的賽事日期。"))
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(NSLocalizedString("onboarding.back", comment: "Back")) {
@@ -185,7 +221,7 @@ struct OnboardingView: View {
                 Button(action: {
                     Task {
                         if await viewModel.createTarget() {
-                            showPersonalBest = true
+                            handleNavigationAfterTargetCreation()
                         }
                     }
                 }) {
@@ -197,6 +233,27 @@ struct OnboardingView: View {
                 }
                 .disabled(viewModel.isLoading)
             }
+        }
+    }
+
+    // MARK: - 導航邏輯處理
+    /// 根據剩餘時間判斷導航目標
+    private func handleNavigationAfterTargetCreation() {
+        let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(
+            for: Double(viewModel.selectedDistance) ?? 42.195
+        )
+        let remainingWeeks = viewModel.remainingWeeks
+
+        if remainingWeeks < 2 {
+            // 時間過短（<2週），顯示警告
+            showTimeWarning = true
+        } else if remainingWeeks >= standardWeeks {
+            // 時間充足，直接進入下一步
+            viewModel.selectedStartStage = nil // 使用預設（從基礎期開始）
+            showPersonalBest = true
+        } else {
+            // 時間緊張（2-12週），進入階段選擇頁面
+            showStageSelection = true
         }
     }
 

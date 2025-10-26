@@ -90,12 +90,22 @@ class TrainingDaysViewModel: ObservableObject {
         isLoading = true
         error = nil
         var planSuccessfullyCreated = false
-        
+
         do {
             print("[TrainingDaysViewModel] Attempting to create weekly plan...") // 新增日誌
-            let _ = try await TrainingPlanService.shared.createWeeklyPlan()
+
+            // 讀取用戶選擇的起始階段（如果有的話）
+            let selectedStage = UserDefaults.standard.string(forKey: "selectedStartStage")
+            if let stage = selectedStage {
+                print("[TrainingDaysViewModel] Creating plan with start stage: \(stage)")
+            }
+
+            let _ = try await TrainingPlanService.shared.createWeeklyPlan(startFromStage: selectedStage)
             print("[TrainingDaysViewModel] Weekly plan created successfully.") // 新增日誌
             planSuccessfullyCreated = true
+
+            // 清除已使用的階段選擇
+            UserDefaults.standard.removeObject(forKey: "selectedStartStage")
             
             // 直接更新 UserDefaults 中的 hasCompletedOnboarding 值
             UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
@@ -237,9 +247,6 @@ struct TrainingDaysSetupView: View {
                         Button(action: {
                             Task {
                                 await viewModel.savePreferencesAndGetOverview()
-                                if viewModel.showOverview { // 滾動到概覽
-                                    withAnimation { proxy.scrollTo("overviewSection", anchor: .bottom) }
-                                }
                             }
                         }) {
                             HStack {
@@ -261,7 +268,7 @@ struct TrainingDaysSetupView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("目標評估").font(.headline)
                             Text(overview.targetEvaluate).font(.body).foregroundColor(.secondary)
-                            
+
                             Text("訓練重點").font(.headline).padding(.top, 5)
                             Text(overview.trainingHighlight).font(.body).foregroundColor(.secondary)
                         }
@@ -278,12 +285,24 @@ struct TrainingDaysSetupView: View {
                                 }
                             }
                             .disabled(viewModel.isLoading)
+                            .id("finalPlanButton")
                         }
                     }
+                    .id("overviewSection")
                 }
             } // Form End
             .onAppear {
                 viewModel.updateButtonStates() // 初始檢查按鈕狀態
+            }
+            .onChange(of: viewModel.showOverview) { showOverview in
+                if showOverview {
+                    // 延遲一點點時間，確保 UI 已經渲染完成
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            proxy.scrollTo("finalPlanButton", anchor: .center)
+                        }
+                    }
+                }
             }
             .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))
             .navigationBarTitleDisplayMode(.inline)
