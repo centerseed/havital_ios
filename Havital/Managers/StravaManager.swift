@@ -1,6 +1,7 @@
 import Foundation
 import SafariServices
 import SwiftUI
+import CommonCrypto
 
 class StravaManager: NSObject, ObservableObject {
     static let shared = StravaManager()
@@ -20,9 +21,10 @@ class StravaManager: NSObject, ObservableObject {
         }
     }
     @Published var reconnectionMessage: String? = nil
-    
-    // Standard OAuth 2.0 參數 (無 PKCE)
+
+    // OAuth 2.0 with PKCE 參數
     private var state: String?
+    private var codeVerifier: String?
     private var safariViewController: SFSafariViewController?
     
     // Strava OAuth 配置
@@ -304,7 +306,12 @@ class StravaManager: NSObject, ObservableObject {
     /// 處理深度連結回調（從後端重定向）
     func handleCallback(url: URL) async {
         print("StravaManager: 收到回調 URL: \(url)")
-        
+        print("🔐 PKCE 狀態檢查:")
+        print("  - Code Verifier 已保存: \(codeVerifier != nil)")
+        if let verifier = codeVerifier {
+            print("  - Verifier 長度: \(verifier.count)")
+        }
+
         // 關閉 Safari 視圖
         await MainActor.run {
             safariViewController?.dismiss(animated: true)
@@ -443,24 +450,65 @@ class StravaManager: NSObject, ObservableObject {
         let data = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
         return data.base64URLEncodedString()
     }
+
+    // MARK: - PKCE 相關方法
+
+    /// 生成 PKCE code verifier
+    /// - Returns: 43-128 字符的隨機字符串
+    private func generateCodeVerifier() -> String {
+        let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+        let length = 128 // 使用最大長度以提高安全性
+        let verifier = (0..<length).map { _ in characters.randomElement()! }.joined()
+        return verifier
+    }
+
+    /// 生成 PKCE code challenge (S256)
+    /// - Parameter verifier: Code verifier
+    /// - Returns: Base64 URL 編碼的 SHA256 哈希
+    private func generateCodeChallenge(from verifier: String) -> String {
+        guard let data = verifier.data(using: .utf8) else {
+            return ""
+        }
+
+        var digest = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+
+        data.withUnsafeBytes { buffer in
+            _ = CC_SHA256(buffer.baseAddress, CC_LONG(data.count), &digest)
+        }
+
+        return Data(digest).base64URLEncodedString()
+    }
     
     private func buildAuthorizationURL(state: String) throws -> URL {
         guard var components = URLComponents(string: stravaAuthURL) else {
             throw NSError(domain: "StravaManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "無效的 Strava 授權 URL"])
         }
-        
+
+        // 生成 PKCE code verifier 和 code challenge
+        let codeVerifier = generateCodeVerifier()
+        let codeChallenge = generateCodeChallenge(from: codeVerifier)
+
+        // 儲存 code verifier 以供後續 token 交換使用
+        self.codeVerifier = codeVerifier
+
+        print("🔐 PKCE 參數已生成:")
+        print("  - Code Verifier: \(codeVerifier.prefix(20))...")
+        print("  - Code Challenge: \(codeChallenge)")
+
         components.queryItems = [
             URLQueryItem(name: "client_id", value: clientID),
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "redirect_uri", value: redirectURI),
             URLQueryItem(name: "scope", value: scope),
-            URLQueryItem(name: "state", value: state)
+            URLQueryItem(name: "state", value: state),
+            URLQueryItem(name: "code_challenge", value: codeChallenge),
+            URLQueryItem(name: "code_challenge_method", value: "S256")
         ]
-        
+
         guard let url = components.url else {
             throw NSError(domain: "StravaManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "無法建構授權 URL"])
         }
-        
+
         return url
     }
     
