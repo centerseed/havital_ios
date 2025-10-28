@@ -276,7 +276,7 @@ class StravaManager: NSObject, ObservableObject {
             
             // 建構授權 URL
             let authURL = try buildAuthorizationURL(state: stateString)
-            
+
             print("🔧 StravaManager: 完整授權 URL: \(authURL)")
             print("🔧 StravaManager: URL 組件:")
             if let components = URLComponents(url: authURL, resolvingAgainstBaseURL: false) {
@@ -288,7 +288,25 @@ class StravaManager: NSObject, ObservableObject {
                     print("    - \(item.name): \(item.value ?? "nil")")
                 }
             }
-            
+
+            // ⚠️ 關鍵步驟：在重定向到 Strava 之前，先保存 PKCE 參數到後端
+            guard let verifier = self.codeVerifier else {
+                throw NSError(domain: "StravaManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "Code Verifier 未生成"])
+            }
+
+            print("📝 開始保存 PKCE 參數到後端...")
+            do {
+                try await StravaPKCEStorageService.shared.storePKCEParameters(
+                    codeVerifier: verifier,
+                    state: stateString,
+                    forceReplace: force
+                )
+                print("✅ PKCE 參數已成功保存到後端")
+            } catch {
+                print("❌ 保存 PKCE 參數失敗: \(error.localizedDescription)")
+                throw error
+            }
+
             // 在主線程打開 Safari
             await MainActor.run {
                 presentSafariViewController(with: authURL)
