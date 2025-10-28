@@ -458,7 +458,7 @@ class StravaManager: NSObject, ObservableObject {
     private func generateCodeVerifier() -> String {
         let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
         let length = 128 // 使用最大長度以提高安全性
-        let verifier = (0..<length).map { _ in characters.randomElement()! }.joined()
+        let verifier = String((0..<length).map { _ in characters.randomElement()! })
         return verifier
     }
 
