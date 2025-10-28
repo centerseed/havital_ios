@@ -443,11 +443,6 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     
     /// 檢查 Garmin 連線狀態（在獲取用戶資料後）
     private func checkGarminConnectionAfterUserData() async {
-        // 檢查 Garmin 功能是否啟用
-        guard FeatureFlagManager.shared.isGarminIntegrationAvailable else {
-            return
-        }
-        
         // 確保用戶資料已經載入完成
         guard appUser != nil else {
             print("⚠️ 用戶資料尚未載入，跳過 Garmin 狀態檢查")
