@@ -599,7 +599,7 @@ struct UserProfileView: View {
             }
             .padding(.vertical, 4)
         }
-        .alert("Switch Data Source", isPresented: $showDataSourceSwitchConfirmation) {
+        .alert(NSLocalizedString("datasource.switch.title", comment: "Switch Data Source"), isPresented: $showDataSourceSwitchConfirmation) {
             Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {
                 pendingDataSourceType = nil
             }
@@ -612,30 +612,30 @@ struct UserProfileView: View {
         } message: {
             if let pendingType = pendingDataSourceType {
                 let currentDataSource = userPreferenceManager.dataSourcePreference
-                
+
                 switch (currentDataSource, pendingType) {
                 case (.unbound, .garmin):
-                    Text("Selecting Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™.")
+                    Text(NSLocalizedString("datasource.switch.garmin.select_auth", comment: "Selecting Garmin requires authorization"))
                 case (.unbound, .appleHealth):
-                    Text("Select Apple Health as your data source. Your training records will be loaded from Apple Health, including health data from iPhone and Apple Watch.")
+                    Text(NSLocalizedString("datasource.switch.apple_health.select", comment: "Select Apple Health"))
                 case (.garmin, .appleHealth):
-                    Text("Switching to Apple Health will unbind your Garmin Connect™ connection and ensure the backend no longer receives Garmin data. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content. Do you want to continue?")
+                    Text(NSLocalizedString("datasource.switch.garmin_to_apple", comment: "Switching to Apple Health"))
                 case (.appleHealth, .garmin):
-                    Text("Switching to Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.")
+                    Text(NSLocalizedString("datasource.switch.apple_to_garmin", comment: "Switching to Garmin"))
                 case (.unbound, .strava):
-                    Text("Selecting Strava requires authorization. You will be redirected to the Strava website to log in and authorize. After successful authorization, your training records will be loaded from Strava.")
+                    Text(NSLocalizedString("datasource.switch.unbound_to_strava", comment: "Selecting Strava"))
                 case (.appleHealth, .strava):
-                    Text("Switching to Strava requires authorization. You will be redirected to the Strava website to log in and authorize. After successful authorization, your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.")
+                    Text(NSLocalizedString("datasource.switch.apple_to_strava", comment: "Switching to Strava"))
                 case (.garmin, .strava):
-                    Text("Switching to Strava will unbind your Garmin Connect™ connection and require Strava authorization. Your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.")
+                    Text(NSLocalizedString("datasource.switch.garmin_to_strava", comment: "Switching to Strava from Garmin"))
                 case (.strava, .appleHealth):
-                    Text("Switching to Apple Health will unbind your Strava connection. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content.")
+                    Text(NSLocalizedString("datasource.switch.strava_to_apple", comment: "Switching from Strava to Apple Health"))
                 case (.strava, .garmin):
-                    Text("Switching to Garmin Connect™ will unbind your Strava connection and require Garmin authorization. Your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.")
+                    Text(NSLocalizedString("datasource.switch.strava_to_garmin", comment: "Switching from Strava to Garmin"))
                 case (_, .unbound):
-                    Text("Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.")
+                    Text(NSLocalizedString("datasource.switch.to_unbound", comment: "Switching to unbound"))
                 default:
-                    Text("Are you sure you want to proceed with this operation?")
+                    Text(NSLocalizedString("datasource.switch.default", comment: "Are you sure"))
                 }
             }
         }
