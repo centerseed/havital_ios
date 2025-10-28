@@ -36,23 +36,47 @@ struct BottomInfoOverlay: View {
                     .padding(.horizontal, 42)
                     .padding(.vertical, 20)
 
-                    // 課表資訊區域
-                    if let dailyPlan = data.workoutDetail?.dailyPlanSummary {
-                        HStack(spacing: 12) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 36))
-                                .foregroundColor(.white)
-
-                            Text("課表：" + formatDailyPlan(dailyPlan))
-                                .font(.system(size: 42))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
+                    // 核心數據區域（水平排列，簡潔樣式）- 移到第二行
+                    HStack(spacing: 24) {
+                        // 距離
+                        if let distance = data.workout.distanceMeters {
+                            HStack(spacing: 9) {
+                                Image(systemName: "figure.run")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.white.opacity(0.9))
+                                Text(String(format: "%.1f km", distance / 1000))
+                                    .font(.system(size: 42))
+                                    .foregroundColor(.white)
+                            }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 42)
-                        .padding(.vertical, 20)
+
+                        // 配速（優先使用 avgPaceSPerKm，否則從 avgSpeedMPerS 計算）
+                        if let paceText = getPaceText() {
+                            HStack(spacing: 9) {
+                                Image(systemName: "speedometer")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.white.opacity(0.9))
+                                Text(paceText)
+                                    .font(.system(size: 42))
+                                    .foregroundColor(.white)
+                            }
+                        }
+
+                        // 平均心率
+                        if let avgHR = data.workout.basicMetrics?.avgHeartRateBpm {
+                            HStack(spacing: 9) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.white.opacity(0.9))
+                                Text("\(Int(avgHR))")
+                                    .font(.system(size: 42))
+                                    .foregroundColor(.white)
+                            }
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 42)
+                    .padding(.vertical, 18)
 
                     // AI 評語區域
                     HStack(spacing: 12) {
@@ -69,48 +93,6 @@ struct BottomInfoOverlay: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
                     .padding(.vertical, 20)
-
-                    // 核心數據區域（水平排列，簡潔樣式）
-                    HStack(spacing: 24) {
-                        // 距離
-                        if let distance = data.workout.distanceMeters {
-                            HStack(spacing: 9) {
-                                Image(systemName: "figure.run")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.9))
-                                Text(String(format: "%.1f km", distance / 1000))
-                                    .font(.system(size: 42))
-                                    .foregroundColor(.white)
-                            }
-                        }
-
-                        // 配速
-                        if let pace = data.workout.basicMetrics?.avgPaceSPerKm {
-                            HStack(spacing: 9) {
-                                Image(systemName: "speedometer")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.9))
-                                Text(formatPace(pace))
-                                    .font(.system(size: 42))
-                                    .foregroundColor(.white)
-                            }
-                        }
-
-                        // 動態跑力
-                        if let vdot = data.workout.advancedMetrics?.dynamicVdot {
-                            HStack(spacing: 9) {
-                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.9))
-                                Text("跑力 \(String(format: "%.1f", vdot))")
-                                    .font(.system(size: 42))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 42)
-                    .padding(.vertical, 18)
 
                     // 分隔線
                     Rectangle()
@@ -193,6 +175,23 @@ struct BottomInfoOverlay: View {
         let minutes = Int(pace) / 60
         let seconds = Int(pace) % 60
         return String(format: "%d'%02d\"", minutes, seconds)
+    }
+
+    /// 獲取配速文字（優先使用 avgPaceSPerKm，否則從 avgSpeedMPerS 計算）
+    private func getPaceText() -> String? {
+        // 優先使用 avgPaceSPerKm
+        if let pace = data.workout.basicMetrics?.avgPaceSPerKm {
+            return formatPace(pace)
+        }
+
+        // 如果沒有，從 avgSpeedMPerS 計算
+        if let speed = data.workout.basicMetrics?.avgSpeedMPerS, speed > 0 {
+            // 配速（秒/公里）= 1000 / 速度（米/秒）
+            let paceSecondsPerKm = 1000.0 / speed
+            return formatPace(paceSecondsPerKm)
+        }
+
+        return nil
     }
 }
 

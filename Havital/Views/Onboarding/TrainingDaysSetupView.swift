@@ -65,8 +65,12 @@ class TrainingDaysViewModel: ObservableObject {
             ] as [String : Any]
             
             try await UserService.shared.updateUserData(preferences)
-            
-            let overview = try await TrainingPlanService.shared.postTrainingPlanOverview()
+
+            // 讀取用戶選擇的起始階段（如果有的話）
+            let selectedStage = UserDefaults.standard.string(forKey: "selectedStartStage")
+            print("[TrainingDaysViewModel] 🔍 selectedStartStage from UserDefaults: \(selectedStage ?? "nil")")
+
+            let overview = try await TrainingPlanService.shared.postTrainingPlanOverview(startFromStage: selectedStage)
             trainingPlanOverview = overview
             
             TrainingPlanStorage.saveTrainingPlanOverview(overview)

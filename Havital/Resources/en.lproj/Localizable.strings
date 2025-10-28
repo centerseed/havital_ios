@@ -1015,6 +1015,24 @@
 "training_type_info.long_run.logic" = "Moderate-intensity long-duration aerobic training (about 70–80% HRmax). At this intensity, the body uses both fat and glycogen as fuel, improving energy utilization efficiency and muscle endurance. Also strengthens 'race pace stability' and 'mental resilience.'";
 "training_type_info.long_run.role" = "Usually on weekends, the longest session of the week. During build-up or race prep, it's core training for simulating race conditions, paired with easy or recovery runs to absorb the load.";
 
+"training_type_info.easy.title" = "Easy Run";
+"training_type_info.easy.how_to_run" = "Very relaxed pace, you should be able to chat comfortably and barely breathe hard. It feels like 'running for the joy of it.'";
+"training_type_info.easy.why_run" = "Easy runs form the foundation of daily training. They let your body adapt to regular running without excessive fatigue, and are key to sustaining your love for running.";
+"training_type_info.easy.logic" = "Low-intensity aerobic training (about 60–70% HRmax). At this intensity, your body steadily uses fat as the primary fuel source while building aerobic capacity and capillary growth.";
+"training_type_info.easy.role" = "The 'everyday hero' of training weeks. Use easy runs to warm up and recover around hard sessions, or use them solo as easy days to let your body adapt to training stress without pressure.";
+
+"training_type_info.combination.title" = "Combination Training";
+"training_type_info.combination.how_to_run" = "Combine multiple intensity zones in a single session. Start easy, then gradually speed up or alternate between sprints and recovery.";
+"training_type_info.combination.why_run" = "Combination training stimulates multiple abilities in one session. It trains your body to quickly adapt to changing intensities while improving overall cardiovascular and muscular performance.";
+"training_type_info.combination.logic" = "Integrates the benefits of aerobic and anaerobic training through varied intensities to stimulate multiple physiological systems. Compared to single-intensity sessions, it more comprehensively builds endurance, speed, and adaptability.";
+"training_type_info.combination.role" = "Can serve as a main midweek session when time is limited but you want comprehensive training effects. Also common in race prep to simulate the varied pace of actual races.";
+
+"training_type_info.rest.title" = "Rest Day";
+"training_type_info.rest.how_to_run" = "No structured running training. You can choose gentle walking or complete static rest—listen to what your body needs.";
+"training_type_info.rest.why_run" = "Rest is the most overlooked yet most critical part of training plans. Complete rest days allow muscle repair, nervous system recovery, and energy stores to replenish.";
+"training_type_info.rest.logic" = "Without training load, your body undergoes deep repair. Muscle protein synthesis increases, fatigue toxins clear out, and hormonal and immune systems rebalance—this is the process of 'getting stronger through rest.'";
+"training_type_info.rest.role" = "Schedule 1–2 complete rest days each week, typically after hard training. Adequate rest days prevent overtraining and maintain long-term performance and health.";
+
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "Monday";
 "weekday.tuesday" = "Tuesday";

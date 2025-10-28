@@ -623,14 +623,15 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("Refreshing training records and weekly volume")
         Task {
-            // 使用統一的刷新方法
+            // 🔄 檢查 plan status（同步訓練計畫狀態）
+            await viewModel.loadPlanStatus()
+
+            // 使用統一的刷新方法（內部已調用 loadWeeklyPlan(skipCache: true)）
             await viewModel.refreshWeeklyPlan()
-            
-            // 只有當沒有週課表時才載入，避免不必要的重新載入
-            if viewModel.weeklyPlan == nil {
-                await viewModel.loadWeeklyPlan()
-            }
-            
+
+            // ✅ 已移除重複的 loadWeeklyPlan() 調用
+            // refreshWeeklyPlan() 內部已經執行 loadWeeklyPlan(skipCache: true)
+
             await viewModel.loadCurrentWeekDistance()
             await viewModel.loadWorkoutsForCurrentWeek()
         }

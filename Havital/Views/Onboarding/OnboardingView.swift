@@ -25,12 +25,22 @@ class OnboardingViewModel: ObservableObject {
         ]
     }
     
-    var remainingWeeks: Int {
-        let calendar = Calendar.current
-        let weeks = calendar.dateComponents([.weekOfYear],
-                                          from: Date(),
-                                          to: raceDate).weekOfYear ?? 0
-        return max(weeks, 1) // 至少返回1週
+    /// 使用「週邊界」演算法計算訓練週數（與後端一致）
+    /// 注意：此計算方式與簡單的日期差不同，詳見 Docs/TRAINING_WEEKS_CALCULATION.md
+    var trainingWeeks: Int {
+        return TrainingWeeksCalculator.calculateTrainingWeeks(
+            startDate: Date(),
+            raceDate: raceDate
+        )
+    }
+
+    /// 保留舊的計算方式用於對比（僅供參考）
+    var actualWeeksRemaining: Double {
+        let (_, weeks) = TrainingWeeksCalculator.calculateActualDateDifference(
+            startDate: Date(),
+            raceDate: raceDate
+        )
+        return weeks
     }
     
     var targetPace: String {
@@ -57,7 +67,7 @@ class OnboardingViewModel: ObservableObject {
                 targetPace: targetPace,
                 raceDate: Int(raceDate.timeIntervalSince1970),
                 isMainRace: true,
-                trainingWeeks: remainingWeeks
+                trainingWeeks: trainingWeeks
                 // timezone 會自動使用預設的 "Asia/Taipei"
             )
             
@@ -93,7 +103,7 @@ struct OnboardingView: View {
                               in: Date()...,
                               displayedComponents: .date)
                     
-                    Text(String(format: NSLocalizedString("onboarding.weeks_until_race", comment: "Weeks until race"), viewModel.remainingWeeks))
+                    Text(String(format: NSLocalizedString("onboarding.weeks_until_race", comment: "Weeks until race"), viewModel.trainingWeeks))
                         .foregroundColor(.secondary)
                 }
                 
@@ -180,14 +190,16 @@ struct OnboardingView: View {
 
             // 導航到起始階段選擇頁面
             NavigationLink(destination: StartStageSelectionView(
-                weeksRemaining: viewModel.remainingWeeks,
+                weeksRemaining: viewModel.trainingWeeks,
                 targetDistanceKm: Double(viewModel.selectedDistance) ?? 42.195,
                 onStageSelected: { stage in
                     viewModel.selectedStartStage = stage
                     // 保存到 UserDefaults 供後續使用
                     if let stage = stage {
+                        print("[OnboardingView] 💾 Saving selectedStartStage to UserDefaults: \(stage.apiIdentifier)")
                         UserDefaults.standard.set(stage.apiIdentifier, forKey: "selectedStartStage")
                     } else {
+                        print("[OnboardingView] 🗑️ Removing selectedStartStage from UserDefaults")
                         UserDefaults.standard.removeObject(forKey: "selectedStartStage")
                     }
                     showStageSelection = false
@@ -237,22 +249,28 @@ struct OnboardingView: View {
     }
 
     // MARK: - 導航邏輯處理
-    /// 根據剩餘時間判斷導航目標
+    /// 根據訓練週數判斷導航目標
     private func handleNavigationAfterTargetCreation() {
         let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(
             for: Double(viewModel.selectedDistance) ?? 42.195
         )
-        let remainingWeeks = viewModel.remainingWeeks
+        let trainingWeeks = viewModel.trainingWeeks
 
-        if remainingWeeks < 2 {
+        print("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks)")
+
+        if trainingWeeks < 2 {
             // 時間過短（<2週），顯示警告
+            print("[OnboardingView] ⚠️ Too short, showing warning")
             showTimeWarning = true
-        } else if remainingWeeks >= standardWeeks {
+        } else if trainingWeeks >= standardWeeks {
             // 時間充足，直接進入下一步
+            print("[OnboardingView] ✅ Enough time, skipping stage selection (using default base stage)")
             viewModel.selectedStartStage = nil // 使用預設（從基礎期開始）
+            UserDefaults.standard.removeObject(forKey: "selectedStartStage") // 清除舊值
             showPersonalBest = true
         } else {
             // 時間緊張（2-12週），進入階段選擇頁面
+            print("[OnboardingView] 🎯 Time constraint detected, showing stage selection")
             showStageSelection = true
         }
     }

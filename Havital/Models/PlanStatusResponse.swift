@@ -10,20 +10,11 @@ struct PlanStatusResponse: Codable {
     /// 訓練計畫總週數
     let totalWeeks: Int
 
-    /// 當前週是否已有課表
-    let hasCurrentWeekPlan: Bool
-
-    /// 上一週是否已有週回顧
-    let hasPreviousWeekSummary: Bool
-
     /// 前端應執行的下一步操作
     let nextAction: NextAction
 
     /// 是否允許提前產生下週課表（例如：週六、週日可以提前產生）
     let canGenerateNextWeek: Bool
-
-    /// 可查看的週數列表（已產生課表的週）
-    let availableWeeks: [Int]
 
     /// 當前週課表 ID（如果存在）
     let currentWeekPlanId: String?
@@ -40,11 +31,8 @@ struct PlanStatusResponse: Codable {
     enum CodingKeys: String, CodingKey {
         case currentWeek = "current_week"
         case totalWeeks = "total_weeks"
-        case hasCurrentWeekPlan = "has_current_week_plan"
-        case hasPreviousWeekSummary = "has_previous_week_summary"
         case nextAction = "next_action"
         case canGenerateNextWeek = "can_generate_next_week"
-        case availableWeeks = "available_weeks"
         case currentWeekPlanId = "current_week_plan_id"
         case previousWeekSummaryId = "previous_week_summary_id"
         case nextWeekInfo = "next_week_info"

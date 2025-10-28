@@ -1016,6 +1016,24 @@
 "training_type_info.long_run.logic" = "屬於中等強度的長時間有氧訓練（約最大心率 70–80%）。在這個強度下，身體會同時使用脂肪與糖原作為能量來源，幫助提升能量利用效率與肌肉耐力。也是強化「比賽節奏穩定性」與「心理耐受力」的重要課。";
 "training_type_info.long_run.role" = "通常安排在週末，是整週最長的一堂課。在強化期或比賽準備期中，它是模擬比賽情境的核心訓練，前後會搭配輕鬆跑或恢復跑讓身體吸收負荷。";
 
+"training_type_info.easy.title" = "輕鬆跑 Easy Run";
+"training_type_info.easy.how_to_run" = "非常輕鬆的速度，應該能舒服地交談、幾乎不喘氣。感覺像是「為了享受而跑」。";
+"training_type_info.easy.why_run" = "輕鬆跑是日常訓練的基礎。它讓身體適應規律運動而不造成過度疲勞，也是讓你持續愛上跑步的關鍵。";
+"training_type_info.easy.logic" = "屬於低強度有氧訓練（約最大心率的60–70%）。在這個強度下，身體能穩定地使用脂肪作為主要能量來源，同時鍛鍊有氧基礎與毛細血管生長。";
+"training_type_info.easy.role" = "是訓練週的「日常主角」。在高強度課前後用輕鬆跑熱身與恢復，也能單獨作為輕鬆日，讓身體在無壓力中適應訓練節奏。";
+
+"training_type_info.combination.title" = "組合訓練 Combination Training";
+"training_type_info.combination.how_to_run" = "在單一堂課中結合多個強度段落。起初輕鬆，逐步加速或交替衝刺與恢復。";
+"training_type_info.combination.why_run" = "組合訓練在一次課中刺激多種能力。它訓練身體在變化的強度下快速適應，同時提升心肺與肌肉的綜合表現。";
+"training_type_info.combination.logic" = "整合有氧與無氧訓練的優勢，透過強度變化刺激多個生理系統。相比單一強度課，能更全面地提升耐力、速度與適應能力。";
+"training_type_info.combination.role" = "可作為週中的主課，在時間有限但想要完整訓練效果時使用。也常見於賽期準備，模擬比賽中的起伏配速。";
+
+"training_type_info.rest.title" = "休息日 Rest Day";
+"training_type_info.rest.how_to_run" = "不進行有組織的跑步訓練。可以選擇輕鬆散步或完全靜態休息，聆聽身體需求。";
+"training_type_info.rest.why_run" = "休息是訓練計畫中最容易被忽視、卻最關鍵的部分。完整的休息日讓肌肉修復、神經系統恢復、能量儲備補充。";
+"training_type_info.rest.logic" = "無訓練負荷時，身體進行深層修復。肌肉蛋白質合成加強、疲勞毒素清除、荷爾蒙與免疫系統平衡——這是「在休息中變強」的過程。";
+"training_type_info.rest.role" = "每週安排 1–2 個完整休息日，通常在高強度訓練後。充分的休息日能避免過度訓練，維持長期表現與健康。";
+
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "星期一";
 "weekday.tuesday" = "星期二";

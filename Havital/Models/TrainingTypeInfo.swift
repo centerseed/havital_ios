@@ -70,6 +70,36 @@ struct TrainingTypeInfo {
                 role: NSLocalizedString("training_type_info.long_run.role", comment: "通常安排在週末，是整週最長的一堂課。在強化期或比賽準備期中，它是模擬比賽情境的核心訓練，前後會搭配輕鬆跑或恢復跑讓身體吸收負荷。")
             )
 
+        case .easyRun, .easy:
+            return TrainingTypeInfo(
+                icon: "🌱",
+                title: NSLocalizedString("training_type_info.easy.title", comment: "輕鬆跑 Easy Run"),
+                howToRun: NSLocalizedString("training_type_info.easy.how_to_run", comment: "非常輕鬆的速度，應該能舒服地交談、幾乎不喘氣。感覺像是「為了享受而跑」。"),
+                whyRun: NSLocalizedString("training_type_info.easy.why_run", comment: "輕鬆跑是日常訓練的基礎。它讓身體適應規律運動而不造成過度疲勞，也是讓你持續愛上跑步的關鍵。"),
+                logic: NSLocalizedString("training_type_info.easy.logic", comment: "屬於低強度有氧訓練（約最大心率的60–70%）。在這個強度下，身體能穩定地使用脂肪作為主要能量來源，同時鍛鍊有氧基礎與毛細血管生長。"),
+                role: NSLocalizedString("training_type_info.easy.role", comment: "是訓練週的「日常主角」。在高強度課前後用輕鬆跑熱身與恢復，也能單獨作為輕鬆日，讓身體在無壓力中適應訓練節奏。")
+            )
+
+        case .combination:
+            return TrainingTypeInfo(
+                icon: "🔀",
+                title: NSLocalizedString("training_type_info.combination.title", comment: "組合訓練 Combination Training"),
+                howToRun: NSLocalizedString("training_type_info.combination.how_to_run", comment: "在單一堂課中結合多個強度段落。起初輕鬆，逐步加速或交替衝刺與恢復。"),
+                whyRun: NSLocalizedString("training_type_info.combination.why_run", comment: "組合訓練在一次課中刺激多種能力。它訓練身體在變化的強度下快速適應，同時提升心肺與肌肉的綜合表現。"),
+                logic: NSLocalizedString("training_type_info.combination.logic", comment: "整合有氧與無氧訓練的優勢，透過強度變化刺激多個生理系統。相比單一強度課，能更全面地提升耐力、速度與適應能力。"),
+                role: NSLocalizedString("training_type_info.combination.role", comment: "可作為週中的主課，在時間有限但想要完整訓練效果時使用。也常見於賽期準備，模擬比賽中的起伏配速。")
+            )
+
+        case .rest:
+            return TrainingTypeInfo(
+                icon: "😴",
+                title: NSLocalizedString("training_type_info.rest.title", comment: "休息日 Rest Day"),
+                howToRun: NSLocalizedString("training_type_info.rest.how_to_run", comment: "不進行有組織的跑步訓練。可以選擇輕鬆散步或完全靜態休息，聆聽身體需求。"),
+                whyRun: NSLocalizedString("training_type_info.rest.why_run", comment: "休息是訓練計畫中最容易被忽視、卻最關鍵的部分。完整的休息日讓肌肉修復、神經系統恢復、能量儲備補充。"),
+                logic: NSLocalizedString("training_type_info.rest.logic", comment: "無訓練負荷時，身體進行深層修復。肌肉蛋白質合成加強、疲勞毒素清除、荷爾蒙與免疫系統平衡——這是「在休息中變強」的過程。"),
+                role: NSLocalizedString("training_type_info.rest.role", comment: "每週安排 1–2 個完整休息日，通常在高強度訓練後。充分的休息日能避免過度訓練，維持長期表現與健康。")
+            )
+
         default:
             return nil
         }

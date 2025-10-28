@@ -85,6 +85,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var showSuccessToast = false
     @Published var successMessage: String = ""
 
+    // plan/status API 緩存時間戳（8 小時內不重複呼叫）
+    private var lastPlanStatusFetchTime: Date?
+    private let planStatusCacheInterval: TimeInterval = 8 * 60 * 60 // 8 小時
+
+    // plan/status API 短期 dedup（5 秒內不重複呼叫）
+    private var lastPlanStatusRefreshTime: Date?
+    private let planStatusDedupInterval: TimeInterval = 5 // 5 秒
+
     // 調整建議確認相關屬性
     @Published var showAdjustmentConfirmation = false
     @Published var pendingAdjustments: [AdjustmentItem] = []
@@ -373,7 +381,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         await loadTrainingOverview()
 
         // 🆕 載入訓練計畫狀態（使用新 API）
-        await loadPlanStatus()
+        // 初始化時跳過緩存，確保獲取最新狀態
+        await loadPlanStatus(skipCache: true)
 
         // 根據狀態決定是否載入週計劃
         if weeklyPlan == nil {
@@ -384,17 +393,46 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // MARK: - 🆕 新增：載入訓練計畫狀態
 
     /// 載入訓練計畫狀態（使用後端 API）
-    func loadPlanStatus() async {
+    /// - Parameter skipCache: 是否跳過緩存檢查（預設為 false）
+    func loadPlanStatus(skipCache: Bool = false) async {
         await executeTask(id: "load_plan_status") {
-            await self.performLoadPlanStatus()
+            await self.performLoadPlanStatus(skipCache: skipCache)
         }
     }
 
-    private func performLoadPlanStatus() async {
-        Logger.debug("🔄 [PlanStatus] 開始呼叫 GET /plan/race_run/status")
+    private func performLoadPlanStatus(skipCache: Bool = false) async {
+        // 🔧 檢查是否需要跳過緩存（8 小時長期緩存）
+        if !skipCache, let lastFetchTime = lastPlanStatusFetchTime {
+            let timeSinceLastFetch = Date().timeIntervalSince(lastFetchTime)
+            if timeSinceLastFetch < planStatusCacheInterval {
+                let remainingTime = planStatusCacheInterval - timeSinceLastFetch
+                let remainingHours = Int(remainingTime / 3600)
+                let remainingMinutes = Int((remainingTime.truncatingRemainder(dividingBy: 3600)) / 60)
+                Logger.debug("⏱️ [PlanStatus] 使用長期緩存，距離上次調用 \(Int(timeSinceLastFetch / 60)) 分鐘，剩餘 \(remainingHours) 小時 \(remainingMinutes) 分鐘後可重新調用")
+                return
+            }
+        }
+
+        // 🔧 短期 dedup（5 秒內不重複呼叫）
+        let now = Date()
+        if !skipCache, let lastRefresh = lastPlanStatusRefreshTime {
+            let timeSinceLastRefresh = now.timeIntervalSince(lastRefresh)
+            if timeSinceLastRefresh < planStatusDedupInterval {
+                Logger.debug("⚡ [PlanStatus] 短期請求過於頻繁，忽略此次呼叫（距上次呼叫 \(String(format: "%.1f", timeSinceLastRefresh)) 秒，需要等待 \(String(format: "%.1f", planStatusDedupInterval - timeSinceLastRefresh)) 秒）")
+                return
+            }
+        }
+
+        Logger.debug("🔄 [PlanStatus] 開始呼叫 GET /plan/race_run/status (skipCache: \(skipCache))")
 
         do {
             let status = try await TrainingPlanService.shared.getPlanStatus()
+
+            // 更新緩存時間戳（8 小時長期緩存 + 5 秒短期 dedup）
+            await MainActor.run {
+                self.lastPlanStatusFetchTime = Date()
+                self.lastPlanStatusRefreshTime = Date()
+            }
 
             await MainActor.run {
                 self.planStatusResponse = status
@@ -418,8 +456,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 }
 
                 Logger.debug("🎯 [PlanStatus] nextAction: \(status.nextAction.rawValue)")
-                Logger.debug("📋 [PlanStatus] hasCurrentWeekPlan: \(status.hasCurrentWeekPlan)")
-                Logger.debug("📝 [PlanStatus] hasPreviousWeekSummary: \(status.hasPreviousWeekSummary)")
                 Logger.debug("🚀 [PlanStatus] canGenerateNextWeek: \(status.canGenerateNextWeek)")
                 Logger.debug("📅 [PlanStatus] trainingStartDate: \(status.metadata.trainingStartDate)")
                 Logger.debug("📅 [PlanStatus] currentWeekStartDate: \(status.metadata.currentWeekStartDate)")
@@ -602,10 +638,11 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: updatedOverview.createdAt) ?? 1
                             self.selectedWeek = self.currentWeek
                         }
-                        
-                        // 重要：更新 overview 後必須重新載入週課表和其他相關資訊
-                        print("概覽更新完成，開始重新載入週課表和相關資訊...")
-                        await self.loadWeeklyPlan()
+
+                        // ✅ 已移除 loadWeeklyPlan() 調用
+                        // 理由：overview 更新只影響元數據（如 totalWeeks），不影響週課表內容
+                        // 週課表由獨立的 API 管理，如需更新會透過 plan/status API 告知
+                        print("概覽更新完成，重新載入相關資訊...")
                         await self.loadCurrentWeekDistance()
                         await self.loadCurrentWeekIntensity()
                         await self.loadWorkoutsForCurrentWeek()
@@ -1200,25 +1237,39 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 獲取當前週的日期範圍 (用於獲取訓練記錄)
     func getCurrentWeekDates() -> (Date, Date) {
         if let info = weekDateInfo {
+            Logger.debug("""
+            📅 [getCurrentWeekDates] 使用 weekDateInfo
+               - startDate: \(info.startDate.formatted(date: .abbreviated, time: .omitted))
+               - endDate: \(info.endDate.formatted(date: .abbreviated, time: .omitted))
+               - selectedWeek: \(self.selectedWeek)
+            """)
             return (info.startDate, info.endDate)
         }
-        
+
         // 默認情況：返回當前自然週的範圍
+        Logger.debug("⚠️ [getCurrentWeekDates] weekDateInfo 為 nil，使用系統日期計算自然週")
+
         let calendar = Calendar.current
         let today = Date()
-        
+
         // 找到本週的週一
         let weekday = calendar.component(.weekday, from: today)
         let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
-        
+
         // 週一日期
         let startDate = calendar.date(
             byAdding: .day, value: -adjustedWeekday + 1, to: calendar.startOfDay(for: today))!
-        
+
         // 週日日期 (週一加6天)
         let endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
         let endOfDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endDate)!
-        
+
+        Logger.debug("""
+        📅 [getCurrentWeekDates] 系統週範圍
+           - startDate: \(startDate.formatted(date: .abbreviated, time: .omitted))
+           - endDate: \(endOfDay.formatted(date: .abbreviated, time: .omitted))
+        """)
+
         return (startDate, endOfDay)
     }
     
@@ -1375,12 +1426,17 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     /// 統一的刷新方法 - 使用 loadWeeklyPlan 的 skipCache 功能
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
+        // 手動刷新時，重新檢查 plan status（跳過 8 小時緩存限制）
+        if isManualRefresh {
+            await loadPlanStatus(skipCache: true)
+        }
+
         // 簡化為使用統一的載入方法，但跳過緩存
         await loadWeeklyPlan(skipCache: true)
-        
+
         // 刷新運動數據
         await unifiedWorkoutManager.refreshWorkouts()
-        
+
         // 重新載入當前週數據
         await loadCurrentWeekData()
     }
@@ -1450,20 +1506,37 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     private func performLoadWorkoutsForCurrentWeek() async throws {
         // 獲取當前週的時間範圍
         let (weekStart, weekEnd) = getCurrentWeekDates()
-        
+
+        Logger.debug("""
+        🏃 [LoadWorkouts] 開始加載當前週的 workout
+           - 日期範圍: \(weekStart.formatted(date: .abbreviated, time: .omitted)) ~ \(weekEnd.formatted(date: .abbreviated, time: .omitted))
+           - selectedWeek: \(self.selectedWeek)
+           - currentWeek: \(self.currentWeek)
+        """)
+
         // 從 UnifiedWorkoutManager 獲取該週的運動記錄
         let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
             startDate: weekStart,
             endDate: weekEnd
         )
-        
+
+        Logger.debug("📊 [LoadWorkouts] 獲取到 \(weekWorkouts.count) 個 workout 記錄")
+
         // 按日期分組
         let grouped = groupWorkoutsByDayFromV2(weekWorkouts)
-        
+
+        Logger.debug("""
+        🗂️ [LoadWorkouts] 分組完成
+           - 分組數量: \(grouped.count) 天
+           - 日期分佈: \(grouped.map { "Day \($0.key): \($0.value.count)" }.joined(separator: ", "))
+        """)
+
         // 更新UI（只更新數據，不更新 loading 狀態）
         await MainActor.run {
             self.workoutsByDayV2 = grouped
         }
+
+        Logger.debug("✅ [LoadWorkouts] workoutsByDayV2 已更新")
     }
     
     // 改進的按日期分組方法
@@ -2311,6 +2384,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             Logger.debug("✅ [NextWeekPlan] API 回應成功，課表 ID: \(newPlan.id)")
 
             // ✅ 產生成功，切換到下週並顯示課表
+            // 使用 updateWeeklyPlanUI 來確保 weekDateInfo 正確更新
+            await updateWeeklyPlanUI(plan: newPlan, planChanged: true, status: .ready(newPlan))
+
             await MainActor.run {
                 Logger.debug("""
                 🔄 [NextWeekPlan] 更新 UI 狀態
@@ -2318,10 +2394,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                    - planStatus: → ready
                    - 顯示 Toast: true
                 """)
-
-                self.selectedWeek = targetWeek
-                self.weeklyPlan = newPlan
-                self.planStatus = .ready(newPlan)
 
                 // 清除待處理的目標週數
                 self.pendingTargetWeek = nil
@@ -2335,9 +2407,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             TrainingPlanStorage.saveWeeklyPlan(newPlan)
             Logger.debug("💾 [NextWeekPlan] 已保存到本地緩存")
 
+            // 🔧 重新載入 workout 記錄，確保只顯示新週的訓練記錄
+            Logger.debug("🔄 [NextWeekPlan] 重新載入當前週的 workout 記錄...")
+            await loadWorkoutsForCurrentWeek()
+
             // 重新載入狀態（驗證）
+            // 剛生成新課表，需要立即同步狀態，跳過緩存
             Logger.debug("🔄 [NextWeekPlan] 重新載入狀態驗證...")
-            await loadPlanStatus()
+            await loadPlanStatus(skipCache: true)
 
             // 更新訓練進度
             await forceUpdateWeeklySummaries()
@@ -2424,6 +2501,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             self.showSuccessToast = false
             self.successMessage = ""
         }
+    }
+
+    // MARK: - App Lifecycle
+
+    /// App 從後台回到前台時的輕量級數據同步
+    func onAppBecameActive() async {
+        Logger.debug("🔄 [AppLifecycle] TrainingPlanViewModel: App 回到前台")
+
+        // 只有在用戶已認證且有訓練概覽時才同步
+        guard AuthenticationService.shared.isAuthenticated,
+              let _ = trainingOverview else {
+            Logger.debug("⚠️ [AppLifecycle] 用戶未認證或無訓練概覽，跳過同步")
+            return
+        }
+
+        // 只重新載入 plan status（輕量級 API 調用）
+        Logger.debug("📊 [AppLifecycle] 檢查 plan status...")
+        await loadPlanStatus()
+
+        Logger.debug("✅ [AppLifecycle] Plan status 已更新")
     }
 
     deinit {
