@@ -85,6 +85,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var showSuccessToast = false
     @Published var successMessage: String = ""
 
+    // plan/status API 緩存時間戳（8 小時內不重複呼叫）
+    private var lastPlanStatusFetchTime: Date?
+    private let planStatusCacheInterval: TimeInterval = 8 * 60 * 60 // 8 小時
+
+    // plan/status API 短期 dedup（5 秒內不重複呼叫）
+    private var lastPlanStatusRefreshTime: Date?
+    private let planStatusDedupInterval: TimeInterval = 5 // 5 秒
+
     // 調整建議確認相關屬性
     @Published var showAdjustmentConfirmation = false
     @Published var pendingAdjustments: [AdjustmentItem] = []
@@ -275,11 +283,19 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     private func performForceUpdateWeeklySummaries() async {
         do {
             let summaries = try await weeklySummaryService.fetchWeeklySummaries()
+
+            Logger.debug("📊 [WeeklySummaries] API 回傳 \(summaries.count) 週資料")
+            for summary in summaries {
+                Logger.debug("  週數 \(summary.weekIndex): weekPlan=\(summary.weekPlan != nil ? "有" : "無"), weekSummary=\(summary.weekSummary != nil ? "有" : "無")")
+            }
+
             await MainActor.run {
                 // 按照週數從新到舊排序
                 self.weeklySummaries = summaries.sorted { $0.weekIndex > $1.weekIndex }
                 // 更新緩存
                 cacheWeeklySummaries(self.weeklySummaries)
+
+                Logger.debug("📊 [WeeklySummaries] 已更新UI列表，共 \(self.weeklySummaries.count) 週")
             }
         } catch {
             Logger.error("Failed to force update weekly summaries: \(error.localizedDescription)")
@@ -365,7 +381,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         await loadTrainingOverview()
 
         // 🆕 載入訓練計畫狀態（使用新 API）
-        await loadPlanStatus()
+        // 初始化時跳過緩存，確保獲取最新狀態
+        await loadPlanStatus(skipCache: true)
 
         // 根據狀態決定是否載入週計劃
         if weeklyPlan == nil {
@@ -376,17 +393,46 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // MARK: - 🆕 新增：載入訓練計畫狀態
 
     /// 載入訓練計畫狀態（使用後端 API）
-    func loadPlanStatus() async {
+    /// - Parameter skipCache: 是否跳過緩存檢查（預設為 false）
+    func loadPlanStatus(skipCache: Bool = false) async {
         await executeTask(id: "load_plan_status") {
-            await self.performLoadPlanStatus()
+            await self.performLoadPlanStatus(skipCache: skipCache)
         }
     }
 
-    private func performLoadPlanStatus() async {
-        Logger.debug("🔄 [PlanStatus] 開始呼叫 GET /plan/race_run/status")
+    private func performLoadPlanStatus(skipCache: Bool = false) async {
+        // 🔧 檢查是否需要跳過緩存（8 小時長期緩存）
+        if !skipCache, let lastFetchTime = lastPlanStatusFetchTime {
+            let timeSinceLastFetch = Date().timeIntervalSince(lastFetchTime)
+            if timeSinceLastFetch < planStatusCacheInterval {
+                let remainingTime = planStatusCacheInterval - timeSinceLastFetch
+                let remainingHours = Int(remainingTime / 3600)
+                let remainingMinutes = Int((remainingTime.truncatingRemainder(dividingBy: 3600)) / 60)
+                Logger.debug("⏱️ [PlanStatus] 使用長期緩存，距離上次調用 \(Int(timeSinceLastFetch / 60)) 分鐘，剩餘 \(remainingHours) 小時 \(remainingMinutes) 分鐘後可重新調用")
+                return
+            }
+        }
+
+        // 🔧 短期 dedup（5 秒內不重複呼叫）
+        let now = Date()
+        if !skipCache, let lastRefresh = lastPlanStatusRefreshTime {
+            let timeSinceLastRefresh = now.timeIntervalSince(lastRefresh)
+            if timeSinceLastRefresh < planStatusDedupInterval {
+                Logger.debug("⚡ [PlanStatus] 短期請求過於頻繁，忽略此次呼叫（距上次呼叫 \(String(format: "%.1f", timeSinceLastRefresh)) 秒，需要等待 \(String(format: "%.1f", planStatusDedupInterval - timeSinceLastRefresh)) 秒）")
+                return
+            }
+        }
+
+        Logger.debug("🔄 [PlanStatus] 開始呼叫 GET /plan/race_run/status (skipCache: \(skipCache))")
 
         do {
             let status = try await TrainingPlanService.shared.getPlanStatus()
+
+            // 更新緩存時間戳（8 小時長期緩存 + 5 秒短期 dedup）
+            await MainActor.run {
+                self.lastPlanStatusFetchTime = Date()
+                self.lastPlanStatusRefreshTime = Date()
+            }
 
             await MainActor.run {
                 self.planStatusResponse = status
@@ -410,8 +456,6 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 }
 
                 Logger.debug("🎯 [PlanStatus] nextAction: \(status.nextAction.rawValue)")
-                Logger.debug("📋 [PlanStatus] hasCurrentWeekPlan: \(status.hasCurrentWeekPlan)")
-                Logger.debug("📝 [PlanStatus] hasPreviousWeekSummary: \(status.hasPreviousWeekSummary)")
                 Logger.debug("🚀 [PlanStatus] canGenerateNextWeek: \(status.canGenerateNextWeek)")
                 Logger.debug("📅 [PlanStatus] trainingStartDate: \(status.metadata.trainingStartDate)")
                 Logger.debug("📅 [PlanStatus] currentWeekStartDate: \(status.metadata.currentWeekStartDate)")
@@ -594,10 +638,11 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                             self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: updatedOverview.createdAt) ?? 1
                             self.selectedWeek = self.currentWeek
                         }
-                        
-                        // 重要：更新 overview 後必須重新載入週課表和其他相關資訊
-                        print("概覽更新完成，開始重新載入週課表和相關資訊...")
-                        await self.loadWeeklyPlan()
+
+                        // ✅ 已移除 loadWeeklyPlan() 調用
+                        // 理由：overview 更新只影響元數據（如 totalWeeks），不影響週課表內容
+                        // 週課表由獨立的 API 管理，如需更新會透過 plan/status API 告知
+                        print("概覽更新完成，重新載入相關資訊...")
                         await self.loadCurrentWeekDistance()
                         await self.loadCurrentWeekIntensity()
                         await self.loadWorkoutsForCurrentWeek()
@@ -666,57 +711,65 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 獲取訓練回顧的方法
     @MainActor
-    func createWeeklySummary() async {
+    func createWeeklySummary(weekNumber: Int? = nil) async {
         await executeTask(id: "create_weekly_summary") {
-            await self.performCreateWeeklySummary()
+            await self.performCreateWeeklySummary(weekNumber: weekNumber)
         }
     }
-    
-    private func performCreateWeeklySummary() async {
+
+    private func performCreateWeeklySummary(weekNumber: Int? = nil) async {
         await MainActor.run {
             isLoadingAnimation = true // 顯示 Loading 動畫
             isLoadingWeeklySummary = true
             weeklySummaryError = nil
         }
-        
+
         defer {
             // 無論成功或失敗，最後都關閉動畫
             Task { @MainActor in
                 isLoadingAnimation = false // 隱藏 Loading 動畫
             }
         }
-        
+
         do {
-            // 計算當前訓練週數
-            guard let currentWeek = calculateCurrentTrainingWeek() else {
-                throw NSError(
-                    domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
+            // 使用傳入的週數，如果沒有則計算當前訓練週數
+            let targetWeek: Int
+            if let weekNumber = weekNumber {
+                targetWeek = weekNumber
+                Logger.debug("使用指定週數產生週回顧: 第 \(targetWeek) 週")
+            } else {
+                guard let currentWeek = calculateCurrentTrainingWeek() else {
+                    throw NSError(
+                        domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "無法計算當前訓練週數"])
+                }
+                targetWeek = currentWeek
+                Logger.debug("使用當前週數產生週回顧: 第 \(targetWeek) 週")
             }
-            
+
             // 從API獲取週訓練回顧數據
-            let summary = try await weeklySummaryService.createWeeklySummary()
-            
+            let summary = try await weeklySummaryService.createWeeklySummary(weekNumber: targetWeek)
+
             // 保存到本地儲存
-            WeeklySummaryStorage.shared.saveWeeklySummary(summary, weekNumber: currentWeek)
-            
+            WeeklySummaryStorage.shared.saveWeeklySummary(summary, weekNumber: targetWeek)
+
             await MainActor.run {
                 self.weeklySummary = summary
-                self.lastFetchedWeekNumber = currentWeek
+                self.lastFetchedWeekNumber = targetWeek
                 self.showWeeklySummary = true
                 self.isLoadingWeeklySummary = false
             }
-            
+
             // 更新訓練進度
             await forceUpdateWeeklySummaries()
-            
+
         } catch {
             Logger.error("載入週訓練回顧失敗: \(error)")
-            
+
             await MainActor.run {
                 self.weeklySummaryError = error
                 self.isLoadingWeeklySummary = false
             }
-            
+
             // 嘗試從本地儲存加載
             if let savedSummary = WeeklySummaryStorage.shared.loadWeeklySummary() {
                 await MainActor.run {
@@ -796,6 +849,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             self.weeklySummary = nil
             self.lastFetchedWeekNumber = nil
             self.showWeeklySummary = false
+            self.pendingTargetWeek = nil  // 清除待處理的目標週數
         }
     }
     
@@ -1183,25 +1237,39 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 獲取當前週的日期範圍 (用於獲取訓練記錄)
     func getCurrentWeekDates() -> (Date, Date) {
         if let info = weekDateInfo {
+            Logger.debug("""
+            📅 [getCurrentWeekDates] 使用 weekDateInfo
+               - startDate: \(info.startDate.formatted(date: .abbreviated, time: .omitted))
+               - endDate: \(info.endDate.formatted(date: .abbreviated, time: .omitted))
+               - selectedWeek: \(self.selectedWeek)
+            """)
             return (info.startDate, info.endDate)
         }
-        
+
         // 默認情況：返回當前自然週的範圍
+        Logger.debug("⚠️ [getCurrentWeekDates] weekDateInfo 為 nil，使用系統日期計算自然週")
+
         let calendar = Calendar.current
         let today = Date()
-        
+
         // 找到本週的週一
         let weekday = calendar.component(.weekday, from: today)
         let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
-        
+
         // 週一日期
         let startDate = calendar.date(
             byAdding: .day, value: -adjustedWeekday + 1, to: calendar.startOfDay(for: today))!
-        
+
         // 週日日期 (週一加6天)
         let endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
         let endOfDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endDate)!
-        
+
+        Logger.debug("""
+        📅 [getCurrentWeekDates] 系統週範圍
+           - startDate: \(startDate.formatted(date: .abbreviated, time: .omitted))
+           - endDate: \(endOfDay.formatted(date: .abbreviated, time: .omitted))
+        """)
+
         return (startDate, endOfDay)
     }
     
@@ -1358,12 +1426,17 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     /// 統一的刷新方法 - 使用 loadWeeklyPlan 的 skipCache 功能
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
+        // 手動刷新時，重新檢查 plan status（跳過 8 小時緩存限制）
+        if isManualRefresh {
+            await loadPlanStatus(skipCache: true)
+        }
+
         // 簡化為使用統一的載入方法，但跳過緩存
         await loadWeeklyPlan(skipCache: true)
-        
+
         // 刷新運動數據
         await unifiedWorkoutManager.refreshWorkouts()
-        
+
         // 重新載入當前週數據
         await loadCurrentWeekData()
     }
@@ -1433,20 +1506,37 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     private func performLoadWorkoutsForCurrentWeek() async throws {
         // 獲取當前週的時間範圍
         let (weekStart, weekEnd) = getCurrentWeekDates()
-        
+
+        Logger.debug("""
+        🏃 [LoadWorkouts] 開始加載當前週的 workout
+           - 日期範圍: \(weekStart.formatted(date: .abbreviated, time: .omitted)) ~ \(weekEnd.formatted(date: .abbreviated, time: .omitted))
+           - selectedWeek: \(self.selectedWeek)
+           - currentWeek: \(self.currentWeek)
+        """)
+
         // 從 UnifiedWorkoutManager 獲取該週的運動記錄
         let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
             startDate: weekStart,
             endDate: weekEnd
         )
-        
+
+        Logger.debug("📊 [LoadWorkouts] 獲取到 \(weekWorkouts.count) 個 workout 記錄")
+
         // 按日期分組
         let grouped = groupWorkoutsByDayFromV2(weekWorkouts)
-        
+
+        Logger.debug("""
+        🗂️ [LoadWorkouts] 分組完成
+           - 分組數量: \(grouped.count) 天
+           - 日期分佈: \(grouped.map { "Day \($0.key): \($0.value.count)" }.joined(separator: ", "))
+        """)
+
         // 更新UI（只更新數據，不更新 loading 狀態）
         await MainActor.run {
             self.workoutsByDayV2 = grouped
         }
+
+        Logger.debug("✅ [LoadWorkouts] workoutsByDayV2 已更新")
     }
     
     // 改進的按日期分組方法
@@ -2223,6 +2313,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     /// 產生下週課表（週日提前產生）
     /// - Parameter nextWeekInfo: 下週資訊（來自 planStatusResponse）
     func generateNextWeekPlan(nextWeekInfo: NextWeekInfo) async {
+        Logger.debug("🔔 [GenerateNextWeek] 方法被調用")
+
         guard let status = planStatusResponse else {
             Logger.error("❌ [NextWeekPlan] 無法產生：缺少 planStatusResponse")
             return
@@ -2240,13 +2332,20 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
 
         // 階段 1：如果需要先產生週回顧
         if nextWeekInfo.requiresCurrentWeekSummary {
-            Logger.debug("⏸️ [NextWeekPlan] 需要先產生第 \(status.currentWeek) 週回顧，暫停流程")
+            // 使用 next_week_info.week_number 作為週回顧的週數（後端會自動減一）
+            let summaryWeek = nextWeekInfo.weekNumber
+            Logger.debug("⏸️ [NextWeekPlan] 需要先產生第 \(summaryWeek) 週回顧，暫停流程")
 
-            // 產生當前週回顧
-            await createWeeklySummary()
+            // 保存目標週數，用於週回顧完成後產生課表
+            await MainActor.run {
+                self.pendingTargetWeek = targetWeek
+            }
+
+            // 產生指定週的週回顧
+            await createWeeklySummary(weekNumber: summaryWeek)
 
             // 等待用戶確認調整建議（在 showWeeklySummary view 中處理）
-            // 用戶確認後會調用 confirmAdjustmentsAndGenerateNextWeek(targetWeek:)
+            // 用戶點擊「產生下週課表」按鈕後會使用 pendingTargetWeek
             return
         }
 
@@ -2285,6 +2384,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             Logger.debug("✅ [NextWeekPlan] API 回應成功，課表 ID: \(newPlan.id)")
 
             // ✅ 產生成功，切換到下週並顯示課表
+            // 使用 updateWeeklyPlanUI 來確保 weekDateInfo 正確更新
+            await updateWeeklyPlanUI(plan: newPlan, planChanged: true, status: .ready(newPlan))
+
             await MainActor.run {
                 Logger.debug("""
                 🔄 [NextWeekPlan] 更新 UI 狀態
@@ -2293,9 +2395,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                    - 顯示 Toast: true
                 """)
 
-                self.selectedWeek = targetWeek
-                self.weeklyPlan = newPlan
-                self.planStatus = .ready(newPlan)
+                // 清除待處理的目標週數
+                self.pendingTargetWeek = nil
 
                 // 顯示成功 Toast
                 self.showSuccessToast = true
@@ -2306,12 +2407,81 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             TrainingPlanStorage.saveWeeklyPlan(newPlan)
             Logger.debug("💾 [NextWeekPlan] 已保存到本地緩存")
 
+            // 🔧 重新載入 workout 記錄，確保只顯示新週的訓練記錄
+            Logger.debug("🔄 [NextWeekPlan] 重新載入當前週的 workout 記錄...")
+            await loadWorkoutsForCurrentWeek()
+
             // 重新載入狀態（驗證）
+            // 剛生成新課表，需要立即同步狀態，跳過緩存
             Logger.debug("🔄 [NextWeekPlan] 重新載入狀態驗證...")
-            await loadPlanStatus()
+            await loadPlanStatus(skipCache: true)
 
             // 更新訓練進度
             await forceUpdateWeeklySummaries()
+
+            // 🔧 手動更新週選擇器列表，確保新課表可以被選擇
+            await MainActor.run {
+                Logger.debug("🔍 [NextWeekPlan] 檢查週摘要列表，目標週: \(targetWeek)")
+                Logger.debug("   當前列表週數: \(self.weeklySummaries.map { $0.weekIndex })")
+
+                // 檢查是否已存在該週
+                if let index = self.weeklySummaries.firstIndex(where: { $0.weekIndex == targetWeek }) {
+                    let currentSummary = self.weeklySummaries[index]
+                    Logger.debug("   第 \(targetWeek) 週已存在，weekPlan: \(currentSummary.weekPlan ?? "nil")")
+
+                    // 如果 weekPlan 是 nil，手動設置
+                    if currentSummary.weekPlan == nil {
+                        Logger.debug("🔧 [NextWeekPlan] 手動設置第 \(targetWeek) 週的 weekPlan = \(newPlan.id)")
+                        let updatedItem = WeeklySummaryItem(
+                            weekIndex: currentSummary.weekIndex,
+                            weekStart: currentSummary.weekStart,
+                            distanceKm: currentSummary.distanceKm,
+                            weekPlan: newPlan.id,  // 使用新產生的課表 ID
+                            weekSummary: currentSummary.weekSummary,
+                            completionPercentage: currentSummary.completionPercentage
+                        )
+                        self.weeklySummaries[index] = updatedItem
+                        Logger.debug("✅ [NextWeekPlan] 第 \(targetWeek) 週 weekPlan 已更新")
+                    }
+                } else {
+                    Logger.debug("⚠️ [NextWeekPlan] 週摘要列表中找不到第 \(targetWeek) 週，需要手動新增")
+
+                    // 手動添加新週到列表（推測週開始日期）
+                    guard let overview = self.trainingOverview else {
+                        Logger.error("❌ [NextWeekPlan] 無法添加第 \(targetWeek) 週：缺少 trainingOverview")
+                        return
+                    }
+
+                    // 計算週開始日期（假設從訓練開始日期算起）
+                    let calendar = Calendar.current
+                    if let startDate = ISO8601DateFormatter().date(from: overview.createdAt),
+                       let weekStartDate = calendar.date(byAdding: .weekOfYear, value: targetWeek - 1, to: startDate) {
+                        let dateFormatter = ISO8601DateFormatter()
+                        let weekStartString = dateFormatter.string(from: weekStartDate)
+
+                        let newItem = WeeklySummaryItem(
+                            weekIndex: targetWeek,
+                            weekStart: weekStartString,
+                            distanceKm: nil,
+                            weekPlan: newPlan.id,
+                            weekSummary: nil,
+                            completionPercentage: nil
+                        )
+
+                        self.weeklySummaries.append(newItem)
+                        // 重新排序
+                        self.weeklySummaries.sort { $0.weekIndex > $1.weekIndex }
+
+                        Logger.debug("✅ [NextWeekPlan] 已手動添加第 \(targetWeek) 週到列表")
+                    }
+                }
+
+                Logger.debug("📊 [NextWeekPlan] 最終列表: \(self.weeklySummaries.count) 週")
+
+                // 更新快取
+                self.cacheWeeklySummaries(self.weeklySummaries)
+                Logger.debug("💾 [NextWeekPlan] 已更新週摘要快取")
+            }
 
             Logger.debug("✅ [NextWeekPlan] 完整流程結束，第 \(targetWeek) 週課表已成功產生並顯示")
 
@@ -2331,6 +2501,26 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             self.showSuccessToast = false
             self.successMessage = ""
         }
+    }
+
+    // MARK: - App Lifecycle
+
+    /// App 從後台回到前台時的輕量級數據同步
+    func onAppBecameActive() async {
+        Logger.debug("🔄 [AppLifecycle] TrainingPlanViewModel: App 回到前台")
+
+        // 只有在用戶已認證且有訓練概覽時才同步
+        guard AuthenticationService.shared.isAuthenticated,
+              let _ = trainingOverview else {
+            Logger.debug("⚠️ [AppLifecycle] 用戶未認證或無訓練概覽，跳過同步")
+            return
+        }
+
+        // 只重新載入 plan status（輕量級 API 調用）
+        Logger.debug("📊 [AppLifecycle] 檢查 plan status...")
+        await loadPlanStatus()
+
+        Logger.debug("✅ [AppLifecycle] Plan status 已更新")
     }
 
     deinit {

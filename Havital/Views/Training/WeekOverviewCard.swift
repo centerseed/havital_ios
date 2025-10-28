@@ -80,15 +80,7 @@ struct WeekOverviewCard: View {
         .sheet(isPresented: $showWeekSelector) {
             WeekSelectorSheet(viewModel: viewModel, isPresented: $showWeekSelector)
         }
-        .sheet(isPresented: $viewModel.showWeeklySummary) {
-            if let summary = viewModel.weeklySummary {
-                WeeklySummaryView(
-                    summary: summary,
-                    weekNumber: viewModel.lastFetchedWeekNumber,
-                    isVisible: $viewModel.showWeeklySummary
-                )
-            }
-        }
+        // 移除此處的週回顧 sheet，統一由 TrainingPlanView 的全局 sheet 處理
         .sheet(isPresented: $showTrainingProgress) {
             TrainingProgressView(viewModel: viewModel)
         }

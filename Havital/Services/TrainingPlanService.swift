@@ -47,9 +47,25 @@ final class TrainingPlanService {
         }
     }
     
-    func postTrainingPlanOverview() async throws -> TrainingPlanOverview {
+    func postTrainingPlanOverview(startFromStage: String? = nil) async throws -> TrainingPlanOverview {
+        let bodyData: Data?
+
+        // 構建請求體參數
+        if let stage = startFromStage {
+            let params: [String: Any] = ["start_from_stage": stage]
+            bodyData = try JSONSerialization.data(withJSONObject: params)
+
+            // Debug logging
+            if let jsonString = String(data: bodyData!, encoding: .utf8) {
+                print("[TrainingPlanService] 📤 POST /plan/race_run/overview with body: \(jsonString)")
+            }
+        } else {
+            bodyData = nil
+            print("[TrainingPlanService] 📤 POST /plan/race_run/overview with no body (startFromStage is nil)")
+        }
+
         return try await makeAPICall(TrainingPlanOverview.self,
-            path: "/plan/race_run/overview", method: .POST)
+            path: "/plan/race_run/overview", method: .POST, body: bodyData)
     }
     
     func updateTrainingPlanOverview(overviewId: String) async throws -> TrainingPlanOverview {
@@ -131,14 +147,25 @@ final class TrainingPlanService {
         }
     }
     
-    func createWeeklyPlan(targetWeek: Int? = nil) async throws -> WeeklyPlan {
+    func createWeeklyPlan(targetWeek: Int? = nil, startFromStage: String? = nil) async throws -> WeeklyPlan {
         let bodyData: Data?
+
+        // 構建請求體參數
+        var params: [String: Any] = [:]
         if let week = targetWeek {
-            bodyData = try JSONSerialization.data(
-                withJSONObject: ["week_of_training": week])
+            params["week_of_training"] = week
+        }
+        if let stage = startFromStage {
+            params["start_from_stage"] = stage
+        }
+
+        // 如果有參數，轉換為 JSON
+        if !params.isEmpty {
+            bodyData = try JSONSerialization.data(withJSONObject: params)
         } else {
             bodyData = nil
         }
+
         return try await makeAPICall(WeeklyPlan.self,
             path: "/plan/race_run/weekly/v2", method: .POST, body: bodyData)
     }

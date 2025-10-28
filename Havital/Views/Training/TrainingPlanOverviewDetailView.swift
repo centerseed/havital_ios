@@ -4,50 +4,37 @@ struct TrainingPlanOverviewDetailView: View {
     @State private var overview: TrainingPlanOverview
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @State private var targetRace: Target? = nil
-    @State private var supportingTargets: [Target] = []
+
+    // 🆕 使用 TargetManager（雙軌緩存架構）
+    @StateObject private var targetManager = TargetManager.shared
+
     @State private var showEditSheet = false
     @State private var showEditSupportingSheet = false
     @State private var showAddSupportingSheet = false
     @State private var selectedSupportingTarget: Target? = nil
     @State private var hasTargetSaved = false
-    
+
     @State private var isUpdatingOverview = false
     @State private var showUpdateStatus = false
     @State private var updateStatusMessage = ""
     @State private var isUpdateSuccessful = false
     @State private var updatedOverview: TrainingPlanOverview?
-    
+
     init(overview: TrainingPlanOverview) {
         _overview = State(initialValue: overview)
     }
     
-    // 給支援賽事排序 - 按照日期從新到舊，並限制最多五筆
+    // 給支援賽事排序 - 按照日期由近到遠（最快要比的在上面）
     private var sortedSupportingTargets: [Target] {
-        return Array(supportingTargets.sorted { $0.raceDate > $1.raceDate }
-                       .prefix(5))
+        return targetManager.supportingTargets.sorted { $0.raceDate < $1.raceDate }
     }
     
     var body: some View {
         ZStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header with Plan Name
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(overview.trainingPlanName)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                        
-                        Text(String(format: NSLocalizedString("training.total_weeks", comment: "Total weeks: %d weeks"), overview.totalWeeks))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 4)
-                    
-                    // Target Race Card
-                    if let target = targetRace {
+                    // Target Race Card - 使用 TargetManager
+                    if let target = targetManager.mainTarget {
                         TargetRaceCard(target: target, onEditTap: {
                             showEditSheet = true
                         })
@@ -108,48 +95,59 @@ struct TrainingPlanOverviewDetailView: View {
                 .padding(.vertical)
                 .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
             }
-            .overlay(alignment: .topTrailing) {
-                Button(NSLocalizedString("common.done", comment: "Done")) {
-                    dismiss()
-                }
-                .foregroundColor(.blue)
-                .padding(.trailing, 16)
-                .padding(.top, 50)
-            }
             .edgesIgnoringSafeArea(.bottom)
-            .navigationBarHidden(true)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text(overview.trainingPlanName)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        Text(String(format: NSLocalizedString("training.total_weeks", comment: "Total weeks: %d weeks"), overview.totalWeeks))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.done", comment: "Done")) {
+                        dismiss()
+                    }
+                }
+            }
             .presentationDetents([.large])
             .onAppear {
-                // 從 overview.mainRaceId 載入主要賽事
-                loadTargetRace()
-                print("從 Overview mainRaceId 獲取主要賽事: \(overview.mainRaceId)")
-                
-                // 載入支援賽事
-                self.supportingTargets = TargetStorage.shared.getSupportingTargets()
-                print("已載入 \(supportingTargets.count) 個支援賽事")
-                
-                // 雲端同步所有賽事並更新本地與 UI
-                fetchAndSyncTargets()
+                // 🆕 使用 TargetManager 的雙軌緩存載入
+                Task {
+                    await targetManager.loadTargets()
+                    Logger.debug("TrainingPlanOverviewDetailView: 已透過 TargetManager 載入賽事資料")
+                }
             }
             .sheet(isPresented: $showEditSheet, onDismiss: {
                 // 編輯視圖關閉後的處理邏輯會在通知中處理
                 // 這裡不需要做任何事情，避免重複處理
             }) {
-                if let target = targetRace {
+                if let target = targetManager.mainTarget {
                     EditTargetView(target: target)
                 }
             }
             .sheet(isPresented: $showEditSupportingSheet, onDismiss: {
-                // 編輯支援賽事關閉後同步雲端與本地資料
-                fetchAndSyncTargets()
+                // 🆕 編輯支援賽事關閉後使用 TargetManager 強制刷新
+                Task {
+                    await targetManager.forceRefresh()
+                    Logger.debug("編輯支援賽事後已刷新資料")
+                }
             }) {
                 if let target = selectedSupportingTarget {
                     EditSupportingTargetView(target: target)
                 }
             }
             .sheet(isPresented: $showAddSupportingSheet, onDismiss: {
-                // 添加支援賽事關閉後同步雲端與本地資料
-                fetchAndSyncTargets()
+                // 🆕 添加支援賽事關閉後使用 TargetManager 強制刷新
+                Task {
+                    await targetManager.forceRefresh()
+                    Logger.debug("添加支援賽事後已刷新資料")
+                }
             }) {
                 AddSupportingTargetView()
             }
@@ -157,23 +155,28 @@ struct TrainingPlanOverviewDetailView: View {
                 // 只處理來自 EditTargetView 且包含變更資訊的通知
                 if let userInfo = notification.userInfo,
                    let hasSignificantChange = userInfo["hasSignificantChange"] as? Bool {
-                    print("接收到賽事編輯通知，重要變更: \(hasSignificantChange)")
-                    
-                    // 無論是否有重要變更，都要重新載入賽事資料以顯示最新名稱
-                    loadTargetRace()
-                    
+                    Logger.debug("接收到賽事編輯通知，重要變更: \(hasSignificantChange)")
+
+                    // 🆕 使用 TargetManager 重新載入賽事資料以顯示最新名稱
+                    Task {
+                        await targetManager.forceRefresh()
+                    }
+
                     // 只有在有重要變更時才更新訓練計劃概覽
                     if hasSignificantChange {
                         updateTrainingPlanOverview()
                     }
                 } else {
                     // 忽略來自其他地方（如 TargetStorage）的通知，避免不必要的 overview 更新
-                    print("忽略來自 TargetStorage 的 targetUpdated 通知")
+                    Logger.debug("忽略來自 TargetStorage 的 targetUpdated 通知")
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
-                // 當支援賽事更新時，只重新載入支援賽事列表，不更新主要訓練計劃
-                loadSupportingTargets()
+                // 🆕 當支援賽事更新時，使用 TargetManager 重新載入
+                Task {
+                    await targetManager.forceRefresh()
+                    Logger.debug("支援賽事更新後已刷新資料")
+                }
             }
             
             
@@ -236,28 +239,10 @@ struct TrainingPlanOverviewDetailView: View {
             }
         }
     }
-    
-    private func loadTargetRace() {
-        // 從 API 獲取主要賽事
-        Task {
-            do {
-                let fetched = try await TargetService.shared.getTarget(id: overview.mainRaceId)
-                await MainActor.run {
-                    self.targetRace = fetched
-                }
-                print("Loaded main target via mainRaceId: \(fetched)")
-            } catch {
-                print("從 API 獲取主要賽事失敗: \(error)")
-            }
-        }
-    }
-    
-    private func loadSupportingTargets() {
-        // 從本地儲存獲取支援賽事
-        self.supportingTargets = TargetStorage.shared.getSupportingTargets()
-        print("已重新載入 \(supportingTargets.count) 個支援賽事")
-    }
-    
+
+    // ❌ 已移除 loadTargetRace() - 現在使用 TargetManager.loadTargets()
+    // ❌ 已移除 loadSupportingTargets() - 現在使用 TargetManager.loadTargets()
+
     private func updateTrainingPlanOverview() {
         // 顯示更新中狀態
         isUpdatingOverview = true
@@ -303,25 +288,8 @@ struct TrainingPlanOverviewDetailView: View {
             }
         }
     }
-    
-    // 雲端同步所有賽事並更新狀態
-    private func fetchAndSyncTargets() {
-        Task {
-            do {
-                let allTargets = try await TargetService.shared.getTargets()
-                TargetStorage.shared.saveTargets(allTargets)
-                let main = allTargets.first { $0.isMainRace }
-                let supporting = allTargets.filter { !$0.isMainRace }
-                await MainActor.run {
-                    self.targetRace = main
-                    self.supportingTargets = supporting.sorted { $0.raceDate < $1.raceDate }
-                }
-                print("同步完成：主賽事\(String(describing: main))，支援賽事\(supporting.count)")
-            } catch {
-                print("fetchAndSyncTargets 失敗: \(error)")
-            }
-        }
-    }
+
+    // ❌ 已移除 fetchAndSyncTargets() - 現在使用 TargetManager.forceRefresh()
 }
 
 // MARK: - Supporting Views

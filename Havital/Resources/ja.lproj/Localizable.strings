@@ -311,6 +311,14 @@
 "training.review.loading_error" = "トレーニングレビューを読み込めませんでした";
 "training.review.retry" = "再試行";
 
+// MARK: - Generate Next Week
+"training.ready_for_next_week" = "🎯 来週のトレーニングの準備はできましたか？";
+"training.generate_week_plan" = "第%d週のプランを生成";
+"training.need_complete_review" = "今週のレビューを先に完了する必要があります";
+"training.review_completed" = "今週のレビューが完了しました";
+"training.confirm_training_completed_title" = "トレーニング完了の確認";
+"training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次レビューには完全なトレーニングデータが必要です。";
+
 // MARK: - Training Plan Info Card
 "training.plan_info" = "トレーニング計画情報";
 "training.ai_analysis" = "AI分析";
@@ -725,6 +733,7 @@
 "onboarding.distance_selection" = "距離を選択";
 "onboarding.time_hours" = "時間";
 "onboarding.time_minutes" = "分";
+"onboarding.time_seconds" = "秒";
 "onboarding.average_pace_calculation" = "平均ペース";
 "onboarding.per_kilometer" = "/km";
 "onboarding.enter_valid_time" = "ペースを計算するために有効な時間を入力してください。";
@@ -1006,6 +1015,24 @@
 "training_type_info.long_run.logic" = "中等強度の長時間有酸素トレーニング（最大心拍数の約70–80%）。この強度では、体は脂肪とグリコーゲンの両方を燃料として使用し、エネルギー利用効率と筋肉持久力を向上させます。また、「レースペースの安定性」と「精神的耐性」を強化する重要なワークアウト。";
 "training_type_info.long_run.role" = "通常週末、週で最も長いセッション。強化期やレース準備期間中、レース条件をシミュレートするコアトレーニングで、イージーランやリカバリーランと組み合わせて負荷を吸収します。";
 
+"training_type_info.easy.title" = "イージーラン Easy Run";
+"training_type_info.easy.how_to_run" = "非常にリラックスしたペース。楽に会話でき、ほぼ息が上がらない。「走る喜びのために」走っている感覚です。";
+"training_type_info.easy.why_run" = "イージーランは日々のトレーニングの基礎です。過度な疲労を起こさずに規則正しい走行に体を慣らし、ランニングへの情熱を続ける鍵となります。";
+"training_type_info.easy.logic" = "低強度有酸素トレーニング（最大心拍数の約60–70%）。この強度では、体は脂肪を主な燃料源として安定して利用しながら、有酸素能力と毛細血管の成長を構築します。";
+"training_type_info.easy.role" = "訓練週の「日常の主役」。ハードセッション前後にイージーランでウォームアップと回復をしたり、単独でイージーデーとして使用して、プレッシャーなしにトレーニング負荷に体を適応させます。";
+
+"training_type_info.combination.title" = "コンビネーショントレーニング Combination Training";
+"training_type_info.combination.how_to_run" = "1つのセッション内に複数の強度ゾーンを組み合わせます。楽に開始し、徐々にペースを上げるか、スプリントと回復を交互に行います。";
+"training_type_info.combination.why_run" = "コンビネーショントレーニングは1つのセッション内で複数の能力に刺激を与えます。変動する強度下で素早く適応し、心肺と筋肉の総合的なパフォーマンスを向上させるよう訓練します。";
+"training_type_info.combination.logic" = "有酸素トレーニングと無酸素トレーニングの利点を統合し、強度の変動を通じて複数の生理系を刺激します。単一強度セッションと比較して、持久力、速度、適応能力をより包括的に構築します。";
+"training_type_info.combination.role" = "時間が限られているが包括的なトレーニング効果を望む場合、週中のメインセッションとして機能します。実際のレースの変動するペースをシミュレートするため、レース準備期間中にも一般的です。";
+
+"training_type_info.rest.title" = "レストデー Rest Day";
+"training_type_info.rest.how_to_run" = "構造化されたランニングトレーニングはありません。軽いウォーキングまたは完全な静的休息を選択でき、体の声に耳を傾けてください。";
+"training_type_info.rest.why_run" = "休息はトレーニングプランの中で最も見落とされやすいのに、最も重要な部分です。完全な休息日は筋肉修復、神経系の回復、エネルギー貯蔵の補充を可能にします。";
+"training_type_info.rest.logic" = "トレーニング負荷がない場合、体は深い修復を行います。筋肉タンパク質合成が増加し、疲労毒素が消失し、ホルモンと免疫系のバランスが再調整される——これが「休息を通じて強くなる」プロセスです。";
+"training_type_info.rest.role" = "毎週1～2日の完全休息日をスケジュールします。通常、ハードトレーニング後に配置します。十分な休息日は過度なトレーニングを防ぎ、長期的なパフォーマンスと健康を維持します。";
+
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "月曜日";
 "weekday.tuesday" = "火曜日";
@@ -1244,3 +1271,72 @@
 
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AIトレーニングレポート";
+
+// MARK: - Training Stages
+"stage.conversion" = "転換期";
+"stage.base" = "基礎期";
+"stage.build" = "強化期";
+"stage.peak" = "ピーク期";
+"stage.taper" = "テーパー期";
+
+// MARK: - Risk Levels
+"risk.low" = "低";
+"risk.medium" = "中";
+"risk.high" = "高";
+
+// MARK: - Start Stage Selection
+"start_stage.title" = "トレーニング開始フェーズ";
+"start_stage.time_notice_title" = "トレーニング期間";
+"start_stage.time_notice" = "レースまで%d週間";
+"start_stage.training_habit_reminder" = "定期的なトレーニング習慣があるランナーには基礎期をスキップすることをお勧めします";
+"start_stage.recommendation" = "おすすめの開始フェーズ";
+"start_stage.other_options" = "その他のオプション";
+"start_stage.training_distribution" = "トレーニング週数配分";
+"start_stage.continue" = "続ける";
+"start_stage.risk_level" = "リスクレベル: %@";
+"start_stage.weeks_count" = "%d週";
+
+// Start Stage Reasons
+"start_stage.too_short_reason" = "レースまで2週間未満、期間が短すぎます";
+"start_stage.peak_reason" = "%d週間あります。定期的なトレーニング習慣があるランナーにはピーク期から開始することをお勧めします";
+"start_stage.build_medium_reason" = "%d週間あります。定期的なトレーニング習慣があるランナーには強化期から開始することをお勧めします";
+"start_stage.build_low_reason" = "%d週間あります。トレーニング経験があるランナーには強化期から開始することをお勧めします";
+"start_stage.base_reason" = "十分な%d週間の準備期間があります。基礎期から完全なトレーニングを開始することをお勧めします";
+
+// Stage Alternatives
+"start_stage.peak_suitable" = "十分なトレーニングを積んだ経験豊富なランナー";
+"start_stage.peak_description" = "週40km以上走るランナーに適しています";
+"start_stage.base_suitable" = "完全なプラン";
+"start_stage.base_description" = "基礎期から段階的に構築";
+"start_stage.build_suitable" = "トレーニング習慣があるランナー";
+"start_stage.build_description" = "より安全な選択";
+"start_stage.build_skip_base_description" = "既に週20-30kmのランニング量がある場合";
+"start_stage.base_short_time_description" = "期間が短く、各段階の効果が不十分になる可能性があります";
+"start_stage.base_very_short_description" = "時間不足、完全なトレーニング計画を実行できません";
+
+// Time Warning
+"start_stage.time_too_short_title" = "期間が短い";
+"start_stage.time_too_short_message" = "レースまで2週間未満、期待されるトレーニング効果が得られない可能性があります。より遅いレース日を選択することをお勧めします。";
+
+// Common
+"common.ok" = "OK";
+
+// MARK: - Timezone Settings
+"timezone.title" = "タイムゾーン設定";
+"timezone.current_device" = "デバイスのタイムゾーン";
+"timezone.device_timezone" = "デバイスのタイムゾーン";
+"timezone.use_device" = "デバイスのタイムゾーンを使用";
+"timezone.common_timezones" = "よく使うタイムゾーン";
+"timezone.sync_message" = "タイムゾーン設定はサーバーに同期され、トレーニング計画の週数計算に影響します";
+"timezone.change_warning" = "タイムゾーンを変更すると、トレーニング週数の計算に影響する可能性があります";
+
+// Timezone Names
+"timezone.taipei" = "台北";
+"timezone.tokyo" = "東京";
+"timezone.hong_kong" = "香港";
+"timezone.singapore" = "シンガポール";
+"timezone.seoul" = "ソウル";
+"timezone.new_york" = "ニューヨーク";
+"timezone.los_angeles" = "ロサンゼルス";
+"timezone.london" = "ロンドン";
+"timezone.sydney" = "シドニー";

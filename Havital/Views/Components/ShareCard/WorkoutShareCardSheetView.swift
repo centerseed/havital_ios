@@ -84,7 +84,8 @@ struct WorkoutShareCardSheetView: View {
                             : nil
                         )
                     }
-                } else if viewModel.isGenerating {
+                } else {
+                    // 載入狀態 - 包含 isGenerating 和初始狀態
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.5)
@@ -93,8 +94,6 @@ struct WorkoutShareCardSheetView: View {
                             .foregroundColor(.secondary)
                     }
                     .frame(maxHeight: .infinity)
-                } else {
-                    emptyStateView
                 }
 
                 Divider()
@@ -193,22 +192,28 @@ struct WorkoutShareCardSheetView: View {
                     }
                 }
             }
-            .task {
-                // 初次載入：先確保有完整的 workout 數據（包含 shareCardContent）
-                await loadFullWorkoutData()
+            .onAppear {
+                // 立即準備數據（同步，無延遲）
+                prepareFullWorkoutData()
 
-                // 使用完整的 workout 數據生成分享卡
-                await viewModel.generateShareCard(
-                    workout: fullWorkout ?? workout,
-                    workoutDetail: workoutDetail,
-                    userPhoto: nil
-                )
+                // 異步生成分享卡
+                Task {
+                    await viewModel.generateShareCard(
+                        workout: fullWorkout ?? workout,
+                        workoutDetail: workoutDetail,
+                        userPhoto: nil
+                    )
+                }
             }
             .sheet(isPresented: $showPhotoPicker) {
                 PhotoPicker(selectedImage: $selectedPhoto)
             }
-            .onChange(of: selectedPhoto) { _, newPhoto in
-                if newPhoto != nil {
+            .onChange(of: selectedPhoto) { oldPhoto, newPhoto in
+                print("📱 [WorkoutShareCardSheetView] selectedPhoto 改變: \(oldPhoto == nil ? "nil" : "有圖片") -> \(newPhoto == nil ? "nil" : "有圖片")")
+
+                if let photo = newPhoto {
+                    print("✅ [WorkoutShareCardSheetView] 偵測到新照片，尺寸: \(photo.size)")
+
                     // 重置圖片變換狀態
                     photoScale = 1.0
                     photoOffset = .zero
@@ -216,12 +221,15 @@ struct WorkoutShareCardSheetView: View {
                     lastOffset = .zero
 
                     Task {
+                        print("🔄 [WorkoutShareCardSheetView] 開始重新生成分享卡（包含照片）")
                         await viewModel.generateShareCard(
                             workout: fullWorkout ?? workout,
                             workoutDetail: workoutDetail,
-                            userPhoto: newPhoto
+                            userPhoto: photo
                         )
                     }
+                } else {
+                    print("⚠️ [WorkoutShareCardSheetView] selectedPhoto 變為 nil")
                 }
             }
             .sheet(isPresented: $showShareSheet) {
@@ -295,33 +303,10 @@ struct WorkoutShareCardSheetView: View {
 
     // MARK: - Data Loading
 
-    /// 檢查並打印 workout 的 shareCardContent 狀態
-    private func loadFullWorkoutData() async {
-        // 詳細調試信息
-        print("📋 [WorkoutShareCardSheetView] 檢查 shareCardContent")
-        print("   - workout.id: \(workout.id)")
-        print("   - workout.shareCardContent 是否為 nil: \(workout.shareCardContent == nil)")
-        print("   - workoutDetail 是否為 nil: \(workoutDetail == nil)")
-        print("   - workoutDetail?.shareCardContent 是否為 nil: \(workoutDetail?.shareCardContent == nil)")
-
+    /// 準備完整的 workout 數據（同步執行，無延遲）
+    private func prepareFullWorkoutData() {
         // 優先使用 workoutDetail 的數據（來自詳情 API）
         if let detail = workoutDetail {
-            print("✅ [WorkoutShareCardSheetView] 使用 workoutDetail 的數據")
-            print("   - shareCardContent: \(detail.shareCardContent != nil)")
-            print("   - dailyPlanSummary: \(detail.dailyPlanSummary != nil)")
-
-            if let detailContent = detail.shareCardContent {
-                print("   - achievementTitle: \(detailContent.achievementTitle ?? "nil")")
-                print("   - encouragementText: \(detailContent.encouragementText ?? "nil")")
-                print("   - streakDays: \(detailContent.streakDays?.description ?? "nil")")
-            }
-
-            if let planSummary = detail.dailyPlanSummary {
-                print("   - trainingType: \(planSummary.trainingType ?? "nil")")
-                print("   - distanceKm: \(planSummary.distanceKm?.description ?? "nil")")
-                print("   - pace: \(planSummary.pace ?? "nil")")
-            }
-
             // 創建一個新的 WorkoutV2 對象，包含 workoutDetail 的完整數據
             fullWorkout = WorkoutV2(
                 id: workout.id,
@@ -337,18 +322,11 @@ struct WorkoutShareCardSheetView: View {
                 createdAt: workout.createdAt,
                 schemaVersion: workout.schemaVersion,
                 storagePath: workout.storagePath,
-                dailyPlanSummary: detail.dailyPlanSummary,  // 使用詳情 API 的 dailyPlanSummary
-                aiSummary: detail.aiSummary,  // 使用詳情 API 的 aiSummary
-                shareCardContent: detail.shareCardContent  // 使用詳情 API 的 shareCardContent
+                dailyPlanSummary: detail.dailyPlanSummary,
+                aiSummary: detail.aiSummary,
+                shareCardContent: detail.shareCardContent
             )
-        } else if let workoutContent = workout.shareCardContent {
-            print("⚠️ [WorkoutShareCardSheetView] workoutDetail 無 shareCardContent，使用 workout.shareCardContent")
-            print("   - achievementTitle: \(workoutContent.achievementTitle ?? "nil")")
-            print("   - encouragementText: \(workoutContent.encouragementText ?? "nil")")
-            print("   - streakDays: \(workoutContent.streakDays?.description ?? "nil")")
-            fullWorkout = workout
         } else {
-            print("⚠️ [WorkoutShareCardSheetView] 兩者都無 shareCardContent，將使用本地生成")
             fullWorkout = workout
         }
     }
@@ -412,18 +390,58 @@ struct PhotoPicker: UIViewControllerRepresentable {
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             parent.dismiss()
 
-            guard let result = results.first else { return }
+            guard let result = results.first else {
+                print("⚠️ [PhotoPicker] 未選擇任何圖片")
+                return
+            }
 
-            result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+            let itemProvider = result.itemProvider
+
+            print("📸 [PhotoPicker] 開始載入圖片...")
+
+            // 方法 1: 使用 loadDataRepresentation（更可靠）
+            itemProvider.loadDataRepresentation(forTypeIdentifier: "public.image") { [weak self] data, error in
                 if let error = error {
-                    print("❌ [PhotoPicker] 載入圖片失敗: \(error.localizedDescription)")
+                    print("⚠️ [PhotoPicker] loadDataRepresentation 失敗: \(error.localizedDescription)")
+                    // Fallback 到方法 2
+                    self?.loadImageUsingObject(itemProvider)
                     return
                 }
 
-                if let image = object as? UIImage {
-                    DispatchQueue.main.async {
-                        self?.parent.selectedImage = image
-                    }
+                guard let data = data, let image = UIImage(data: data) else {
+                    print("⚠️ [PhotoPicker] 無法將數據轉換為圖片，嘗試方法 2")
+                    // Fallback 到方法 2
+                    self?.loadImageUsingObject(itemProvider)
+                    return
+                }
+
+                print("✅ [PhotoPicker] 圖片載入成功（方法 1），尺寸: \(image.size)")
+
+                DispatchQueue.main.async {
+                    self?.parent.selectedImage = image
+                }
+            }
+        }
+
+        // Fallback 方法：使用 loadObject
+        private func loadImageUsingObject(_ itemProvider: NSItemProvider) {
+            print("📸 [PhotoPicker] 使用 loadObject 載入圖片...")
+
+            itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+                if let error = error {
+                    print("❌ [PhotoPicker] loadObject 也失敗: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let image = object as? UIImage else {
+                    print("❌ [PhotoPicker] 無法轉換為 UIImage")
+                    return
+                }
+
+                print("✅ [PhotoPicker] 圖片載入成功（方法 2），尺寸: \(image.size)")
+
+                DispatchQueue.main.async {
+                    self?.parent.selectedImage = image
                 }
             }
         }

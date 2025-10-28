@@ -117,6 +117,7 @@ class EditTargetViewModel: ObservableObject {
     private let originalDistance: String
     private let originalTargetTime: Int
     private let originalTrainingWeeks: Int
+    private let originalTimezone: String  // 🔧 保存原始時區
     
     // 移動到類別層級的可用距離選項
     var availableDistances: [String: String] {
@@ -162,6 +163,7 @@ class EditTargetViewModel: ObservableObject {
         // 先初始化原始值
         self.originalTargetTime = target.targetTime
         self.originalTrainingWeeks = target.trainingWeeks
+        self.originalTimezone = target.timezone  // 🔧 保存原始時區
 
         // 初始化當前值
         self.raceName = target.name
@@ -203,7 +205,8 @@ class EditTargetViewModel: ObservableObject {
                 targetPace: targetPace,
                 raceDate: Int(raceDate.timeIntervalSince1970),
                 isMainRace: true,
-                trainingWeeks: remainingWeeks
+                trainingWeeks: remainingWeeks,
+                timezone: originalTimezone  // 🔧 保持原始時區設定
             )
             
             // 更新目標賽事

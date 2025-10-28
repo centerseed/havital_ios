@@ -20,7 +20,7 @@ struct ProgressCirclesSection: View {
                         unit: NSLocalizedString("progress.week_unit", comment: "Week")
                     )
                     .frame(width: 100, height: 100)
-                    .onTapGesture { showTrainingProgress = true }
+                    .onTapGesture { showWeekSelector = true }  // 點擊開啟週選擇器
                 }
                 .frame(width: geometry.size.width * 0.45, alignment: .center)
                 

@@ -10,18 +10,6 @@ struct TimezoneSettingsView: View {
     @State private var errorMessage = ""
     @State private var showWarningAlert = false
 
-    // 常用時區列表
-    let commonTimezones = [
-        TimezoneOption(id: "Asia/Taipei", name: "台北 (GMT+8)", offset: "+08:00"),
-        TimezoneOption(id: "Asia/Tokyo", name: "東京 (GMT+9)", offset: "+09:00"),
-        TimezoneOption(id: "Asia/Hong_Kong", name: "香港 (GMT+8)", offset: "+08:00"),
-        TimezoneOption(id: "Asia/Singapore", name: "新加坡 (GMT+8)", offset: "+08:00"),
-        TimezoneOption(id: "America/New_York", name: "紐約 (GMT-5/-4)", offset: "-05:00"),
-        TimezoneOption(id: "America/Los_Angeles", name: "洛杉磯 (GMT-8/-7)", offset: "-08:00"),
-        TimezoneOption(id: "Europe/London", name: "倫敦 (GMT+0/+1)", offset: "+00:00"),
-        TimezoneOption(id: "Australia/Sydney", name: "雪梨 (GMT+10/+11)", offset: "+10:00")
-    ]
-
     init() {
         let currentTimezone = UserPreferenceManager.shared.timezonePreference ?? UserPreferenceManager.getDeviceTimezone()
         _selectedTimezone = State(initialValue: currentTimezone)
@@ -39,12 +27,12 @@ struct TimezoneSettingsView: View {
 
                 // Common Timezones Section
                 Section(header: Text(L10n.Timezone.commonTimezones.localized)) {
-                    ForEach(commonTimezones, id: \.id) { timezone in
+                    ForEach(TimezoneOption.commonTimezones, id: \.id) { timezone in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(timezone.name)
+                                Text(timezone.displayName)
                                     .font(.body)
-                                Text(timezone.id)
+                                Text(timezone.offset)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -164,13 +152,6 @@ struct TimezoneSettingsView: View {
             Logger.firebase("時區更新失敗: \(error.localizedDescription)", level: .error)
         }
     }
-}
-
-// MARK: - Timezone Option Model
-struct TimezoneOption: Identifiable {
-    let id: String
-    let name: String
-    let offset: String
 }
 
 // MARK: - Preview
