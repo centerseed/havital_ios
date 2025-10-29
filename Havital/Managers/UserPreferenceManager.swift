@@ -216,62 +216,16 @@ class UserPreferenceManager: ObservableObject {
     }
     
     // MARK: - Feature Flag 處理
-    
+
     /// 處理 Feature Flag 變化
     private func handleFeatureFlagChange(_ notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let garminEnabled = userInfo["garmin_enabled"] as? Bool else {
-            return
-        }
-        
-        Logger.firebase("Feature Flag 變化通知收到", level: .info, labels: [
-            "module": "UserPreferenceManager",
-            "garmin_enabled": "\(garminEnabled)",
-            "current_data_source": dataSourcePreference.rawValue
-        ])
-        
-        // 🚨 重要：絕對不要自動改變用戶的數據源選擇！
-        // 如果 Garmin 功能被關閉，應該顯示錯誤訊息或禁用功能，而不是偷偷切換
-        if !garminEnabled && dataSourcePreference == .garmin {
-            Logger.firebase("⚠️ Garmin 功能已關閉，但用戶選擇了 Garmin 數據源", level: .info, labels: [
-                "module": "UserPreferenceManager",
-                "action": "garmin_disabled_warning"
-            ])
-            
-            // 發送通知讓 UI 處理這個狀況，而不是偷偷切換
-            NotificationCenter.default.post(
-                name: NSNotification.Name("GarminFeatureDisabled"), 
-                object: nil
-            )
-        }
+        // Feature flag 不再控制 Garmin 顯示，已移除相關邏輯
     }
     
     /// 驗證數據源設定（絕不自動更改用戶選擇）
     private func validateAndAdjustDataSource() {
-        // 🚨 關鍵修復：絕對不要自動設定數據源，避免競態條件
-        
-        // 如果用戶選擇了 Garmin 但功能被關閉，記錄警告但不改變設置
-        if dataSourcePreference == .garmin && !FeatureFlagManager.shared.isGarminIntegrationAvailable {
-            Logger.firebase("⚠️ 初始化時發現 Garmin 功能關閉，但用戶選擇了 Garmin", level: .info, labels: [
-                "module": "UserPreferenceManager",
-                "action": "garmin_disabled_user_choice_respected"
-            ])
-            
-            // 發送通知讓 UI 處理，而不是偷偷切換
-            NotificationCenter.default.post(
-                name: NSNotification.Name("GarminFeatureDisabled"), 
-                object: nil
-            )
-        }
-        
-        // 🚨 重要：移除自動設定邏輯，保持 unbound 狀態直到用戶明確選擇
-        if dataSourcePreference == .unbound {
-            Logger.firebase("數據源為 unbound，等待用戶在 onboarding 中選擇", level: .info, labels: [
-                "module": "UserPreferenceManager",
-                "action": "keep_unbound_until_user_choice"
-            ])
-            // 不自動設定任何值，讓用戶在 onboarding 中明確選擇
-        }
+        // Feature flag 不再控制 Garmin 顯示，已移除驗證邏輯
+        // 用戶可以自由選擇任何數據源
     }
     
     func clearUserData() {

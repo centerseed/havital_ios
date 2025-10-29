@@ -555,21 +555,18 @@ struct UserProfileView: View {
                     subtitle: NSLocalizedString("datasource.apple_health_subtitle", comment: "Use health data from iPhone and Apple Watch")
                 )
                 .id("apple-health-row")
-                
-                // 只有當 Garmin 功能啟用時才顯示
-                if featureFlagManager.isGarminIntegrationAvailable {
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    // Garmin 選項
-                    dataSourceRow(
-                        type: .garmin,
-                        icon: "clock.arrow.circlepath",
-                        title: "Garmin Connect™",
-                        subtitle: NSLocalizedString("datasource.garmin_subtitle", comment: "Sync your Garmin account activities")
-                    )
-                    .id("garmin-row")
-                }
+
+                // Garmin 選項（總是顯示）
+                Divider()
+                    .padding(.vertical, 8)
+
+                dataSourceRow(
+                    type: .garmin,
+                    icon: "clock.arrow.circlepath",
+                    title: "Garmin Connect™",
+                    subtitle: NSLocalizedString("datasource.garmin_subtitle", comment: "Sync your Garmin account activities")
+                )
+                .id("garmin-row")
                 
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }
