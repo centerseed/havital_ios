@@ -94,7 +94,8 @@ struct DayHeaderView: View {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .foregroundColor(.secondary)
                     .font(.caption)
-                    .padding(.leading, 4)
+                    .frame(minWidth: 44, minHeight: 36)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
         }
