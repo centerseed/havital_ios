@@ -87,6 +87,7 @@ struct PreviewWeekOverviewCard_Previews: PreviewProvider {
             WeeklySummaryItem(
                 weekIndex: 1,
                 weekStart: dateFormatter.string(from: today),
+                weekStartTimestamp: nil,
                 distanceKm: 25.5,
                 weekPlan: "week_1_plan",
                 weekSummary: "week_1_summary",

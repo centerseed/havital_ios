@@ -56,9 +56,15 @@ class WeeklySummaryService {
     }
     
     // MARK: - GET 週訓練摘要列表
-    /// 取得所有週訓練摘要列表 (GET)
+    /// 取得所有週訓練摘要列表 (GET) - 僅當前訓練計劃
     func fetchWeeklySummaries(weekNumber: Int? = nil) async throws -> [WeeklySummaryItem] {
         return try await makeAPICall([WeeklySummaryItem].self, path: "/summary/weekly/")
+    }
+
+    /// 取得所有歷史週跑量數據 (GET) - 不限訓練計劃
+    /// - Parameter limit: 限制返回的週數，預設為 8 週
+    func fetchAllWeeklyVolumes(limit: Int = 8) async throws -> [WeeklySummaryItem] {
+        return try await makeAPICall([WeeklySummaryItem].self, path: "/summary/weekly/all/?limit=\(limit)")
     }
 
     // MARK: - PUT 更新調整建議
