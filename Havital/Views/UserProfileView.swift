@@ -567,11 +567,6 @@ struct UserProfileView: View {
                     subtitle: NSLocalizedString("datasource.apple_health_subtitle", comment: "Use health data from iPhone and Apple Watch")
                 )
                 .id("apple-health-row")
-<<<<<<< HEAD
-
-=======
-                
->>>>>>> dev_strava
                 // Garmin 選項（總是顯示）
                 Divider()
                     .padding(.vertical, 8)
@@ -583,8 +578,6 @@ struct UserProfileView: View {
                     subtitle: NSLocalizedString("datasource.garmin_subtitle", comment: "Sync your Garmin account activities")
                 )
                 .id("garmin-row")
-<<<<<<< HEAD
-=======
                 
                 // Strava 選項（總是顯示）
                 Divider()
@@ -597,7 +590,6 @@ struct UserProfileView: View {
                     subtitle: NSLocalizedString("datasource.strava_subtitle", comment: "Sync your activities from Strava")
                 )
                 .id("strava-row")
->>>>>>> dev_strava
                 
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }
