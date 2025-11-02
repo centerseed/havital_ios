@@ -1266,6 +1266,9 @@
 "workout.share_card" = "トレーニングカードをシェア";
 "workout.share_screenshot" = "スクリーンショットをシェア";
 
+// MARK: - Data Source
+"datasource.strava_subtitle" = "Stravaのアクティビティを同期";
+
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AIトレーニングレポート";
 
@@ -1337,3 +1340,17 @@
 "timezone.los_angeles" = "ロサンゼルス";
 "timezone.london" = "ロンドン";
 "timezone.sydney" = "シドニー";
+
+// MARK: - データソース切り替えメッセージ
+"datasource.switch.title" = "データソースを切り替える";
+"datasource.switch.garmin.select_auth" = "Garmin Connect™の選択には認可が必要です。Garminウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はGarmin Connect™から読み込まれます。";
+"datasource.switch.apple_health.select" = "Apple Healthをデータソースとして選択します。トレーニング記録はApple Healthから読み込まれ、iPhoneとApple Watchのヘルスデータが含まれます。";
+"datasource.switch.garmin_to_apple" = "Apple Healthへの切り替えはGarmin Connect™との接続を解除し、バックエンドがGarminデータを受け取らなくなります。トレーニング記録はApple Healthから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。続行しますか？";
+"datasource.switch.apple_to_garmin" = "Garmin Connect™への切り替えには認可が必要です。Garminウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はGarmin Connect™から読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
+"datasource.switch.unbound_to_strava" = "Stravaの選択には認可が必要です。Stravaウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はStravaから読み込まれます。";
+"datasource.switch.apple_to_strava" = "Stravaへの切り替えには認可が必要です。Stravaウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はStravaから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
+"datasource.switch.garmin_to_strava" = "Stravaへの切り替えはGarmin Connect™との接続を解除し、Strava認可が必要になります。トレーニング記録はStravaから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
+"datasource.switch.strava_to_apple" = "Apple Healthへの切り替えはStravaとの接続を解除します。トレーニング記録はApple Healthから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
+"datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えはStravaとの接続を解除し、Garmin認可が必要になります。トレーニング記録はGarmin Connect™から読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
+"datasource.switch.to_unbound" = "未バインド状態への切り替えはすべてのローカルワークアウトデータを削除します。後でプロファイルページでデータソースを再選択して接続できます。";
+"datasource.switch.default" = "この操作を続行しますか？";

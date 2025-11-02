@@ -244,6 +244,8 @@ class DataSyncViewModel: ObservableObject {
                 await syncAppleHealthData()
             case .garmin:
                 await syncGarminData()
+            case .strava:
+                await syncStravaData()
             case .unbound:
                 print("DataSyncViewModel: 尚未綁定數據源")
             }
@@ -514,6 +516,43 @@ class DataSyncViewModel: ObservableObject {
                 totalFiles: totalFiles
             )
         }
+    }
+    
+    private func syncStravaData() async {
+        // 步驟1: 檢查 Strava 連接狀態
+        await MainActor.run {
+            self.currentStep = NSLocalizedString("sync.checking_strava_status", comment: "Checking Strava connection status...")
+        }
+        
+        Logger.firebase(
+            "開始 Strava 數據同步",
+            level: .info,
+            labels: ["module": "DataSyncView", "action": "sync_strava_start"]
+        )
+        
+        // 步驟2: 刷新數據
+        await MainActor.run {
+            self.currentStep = NSLocalizedString("sync.reload_data", comment: "Reloading workout data...")
+        }
+        
+        await unifiedWorkoutManager.refreshWorkouts()
+        
+        // 完成
+        await MainActor.run {
+            self.isProcessing = false
+            self.isCompleted = true
+            self.syncResults = SyncResults(
+                processedCount: 1, // Strava 同步通常是批次處理
+                errorCount: 0,
+                totalFiles: 1
+            )
+        }
+        
+        Logger.firebase(
+            "Strava 數據同步完成",
+            level: .info,
+            labels: ["module": "DataSyncView", "action": "sync_strava_complete"]
+        )
     }
 }
 

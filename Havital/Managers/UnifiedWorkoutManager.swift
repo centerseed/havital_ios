@@ -59,6 +59,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             await setupAppleHealthWorkflow()
         case .garmin:
             await setupGarminWorkflow()
+        case .strava:
+            await setupStravaWorkflow()
         case .unbound:
             print("UnifiedWorkoutManager: 尚未綁定數據源")
         }
@@ -785,6 +787,22 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             labels: [
                 "module": "UnifiedWorkoutManager",
                 "action": "setup_garmin_workflow"
+            ]
+        )
+    }
+    
+    private func setupStravaWorkflow() async {
+        print("設置 Strava 工作流程")
+        
+        // Strava 數據由後台自動同步，無需特別設置
+        // 只需要定期從 V2 API 拉取數據即可
+        
+        Logger.firebase(
+            "Strava 工作流程設置完成",
+            level: .info,
+            labels: [
+                "module": "UnifiedWorkoutManager",
+                "action": "setup_strava_workflow"
             ]
         )
     }

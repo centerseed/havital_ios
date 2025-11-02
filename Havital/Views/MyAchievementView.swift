@@ -366,6 +366,10 @@ struct CombinedHeartRateChartSection: View {
                 .environmentObject(healthKitManager)
                 .environmentObject(sharedHealthDataManager)
 
+        case .strava:
+            // Strava: 不支援 HRV 數據
+            EmptyDataSourceView(message: "Strava 不提供心率變異性數據")
+
         case .unbound:
             // 未綁定數據源
             EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
@@ -384,6 +388,10 @@ struct CombinedHeartRateChartSection: View {
             // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
             SleepHeartRateChartViewWithGarmin()
                 .environmentObject(healthKitManager)
+
+        case .strava:
+            // Strava: 不支援靜息心率數據
+            EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
 
         case .unbound:
             // 未綁定數據源
@@ -1309,6 +1317,22 @@ struct TrainingLoadChartSection: View {
             // 圖表內容
             switch dataSourcePreference {
             case .appleHealth, .garmin:
+                Group {
+                    switch selectedTab {
+                    case .fitness:
+                        FitnessIndexChartView()
+                            .environmentObject(healthKitManager)
+                            .environmentObject(sharedHealthDataManager)
+                    case .tsb:
+                        TSBChartView()
+                            .environmentObject(healthKitManager)
+                            .environmentObject(sharedHealthDataManager)
+                    }
+                }
+                .padding()
+
+            case .strava:
+                // Strava: 支援訓練負荷數據
                 Group {
                     switch selectedTab {
                     case .fitness:

@@ -112,6 +112,7 @@ struct WeeklySummaryResponse: Codable {
 struct WeeklySummaryItem: Codable {
     let weekIndex: Int
     let weekStart: String
+    let weekStartTimestamp: TimeInterval?
     let distanceKm: Double?
     let weekPlan: String?
     let weekSummary: String?
@@ -121,10 +122,24 @@ struct WeeklySummaryItem: Codable {
     enum CodingKeys: String, CodingKey {
         case weekIndex = "week_index"
         case weekStart = "week_start"
+        case weekStartTimestamp = "week_start_timestamp"
         case distanceKm = "distance_km"
         case weekPlan = "week_plan"
         case weekSummary = "week_summary"
         case completionPercentage = "completion_percentage"
+    }
+
+    /// 將 week_start 字符串轉換為 Date
+    var weekStartDate: Date? {
+        // 如果有 timestamp，優先使用
+        if let timestamp = weekStartTimestamp {
+            return Date(timeIntervalSince1970: timestamp)
+        }
+
+        // 否則解析字符串 "2025/10/13"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+        return formatter.date(from: weekStart)
     }
 }
 

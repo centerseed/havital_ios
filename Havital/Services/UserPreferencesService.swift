@@ -5,13 +5,6 @@
 //  用戶偏好設定服務（語言和時區）
 //  遵循新架構：HTTPClient + APIParser 模式
 //
-//  ⚠️ MERGE CONFLICT NOTICE ⚠️
-//  此檔案在 dev_strava 分支已存在舊版本（使用 URLSession 直接調用）
-//  合併時請保留此新架構版本（與 TrainingPlanService/UserService 一致）
-//  主要差異：
-//  - 新版：使用 HTTPClient + APIParser（統一架構）
-//  - 舊版：使用 URLSession.shared（直接調用）
-//
 
 import Foundation
 

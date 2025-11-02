@@ -2,11 +2,13 @@ import SwiftUI
 
 struct TrainingPlanInfoCard: View {
     let workoutDetail: WorkoutV2Detail?
+    let dataProvider: String?
     @State private var isAnalysisExpanded = false
     let forceExpandAnalysis: Bool
-    
-    init(workoutDetail: WorkoutV2Detail?, forceExpandAnalysis: Bool = false) {
+
+    init(workoutDetail: WorkoutV2Detail?, dataProvider: String? = nil, forceExpandAnalysis: Bool = false) {
         self.workoutDetail = workoutDetail
+        self.dataProvider = dataProvider
         self.forceExpandAnalysis = forceExpandAnalysis
     }
     
@@ -82,9 +84,9 @@ struct TrainingPlanInfoCard: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.blue)
-                        
+
                         Spacer()
-                        
+
                         if !forceExpandAnalysis {
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.2)) {

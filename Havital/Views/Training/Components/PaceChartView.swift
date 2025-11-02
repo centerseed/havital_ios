@@ -7,15 +7,44 @@ struct PaceChartView: View {
     let error: String?
     let dataProvider: String?
     let deviceModel: String?
-    
-    init(paces: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil) {
+    let deviceManufacturer: String?
+
+    init(paces: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil) {
         self.paces = paces
         self.isLoading = isLoading
         self.error = error
         self.dataProvider = dataProvider
         self.deviceModel = deviceModel
+        self.deviceManufacturer = deviceManufacturer
     }
-    
+
+    @ViewBuilder
+    private var attributionBadges: some View {
+        let isStravaProvider = dataProvider?.lowercased() == "strava"
+        let isGarminProvider = dataProvider?.lowercased() == "garmin"
+        let isGarminDevice = deviceManufacturer?.lowercased() == "garmin"
+
+        if isStravaProvider || isGarminProvider || isGarminDevice {
+            HStack(spacing: 6) {
+                // Strava badge
+                if isStravaProvider {
+                    ConditionalStravaAttributionView(
+                        dataProvider: dataProvider,
+                        displayStyle: .compact
+                    )
+                }
+
+                // Garmin badge (if provider is Garmin OR device manufacturer is Garmin)
+                if isGarminProvider || isGarminDevice {
+                    GarminAttributionView(
+                        deviceModel: nil,  // 不顯示型號，只顯示 badge
+                        displayStyle: .compact
+                    )
+                }
+            }
+        }
+    }
+
     private func getMaxPace() -> Double {
         guard !paces.isEmpty else { return 0 }
         // 配速值越小表示越快，所以最大配速實際上是最小值
@@ -196,13 +225,9 @@ struct PaceChartView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    // Garmin Attribution as required by brand guidelines
-                    ConditionalGarminAttributionView(
-                        dataProvider: dataProvider,
-                        deviceModel: deviceModel,
-                        displayStyle: .compact
-                    )
-                    
+                    // Strava/Garmin Attribution badges
+                    attributionBadges
+
                     Text(L10n.PaceChart.unit.localized)
                         .font(.caption)
                         .foregroundColor(.secondary)

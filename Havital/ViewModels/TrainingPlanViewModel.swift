@@ -2435,6 +2435,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                         let updatedItem = WeeklySummaryItem(
                             weekIndex: currentSummary.weekIndex,
                             weekStart: currentSummary.weekStart,
+                            weekStartTimestamp: currentSummary.weekStartTimestamp,
                             distanceKm: currentSummary.distanceKm,
                             weekPlan: newPlan.id,  // 使用新產生的課表 ID
                             weekSummary: currentSummary.weekSummary,
@@ -2462,6 +2463,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                         let newItem = WeeklySummaryItem(
                             weekIndex: targetWeek,
                             weekStart: weekStartString,
+                            weekStartTimestamp: weekStartDate.timeIntervalSince1970,
                             distanceKm: nil,
                             weekPlan: newPlan.id,
                             weekSummary: nil,

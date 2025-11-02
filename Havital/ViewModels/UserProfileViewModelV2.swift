@@ -235,6 +235,8 @@ class UserProfileViewModelV2: BaseDataViewModel<User, UserManager> {
             return "Apple Health"
         case .garmin:
             return "Garmin Connect"
+        case .strava:
+            return "Strava"
         case .unbound:
             return "未綁定"
         }

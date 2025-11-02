@@ -1266,6 +1266,9 @@
 "workout.share_card" = "Share Workout Card";
 "workout.share_screenshot" = "Share Screenshot";
 
+// MARK: - Data Source
+"datasource.strava_subtitle" = "Sync your activities from Strava";
+
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AI Training Report";
 
@@ -1342,3 +1345,17 @@
 "timezone.los_angeles" = "Los Angeles";
 "timezone.london" = "London";
 "timezone.sydney" = "Sydney";
+
+// MARK: - Data Source Switch Messages
+"datasource.switch.title" = "Switch Data Source";
+"datasource.switch.garmin.select_auth" = "Selecting Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™.";
+"datasource.switch.apple_health.select" = "Select Apple Health as your data source. Your training records will be loaded from Apple Health, including health data from iPhone and Apple Watch.";
+"datasource.switch.garmin_to_apple" = "Switching to Apple Health will unbind your Garmin Connect™ connection and ensure the backend no longer receives Garmin data. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content. Do you want to continue?";
+"datasource.switch.apple_to_garmin" = "Switching to Garmin Connect™ requires authorization. You will be redirected to the Garmin website to log in and authorize. After successful authorization, your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.";
+"datasource.switch.unbound_to_strava" = "Selecting Strava requires authorization. You will be redirected to the Strava website to log in and authorize. After successful authorization, your training records will be loaded from Strava.";
+"datasource.switch.apple_to_strava" = "Switching to Strava requires authorization. You will be redirected to the Strava website to log in and authorize. After successful authorization, your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.";
+"datasource.switch.garmin_to_strava" = "Switching to Strava will unbind your Garmin Connect™ connection and require Strava authorization. Your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.";
+"datasource.switch.strava_to_apple" = "Switching to Apple Health will unbind your Strava connection. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content.";
+"datasource.switch.strava_to_garmin" = "Switching to Garmin Connect™ will unbind your Strava connection and require Garmin authorization. Your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.";
+"datasource.switch.to_unbound" = "Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.";
+"datasource.switch.default" = "Are you sure you want to proceed with this operation?";

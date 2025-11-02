@@ -341,6 +341,8 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             await setupAppleHealthSync()
         case .garmin:
             await setupGarminSync()
+        case .strava:
+            await setupStravaSync()
         case .unbound:
             Logger.firebase(
                 "數據源未綁定，跳過健康數據同步",
@@ -367,6 +369,15 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     private func setupGarminSync() async {
         // Garmin 數據由後台自動同步，只需定期刷新
+        await schedulePeriodicRefresh()
+        
+        await MainActor.run {
+            self.backgroundSyncEnabled = true
+        }
+    }
+    
+    private func setupStravaSync() async {
+        // Strava 數據由後台自動同步，只需定期刷新
         await schedulePeriodicRefresh()
         
         await MainActor.run {

@@ -1285,6 +1285,9 @@
 "workout.share_card" = "分享訓練成果";
 "workout.share_screenshot" = "分享長截圖";
 
+// MARK: - Data Source
+"datasource.strava_subtitle" = "同步您的 Strava 活動記錄";
+
 // MARK: - Share Card
 "share_card.branding" = "Paceriz AI 訓練報告";
 
@@ -1361,3 +1364,17 @@
 "timezone.los_angeles" = "洛杉磯";
 "timezone.london" = "倫敦";
 "timezone.sydney" = "雪梨";
+
+// MARK: - 資料來源切換訊息
+"datasource.switch.title" = "切換資料來源";
+"datasource.switch.garmin.select_auth" = "選擇 Garmin Connect™ 需要授權。您將被重導向至 Garmin 網站進行登入並授權。授權成功後，您的訓練記錄將從 Garmin Connect™ 載入。";
+"datasource.switch.apple_health.select" = "選擇 Apple Health 作為您的資料來源。您的訓練記錄將從 Apple Health 載入，包括來自 iPhone 和 Apple Watch 的健康資料。";
+"datasource.switch.garmin_to_apple" = "切換至 Apple Health 將解除與 Garmin Connect™ 的連接，並確保後端不再接收 Garmin 資料。您的訓練記錄將從 Apple Health 載入，目前顯示的記錄將被新資料來源的內容替換。您確定要繼續嗎？";
+"datasource.switch.apple_to_garmin" = "切換至 Garmin Connect™ 需要授權。您將被重導向至 Garmin 網站進行登入並授權。授權成功後，您的訓練記錄將從 Garmin Connect™ 載入，目前顯示的記錄將被新資料來源的內容替換。";
+"datasource.switch.unbound_to_strava" = "選擇 Strava 需要授權。您將被重導向至 Strava 網站進行登入並授權。授權成功後，您的訓練記錄將從 Strava 載入。";
+"datasource.switch.apple_to_strava" = "切換至 Strava 需要授權。您將被重導向至 Strava 網站進行登入並授權。授權成功後，您的訓練記錄將從 Strava 載入，目前顯示的記錄將被新資料來源的內容替換。";
+"datasource.switch.garmin_to_strava" = "切換至 Strava 將解除與 Garmin Connect™ 的連接，並需要進行 Strava 授權。您的訓練記錄將從 Strava 載入，目前顯示的記錄將被新資料來源的內容替換。";
+"datasource.switch.strava_to_apple" = "切換至 Apple Health 將解除與 Strava 的連接。您的訓練記錄將從 Apple Health 載入，目前顯示的記錄將被新資料來源的內容替換。";
+"datasource.switch.strava_to_garmin" = "切換至 Garmin Connect™ 將解除與 Strava 的連接，並需要進行 Garmin 授權。您的訓練記錄將從 Garmin Connect™ 載入，目前顯示的記錄將被新資料來源的內容替換。";
+"datasource.switch.to_unbound" = "切換至未綁定狀態將清除所有本機訓練資料。您稍後可以在資料檔案頁面重新選擇並連接資料來源。";
+"datasource.switch.default" = "您確定要進行此操作嗎？";

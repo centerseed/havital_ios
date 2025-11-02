@@ -57,7 +57,10 @@ struct WorkoutDetailViewV2: View {
 
                 // 課表資訊和AI分析卡片
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
-                    TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail)
+                    TrainingPlanInfoCard(
+                        workoutDetail: viewModel.workoutDetail,
+                        dataProvider: viewModel.workout.provider
+                    )
                 }
 
                 // 載入狀態或錯誤訊息
@@ -191,13 +194,9 @@ struct WorkoutDetailViewV2: View {
                 }
 
                 Spacer()
-                
-                // Garmin Attribution for basic metrics
-                ConditionalGarminAttributionView(
-                    dataProvider: viewModel.workout.provider,
-                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
-                    displayStyle: .compact
-                )  
+
+                // Strava/Garmin Attribution badges
+                attributionBadges
             }
             
             // 運動數據網格
@@ -231,7 +230,34 @@ struct WorkoutDetailViewV2: View {
     }
 
     // MARK: - 計算屬性
-    
+
+    @ViewBuilder
+    private var attributionBadges: some View {
+        let isStravaProvider = viewModel.workout.provider.lowercased() == "strava"
+        let isGarminProvider = viewModel.workout.provider.lowercased() == "garmin"
+        let isGarminDevice = viewModel.workoutDetail?.deviceInfo?.deviceManufacturer?.lowercased() == "garmin"
+
+        if isStravaProvider || isGarminProvider || isGarminDevice {
+            HStack(spacing: 6) {
+                // Strava badge
+                if isStravaProvider {
+                    ConditionalStravaAttributionView(
+                        dataProvider: viewModel.workout.provider,
+                        displayStyle: .compact
+                    )
+                }
+
+                // Garmin badge (if provider is Garmin OR device manufacturer is Garmin)
+                if isGarminProvider || isGarminDevice {
+                    GarminAttributionView(
+                        deviceModel: nil,  // 不顯示型號，只顯示 badge
+                        displayStyle: .compact
+                    )
+                }
+            }
+        }
+    }
+
     private var isAppleHealthSource: Bool {
         let provider = viewModel.workout.provider.lowercased()
         return provider.contains("apple") || provider.contains("health") || provider == "apple_health"
@@ -310,16 +336,26 @@ struct WorkoutDetailViewV2: View {
                     Text(NSLocalizedString("workout.provider", comment: "Provider"))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    HStack(spacing: 8) {
-                        // For Garmin data: show Logo + Device Name
-                        if viewModel.workout.provider.lowercased().contains("garmin") {
-                            ConditionalGarminAttributionView(
-                                dataProvider: viewModel.workout.provider,
-                                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
-                                displayStyle: .secondary
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Show Strava attribution if data source is Strava (badge only, no device name)
+                        ConditionalStravaAttributionView(
+                            dataProvider: viewModel.workout.provider,
+                            displayStyle: .compact
+                        )
+
+                        // Show Garmin attribution if device is Garmin (badge only, no device name)
+                        if let deviceManufacturer = viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
+                           deviceManufacturer.lowercased() == "garmin" {
+                            GarminAttributionView(
+                                deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                                displayStyle: .compact
                             )
-                        } else {
-                            // For non-Garmin data: show provider name
+                        }
+
+                        // Fallback: show provider name if neither Strava nor Garmin
+                        if viewModel.workout.provider.lowercased() != "strava" &&
+                           viewModel.workout.provider.lowercased() != "garmin" &&
+                           viewModel.workoutDetail?.deviceInfo?.deviceManufacturer?.lowercased() != "garmin" {
                             Text(viewModel.workout.provider)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -428,7 +464,8 @@ struct WorkoutDetailViewV2: View {
                     isLoading: viewModel.isLoading,
                     error: viewModel.error,
                     dataProvider: viewModel.workout.provider,
-                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                    deviceManufacturer: viewModel.workoutDetail?.deviceInfo?.deviceManufacturer
                 )
             } else {
                 // 簡化的空狀態顯示
@@ -454,7 +491,8 @@ struct WorkoutDetailViewV2: View {
                     isLoading: viewModel.isLoading,
                     error: viewModel.error,
                     dataProvider: viewModel.workout.provider,
-                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                    deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                    deviceManufacturer: viewModel.workoutDetail?.deviceInfo?.deviceManufacturer
                 )
             }
         }
@@ -471,6 +509,7 @@ struct WorkoutDetailViewV2: View {
                     error: viewModel.error,
                     dataProvider: viewModel.workout.provider,
                     deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                    deviceManufacturer: viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
                     forceShowStanceTimeTab: viewModel.hasStanceTimeStream
                 )
             } else {
@@ -778,7 +817,11 @@ struct WorkoutDetailViewV2: View {
                 
                 // 課表資訊和AI分析卡片 (強制展開AI分析)
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
-                    TrainingPlanInfoCard(workoutDetail: viewModel.workoutDetail, forceExpandAnalysis: true)
+                    TrainingPlanInfoCard(
+                        workoutDetail: viewModel.workoutDetail,
+                        dataProvider: viewModel.workout.provider,
+                        forceExpandAnalysis: true
+                    )
                 }
                 
                 heartRateChartSection

@@ -116,30 +116,51 @@ struct WorkoutV2RowView: View {
                 }
             }
             
-            // 日期和 Garmin 資訊
+            // 日期和 Provider/Device 資訊
             VStack(alignment: .leading, spacing: 2) {
                 Text(formattedDate(workout.startDate))
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                // Garmin Attribution - 只在是 Garmin 數據時顯示，靠右對齊
-                if workout.provider.lowercased().contains("garmin") {
-                    HStack {
-                        Spacer()
-                        ConditionalGarminAttributionView(
-                            dataProvider: workout.provider,
-                            deviceModel: workout.deviceName,
-                            displayStyle: .secondary
-                        )
-                    }
-                }
+
+                // Provider/Device Attribution - 顯示數據來源和設備 logo
+                attributionLogos
             }
-            
         }
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+    }
+
+    // MARK: - Attribution Logos
+    @ViewBuilder
+    private var attributionLogos: some View {
+        let isStravaProvider = workout.provider.lowercased() == "strava"
+        let isGarminProvider = workout.provider.lowercased() == "garmin"
+        let isGarminDevice = workout.deviceName?.lowercased().contains("garmin") ?? false ||
+                             workout.deviceName?.lowercased().contains("forerunner") ?? false
+
+        if isStravaProvider || isGarminProvider || isGarminDevice {
+            HStack(spacing: 6) {
+                Spacer()
+
+                // Strava logo
+                if isStravaProvider {
+                    ConditionalStravaAttributionView(
+                        dataProvider: workout.provider,
+                        displayStyle: .compact
+                    )
+                }
+
+                // Garmin logo (if provider is Garmin OR device is Garmin)
+                if isGarminProvider || isGarminDevice {
+                    GarminAttributionView(
+                        deviceModel: nil,  // 列表中不顯示型號，節省空間
+                        displayStyle: .compact
+                    )
+                }
+            }
+        }
     }
     
     private func isToday(date: Date) -> Bool {

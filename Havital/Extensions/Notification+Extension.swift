@@ -5,6 +5,9 @@ extension Notification.Name {
     /// Garmin 健康數據刷新通知
     static let garminHealthDataRefresh = Notification.Name("garminHealthDataRefresh")
     
+    /// Strava 健康數據刷新通知
+    static let stravaHealthDataRefresh = Notification.Name("stravaHealthDataRefresh")
+    
     /// Apple Health 數據更新通知
     static let appleHealthDataRefresh = Notification.Name("appleHealthDataRefresh")
     

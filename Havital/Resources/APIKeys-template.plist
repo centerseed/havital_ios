@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PromptDashAPIKey</key>
+	<string>YOUR_PROMPT_DASH_API_KEY_HERE</string>
+	<key>GarminClientID_Dev</key>
+	<string>YOUR_GARMIN_CLIENT_ID_DEV_HERE</string>
+	<key>GarminClientID_Prod</key>
+	<string>YOUR_GARMIN_CLIENT_ID_PROD_HERE</string>
+	<key>StravaClientID_Dev</key>
+	<string>YOUR_STRAVA_CLIENT_ID_DEV_HERE</string>
+	<key>StravaClientSecret_Dev</key>
+	<string>YOUR_STRAVA_CLIENT_SECRET_DEV_HERE</string>
+	<key>StravaClientID_Prod</key>
+	<string>YOUR_STRAVA_CLIENT_ID_PROD_HERE</string>
+	<key>StravaClientSecret_Prod</key>
+	<string>YOUR_STRAVA_CLIENT_SECRET_PROD_HERE</string>
+</dict>
+</plist>

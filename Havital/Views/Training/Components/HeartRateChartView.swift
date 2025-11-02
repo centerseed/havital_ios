@@ -11,8 +11,9 @@ struct HeartRateChartView: View {
     let error: String?
     let dataProvider: String?
     let deviceModel: String?
-    
-    init(heartRates: [DataPoint], maxHeartRate: String, averageHeartRate: Double?, minHeartRate: String, yAxisRange: (min: Double, max: Double), isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil) {
+    let deviceManufacturer: String?
+
+    init(heartRates: [DataPoint], maxHeartRate: String, averageHeartRate: Double?, minHeartRate: String, yAxisRange: (min: Double, max: Double), isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil) {
         self.heartRates = heartRates
         self.maxHeartRate = maxHeartRate
         self.averageHeartRate = averageHeartRate
@@ -22,22 +23,46 @@ struct HeartRateChartView: View {
         self.error = error
         self.dataProvider = dataProvider
         self.deviceModel = deviceModel
+        self.deviceManufacturer = deviceManufacturer
     }
-    
+
+    @ViewBuilder
+    private var attributionBadges: some View {
+        let isStravaProvider = dataProvider?.lowercased() == "strava"
+        let isGarminProvider = dataProvider?.lowercased() == "garmin"
+        let isGarminDevice = deviceManufacturer?.lowercased() == "garmin"
+
+        if isStravaProvider || isGarminProvider || isGarminDevice {
+            HStack(spacing: 6) {
+                // Strava badge
+                if isStravaProvider {
+                    ConditionalStravaAttributionView(
+                        dataProvider: dataProvider,
+                        displayStyle: .compact
+                    )
+                }
+
+                // Garmin badge (if provider is Garmin OR device manufacturer is Garmin)
+                if isGarminProvider || isGarminDevice {
+                    GarminAttributionView(
+                        deviceModel: nil,  // 不顯示型號，只顯示 badge
+                        displayStyle: .compact
+                    )
+                }
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(L10n.HeartRateChart.title.localized)
                     .font(.headline)
-                
+
                 Spacer()
-                
-                // Garmin Attribution as required by brand guidelines
-                ConditionalGarminAttributionView(
-                    dataProvider: dataProvider,
-                    deviceModel: deviceModel,
-                    displayStyle: .compact
-                )
+
+                // Strava/Garmin Attribution badges
+                attributionBadges
             }
 
             if isLoading {

@@ -7,6 +7,7 @@ enum DataSourceType: String, CaseIterable, Identifiable {
     case unbound = "unbound"
     case appleHealth = "apple_health"
     case garmin = "garmin"
+    case strava = "strava"
 
     var id: String { self.rawValue }
 
@@ -18,6 +19,8 @@ enum DataSourceType: String, CaseIterable, Identifiable {
             return L10n.DataSource.appleHealth.localized
         case .garmin:
             return "Garmin"
+        case .strava:
+            return "Strava"
         }
     }
 }

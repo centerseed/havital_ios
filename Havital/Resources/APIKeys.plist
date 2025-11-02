@@ -8,5 +8,13 @@
 	<string>bde6d189-73a1-4291-a065-0acaf0d56525</string>
 	<key>GarminClientID_Prod</key>
 	<string>0cddddf2-fe12-43e9-8209-4a5016f3fb58</string>
+	<key>StravaClientID_Dev</key>
+	<string>182252</string>
+	<key>StravaClientSecret_Dev</key>
+	<string>48148b1becdf85ea82b424a804185a6e6e4e4473</string>
+	<key>StravaClientID_Prod</key>
+	<string>182252</string>
+	<key>StravaClientSecret_Prod</key>
+	<string>48148b1becdf85ea82b424a804185a6e6e4e4473</string>
 </dict>
 </plist>

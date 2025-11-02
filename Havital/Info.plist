@@ -48,6 +48,14 @@
 				<string>paceriz</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>StravaOAuthCallback</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>paceriz</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

@@ -22,6 +22,7 @@ struct WeekOverviewCardPreviewView: View {
                 WeeklySummaryItem(
                     weekIndex: 1,
                     weekStart: dateFormatter.string(from: calendar.date(byAdding: .day, value: -21, to: today) ?? today),
+                    weekStartTimestamp: nil,
                     distanceKm: 25.5,
                     weekPlan: "week_1_plan",
                     weekSummary: "week_1_summary",
@@ -30,6 +31,7 @@ struct WeekOverviewCardPreviewView: View {
                 WeeklySummaryItem(
                     weekIndex: 2,
                     weekStart: dateFormatter.string(from: calendar.date(byAdding: .day, value: -14, to: today) ?? today),
+                    weekStartTimestamp: nil,
                     distanceKm: 30.2,
                     weekPlan: "week_2_plan",
                     weekSummary: "week_2_summary",
@@ -38,6 +40,7 @@ struct WeekOverviewCardPreviewView: View {
                 WeeklySummaryItem(
                     weekIndex: 3,
                     weekStart: dateFormatter.string(from: calendar.date(byAdding: .day, value: -7, to: today) ?? today),
+                    weekStartTimestamp: nil,
                     distanceKm: 28.7,
                     weekPlan: "week_3_plan",
                     weekSummary: nil,
