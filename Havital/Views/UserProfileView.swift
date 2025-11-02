@@ -789,30 +789,30 @@ struct UserProfileView: View {
                         // 調用後端API解除Garmin綁定
                         let disconnectResult = try await GarminDisconnectService.shared.disconnectGarmin()
                         print("Garmin解除綁定成功: \(disconnectResult.message)")
-                        
-                        // 本地斷開Garmin連接
-                        await garminManager.disconnect()
-                        
+
+                        // 本地斷開Garmin連接（remote: false 避免重複調用）
+                        await garminManager.disconnect(remote: false)
+
                     } catch {
                         print("Garmin解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
-                        await garminManager.disconnect()
+                        await garminManager.disconnect(remote: false)
                     }
                 }
-                
+
                 if stravaManager.isConnected {
                     do {
                         // 調用後端API解除Strava綁定
                         let disconnectResult = try await StravaDisconnectService.shared.disconnectStrava()
                         print("Strava解除綁定成功: \(disconnectResult.message)")
-                        
-                        // 本地斷開Strava連接
-                        await stravaManager.disconnect()
-                        
+
+                        // 本地斷開Strava連接（remote: false 避免重複調用）
+                        await stravaManager.disconnect(remote: false)
+
                     } catch {
                         print("Strava解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
-                        await stravaManager.disconnect()
+                        await stravaManager.disconnect(remote: false)
                     }
                 }
                 
@@ -839,19 +839,41 @@ struct UserProfileView: View {
                 }
                 
             case .garmin:
-                // 切換到Garmin時，總是啟動OAuth流程
+                // 切換到Garmin時，先解除其他數據源的綁定
+                if stravaManager.isConnected {
+                    do {
+                        // 調用後端API解除Strava綁定
+                        let disconnectResult = try await StravaDisconnectService.shared.disconnectStrava()
+                        print("Strava解除綁定成功: \(disconnectResult.message)")
+
+                        // 本地斷開Strava連接
+                        await stravaManager.disconnect(remote: false)
+
+                    } catch {
+                        print("Strava解除綁定失敗: \(error.localizedDescription)")
+                        // 即使解除綁定失敗，也繼續本地斷開連接
+                        await stravaManager.disconnect(remote: false)
+                    }
+                }
+
+                if userPreferenceManager.dataSourcePreference == .appleHealth {
+                    // 如果當前是Apple Health，無需特殊斷開，直接切換即可
+                    print("從Apple Health切換到Garmin")
+                }
+
+                // 總是啟動OAuth流程
                 // 這樣可以確保連接狀態是最新的，並且處理token過期的情況
                 await garminManager.startConnection()
-                
+
                 // 等待 OAuth 流程完成
                 // 監聽連接狀態變化，最多等待 30 秒
                 let maxWaitTime = 30.0 // 30 秒
                 let startTime = Date()
-                
+
                 while garminManager.isConnecting && Date().timeIntervalSince(startTime) < maxWaitTime {
                     try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 秒
                 }
-                
+
                 if garminManager.isConnected {
                     // OAuth 成功，切換完成
                     print("Garmin 數據源切換完成")
@@ -865,19 +887,41 @@ struct UserProfileView: View {
                 // 注意：數據源的更新會在OAuth成功後在GarminManager中處理
             
             case .strava:
-                // 切換到Strava時，總是啟動OAuth流程
+                // 切換到Strava時，先解除其他數據源的綁定
+                if garminManager.isConnected {
+                    do {
+                        // 調用後端API解除Garmin綁定
+                        let disconnectResult = try await GarminDisconnectService.shared.disconnectGarmin()
+                        print("Garmin解除綁定成功: \(disconnectResult.message)")
+
+                        // 本地斷開Garmin連接
+                        await garminManager.disconnect(remote: false)
+
+                    } catch {
+                        print("Garmin解除綁定失敗: \(error.localizedDescription)")
+                        // 即使解除綁定失敗，也繼續本地斷開連接
+                        await garminManager.disconnect(remote: false)
+                    }
+                }
+
+                if userPreferenceManager.dataSourcePreference == .appleHealth {
+                    // 如果當前是Apple Health，無需特殊斷開，直接切換即可
+                    print("從Apple Health切換到Strava")
+                }
+
+                // 啟動Strava OAuth流程
                 // 這樣可以確保連接狀態是最新的，並且處理token過期的情況
                 await stravaManager.startConnection()
-                
+
                 // 等待 OAuth 流程完成
                 // 監聽連接狀態變化，最多等待 30 秒
                 let maxWaitTime = 30.0 // 30 秒
                 let startTime = Date()
-                
+
                 while stravaManager.isConnecting && Date().timeIntervalSince(startTime) < maxWaitTime {
                     try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 秒
                 }
-                
+
                 if stravaManager.isConnected {
                     // OAuth 成功，切換完成
                     print("Strava 數據源切換完成")

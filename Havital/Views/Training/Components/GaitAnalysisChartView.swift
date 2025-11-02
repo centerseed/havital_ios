@@ -4,14 +4,15 @@ import Foundation
 
 struct GaitAnalysisChartView: View {
     let stanceTimes: [DataPoint]
-    let verticalRatios: [DataPoint] 
+    let verticalRatios: [DataPoint]
     let cadences: [DataPoint]
     let isLoading: Bool
     let error: String?
     let dataProvider: String?
     let deviceModel: String?
+    let deviceManufacturer: String?
     let forceShowStanceTimeTab: Bool
-    
+
     @State private var selectedGaitTab: GaitTab = .stanceTime
     
     enum GaitTab: CaseIterable {
@@ -50,7 +51,7 @@ struct GaitAnalysisChartView: View {
         }
     }
     
-    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, forceShowStanceTimeTab: Bool = false) {
+    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil, forceShowStanceTimeTab: Bool = false) {
         self.stanceTimes = stanceTimes
         self.verticalRatios = verticalRatios
         self.cadences = cadences
@@ -58,6 +59,7 @@ struct GaitAnalysisChartView: View {
         self.error = error
         self.dataProvider = dataProvider
         self.deviceModel = deviceModel
+        self.deviceManufacturer = deviceManufacturer
         self.forceShowStanceTimeTab = forceShowStanceTimeTab
     }
     
@@ -145,7 +147,34 @@ struct GaitAnalysisChartView: View {
             )
         }
     }
-    
+
+    @ViewBuilder
+    private var attributionBadges: some View {
+        let isStravaProvider = dataProvider?.lowercased() == "strava"
+        let isGarminProvider = dataProvider?.lowercased() == "garmin"
+        let isGarminDevice = deviceManufacturer?.lowercased() == "garmin"
+
+        if isStravaProvider || isGarminProvider || isGarminDevice {
+            HStack(spacing: 6) {
+                // Strava badge
+                if isStravaProvider {
+                    ConditionalStravaAttributionView(
+                        dataProvider: dataProvider,
+                        displayStyle: .compact
+                    )
+                }
+
+                // Garmin badge (if provider is Garmin OR device manufacturer is Garmin)
+                if isGarminProvider || isGarminDevice {
+                    GarminAttributionView(
+                        deviceModel: nil,  // 不顯示型號，只顯示 badge
+                        displayStyle: .compact
+                    )
+                }
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -155,19 +184,8 @@ struct GaitAnalysisChartView: View {
 
                 Spacer()
 
-                // Strava/Garmin Attribution badges (only show one based on data source)
-                HStack(spacing: 0) {
-                    ConditionalStravaAttributionView(
-                        dataProvider: dataProvider,
-                        displayStyle: .compact
-                    )
-
-                    ConditionalGarminAttributionView(
-                        dataProvider: dataProvider,
-                        deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
-                        displayStyle: .compact
-                    )
-                }
+                // Strava/Garmin Attribution badges
+                attributionBadges
             }
 
             if isLoading {

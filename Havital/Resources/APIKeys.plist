@@ -13,8 +13,8 @@
 	<key>StravaClientSecret_Dev</key>
 	<string>48148b1becdf85ea82b424a804185a6e6e4e4473</string>
 	<key>StravaClientID_Prod</key>
-	<string>STRAVA_CLIENT_ID_PROD_NOT_SET</string>
+	<string>182252</string>
 	<key>StravaClientSecret_Prod</key>
-	<string>STRAVA_CLIENT_SECRET_PROD_NOT_SET</string>
+	<string>48148b1becdf85ea82b424a804185a6e6e4e4473</string>
 </dict>
 </plist>
