@@ -130,8 +130,8 @@ struct TimezoneSettingsView: View {
         isLoading = true
 
         do {
-            // Sync with backend first
-            try await UserPreferencesService.shared.updateTimezone(selectedTimezone)
+            // ✅ 優化：使用 UserPreferencesManager 同步到後端（使用雙軌緩存）
+            try await UserPreferencesManager.shared.updatePreferences(timezone: selectedTimezone)
 
             // Update local preference
             await MainActor.run {

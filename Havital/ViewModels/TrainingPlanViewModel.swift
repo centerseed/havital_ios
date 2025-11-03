@@ -1288,45 +1288,28 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         return calendar.isDateInToday(date)
     }
     
-    // 修正的 loadTrainingOverview 方法
+    // ✅ 優化：委派給 TrainingPlanManager，統一使用雙軌緩存策略
     func loadTrainingOverview() async {
-        // 首先從本地存儲加載
-        let savedOverview = TrainingPlanStorage.loadTrainingPlanOverview()
-        if !savedOverview.trainingPlanName.isEmpty {
-            await MainActor.run {
-                self.trainingOverview = savedOverview
-                // 重新計算當前週數，確保使用最新的本地數據
-                self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: savedOverview.createdAt) ?? 1
-                self.selectedWeek = self.currentWeek
-            }
-            
-            // 輸出當前訓練週數
-            logCurrentTrainingWeek()
-            
-            Logger.debug("已從本地加載訓練計劃概覽，跳過API調用以保留本地更新")
-            return // 如果本地有數據，就不要從API獲取，避免覆蓋本地更新
-        }
-        
-        // 只有當本地沒有數據時才從API獲取
-        do {
-            let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
-            
-            // 成功獲取後更新UI
+        Logger.debug("TrainingPlanViewModel: 開始載入訓練概覽（委派給 TrainingPlanManager）")
+
+        // 委派給 TrainingPlanManager 載入（使用雙軌緩存策略）
+        await TrainingPlanManager.shared.loadTrainingOverview()
+
+        // 從 TrainingPlanManager 同步數據到 ViewModel
+        let managerOverview = await MainActor.run { TrainingPlanManager.shared.trainingOverview }
+
+        if let overview = managerOverview {
             await MainActor.run {
                 self.trainingOverview = overview
                 self.currentWeek = TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview.createdAt) ?? 1
                 self.selectedWeek = self.currentWeek
             }
-            Logger.debug("成功從API載入訓練計劃概覽")
-            Logger.debug("Plan Overview id \(overview.id)")
-            TrainingPlanStorage.saveTrainingPlanOverview(overview)
+
+            Logger.debug("✅ 成功從 TrainingPlanManager 同步訓練概覽")
+            Logger.debug("Plan Overview id: \(overview.id)")
             logCurrentTrainingWeek()
-        } catch {
-            Logger.error("載入訓練計劃概覽從API失敗: \(error)")
-            // 如果本地也沒有數據且API失敗，這是真正的錯誤
-            if savedOverview.trainingPlanName.isEmpty {
-                Logger.error("本地和API都無法獲取訓練計劃概覽")
-            }
+        } else {
+            Logger.debug("⚠️ TrainingPlanManager 沒有訓練概覽數據")
         }
     }
     
@@ -1381,39 +1364,30 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 }
             }
 
-            _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
-            
-            // 產生成功後重新載入課表
-            do {
-                await MainActor.run {
-                    isLoading = true
-                    error = nil
-                }
-                guard let overviewId = trainingOverview?.id else { throw NSError() }
-                let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                    planId: "\(overviewId)_\(self.currentWeek)")
-                
-                // 更新當前計劃週數
-                currentPlanWeek = newPlan.weekOfPlan
-                
-                // 重新計算週日期信息
-                if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
-                    self.weekDateInfo = info
-                }
-                
-                await updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
-                
-                // 重新載入訓練計劃概覽，確保獲取最新資訊
-                Logger.debug("重新載入訓練計劃概覽")
-                await loadTrainingOverview()
-                
-                // 更新訓練進度
-                await forceUpdateWeeklySummaries()
-                
-            } catch {
-                Logger.error("重新載入課表失敗: \(error)")
-                throw error
+            // ✅ 優化：直接使用 createWeeklyPlan 的返回值，避免重複調用 API
+            let newPlan = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
+
+            await MainActor.run {
+                isLoading = true
+                error = nil
             }
+
+            // 更新當前計劃週數
+            currentPlanWeek = newPlan.weekOfPlan
+
+            // 重新計算週日期信息
+            if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: newPlan.weekOfPlan) {
+                self.weekDateInfo = info
+            }
+
+            await updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
+
+            // 重新載入訓練計劃概覽，確保獲取最新資訊
+            Logger.debug("重新載入訓練計劃概覽")
+            await loadTrainingOverview()
+
+            // 更新訓練進度
+            await forceUpdateWeeklySummaries()
         } catch {
             Logger.error("產生課表失敗: \(error)")
             await updateWeeklyPlanUI(plan: nil, status: .error(error))
@@ -2286,12 +2260,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
 
         do {
             Logger.debug("調整建議確認完成，繼續產生第 \(targetWeek) 週課表...")
-            _ = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
-
-            // 產生成功後重新載入課表
-            guard let overviewId = trainingOverview?.id else { throw NSError() }
-            let newPlan = try await TrainingPlanService.shared.getWeeklyPlanById(
-                planId: "\(overviewId)_\(self.currentWeek)")
+            // ✅ 優化：直接使用 createWeeklyPlan 的返回值，避免重複調用 API
+            let newPlan = try await TrainingPlanService.shared.createWeeklyPlan(targetWeek: targetWeek)
 
             updateWeeklyPlanUI(plan: newPlan, status: .ready(newPlan))
 

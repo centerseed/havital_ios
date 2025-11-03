@@ -18,22 +18,18 @@ struct SleepHeartRateChartView: View {
                 EmptyStateView(type: .sleepHeartRateData)
             } else {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Header with title and Garmin attribution in same row
+                    // ✅ 優化：移除重複標題（選項卡已顯示「睡眠靜息心率」）
+                    // Garmin Attribution as required by brand guidelines
                     HStack {
-                        Text("睡眠靜息心率")
-                            .font(.headline)
-                        
                         Spacer()
-                        
-                        // Garmin Attribution as required by brand guidelines
+
                         ConditionalGarminAttributionView(
                             dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
                     }
-                    
-                    
+
                     Chart {
                         ForEach(viewModel.heartRateData, id: \.0) { item in
                             LineMark(
@@ -113,22 +109,18 @@ struct SleepHeartRateChartViewWithGarmin: View {
                 EmptyStateView(type: .sleepHeartRateData)
             } else {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Header with title and Garmin attribution in same row
+                    // ✅ 優化：移除重複標題（選項卡已顯示「睡眠靜息心率」）
+                    // Garmin Attribution as required by brand guidelines
                     HStack {
-                        Text("睡眠靜息心率")
-                            .font(.headline)
-                        
                         Spacer()
-                        
-                        // Garmin Attribution as required by brand guidelines
+
                         ConditionalGarminAttributionView(
                             dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
                     }
-                    
-                    
+
                     Chart {
                         ForEach(viewModel.heartRateData, id: \.0) { item in
                             LineMark(

@@ -145,14 +145,15 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 
                 // 發送運動數據更新通知（首次載入緩存數據）
                 NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "initial_cache"])
-                
-                // 檢查是否需要背景更新（但不阻塞 UI）
-                if cacheManager.shouldRefreshCache(intervalSinceLastSync: 300) { // 5 分鐘（一般情況）
-                    print("背景更新運動記錄...")
-                    Task.detached { [weak self] in
-                        await self?.backgroundUpdateWorkouts()
-                    }
-                }
+
+                // ✅ 優化：移除背景自動更新，僅依賴關鍵觸發點
+                // 保留的觸發點：
+                // 1. App 啟動（initialize + loadWorkouts）
+                // 2. App 回前台（onAppBecameActive → refreshWorkouts）
+                // 3. 下拉刷新（用戶主動觸發）
+                // 4. 新訓練同步（Apple Health Observer）
+                // 5. 數據源切換（switchDataSource）
+
                 return
             }
             

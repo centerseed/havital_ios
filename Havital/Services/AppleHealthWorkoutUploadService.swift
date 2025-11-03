@@ -46,7 +46,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let distM = Int(workout.totalDistance?.doubleValue(for: .meter()) ?? 0)
         return "\(type)_\(start)_\(distM)"
     }
-    
+
+    /// 判斷是否為跑步相關的運動
+    private func isRunningRelatedWorkout(_ workout: HKWorkout) -> Bool {
+        let activityType = workout.workoutActivityType
+        return activityType == .running ||
+               activityType == .trackAndField ||
+               activityType == .hiking ||
+               activityType == .walking
+    }
+
     // MARK: - Core Upload API
     func uploadWorkout(_ workout: HKWorkout,
                        force: Bool = false,
@@ -99,135 +108,67 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         guard duration > 0 else {
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
-        
-        // 取得心率數據（可選，不再強制要求）
-        var heartRateData: [(Date, Double)] = []
-        var heartRateRetriesAttempted = 0
-        
-        do {
-            // 首次獲取心率數據
-            heartRateData = try await healthKitManager.fetchHeartRateData(for: workout, forceRefresh: false, retryAttempt: 0)
-            print("📊 [Upload] 初次心率數據獲取: \(heartRateData.count) 筆")
-            
-            // 如果需要重試且心率數據不足，進行多次重試
-            if retryHeartRate && heartRateData.count < 2 {
-                let maxRetries = 5
-                let retryInterval: UInt64 = 30_000_000_000 // 30秒
-                
-                print("🔄 [Upload] 心率數據不足(\(heartRateData.count) < 2)，開始重試流程...")
-                
-                for attempt in 1...maxRetries {
-                    heartRateRetriesAttempted = attempt
-                    print("🔄 [Upload] 心率數據重試 \(attempt)/\(maxRetries)，等待30秒...")
-                    
-                    // 等待一段時間，讓Apple Health完成數據同步
-                    try? await Task.sleep(nanoseconds: retryInterval)
-                    
-                    // 使用強制刷新和重試標記來避免TaskRegistry阻擋
-                    let retryData = try await healthKitManager.fetchHeartRateData(
-                        for: workout, 
-                        forceRefresh: true, 
-                        retryAttempt: attempt
-                    )
-                    
-                    print("🔄 [Upload] 重試第 \(attempt) 次獲取心率數據：\(retryData.count) 筆")
-                    
-                    // 如果重試獲得了更多數據，使用重試結果
-                    if retryData.count > heartRateData.count {
-                        heartRateData = retryData
-                        print("✅ [Upload] 重試成功，更新心率數據：\(heartRateData.count) 筆")
-                    }
-                    
-                    // 如果獲得了足夠的心率數據，停止重試
-                    if heartRateData.count >= 5 {
-                        print("✅ [Upload] 心率數據充足，停止重試")
-                        break
-                    }
+
+        let workoutId = makeWorkoutId(for: workout)
+
+        // 驗證並獲取所有必要的數據（心率、速度、步頻）
+        print("🚀 [Upload] 開始驗證運動所需的關鍵數據 - 運動ID: \(workoutId)")
+        let requiredData = await validateAndFetchRequiredWorkoutData(
+            for: workout,
+            retryHeartRate: retryHeartRate
+        )
+
+        // 顯示數據驗證摘要
+        requiredData.logSummary(workoutId: workoutId)
+
+        // 檢查是否滿足所有必要條件
+        if !requiredData.isAllRequiredDataAvailable {
+            print("❌ [Upload] 數據驗證失敗 - 運動ID: \(workoutId)")
+
+            if requiredData.isRunningRelated {
+                print("   運動類型：跑步相關（需要心率、速度、步頻）")
+                print("   缺失條件：")
+                if requiredData.heartRateData.count < 2 {
+                    print("   - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
                 }
-                
-                if heartRateData.count < 5 {
-                    print("⚠️ [Upload] 重試 \(maxRetries) 次後心率數據仍不足：\(heartRateData.count) 筆，將繼續上傳運動記錄")
+                if requiredData.speedData.count < 2 {
+                    print("   - 速度數據不足 (\(requiredData.speedData.count) < 2) [必需]")
+                }
+                if requiredData.cadenceData.count < 2 {
+                    print("   - 步頻數據不足 (\(requiredData.cadenceData.count) < 2) [必需]")
+                }
+            } else {
+                print("   運動類型：其他運動（只需要心率）")
+                print("   缺失條件：")
+                if requiredData.heartRateData.count < 2 {
+                    print("   - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
                 }
             }
-        } catch {
-            print("❌ [Upload] 無法獲取心率數據: \(error.localizedDescription)")
-            // 記錄 HealthKit 數據獲取錯誤
-            await reportHealthKitDataError(workout: workout, dataType: "heart_rate", error: error)
+            throw WorkoutV2ServiceError.invalidWorkoutData
         }
-        
+
+        print("✅ [Upload] 數據驗證通過 - 運動ID: \(workoutId)，即將延遲20秒後上傳...")
+
+        // 所有必要數據都滿足條件，延遲20秒再上傳
+        // 這樣做是為了給Apple Health更多時間同步所有數據
+        let delayInNanoseconds: UInt64 = 20_000_000_000 // 20秒
+        try? await Task.sleep(nanoseconds: delayInNanoseconds)
+
+        print("📤 [Upload] 延遲完成，現在開始上傳 - 運動ID: \(workoutId)")
+
         // 獲取設備信息
         let deviceInfo = getWorkoutDeviceInfo(workout)
         let actualSource = deviceInfo.source
         let actualDevice = deviceInfo.device
-        
-        // 擴充數據（全部為可選）
-        let speedData: [(Date, Double)]
-        do {
-            speedData = try await healthKitManager.fetchSpeedData(for: workout)
-        } catch {
-            speedData = []
-            await reportHealthKitDataError(workout: workout, dataType: "speed", error: error)
-        }
-        
-        let strideLengthData: [(Date, Double)]?
-        do {
-            strideLengthData = try await healthKitManager.fetchStrideLengthData(for: workout)
-        } catch {
-            strideLengthData = nil
-            await reportHealthKitDataError(workout: workout, dataType: "stride_length", error: error)
-        }
-        
-        let cadenceData: [(Date, Double)]?
-        do {
-            cadenceData = try await healthKitManager.fetchCadenceData(for: workout)
-        } catch {
-            cadenceData = nil
-            await reportHealthKitDataError(workout: workout, dataType: "cadence", error: error)
-        }
-        
-        let groundContactTimeData: [(Date, Double)]?
-        do {
-            groundContactTimeData = try await healthKitManager.fetchGroundContactTimeData(for: workout)
-        } catch {
-            groundContactTimeData = nil
-            await reportHealthKitDataError(workout: workout, dataType: "ground_contact_time", error: error)
-        }
-        
-        let verticalOscillationData: [(Date, Double)]?
-        do {
-            verticalOscillationData = try await healthKitManager.fetchVerticalOscillationData(for: workout)
-        } catch {
-            verticalOscillationData = nil
-            await reportHealthKitDataError(workout: workout, dataType: "vertical_oscillation", error: error)
-        }
-        
-        let totalCalories: Double?
-        do {
-            totalCalories = try await healthKitManager.fetchCaloriesData(for: workout)
-        } catch {
-            totalCalories = nil
-            await reportHealthKitDataError(workout: workout, dataType: "calories", error: error)
-        }
-
-        // 獲取分圈資料（可選）
-        let lapData: [LapData]?
-        do {
-            lapData = try await healthKitManager.fetchLapData(for: workout)
-            print("🏃‍♂️ [Upload] 分圈資料獲取成功: \(lapData?.count ?? 0) 圈")
-        } catch {
-            lapData = nil
-            await reportHealthKitDataError(workout: workout, dataType: "lap_data", error: error)
-            print("⚠️ [Upload] 分圈資料獲取失敗，將繼續上傳運動記錄")
-        }
 
         // 轉成 DataPoint
-        let heartRates  = heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-        let speeds      = speedData.map { DataPoint(time: $0.0, value: $0.1) }
-        let strides     = strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
-        let cadences    = cadenceData?.map { DataPoint(time: $0.0, value: $0.1) }
-        let contacts    = groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
-        let oscillations = verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
-        
+        let heartRates      = requiredData.heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
+        let speeds          = requiredData.speedData.map { DataPoint(time: $0.0, value: $0.1) }
+        let strides         = requiredData.strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let cadences        = requiredData.cadenceData.map { DataPoint(time: $0.0, value: $0.1) }
+        let contacts        = requiredData.groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let oscillations    = requiredData.verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
+
         try await postWorkoutDetails(workout: workout,
                                      heartRates: heartRates,
                                      speeds: speeds,
@@ -235,20 +176,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      cadences: cadences,
                                      groundContactTimes: contacts,
                                      verticalOscillations: oscillations,
-                                     totalCalories: totalCalories,
-                                     laps: lapData,
+                                     totalCalories: requiredData.totalCalories,
+                                     laps: requiredData.lapData,
                                      source: actualSource,
                                      device: actualDevice)
-        
-        // 增強心率數據驗證邏輯
-        let hasHeartRateData = validateHeartRateData(heartRateData, workout: workout, retriesAttempted: heartRateRetriesAttempted)
-        
-        // 記錄最終的心率狀態
-        let workoutId = makeWorkoutId(for: workout)
-        print("📊 [Upload] 最終心率驗證 - 運動ID: \(workoutId), 心率數據: \(heartRateData.count) 筆, 判定有心率: \(hasHeartRateData), 重試次數: \(heartRateRetriesAttempted)")
-        
-        // 使用 V2 API 版本標記已上傳
+
+        // 標記為已上傳（所有必要數據都已驗證）
+        let hasHeartRateData = requiredData.heartRateData.count >= 2
         workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData, apiVersion: .v2)
+
+        print("✅ [Upload] 上傳成功 - 運動ID: \(workoutId)")
         return .success(hasHeartRate: hasHeartRateData)
     }
     
@@ -304,7 +241,236 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         return UploadBatchResult(total: workouts.count, success: success, failed: failed, failedWorkouts: failedList)
     }
-    
+
+    // MARK: - Required Data Validation
+    /// 驗證並獲取運動上傳所需的關鍵數據
+    ///
+    /// 對於跑步相關運動（跑步、田徑、健行、步行）：需要心率、速度、步頻三個條件，每個都會進行重試
+    /// 對於其他運動：只需要心率數據
+    ///
+    /// 如果任何必要數據不足，會自動進行重試，最多 5 次，每次間隔 30 秒
+    private func validateAndFetchRequiredWorkoutData(
+        for workout: HKWorkout,
+        retryHeartRate: Bool = false
+    ) async -> WorkoutRequiredData {
+        // 判斷是否為跑步相關運動
+        let isRunning = isRunningRelatedWorkout(workout)
+        print("🏃 [驗證] 運動類型: \(isRunning ? "跑步相關 (需要心率、速度、步頻)" : "其他運動 (只需要心率)")")
+
+        // 1. 獲取心率數據（所有運動都需要）
+        var heartRateData: [(Date, Double)] = []
+        do {
+            heartRateData = try await healthKitManager.fetchHeartRateData(for: workout, forceRefresh: false, retryAttempt: 0)
+            print("📊 [驗證] 初次心率數據獲取: \(heartRateData.count) 筆")
+
+            // 心率數據不足，進行多次重試
+            if heartRateData.count < 2 {
+                heartRateData = await retryFetchingData(
+                    name: "心率",
+                    currentData: heartRateData,
+                    fetchOperation: { _ in
+                        try await self.healthKitManager.fetchHeartRateData(
+                            for: workout,
+                            forceRefresh: true,
+                            retryAttempt: 0
+                        )
+                    }
+                )
+            }
+        } catch {
+            print("❌ [驗證] 無法獲取心率數據: \(error.localizedDescription)")
+            await reportHealthKitDataError(workout: workout, dataType: "heart_rate", error: error)
+        }
+
+        // 2. 獲取速度數據（跑步運動才需要重試，其他運動只嘗試一次）
+        var speedData: [(Date, Double)] = []
+        do {
+            speedData = try await healthKitManager.fetchSpeedData(for: workout)
+            print("📊 [驗證] 初次速度數據獲取: \(speedData.count) 筆")
+
+            // 只有跑步相關運動才進行速度數據重試
+            if isRunning && speedData.count < 2 {
+                speedData = await retryFetchingData(
+                    name: "速度",
+                    currentData: speedData,
+                    fetchOperation: { _ in
+                        try await self.healthKitManager.fetchSpeedData(for: workout)
+                    }
+                )
+            }
+        } catch {
+            print("❌ [驗證] 無法獲取速度數據: \(error.localizedDescription)")
+            await reportHealthKitDataError(workout: workout, dataType: "speed", error: error)
+        }
+
+        // 3. 獲取步頻數據（跑步運動才需要重試，其他運動只嘗試一次）
+        var cadenceData: [(Date, Double)] = []
+        do {
+            if let cadence = try await healthKitManager.fetchCadenceData(for: workout) {
+                cadenceData = cadence
+            }
+            print("📊 [驗證] 初次步頻數據獲取: \(cadenceData.count) 筆")
+
+            // 只有跑步相關運動才進行步頻數據重試
+            if isRunning && cadenceData.count < 2 {
+                if let retryData = await retryFetchingOptionalData(
+                    name: "步頻",
+                    currentData: cadenceData,
+                    fetchOperation: { _ in
+                        try await self.healthKitManager.fetchCadenceData(for: workout)
+                    }
+                ) {
+                    cadenceData = retryData
+                }
+            }
+        } catch {
+            print("❌ [驗證] 無法獲取步頻數據: \(error.localizedDescription)")
+            await reportHealthKitDataError(workout: workout, dataType: "cadence", error: error)
+        }
+
+        // 4. 獲取輔助數據（可選）
+        var strideLengthData: [(Date, Double)]?
+        do {
+            strideLengthData = try await healthKitManager.fetchStrideLengthData(for: workout)
+        } catch {
+            strideLengthData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "stride_length", error: error)
+        }
+
+        var groundContactTimeData: [(Date, Double)]?
+        do {
+            groundContactTimeData = try await healthKitManager.fetchGroundContactTimeData(for: workout)
+        } catch {
+            groundContactTimeData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "ground_contact_time", error: error)
+        }
+
+        var verticalOscillationData: [(Date, Double)]?
+        do {
+            verticalOscillationData = try await healthKitManager.fetchVerticalOscillationData(for: workout)
+        } catch {
+            verticalOscillationData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "vertical_oscillation", error: error)
+        }
+
+        var totalCalories: Double?
+        do {
+            totalCalories = try await healthKitManager.fetchCaloriesData(for: workout)
+        } catch {
+            totalCalories = nil
+            await reportHealthKitDataError(workout: workout, dataType: "calories", error: error)
+        }
+
+        var lapData: [LapData]?
+        do {
+            lapData = try await healthKitManager.fetchLapData(for: workout)
+            print("🏃‍♂️ [驗證] 分圈資料獲取成功: \(lapData?.count ?? 0) 圈")
+        } catch {
+            lapData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "lap_data", error: error)
+            print("⚠️ [驗證] 分圈資料獲取失敗，將繼續上傳運動記錄")
+        }
+
+        return WorkoutRequiredData(
+            workout: workout,
+            heartRateData: heartRateData,
+            speedData: speedData,
+            cadenceData: cadenceData,
+            strideLengthData: strideLengthData,
+            groundContactTimeData: groundContactTimeData,
+            verticalOscillationData: verticalOscillationData,
+            totalCalories: totalCalories,
+            lapData: lapData
+        )
+    }
+
+    /// 重試獲取必要數據（用於心率、速度等非可選數據）
+    private func retryFetchingData(
+        name: String,
+        currentData: [(Date, Double)],
+        fetchOperation: @escaping (_ attempt: Int) async throws -> [(Date, Double)]
+    ) async -> [(Date, Double)] {
+        var data = currentData
+        let maxRetries = 5
+        let retryInterval: UInt64 = 30_000_000_000 // 30秒
+
+        print("🔄 [驗證] \(name)數據不足(\(data.count) < 2)，開始重試流程...")
+
+        for attempt in 1...maxRetries {
+            print("🔄 [驗證] \(name)數據重試 \(attempt)/\(maxRetries)，等待30秒...")
+
+            try? await Task.sleep(nanoseconds: retryInterval)
+
+            do {
+                let retryData = try await fetchOperation(attempt)
+                print("🔄 [驗證] 重試第 \(attempt) 次獲取\(name)數據：\(retryData.count) 筆")
+
+                if retryData.count > data.count {
+                    data = retryData
+                    print("✅ [驗證] 重試成功，更新\(name)數據：\(data.count) 筆")
+                }
+
+                if data.count >= 5 {
+                    print("✅ [驗證] \(name)數據充足，停止重試")
+                    break
+                }
+            } catch {
+                print("⚠️ [驗證] 重試第 \(attempt) 次失敗: \(error.localizedDescription)")
+            }
+        }
+
+        if data.count < 5 {
+            print("⚠️ [驗證] 重試 \(maxRetries) 次後\(name)數據仍不足：\(data.count) 筆")
+        }
+
+        return data
+    }
+
+    /// 重試獲取可選數據
+    private func retryFetchingOptionalData(
+        name: String,
+        currentData: [(Date, Double)],
+        fetchOperation: @escaping (_ attempt: Int) async throws -> [(Date, Double)]?
+    ) async -> [(Date, Double)]? {
+        var data: [(Date, Double)]? = currentData.isEmpty ? nil : currentData
+        let maxRetries = 5
+        let retryInterval: UInt64 = 30_000_000_000 // 30秒
+
+        guard (data?.count ?? 0) < 2 else { return data }
+
+        print("🔄 [驗證] \(name)數據不足(\(data?.count ?? 0) < 2)，開始重試流程...")
+
+        for attempt in 1...maxRetries {
+            print("🔄 [驗證] \(name)數據重試 \(attempt)/\(maxRetries)，等待30秒...")
+
+            try? await Task.sleep(nanoseconds: retryInterval)
+
+            do {
+                if let retryData = try await fetchOperation(attempt) {
+                    print("🔄 [驗證] 重試第 \(attempt) 次獲取\(name)數據：\(retryData.count) 筆")
+
+                    if (data?.count ?? 0) < retryData.count {
+                        data = retryData
+                        print("✅ [驗證] 重試成功，更新\(name)數據：\(data?.count ?? 0) 筆")
+                    }
+
+                    if (data?.count ?? 0) >= 5 {
+                        print("✅ [驗證] \(name)數據充足，停止重試")
+                        break
+                    }
+                }
+            } catch {
+                print("⚠️ [驗證] 重試第 \(attempt) 次失敗: \(error.localizedDescription)")
+            }
+        }
+
+        if (data?.count ?? 0) < 5 {
+            print("⚠️ [驗證] 重試 \(maxRetries) 次後\(name)數據仍不足：\(data?.count ?? 0) 筆")
+        }
+
+        return data
+    }
+
     // MARK: - Internal request helper
     private func postWorkoutDetails(workout: HKWorkout,
                                     heartRates: [DataPoint],
@@ -789,62 +955,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         return thirdPartyIdentifiers.contains(bundleId) || thirdPartyNames.contains(sourceName)
     }
-    
-    // MARK: - Heart Rate Validation
-    
-    /// 驗證心率數據的品質和完整性
-    private func validateHeartRateData(_ heartRateData: [(Date, Double)], workout: HKWorkout, retriesAttempted: Int) -> Bool {
-        // 基本數量檢查
-        if heartRateData.count < 2 {
-            print("⚠️ [Validation] 心率數據不足: \(heartRateData.count) < 2筆")
-            return false
-        }
-        
-        // 檢查心率值的合理性
-        let heartRateValues = heartRateData.map { $0.1 }
-        let minHR = heartRateValues.min() ?? 0
-        let maxHR = heartRateValues.max() ?? 0
-        let avgHR = heartRateValues.reduce(0, +) / Double(heartRateValues.count)
-        
-        // 心率值應在合理範圍內（30-250 BPM）
-        let validHeartRates = heartRateValues.filter { $0 >= 30 && $0 <= 250 }
-        let validPercentage = Double(validHeartRates.count) / Double(heartRateValues.count)
-        
-        print("📊 [Validation] 心率數據品質 - 總數: \(heartRateData.count), 最小值: \(Int(minHR)), 最大值: \(Int(maxHR)), 平均: \(Int(avgHR)), 有效比例: \(String(format: "%.1f", validPercentage * 100))%")
-        
-        // 至少70%的心率值應該是有效的
-        if validPercentage < 0.7 {
-            print("⚠️ [Validation] 心率數據品質不佳，有效比例低於70%")
-            return false
-        }
-        
-        // 檢查時間覆蓋率
-        let workoutDuration = workout.duration
-        let heartRateTimeSpan: TimeInterval
-        if let firstDate = heartRateData.first?.0, let lastDate = heartRateData.last?.0 {
-            heartRateTimeSpan = lastDate.timeIntervalSince(firstDate)
 
-            // 計算最後一筆心率資料相對於訓練開始的 offset
-            let lastHROffset = lastDate.timeIntervalSince(workout.startDate)
-            let missingTime = workoutDuration - lastHROffset
-            print("   🔍 [心率時間] 最後一筆offset: \(String(format: "%.1f", lastHROffset))s | 訓練總時長: \(String(format: "%.1f", workoutDuration))s | 缺失: \(String(format: "%.1f", missingTime))s")
-        } else {
-            heartRateTimeSpan = 0
-        }
-        let coverageRatio = heartRateTimeSpan / workoutDuration
-
-        print("📊 [Validation] 心率時間覆蓋 - 運動時長: \(Int(workoutDuration))秒, 心率跨度: \(Int(heartRateTimeSpan))秒, 覆蓋率: \(String(format: "%.1f", coverageRatio * 100))%")
-        
-        // 心率數據應至少覆蓋運動時間的30%
-        if coverageRatio < 0.3 && workoutDuration > 300 { // 5分鐘以上的運動才檢查覆蓋率
-            print("⚠️ [Validation] 心率時間覆蓋率不足，可能數據不完整")
-            return false
-        }
-        
-        print("✅ [Validation] 心率數據驗證通過")
-        return true
-    }
-    
     // MARK: - Upload Tracker Helpers
     func markWorkoutAsUploaded(_ workout: HKWorkout, hasHeartRate: Bool = true) {
         // 使用 V2 API 版本標記已上傳
@@ -870,6 +981,58 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     }
     struct UploadBatchResult { let total: Int; let success: Int; let failed: Int; let failedWorkouts: [FailedWorkout] }
     struct FailedWorkout { let workout: HKWorkout; let error: Error }
+
+    // MARK: - Required Data Validation Result
+    /// 運動上傳所需的關鍵數據（心率、速度、步頻）驗證結果
+    struct WorkoutRequiredData {
+        let workout: HKWorkout
+        let heartRateData: [(Date, Double)]
+        let speedData: [(Date, Double)]
+        let cadenceData: [(Date, Double)]
+        let strideLengthData: [(Date, Double)]?
+        let groundContactTimeData: [(Date, Double)]?
+        let verticalOscillationData: [(Date, Double)]?
+        let totalCalories: Double?
+        let lapData: [LapData]?
+
+        /// 檢查是否為跑步相關的運動
+        var isRunningRelated: Bool {
+            let activityType = workout.workoutActivityType
+            return activityType == .running ||
+                   activityType == .trackAndField ||
+                   activityType == .hiking ||
+                   activityType == .walking
+        }
+
+        /// 檢查是否滿足所有必要的數據條件
+        /// - 跑步相關運動：需要心率 >= 2, 速度 >= 2, 步頻 >= 2
+        /// - 其他運動：只需要心率 >= 2
+        var isAllRequiredDataAvailable: Bool {
+            if isRunningRelated {
+                // 跑步運動需要三個條件都滿足
+                return heartRateData.count >= 2 && speedData.count >= 2 && cadenceData.count >= 2
+            } else {
+                // 其他運動只需要心率
+                return heartRateData.count >= 2
+            }
+        }
+
+        func logSummary(workoutId: String) {
+            print("📊 [數據驗證] 運動ID: \(workoutId) | 類型: \(isRunningRelated ? "跑步相關" : "其他運動")")
+            print("   - 心率: \(heartRateData.count) 筆 \(heartRateData.count >= 2 ? "✅" : "❌")")
+            if isRunningRelated {
+                print("   - 速度: \(speedData.count) 筆 \(speedData.count >= 2 ? "✅" : "❌") [跑步必需]")
+                print("   - 步頻: \(cadenceData.count) 筆 \(cadenceData.count >= 2 ? "✅" : "❌") [跑步必需]")
+            } else {
+                print("   - 速度: \(speedData.count) 筆 (可選)")
+                print("   - 步頻: \(cadenceData.count) 筆 (可選)")
+            }
+            print("   - 步幅: \(strideLengthData?.count ?? 0) 筆")
+            print("   - 觸地時間: \(groundContactTimeData?.count ?? 0) 筆")
+            print("   - 垂直振幅: \(verticalOscillationData?.count ?? 0) 筆")
+            print("   - 總體結果: \(isAllRequiredDataAvailable ? "✅ 滿足所有條件" : "❌ 未滿足所有條件")")
+        }
+    }
 }
 
 // Data models for API

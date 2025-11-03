@@ -412,9 +412,9 @@ struct HavitalApp: App {
             // 更新本地偏好
             userPreferenceManager.timezonePreference = deviceTimezone
 
-            // 同步到後端
+            // ✅ 優化：使用 UserPreferencesManager 同步到後端
             do {
-                try await UserPreferencesService.shared.updateTimezone(deviceTimezone)
+                try await UserPreferencesManager.shared.updatePreferences(timezone: deviceTimezone)
                 print("✅ 時區已自動初始化並同步到後端: \(deviceTimezone)")
             } catch {
                 print("❌ 時區同步到後端失敗: \(error.localizedDescription)")
@@ -423,16 +423,12 @@ struct HavitalApp: App {
         } else {
             print("⏰ 時區已存在，無需初始化")
 
-            // 可選：檢查本地時區與後端是否一致
-            do {
-                let preferences = try await UserPreferencesService.shared.getPreferences()
-                if let localTimezone = userPreferenceManager.timezonePreference,
-                   localTimezone != preferences.timezone {
-                    print("⚠️ 本地時區與後端不一致，同步後端時區")
-                    userPreferenceManager.timezonePreference = preferences.timezone
-                }
-            } catch {
-                print("⚠️ 無法獲取後端時區設定: \(error.localizedDescription)")
+            // ✅ 優化：使用 UserPreferencesManager 檢查本地時區與後端是否一致
+            if let preferences = await UserPreferencesManager.shared.getPreferences(),
+               let localTimezone = userPreferenceManager.timezonePreference,
+               localTimezone != preferences.timezone {
+                print("⚠️ 本地時區與後端不一致，同步後端時區")
+                userPreferenceManager.timezonePreference = preferences.timezone
             }
         }
     }

@@ -201,21 +201,35 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     // MARK: - Core Health Data Logic
     
     private func performLoadHealthData() async throws {
-        // 載入所有支援的天數範圍的數據
-        for days in supportedDaysRanges {
-            try await loadHealthDataForRange(days: days)
-        }
-        
+        // ✅ 優化：只載入默認的 7 天範圍（最常用）
+        // 其他範圍（14天、30天）會在用戶切換時按需載入
+        try await loadHealthDataForRange(days: 7)
+
         // 載入上傳狀態
         loadUploadStatus()
+
+        Logger.firebase(
+            "健康數據初始化完成（懶加載模式）",
+            level: .info,
+            labels: ["module": "HealthDataUploadManagerV2", "action": "perform_load_health_data"],
+            jsonPayload: ["default_range": 7]
+        )
     }
-    
+
     private func performRefreshHealthData() async throws {
-        // 強制刷新所有數據
-        for days in supportedDaysRanges {
-            try await refreshHealthDataForRange(days: days)
+        // ✅ 優化：只刷新已載入的範圍
+        let loadedRanges = Array(healthDataCollections.keys)
+
+        if loadedRanges.isEmpty {
+            // 如果沒有已載入的範圍，刷新默認的 7 天
+            try await refreshHealthDataForRange(days: 7)
+        } else {
+            // 刷新所有已載入的範圍
+            for days in loadedRanges {
+                try await refreshHealthDataForRange(days: days)
+            }
         }
-        
+
         // 觸發上傳
         await syncHealthDataNow()
     }
@@ -368,21 +382,33 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     }
     
     private func setupGarminSync() async {
-        // Garmin 數據由後台自動同步，只需定期刷新
-        await schedulePeriodicRefresh()
-        
+        // ✅ 優化：Garmin 數據由後端自動同步，移除前端 30 分鐘輪詢
+        // 數據會在 App 啟動時載入一次，用戶可以手動刷新
+
         await MainActor.run {
             self.backgroundSyncEnabled = true
         }
+
+        Logger.firebase(
+            "Garmin 健康數據同步設置完成（無輪詢）",
+            level: .info,
+            labels: ["module": "HealthDataUploadManagerV2", "action": "setup_garmin_sync"]
+        )
     }
-    
+
     private func setupStravaSync() async {
-        // Strava 數據由後台自動同步，只需定期刷新
-        await schedulePeriodicRefresh()
-        
+        // ✅ 優化：Strava 數據由後端自動同步，移除前端 30 分鐘輪詢
+        // 數據會在 App 啟動時載入一次，用戶可以手動刷新
+
         await MainActor.run {
             self.backgroundSyncEnabled = true
         }
+
+        Logger.firebase(
+            "Strava 健康數據同步設置完成（無輪詢）",
+            level: .info,
+            labels: ["module": "HealthDataUploadManagerV2", "action": "setup_strava_sync"]
+        )
     }
     
     // MARK: - HealthKit Observer Management
@@ -831,15 +857,9 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         }
     }
     
-    private func schedulePeriodicRefresh() async {
-        // Garmin 數據的定期刷新
-        Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 30 * 60 * 1_000_000_000) // 30分鐘
-                await refreshData()
-            }
-        }
-    }
+    // ✅ 已移除：schedulePeriodicRefresh()
+    // 原因：Garmin/Strava 數據由後端自動同步，前端 30 分鐘輪詢會造成每天 144 次不必要的 API 調用
+    // 數據會在 App 啟動時載入，用戶可以通過下拉刷新手動更新
     
     // MARK: - Local HealthKit Data
     
@@ -963,7 +983,16 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             let hrvCount = collection.records.filter { $0.hrvLastNightAvg != nil }.count
             print("📊 [getHealthData] 內存緩存中 HRV 記錄數: \(hrvCount)")
 
-            // ⚠️ 如果快取中沒有 HRV 數據，強制刷新
+            // ✅ 優化：檢查緩存時效性（30 分鐘內不重新載入）
+            let cacheAge = Date().timeIntervalSince(collection.lastUpdated)
+            let cacheValid = cacheAge < 1800 // 30 分鐘
+
+            if cacheValid {
+                print("📊 [getHealthData] 緩存有效（更新於 \(Int(cacheAge/60)) 分鐘前），直接返回")
+                return collection.records
+            }
+
+            // ⚠️ 如果快取中沒有 HRV 數據，且是 Apple Health 用戶，強制刷新
             if hrvCount == 0 && userPreferenceManager.dataSourcePreference == .appleHealth {
                 print("📊 [getHealthData] ⚠️ 快取中無 HRV 數據，強制刷新")
                 healthDataCollections.removeValue(forKey: days)
@@ -974,6 +1003,11 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                 return refreshedResult
             }
 
+            // 緩存過期但有數據，背景更新但立即返回舊數據
+            print("📊 [getHealthData] 緩存過期，背景更新中...")
+            Task.detached { [weak self] in
+                try? await self?.loadHealthDataForRange(days: days)
+            }
             return collection.records
         }
 
