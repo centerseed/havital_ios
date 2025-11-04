@@ -270,8 +270,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
         
-        // 在用戶資料完全載入後檢查 Garmin 連線狀態
+        // 在用戶資料完全載入後檢查 Garmin 和 Strava 連線狀態
         await checkGarminConnectionAfterUserData()
+        await checkStravaConnectionAfterUserData()
 
     }
     
@@ -323,10 +324,11 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 
                 // 同步用戶偏好
                 UserService.shared.syncUserPreferences(with: user)
-                
-                // 在用戶資料載入完成後檢查 Garmin 連線狀態
+
+                // 在用戶資料載入完成後檢查 Garmin 和 Strava 連線狀態
                 Task {
                     await self?.checkGarminConnectionAfterUserData()
+                    await self?.checkStravaConnectionAfterUserData()
                 }
             }
             .store(in: &cancellables)
@@ -477,6 +479,33 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             }
         } else {
             print("🔍 用戶偏好不是 Garmin (\(UserPreferenceManager.shared.dataSourcePreference.displayName))，跳過 Garmin 狀態檢查")
+        }
+    }
+
+    private func checkStravaConnectionAfterUserData() async {
+        // 確保用戶資料已經載入完成
+        guard appUser != nil else {
+            print("⚠️ 用戶資料尚未載入，跳過 Strava 狀態檢查")
+            return
+        }
+
+        print("🔍 用戶資料載入完成後檢查 Strava 連線狀態")
+
+        // 如果用戶偏好設定為 Strava，檢查後端的 Strava 連接狀態
+        if UserPreferenceManager.shared.dataSourcePreference == .strava {
+            print("🔍 用戶偏好為 Strava，檢查連接狀態...")
+            await StravaManager.shared.checkConnectionStatus()
+
+            // checkConnectionStatus 完成後，檢查連接狀態
+            await MainActor.run {
+                if StravaManager.shared.isConnected {
+                    print("✅ Strava 連接狀態正常")
+                } else {
+                    print("⚠️ Strava 連接狀態異常")
+                }
+            }
+        } else {
+            print("🔍 用戶偏好不是 Strava，跳過 Strava 狀態檢查")
         }
     }
 }

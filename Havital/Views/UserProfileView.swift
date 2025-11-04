@@ -803,15 +803,22 @@ struct UserProfileView: View {
                     do {
                         // 調用後端API解除Strava綁定
                         let disconnectResult = try await StravaDisconnectService.shared.disconnectStrava()
-                        print("Strava解除綁定成功: \(disconnectResult.message)")
+                        print("✅ Strava解除綁定成功: \(disconnectResult.message)")
 
                         // 本地斷開Strava連接（remote: false 避免重複調用）
                         await stravaManager.disconnect(remote: false)
 
                     } catch {
-                        print("Strava解除綁定失敗: \(error.localizedDescription)")
+                        print("❌ Strava解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
                         await stravaManager.disconnect(remote: false)
+
+                        Logger.firebase("切換到Apple Health時Strava斷開失敗", level: .error, labels: [
+                            "module": "UserProfileView",
+                            "action": "switchDataSource",
+                            "target": "appleHealth",
+                            "error": error.localizedDescription
+                        ])
                     }
                 }
                 
@@ -825,16 +832,30 @@ struct UserProfileView: View {
                 }
                 
                 userPreferenceManager.dataSourcePreference = .appleHealth
-                
+
                 // 同步到後端
+                print("🔄 開始同步數據源到後端: \(newDataSource.rawValue)")
                 do {
                     try await UserService.shared.updateDataSource(newDataSource.rawValue)
-                    print("數據源設定已同步到後端: \(newDataSource.displayName)")
-                    
+                    print("✅ 數據源設定已同步到後端: \(newDataSource.displayName)")
+
+                    Logger.firebase("切換到Apple Health成功", level: .info, labels: [
+                        "module": "UserProfileView",
+                        "action": "switchDataSource",
+                        "target": "appleHealth"
+                    ])
+
                     // 切換完成，不再顯示同步畫面
                     print("Apple Health 數據源切換完成")
                 } catch {
-                    print("同步數據源設定到後端失敗: \(error.localizedDescription)")
+                    print("❌ 同步數據源設定到後端失敗: \(error.localizedDescription)")
+
+                    Logger.firebase("切換到Apple Health失敗", level: .error, labels: [
+                        "module": "UserProfileView",
+                        "action": "switchDataSource",
+                        "target": "appleHealth",
+                        "error": error.localizedDescription
+                    ])
                 }
                 
             case .garmin:

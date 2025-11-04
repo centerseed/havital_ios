@@ -311,27 +311,31 @@ struct CombinedHeartRateChartSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 標題和選項卡
-            VStack(spacing: 8) {
-                // 統一標題
-                HStack {
-                    Text("心率數據趨勢")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .padding(.top, 12)
-
-                    Spacer()
-                }
-                .padding(.horizontal)
-
-                // 選項卡切換
-                Picker("Heart Rate Chart Type", selection: $selectedTab) {
-                    ForEach(HeartRateChartTab.allCases, id: \.self) { tab in
-                        Text(tab.title).tag(tab)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.horizontal)
+            
+            switch dataSourcePreference {
+            case .appleHealth:
+                // Apple Health: 優先使用 API，失敗時回退到 HealthKit
+                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+                    .padding()
+                
+            case .garmin:
+                // Garmin: 僅使用 API 數據
+                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
+                    .environmentObject(healthKitManager)
+                    .environmentObject(sharedHealthDataManager)
+                    .padding()
+                
+            case .strava:
+                // Strava: 不支援 HRV 數據
+                EmptyDataSourceView(message: "Strava 不提供心率變異性數據")
+                    .padding()
+                
+            case .unbound:
+                // 未綁定數據源
+                EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
+                    .padding()
             }
 
             // 圖表內容
@@ -366,10 +370,6 @@ struct CombinedHeartRateChartSection: View {
                 .environmentObject(healthKitManager)
                 .environmentObject(sharedHealthDataManager)
 
-        case .strava:
-            // Strava: 不支援 HRV 數據
-            EmptyDataSourceView(message: "Strava 不提供心率變異性數據")
-
         case .unbound:
             // 未綁定數據源
             EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
@@ -389,10 +389,6 @@ struct CombinedHeartRateChartSection: View {
             SleepHeartRateChartViewWithGarmin()
                 .environmentObject(healthKitManager)
 
-        case .strava:
-            // Strava: 不支援靜息心率數據
-            EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
-
         case .unbound:
             // 未綁定數據源
             EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
@@ -400,28 +396,42 @@ struct CombinedHeartRateChartSection: View {
     }
 }
 
-// MARK: - Heart Rate Chart Tab Enum
-enum HeartRateChartTab: String, CaseIterable {
-    case hrv = "hrv"
-    case restingHeartRate = "restingHeartRate"
-
-    var title: String {
-        switch self {
-        case .hrv: return L10n.Performance.HRV.hrvTitle.localized
-        case .restingHeartRate: return NSLocalizedString("performance.resting_hr_title", comment: "Sleep Resting Heart Rate")
-        }
+// MARK: - Resting Heart Rate Chart Section
+struct RestingHeartRateChartSection: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+    @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
+    
+    // 當前數據源設定
+    private var dataSourcePreference: DataSourceType {
+        UserPreferenceManager.shared.dataSourcePreference
     }
-}
-
-// MARK: - Training Load Chart Tab Enum
-enum TrainingLoadChartTab: String, CaseIterable {
-    case fitness = "fitness"
-    case tsb = "tsb"
-
-    var title: String {
-        switch self {
-        case .fitness: return "訓練指數"
-        case .tsb: return "訓練平衡TSB"
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            
+            switch dataSourcePreference {
+            case .appleHealth:
+                // Apple Health: 使用現有的 HealthKit 數據
+                SleepHeartRateChartView()
+                    .environmentObject(healthKitManager)
+                    .padding()
+                
+            case .garmin:
+                // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
+                SleepHeartRateChartViewWithGarmin()
+                    .environmentObject(healthKitManager)
+                    .padding()
+                
+            case .strava:
+                // Strava: 不支援靜息心率數據
+                EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
+                    .padding()
+                
+            case .unbound:
+                // 未綁定數據源
+                EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
+                    .padding()
+            }
         }
     }
 }
@@ -1317,22 +1327,6 @@ struct TrainingLoadChartSection: View {
             // 圖表內容
             switch dataSourcePreference {
             case .appleHealth, .garmin:
-                Group {
-                    switch selectedTab {
-                    case .fitness:
-                        FitnessIndexChartView()
-                            .environmentObject(healthKitManager)
-                            .environmentObject(sharedHealthDataManager)
-                    case .tsb:
-                        TSBChartView()
-                            .environmentObject(healthKitManager)
-                            .environmentObject(sharedHealthDataManager)
-                    }
-                }
-                .padding()
-
-            case .strava:
-                // Strava: 支援訓練負荷數據
                 Group {
                     switch selectedTab {
                     case .fitness:

@@ -133,6 +133,9 @@ class StravaManager: NSObject, ObservableObject {
             
             let response = try await StravaConnectionStatusService.shared.checkConnectionStatus()
             
+            // 記錄要在 MainActor 之外執行的異步操作
+            var shouldRestoreDataSource = false
+
             await MainActor.run {
                 print("🔍 後端 Strava 狀態檢查結果:")
                 print("  - connected: \(response.connected)")
@@ -142,36 +145,28 @@ class StravaManager: NSObject, ObservableObject {
                 print("  - message: '\(response.message)'")
                 print("  - connectedAt: \(response.connectedAt ?? "nil")")
                 print("  - lastUpdated: \(response.lastUpdated ?? "nil")")
-                
+
                 // 更新本地連接狀態
                 saveConnectionStatus(response.isActive)
-                
+
                 if response.isActive {
                     // 連線正常
                     print("✅ 設置狀態：needsReconnection = false")
                     needsReconnection = false
                     reconnectionMessage = nil
                     connectionError = nil
-                    
+
                     // 強制觸發 UI 更新
                     objectWillChange.send()
-                    
+
                     // 如果 Strava 連線正常但本地偏好設定不是 Strava，恢復偏好設定
                     if UserPreferenceManager.shared.dataSourcePreference != .strava {
                         print("🔄 恢復 Strava 資料來源偏好設定")
                         UserPreferenceManager.shared.dataSourcePreference = .strava
-                        
-                        // 同步到後端
-                        Task {
-                            do {
-                                try await UserService.shared.updateDataSource(DataSourceType.strava.rawValue)
-                                print("✅ Strava 資料來源偏好設定已同步到後端")
-                            } catch {
-                                print("⚠️ 同步 Strava 資料來源偏好設定到後端失敗: \(error.localizedDescription)")
-                            }
-                        }
+                        print("✅ 本地 Strava 資料來源設置已恢復")
+                        shouldRestoreDataSource = true
                     }
-                    
+
                     Logger.firebase("Strava 連線狀態正常", level: .info, labels: [
                         "module": "StravaManager",
                         "action": "checkConnectionStatus",
@@ -180,18 +175,18 @@ class StravaManager: NSObject, ObservableObject {
                 } else {
                     // 狀態不是 "active"，檢查是否需要重連
                     print("⚠️ Strava 狀態不是 active: '\(response.status)'")
-                    
+
                     // 只對真正的錯誤狀態顯示對話框
                     let problemStatuses = ["bound_to_other_user", "inactive", "expired", "revoked", "suspended", "error"]
                     let shouldShowReconnection = problemStatuses.contains { problemStatus in
                         response.status.lowercased().contains(problemStatus.lowercased())
                     }
-                    
+
                     if shouldShowReconnection {
                         print("❌ 檢測到問題狀態 '\(response.status)'，設置 needsReconnection = true")
                         needsReconnection = true
                         reconnectionMessage = response.message.isEmpty ? "Strava 連接需要重新授權" : response.message
-                        
+
                         Logger.firebase("Strava 需要重新綁定", level: .warn, labels: [
                             "module": "StravaManager",
                             "action": "checkConnectionStatus",
@@ -203,6 +198,16 @@ class StravaManager: NSObject, ObservableObject {
                         needsReconnection = false
                         reconnectionMessage = nil
                     }
+                }
+            }
+
+            // 如果需要恢復數據源，在 MainActor.run 之外進行異步操作
+            if shouldRestoreDataSource {
+                do {
+                    try await UserService.shared.updateDataSource(DataSourceType.strava.rawValue)
+                    print("✅ Strava 資料來源偏好設定已同步到後端")
+                } catch {
+                    print("⚠️ 同步 Strava 資料來源偏好設定到後端失敗: \(error.localizedDescription)")
                 }
             }
             
@@ -384,34 +389,49 @@ class StravaManager: NSObject, ObservableObject {
         // 原有的 success/failure 處理
         let success = queryItems.first { $0.name == "success" }?.value
         if success == "true" {
-            // 後端已經處理完成，直接更新狀態
+            // 首先更新本地狀態
             await MainActor.run {
                 saveConnectionStatus(true)
                 clearStoredCredentials()
                 isConnecting = false
                 connectionError = nil  // 清除之前的錯誤信息
-                
+
                 print("✅ Strava 連接成功")
-                
+
                 // 記錄連接成功和錯誤清除
                 Logger.firebase("Strava 連接成功，錯誤信息已清除", level: .info, labels: [
                     "module": "StravaManager",
                     "action": "handleCallback",
                     "result": "success"
                 ])
-                
-                // 連接成功後自動切換到Strava數據源
-                UserPreferenceManager.shared.dataSourcePreference = .strava
-                
-                // 同步到後端
-                Task {
-                    do {
-                        try await UserService.shared.updateDataSource(DataSourceType.strava.rawValue)
-                        print("數據源設定已同步到後端: Strava")
-                    } catch {
-                        print("同步Strava數據源設定到後端失敗: \(error.localizedDescription)")
-                    }
+            }
+
+            // ✅ 改為阻塞式更新，確保後端更新完成再返回
+            do {
+                try await UserService.shared.updateDataSource(DataSourceType.strava.rawValue)
+                print("✅ Strava 數據源已同步到後端")
+
+                // 只有後端確認成功後，才更新本地數據源設置
+                await MainActor.run {
+                    UserPreferenceManager.shared.dataSourcePreference = .strava
+                    print("✅ 本地數據源設置已更新為 Strava")
                 }
+
+                Logger.firebase("Strava 數據源同步完成", level: .info, labels: [
+                    "module": "StravaManager",
+                    "action": "handleCallback",
+                    "sync_status": "success"
+                ])
+            } catch {
+                print("❌ 同步 Strava 數據源設定到後端失敗: \(error.localizedDescription)")
+
+                // 同步失敗，不更新本地數據源設置，保持 isConnected 為 true
+                // 下次登入時 checkConnectionStatus() 會進行修復
+                Logger.firebase("Strava 數據源同步失敗", level: .error, labels: [
+                    "module": "StravaManager",
+                    "action": "handleCallback",
+                    "error": error.localizedDescription
+                ])
             }
         } else {
             await handleConnectionError("Strava 連接失敗")

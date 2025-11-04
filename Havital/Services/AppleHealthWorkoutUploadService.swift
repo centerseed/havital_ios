@@ -306,22 +306,18 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         // 3. 獲取步頻數據（跑步運動才需要重試，其他運動只嘗試一次）
         var cadenceData: [(Date, Double)] = []
         do {
-            if let cadence = try await healthKitManager.fetchCadenceData(for: workout) {
-                cadenceData = cadence
-            }
+            cadenceData = try await healthKitManager.fetchCadenceData(for: workout)
             print("📊 [驗證] 初次步頻數據獲取: \(cadenceData.count) 筆")
 
             // 只有跑步相關運動才進行步頻數據重試
             if isRunning && cadenceData.count < 2 {
-                if let retryData = await retryFetchingOptionalData(
+                cadenceData = await retryFetchingData(
                     name: "步頻",
                     currentData: cadenceData,
                     fetchOperation: { _ in
                         try await self.healthKitManager.fetchCadenceData(for: workout)
                     }
-                ) {
-                    cadenceData = retryData
-                }
+                )
             }
         } catch {
             print("❌ [驗證] 無法獲取步頻數據: \(error.localizedDescription)")
