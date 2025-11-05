@@ -58,8 +58,58 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         verticalOscillations.removeAll()
     }
     
+    // MARK: - 刪除功能
+
+    /// 刪除運動記錄
+    /// - Returns: 是否刪除成功
+    func deleteWorkout() async -> Bool {
+        do {
+            // 調用 Service 刪除
+            try await workoutV2Service.deleteWorkout(workoutId: workout.id)
+
+            // 發送通知以更新 UI
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .workoutsDidUpdate,
+                    object: nil,
+                    userInfo: ["deletedWorkoutId": workout.id]
+                )
+            }
+
+            Logger.firebase(
+                "成功刪除運動記錄",
+                level: .info,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "delete_workout"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "activity_type": workout.activityType
+                ]
+            )
+
+            return true
+        } catch {
+            Logger.firebase(
+                "刪除運動記錄失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "delete_workout",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "error": error.localizedDescription
+                ]
+            )
+            return false
+        }
+    }
+
     // MARK: - 重新上傳功能 (Apple Health Only)
-    
+
     /// 重新上傳結果枚舉
     enum ReuploadResult {
         case success(hasHeartRate: Bool)

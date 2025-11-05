@@ -297,6 +297,35 @@ struct MyAchievementView: View {
     }
 }
 
+// MARK: - Chart Tab Enums
+enum HeartRateChartTab: String, CaseIterable {
+    case hrv = "HRV"
+    case restingHeartRate = "Resting HR"
+
+    var title: String {
+        switch self {
+        case .hrv:
+            return NSLocalizedString("performance.hrv", comment: "HRV")
+        case .restingHeartRate:
+            return NSLocalizedString("performance.resting_hr", comment: "Resting HR")
+        }
+    }
+}
+
+enum TrainingLoadChartTab: String, CaseIterable {
+    case fitness = "Fitness"
+    case tsb = "TSB"
+
+    var title: String {
+        switch self {
+        case .fitness:
+            return NSLocalizedString("performance.training_load.fitness_index", comment: "Fitness Index")
+        case .tsb:
+            return NSLocalizedString("performance.training_load.tsb", comment: "Training Stress Balance")
+        }
+    }
+}
+
 // MARK: - Combined Heart Rate Chart Section
 struct CombinedHeartRateChartSection: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
@@ -311,31 +340,46 @@ struct CombinedHeartRateChartSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            
-            switch dataSourcePreference {
-            case .appleHealth:
-                // Apple Health: 優先使用 API，失敗時回退到 HealthKit
-                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: true)
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                    .padding()
-                
-            case .garmin:
-                // Garmin: 僅使用 API 數據
-                SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-                    .padding()
-                
-            case .strava:
-                // Strava: 不支援 HRV 數據
-                EmptyDataSourceView(message: "Strava 不提供心率變異性數據")
-                    .padding()
-                
-            case .unbound:
-                // 未綁定數據源
-                EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
-                    .padding()
+            // 標題和選項卡
+            VStack(spacing: 8) {
+                // 動態標題和數據源標籤
+                HStack {
+                    SectionTitleWithInfo(
+                        title: L10n.Performance.HRV.hrvTitle.localized,
+                        explanation: L10n.Performance.HRV.selectDataSourceHrv.localized
+                    )
+                    
+                    Spacer()
+                    
+                    // Chart title and status indicators
+                    HStack {
+                        if sharedHealthDataManager.isRefreshing {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text(NSLocalizedString("performance.updating", comment: "Updating..."))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            // Garmin Attribution for main chart data
+                            ConditionalGarminAttributionView(
+                                dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                                deviceModel: nil,
+                                displayStyle: .titleLevel
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 12)
+
+                // 選項卡切換
+                Picker("Heart Rate Chart Type", selection: $selectedTab) {
+                    ForEach(HeartRateChartTab.allCases, id: \.self) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
             }
 
             // 圖表內容
@@ -347,6 +391,8 @@ struct CombinedHeartRateChartSection: View {
                     restingHeartRateChartContent
                 }
             }
+            .id(selectedTab) // 穩定視圖身份，防止切換時滾動
+            .frame(minHeight: 200) // 設置最小高度，減少布局抖動
             .padding()
         }
         .cardStyle()
@@ -370,6 +416,12 @@ struct CombinedHeartRateChartSection: View {
                 .environmentObject(healthKitManager)
                 .environmentObject(sharedHealthDataManager)
 
+        case .strava:
+            // Strava: 使用 API 數據
+            SharedHealthDataChartView(chartType: .hrv, fallbackToHealthKit: false)
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
+
         case .unbound:
             // 未綁定數據源
             EmptyDataSourceView(message: L10n.Performance.HRV.selectDataSourceHrv.localized)
@@ -379,14 +431,9 @@ struct CombinedHeartRateChartSection: View {
     @ViewBuilder
     private var restingHeartRateChartContent: some View {
         switch dataSourcePreference {
-        case .appleHealth:
-            // Apple Health: 使用現有的 HealthKit 數據
+        case .appleHealth, .garmin, .strava:
+            // ✅ 統一使用 SleepHeartRateChartView，ViewModel 會自動根據數據源處理
             SleepHeartRateChartView()
-                .environmentObject(healthKitManager)
-
-        case .garmin:
-            // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
-            SleepHeartRateChartViewWithGarmin()
                 .environmentObject(healthKitManager)
 
         case .unbound:
@@ -400,33 +447,27 @@ struct CombinedHeartRateChartSection: View {
 struct RestingHeartRateChartSection: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @EnvironmentObject var sharedHealthDataManager: SharedHealthDataManager
-    
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
         UserPreferenceManager.shared.dataSourcePreference
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            
+
             switch dataSourcePreference {
-            case .appleHealth:
-                // Apple Health: 使用現有的 HealthKit 數據
+            case .appleHealth, .garmin:
+                // ✅ 統一使用 SleepHeartRateChartView，ViewModel 會自動根據數據源處理
                 SleepHeartRateChartView()
                     .environmentObject(healthKitManager)
                     .padding()
-                
-            case .garmin:
-                // Garmin: 使用相同的 SleepHeartRateChartView，但設定 SharedHealthDataManager
-                SleepHeartRateChartViewWithGarmin()
-                    .environmentObject(healthKitManager)
-                    .padding()
-                
+
             case .strava:
                 // Strava: 不支援靜息心率數據
                 EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
                     .padding()
-                
+
             case .unbound:
                 // 未綁定數據源
                 EmptyDataSourceView(message: NSLocalizedString("performance.select_data_source_resting_hr", comment: "Please select a data source to view resting heart rate trends"))
@@ -814,33 +855,8 @@ struct SharedHealthDataChartView: View {
     @ViewBuilder
     private var chartView: some View {
         VStack {
-            // Chart title and status indicators
-            HStack {
-                Text(chartTitle)
-                    .font(.headline)
-                
-                Spacer()
-                
-                if sharedHealthDataManager.isRefreshing {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text(NSLocalizedString("performance.updating", comment: "Updating..."))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else if usingFallback {
-                    // Remove local data indicator
-                } else {
-                    // Garmin Attribution for main chart data
-                    ConditionalGarminAttributionView(
-                        dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
-                        deviceModel: nil,
-                        displayStyle: .titleLevel
-                    )
-                }
-            }
-            .padding(.bottom, 8)
             
-            
+    
             Chart {
                 ForEach(chartHealthData.indices, id: \.self) { index in
                     let record = chartHealthData[index]
@@ -1326,7 +1342,7 @@ struct TrainingLoadChartSection: View {
 
             // 圖表內容
             switch dataSourcePreference {
-            case .appleHealth, .garmin:
+            case .appleHealth, .garmin, .strava:
                 Group {
                     switch selectedTab {
                     case .fitness:

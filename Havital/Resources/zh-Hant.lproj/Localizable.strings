@@ -212,6 +212,10 @@
 "onboarding.garmin_subtitle" = "同步您的 Garmin 帳號活動";
 "onboarding.garmin_description" = "連接您的 Garmin Connect™ 帳號，同步運動手錶、手環等設備的活動數據。使用此選項即表示您同意 Garmin 的使用條款。";
 
+// Strava
+"onboarding.strava_subtitle" = "同步您的 Strava 活動";
+"onboarding.strava_description" = "連接您的 Strava 帳號，同步跑步、騎行等訓練活動數據。使用此選項即表示您同意 Strava 的使用條款。";
+
 // Time units
 "onboarding.hours_label" = "時";
 "onboarding.minutes_label" = "分";
@@ -382,6 +386,11 @@
 "workout.detail.insufficient_heart_rate" = "心率資料不足";
 "workout.detail.still_upload" = "仍要上傳";
 "workout.detail.insufficient_heart_rate_message" = "此運動記錄的心率資料過少（只有 %d 個數據點），可能會影響進階指標的準確度。\n\n建議檢查 Apple Watch 或心率帶是否正確配戴。\n\n您仍要繼續上傳嗎？";
+"workout.detail.delete_workout" = "刪除運動記錄";
+"workout.detail.delete_confirm_title" = "刪除運動記錄";
+"workout.detail.delete_confirm_message" = "刪除後該筆運動記錄將無法復原，確定要刪除嗎？";
+"workout.detail.delete_success" = "運動記錄已刪除";
+"workout.detail.delete_failed" = "刪除失敗，請稍後再試";
 "workout.detail.heart_rate_data" = "心率數據";
 "workout.detail.no_heart_rate_data" = "無心率數據";
 "workout.detail.gait_analysis" = "步態分析";
@@ -447,11 +456,11 @@
 "record.view_details" = "查看詳情";
 
 // Device Info
-"record.device_info.title" = "裝置資料說明";
+"record.device_info.title" = "支援的裝置";
 "record.device_info.description" = "說明";
-"record.device_info.native_support" = "Paceriz 原生支援 Garminc和Apple Watch。其他如Coros等裝置，您只需使用原廠軟體，將訓練數據同步到 Apple 健康（HealthKit），Paceriz 便會自動讀取您的訓練紀錄。";
-"record.device_info.limitations" = "請注意，許多第三方裝置在整合 Apple 健康時，僅會寫入部分且有限的資訊。因此，Paceriz 呈現的數據與原廠應用可能會有所不同，這屬於正常現象。";
-"record.device_info.future_support" = "我們會陸續支援更多不同廠牌的裝置，帶給您更完整、精確的運動體驗。";
+"record.device_info.native_support" = "為了獲得最佳的數據品質，Paceriz 原生支援 Apple Health（iPhone 與 Apple Watch）和 Garmin Connect™。最佳使用方式：如果您使用 Apple Watch 或 Garmin 設備，請使用原生整合。如果您使用 Coros、Suunto、Polar 等沒有原生支援的運動手錶，可以透過 Strava 同步資料，或使用裝置的原廠軟體將訓練數據匯入 Apple 健康，Paceriz 會自動讀取。";
+"record.device_info.limitations" = "注意：原生整合能提供最佳的數據品質。對於沒有原生支援的設備，數據的完整性可能因數據來源（Strava、Apple Health）和設備功能而異。";
+"record.device_info.future_support" = "我們持續擴展原生裝置支援，為您帶來最優質的運動數據分析體驗。具有原生支援的裝置能提供最完整的訓練數據。";
 
 // MARK: - Performance
 "performance.title" = "表現數據";
@@ -632,7 +641,6 @@
 // MARK: - Performance
 "performance.weekly_volume_trend" = "週跑量趨勢";
 "performance.weekly_volume_trend_description" = "顯示你的週跑量變化，幫助追蹤訓練量趨勢並調整訓練計畫。";
-"performance.select_data_source_hrv" = "請選擇資料來源以查看 HRV 趨勢";
 "performance.select_data_source_resting_hr" = "請選擇資料來源以查看靜息心率趨勢";
 
 // MARK: - Error Additional
@@ -650,11 +658,10 @@
 "alert.garmin_not_connected_message" = "您的帳號設定為使用 Garmin 資料，但目前未連接到 Garmin 帳號，請選擇重新連接 Garmin 或改回使用 Apple Health。";
 
 // MARK: - Performance Chart Strings
-"performance.loading_hrv" = "載入 HRV 資料中...";
+"performance.hrv" = "HRV";
+"performance.resting_hr" = "靜息心率";
 "performance.loading_resting_hr" = "載入靜息心率資料中...";
-"performance.no_hrv_data" = "沒有 HRV 資料";
 "performance.no_resting_hr_data" = "沒有靜息心率資料";
-"performance.hrv_title" = "心率變異性 (HRV) 趨勢";
 "performance.resting_hr_title" = "睡眠靜息心率";
 "performance.updating" = "更新中...";
 "performance.load_failed" = "載入失敗";

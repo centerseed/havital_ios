@@ -19,6 +19,12 @@ struct WorkoutDetailViewV2: View {
     @State private var showShareCardSheet = false
     @State private var showPhotoPickersheet = false
     @State private var showShareMenu = false  // 分享選單狀態
+
+    // 刪除相關狀態
+    @State private var showDeleteConfirmation = false
+    @State private var isDeletingWorkout = false
+    @State private var deleteResultMessage: String?
+    @State private var showDeleteResult = false
     
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -107,6 +113,9 @@ struct WorkoutDetailViewV2: View {
 
                 // 數據來源和設備信息卡片（移到最底下）
                 sourceInfoCard
+
+                // 刪除運動記錄卡片
+                deleteWorkoutCard
             }
             .padding()
         }
@@ -449,7 +458,101 @@ struct WorkoutDetailViewV2: View {
             Text(String(format: L10n.WorkoutDetail.insufficientHeartRateMessage.localized, heartRateCount))
         }
     }
-    
+
+    // MARK: - 刪除運動記錄卡片
+
+    private var deleteWorkoutCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(NSLocalizedString(L10n.Common.delete, comment: "Delete"))
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            Text(NSLocalizedString(L10n.WorkoutDetail.deleteConfirmMessage, comment: "Deleting this workout will permanently remove it. This action cannot be undone."))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Button(action: {
+                showDeleteConfirmation = true
+            }) {
+                if isDeletingWorkout {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text(NSLocalizedString("common.loading", comment: "Deleting..."))
+                            .font(.subheadline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.red.opacity(0.5))
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                } else {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text(NSLocalizedString(L10n.WorkoutDetail.deleteWorkout, comment: "Delete Workout"))
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+            }
+            .disabled(isDeletingWorkout)
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .confirmationDialog(
+            NSLocalizedString(L10n.WorkoutDetail.deleteConfirmTitle, comment: "Delete Workout"),
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(NSLocalizedString(L10n.WorkoutDetail.deleteWorkout, comment: "Delete"), role: .destructive) {
+                Task {
+                    await deleteWorkout()
+                }
+            }
+            Button(NSLocalizedString(L10n.WorkoutDetail.cancel, comment: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString(L10n.WorkoutDetail.deleteConfirmMessage, comment: "Deleting this workout will permanently remove it. This action cannot be undone."))
+        }
+        .alert(
+            NSLocalizedString(L10n.WorkoutDetail.deleteFailed, comment: "Delete Failed"),
+            isPresented: $showDeleteResult
+        ) {
+            Button(NSLocalizedString(L10n.WorkoutDetail.confirm, comment: "OK")) {
+                deleteResultMessage = nil
+            }
+        } message: {
+            if let message = deleteResultMessage {
+                Text(message)
+            }
+        }
+    }
+
+    // MARK: - 刪除方法
+
+    private func deleteWorkout() async {
+        isDeletingWorkout = true
+
+        let success = await viewModel.deleteWorkout()
+
+        await MainActor.run {
+            isDeletingWorkout = false
+            if success {
+                // 刪除成功，直接退出到列表頁
+                dismiss()
+            } else {
+                // 刪除失敗，顯示錯誤提示
+                deleteResultMessage = NSLocalizedString(L10n.WorkoutDetail.deleteFailed, comment: "Failed to delete workout. Please try again.")
+                showDeleteResult = true
+            }
+        }
+    }
+
     // MARK: - 圖表區塊
     
     private var heartRateChartSection: some View {

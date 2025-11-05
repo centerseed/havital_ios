@@ -241,9 +241,34 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
             forName: .workoutsDidUpdate,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             Task { [weak self] in
-                await self?.syncFromUnifiedWorkoutManager()
+                // 檢查是否包含已刪除的 workout ID
+                if let deletedWorkoutId = notification.userInfo?["deletedWorkoutId"] as? String {
+                    print("📝 收到刪除通知 - 移除 workout: \(deletedWorkoutId)")
+                    await self?.removeDeletedWorkout(id: deletedWorkoutId)
+                } else {
+                    // 一般數據更新，從 UnifiedWorkoutManager 同步
+                    await self?.syncFromUnifiedWorkoutManager()
+                }
+            }
+        }
+    }
+
+    /// 立即移除已刪除的 workout（不需要重新刷新）
+    /// - Parameter id: 要移除的 workout ID
+    private func removeDeletedWorkout(id: String) async {
+        await MainActor.run {
+            let beforeCount = self.workouts.count
+            self.workouts.removeAll { $0.id == id }
+            let afterCount = self.workouts.count
+
+            if beforeCount > afterCount {
+                // 更新分頁狀態
+                self.updatePaginationState()
+                print("✅ 已從列表中移除 workout，前: \(beforeCount) 筆，後: \(afterCount) 筆")
+            } else {
+                print("⚠️ workout 未在列表中找到，可能已被移除")
             }
         }
     }

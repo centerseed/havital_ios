@@ -433,7 +433,7 @@ class WorkoutV2CacheManager {
     func clearWorkoutDetailCache(workoutId: String) {
         let fileName = "\(workoutDetailCachePrefix)\(workoutId).json"
         let fileURL = cacheDirectory.appendingPathComponent(fileName)
-        
+
         do {
             if fileManager.fileExists(atPath: fileURL.path) {
                 try fileManager.removeItem(at: fileURL)
@@ -451,6 +451,55 @@ class WorkoutV2CacheManager {
                 ]
             )
         }
+    }
+
+    /// 從快取列表中移除特定運動記錄（同時清除所有相關快取）
+    /// - Parameter workoutId: 運動 ID
+    func removeWorkoutFromCache(workoutId: String) {
+        // 1. 清除詳細資料快取
+        clearWorkoutDetailCache(workoutId: workoutId)
+
+        // 2. 從列表快取中移除
+        if var workouts = getCachedWorkoutList() {
+            let originalCount = workouts.count
+            workouts.removeAll { $0.id == workoutId }
+
+            if workouts.count < originalCount {
+                cacheWorkoutList(workouts)
+
+                Logger.firebase(
+                    "從快取列表移除運動記錄",
+                    level: .info,
+                    labels: [
+                        "module": "WorkoutV2CacheManager",
+                        "action": "remove_workout_from_cache"
+                    ],
+                    jsonPayload: [
+                        "workout_id": workoutId,
+                        "remaining_count": workouts.count
+                    ]
+                )
+            }
+        }
+
+        // 3. 清除統計快取（確保刪除後統計數據也更新）
+        userDefaults.removeObject(forKey: workoutStatsCacheKey)
+
+        // 4. 清除分頁快取（確保分頁信息重新計算）
+        userDefaults.removeObject(forKey: workoutPaginationCacheKey)
+
+        Logger.firebase(
+            "完成快取清除（包含統計和分頁）",
+            level: .info,
+            labels: [
+                "module": "WorkoutV2CacheManager",
+                "action": "remove_workout_complete_cleanup"
+            ],
+            jsonPayload: [
+                "workout_id": workoutId,
+                "cleared_caches": ["detail", "list", "stats", "pagination"]
+            ]
+        )
     }
     
     /// 清除所有過期的運動詳情快取

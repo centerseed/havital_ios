@@ -39,16 +39,7 @@ struct HRVTrendChartView: View {
             } else {
                 VStack(alignment: .leading, spacing: 16) {
                     // ✅ 優化：移除重複標題（選項卡已顯示「心率變異性 (HRV) 趨勢」）
-                    // Garmin Attribution as required by brand guidelines
-                    HStack {
-                        Spacer()
-
-                        ConditionalGarminAttributionView(
-                            dataProvider: userPreferenceManager.dataSourcePreference == .garmin ? "Garmin" : nil,
-                            deviceModel: nil,
-                            displayStyle: .titleLevel
-                        )
-                    }
+                    // ✅ 優化：移除重複 Garmin 標籤（父視圖已在頂級顯示）
 
                     Chart {
                         ForEach(viewModel.hrvData, id: \.0) { item in

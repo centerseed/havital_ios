@@ -14,6 +14,7 @@ struct DataSourceSelectionView: View {
     @State private var errorMessage = ""
     @State private var navigateToNextStep = false
     @State private var showGarminAlreadyBoundAlert = false
+    @State private var showStravaAlreadyBoundAlert = false
     
     var body: some View {
         NavigationView {
@@ -50,7 +51,7 @@ struct DataSourceSelectionView: View {
                                 subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
                                 description: L10n.Onboarding.appleHealthDescription.localized
                             )
-                            
+
                             // Garmin 選項（總是顯示）
                             dataSourceCard(
                                 type: .garmin,
@@ -58,6 +59,15 @@ struct DataSourceSelectionView: View {
                                 title: "Garmin Connect™",
                                 subtitle: L10n.Onboarding.garminSubtitle.localized,
                                 description: L10n.Onboarding.garminDescription.localized
+                            )
+
+                            // Strava 選項
+                            dataSourceCard(
+                                type: .strava,
+                                icon: "figure.run",
+                                title: "Strava",
+                                subtitle: L10n.Onboarding.stravaSubtitle.localized,
+                                description: L10n.Onboarding.stravaDescription.localized
                             )
                         }
                         .padding(.horizontal)
@@ -111,6 +121,16 @@ struct DataSourceSelectionView: View {
         }
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
+        }
+        .onReceive(stravaManager.$stravaAlreadyBoundMessage) { msg in
+            showStravaAlreadyBoundAlert = (msg != nil)
+        }
+        .alert("Strava Account Already Bound", isPresented: $showStravaAlreadyBoundAlert) {
+            Button(L10n.Onboarding.iUnderstand.localized, role: .cancel) {
+                stravaManager.stravaAlreadyBoundMessage = nil
+            }
+        } message: {
+            Text(stravaManager.stravaAlreadyBoundMessage ?? "This Strava account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account and unbind Strava in the profile page, then connect with this account.")
         }
         .alert(L10n.Onboarding.error.localized, isPresented: $showError) {
             Button(L10n.Onboarding.confirm.localized, role: .cancel) {}

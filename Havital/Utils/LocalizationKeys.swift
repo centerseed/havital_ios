@@ -248,7 +248,11 @@ enum GaitAnalysisChart {
         // Garmin
         static let garminSubtitle = "onboarding.garmin_subtitle"
         static let garminDescription = "onboarding.garmin_description"
-        
+
+        // Strava
+        static let stravaSubtitle = "onboarding.strava_subtitle"
+        static let stravaDescription = "onboarding.strava_description"
+
         // Time units
         static let hoursLabel = "onboarding.hours_label"
         static let minutesLabel = "onboarding.minutes_label"
@@ -567,6 +571,13 @@ enum GaitAnalysisChart {
         static let insufficientHeartRate = "workout.detail.insufficient_heart_rate"
         static let stillUpload = "workout.detail.still_upload"
         static let insufficientHeartRateMessage = "workout.detail.insufficient_heart_rate_message"
+
+        // Delete Actions
+        static let deleteWorkout = "workout.detail.delete_workout"
+        static let deleteConfirmTitle = "workout.detail.delete_confirm_title"
+        static let deleteConfirmMessage = "workout.detail.delete_confirm_message"
+        static let deleteSuccess = "workout.detail.delete_success"
+        static let deleteFailed = "workout.detail.delete_failed"
         
         // Data Sections
         static let heartRateData = "workout.detail.heart_rate_data"

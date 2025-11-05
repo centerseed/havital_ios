@@ -212,6 +212,10 @@
 "onboarding.garmin_subtitle" = "Sync your Garmin account activities";
 "onboarding.garmin_description" = "Connect your Garmin Connect™ account to sync activity data from sports watches, fitness trackers and other devices. Using this option indicates your agreement to Garmin's terms of use.";
 
+// Strava
+"onboarding.strava_subtitle" = "Sync your Strava activities";
+"onboarding.strava_description" = "Connect your Strava account to sync running, cycling, and other training activities. Using this option indicates your agreement to Strava's terms of use.";
+
 // Time units
 "onboarding.hours_label" = "hours";
 "onboarding.minutes_label" = "min";
@@ -382,6 +386,11 @@
 "workout.detail.insufficient_heart_rate" = "Insufficient Heart Rate Data";
 "workout.detail.still_upload" = "Upload Anyway";
 "workout.detail.insufficient_heart_rate_message" = "This workout has insufficient heart rate data (only %d data points), which may affect the accuracy of advanced metrics.\n\nPlease check if your Apple Watch or heart rate monitor is properly worn.\n\nDo you still want to continue uploading?";
+"workout.detail.delete_workout" = "Delete Workout";
+"workout.detail.delete_confirm_title" = "Delete Workout";
+"workout.detail.delete_confirm_message" = "Deleting this workout will permanently remove it. This action cannot be undone.";
+"workout.detail.delete_success" = "Workout deleted successfully";
+"workout.detail.delete_failed" = "Failed to delete workout. Please try again.";
 "workout.detail.heart_rate_data" = "Heart Rate Data";
 "workout.detail.no_heart_rate_data" = "No Heart Rate Data";
 "workout.detail.gait_analysis" = "Gait Analysis";
@@ -447,11 +456,11 @@
 "record.view_details" = "View Details";
 
 // Device Info
-"record.device_info.title" = "Device Data Information";
+"record.device_info.title" = "Compatible Devices";
 "record.device_info.description" = "Information";
-"record.device_info.native_support" = "Paceriz natively supports Garmin and Apple Watch. For other devices like Coros, you just need to sync your training data to Apple Health (HealthKit) using the original app, and Paceriz will automatically read your training records.";
-"record.device_info.limitations" = "Please note that many third-party devices only write partial and limited information when integrating with Apple Health. Therefore, the data presented by Paceriz may differ from the original app, which is normal.";
-"record.device_info.future_support" = "We will gradually support more different brands of devices to provide you with a more complete and accurate sports experience.";
+"record.device_info.native_support" = "Paceriz natively supports Apple Health (iPhone & Apple Watch) and Garmin Connect™ for the best data quality. For optimal experience: If you have an Apple Watch or Garmin device, use native integration. For other sports watches (Coros, Suunto, Polar, etc.) that don't have native support, you can sync data through Strava or import to Apple Health using the device's original app, and Paceriz will read it automatically.";
+"record.device_info.limitations" = "Note: Native integrations provide the best data quality. For devices without native support, data completeness may vary depending on the data source (Strava, Apple Health) and device capabilities.";
+"record.device_info.future_support" = "We're continuously expanding native device support to bring you the best sports data analysis experience. For devices with native support, you'll always get the most complete training data.";
 
 // MARK: - Performance
 "performance.title" = "Performance";
@@ -631,7 +640,6 @@
 // MARK: - Performance
 "performance.weekly_volume_trend" = "Weekly Volume Trend";
 "performance.weekly_volume_trend_description" = "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.";
-"performance.select_data_source_hrv" = "Please select a data source to view HRV trends";
 "performance.select_data_source_resting_hr" = "Please select a data source to view resting heart rate trends";
 
 // MARK: - Error Additional
@@ -649,11 +657,10 @@
 "alert.garmin_not_connected_message" = "Your account is set to use Garmin data, but is not currently connected to your Garmin account. Please choose to reconnect Garmin or switch back to Apple Health.";
 
 // MARK: - Performance Chart Strings
-"performance.loading_hrv" = "Loading HRV data...";
+"performance.hrv" = "HRV";
+"performance.resting_hr" = "Resting HR";
 "performance.loading_resting_hr" = "Loading resting heart rate data...";
-"performance.no_hrv_data" = "No HRV data";
 "performance.no_resting_hr_data" = "No resting heart rate data";
-"performance.hrv_title" = "Heart Rate Variability (HRV) Trend";
 "performance.resting_hr_title" = "Sleep Resting Heart Rate";
 "performance.updating" = "Updating...";
 "performance.load_failed" = "Load failed";

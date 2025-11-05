@@ -805,6 +805,71 @@ struct GarminProcessingSummary: Codable {
     }
 }
 
+// MARK: - Delete Workout
+
+extension WorkoutV2Service {
+    /// 删除指定的 workout
+    /// - Parameter workoutId: workout 的唯一标识符
+    /// - Throws: 网络错误或 API 错误
+    func deleteWorkout(workoutId: String) async throws {
+        Logger.firebase(
+            "开始删除 workout",
+            level: .info,
+            labels: [
+                "module": "WorkoutV2Service",
+                "action": "delete_workout"
+            ],
+            jsonPayload: [
+                "workout_id": workoutId
+            ]
+        )
+
+        let path = "/v2/workouts/\(workoutId)"
+
+        do {
+            // 调用 DELETE API（使用空响应类型）
+            let _: EmptyResponse = try await makeAPICall(
+                EmptyResponse.self,
+                path: path,
+                method: .DELETE,
+                body: nil,
+                operationName: "Delete Workout"
+            )
+
+            // 删除本地缓存
+            WorkoutV2CacheManager.shared.removeWorkoutFromCache(workoutId: workoutId)
+
+            Logger.firebase(
+                "成功删除 workout",
+                level: .info,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "delete_workout"
+                ],
+                jsonPayload: [
+                    "workout_id": workoutId
+                ]
+            )
+
+        } catch {
+            Logger.firebase(
+                "删除 workout 失败",
+                level: .error,
+                labels: [
+                    "module": "WorkoutV2Service",
+                    "action": "delete_workout",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "workout_id": workoutId,
+                    "error": error.localizedDescription
+                ]
+            )
+            throw error
+        }
+    }
+}
+
 // MARK: - Apple Health Upload Wrappers
 extension WorkoutV2Service {
     typealias UploadResult = AppleHealthWorkoutUploadService.UploadResult
