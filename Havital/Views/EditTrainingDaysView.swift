@@ -12,16 +12,20 @@ class EditTrainingDaysViewModel: ObservableObject {
     }
 
     func updatePreferences() async {
-        do {
-            let apiWeekdays = Array(selectedWeekdays)
-            let preferences: [String: Any] = [
-                "prefer_week_days": apiWeekdays,
-                "prefer_week_days_longrun": [selectedLongRunDay]
-            ]
-            try await UserService.shared.updateUserData(preferences)
-        } catch let err {
-            self.error = err.localizedDescription
-        }
+        await TrackedTask("EditTrainingDaysViewModel: updatePreferences") {
+            do {
+                let apiWeekdays = Array(selectedWeekdays)
+                let preferences: [String: Any] = [
+                    "prefer_week_days": apiWeekdays,
+                    "prefer_week_days_longrun": [selectedLongRunDay]
+                ]
+                try await UserService.shared.updateUserData(preferences)
+            } catch let err {
+                await MainActor.run {
+                    self.error = err.localizedDescription
+                }
+            }
+        }.value
     }
 }
 
