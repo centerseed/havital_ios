@@ -81,9 +81,9 @@ class TrainingDaysViewModel: ObservableObject {
                 self.canGenerateFinalPlanButton = true // 顯示「產生最終計畫」按鈕
 
                 // ... (儲存 userPreferenceManager 部分不變)
-                let weekdaysDisplay = self.selectedWeekdays.map { getWeekdayNameStatic($0) }
+                let weekdaysDisplay = self.selectedWeekdays.map { self.getWeekdayNameStatic($0) }
                 self.userPreferenceManager.preferWeekDays = weekdaysDisplay
-                self.userPreferenceManager.preferWeekDaysLongRun = [getWeekdayNameStatic(self.selectedLongRunDay)]
+                self.userPreferenceManager.preferWeekDaysLongRun = [self.getWeekdayNameStatic(self.selectedLongRunDay)]
 
             } catch {
                 self.error = error.localizedDescription
