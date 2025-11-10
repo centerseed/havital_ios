@@ -301,7 +301,109 @@ class DataManager: ObservableObject, @preconcurrency TaskManageable {
 - **低優先級**: 背景更新 (使用 `Task.detached`)
 - **防重複**: 相同 TaskID 不會重複執行
 
-### 7. Debugging & Logging Strategy
+### 7. API 調用追蹤系統 (API Call Tracking)
+
+#### 核心原則
+使用 **鏈式調用 `.tracked(from:)`** 追蹤每個 API 調用的來源 View 和觸發的函數,確保日誌清晰且易於除錯。
+
+#### 推薦語法: 鏈式調用 `.tracked(from:)` ⭐
+
+**語意清晰**: `tracked(from: "ViewName: functionName")` 精確記錄調用位置
+
+```swift
+// ✅ CORRECT - 鏈式調用,語意清晰
+struct TrainingPlanView: View {
+    var body: some View {
+        VStack {
+            Button("刷新") {
+                Task {
+                    await viewModel.refresh()
+                }.tracked(from: "TrainingPlanView: refresh")
+            }
+        }
+        .refreshable {
+            await Task {
+                await viewModel.refreshWeeklyPlan()
+            }.tracked(from: "TrainingPlanView: refreshWeeklyPlan").value
+        }
+    }
+
+    private func refreshWorkouts() {
+        Task {
+            await viewModel.loadPlanStatus()
+            await viewModel.refreshWeeklyPlan()
+            await viewModel.loadCurrentWeekDistance()
+        }.tracked(from: "TrainingPlanView: refreshWorkouts")
+    }
+}
+```
+
+#### 日誌輸出格式
+系統會在 HTTPClient 層自動記錄完整的 API 調用鏈:
+
+```
+📱 [API Call] TrainingPlanView: refreshWorkouts → GET /plan/race_run/status
+   ├─ Accept-Language: en
+   ├─ Body Size: 0 bytes
+✅ [API End] TrainingPlanView: refreshWorkouts → GET /plan/race_run/status | 200 | 0.34s
+
+📱 [API Call] TrainingPlanView: refreshWorkouts → GET /plan/race_run/weekly/plan_123_1
+✅ [API End] TrainingPlanView: refreshWorkouts → GET /plan/race_run/weekly/plan_123_1 | 200 | 0.45s
+```
+
+#### 使用場景
+
+##### 1. Button 點擊
+```swift
+Button("重試") {
+    Task {
+        await viewModel.retryNetworkRequest()
+    }.tracked(from: "TrainingPlanView: retryNetworkRequest")
+}
+```
+
+##### 2. .refreshable 下拉刷新
+```swift
+.refreshable {
+    await Task {
+        await viewModel.refreshWeeklyPlan(isManualRefresh: true)
+    }.tracked(from: "TrainingPlanView: refreshWeeklyPlan").value
+}
+```
+
+##### 3. 私有函數中的 Task
+```swift
+private func refreshWorkouts() {
+    Task {
+        await viewModel.loadPlanStatus()
+        await viewModel.refreshWeeklyPlan()
+    }.tracked(from: "TrainingPlanView: refreshWorkouts")
+}
+```
+
+##### 4. Callback 閉包
+```swift
+onConfirm: { selectedItems in
+    Task {
+        await viewModel.confirmAdjustments(selectedItems)
+    }.tracked(from: "TrainingPlanView: confirmAdjustments")
+}
+```
+
+##### 5. 帶返回值的 Task
+```swift
+let result = await Task {
+    return await viewModel.fetchData()
+}.tracked(from: "UserProfileView: fetchData").value
+```
+
+#### 實現細節
+詳細文檔請參考:
+- `Havital/Utils/APISourceTracking.swift` - 追蹤系統實現
+- `Docs/API_TRACKING_EXAMPLES.md` - 5 種使用方式對比
+- `Docs/API_TRACKING_GUIDE.md` - 完整使用指南
+
+### 8. Debugging & Logging Strategy
 
 #### Essential Debug Information
 ```swift

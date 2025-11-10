@@ -26,6 +26,7 @@ struct HavitalApp: App {
     @StateObject private var authService = AuthenticationService.shared
     @State private var featureFlagManager: FeatureFlagManager? = nil
     @State private var shouldRefreshForLanguage = false
+    @State private var hasLaunched = false  // ✅ 追蹤是否已完成啟動
     
     init() {
         // 1. 初始化 Firebase（必須最先執行，因為 Logger 依賴它）
@@ -148,11 +149,15 @@ struct HavitalApp: App {
         // 添加應用程式生命週期事件處理
         .onChange(of: UIApplication.shared.applicationState) { state in
             if state == .active {
-                // 應用進入前景，使用統一的數據刷新
-                print("應用進入前景")
-                Task {
-                    await appViewModel.onAppBecameActive()
-                    // 注意：舊的 Auth 同步邏輯已移除，統一使用 UnifiedWorkoutManager
+                // ✅ 只有在 App 已啟動後才觸發刷新（避免啟動時重複調用）
+                if hasLaunched {
+                    print("📱 應用從背景回到前景，觸發刷新")
+                    Task {
+                        await appViewModel.onAppBecameActive()
+                    }
+                } else {
+                    print("📱 應用首次啟動變為 active，跳過刷新（已在初始化時載入）")
+                    hasLaunched = true
                 }
             }
         }

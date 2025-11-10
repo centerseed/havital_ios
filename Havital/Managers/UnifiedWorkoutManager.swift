@@ -82,8 +82,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         
         isLoadingInitial = true
         defer { isLoadingInitial = false }
-        
-        await executeTask(id: TaskID("load_workouts")) {
+
+        await executeTask(id: TaskID("fetch_workouts")) {
             await self.performLoadWorkouts()
         }
     }
@@ -139,10 +139,10 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                     self.isLoading = false
                 }
                 print("從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
-                
+
                 // 標記初始載入完成（即使是從緩存載入的）
                 self.hasInitialLoadCompleted = true
-                
+
                 // 發送運動數據更新通知（首次載入緩存數據）
                 NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "initial_cache"])
 
@@ -159,7 +159,9 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             
             // 如果沒有緩存，從 API 獲取數據
             print("沒有緩存數據，從 API 載入運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
+            let fetchedWorkouts = try await APICallTracker.$currentSource.withValue("UnifiedWorkoutManager: performLoadWorkouts") {
+                try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
+            }
             
             // 檢查是否被取消
             try Task.checkCancellation()
@@ -175,8 +177,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             
             // 標記初始載入完成
             self.hasInitialLoadCompleted = true
-            
-            // 首次載入完成，發送通知  
+
+            // 首次載入完成，發送通知
             NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "initial_load"])
             
             Logger.firebase(
@@ -225,7 +227,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 刷新運動記錄（用戶下拉刷新，使用短間隔智能更新）
     func refreshWorkouts() async {
-        await executeTask(id: TaskID("refresh_workouts")) {
+        // ✅ 使用 5 秒冷卻時間防止頻繁刷新
+        await executeTask(id: TaskID("refresh_workouts"), cooldownSeconds: 5) {
             await self.smartRefreshFromAPI()
         }
     }
@@ -251,17 +254,19 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         
         do {
             // 從 API 獲取最新數據
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50)
-            
+            let fetchedWorkouts = try await APICallTracker.$currentSource.withValue("UnifiedWorkoutManager: smartRefreshFromAPI") {
+                try await workoutV2Service.fetchRecentWorkouts(limit: 50)
+            }
+
             await MainActor.run {
                 self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
                 self.lastSyncTime = Date()
                 self.isLoading = false
             }
-            
+
             // 更新緩存並記錄同步時間
             cacheManager.cacheWorkoutList(fetchedWorkouts)
-            
+
             // 用戶刷新完成，發送更新通知
             NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "user_refresh"])
             
@@ -282,11 +287,13 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             isLoading = true
             syncError = nil
         }
-        
+
         do {
             print("強制刷新：從 API 獲取最新運動記錄...")
-            let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
-            
+            let fetchedWorkouts = try await APICallTracker.$currentSource.withValue("UnifiedWorkoutManager: forceRefreshFromAPI") {
+                try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
+            }
+
             // 統一緩存策略：保存刷新的數據到緩存
             cacheManager.cacheWorkoutList(fetchedWorkouts)
             await MainActor.run {
@@ -294,7 +301,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 self.lastSyncTime = Date()
                 self.isLoading = false
             }
-            
+
             // 強制刷新完成，發送更新通知
             NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "force_refresh"])
             Logger.firebase(
@@ -471,9 +478,11 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         if let cachedStats = cacheManager.getCachedWorkoutStats(maxAge: 1800) { // 30 分鐘快取
             return cachedStats
         }
-        
+
         // 從 API 獲取
-        let response = try await workoutV2Service.fetchWorkoutStats(days: days)
+        let response = try await APICallTracker.$currentSource.withValue("UnifiedWorkoutManager: getWorkoutStats") {
+            try await workoutV2Service.fetchWorkoutStats(days: days)
+        }
         
         // 快取統計數據
         cacheManager.cacheWorkoutStats(response)

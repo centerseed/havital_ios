@@ -11,27 +11,108 @@ struct ContentView: View {
             // 如果 App 正在初始化，顯示載入畫面
             if appStateManager.shouldShowLoadingScreen {
                 AppLoadingView()
+                    .onAppear {
+                        Logger.firebase(
+                            "顯示 App 載入畫面",
+                            level: .info,
+                            labels: [
+                                "module": "ContentView",
+                                "action": "show_loading_screen"
+                            ]
+                        )
+                    }
             }
             // 如果用戶未認證，顯示登入畫面
             else if !authService.isAuthenticated {
                 LoginView()
                     .environmentObject(authService)
+                    .onAppear {
+                        Logger.firebase(
+                            "顯示登入畫面",
+                            level: .info,
+                            labels: [
+                                "module": "ContentView",
+                                "action": "show_login_view",
+                                "user_id": authService.user?.uid ?? "none"
+                            ],
+                            jsonPayload: [
+                                "is_authenticated": authService.isAuthenticated,
+                                "has_completed_onboarding": authService.hasCompletedOnboarding
+                            ]
+                        )
+                    }
             }
             // 如果用戶未完成引導，顯示引導畫面
             else if !authService.hasCompletedOnboarding {
                 OnboardingIntroView()
                     .environmentObject(authService)
+                    .onAppear {
+                        Logger.firebase(
+                            "顯示 Onboarding 畫面",
+                            level: .warn,
+                            labels: [
+                                "module": "ContentView",
+                                "action": "show_onboarding_view",
+                                "user_id": authService.user?.uid ?? "unknown"
+                            ],
+                            jsonPayload: [
+                                "is_authenticated": authService.isAuthenticated,
+                                "has_completed_onboarding": authService.hasCompletedOnboarding,
+                                "is_reonboarding_mode": authService.isReonboardingMode
+                            ]
+                        )
+                    }
             }
             // 顯示主要內容
             else {
                 mainAppContent()
+                    .onAppear {
+                        Logger.firebase(
+                            "顯示主應用內容",
+                            level: .info,
+                            labels: [
+                                "module": "ContentView",
+                                "action": "show_main_content",
+                                "user_id": authService.user?.uid ?? "unknown"
+                            ],
+                            jsonPayload: [
+                                "is_authenticated": authService.isAuthenticated,
+                                "has_completed_onboarding": authService.hasCompletedOnboarding
+                            ]
+                        )
+                    }
             }
         }
-        .onChange(of: authService.hasCompletedOnboarding) { _ in
+        .onChange(of: authService.hasCompletedOnboarding) { newValue in
+            Logger.firebase(
+                "hasCompletedOnboarding 狀態變更",
+                level: .info,
+                labels: [
+                    "module": "ContentView",
+                    "action": "onboarding_status_changed",
+                    "user_id": authService.user?.uid ?? "unknown"
+                ],
+                jsonPayload: [
+                    "new_value": newValue,
+                    "is_authenticated": authService.isAuthenticated
+                ]
+            )
             // 完成或重置 onboarding 時自動關閉 modal
             // 移除 fullScreenCover 相關邏輯
         }
-        .onChange(of: authService.isReonboardingMode) { _ in
+        .onChange(of: authService.isReonboardingMode) { newValue in
+            Logger.firebase(
+                "isReonboardingMode 狀態變更",
+                level: .info,
+                labels: [
+                    "module": "ContentView",
+                    "action": "reonboarding_mode_changed",
+                    "user_id": authService.user?.uid ?? "unknown"
+                ],
+                jsonPayload: [
+                    "new_value": newValue
+                ]
+            )
             // 移除 fullScreenCover 相關邏輯
         }
     }

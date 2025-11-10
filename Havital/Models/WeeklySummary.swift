@@ -139,6 +139,12 @@ struct WeeklySummaryItem: Codable {
         // 否則解析字符串 "2025/10/13"
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd"
+        // 使用用户设置的时区，如果未设置则使用设备当前时区
+        if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+            formatter.timeZone = TimeZone(identifier: userTimezone)
+        } else {
+            formatter.timeZone = TimeZone.current
+        }
         return formatter.date(from: weekStart)
     }
 }

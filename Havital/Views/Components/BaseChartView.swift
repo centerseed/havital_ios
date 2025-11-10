@@ -32,7 +32,9 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
             }
         }
         .task {
-            await viewModel.loadData()
+            await TrackedTask("BaseChartView: loadData") {
+                await viewModel.loadData()
+            }.value
         }
     }
     

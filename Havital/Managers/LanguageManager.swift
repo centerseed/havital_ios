@@ -87,28 +87,22 @@ class LanguageManager: ObservableObject {
     /// Sync language preference with backend
     private func syncWithBackend() {
         Task {
-            do {
-                try await updateLanguagePreference(currentLanguage.apiCode)
-                Logger.firebase("Language synced with backend: \(currentLanguage.apiCode)", level: .info)
-            } catch {
-                Logger.firebase("Failed to sync language with backend: \(error.localizedDescription)", level: .error)
+            await APICallTracker.$currentSource.withValue("LanguageManager: syncWithBackend") {
+                do {
+                    try await self.updateLanguagePreference(self.currentLanguage.apiCode)
+                    Logger.firebase("Language synced with backend: \(self.currentLanguage.apiCode)", level: .info)
+                } catch {
+                    Logger.firebase("Failed to sync language with backend: \(error.localizedDescription)", level: .error)
+                }
             }
         }
     }
     
     /// Fetch user preferences from backend
     func fetchUserPreferences() async throws {
-        let (data, response) = try await URLSession.shared.data(
-            from: URL(string: "\(APIConfig.baseURL)/user/preferences")!
-        )
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "LanguageManager", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Failed to fetch user preferences"
-            ])
-        }
-        
+        let httpClient = DefaultHTTPClient.shared
+        let data = try await httpClient.request(path: "/user/preferences", method: .GET)
+
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let languageCode = json["language"] as? String,
            let language = SupportedLanguage(apiCode: languageCode) {
@@ -120,29 +114,11 @@ class LanguageManager: ObservableObject {
     
     /// Update language preference on backend
     private func updateLanguagePreference(_ languageCode: String) async throws {
-        var request = URLRequest(url: URL(string: "\(APIConfig.baseURL)/user/preferences")!)
-        request.httpMethod = "PUT"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add authentication token if available
-        do {
-            let token = try await AuthenticationService.shared.getIdToken()
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        } catch {
-            Logger.firebase("Failed to get auth token: \(error.localizedDescription)", level: .warn)
-        }
-        
         let body = ["language": languageCode]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (_, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "LanguageManager", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Failed to update language preference"
-            ])
-        }
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+
+        let httpClient = DefaultHTTPClient.shared
+        _ = try await httpClient.request(path: "/user/preferences", method: .PUT, body: bodyData)
     }
     
     /// Change app language with confirmation and automatic restart

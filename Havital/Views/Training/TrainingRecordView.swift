@@ -45,10 +45,14 @@ struct TrainingRecordView: View {
                 }
             }
             .task {
-                await viewModel.loadWorkouts(healthKitManager: healthKitManager)
+                await TrackedTask("TrainingRecordView: loadWorkouts") {
+                    await viewModel.loadWorkouts(healthKitManager: healthKitManager)
+                }.value
             }
             .refreshable {
-                await viewModel.refreshWorkouts(healthKitManager: healthKitManager)
+                await TrackedTask("TrainingRecordView: refreshWorkouts") {
+                    await viewModel.refreshWorkouts(healthKitManager: healthKitManager)
+                }.value
             }
         }
     }
@@ -168,7 +172,7 @@ struct TrainingRecordView: View {
         }
         
         print("✅ Starting to load more records...")
-        Task {
+        TrackedTask("TrainingRecordView: loadMoreWorkouts") {
             await viewModel.loadMoreWorkouts()
         }
     }

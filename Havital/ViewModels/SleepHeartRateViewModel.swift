@@ -134,64 +134,32 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
                 }
                 
             case .garmin:
-                // 從 API 獲取數據
-                await sharedHealthDataManager.loadHealthDataIfNeeded()
-                
-                let healthData = sharedHealthDataManager.healthData
+                // ✅ 統一使用 HealthDataUploadManagerV2 獲取 14 天數據，確保與 HRV 圖表一致
+                let healthData = await HealthDataUploadManagerV2.shared.getHealthData(days: 14)
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateFormat = "yyyy-MM-dd"
-                
-                print("Garmin 心率數據載入: 共 \(healthData.count) 筆健康記錄")
-                
-                // 調試：檢查每筆記錄的 restingHeartRate 字段
+
+                print("Garmin 靜息心率數據載入: 共 \(healthData.count) 筆健康記錄")
+
+                // 過濾出有 restingHeartRate 的記錄
                 for record in healthData {
-                    print("記錄: 日期=\(record.date), restingHeartRate=\(record.restingHeartRate ?? -1)")
-                    
-                    if let date = dateFormatter.date(from: record.date),
-                       date >= startDate && date <= now {
-                        
-                        if let restingHeartRate = record.restingHeartRate {
+                    if let restingHeartRate = record.restingHeartRate,
+                       let date = dateFormatter.date(from: record.date) {
+                        if date >= startDate && date <= now {
                             points.append((date, Double(restingHeartRate)))
-                            print("✅ 添加心率數據: 日期=\(record.date), 心率=\(restingHeartRate)")
-                        } else {
-                            print("❌ 該日期無靜息心率數據: \(record.date)")
+                            print("✅ Garmin 心率: 日期=\(record.date), 心率=\(restingHeartRate)")
                         }
-                    } else {
-                        print("⏰ 日期超出範圍: \(record.date)")
                     }
                 }
-                
-                print("最終心率數據點數: \(points.count)")
+
+                print("最終 Garmin 靜息心率數據點數: \(points.count)")
                 
             case .strava:
-                // 從 API 獲取 Strava 數據
-                await sharedHealthDataManager.loadHealthDataIfNeeded()
-                
-                let healthData = sharedHealthDataManager.healthData
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                
-                print("Strava 心率數據載入: 共 \(healthData.count) 筆健康記錄")
-                
-                // 調試：檢查每筆記錄的 restingHeartRate 字段
-                for record in healthData {
-                    print("記錄: 日期=\(record.date), restingHeartRate=\(record.restingHeartRate ?? -1)")
-                    
-                    if let date = dateFormatter.date(from: record.date),
-                       date >= startDate && date <= now {
-                        
-                        if let restingHeartRate = record.restingHeartRate {
-                            points.append((date, Double(restingHeartRate)))
-                            print("✅ 添加心率數據: 日期=\(record.date), 心率=\(restingHeartRate)")
-                        } else {
-                            print("❌ 該日期無靜息心率數據: \(record.date)")
-                        }
-                    } else {
-                        print("⏰ 日期超出範圍: \(record.date)")
-                    }
+                // ⚠️ Strava 不提供靜息心率數據
+                print("Strava 不支援靜息心率數據")
+                await MainActor.run {
+                    self.error = "Strava 不提供靜息心率數據"
                 }
-                
-                print("最終 Strava 心率數據點數: \(points.count)")
                 
             case .unbound:
                 await MainActor.run {

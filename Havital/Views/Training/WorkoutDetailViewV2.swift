@@ -162,7 +162,9 @@ struct WorkoutDetailViewV2: View {
             }
         }
         .task {
-            await viewModel.loadWorkoutDetail()
+            await TrackedTask("WorkoutDetailViewV2: loadWorkoutDetail") {
+                await viewModel.loadWorkoutDetail()
+            }.value
         }
         .onDisappear {
             // 確保在 View 消失時取消任務

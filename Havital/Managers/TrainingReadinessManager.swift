@@ -144,7 +144,9 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
 
         do {
             print("[TrainingReadinessManager] 📡 調用 API: forceCalculate=\(forceCalculate)")
-            let response = try await service.getTodayReadiness(forceCalculate: forceCalculate)
+            let response = try await APICallTracker.$currentSource.withValue("TrainingReadinessManager: fetchFromAPI") {
+                try await service.getTodayReadiness(forceCalculate: forceCalculate)
+            }
 
             print("[TrainingReadinessManager] ✅ API 回應成功")
             print("[TrainingReadinessManager] 📊 整體分數: \(response.overallScore ?? 0)")

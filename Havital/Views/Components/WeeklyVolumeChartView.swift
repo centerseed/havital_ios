@@ -114,7 +114,9 @@ struct WeeklyVolumeChartView: View {
             }
         }
         .task {
-            await loadWeeklyVolumeData()
+            await TrackedTask("WeeklyVolumeChartView: loadWeeklyVolumeData") {
+                await loadWeeklyVolumeData()
+            }.value
         }
     }
 
@@ -192,6 +194,12 @@ struct WeeklyVolumeChartView: View {
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"
+        // 使用用户设置的时区，如果未设置则使用设备当前时区
+        if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+            formatter.timeZone = TimeZone(identifier: userTimezone)
+        } else {
+            formatter.timeZone = TimeZone.current
+        }
         return formatter.string(from: date)
     }
 

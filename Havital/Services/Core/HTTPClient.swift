@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAuth
 
 // MARK: - HTTP Client Protocol
 
@@ -42,55 +43,136 @@ actor DefaultHTTPClient: HTTPClient {
     
     func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
         let request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
-        
-        // 增強日誌：記錄請求詳情
-        Logger.debug("[HTTPClient] 發送請求: \(method.rawValue) \(path)")
-        if let acceptLanguage = request.value(forHTTPHeaderField: "Accept-Language") {
-            Logger.debug("[HTTPClient] Accept-Language: \(acceptLanguage)")
-        }
-        if let bodyData = body {
-            Logger.debug("[HTTPClient] 請求體大小: \(bodyData.count) bytes")
-        }
-        
+
+        // 🔍 記錄 API 調用來源和開始時間
+        let source = APICallTracker.getCurrentSource()
+        let startTime = Date()
+
+        // 📱 記錄 API 調用開始
+        print("📱 [API] \(source) → \(method.rawValue) \(path)")
+        Logger.debug("📱 [API] \(source) → \(method.rawValue) \(path)")
+
         // 檢查網路連接
         if !NetworkMonitor.shared.isConnected {
-            Logger.error("[HTTPClient] 網路未連接")
+            Logger.error("❌ 網路未連接")
+            await APICallTracker.shared.logAPICallError(source: source, method: method.rawValue, path: path, error: HTTPError.noConnection)
             throw HTTPError.noConnection
         }
-        
+
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
-                Logger.error("[HTTPClient] 無效的 HTTP 回應")
+                Logger.error("❌ 無效的 HTTP 回應")
                 throw HTTPError.invalidResponse("不是有效的 HTTP 回應")
             }
-            
-            Logger.debug("[HTTPClient] \(method.rawValue) \(path) -> \(httpResponse.statusCode), 響應大小: \(data.count) bytes")
-            
-            // 記錄 Content-Language 回應標頭
-            if let contentLanguage = httpResponse.value(forHTTPHeaderField: "Content-Language") {
-                Logger.debug("[HTTPClient] Content-Language: \(contentLanguage)")
-            }
-            
-            // 檢查 HTTP 狀態碼
-            try validateHTTPResponse(httpResponse, data: data)
-            
-            return data
-            
-        } catch let urlError as URLError {
-            // 取消錯誤使用 debug 級別，其他錯誤使用 error 級別
-            if urlError.code == .cancelled {
-                Logger.debug("[HTTPClient] 請求被取消 - \(method.rawValue) \(path)")
-            } else {
-                Logger.error("[HTTPClient] URL 錯誤 - 請求: \(method.rawValue) \(path)")
-                Logger.error("[HTTPClient] 錯誤詳情: \(urlError.localizedDescription)")
-                Logger.error("[HTTPClient] 錯誤代碼: \(urlError.code.rawValue)")
-                if let failingURL = urlError.failingURL {
-                    Logger.error("[HTTPClient] 失敗的 URL: \(failingURL.absoluteString)")
+
+            // 🔒 401 錯誤自動重試機制（token 可能剛過期）
+            if httpResponse.statusCode == 401 && !isAuthenticationEndpoint(path: path) {
+                Logger.warn("[HTTPClient] 收到 401 錯誤，嘗試刷新 token 並重試: \(method.rawValue) \(path)")
+
+                Logger.firebase(
+                    "收到 401 錯誤 - 嘗試刷新 token",
+                    level: .warn,
+                    labels: [
+                        "module": "HTTPClient",
+                        "action": "401_retry",
+                        "user_id": Auth.auth().currentUser?.uid ?? "unknown"
+                    ],
+                    jsonPayload: [
+                        "path": path,
+                        "method": method.rawValue
+                    ]
+                )
+
+                // 強制刷新 token
+                do {
+                    _ = try await AuthenticationService.shared.getIdToken()
+
+                    // 用新 token 重建請求
+                    let retryRequest = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
+                    let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
+
+                    guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
+                        throw HTTPError.invalidResponse("重試請求無效回應")
+                    }
+
+                    Logger.debug("[HTTPClient] 重試成功: \(method.rawValue) \(path) -> \(retryHttpResponse.statusCode)")
+
+                    Logger.firebase(
+                        "401 重試成功",
+                        level: .info,
+                        labels: [
+                            "module": "HTTPClient",
+                            "action": "401_retry_success",
+                            "user_id": Auth.auth().currentUser?.uid ?? "unknown"
+                        ],
+                        jsonPayload: [
+                            "path": path,
+                            "method": method.rawValue,
+                            "status_code": retryHttpResponse.statusCode
+                        ]
+                    )
+
+                    // 檢查重試的 HTTP 狀態碼
+                    try validateHTTPResponse(retryHttpResponse, data: retryData)
+
+                    return retryData
+                } catch {
+                    Logger.error("[HTTPClient] Token 刷新或重試失敗: \(error.localizedDescription)")
+
+                    Logger.firebase(
+                        "401 重試失敗",
+                        level: .error,
+                        labels: [
+                            "module": "HTTPClient",
+                            "action": "401_retry_failed",
+                            "user_id": Auth.auth().currentUser?.uid ?? "unknown"
+                        ],
+                        jsonPayload: [
+                            "path": path,
+                            "method": method.rawValue,
+                            "error": error.localizedDescription
+                        ]
+                    )
+                    // 繼續拋出原始 401 錯誤
                 }
             }
+
+            // 檢查 HTTP 狀態碼
+            try validateHTTPResponse(httpResponse, data: data)
+
+            // ✅ 記錄 API 調用成功
+            let duration = Date().timeIntervalSince(startTime)
+            let statusLog = "✅ \(httpResponse.statusCode) | \(String(format: "%.2fs", duration))"
+            print(statusLog)
+            await APICallTracker.shared.logAPICallEnd(
+                source: source,
+                method: method.rawValue,
+                path: path,
+                statusCode: httpResponse.statusCode,
+                duration: duration
+            )
+
+            return data
+
+        } catch let urlError as URLError {
+            // 記錄錯誤
+            let duration = Date().timeIntervalSince(startTime)
+
+            // 取消錯誤使用 debug 級別，其他錯誤使用 error 級別
+            if urlError.code == .cancelled {
+                Logger.debug("⚠️ 請求被取消")
+            } else {
+                Logger.error("❌ URL 錯誤: \(urlError.localizedDescription)")
+                await APICallTracker.shared.logAPICallError(source: source, method: method.rawValue, path: path, error: urlError)
+            }
             throw mapURLErrorToHTTPError(urlError)
+        } catch {
+            // 其他錯誤
+            Logger.error("❌ \(error.localizedDescription)")
+            await APICallTracker.shared.logAPICallError(source: source, method: method.rawValue, path: path, error: error)
+            throw error
         }
     }
     

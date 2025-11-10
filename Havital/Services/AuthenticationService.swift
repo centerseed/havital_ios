@@ -33,17 +33,45 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         self.httpClient = httpClient
         self.parser = parser
         super.init()
-        
+
+        // 🔒 檢測首次安裝並清除孤立的 Firebase session（必須在 listener 之前）
+        Self.checkAndClearOrphanedSessionIfNeeded()
+
         // Listen to auth state changes
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
             self.user = user
             self.isAuthenticated = user != nil
 
+            Logger.firebase(
+                "認證狀態變更",
+                level: .info,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "auth_state_changed",
+                    "user_id": user?.uid ?? "none"
+                ],
+                jsonPayload: [
+                    "is_authenticated": user != nil,
+                    "user_uid": user?.uid ?? "none",
+                    "email": user?.email ?? "none"
+                ]
+            )
+
             // 設置或清除用戶ID追蹤
             self.setUserIDForAnalytics(user?.uid)
 
             if user != nil {
+                Logger.firebase(
+                    "用戶已認證 - 開始獲取用戶資料",
+                    level: .info,
+                    labels: [
+                        "module": "AuthenticationService",
+                        "action": "fetch_user_profile",
+                        "user_id": user?.uid ?? "unknown"
+                    ]
+                )
+
                 // If user is authenticated with Firebase, fetch their profile from backend
                 self.fetchUserProfile()
                 // 嘗試同步當前 FCM token
@@ -58,6 +86,14 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                     }
                 }
             } else {
+                Logger.firebase(
+                    "用戶未認證 - 清除用戶資料",
+                    level: .info,
+                    labels: [
+                        "module": "AuthenticationService",
+                        "action": "clear_user_data"
+                    ]
+                )
                 self.appUser = nil
             }
         }
@@ -65,6 +101,111 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         // 從 UserDefaults 讀取 hasCompletedOnboarding
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         // 注意：isReonboardingMode 不需要持久化，它是一個臨時狀態
+    }
+
+    // MARK: - 首次安裝檢測
+
+    /// 檢測並清除孤立的 Firebase session
+    /// 場景：用戶刪除 App 後重新安裝，但 iCloud Keychain 恢復了舊的認證資料
+    /// 注意：必須在 addStateDidChangeListener 之前調用，否則可能出現時序問題
+    private static func checkAndClearOrphanedSessionIfNeeded() {
+        let hasLaunchedBeforeKey = "hasLaunchedBefore"
+        let hasLaunched = UserDefaults.standard.bool(forKey: hasLaunchedBeforeKey)
+        let currentUser = Auth.auth().currentUser
+
+        // 🔍 診斷資訊：記錄 Keychain 恢復狀態
+        print("=== 🔍 認證狀態診斷 ===")
+        print("UserDefaults.hasLaunchedBefore: \(hasLaunched)")
+        print("Firebase.currentUser: \(currentUser != nil ? "存在" : "不存在")")
+        if let user = currentUser {
+            print("  - UID: \(user.uid)")
+            print("  - Email: \(user.email ?? "無")")
+        }
+        print("======================")
+
+        Logger.firebase(
+            "檢查孤立 session",
+            level: .info,
+            labels: [
+                "module": "AuthenticationService",
+                "action": "check_orphaned_session"
+            ],
+            jsonPayload: [
+                "has_launched_before": hasLaunched,
+                "has_current_user": currentUser != nil,
+                "current_user_uid": currentUser?.uid ?? "null",
+                "current_user_email": currentUser?.email ?? "null",
+                "is_orphaned_session": !hasLaunched && currentUser != nil  // 🔑 關鍵診斷指標
+            ]
+        )
+
+        // 如果這是首次啟動
+        if !hasLaunched {
+            // 但 Firebase 有 currentUser（從 iCloud Keychain 恢復）
+            if let currentUser = Auth.auth().currentUser {
+                print("🔒 檢測到首次安裝但存在 Firebase session")
+                print("   - User UID: \(currentUser.uid)")
+                print("   - 可能從 iCloud Keychain 恢復")
+                print("   - 強制登出以確保乾淨狀態")
+
+                Logger.firebase(
+                    "檢測到孤立的 Firebase session - 強制登出",
+                    level: .warn,
+                    labels: [
+                        "module": "AuthenticationService",
+                        "action": "clear_orphaned_session",
+                        "user_id": currentUser.uid
+                    ],
+                    jsonPayload: [
+                        "reason": "first_launch_with_existing_session",
+                        "user_uid": currentUser.uid,
+                        "email": currentUser.email ?? "unknown"
+                    ]
+                )
+
+                // 強制登出（同步執行，確保在 listener 觸發前完成）
+                do {
+                    try Auth.auth().signOut()
+                    print("✅ 已清除孤立的 Firebase session")
+
+                    Logger.firebase(
+                        "成功清除孤立 session",
+                        level: .info,
+                        labels: [
+                            "module": "AuthenticationService",
+                            "action": "clear_orphaned_session_success"
+                        ]
+                    )
+                } catch {
+                    print("⚠️ 清除 Firebase session 失敗: \(error.localizedDescription)")
+
+                    Logger.firebase(
+                        "清除孤立 session 失敗",
+                        level: .error,
+                        labels: [
+                            "module": "AuthenticationService",
+                            "action": "clear_orphaned_session_failed"
+                        ],
+                        jsonPayload: [
+                            "error": error.localizedDescription
+                        ]
+                    )
+                }
+            }
+
+            // 標記已啟動過
+            UserDefaults.standard.set(true, forKey: hasLaunchedBeforeKey)
+            print("✅ 標記為已啟動過")
+
+            Logger.firebase(
+                "標記為已啟動過",
+                level: .info,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "mark_launched"
+                ]
+            )
+        }
     }
     
     // MARK: - Unified API Call Method
@@ -281,15 +422,46 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     private func checkOnboardingStatus(user: User) {
         // 如果用戶有 active_weekly_plan_id，則表示已完成 onboarding
         let completed = user.activeWeeklyPlanId != nil
-        
+
         print("🔍 檢查 onboarding 狀態 - activeWeeklyPlanId: \(String(describing: user.activeWeeklyPlanId))")
         print("🔍 當前 hasCompletedOnboarding: \(hasCompletedOnboarding), 新值: \(completed)")
-        
+
+        Logger.firebase(
+            "檢查 onboarding 狀態",
+            level: .info,
+            labels: [
+                "module": "AuthenticationService",
+                "action": "check_onboarding_status",
+                "user_id": self.user?.uid ?? "unknown"
+            ],
+            jsonPayload: [
+                "active_weekly_plan_id": user.activeWeeklyPlanId ?? "null",
+                "has_completed_onboarding": completed,
+                "previous_has_completed_onboarding": hasCompletedOnboarding,
+                "is_reonboarding_mode": isReonboardingMode
+            ]
+        )
+
         // 在主線程更新狀態並儲存到 UserDefaults
         Task { @MainActor in
             print("🔄 更新 onboarding 狀態: \(completed)")
             self.hasCompletedOnboarding = completed
             UserDefaults.standard.set(completed, forKey: "hasCompletedOnboarding")
+
+            Logger.firebase(
+                completed ? "用戶已完成 onboarding" : "用戶未完成 onboarding",
+                level: completed ? .info : .warn,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "update_onboarding_status",
+                    "user_id": self.user?.uid ?? "unknown"
+                ],
+                jsonPayload: [
+                    "has_completed_onboarding": completed,
+                    "is_reonboarding_mode": self.isReonboardingMode
+                ]
+            )
+
             if completed {
                 print("✅ 用戶已完成 onboarding")
                 self.isReonboardingMode = false // 如果 Onboarding 完成，結束重新 Onboarding 模式
@@ -297,31 +469,119 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 print("⏳ 用戶未完成 onboarding")
             }
         }
-        
+
         print("📝 用戶 onboarding 狀態: \(completed ? "已完成" : "未完成"), isReonboardingMode: \(isReonboardingMode)")
     }
     
     func fetchUserProfile() {
         isLoading = true
-        
-        UserService.shared.getUserProfile()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] completion in
+
+        Logger.firebase(
+            "開始獲取用戶資料",
+            level: .info,
+            labels: [
+                "module": "AuthenticationService",
+                "action": "fetch_user_profile_start",
+                "user_id": user?.uid ?? "unknown"
+            ]
+        )
+
+        // Wrap the entire publisher in a Task with TaskLocal context
+        Task {
+            await APICallTracker.$currentSource.withValue("AuthenticationService: fetchUserProfile") {
+                UserService.shared.getUserProfile()
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] completion in
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     print("無法獲取用戶資料: \(error)")
-                    // 若為解析錯誤，重置並導回登入
-                    if let self = self, error is DecodingError {
+
+                    Logger.firebase(
+                        "獲取用戶資料失敗",
+                        level: .error,
+                        labels: [
+                            "module": "AuthenticationService",
+                            "action": "fetch_user_profile_failed",
+                            "user_id": self?.user?.uid ?? "unknown"
+                        ],
+                        jsonPayload: [
+                            "error": error.localizedDescription,
+                            "error_type": String(describing: type(of: error))
+                        ]
+                    )
+
+                    // 判斷是否需要重置認證狀態
+                    guard let self = self else { return }
+
+                    // 1. 解析錯誤：後端回應格式變更
+                    if error is DecodingError {
+                        Logger.firebase(
+                            "DecodingError - 重置認證狀態",
+                            level: .warn,
+                            labels: [
+                                "module": "AuthenticationService",
+                                "action": "reset_auth_decoding_error"
+                            ]
+                        )
                         self.appUser = nil
                         self.isAuthenticated = false
+                        return
+                    }
+
+                    // 2. 認證錯誤 (401/403)：Token 無效或已撤銷
+                    if let httpError = error as? HTTPError {
+                        switch httpError {
+                        case .unauthorized, .forbidden:
+                            Logger.firebase(
+                                "認證錯誤 - 重置認證狀態並登出 Firebase",
+                                level: .warn,
+                                labels: [
+                                    "module": "AuthenticationService",
+                                    "action": "reset_auth_http_error",
+                                    "user_id": self.user?.uid ?? "unknown"
+                                ],
+                                jsonPayload: [
+                                    "error_type": String(describing: httpError)
+                                ]
+                            )
+
+                            // 清除 Firebase session（同步）
+                            do {
+                                try Auth.auth().signOut()
+                                print("✅ 已登出 Firebase（因為 API 認證失敗）")
+                            } catch {
+                                print("⚠️ Firebase 登出失敗: \(error.localizedDescription)")
+                            }
+
+                            self.appUser = nil
+                            self.isAuthenticated = false
+                        default:
+                            // 其他 HTTP 錯誤（網路、伺服器錯誤等）不重置認證
+                            break
+                        }
                     }
                 }
             } receiveValue: { [weak self] user in
                 self?.appUser = user
-                
+
+                Logger.firebase(
+                    "成功獲取用戶資料",
+                    level: .info,
+                    labels: [
+                        "module": "AuthenticationService",
+                        "action": "fetch_user_profile_success",
+                        "user_id": self?.user?.uid ?? "unknown"
+                    ],
+                    jsonPayload: [
+                        "has_active_weekly_plan": user.activeWeeklyPlanId != nil,
+                        "active_weekly_plan_id": user.activeWeeklyPlanId ?? "null",
+                        "current_has_completed_onboarding": self?.hasCompletedOnboarding ?? false
+                    ]
+                )
+
                 // 檢查 onboarding 狀態
                 self?.checkOnboardingStatus(user: user)
-                
+
                 // 同步用戶偏好
                 UserService.shared.syncUserPreferences(with: user)
 
@@ -332,6 +592,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 }
             }
             .store(in: &cancellables)
+            }
+        }
     }
     
     deinit {
@@ -423,7 +685,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         guard let user = Auth.auth().currentUser else {
             throw AuthError.notAuthenticated
         }
-        
+
+        // 使用 Firebase SDK 的標準行為（會自動管理 token 刷新）
         return try await user.getIDToken()
     }
     

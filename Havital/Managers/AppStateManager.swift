@@ -71,27 +71,33 @@ class AppStateManager: ObservableObject {
     /// 完整的 App 初始化流程
     func initializeApp() async {
         print("🚀 AppStateManager: 開始完整初始化流程")
-        
+
         do {
             // Phase 1: 認證檢查
             currentState = .authenticating
             initializationProgress = 0.1
-            await authenticateUser()
-            
+            await TrackedTask("AppStateManager: authenticateUser") { [self] in
+                await self.authenticateUser()
+            }.value
+
             // Phase 2: 載入用戶資料
-            currentState = .loadingUserData  
+            currentState = .loadingUserData
             initializationProgress = 0.3
-            await loadUserData()
-            
+            await TrackedTask("AppStateManager: loadUserData") { [self] in
+                await self.loadUserData()
+            }.value
+
             // Phase 3: 設置服務
             currentState = .settingUpServices
             initializationProgress = 0.6
-            await setupServices()
-            
+            await TrackedTask("AppStateManager: setupServices") { [self] in
+                await self.setupServices()
+            }.value
+
             // Phase 4: 完成初始化
             initializationProgress = 1.0
             currentState = .ready
-            
+
             print("✅ AppStateManager: 初始化完成")
             Logger.firebase("App 初始化完成", level: .info, labels: [
                 "module": "AppStateManager",
@@ -99,11 +105,11 @@ class AppStateManager: ObservableObject {
                 "data_source": userDataSource.rawValue,
                 "subscription": subscriptionStatus.rawValue
             ])
-            
+
         } catch {
             print("❌ AppStateManager: 初始化失敗 - \(error.localizedDescription)")
             currentState = .error(error.localizedDescription)
-            
+
             Logger.firebase("App 初始化失敗", level: .error, labels: [
                 "module": "AppStateManager",
                 "action": "initialize_failed"
@@ -116,9 +122,11 @@ class AppStateManager: ObservableObject {
     /// 重新初始化（用於錯誤恢復）
     func reinitialize() async {
         print("🔄 AppStateManager: 重新初始化")
-        currentState = .initializing
-        initializationProgress = 0.0
-        await initializeApp()
+        await TrackedTask("AppStateManager: reinitialize") { [self] in
+            currentState = .initializing
+            initializationProgress = 0.0
+            await self.initializeApp()
+        }.value
     }
     
     /// 處理數據源變更
@@ -247,7 +255,9 @@ class AppStateManager: ObservableObject {
             await unifiedWorkoutManager?.loadWorkouts()
             
             // 啟動健康數據同步
-            await healthDataUploadManager?.initialize()
+            await APICallTracker.$currentSource.withValue("AppStateManager: setupServices") {
+                await healthDataUploadManager?.initialize()
+            }
             
             print("✅ AppStateManager: 已認證用戶服務設置完成")
         } else {

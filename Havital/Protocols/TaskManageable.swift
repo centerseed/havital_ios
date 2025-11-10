@@ -25,23 +25,36 @@ struct TaskID: Hashable, CustomStringConvertible, Sendable {
 @available(iOS 13.0, *)
 actor TaskRegistry {
     private var activeTasks: [TaskID: Task<Void, Never>] = [:]
-    
-    func registerTask(id: TaskID, task: Task<Void, Never>) -> Bool {
+    private var lastCompletionTimes: [TaskID: Date] = [:]  // ✅ 記錄任務完成時間
+
+    func registerTask(id: TaskID, task: Task<Void, Never>, cooldownSeconds: TimeInterval = 0) -> Bool {
         // 檢查是否已存在
         if activeTasks[id] != nil {
             // 只記錄本地日誌，不發送到後端
             print("[TaskRegistry] 任務已在執行中，跳過重複請求: \(id.description)")
             return false
         }
-        
+
+        // ✅ 檢查冷卻時間
+        if cooldownSeconds > 0, let lastTime = lastCompletionTimes[id] {
+            let elapsed = Date().timeIntervalSince(lastTime)
+            if elapsed < cooldownSeconds {
+                let remaining = Int(cooldownSeconds - elapsed)
+                print("[TaskRegistry] 任務在冷卻中，剩餘 \(remaining) 秒: \(id.description)")
+                return false
+            }
+        }
+
         activeTasks[id] = task
         // 只記錄本地日誌，不發送到後端
         print("[TaskRegistry] 註冊任務: \(id.description)")
         return true
     }
-    
+
     func removeTask(id: TaskID) {
         if activeTasks.removeValue(forKey: id) != nil {
+            // ✅ 記錄完成時間
+            lastCompletionTimes[id] = Date()
             // 只記錄本地日誌，不發送到後端
             print("[TaskRegistry] 移除任務: \(id.description)")
         }
@@ -79,12 +92,13 @@ actor TaskRegistry {
 @available(iOS 13.0, *)
 protocol TaskManageable: AnyObject {
     var taskRegistry: TaskRegistry { get }
-    
+
     func executeTask<T>(
         id: TaskID,
+        cooldownSeconds: TimeInterval,  // ✅ 新增冷卻參數
         operation: @escaping @Sendable () async throws -> T
     ) async -> T?
-    
+
     func cancelTask(id: TaskID)
     func cancelAllTasks()
 }
@@ -92,31 +106,41 @@ protocol TaskManageable: AnyObject {
 // MARK: - 預設實現（Actor-based 線程安全）
 @available(iOS 13.0, *)
 extension TaskManageable {
-    
-    /// 為字符串 ID 提供便利方法（向後兼容）
+
+    /// 為字符串 ID 提供便利方法（向後兼容，無冷卻）
     func executeTask<T>(
         id: String,
         operation: @escaping @Sendable () async throws -> T
     ) async -> T? {
-        return await executeTask(id: TaskID(id), operation: operation)
+        return await executeTask(id: TaskID(id), cooldownSeconds: 0, operation: operation)
     }
-    
-    /// 取消任務的字符串版本（向後兼容）
-    func cancelTask(id: String) {
-        Task { await cancelTask(id: TaskID(id)) }
-    }
-    
-    /// TaskRegistry 必須作為存儲屬性實現
-    /// 每個遵循 TaskManageable 的類都應該實現：
-    /// private let taskRegistry = TaskRegistry()
-    
+
+    /// 無冷卻版本（向後兼容）
     func executeTask<T>(
         id: TaskID,
         operation: @escaping @Sendable () async throws -> T
     ) async -> T? {
+        return await executeTask(id: id, cooldownSeconds: 0, operation: operation)
+    }
+
+    /// 取消任務的字符串版本（向後兼容）
+    func cancelTask(id: String) {
+        Task { await cancelTask(id: TaskID(id)) }
+    }
+
+    /// TaskRegistry 必須作為存儲屬性實現
+    /// 每個遵循 TaskManageable 的類都應該實現：
+    /// private let taskRegistry = TaskRegistry()
+
+    /// ✅ 核心實現：支援冷卻時間
+    func executeTask<T>(
+        id: TaskID,
+        cooldownSeconds: TimeInterval = 0,
+        operation: @escaping @Sendable () async throws -> T
+    ) async -> T? {
         // 只記錄本地調試日誌，不發送到後端
         print("[TaskManageable] 執行任務: \(id.description) from \(String(describing: type(of: self)))")
-        
+
         // 創建執行任務，不需要捕獲 self，因為 operation 已經是 @Sendable
         let executionTask = Task<T?, Never> {
             do {
@@ -142,11 +166,11 @@ extension TaskManageable {
             await strongSelf.taskRegistry.removeTask(id: id)
         }
         
-        // 嘗試註冊任務
-        let registered = await taskRegistry.registerTask(id: id, task: managementTask)
-        
+        // ✅ 嘗試註冊任務（帶冷卻檢查）
+        let registered = await taskRegistry.registerTask(id: id, task: managementTask, cooldownSeconds: cooldownSeconds)
+
         if !registered {
-            // 任務已存在，取消新創建的任務
+            // 任務已存在或在冷卻中，取消新創建的任務
             executionTask.cancel()
             managementTask.cancel()
             return nil

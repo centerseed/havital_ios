@@ -74,7 +74,9 @@ struct SleepHeartRateChartView: View {
             viewModel.healthKitManager = healthKitManager
         }
         .task {
-            await viewModel.loadHeartRateData()
+            await TrackedTask("SleepHeartRateChartView: loadHeartRateData") {
+                await viewModel.loadHeartRateData()
+            }.value
         }
     }
 

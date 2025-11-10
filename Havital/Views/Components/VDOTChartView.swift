@@ -89,7 +89,9 @@ struct VDOTChartView: View {
         .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
         .task {
-            await viewModel.fetchVDOTData()
+            await TrackedTask("VDOTChartView: fetchVDOTData") {
+                await viewModel.fetchVDOTData()
+            }.value
         }
         .sheet(isPresented: $showingHeartRateZoneEditor, onDismiss: {
             viewModel.needUpdatedHrRange = false
@@ -98,7 +100,9 @@ struct VDOTChartView: View {
             HRRHeartRateZoneEditorView()
         }
         .refreshable {
-            await viewModel.refreshVDOTData()
+            await TrackedTask("VDOTChartView: refreshVDOTData") {
+                await viewModel.refreshVDOTData()
+            }.value
         }
     }
     

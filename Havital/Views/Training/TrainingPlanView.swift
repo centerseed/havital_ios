@@ -51,14 +51,14 @@ struct NewWeekPromptView: View {
             } else if let error = viewModel.weeklySummaryError {
                 // 加載失敗時顯示錯誤視圖，使用強制更新模式重試
                 WeeklySummaryErrorView(error: error) {
-                    Task {
+                    TrackedTask("TrainingPlanView: retryCreateWeeklySummary") {
                         await viewModel.retryCreateWeeklySummary()
                     }
                 }
             } else {
                 // 顯示取得回顧按鈕（週回顧會以 sheet 形式彈出）
                 Button(action: {
-                    Task {
+                    TrackedTask("TrainingPlanView: createWeeklySummary") {
                         await viewModel.createWeeklySummary()
                         // 週回顧會自動以 sheet 形式顯示（由全局 sheet 處理）
                     }
@@ -185,12 +185,16 @@ struct FinalWeekPromptView: View {
                 WeeklySummaryLoadingView()
             } else if let error = viewModel.weeklySummaryError {
                 WeeklySummaryErrorView(error: error) {
-                    Task { await viewModel.retryCreateWeeklySummary() }
+                    TrackedTask("FinalWeekPromptView: retryCreateWeeklySummary") {
+                        await viewModel.retryCreateWeeklySummary()
+                    }
                 }
             } else {
                 // 取得週回顧按鈕（週回顧會以 sheet 形式彈出）
                 Button(action: {
-                    Task { await viewModel.createWeeklySummary() }
+                    TrackedTask("FinalWeekPromptView: createWeeklySummary") {
+                        await viewModel.createWeeklySummary()
+                    }
                 }) {
                     HStack {
                         Image(systemName: "doc.text.magnifyingglass")
@@ -205,7 +209,7 @@ struct FinalWeekPromptView: View {
 
                 // 設定新目標按鈕（訓練完成後）
                 Button(action: {
-                    Task {
+                    TrackedTask("TrainingPlanView: setNewGoal") {
                         viewModel.clearWeeklySummary()
                         AuthenticationService.shared.startReonboarding()
                     }
@@ -273,7 +277,9 @@ struct TrainingPlanView: View {
             .background(Color(UIColor.systemGroupedBackground))
             .refreshable {
                 // 下拉刷新：手動刷新，跳過所有快取
-                await viewModel.refreshWeeklyPlan(isManualRefresh: true)
+                await TrackedTask("TrainingPlanView: refreshWeeklyPlan") {
+                    await viewModel.refreshWeeklyPlan(isManualRefresh: true)
+                }.value
             }
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
@@ -290,11 +296,17 @@ struct TrainingPlanView: View {
             // 不需要手動調用 loadAllInitialData
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            refreshWorkouts()
+            // Only refresh if app initialization is complete (avoid duplicate refresh during app launch)
+            if AppStateManager.shared.currentState.isReady {
+                refreshWorkouts()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
             Logger.debug("Received onboardingCompleted notification, refreshing weekly volume")
-            refreshWorkouts()
+            // Only refresh if app initialization is complete
+            if AppStateManager.shared.currentState.isReady {
+                refreshWorkouts()
+            }
         }
         .sheet(isPresented: $showUserProfile) {
             NavigationView {
@@ -329,7 +341,7 @@ struct TrainingPlanView: View {
                 initialItems: viewModel.pendingAdjustments, // 可以是空陣列
                 summaryId: viewModel.pendingSummaryId ?? "unknown", // 提供預設值
                 onConfirm: { selectedItems in
-                    Task {
+                    TrackedTask("TrainingPlanView: confirmAdjustments") {
                         await viewModel.confirmAdjustments(selectedItems)
                     }
                 },
@@ -342,30 +354,42 @@ struct TrainingPlanView: View {
         .sheet(isPresented: $viewModel.showWeeklySummary) {
             if let summary = viewModel.weeklySummary {
                 NavigationView {
+                    // ✅ 檢查訓練是否完成，決定是否顯示「產生下週課表」按鈕
+                    let isTrainingCompleted = viewModel.planStatus == .completed ||
+                                             viewModel.planStatusResponse?.nextAction == .trainingCompleted
+
                     WeeklySummaryView(
                         summary: summary,
                         weekNumber: viewModel.lastFetchedWeekNumber,
-                        isVisible: $viewModel.showWeeklySummary
-                    ) {
-                        // 產生下週課表的回調
-                        Task {
-                            // 先保存目標週數（避免被 clearWeeklySummary 清除）
-                            let hasPendingWeek = viewModel.pendingTargetWeek != nil
-                            let targetWeekToProduce = viewModel.pendingTargetWeek ?? viewModel.currentWeek
+                        isVisible: $viewModel.showWeeklySummary,
+                        // ⚠️ 訓練完成時不傳回調，不顯示「產生下週課表」按鈕
+                        onGenerateNextWeek: isTrainingCompleted ? nil : {
+                            // 產生下週課表的回調
+                            TrackedTask("TrainingPlanView: generateNextWeek") {
+                                // 先保存目標週數（避免被 clearWeeklySummary 清除）
+                                let hasPendingWeek = viewModel.pendingTargetWeek != nil
+                                let targetWeekToProduce = viewModel.pendingTargetWeek ?? viewModel.currentWeek
 
-                            // 關閉週回顧
-                            viewModel.showWeeklySummary = false
+                                // 關閉週回顧
+                                viewModel.showWeeklySummary = false
 
-                            // 根據流程選擇對應方法
-                            if hasPendingWeek {
-                                // next_week_info 流程：產生指定週數
-                                await viewModel.confirmAdjustmentsAndGenerateNextWeek(targetWeek: targetWeekToProduce)
-                            } else {
-                                // 一般流程：產生當前週+1
-                                await viewModel.generateNextWeekPlan(targetWeek: targetWeekToProduce)
+                                // 根據流程選擇對應方法
+                                if hasPendingWeek {
+                                    // next_week_info 流程：產生指定週數
+                                    await viewModel.confirmAdjustmentsAndGenerateNextWeek(targetWeek: targetWeekToProduce)
+                                } else {
+                                    // 一般流程：產生當前週+1
+                                    await viewModel.generateNextWeekPlan(targetWeek: targetWeekToProduce)
+                                }
                             }
-                        }
-                    }
+                        },
+                        // 🆕 訓練完成時傳遞「設定新目標」回調
+                        onSetNewGoal: isTrainingCompleted ? {
+                            viewModel.clearWeeklySummary()
+                            viewModel.showWeeklySummary = false
+                            AuthenticationService.shared.startReonboarding()
+                        } : nil
+                    )
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("關閉") {
@@ -378,7 +402,7 @@ struct TrainingPlanView: View {
         }
         .alert(NSLocalizedString("error.network", comment: "Network Connection Error"), isPresented: $viewModel.showNetworkErrorAlert) {
             Button(NSLocalizedString("common.retry", comment: "Retry")) {
-                Task {
+                TrackedTask("TrainingPlanView: retryNetworkRequest") {
                     await viewModel.retryNetworkRequest()
                 }
             }
@@ -408,7 +432,7 @@ struct TrainingPlanView: View {
             }
         }
         .onAppear {
-            if hasCompletedOnboarding {
+            if hasCompletedOnboarding && AppStateManager.shared.currentState.isReady {
                 Logger.debug("View onAppear: Onboarding completed")
                 // 只在數據尚未載入時才刷新，避免不必要的重新載入
                 if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
@@ -416,7 +440,7 @@ struct TrainingPlanView: View {
                 }
 
                 // 在訓練計劃載入後檢查評分提示
-                Task {
+                TrackedTask("TrainingPlanView: checkAppRating") {
                     // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
                     await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
                 }
@@ -454,7 +478,9 @@ struct TrainingPlanView: View {
                     .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .error(let error):
                 ErrorView(error: error) {
-                    Task { await viewModel.loadWeeklyPlan() }
+                    TrackedTask("TrainingPlanView: loadWeeklyPlan") {
+                        await viewModel.loadWeeklyPlan()
+                    }
                 }
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
@@ -622,7 +648,7 @@ struct TrainingPlanView: View {
     // 刷新訓練記錄
     private func refreshWorkouts() {
         Logger.debug("Refreshing training records and weekly volume")
-        Task {
+        TrackedTask("TrainingPlanView: refreshWorkouts") {
             // 🔄 檢查 plan status（同步訓練計畫狀態）
             await viewModel.loadPlanStatus()
 

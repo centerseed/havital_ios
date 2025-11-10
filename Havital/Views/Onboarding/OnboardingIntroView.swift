@@ -100,7 +100,7 @@ struct OnboardingIntroView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle()) // 確保是堆疊式導航
     }
-    
+
     // 輔助視圖：創建統一風格的特色項目行
     private func featureRow(icon: String, title: String, description: String) -> some View {
         HStack(alignment: .top, spacing: 12) {

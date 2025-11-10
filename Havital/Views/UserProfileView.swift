@@ -66,13 +66,15 @@ struct UserProfileView: View {
         }
         .refreshable {
             viewModel.fetchUserProfile()
-            Task {
+            await TrackedTask("UserProfileView: loadHeartRateZonesOnRefresh") {
                 await viewModel.loadHeartRateZones()
-            }
+            }.value
         }
         .task {
             viewModel.fetchUserProfile()
-            await viewModel.loadHeartRateZones()
+            await TrackedTask("UserProfileView: loadHeartRateZonesOnAppear") {
+                await viewModel.loadHeartRateZones()
+            }.value
         }
         .sheet(isPresented: $showZoneEditor) {
             HeartRateZoneInfoView()

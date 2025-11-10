@@ -97,7 +97,9 @@ struct PerformanceChartView: View {
             }
         }
         .task {
-            await loadPerformanceData()
+            await TrackedTask("PerformanceChartView: loadPerformanceData") {
+                await loadPerformanceData()
+            }.value
         }
     }
     

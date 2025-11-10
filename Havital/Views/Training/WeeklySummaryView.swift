@@ -5,6 +5,7 @@ struct WeeklySummaryView: View {
     let weekNumber: Int?
     @Binding var isVisible: Bool
     var onGenerateNextWeek: (() -> Void)?
+    var onSetNewGoal: (() -> Void)? // 🆕 訓練完成時的回調
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
@@ -49,7 +50,7 @@ struct WeeklySummaryView: View {
                 // 下週建議部分
                 suggestionSection
                 
-                // 產生下週課表按鈕
+                // 產生下週課表按鈕（正常流程）
                 if let onGenerateNextWeek = onGenerateNextWeek {
                     Button {
                         onGenerateNextWeek()
@@ -63,6 +64,32 @@ struct WeeklySummaryView: View {
                         .background(Color.blue)
                         .foregroundColor(.white)
                         .cornerRadius(8)
+                    }
+                    .padding(.vertical)
+                }
+
+                // 🆕 設定新目標按鈕（訓練完成流程）
+                if let onSetNewGoal = onSetNewGoal {
+                    VStack(spacing: 16) {
+                        Text(NSLocalizedString("training.cycle_completed_message", comment: "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!"))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Button {
+                            onSetNewGoal()
+                        } label: {
+                            HStack {
+                                Image(systemName: "target")
+                                Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
                     }
                     .padding(.vertical)
                 }
@@ -588,5 +615,11 @@ struct WeeklySummaryErrorView: View {
         )
     )
     
-    WeeklySummaryView(summary: summary, weekNumber: 3, isVisible: .constant(true))
+    WeeklySummaryView(
+        summary: summary,
+        weekNumber: 3,
+        isVisible: .constant(true),
+        onGenerateNextWeek: nil,
+        onSetNewGoal: nil
+    )
 }

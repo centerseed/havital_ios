@@ -150,16 +150,26 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     }
     
     func loadData() async {
-        await executeDataLoadingTask(id: "load_health_data") {
-            try await self.performLoadHealthData()
-        }
+        // ✅ 直接調用 getHealthData，複用防重複邏輯
+        _ = await getHealthData(days: 14)
     }
     
     @discardableResult
     func refreshData() async -> Bool {
-        await executeDataLoadingTask(id: "refresh_health_data") {
-            try await self.performRefreshHealthData()
-        } != nil
+        // ✅ 強制刷新所有已載入的範圍
+        let loadedDays = Array(healthDataCollections.keys)
+
+        if loadedDays.isEmpty {
+            // 沒有已載入的範圍，載入默認 14 天
+            _ = await getHealthData(days: 14)
+        } else {
+            // 刷新所有已載入的範圍
+            for days in loadedDays {
+                await forceRefreshHealthData(days: days)
+            }
+        }
+
+        return true
     }
     
     func clearAllData() async {
@@ -199,40 +209,8 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     }
     
     // MARK: - Core Health Data Logic
-    
-    private func performLoadHealthData() async throws {
-        // ✅ 優化：只載入默認的 7 天範圍（最常用）
-        // 其他範圍（14天、30天）會在用戶切換時按需載入
-        try await loadHealthDataForRange(days: 7)
-
-        // 載入上傳狀態
-        loadUploadStatus()
-
-        Logger.firebase(
-            "健康數據初始化完成（懶加載模式）",
-            level: .info,
-            labels: ["module": "HealthDataUploadManagerV2", "action": "perform_load_health_data"],
-            jsonPayload: ["default_range": 7]
-        )
-    }
-
-    private func performRefreshHealthData() async throws {
-        // ✅ 優化：只刷新已載入的範圍
-        let loadedRanges = Array(healthDataCollections.keys)
-
-        if loadedRanges.isEmpty {
-            // 如果沒有已載入的範圍，刷新默認的 7 天
-            try await refreshHealthDataForRange(days: 7)
-        } else {
-            // 刷新所有已載入的範圍
-            for days in loadedRanges {
-                try await refreshHealthDataForRange(days: days)
-            }
-        }
-
-        // 觸發上傳
-        await syncHealthDataNow()
-    }
+    // ✅ performLoadHealthData 和 performRefreshHealthData 已移除
+    // 統一使用 getHealthData() 和 forceRefreshHealthData() 防止重複調用
     
     private func loadHealthDataForRange(days: Int) async throws {
         print("📊 [loadHealthDataForRange] 開始載入數據，天數: \(days)")
@@ -257,7 +235,9 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         // 從 API 獲取
         do {
             print("📊 [loadHealthDataForRange] 調用 API: service.getHealthDaily(limit: \(days))")
-            let response = try await service.getHealthDaily(limit: days)
+            let response = try await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: loadHealthDataForRange") {
+                try await service.getHealthDaily(limit: days)
+            }
             let healthData = response.healthData
             print("📊 [loadHealthDataForRange] ✅ API 返回 \(healthData.count) 筆記錄")
             let hrvCount = healthData.filter { $0.hrvLastNightAvg != nil }.count
@@ -327,7 +307,9 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     private func refreshHealthDataForRange(days: Int) async throws {
         // 強制從 API 獲取
-        let response = try await service.getHealthDaily(limit: days)
+        let response = try await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: refreshHealthDataForRange") {
+            try await service.getHealthDaily(limit: days)
+        }
         let healthData = response.healthData
         let collection = HealthDataCollection(records: healthData, days: days)
         
@@ -978,6 +960,16 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     func getHealthData(days: Int = 7) async -> [HealthRecord] {
         print("📊 [getHealthData] 被調用，天數: \(days)")
 
+        // ✅ 使用 executeTask 防止重複調用
+        let result = await executeTask(id: TaskID("get_health_data_\(days)")) {
+            return await self.performGetHealthData(days: days)
+        }
+
+        return result ?? healthDataCollections[days]?.records ?? []
+    }
+
+    /// 執行實際的健康數據獲取邏輯
+    private func performGetHealthData(days: Int) async -> [HealthRecord] {
         if let collection = healthDataCollections[days] {
             print("📊 [getHealthData] ✅ 從內存緩存返回 \(collection.records.count) 筆記錄")
             let hrvCount = collection.records.filter { $0.hrvLastNightAvg != nil }.count
@@ -996,7 +988,9 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             if hrvCount == 0 && userPreferenceManager.dataSourcePreference == .appleHealth {
                 print("📊 [getHealthData] ⚠️ 快取中無 HRV 數據，強制刷新")
                 healthDataCollections.removeValue(forKey: days)
-                try? await loadHealthDataForRange(days: days)
+                try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
+                    try await loadHealthDataForRange(days: days)
+                }
                 let refreshedResult = healthDataCollections[days]?.records ?? []
                 let refreshedHrvCount = refreshedResult.filter { $0.hrvLastNightAvg != nil }.count
                 print("📊 [getHealthData] 刷新後返回 \(refreshedResult.count) 筆記錄，HRV 記錄數: \(refreshedHrvCount)")
@@ -1006,7 +1000,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             // 緩存過期但有數據，背景更新但立即返回舊數據
             print("📊 [getHealthData] 緩存過期，背景更新中...")
             Task.detached { [weak self] in
-                try? await self?.loadHealthDataForRange(days: days)
+                try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData (background)") {
+                    print("📊 [getHealthData] 緩存過期，背景更新loadHealthDataForRange")
+                    try await self?.loadHealthDataForRange(days: days)
+                }
             }
             return collection.records
         }
@@ -1014,7 +1011,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         print("📊 [getHealthData] 內存緩存未命中，觸發載入")
 
         // 如果沒有快取，觸發載入
-        try? await loadHealthDataForRange(days: days)
+        try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
+            print("📊 [getHealthData] 如果沒有快取，觸發載入loadHealthDataForRange")
+            try await loadHealthDataForRange(days: days)
+        }
         let result = healthDataCollections[days]?.records ?? []
         print("📊 [getHealthData] 載入後返回 \(result.count) 筆記錄")
         return result
@@ -1022,9 +1022,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
 
     /// 強制刷新健康數據（清除快取）
     func forceRefreshHealthData(days: Int = 7) async {
-        print("📊 [forceRefreshHealthData] 強制刷新，天數: \(days)")
+        print("📊 [getHealthData] 強制刷新，天數: \(days)")
         healthDataCollections.removeValue(forKey: days)
         cacheManager.clearCache()
+        print("📊 [getHealthData] 強制刷新：loadHealthDataForRange")
         try? await loadHealthDataForRange(days: days)
     }
     

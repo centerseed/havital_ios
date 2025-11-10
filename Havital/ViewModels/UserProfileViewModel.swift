@@ -13,23 +13,27 @@ class UserProfileViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     func fetchUserProfile() {
-        isLoading = true
-        error = nil
-        
-        UserService.shared.getUserProfile()
-            .receive(on: DispatchQueue.main)
-            .sink { completion in
-                self.isLoading = false
-                if case .failure(let error) = completion {
-                    self.error = error
-                    print("Error fetching user profile: \(error.localizedDescription)")
-                }
-            } receiveValue: { response in
-                // Now we correctly access the user data directly
-                self.userData = response
-                print("Successfully fetched user profile for: \(response.displayName)")
-            }
-            .store(in: &cancellables)
+        Task {
+            await TrackedTask("UserProfileViewModel: fetchUserProfile") { [self] in
+                isLoading = true
+                error = nil
+
+                UserService.shared.getUserProfile()
+                    .receive(on: DispatchQueue.main)
+                    .sink { completion in
+                        self.isLoading = false
+                        if case .failure(let error) = completion {
+                            self.error = error
+                            print("Error fetching user profile: \(error.localizedDescription)")
+                        }
+                    } receiveValue: { response in
+                        // Now we correctly access the user data directly
+                        self.userData = response
+                        print("Successfully fetched user profile for: \(response.displayName)")
+                    }
+                    .store(in: &self.cancellables)
+            }.value
+        }
     }
     
     func loadHeartRateZones() async {
@@ -74,31 +78,33 @@ class UserProfileViewModel: ObservableObject {
 extension UserProfileViewModel {
     // 更新週跑量的方法
     func updateWeeklyDistance(distance: Int) async {
-        isLoading = true
-        error = nil
-        
-        do {
-            let userData = [
-                "current_week_distance": distance
-            ] as [String: Any]
-            
-            try await UserService.shared.updateUserData(userData)
-            print("週跑量數據更新成功")
-            
-            // 重新載入用戶資料
-            await MainActor.run {
-                self.fetchUserProfile()
+        await TrackedTask("UserProfileViewModel: updateWeeklyDistance") { [self] in
+            isLoading = true
+            error = nil
+
+            do {
+                let userData = [
+                    "current_week_distance": distance
+                ] as [String: Any]
+
+                try await UserService.shared.updateUserData(userData)
+                print("週跑量數據更新成功")
+
+                // 重新載入用戶資料
+                await MainActor.run {
+                    self.fetchUserProfile()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error
+                    print("更新週跑量失敗: \(error.localizedDescription)")
+                }
             }
-        } catch {
+
             await MainActor.run {
-                self.error = error
-                print("更新週跑量失敗: \(error.localizedDescription)")
+                isLoading = false
             }
-        }
-        
-        await MainActor.run {
-            isLoading = false
-        }
+        }.value
     }
     
     // 刪除帳戶

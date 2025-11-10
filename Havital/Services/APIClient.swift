@@ -297,8 +297,6 @@ struct HealthRecord: Codable, Equatable {
 
         // 嘗試解析嵌套的 tsb_metrics（來自 API 或緩存）
         if let tsbMetrics = try container.decodeIfPresent(TSBMetrics.self, forKey: .tsbMetrics) {
-            print("🔍 解析 TSBMetrics 成功，created_at: \(tsbMetrics.createdAt ?? "nil")")
-            print("  📊 TSB 數據: fitness=\(tsbMetrics.fitness?.description ?? "nil"), tsb=\(tsbMetrics.tsb?.description ?? "nil"), atl=\(tsbMetrics.atl?.description ?? "nil"), ctl=\(tsbMetrics.ctl?.description ?? "nil")")
             atl = tsbMetrics.atl
             ctl = tsbMetrics.ctl
             fitness = tsbMetrics.fitness

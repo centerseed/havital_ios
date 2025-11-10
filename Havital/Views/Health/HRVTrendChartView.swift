@@ -80,7 +80,9 @@ struct HRVTrendChartView: View {
             }
         }
         .task {
-            await viewModel.loadHRVData()
+            await TrackedTask("HRVTrendChartView: loadHRVData") {
+                await viewModel.loadHRVData()
+            }.value
         }
     }
     

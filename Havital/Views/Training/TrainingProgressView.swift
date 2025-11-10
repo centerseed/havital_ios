@@ -35,8 +35,10 @@ struct TrainingProgressView: View {
             .background(Color(UIColor.systemGroupedBackground))
         }
         .task {
-            // 初始載入週次數據，使用雙軌模式
-            await loadWeeklySummariesWithDualTrack()
+            await TrackedTask("TrainingProgressView: loadWeeklySummaries") {
+                // 初始載入週次數據，使用雙軌模式
+                await loadWeeklySummariesWithDualTrack()
+            }.value
         }
     }
     

@@ -142,7 +142,7 @@ struct MyAchievementView: View {
                             }
 
                             Button(action: {
-                                Task {
+                                TrackedTask("MyAchievementView: forceRefresh") {
                                     print("[MyAchievementView] 🔄 用戶點擊刷新按鈕")
                                     await trainingReadinessManager.forceRefresh()
                                 }
@@ -208,7 +208,7 @@ struct MyAchievementView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 // Load training readiness data when view appears
-                Task {
+                TrackedTask("MyAchievementView: loadData") {
                     await trainingReadinessManager.loadData()
                 }
             }
@@ -431,10 +431,14 @@ struct CombinedHeartRateChartSection: View {
     @ViewBuilder
     private var restingHeartRateChartContent: some View {
         switch dataSourcePreference {
-        case .appleHealth, .garmin, .strava:
+        case .appleHealth, .garmin:
             // ✅ 統一使用 SleepHeartRateChartView，ViewModel 會自動根據數據源處理
             SleepHeartRateChartView()
                 .environmentObject(healthKitManager)
+
+        case .strava:
+            // Strava 不提供靜息心率數據
+            EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
 
         case .unbound:
             // 未綁定數據源
@@ -532,18 +536,18 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
+            TrackedTask("TrainingReadinessManager: garminHealthDataRefresh") {
                 await self?.forceRefreshData()
             }
         }
-        
+
         // 監聽數據源切換通知
         NotificationCenter.default.addObserver(
             forName: .dataSourceChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
+            TrackedTask("TrainingReadinessManager: dataSourceChanged") {
                 await self?.forceRefreshData()
             }
         }
@@ -653,7 +657,9 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
         // 使用統一架構的 HealthDataUploadManagerV2 獲取數據
         do {
             print("Using HealthDataUploadManagerV2 to get health data...")
-            await HealthDataUploadManagerV2.shared.loadData()
+            await APICallTracker.$currentSource.withValue("MyAchievementView: refreshDataFromAPI") {
+                await HealthDataUploadManagerV2.shared.loadData()
+            }
             
             await MainActor.run {
                 // 從 HealthDataUploadManagerV2 獲取指定天數的數據
@@ -785,7 +791,7 @@ struct SharedHealthDataChartView: View {
                         customMessage: error,
                         showRetryButton: true
                     ) {
-                        Task {
+                        TrackedTask("CombinedHeartRateChart: loadChartData") {
                             await loadChartData()
                         }
                     }
@@ -815,10 +821,12 @@ struct SharedHealthDataChartView: View {
             }
         }
         .task {
-            await loadChartData()
+            await TrackedTask("CombinedHeartRateChart: loadChartData") {
+                await loadChartData()
+            }.value
         }
         .onChange(of: selectedTimeRange) { _ in
-            Task {
+            TrackedTask("CombinedHeartRateChart: timeRangeChanged") {
                 await loadChartData()
             }
         }
@@ -1045,7 +1053,7 @@ struct APIBasedHRVChartView: View {
                         customMessage: error,
                         showRetryButton: true
                     ) {
-                        Task {
+                        TrackedTask("HRVTrendChartView: loadHealthData") {
                             await loadHealthData()
                         }
                     }
@@ -1084,7 +1092,7 @@ struct APIBasedHRVChartView: View {
             // 如果沒有數據且不在載入中，才載入
             if healthData.isEmpty && !isLoading {
                 loadTask?.cancel()
-                loadTask = Task {
+                loadTask = TrackedTask("HRVTrendChartView: onAppear") {
                     await loadHealthData()
                 }
             }
@@ -1241,7 +1249,7 @@ struct APIBasedRestingHeartRateChartView: View {
         }
         .task {
             loadTask?.cancel()
-            loadTask = Task {
+            loadTask = TrackedTask("RestingHeartRateChartView: loadHealthData") {
                 await loadHealthData()
             }
         }
@@ -1316,7 +1324,7 @@ struct TrainingLoadChartSection: View {
                     Spacer()
 
                     Button(action: {
-                        Task {
+                        TrackedTask("TrainingLoadChartSection: clearCache") {
                             await TrainingLoadDataManager.shared.clearCache()
                             // 觸發重新載入
                             NotificationCenter.default.post(name: NSNotification.Name("ReloadTrainingLoadData"), object: nil)
@@ -1389,7 +1397,7 @@ struct TrainingLoadChartView: View {
                     customMessage: error,
                     showRetryButton: true
                 ) {
-                    Task {
+                    TrackedTask("TrainingLoadChartView: loadChartData") {
                         await loadChartData()
                     }
                 }
@@ -1930,7 +1938,7 @@ struct FitnessIndexChartView: View {
                     customMessage: error,
                     showRetryButton: true
                 ) {
-                    Task {
+                    TrackedTask("FitnessIndexChartView: loadChartData") {
                         await loadChartData()
                     }
                 }
@@ -1971,10 +1979,12 @@ struct FitnessIndexChartView: View {
             }
         }
         .task {
-            await loadChartData()
+            await TrackedTask("FitnessIndexChartView: loadChartData") {
+                await loadChartData()
+            }.value
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReloadTrainingLoadData"))) { _ in
-            Task {
+            TrackedTask("FitnessIndexChartView: reloadTrainingLoadData") {
                 await loadChartData()
             }
         }
@@ -2040,7 +2050,7 @@ struct FitnessIndexChartView: View {
                     }
                 }
 
-                // ATL line (改用 ATL 作為體適能指數) - ATL乘以10顯示，使用 series 形成連續線
+                // ATL line (改用 ATL 作為) - ATL乘以10顯示，使用 series 形成連續線
                 ForEach(chartHealthData.indices, id: \.self) { index in
                     let record = chartHealthData[index]
                     if let atl = record.atl {
@@ -2340,7 +2350,7 @@ struct TSBChartView: View {
                     customMessage: error,
                     showRetryButton: true
                 ) {
-                    Task {
+                    TrackedTask("TSBChartView: loadChartData") {
                         await loadChartData()
                     }
                 }
@@ -2381,10 +2391,12 @@ struct TSBChartView: View {
             }
         }
         .task {
-            await loadChartData()
+            await TrackedTask("TSBChartView: loadChartData") {
+                await loadChartData()
+            }.value
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReloadTrainingLoadData"))) { _ in
-            Task {
+            TrackedTask("TSBChartView: reloadTrainingLoadData") {
                 await loadChartData()
             }
         }
