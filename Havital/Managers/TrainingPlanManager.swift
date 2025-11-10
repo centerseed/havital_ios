@@ -366,14 +366,16 @@ class TrainingPlanManager: ObservableObject, DataManageable {
             
             // 沒有緩存時，直接從 API 獲取
             do {
-                let overview = try await self.service.getTrainingPlanOverview()
-                
+                let overview = try await APICallTracker.$currentSource.withValue("TrainingPlanManager: loadTrainingOverview") {
+                    try await self.service.getTrainingPlanOverview()
+                }
+
                 await MainActor.run {
                     self.trainingOverview = overview
                 }
-                
+
                 self.cacheManager.saveTrainingOverview(overview)
-                
+
                 Logger.debug("訓練概覽初次載入成功")
                 
             } catch {
@@ -392,18 +394,20 @@ class TrainingPlanManager: ObservableObject, DataManageable {
     /// 背景刷新訓練概覽
     private func refreshTrainingOverviewInBackground() async {
         Logger.debug("軌道 B: 開始背景更新訓練概覽")
-        
+
         do {
-            let latestOverview = try await service.getTrainingPlanOverview()
-            
+            let latestOverview = try await APICallTracker.$currentSource.withValue("TrainingPlanManager: refreshTrainingOverviewInBackground") {
+                try await service.getTrainingPlanOverview()
+            }
+
             await MainActor.run {
                 self.trainingOverview = latestOverview
             }
-            
+
             cacheManager.saveTrainingOverview(latestOverview)
-            
+
             Logger.debug("軌道 B: 訓練概覽背景更新完成")
-            
+
         } catch {
             // 背景更新失敗不影響已顯示的緩存內容
             Logger.debug("軌道 B: 訓練概覽背景更新失敗，保持現有緩存: \(error.localizedDescription)")
