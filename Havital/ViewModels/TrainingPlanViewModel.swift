@@ -1613,8 +1613,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     // 載入本週訓練強度分鐘數
+    // ✅ 純內存計算（無 API 調用），不參數化 TaskID
     func loadCurrentWeekIntensity() async {
-        await executeTask(id: TaskID("load_current_week_intensity_\(selectedWeek)"), cooldownSeconds: 5) {
+        await executeTask(id: TaskID("load_current_week_intensity"), cooldownSeconds: 5) {
             await self.performLoadCurrentWeekIntensity()
         }
     }
@@ -1780,11 +1781,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     func loadCurrentWeekDistance() async {
-        await executeTask(id: TaskID("load_current_week_distance_\(selectedWeek)"), cooldownSeconds: 5) {
+        await executeTask(id: TaskID("load_current_week_distance"), cooldownSeconds: 5) {
             await self.performLoadCurrentWeekDistance()
         }
     }
-    
+
+    // ✅ 純內存計算（無 API 調用）
     private func performLoadCurrentWeekDistance() async {
         Logger.debug("載入週跑量中...")
         await MainActor.run {
