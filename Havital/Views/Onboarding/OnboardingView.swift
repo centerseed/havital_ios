@@ -183,7 +183,7 @@ struct OnboardingView: View {
             .background(Color(.systemGroupedBackground))
             
             // 導航到心率設定頁面
-            NavigationLink(destination: HeartRateSetupView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
+            NavigationLink(destination: HeartRateZoneInfoView(mode: .onboarding(targetDistance: Double(viewModel.selectedDistance) ?? 42.195))
                 .navigationBarBackButtonHidden(true),
                            isActive: $showHeartRateSetup) {
                 EmptyView()
