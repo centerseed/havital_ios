@@ -84,7 +84,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         defer { isLoadingInitial = false }
 
         // ✅ 使用統一的 TaskID "fetch_workouts_v2" 來去重相同 API 調用
-        await executeTask(id: TaskID("fetch_workouts_v2"), cooldownSeconds: 5) {
+        // ✅ 增加 cooldown 到 60 秒，避免 App 啟動過程中的重複調用
+        await executeTask(id: TaskID("fetch_workouts_v2"), cooldownSeconds: 60) {
             await self.performLoadWorkouts()
         }
     }
@@ -230,7 +231,8 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     func refreshWorkouts() async {
         // ✅ 使用統一的 TaskID "fetch_workouts_v2" 與 loadWorkouts() 去重相同 API 調用
         // 因為兩個函數都調用 GET /v2/workouts?page_size=50
-        await executeTask(id: TaskID("fetch_workouts_v2"), cooldownSeconds: 5) {
+        // ✅ 增加 cooldown 到 60 秒，避免頻繁刷新造成後端壓力
+        await executeTask(id: TaskID("fetch_workouts_v2"), cooldownSeconds: 60) {
             await self.smartRefreshFromAPI()
         }
     }

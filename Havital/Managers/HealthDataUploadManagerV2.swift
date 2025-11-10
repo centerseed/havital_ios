@@ -988,8 +988,11 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             if hrvCount == 0 && userPreferenceManager.dataSourcePreference == .appleHealth {
                 print("📊 [getHealthData] ⚠️ 快取中無 HRV 數據，強制刷新")
                 healthDataCollections.removeValue(forKey: days)
-                try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
-                    try await loadHealthDataForRange(days: days)
+                // ✅ 使用 executeTask 防止重複調用
+                await executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
+                    try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
+                        try await self.loadHealthDataForRange(days: days)
+                    }
                 }
                 let refreshedResult = healthDataCollections[days]?.records ?? []
                 let refreshedHrvCount = refreshedResult.filter { $0.hrvLastNightAvg != nil }.count
@@ -1000,9 +1003,12 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             // 緩存過期但有數據，背景更新但立即返回舊數據
             print("📊 [getHealthData] 緩存過期，背景更新中...")
             Task.detached { [weak self] in
-                try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData (background)") {
-                    print("📊 [getHealthData] 緩存過期，背景更新loadHealthDataForRange")
-                    try await self?.loadHealthDataForRange(days: days)
+                // ✅ 使用 executeTask 防止重複調用
+                await self?.executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
+                    try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData (background)") {
+                        print("📊 [getHealthData] 緩存過期，背景更新loadHealthDataForRange")
+                        try await self?.loadHealthDataForRange(days: days)
+                    }
                 }
             }
             return collection.records
@@ -1011,9 +1017,12 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         print("📊 [getHealthData] 內存緩存未命中，觸發載入")
 
         // 如果沒有快取，觸發載入
-        try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
-            print("📊 [getHealthData] 如果沒有快取，觸發載入loadHealthDataForRange")
-            try await loadHealthDataForRange(days: days)
+        // ✅ 使用 executeTask 防止重複調用
+        await executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
+            try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
+                print("📊 [getHealthData] 如果沒有快取，觸發載入loadHealthDataForRange")
+                try await self.loadHealthDataForRange(days: days)
+            }
         }
         let result = healthDataCollections[days]?.records ?? []
         print("📊 [getHealthData] 載入後返回 \(result.count) 筆記錄")
@@ -1026,7 +1035,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         healthDataCollections.removeValue(forKey: days)
         cacheManager.clearCache()
         print("📊 [getHealthData] 強制刷新：loadHealthDataForRange")
-        try? await loadHealthDataForRange(days: days)
+        // ✅ 使用 executeTask 防止重複調用
+        await executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
+            try? await self.loadHealthDataForRange(days: days)
+        }
     }
     
     /// 檢查特定數據類型是否被觀察
