@@ -316,10 +316,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 簡化的初始化 - 單一路徑
     init() {
         Logger.debug("TrainingPlanViewModel: 開始簡化的初始化")
-        
+
         // 非同步初始化 - 使用單一統一的初始化方法
         Task {
-            await self.performUnifiedInitialization()
+            await TrackedTask("TrainingPlanViewModel: init") {
+                await self.performUnifiedInitialization()
+            }.value
         }
     }
     
