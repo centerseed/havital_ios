@@ -233,18 +233,10 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         }
     }
     
-    /// 智能刷新：防重複觸發 + 短間隔更新
+    /// 智能刷新：短間隔更新
+    /// ✅ 防重複觸發（5 秒）已由 TaskManageable 的 cooldownSeconds 統一處理
     private func smartRefreshFromAPI() async {
         let now = Date()
-        
-        // 防重複觸發：5秒內不重複刷新
-        if let lastRefresh = lastUserRefreshTime,
-           now.timeIntervalSince(lastRefresh) < 5 {
-            print("用戶刷新過於頻繁，忽略此次刷新請求")
-            return
-        }
-        
-        // 記錄刷新時間
         lastUserRefreshTime = now
         
         await MainActor.run {

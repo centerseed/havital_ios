@@ -586,14 +586,14 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             return
         }
         
-        await executeTask(id: "load_workout_detail") {
+        await executeTask(id: TaskID("load_workout_detail_\(workout.id)"), cooldownSeconds: 5) {
             await self.performLoadWorkoutDetail()
         }
     }
     
     /// 重新載入運動詳細資料（用於下拉刷新）
     func refreshWorkoutDetail() async {
-        await executeTask(id: "refresh_workout_detail") {
+        await executeTask(id: TaskID("refresh_workout_detail_\(workout.id)"), cooldownSeconds: 5) {
             await self.performRefreshWorkoutDetail()
         }
     }

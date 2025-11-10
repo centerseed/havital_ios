@@ -88,10 +88,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // plan/status API 緩存時間戳（8 小時內不重複呼叫）
     private var lastPlanStatusFetchTime: Date?
     private let planStatusCacheInterval: TimeInterval = 8 * 60 * 60 // 8 小時
-
-    // plan/status API 短期 dedup（5 秒內不重複呼叫）
-    private var lastPlanStatusRefreshTime: Date?
-    private let planStatusDedupInterval: TimeInterval = 5 // 5 秒
+    // ✅ 短期防抖（5 秒）已由 TaskManageable 的 cooldownSeconds 統一處理
 
     // 調整建議確認相關屬性
     @Published var showAdjustmentConfirmation = false
@@ -238,7 +235,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             return
         }
         
-        await executeTask(id: "fetch_weekly_summaries") {
+        await executeTask(id: TaskID("fetch_weekly_summaries"), cooldownSeconds: 5) {
             await self.performFetchWeeklySummaries()
         }
     }
@@ -395,13 +392,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     /// 載入訓練計畫狀態（使用後端 API）
     /// - Parameter skipCache: 是否跳過緩存檢查（預設為 false）
     func loadPlanStatus(skipCache: Bool = false) async {
-        await executeTask(id: "load_plan_status") {
+        await executeTask(id: TaskID("load_plan_status"), cooldownSeconds: 5) {
             await self.performLoadPlanStatus(skipCache: skipCache)
         }
     }
 
     private func performLoadPlanStatus(skipCache: Bool = false) async {
         // 🔧 檢查是否需要跳過緩存（8 小時長期緩存）
+        // ✅ 短期防抖（5 秒）已由 TaskManageable 的 cooldownSeconds 處理
         if !skipCache, let lastFetchTime = lastPlanStatusFetchTime {
             let timeSinceLastFetch = Date().timeIntervalSince(lastFetchTime)
             if timeSinceLastFetch < planStatusCacheInterval {
@@ -413,25 +411,14 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
             }
         }
 
-        // 🔧 短期 dedup（5 秒內不重複呼叫）
-        let now = Date()
-        if !skipCache, let lastRefresh = lastPlanStatusRefreshTime {
-            let timeSinceLastRefresh = now.timeIntervalSince(lastRefresh)
-            if timeSinceLastRefresh < planStatusDedupInterval {
-                Logger.debug("⚡ [PlanStatus] 短期請求過於頻繁，忽略此次呼叫（距上次呼叫 \(String(format: "%.1f", timeSinceLastRefresh)) 秒，需要等待 \(String(format: "%.1f", planStatusDedupInterval - timeSinceLastRefresh)) 秒）")
-                return
-            }
-        }
-
         Logger.debug("🔄 [PlanStatus] 開始呼叫 GET /plan/race_run/status (skipCache: \(skipCache))")
 
         do {
             let status = try await TrainingPlanService.shared.getPlanStatus()
 
-            // 更新緩存時間戳（8 小時長期緩存 + 5 秒短期 dedup）
+            // 更新緩存時間戳（8 小時長期緩存）
             await MainActor.run {
                 self.lastPlanStatusFetchTime = Date()
-                self.lastPlanStatusRefreshTime = Date()
             }
 
             await MainActor.run {
@@ -712,7 +699,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 獲取訓練回顧的方法
     @MainActor
     func createWeeklySummary(weekNumber: Int? = nil) async {
-        await executeTask(id: "create_weekly_summary") {
+        // 計算目標週數用於 TaskID
+        let targetWeek = weekNumber ?? calculateCurrentTrainingWeek() ?? currentWeek
+        await executeTask(id: TaskID("create_weekly_summary_\(targetWeek)"), cooldownSeconds: 5) {
             await self.performCreateWeeklySummary(weekNumber: weekNumber)
         }
     }
@@ -785,7 +774,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 重新嘗試產生週回顧（強制更新模式）
     @MainActor
     func retryCreateWeeklySummary() async {
-        await executeTask(id: "retry_create_weekly_summary") {
+        let targetWeek = calculateCurrentTrainingWeek() ?? currentWeek
+        await executeTask(id: TaskID("retry_create_weekly_summary_\(targetWeek)")) {
             await self.performRetryCreateWeeklySummary()
         }
     }
@@ -942,7 +932,8 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     func loadWeeklyPlan(skipCache: Bool = false, targetWeek: Int? = nil) async {
-        await executeTask(id: "load_weekly_plan") {
+        let weekToLoad = targetWeek ?? selectedWeek
+        await executeTask(id: TaskID("load_weekly_plan_\(weekToLoad)"), cooldownSeconds: 5) {
             await self.performLoadWeeklyPlan(skipCache: skipCache, targetWeek: targetWeek)
         }
     }
@@ -1623,7 +1614,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 載入本週訓練強度分鐘數
     func loadCurrentWeekIntensity() async {
-        await executeTask(id: "load_current_week_intensity") {
+        await executeTask(id: TaskID("load_current_week_intensity_\(selectedWeek)"), cooldownSeconds: 5) {
             await self.performLoadCurrentWeekIntensity()
         }
     }
@@ -1789,7 +1780,7 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     func loadCurrentWeekDistance() async {
-        await executeTask(id: "load_current_week_distance") {
+        await executeTask(id: TaskID("load_current_week_distance_\(selectedWeek)"), cooldownSeconds: 5) {
             await self.performLoadCurrentWeekDistance()
         }
     }
