@@ -784,6 +784,12 @@
 // MARK: - Training Days Error Messages
 "onboarding.select_at_least_one_day" = "Please select at least one training day.";
 
+// MARK: - Heart Rate Setup
+"onboarding.heart_rate_title" = "Heart Rate Settings";
+"onboarding.heart_rate_description" = "Setting your heart rate zones helps us create a more personalized training plan";
+"onboarding.heart_rate_intro" = "Please set your maximum and resting heart rate";
+"onboarding.skip_heart_rate" = "Skip (Use Default Values)";
+
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "Current Weekly Running Volume";
 "onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Paceriz understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";

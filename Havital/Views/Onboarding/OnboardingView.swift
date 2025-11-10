@@ -86,6 +86,7 @@ class OnboardingViewModel: ObservableObject {
 struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var showHeartRateSetup = false
     @State private var showPersonalBest = false
     @State private var showStageSelection = false
     @State private var showTimeWarning = false
@@ -181,10 +182,10 @@ struct OnboardingView: View {
             }
             .background(Color(.systemGroupedBackground))
             
-            // 導航到個人最佳成績頁面
-            NavigationLink(destination: PersonalBestView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
+            // 導航到心率設定頁面
+            NavigationLink(destination: HeartRateSetupView(targetDistance: Double(viewModel.selectedDistance) ?? 42.195)
                 .navigationBarBackButtonHidden(true),
-                           isActive: $showPersonalBest) {
+                           isActive: $showHeartRateSetup) {
                 EmptyView()
             }
 
@@ -203,7 +204,7 @@ struct OnboardingView: View {
                         UserDefaults.standard.removeObject(forKey: "selectedStartStage")
                     }
                     showStageSelection = false
-                    showPersonalBest = true
+                    showHeartRateSetup = true
                 }
             ).navigationBarBackButtonHidden(true),
                isActive: $showStageSelection) {
@@ -263,11 +264,11 @@ struct OnboardingView: View {
             print("[OnboardingView] ⚠️ Too short, showing warning")
             showTimeWarning = true
         } else if trainingWeeks >= standardWeeks {
-            // 時間充足，直接進入下一步
+            // 時間充足，直接進入心率設定步驟
             print("[OnboardingView] ✅ Enough time, skipping stage selection (using default base stage)")
             viewModel.selectedStartStage = nil // 使用預設（從基礎期開始）
             UserDefaults.standard.removeObject(forKey: "selectedStartStage") // 清除舊值
-            showPersonalBest = true
+            showHeartRateSetup = true
         } else {
             // 時間緊張（2-12週），進入階段選擇頁面
             print("[OnboardingView] 🎯 Time constraint detected, showing stage selection")

@@ -784,6 +784,12 @@
 // MARK: - Training Days Error Messages
 "onboarding.select_at_least_one_day" = "少なくとも1日はトレーニング日を選択してください。";
 
+// MARK: - Heart Rate Setup
+"onboarding.heart_rate_title" = "心拍数設定";
+"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます";
+"onboarding.heart_rate_intro" = "最大心拍数と安静時心拍数を設定してください";
+"onboarding.skip_heart_rate" = "スキップ（デフォルト値を使用）";
+
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "現在の週間ランニング量";
 "onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
