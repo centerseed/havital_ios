@@ -127,11 +127,12 @@ class StravaManager: NSObject, ObservableObject {
     /// 檢查 Strava 連線狀態
     func checkConnectionStatus() async {
         print("🔍 [開始] checkConnectionStatus() - 當前 needsReconnection: \(needsReconnection)")
-        
-        do {
-            print("🔍 開始檢查 Strava 連線狀態...")
-            
-            let response = try await StravaConnectionStatusService.shared.checkConnectionStatus()
+
+        await TrackedTask("StravaManager: checkConnectionStatus") {
+            do {
+                print("🔍 開始檢查 Strava 連線狀態...")
+
+                let response = try await StravaConnectionStatusService.shared.checkConnectionStatus()
             
             // 記錄要在 MainActor 之外執行的異步操作
             var shouldRestoreDataSource = false
@@ -210,22 +211,23 @@ class StravaManager: NSObject, ObservableObject {
                     print("⚠️ 同步 Strava 資料來源偏好設定到後端失敗: \(error.localizedDescription)")
                 }
             }
-            
-        } catch {
-            Logger.firebase("檢查 Strava 連線狀態失敗: \(error.localizedDescription)", level: .error, labels: [
-                "module": "StravaManager",
-                "action": "checkConnectionStatus"
-            ])
-            
-            await MainActor.run {
-                // 檢查失敗時不改變現有狀態，但清除重新連接提示
-                print("❌ API 調用失敗，設置 needsReconnection = false")
-                needsReconnection = false
-                reconnectionMessage = nil
+
+            } catch {
+                Logger.firebase("檢查 Strava 連線狀態失敗: \(error.localizedDescription)", level: .error, labels: [
+                    "module": "StravaManager",
+                    "action": "checkConnectionStatus"
+                ])
+
+                await MainActor.run {
+                    // 檢查失敗時不改變現有狀態，但清除重新連接提示
+                    print("❌ API 調用失敗，設置 needsReconnection = false")
+                    needsReconnection = false
+                    reconnectionMessage = nil
+                }
             }
-        }
-        
-        print("🔍 [結束] checkConnectionStatus() - 最終 needsReconnection: \(needsReconnection)")
+
+            print("🔍 [結束] checkConnectionStatus() - 最終 needsReconnection: \(needsReconnection)")
+        }.value
     }
     
     /// 清除重新連接提示
