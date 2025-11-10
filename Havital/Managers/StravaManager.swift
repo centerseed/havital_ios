@@ -148,17 +148,17 @@ class StravaManager: NSObject, ObservableObject {
                 print("  - lastUpdated: \(response.lastUpdated ?? "nil")")
 
                 // 更新本地連接狀態
-                saveConnectionStatus(response.isActive)
+                self.saveConnectionStatus(response.isActive)
 
                 if response.isActive {
                     // 連線正常
                     print("✅ 設置狀態：needsReconnection = false")
-                    needsReconnection = false
-                    reconnectionMessage = nil
-                    connectionError = nil
+                    self.needsReconnection = false
+                    self.reconnectionMessage = nil
+                    self.connectionError = nil
 
                     // 強制觸發 UI 更新
-                    objectWillChange.send()
+                    self.objectWillChange.send()
 
                     // 如果 Strava 連線正常但本地偏好設定不是 Strava，恢復偏好設定
                     if UserPreferenceManager.shared.dataSourcePreference != .strava {
@@ -185,8 +185,8 @@ class StravaManager: NSObject, ObservableObject {
 
                     if shouldShowReconnection {
                         print("❌ 檢測到問題狀態 '\(response.status)'，設置 needsReconnection = true")
-                        needsReconnection = true
-                        reconnectionMessage = response.message.isEmpty ? "Strava 連接需要重新授權" : response.message
+                        self.needsReconnection = true
+                        self.reconnectionMessage = response.message.isEmpty ? "Strava 連接需要重新授權" : response.message
 
                         Logger.firebase("Strava 需要重新綁定", level: .warn, labels: [
                             "module": "StravaManager",
@@ -196,8 +196,8 @@ class StravaManager: NSObject, ObservableObject {
                         ])
                     } else {
                         print("🔄 狀態 '\(response.status)' 不需要重連，設置 needsReconnection = false")
-                        needsReconnection = false
-                        reconnectionMessage = nil
+                        self.needsReconnection = false
+                        self.reconnectionMessage = nil
                     }
                 }
             }
@@ -221,12 +221,12 @@ class StravaManager: NSObject, ObservableObject {
                 await MainActor.run {
                     // 檢查失敗時不改變現有狀態，但清除重新連接提示
                     print("❌ API 調用失敗，設置 needsReconnection = false")
-                    needsReconnection = false
-                    reconnectionMessage = nil
+                    self.needsReconnection = false
+                    self.reconnectionMessage = nil
                 }
             }
 
-            print("🔍 [結束] checkConnectionStatus() - 最終 needsReconnection: \(needsReconnection)")
+            print("🔍 [結束] checkConnectionStatus() - 最終 needsReconnection: \(self.needsReconnection)")
         }.value
     }
     
@@ -257,17 +257,17 @@ class StravaManager: NSObject, ObservableObject {
         // 檢查 Client 憑證是否有效
         guard isClientCredentialsValid else {
             await MainActor.run {
-                connectionError = "Strava 功能暫時不可用，請稍後再試"
+                self.connectionError = "Strava 功能暫時不可用，請稍後再試"
                 print("❌ StravaManager: Client 憑證無效，無法啟動連接流程")
             }
             return
         }
-        
+
         await MainActor.run {
-            isConnecting = true
-            connectionError = nil
+            self.isConnecting = true
+            self.connectionError = nil
         }
-        
+
         do {
             print("🔧 StravaManager: 使用 Client ID: \(clientID)")
             print("🔧 StravaManager: 回調 URL: \(redirectURI)")
@@ -316,14 +316,14 @@ class StravaManager: NSObject, ObservableObject {
 
             // 在主線程打開 Safari
             await MainActor.run {
-                presentSafariViewController(with: authURL)
+                self.presentSafariViewController(with: authURL)
             }
             
         } catch {
             print("❌ StravaManager: 初始化連接失敗: \(error)")
             await MainActor.run {
-                isConnecting = false
-                connectionError = "初始化連接失敗: \(error.localizedDescription)"
+                self.isConnecting = false
+                self.connectionError = "初始化連接失敗: \(error.localizedDescription)"
             }
         }
     }
@@ -339,8 +339,8 @@ class StravaManager: NSObject, ObservableObject {
 
         // 關閉 Safari 視圖
         await MainActor.run {
-            safariViewController?.dismiss(animated: true)
-            safariViewController = nil
+            self.safariViewController?.dismiss(animated: true)
+            self.safariViewController = nil
         }
         
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
@@ -393,10 +393,10 @@ class StravaManager: NSObject, ObservableObject {
         if success == "true" {
             // 首先更新本地狀態
             await MainActor.run {
-                saveConnectionStatus(true)
-                clearStoredCredentials()
-                isConnecting = false
-                connectionError = nil  // 清除之前的錯誤信息
+                self.saveConnectionStatus(true)
+                self.clearStoredCredentials()
+                self.isConnecting = false
+                self.connectionError = nil  // 清除之前的錯誤信息
 
                 print("✅ Strava 連接成功")
 
@@ -444,16 +444,16 @@ class StravaManager: NSObject, ObservableObject {
     /// - Parameter remote: 是否呼叫後端 API。預設 true；若已在其他地方成功解除綁定，可傳入 false 僅做本地狀態清理。
     func disconnect(remote: Bool = true) async {
         await MainActor.run {
-            isConnecting = true
-            connectionError = nil
+            self.isConnecting = true
+            self.connectionError = nil
         }
         
         // 若僅需本地清理，直接更新狀態並返回
         guard remote else {
             await MainActor.run {
-                saveConnectionStatus(false)
-                clearStoredCredentials()
-                isConnecting = false
+                self.saveConnectionStatus(false)
+                self.clearStoredCredentials()
+                self.isConnecting = false
                 print("Strava 本地連接狀態已重置")
             }
             return
@@ -465,10 +465,10 @@ class StravaManager: NSObject, ObservableObject {
             
             if (200...299).contains(response.statusCode) {
                 await MainActor.run {
-                    saveConnectionStatus(false)
-                    clearStoredCredentials()
-                    isConnecting = false
-                    
+                    self.saveConnectionStatus(false)
+                    self.clearStoredCredentials()
+                    self.isConnecting = false
+
                     print("Strava 連接已中斷")
                 }
             } else {
@@ -478,8 +478,8 @@ class StravaManager: NSObject, ObservableObject {
             
         } catch {
             await MainActor.run {
-                isConnecting = false
-                connectionError = "中斷連接失敗: \(error.localizedDescription)"
+                self.isConnecting = false
+                self.connectionError = "中斷連接失敗: \(error.localizedDescription)"
             }
         }
     }
@@ -592,9 +592,9 @@ class StravaManager: NSObject, ObservableObject {
     
     private func handleConnectionError(_ message: String) async {
         await MainActor.run {
-            isConnecting = false
-            connectionError = message
-            clearStoredCredentials()
+            self.isConnecting = false
+            self.connectionError = message
+            self.clearStoredCredentials()
         }
     }
     
@@ -611,8 +611,8 @@ extension StravaManager: SFSafariViewControllerDelegate {
         print("🔧 StravaManager: 用戶手動關閉了 Safari 視圖")
         Task {
             await MainActor.run {
-                isConnecting = false
-                clearStoredCredentials()
+                self.isConnecting = false
+                self.clearStoredCredentials()
             }
         }
     }

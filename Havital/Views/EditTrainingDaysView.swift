@@ -14,10 +14,10 @@ class EditTrainingDaysViewModel: ObservableObject {
     func updatePreferences() async {
         await TrackedTask("EditTrainingDaysViewModel: updatePreferences") {
             do {
-                let apiWeekdays = Array(selectedWeekdays)
+                let apiWeekdays = Array(self.selectedWeekdays)
                 let preferences: [String: Any] = [
                     "prefer_week_days": apiWeekdays,
-                    "prefer_week_days_longrun": [selectedLongRunDay]
+                    "prefer_week_days_longrun": [self.selectedLongRunDay]
                 ]
                 try await UserService.shared.updateUserData(preferences)
             } catch let err {
