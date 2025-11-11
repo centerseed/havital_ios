@@ -108,6 +108,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     /// 檢測並清除孤立的 Firebase session
     /// 場景：用戶刪除 App 後重新安裝，但 iCloud Keychain 恢復了舊的認證資料
     /// 注意：必須在 addStateDidChangeListener 之前調用，否則可能出現時序問題
+    ///
+    /// ⚠️ 改進版本：使用 token 驗證而不僅僅依賴 UserDefaults
+    /// 原因：UserDefaults 在某些情況下會被清除（app 更新、重新安裝等），但 iCloud Keychain 會保留認證信息
+    /// 如果只檢查 UserDefaults，會誤判正常登入的用戶為"孤立 session"
     private static func checkAndClearOrphanedSessionIfNeeded() {
         let hasLaunchedBeforeKey = "hasLaunchedBefore"
         let hasLaunched = UserDefaults.standard.bool(forKey: hasLaunchedBeforeKey)
@@ -135,59 +139,101 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 "has_current_user": currentUser != nil,
                 "current_user_uid": currentUser?.uid ?? "null",
                 "current_user_email": currentUser?.email ?? "null",
-                "is_orphaned_session": !hasLaunched && currentUser != nil  // 🔑 關鍵診斷指標
+                "is_potential_orphaned": !hasLaunched && currentUser != nil
             ]
         )
 
-        // 如果這是首次啟動
+        // 如果這是首次啟動（UserDefaults 中沒有標記）
         if !hasLaunched {
-            // 但 Firebase 有 currentUser（從 iCloud Keychain 恢復）
+            // 但 Firebase 有 currentUser（可能從 iCloud Keychain 恢復）
             if let currentUser = Auth.auth().currentUser {
-                print("🔒 檢測到首次安裝但存在 Firebase session")
+                print("🔒 檢測到 UserDefaults 被清除但存在 Firebase session")
                 print("   - User UID: \(currentUser.uid)")
-                print("   - 可能從 iCloud Keychain 恢復")
-                print("   - 強制登出以確保乾淨狀態")
+                print("   - 檢查 token 有效性...")
 
-                Logger.firebase(
-                    "檢測到孤立的 Firebase session - 強制登出",
-                    level: .warn,
-                    labels: [
-                        "module": "AuthenticationService",
-                        "action": "clear_orphaned_session",
-                        "user_id": currentUser.uid
-                    ],
-                    jsonPayload: [
-                        "reason": "first_launch_with_existing_session",
-                        "user_uid": currentUser.uid,
-                        "email": currentUser.email ?? "unknown"
-                    ]
-                )
+                // ✅ 改進：檢查 token 是否有效（同步檢查，避免競態）
+                // 使用 DispatchSemaphore 讓非同步操作變成同步
+                let semaphore = DispatchSemaphore(value: 0)
+                var isTokenValid = false
 
-                // 強制登出（同步執行，確保在 listener 觸發前完成）
-                do {
-                    try Auth.auth().signOut()
-                    print("✅ 已清除孤立的 Firebase session")
+                currentUser.getIDTokenForcingRefresh(false) { token, error in
+                    if error == nil && token != nil {
+                        isTokenValid = true
+                        print("✅ Token 有效，這是正常的已登入用戶")
+                    } else {
+                        print("❌ Token 無效或已過期: \(error?.localizedDescription ?? "unknown")")
+                    }
+                    semaphore.signal()
+                }
+
+                // 等待 token 檢查完成（最多 3 秒）
+                let timeout = semaphore.wait(timeout: .now() + 3)
+
+                if timeout == .timedOut {
+                    print("⚠️ Token 驗證超時，為安全起見將登出")
+                    isTokenValid = false
+                }
+
+                // ✅ 只有在 token 無效時才登出
+                if !isTokenValid {
+                    print("🔒 Token 無效，這是孤立的 session，執行強制登出")
 
                     Logger.firebase(
-                        "成功清除孤立 session",
+                        "檢測到孤立的 Firebase session - 強制登出",
+                        level: .warn,
+                        labels: [
+                            "module": "AuthenticationService",
+                            "action": "clear_orphaned_session",
+                            "user_id": currentUser.uid
+                        ],
+                        jsonPayload: [
+                            "reason": "invalid_token_on_first_launch",
+                            "user_uid": currentUser.uid,
+                            "email": currentUser.email ?? "unknown"
+                        ]
+                    )
+
+                    // 強制登出（同步執行，確保在 listener 觸發前完成）
+                    do {
+                        try Auth.auth().signOut()
+                        print("✅ 已清除孤立的 Firebase session")
+
+                        Logger.firebase(
+                            "成功清除孤立 session",
+                            level: .info,
+                            labels: [
+                                "module": "AuthenticationService",
+                                "action": "clear_orphaned_session_success"
+                            ]
+                        )
+                    } catch {
+                        print("⚠️ 清除 Firebase session 失敗: \(error.localizedDescription)")
+
+                        Logger.firebase(
+                            "清除孤立 session 失敗",
+                            level: .error,
+                            labels: [
+                                "module": "AuthenticationService",
+                                "action": "clear_orphaned_session_failed"
+                            ],
+                            jsonPayload: [
+                                "error": error.localizedDescription
+                            ]
+                        )
+                    }
+                } else {
+                    print("✅ Token 有效，保留用戶登入狀態（UserDefaults 被清除是正常情況）")
+
+                    Logger.firebase(
+                        "UserDefaults 被清除但 token 有效，保留登入狀態",
                         level: .info,
                         labels: [
                             "module": "AuthenticationService",
-                            "action": "clear_orphaned_session_success"
-                        ]
-                    )
-                } catch {
-                    print("⚠️ 清除 Firebase session 失敗: \(error.localizedDescription)")
-
-                    Logger.firebase(
-                        "清除孤立 session 失敗",
-                        level: .error,
-                        labels: [
-                            "module": "AuthenticationService",
-                            "action": "clear_orphaned_session_failed"
+                            "action": "preserve_valid_session"
                         ],
                         jsonPayload: [
-                            "error": error.localizedDescription
+                            "user_uid": currentUser.uid,
+                            "email": currentUser.email ?? "unknown"
                         ]
                     )
                 }
