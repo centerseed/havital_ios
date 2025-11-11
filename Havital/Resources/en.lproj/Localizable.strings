@@ -878,9 +878,9 @@
 "hr_zone.loading" = "Loading...";
 "hr_zone.benefit" = "Benefit: %@";
 "hr_zone.max_hr_info_title" = "Max Heart Rate";
-"hr_zone.max_hr_info_message" = "Max heart rate is the highest heart rate you can achieve during extreme exercise.\n\nGenerally, you can use the formula 220-age to estimate, but actual values may vary from person to person.\n\nRecommended range: 100-250 bpm";
+"hr_zone.max_hr_info_message" = "Max heart rate is the highest heart rate you can achieve during extreme exercise. Generally, you can use the formula 220-age to estimate, but actual values may vary from person to person.";
 "hr_zone.resting_hr_info_title" = "Resting Heart Rate";
-"hr_zone.resting_hr_info_message" = "Resting heart rate is your heart rate when you are completely relaxed (such as when you just wake up).\n\nGeneral adults have a resting heart rate between 60-100 bpm, athletes may be lower.\n\nRecommended range: 30-120 bpm";
+"hr_zone.resting_hr_info_message" = "Resting heart rate is your heart rate when you are completely relaxed (such as when you just wake up). General adults have a resting heart rate between 60-100 bpm, athletes may be lower.";
 "hr_zone.invalid_input" = "Please enter valid heart rate values";
 "hr_zone.max_greater_than_resting" = "Max heart rate must be greater than resting heart rate";
 "hr_zone.max_hr_range" = "Max heart rate should be between 100-250 bpm";

@@ -878,9 +878,9 @@
 "hr_zone.loading" = "読み込み中...";
 "hr_zone.benefit" = "効果：%@";
 "hr_zone.max_hr_info_title" = "最大心拍数";
-"hr_zone.max_hr_info_message" = "最大心拍数は極度の運動中に到達できる最高心拍数です。\n\n一般的には220-年齢の公式で推定できますが、実際の値は個人差があります。\n\n推奨範囲：100-250 bpm";
+"hr_zone.max_hr_info_message" = "最大心拍数は極度の運動中に到達できる最高心拍数です。一般的には220-年齢の公式で推定できますが、実際の値は個人差があります。";
 "hr_zone.resting_hr_info_title" = "安静時心拍数";
-"hr_zone.resting_hr_info_message" = "安静時心拍数は完全にリラックスした状態（朝起きたときなど）での心拍数です。\n\n一般成人の安静時心拍数は60-100 bpmで、アスリートはより低い場合があります。\n\n推奨範囲：30-120 bpm";
+"hr_zone.resting_hr_info_message" = "安静時心拍数は完全にリラックスした状態（朝起きたときなど）での心拍数です。一般成人の安静時心拍数は60-100 bpmで、アスリートはより低い場合があります。";
 "hr_zone.invalid_input" = "有効な心拍数値を入力してください";
 "hr_zone.max_greater_than_resting" = "最大心拍数は安静時心拍数より大きくなければなりません";
 "hr_zone.max_hr_range" = "最大心拍数は100-250 bpmの間にしてください";
