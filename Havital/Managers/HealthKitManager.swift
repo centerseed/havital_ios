@@ -1526,8 +1526,120 @@ class HealthKitManager: ObservableObject, TaskManageable {
         }
     }
 
+    // MARK: - 環境數據（溫度、濕度等）
+
+    /// 從 Workout metadata 提取環境溫度
+    /// Apple Watch Series 8+ (watchOS 9+) 支援記錄環境溫度
+    func fetchEnvironmentTemperature(for workout: HKWorkout) -> Double? {
+        guard let metadata = workout.metadata else {
+            return nil
+        }
+
+        // 檢查 metadata 中的溫度資訊
+        // HKMetadataKeyWeatherTemperature 是 iOS 15+ 的官方 key
+        if #available(iOS 15.0, *) {
+            if let tempQuantity = metadata[HKMetadataKeyWeatherTemperature] as? HKQuantity {
+                let tempCelsius = tempQuantity.doubleValue(for: .degreeCelsius())
+                print("🌡️ [Temperature] 從 metadata 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
+                return tempCelsius
+            }
+        }
+
+        // 備用方案：檢查其他可能的溫度 key
+        // 某些第三方應用可能使用不同的 key
+        let possibleTempKeys = [
+            "HKWeatherTemperature",
+            "temperature",
+            "Temperature",
+            "weather_temperature"
+        ]
+
+        for key in possibleTempKeys {
+            if let tempValue = metadata[key] as? Double {
+                print("🌡️ [Temperature] 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempValue))°C")
+                return tempValue
+            } else if let tempQuantity = metadata[key] as? HKQuantity {
+                let tempCelsius = tempQuantity.doubleValue(for: .degreeCelsius())
+                print("🌡️ [Temperature] 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
+                return tempCelsius
+            }
+        }
+
+        print("🌡️ [Temperature] workout metadata 中沒有溫度資訊")
+        return nil
+    }
+
+    /// 從 Workout metadata 提取天氣狀況
+    func fetchWeatherCondition(for workout: HKWorkout) -> String? {
+        guard let metadata = workout.metadata else {
+            return nil
+        }
+
+        if #available(iOS 15.0, *) {
+            if let condition = metadata[HKMetadataKeyWeatherCondition] as? Int {
+                return String(condition)
+            }
+        }
+
+        // 備用方案：檢查其他可能的天氣狀況 key
+        let possibleWeatherKeys = [
+            "HKWeatherCondition",
+            "weather_condition",
+            "WeatherCondition"
+        ]
+
+        for key in possibleWeatherKeys {
+            if let condition = metadata[key] {
+                if let intCondition = condition as? Int {
+                    return String(intCondition)
+                } else if let stringCondition = condition as? String {
+                    return stringCondition
+                }
+            }
+        }
+
+        return nil
+    }
+
+    /// 從 Workout metadata 提取濕度
+    func fetchHumidity(for workout: HKWorkout) -> Double? {
+        guard let metadata = workout.metadata else {
+            return nil
+        }
+
+        if #available(iOS 15.0, *) {
+            if let humidityQuantity = metadata[HKMetadataKeyWeatherHumidity] as? HKQuantity {
+                let humidity = humidityQuantity.doubleValue(for: .percent())
+                print("💧 [Humidity] 從 metadata 獲取濕度: \(String(format: "%.1f", humidity))%%")
+                return humidity
+            }
+        }
+
+        // 備用方案
+        let possibleHumidityKeys = [
+            "HKWeatherHumidity",
+            "humidity",
+            "Humidity",
+            "weather_humidity"
+        ]
+
+        for key in possibleHumidityKeys {
+            if let humidityValue = metadata[key] as? Double {
+                print("💧 [Humidity] 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidityValue))%%")
+                return humidityValue
+            } else if let humidityQuantity = metadata[key] as? HKQuantity {
+                let humidity = humidityQuantity.doubleValue(for: .percent())
+                print("💧 [Humidity] 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidity))%%")
+                return humidity
+            }
+        }
+
+        print("💧 [Humidity] workout metadata 中沒有濕度資訊")
+        return nil
+    }
+
     // MARK: - 卡路里數據
-    
+
     func fetchCaloriesData(for workout: HKWorkout) async throws -> Double {
         // 直接從workout獲取總卡路里
         let totalCalories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
