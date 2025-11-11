@@ -240,7 +240,9 @@ class VDOTManager: ObservableObject, DataManageable {
         }
         
         // 從 API 獲取數據
-        let response: VDOTResponse = try await service.getVDOTs(limit: dataLimit)
+        let response: VDOTResponse = try await APICallTracker.$currentSource.withValue("VDOTManager: performLoadVDOTData") {
+            try await service.getVDOTs(limit: dataLimit)
+        }
         
         let enhancedDataPoints = response.vdots.map { entry in
             EnhancedVDOTDataPoint(from: entry)
@@ -280,7 +282,9 @@ class VDOTManager: ObservableObject, DataManageable {
     
     private func performRefreshVDOTData() async throws {
         // 強制從 API 獲取
-        let response: VDOTResponse = try await service.getVDOTs(limit: dataLimit)
+        let response: VDOTResponse = try await APICallTracker.$currentSource.withValue("VDOTManager: performRefreshVDOTData") {
+            try await service.getVDOTs(limit: dataLimit)
+        }
         
         let enhancedDataPoints = response.vdots.map { entry in
             EnhancedVDOTDataPoint(from: entry)

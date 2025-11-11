@@ -169,6 +169,22 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let contacts        = requiredData.groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
         let oscillations    = requiredData.verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
 
+        // 🌡️ 獲取環境數據（溫度、天氣、濕度）
+        let temperature = healthKitManager.fetchEnvironmentTemperature(for: workout)
+        let weatherCondition = healthKitManager.fetchWeatherCondition(for: workout)
+        let humidity = healthKitManager.fetchHumidity(for: workout)
+
+        // 如果有任何環境數據，則創建 metadata
+        var workoutMetadata: WorkoutMetadata? = nil
+        if temperature != nil || weatherCondition != nil || humidity != nil {
+            workoutMetadata = WorkoutMetadata(
+                temperatureCelsius: temperature,
+                weatherCondition: weatherCondition,
+                humidityPercent: humidity
+            )
+            print("🌡️ [Upload] 環境數據 - 溫度: \(temperature.map { String(format: "%.1f°C", $0) } ?? "N/A"), 天氣: \(weatherCondition ?? "N/A"), 濕度: \(humidity.map { String(format: "%.1f%%", $0) } ?? "N/A")")
+        }
+
         try await postWorkoutDetails(workout: workout,
                                      heartRates: heartRates,
                                      speeds: speeds,
@@ -179,7 +195,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      totalCalories: requiredData.totalCalories,
                                      laps: requiredData.lapData,
                                      source: actualSource,
-                                     device: actualDevice)
+                                     device: actualDevice,
+                                     metadata: workoutMetadata)
 
         // 標記為已上傳（所有必要數據都已驗證）
         let hasHeartRateData = requiredData.heartRateData.count >= 2
@@ -478,7 +495,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     totalCalories: Double? = nil,
                                     laps: [LapData]? = nil,
                                     source: String,
-                                    device: String?) async throws {
+                                    device: String?,
+                                    metadata: WorkoutMetadata? = nil) async throws {
         // 建立 WorkoutData 結構
         let workoutData = WorkoutData(
             id: makeWorkoutId(for: workout),
@@ -497,7 +515,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             totalCalories: totalCalories,
             laps: laps,
             source: source,
-            device: device)
+            device: device,
+            metadata: metadata)
         
         do {
             // 先嘗試上傳，如果成功就結束
@@ -1050,6 +1069,20 @@ struct WorkoutData: Codable {
     let laps: [LapData]?                     // 分圈資料
     let source: String?                       // 資料來源 (如: apple_health, garmin, polar 等)
     let device: String?                       // 裝置型號 (如: Apple Watch Series 7, Garmin Forerunner 945 等)
+    let metadata: WorkoutMetadata?            // 環境數據（溫度、天氣、濕度等）v2.1+ 新增
+}
+
+// 環境數據結構 (v2.1+)
+struct WorkoutMetadata: Codable {
+    let temperatureCelsius: Double?       // 攝氏溫度
+    let weatherCondition: String?          // 天氣狀況（數字或字串）
+    let humidityPercent: Double?          // 濕度百分比
+
+    enum CodingKeys: String, CodingKey {
+        case temperatureCelsius = "temperature_celsius"
+        case weatherCondition = "weather_condition"
+        case humidityPercent = "humidity_percent"
+    }
 }
 
 struct HeartRateData: Codable {

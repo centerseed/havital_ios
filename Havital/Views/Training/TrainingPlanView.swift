@@ -434,10 +434,9 @@ struct TrainingPlanView: View {
         .onAppear {
             if hasCompletedOnboarding && AppStateManager.shared.currentState.isReady {
                 Logger.debug("View onAppear: Onboarding completed")
-                // 只在數據尚未載入時才刷新，避免不必要的重新載入
-                if viewModel.planStatus == .loading || viewModel.weeklyPlan == nil {
-                    refreshWorkouts()
-                }
+                // ❌ 移除 refreshWorkouts() 調用，避免與 AppStateManager.setupServices() 的 loadWorkouts() 產生並發競爭
+                // AppStateManager 已經在啟動時調用了 UnifiedWorkoutManager.loadWorkouts()
+                // 這裡再調用 refreshWorkouts() 會導致重複的 API 請求
 
                 // 在訓練計劃載入後檢查評分提示
                 TrackedTask("TrainingPlanView: checkAppRating") {

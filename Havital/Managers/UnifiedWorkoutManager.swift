@@ -74,16 +74,18 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             print("UnifiedWorkoutManager: 已有初始載入任務進行中，忽略重複調用")
             return
         }
-        
+
         if hasInitialLoadCompleted {
             print("UnifiedWorkoutManager: 已完成初始載入，跳過")
             return
         }
-        
+
         isLoadingInitial = true
         defer { isLoadingInitial = false }
 
-        await executeTask(id: TaskID("fetch_workouts")) {
+        // ✅ 使用統一的 TaskID "fetch_workouts_v2" 來去重相同 API 調用
+        // ✅ 增加 cooldown 到 60 秒，避免 App 啟動過程中的重複調用
+        await executeTask(id: TaskID("fetch_workouts_v2"), cooldownSeconds: 60) {
             await self.performLoadWorkouts()
         }
     }
@@ -227,24 +229,18 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 刷新運動記錄（用戶下拉刷新，使用短間隔智能更新）
     func refreshWorkouts() async {
-        // ✅ 使用 5 秒冷卻時間防止頻繁刷新
-        await executeTask(id: TaskID("refresh_workouts"), cooldownSeconds: 5) {
+        // ✅ 使用統一的 TaskID "fetch_workouts_v2" 與 loadWorkouts() 去重相同 API 調用
+        // 因為兩個函數都調用 GET /v2/workouts?page_size=50
+        // ✅ 增加 cooldown 到 60 秒，避免頻繁刷新造成後端壓力
+        await executeTask(id: TaskID("fetch_workouts_v2"), cooldownSeconds: 60) {
             await self.smartRefreshFromAPI()
         }
     }
     
-    /// 智能刷新：防重複觸發 + 短間隔更新
+    /// 智能刷新：短間隔更新
+    /// ✅ 防重複觸發（5 秒）已由 TaskManageable 的 cooldownSeconds 統一處理
     private func smartRefreshFromAPI() async {
         let now = Date()
-        
-        // 防重複觸發：5秒內不重複刷新
-        if let lastRefresh = lastUserRefreshTime,
-           now.timeIntervalSince(lastRefresh) < 5 {
-            print("用戶刷新過於頻繁，忽略此次刷新請求")
-            return
-        }
-        
-        // 記錄刷新時間
         lastUserRefreshTime = now
         
         await MainActor.run {

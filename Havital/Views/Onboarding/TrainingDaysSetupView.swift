@@ -45,7 +45,7 @@ class TrainingDaysViewModel: ObservableObject {
             error = NSLocalizedString("onboarding.select_at_least_one_day", comment: "Select at least one day")
             return
         }
-        
+
         // 確保長跑日是選擇的訓練日之一
         if !selectedWeekdays.contains(selectedLongRunDay) {
             error = NSLocalizedString("onboarding.long_run_day_must_be_training_day", comment: "Long run day must be training day")
@@ -54,40 +54,42 @@ class TrainingDaysViewModel: ObservableObject {
 
         isLoading = true
         error = nil
-        
-        do {
-            let apiWeekdays = selectedWeekdays.map { $0 } // 假設 weekday 1-7 對應 API
-            let apiLongRunDay = selectedLongRunDay
-            
-            let preferences = [
-                "prefer_week_days": apiWeekdays,
-                "prefer_week_days_longrun": [apiLongRunDay] // API 預期是陣列
-            ] as [String : Any]
-            
-            try await UserService.shared.updateUserData(preferences)
+
+        await TrackedTask("TrainingDaysSetupView: savePreferencesAndGetOverview") {
+            do {
+                let apiWeekdays = self.selectedWeekdays.map { $0 } // 假設 weekday 1-7 對應 API
+                let apiLongRunDay = self.selectedLongRunDay
+
+                let preferences = [
+                    "prefer_week_days": apiWeekdays,
+                    "prefer_week_days_longrun": [apiLongRunDay] // API 預期是陣列
+                ] as [String : Any]
+
+                try await UserService.shared.updateUserData(preferences)
 
             // 讀取用戶選擇的起始階段（如果有的話）
             let selectedStage = UserDefaults.standard.string(forKey: "selectedStartStage")
             print("[TrainingDaysViewModel] 🔍 selectedStartStage from UserDefaults: \(selectedStage ?? "nil")")
 
-            let overview = try await TrainingPlanService.shared.postTrainingPlanOverview(startFromStage: selectedStage)
-            trainingPlanOverview = overview
-            
-            TrainingPlanStorage.saveTrainingPlanOverview(overview)
-            
-            showOverview = true // 顯示概覽
-            canShowPlanOverviewButton = false // 隱藏「預覽」按鈕
-            canGenerateFinalPlanButton = true // 顯示「產生最終計畫」按鈕
-            
-            // ... (儲存 userPreferenceManager 部分不變)
-            let weekdaysDisplay = selectedWeekdays.map { getWeekdayNameStatic($0) }
-            userPreferenceManager.preferWeekDays = weekdaysDisplay
-            userPreferenceManager.preferWeekDaysLongRun = [getWeekdayNameStatic(selectedLongRunDay)]
+                let overview = try await TrainingPlanService.shared.postTrainingPlanOverview(startFromStage: selectedStage)
+                self.trainingPlanOverview = overview
 
-        } catch {
-            self.error = error.localizedDescription
-        }
-        isLoading = false
+                TrainingPlanStorage.saveTrainingPlanOverview(overview)
+
+                self.showOverview = true // 顯示概覽
+                self.canShowPlanOverviewButton = false // 隱藏「預覽」按鈕
+                self.canGenerateFinalPlanButton = true // 顯示「產生最終計畫」按鈕
+
+                // ... (儲存 userPreferenceManager 部分不變)
+                let weekdaysDisplay = self.selectedWeekdays.map { self.getWeekdayNameStatic($0) }
+                self.userPreferenceManager.preferWeekDays = weekdaysDisplay
+                self.userPreferenceManager.preferWeekDaysLongRun = [self.getWeekdayNameStatic(self.selectedLongRunDay)]
+
+            } catch {
+                self.error = error.localizedDescription
+            }
+            self.isLoading = false
+        }.value
     }
     
     func generateFinalPlanAndCompleteOnboarding() async { // 原 generateWeeklyPlan
