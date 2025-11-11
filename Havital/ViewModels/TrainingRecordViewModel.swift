@@ -38,14 +38,24 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     /// 初次載入運動記錄 - 直接委派給 UnifiedWorkoutManager
     func loadWorkouts(healthKitManager: HealthKitManager? = nil) async {
         print("🎯 loadWorkouts 被調用 - 委派給 UnifiedWorkoutManager")
-        
+
+        await MainActor.run {
+            self.isLoading = true
+            self.errorMessage = nil
+        }
+
         await executeTask(id: TaskID("load_workouts")) {
             // 確保 UnifiedWorkoutManager 已初始化並載入數據
             await self.unifiedWorkoutManager.initialize()
             await self.unifiedWorkoutManager.loadWorkouts()
-            
-            // 同步數據到本地
-            await self.syncFromUnifiedWorkoutManager()
+
+            // ✅ 修復：等待 UnifiedWorkoutManager 完成後立即同步
+            // 不依賴通知，直接從主線程讀取數據
+            await self.syncFromUnifiedWorkoutManagerAsync()
+
+            await MainActor.run {
+                self.isLoading = false
+            }
         }
     }
     
@@ -56,13 +66,13 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                 self.isRefreshing = true
                 self.errorMessage = nil
             }
-            
+
             // 委派給 UnifiedWorkoutManager 刷新
             await self.unifiedWorkoutManager.refreshWorkouts()
-            
-            // 同步數據
-            await self.syncFromUnifiedWorkoutManager()
-            
+
+            // 同步數據（使用異步版本）
+            await self.syncFromUnifiedWorkoutManagerAsync()
+
             await MainActor.run {
                 self.isRefreshing = false
             }
@@ -132,22 +142,42 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
         }
     }
     
-    /// 使用 UnifiedWorkoutManager 的數據作為初始狀態
+    /// 使用 UnifiedWorkoutManager 的數據作為初始狀態（同步版本 - 用於 init）
     private func syncFromUnifiedWorkoutManager() {
         let managerWorkouts = unifiedWorkoutManager.workouts
-        
+
         guard !managerWorkouts.isEmpty else {
             print("🔄 UnifiedWorkoutManager 沒有數據，使用預設狀態")
             return
         }
-        
+
         // 更新本地數據
         self.workouts = managerWorkouts.sorted { $0.endDate > $1.endDate }
-        
+
         // 更新分頁狀態
         self.updatePaginationState()
-        
+
         print("🔄 已從 UnifiedWorkoutManager 同步 \(managerWorkouts.count) 筆記錄")
+    }
+
+    /// 異步版本 - 確保在 MainActor 上執行並正確讀取數據
+    private func syncFromUnifiedWorkoutManagerAsync() async {
+        await MainActor.run {
+            let managerWorkouts = self.unifiedWorkoutManager.workouts
+
+            if managerWorkouts.isEmpty {
+                print("🔄 UnifiedWorkoutManager 沒有數據")
+                return
+            }
+
+            // 更新本地數據
+            self.workouts = managerWorkouts.sorted { $0.endDate > $1.endDate }
+
+            // 更新分頁狀態
+            self.updatePaginationState()
+
+            print("🔄 [Async] 已從 UnifiedWorkoutManager 同步 \(managerWorkouts.count) 筆記錄")
+        }
     }
     
     // MARK: - Helper Methods
@@ -249,7 +279,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
                     await self?.removeDeletedWorkout(id: deletedWorkoutId)
                 } else {
                     // 一般數據更新，從 UnifiedWorkoutManager 同步
-                    await self?.syncFromUnifiedWorkoutManager()
+                    await self?.syncFromUnifiedWorkoutManagerViaNotification()
                 }
             }
         }
@@ -273,23 +303,23 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
         }
     }
     
-    /// 從 UnifiedWorkoutManager 同步數據
-    private func syncFromUnifiedWorkoutManager() async {
-        let managerWorkouts = unifiedWorkoutManager.workouts
-        
-        guard !managerWorkouts.isEmpty else {
-            print("🔄 UnifiedWorkoutManager 沒有數據，跳過同步")
-            return
-        }
-        
+    /// 從 UnifiedWorkoutManager 同步數據（NotificationCenter 調用版本）
+    private func syncFromUnifiedWorkoutManagerViaNotification() async {
         await MainActor.run {
+            let managerWorkouts = self.unifiedWorkoutManager.workouts
+
+            if managerWorkouts.isEmpty {
+                print("🔄 [Notification] UnifiedWorkoutManager 沒有數據，跳過同步")
+                return
+            }
+
             // 更新本地數據
             self.workouts = managerWorkouts.sorted { $0.endDate > $1.endDate }
-            
+
             // 更新分頁狀態
             self.updatePaginationState()
-            
-            print("🔄 已從 UnifiedWorkoutManager 同步 \(managerWorkouts.count) 筆記錄")
+
+            print("🔄 [Notification] 已從 UnifiedWorkoutManager 同步 \(managerWorkouts.count) 筆記錄")
         }
     }
     
