@@ -39,27 +39,30 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     func loadWorkouts(healthKitManager: HealthKitManager? = nil) async {
         print("🎯 loadWorkouts 被調用 - 委派給 UnifiedWorkoutManager")
 
-        await MainActor.run {
-            self.isLoading = true
-            self.errorMessage = nil
-        }
-
         await executeTask(id: TaskID("load_workouts")) {
             // ✅ 智能載入邏輯：
             // 1. 先同步現有數據（如果有）
             await self.syncFromUnifiedWorkoutManagerAsync()
 
-            // 2. 如果沒有數據，強制從 API 載入
-            if await MainActor.run(body: { self.workouts.isEmpty }) {
+            let hasData = await MainActor.run { !self.workouts.isEmpty }
+
+            // 2. 如果沒有數據，顯示 loading 並從 API 載入
+            if !hasData {
+                await MainActor.run {
+                    self.isLoading = true
+                    self.errorMessage = nil
+                }
+
                 print("🎯 沒有緩存數據，強制從 API 載入")
                 await self.unifiedWorkoutManager.forceRefreshFromAPI()
                 await self.syncFromUnifiedWorkoutManagerAsync()
-            } else {
-                print("🎯 已有 \(await MainActor.run(body: { self.workouts.count })) 筆緩存數據")
-            }
 
-            await MainActor.run {
-                self.isLoading = false
+                await MainActor.run {
+                    self.isLoading = false
+                }
+            } else {
+                print("🎯 已有 \(await MainActor.run(body: { self.workouts.count })) 筆緩存數據，直接顯示")
+                // 有緩存數據，無需顯示 loading，直接顯示列表
             }
         }
     }
