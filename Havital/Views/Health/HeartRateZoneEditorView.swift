@@ -21,36 +21,78 @@ struct HRRHeartRateZoneEditorView: View {
                         .padding(.vertical, 8)
                 }
                 
-                Section(header: Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))) {
-                    TextField(NSLocalizedString("hr_zone.max_hr_placeholder", comment: "Max Heart Rate (bpm)"), text: $maxHeartRate)
-                        .keyboardType(.numberPad)
-                        .onAppear {
-                            if let maxHR = userPreferenceManager.maxHeartRate, maxHR > 0 {
-                                maxHeartRate = "\(maxHR)"
-                            } else {
-                                maxHeartRate = "190"
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
+                                    .font(.headline)
+
+                                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                TextField("", text: $maxHeartRate)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 60)
+
+                                Text("bpm")
+                                    .foregroundColor(.secondary)
+                                    .font(.subheadline)
                             }
                         }
-
-                    Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    }
+                    .onAppear {
+                        if let maxHR = userPreferenceManager.maxHeartRate, maxHR > 0 {
+                            maxHeartRate = "\(maxHR)"
+                        } else {
+                            maxHeartRate = "190"
+                        }
+                    }
                 }
                 
-                Section(header: Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))) {
-                    TextField(NSLocalizedString("hr_zone.resting_hr_placeholder", comment: "Resting Heart Rate (bpm)"), text: $restingHeartRate)
-                        .keyboardType(.numberPad)
-                        .onAppear {
-                            if let restingHR = userPreferenceManager.restingHeartRate, restingHR > 0 {
-                                restingHeartRate = "\(restingHR)"
-                            } else {
-                                restingHeartRate = "60"
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
+                                    .font(.headline)
+
+                                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                TextField("", text: $restingHeartRate)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 60)
+
+                                Text("bpm")
+                                    .foregroundColor(.secondary)
+                                    .font(.subheadline)
                             }
                         }
-
-                    Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    }
+                    .onAppear {
+                        if let restingHR = userPreferenceManager.restingHeartRate, restingHR > 0 {
+                            restingHeartRate = "\(restingHR)"
+                        } else {
+                            restingHeartRate = "60"
+                        }
+                    }
                 }
                 
                 // 心率區間預覽
