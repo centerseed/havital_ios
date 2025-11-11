@@ -693,14 +693,14 @@
 
 // MARK: - Onboarding Strings
 "onboarding.welcome_to_paceriz" = "歡迎來到 Paceriz！";
-"onboarding.ready_to_start" = "準備開始你的跑步旅程了嗎？Paceriz 將為你打造專屬的科學化訓練計畫，配合你的個人目標與體能狀況，幫助你跑得更遠、更快、更健康。";
+"onboarding.ready_to_start" = "Paceriz 為你打造專屬科學訓練計畫，幫助你安全有效地達成跑步目標。";
 "onboarding.training_focus" = "我們的訓練計畫融入專業跑步知識，專注於：";
 "onboarding.goal_oriented" = "目標導向";
-"onboarding.goal_oriented_desc" = "無論你的目標是完成人生第一個 5K、挑戰馬拉松，或是突破個人紀錄，我們都會為你規劃清楚的路徑。";
-"onboarding.progressive" = "漸進式訓練";
-"onboarding.progressive_desc" = "透過合理的訓練強度與量的安排，循序漸進提升體能，有效預防運動傷害。";
-"onboarding.heart_rate_guided" = "心率導向";
-"onboarding.heart_rate_guided_desc" = "學會利用心率區間進行訓練，讓每一次跑步都更有效率，最大化你的訓練成果。";
+"onboarding.goal_oriented_desc" = "為你規劃清晰的訓練路徑。";
+"onboarding.progressive" = "避免受傷";
+"onboarding.progressive_desc" = "循序漸進，有效避免運動傷害。";
+"onboarding.heart_rate_guided" = "科學數據";
+"onboarding.heart_rate_guided_desc" = "運用心率數據，科學提升訓練效果。";
 "onboarding.setup_guide" = "接下來，我們會引導你進行一些簡單的設定，以更好的了解你的需求，開始吧！";
 "onboarding.start_setup" = "開始設定";
 "onboarding.your_running_goal" = "你的跑步目標";
