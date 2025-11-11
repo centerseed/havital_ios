@@ -692,14 +692,14 @@
 
 // MARK: - Onboarding Strings
 "onboarding.welcome_to_paceriz" = "Welcome to Paceriz!";
-"onboarding.ready_to_start" = "Ready to start your running journey? Paceriz will create a scientific training plan tailored to your personal goals and fitness level, helping you run further, faster, and healthier.";
+"onboarding.ready_to_start" = "Paceriz creates personalized scientific training plans to help you safely and effectively achieve your running goals.";
 "onboarding.training_focus" = "Our training plans incorporate professional running knowledge, focusing on:";
 "onboarding.goal_oriented" = "Goal-Oriented";
-"onboarding.goal_oriented_desc" = "Whether your goal is completing your first 5K, challenging a marathon, or improving your personal record, we'll plan a clear path for you.";
-"onboarding.progressive" = "Progressive Training";
-"onboarding.progressive_desc" = "Through reasonable arrangement of training intensity and volume, gradually improve your fitness and effectively prevent sports injuries.";
-"onboarding.heart_rate_guided" = "Heart Rate Guided";
-"onboarding.heart_rate_guided_desc" = "Learn to use heart rate zones for training, making each run more efficient and maximizing your training results.";
+"onboarding.goal_oriented_desc" = "Clear training path tailored for you.";
+"onboarding.progressive" = "Injury Prevention";
+"onboarding.progressive_desc" = "Progressive training to effectively avoid injuries.";
+"onboarding.heart_rate_guided" = "Science-Based";
+"onboarding.heart_rate_guided_desc" = "Use heart rate data to scientifically enhance training.";
 "onboarding.setup_guide" = "Next, we'll guide you through some simple settings to better understand your needs. Let's get started!";
 "onboarding.start_setup" = "Start Setup";
 "onboarding.your_running_goal" = "Your Running Goal";

@@ -692,14 +692,14 @@
 
 // MARK: - Onboarding Strings
 "onboarding.welcome_to_paceriz" = "Pacerizへようこそ！";
-"onboarding.ready_to_start" = "ランニングの旅を始める準備はできましたか？Pacerizがあなたの個人的な目標とフィットネスレベルに合わせた科学的なトレーニング計画を作成し、より遠く、より速く、より健康に走れるようにサポートします。";
+"onboarding.ready_to_start" = "Pacerizは、あなた専用の科学的なトレーニング計画を作成し、安全かつ効果的にランニング目標を達成するサポートをします。";
 "onboarding.training_focus" = "私たちのトレーニング計画は専門的なランニング知識を取り入れ、以下に焦点を当てています：";
 "onboarding.goal_oriented" = "目標指向";
-"onboarding.goal_oriented_desc" = "初回5K完走、マラソン挑戦、自己記録更新など、あなたの目標に応じて明確な道筋を計画します。";
-"onboarding.progressive" = "段階的トレーニング";
-"onboarding.progressive_desc" = "トレーニング強度と量を合理的に配置することで、フィットネスを段階的に向上させ、スポーツ傷害を効果的に予防します。";
-"onboarding.heart_rate_guided" = "心拍数ガイド";
-"onboarding.heart_rate_guided_desc" = "心拍ゾーンを使ったトレーニング方法を学び、各ランを効率的にし、トレーニング効果を最大化します。";
+"onboarding.goal_oriented_desc" = "あなたに合わせた明確なトレーニングパスを計画します。";
+"onboarding.progressive" = "怪我の予防";
+"onboarding.progressive_desc" = "段階的トレーニングで、怪我を効果的に予防します。";
+"onboarding.heart_rate_guided" = "科学的データ";
+"onboarding.heart_rate_guided_desc" = "心拍データを活用し、科学的にトレーニング効果を向上させます。";
 "onboarding.setup_guide" = "次に、あなたのニーズをより理解するための簡単な設定をガイドします。始めましょう！";
 "onboarding.start_setup" = "セットアップ開始";
 "onboarding.your_running_goal" = "あなたのランニング目標";

@@ -14,12 +14,11 @@ struct OnboardingIntroView: View {
                         
                         // 標題區塊
                         VStack(spacing: 16) {
-                            Image(systemName: "figure.run.circle.fill")
+                            Image("paceriz_logo")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 100, height: 100)
-                                .foregroundColor(.accentColor)
-                            
+                                .frame(width: 120, height: 120)
+
                             Text(NSLocalizedString("onboarding.welcome_to_paceriz", comment: "Welcome to Paceriz!"))
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
