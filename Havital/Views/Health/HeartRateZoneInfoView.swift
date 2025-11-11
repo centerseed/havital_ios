@@ -15,8 +15,6 @@ struct HeartRateZoneInfoView: View {
     @State private var isEditing = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
-    @State private var showingMaxHRInfo = false
-    @State private var showingRestingHRInfo = false
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
 
@@ -62,16 +60,6 @@ struct HeartRateZoneInfoView: View {
                     Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
                 } message: {
                     Text(alertMessage)
-                }
-                .alert(NSLocalizedString("hr_zone.max_hr_info_title", comment: "Max Heart Rate"), isPresented: $showingMaxHRInfo) {
-                    Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
-                } message: {
-                    Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                }
-                .alert(NSLocalizedString("hr_zone.resting_hr_info_title", comment: "Resting Heart Rate"), isPresented: $showingRestingHRInfo) {
-                    Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
-                } message: {
-                    Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
                 }
                 .task {
                     await loadZoneData()
@@ -168,16 +156,9 @@ struct HeartRateZoneInfoView: View {
     @ViewBuilder
     private var maxHeartRateEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                    .font(.headline)
-                Spacer()
-                Button(action: { showingMaxHRInfo = true }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
+            Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
+                .font(.headline)
+                .padding(.horizontal)
 
             HStack {
                 Spacer()
@@ -194,22 +175,21 @@ struct HeartRateZoneInfoView: View {
                 Spacer()
             }
             .padding(.vertical, 4)
+
+            Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+                .padding(.top, 4)
         }
     }
 
     @ViewBuilder
     private var restingHeartRateEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
-                    .font(.headline)
-                Spacer()
-                Button(action: { showingRestingHRInfo = true }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
+            Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
+                .font(.headline)
+                .padding(.horizontal)
 
             HStack {
                 Spacer()
@@ -226,6 +206,12 @@ struct HeartRateZoneInfoView: View {
                 Spacer()
             }
             .padding(.vertical, 4)
+
+            Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+                .padding(.top, 4)
         }
     }
 
