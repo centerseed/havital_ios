@@ -786,7 +786,7 @@
 
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "Heart Rate Settings";
-"onboarding.heart_rate_description" = "Setting your heart rate zones helps us create a more personalized training plan";
+"onboarding.heart_rate_description" = "Setting your heart rate zones helps us create a more personalized training plan. You can update these values later in your profile to refine your heart rate zones and improve training effectiveness.";
 "onboarding.heart_rate_intro" = "Please set your maximum and resting heart rate";
 "onboarding.skip_heart_rate" = "Skip (Use Default Values)";
 

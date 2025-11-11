@@ -787,7 +787,7 @@
 
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "心率設定";
-"onboarding.heart_rate_description" = "設定心率區間可以幫助我們建立更個人化的訓練計畫";
+"onboarding.heart_rate_description" = "設定心率區間可以幫助我們建立更個人化的訓練計畫。之後可到個人資料更新心率數值，讓心率區間更加準確，提升訓練效果。";
 "onboarding.heart_rate_intro" = "請設定您的最大心率和靜息心率";
 "onboarding.skip_heart_rate" = "略過（使用預設值）";
 

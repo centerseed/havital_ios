@@ -786,7 +786,7 @@
 
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "心拍数設定";
-"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます";
+"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます。後でプロフィールからこれらの値を更新して、心拍ゾーンをより正確にし、トレーニング効果を向上させることができます。";
 "onboarding.heart_rate_intro" = "最大心拍数と安静時心拍数を設定してください";
 "onboarding.skip_heart_rate" = "スキップ（デフォルト値を使用）";
 
