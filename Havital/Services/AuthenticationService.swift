@@ -106,12 +106,18 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     // MARK: - 首次安裝檢測
 
     /// 檢測並清除孤立的 Firebase session
-    /// 場景：用戶刪除 App 後重新安裝，但 iCloud Keychain 恢復了舊的認證資料
-    /// 注意：必須在 addStateDidChangeListener 之前調用，否則可能出現時序問題
     ///
-    /// ⚠️ 改進版本：使用 token 驗證而不僅僅依賴 UserDefaults
-    /// 原因：UserDefaults 在某些情況下會被清除（app 更新、重新安裝等），但 iCloud Keychain 會保留認證信息
-    /// 如果只檢查 UserDefaults，會誤判正常登入的用戶為"孤立 session"
+    /// ⚠️ 已禁用：這個檢測在 app 啟動早期執行時不可靠
+    /// 原因：
+    /// 1. Token 驗證需要網路請求，但此時網路可能還沒就緒
+    /// 2. 即使增加超時時間，仍可能因為 Firebase SDK 初始化中而超時
+    /// 3. 會誤判正常登入的用戶並強制登出
+    /// 4. Firebase 本身會處理無效 session（API 調用時返回 401）
+    ///
+    /// 替代方案：
+    /// - 只標記 hasLaunchedBefore，不做任何登出操作
+    /// - 讓 Firebase 自己處理 session 有效性
+    /// - 如果 token 真的無效，fetchUserProfile() 會失敗並自動登出（見 line 532-557）
     private static func checkAndClearOrphanedSessionIfNeeded() {
         let hasLaunchedBeforeKey = "hasLaunchedBefore"
         let hasLaunched = UserDefaults.standard.bool(forKey: hasLaunchedBeforeKey)
@@ -128,118 +134,23 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         print("======================")
 
         Logger.firebase(
-            "檢查孤立 session",
+            "檢查認證狀態",
             level: .info,
             labels: [
                 "module": "AuthenticationService",
-                "action": "check_orphaned_session"
+                "action": "check_auth_state"
             ],
             jsonPayload: [
                 "has_launched_before": hasLaunched,
                 "has_current_user": currentUser != nil,
                 "current_user_uid": currentUser?.uid ?? "null",
-                "current_user_email": currentUser?.email ?? "null",
-                "is_potential_orphaned": !hasLaunched && currentUser != nil
+                "current_user_email": currentUser?.email ?? "null"
             ]
         )
 
-        // 如果這是首次啟動（UserDefaults 中沒有標記）
+        // ✅ 簡化邏輯：只標記已啟動，不做任何登出操作
+        // 如果 session 真的無效，fetchUserProfile() 會處理（見 line 532-557）
         if !hasLaunched {
-            // 但 Firebase 有 currentUser（可能從 iCloud Keychain 恢復）
-            if let currentUser = Auth.auth().currentUser {
-                print("🔒 檢測到 UserDefaults 被清除但存在 Firebase session")
-                print("   - User UID: \(currentUser.uid)")
-                print("   - 檢查 token 有效性...")
-
-                // ✅ 改進：檢查 token 是否有效（同步檢查，避免競態）
-                // 使用 DispatchSemaphore 讓非同步操作變成同步
-                let semaphore = DispatchSemaphore(value: 0)
-                var isTokenValid = false
-
-                currentUser.getIDTokenForcingRefresh(false) { token, error in
-                    if error == nil && token != nil {
-                        isTokenValid = true
-                        print("✅ Token 有效，這是正常的已登入用戶")
-                    } else {
-                        print("❌ Token 無效或已過期: \(error?.localizedDescription ?? "unknown")")
-                    }
-                    semaphore.signal()
-                }
-
-                // 等待 token 檢查完成（最多 10 秒，因為網路可能較慢）
-                let timeout = semaphore.wait(timeout: .now() + 10)
-
-                if timeout == .timedOut {
-                    print("⚠️ Token 驗證超時，為安全起見將登出")
-                    isTokenValid = false
-                }
-
-                // ✅ 只有在 token 無效時才登出
-                if !isTokenValid {
-                    print("🔒 Token 無效，這是孤立的 session，執行強制登出")
-
-                    Logger.firebase(
-                        "檢測到孤立的 Firebase session - 強制登出",
-                        level: .warn,
-                        labels: [
-                            "module": "AuthenticationService",
-                            "action": "clear_orphaned_session",
-                            "user_id": currentUser.uid
-                        ],
-                        jsonPayload: [
-                            "reason": "invalid_token_on_first_launch",
-                            "user_uid": currentUser.uid,
-                            "email": currentUser.email ?? "unknown"
-                        ]
-                    )
-
-                    // 強制登出（同步執行，確保在 listener 觸發前完成）
-                    do {
-                        try Auth.auth().signOut()
-                        print("✅ 已清除孤立的 Firebase session")
-
-                        Logger.firebase(
-                            "成功清除孤立 session",
-                            level: .info,
-                            labels: [
-                                "module": "AuthenticationService",
-                                "action": "clear_orphaned_session_success"
-                            ]
-                        )
-                    } catch {
-                        print("⚠️ 清除 Firebase session 失敗: \(error.localizedDescription)")
-
-                        Logger.firebase(
-                            "清除孤立 session 失敗",
-                            level: .error,
-                            labels: [
-                                "module": "AuthenticationService",
-                                "action": "clear_orphaned_session_failed"
-                            ],
-                            jsonPayload: [
-                                "error": error.localizedDescription
-                            ]
-                        )
-                    }
-                } else {
-                    print("✅ Token 有效，保留用戶登入狀態（UserDefaults 被清除是正常情況）")
-
-                    Logger.firebase(
-                        "UserDefaults 被清除但 token 有效，保留登入狀態",
-                        level: .info,
-                        labels: [
-                            "module": "AuthenticationService",
-                            "action": "preserve_valid_session"
-                        ],
-                        jsonPayload: [
-                            "user_uid": currentUser.uid,
-                            "email": currentUser.email ?? "unknown"
-                        ]
-                    )
-                }
-            }
-
-            // 標記已啟動過
             UserDefaults.standard.set(true, forKey: hasLaunchedBeforeKey)
             print("✅ 標記為已啟動過")
 
@@ -251,6 +162,21 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                     "action": "mark_launched"
                 ]
             )
+
+            if currentUser != nil {
+                print("ℹ️ 檢測到 Firebase session，將在後續 API 調用中驗證有效性")
+                Logger.firebase(
+                    "檢測到 Firebase session，延遲驗證",
+                    level: .info,
+                    labels: [
+                        "module": "AuthenticationService",
+                        "action": "detect_existing_session"
+                    ],
+                    jsonPayload: [
+                        "user_uid": currentUser?.uid ?? "unknown"
+                    ]
+                )
+            }
         }
     }
     
