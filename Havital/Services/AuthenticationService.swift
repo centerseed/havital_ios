@@ -166,8 +166,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                     semaphore.signal()
                 }
 
-                // 等待 token 檢查完成（最多 3 秒）
-                let timeout = semaphore.wait(timeout: .now() + 3)
+                // 等待 token 檢查完成（最多 10 秒，因為網路可能較慢）
+                let timeout = semaphore.wait(timeout: .now() + 10)
 
                 if timeout == .timedOut {
                     print("⚠️ Token 驗證超時，為安全起見將登出")
