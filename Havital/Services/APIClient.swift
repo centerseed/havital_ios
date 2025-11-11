@@ -2,11 +2,24 @@ import Foundation
 import Network
 
 // 網路錯誤類型 - 與TrainingPlanViewModel中的NetworkError保持一致
-enum APINetworkError: Error {
+enum APINetworkError: Error, LocalizedError {
     case noConnection
     case timeout
     case serverError
     case badResponse
+
+    var errorDescription: String? {
+        switch self {
+        case .noConnection:
+            return NSLocalizedString("無法連接到網路，請檢查您的網路連接", comment: "No internet connection")
+        case .timeout:
+            return NSLocalizedString("網路請求超時，請稍後再試", comment: "Request timeout")
+        case .serverError:
+            return NSLocalizedString("服務器錯誤，請稍後再試", comment: "Server error")
+        case .badResponse:
+            return NSLocalizedString("無效的服務器回應", comment: "Invalid server response")
+        }
+    }
 }
 
 // 網路狀態監測
@@ -42,12 +55,12 @@ actor APIClient {
     static let shared = APIClient()
     private init() {}
 
-    private func makeRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> URLRequest {
+    private func makeRequest(path: String, method: String = "GET", body: Data? = nil, timeoutInterval: TimeInterval = 60) async throws -> URLRequest {
         let urlString = APIConfig.baseURL + path
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
-        var req = URLRequest(url: url, timeoutInterval: 60)
+        var req = URLRequest(url: url, timeoutInterval: timeoutInterval)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Bearer Token: include for all except login, verify, resend
@@ -66,8 +79,9 @@ actor APIClient {
     func request<T: Codable>(_ type: T.Type,
                                 path: String,
                                 method: String = "GET",
-                                body: Data? = nil) async throws -> T {
-        let req = try await makeRequest(path: path, method: method, body: body)
+                                body: Data? = nil,
+                                timeoutInterval: TimeInterval = 60) async throws -> T {
+        let req = try await makeRequest(path: path, method: method, body: body, timeoutInterval: timeoutInterval)
         
         // 檢查網路連接狀態
         if !NetworkMonitor.shared.isConnected {

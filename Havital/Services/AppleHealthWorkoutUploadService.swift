@@ -518,16 +518,48 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             device: device,
             metadata: metadata)
         
-        do {
-            // 先嘗試上傳，如果成功就結束
-            let _: EmptyResponse = try await APIClient.shared.request(
-                EmptyResponse.self,
-                path: "/v2/workouts",
-                method: "POST",
-                body: try JSONEncoder().encode(workoutData)
-            )
-        } catch {
-            // 如果失敗，記錄詳細錯誤
+        // 重試邏輯：最多嘗試 3 次
+        var lastError: Error?
+        let maxRetries = 3
+
+        for attempt in 1...maxRetries {
+            do {
+                Logger.debug("上傳運動記錄 (嘗試 \(attempt)/\(maxRetries)): \(workoutData.id)")
+
+                let _: EmptyResponse = try await APIClient.shared.request(
+                    EmptyResponse.self,
+                    path: "/v2/workouts",
+                    method: "POST",
+                    body: try JSONEncoder().encode(workoutData),
+                    timeoutInterval: 120  // 使用 120 秒超時時間以處理大型運動數據上傳
+                )
+
+                // 成功上傳，退出重試循環
+                Logger.debug("✅ 運動記錄上傳成功: \(workoutData.id) (第 \(attempt) 次嘗試)")
+                return
+
+            } catch {
+                lastError = error
+
+                // 判斷是否應該重試
+                let shouldRetry = shouldRetryUpload(error: error, attempt: attempt, maxRetries: maxRetries)
+
+                if shouldRetry {
+                    // 計算退避延遲時間（指數退避：2秒、4秒、8秒）
+                    let delaySeconds = pow(2.0, Double(attempt))
+                    Logger.debug("⚠️ 上傳失敗 (第 \(attempt) 次嘗試)，\(delaySeconds) 秒後重試：\(error.localizedDescription)")
+
+                    try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+                } else {
+                    // 不應重試的錯誤，立即拋出
+                    Logger.error("❌ 上傳失敗且不可重試 (第 \(attempt) 次嘗試): \(error.localizedDescription)")
+                    break
+                }
+            }
+        }
+
+        // 所有重試都失敗，記錄詳細錯誤並拋出
+        if let error = lastError {
             await reportDetailedUploadError(
                 workout: workout,
                 workoutData: workoutData,
@@ -894,13 +926,70 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
     }
     
+    /// 判斷是否應該重試上傳
+    private func shouldRetryUpload(error: Error, attempt: Int, maxRetries: Int) -> Bool {
+        // 如果已達到最大重試次數，不再重試
+        guard attempt < maxRetries else {
+            return false
+        }
+
+        // 檢查 APINetworkError 類型
+        if let apiError = error as? APINetworkError {
+            switch apiError {
+            case .timeout, .noConnection, .serverError:
+                // 這些錯誤應該重試
+                return true
+            case .badResponse:
+                // 無效回應不應該重試
+                return false
+            }
+        }
+
+        // 檢查 URLError 類型
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut, .notConnectedToInternet, .networkConnectionLost:
+                // 網絡相關錯誤應該重試
+                return true
+            default:
+                return false
+            }
+        }
+
+        // 檢查 HTTP 狀態碼
+        if let nsError = error as? NSError, nsError.domain == "APIClient" {
+            let statusCode = nsError.code
+            // 500-599 服務器錯誤應該重試
+            if (500...599).contains(statusCode) {
+                return true
+            }
+            // 429 Too Many Requests 應該重試
+            if statusCode == 429 {
+                return true
+            }
+        }
+
+        // 其他錯誤不重試（例如 400 客戶端錯誤）
+        return false
+    }
+
     /// 檢查是否為預期的錯誤（不應記為 error）
     private func isExpectedError(_ error: Error) -> Bool {
         // 取消錯誤
         if error is CancellationError { return true }
         if (error as NSError).code == NSURLErrorCancelled { return true }
-        
-        // 網路暫時性錯誤
+
+        // APINetworkError 網路暫時性錯誤
+        if let apiError = error as? APINetworkError {
+            switch apiError {
+            case .noConnection, .timeout, .serverError:
+                return true
+            case .badResponse:
+                return false
+            }
+        }
+
+        // URLError 網路暫時性錯誤
         if let urlError = error as? URLError {
             switch urlError.code {
             case .notConnectedToInternet, .networkConnectionLost, .timedOut:
@@ -909,10 +998,10 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 break
             }
         }
-        
+
         // 429 Too Many Requests
         if (error as NSError).code == 429 { return true }
-        
+
         return false
     }
     
