@@ -45,13 +45,18 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
         }
 
         await executeTask(id: TaskID("load_workouts")) {
-            // 確保 UnifiedWorkoutManager 已初始化並載入數據
-            await self.unifiedWorkoutManager.initialize()
-            await self.unifiedWorkoutManager.loadWorkouts()
-
-            // ✅ 修復：等待 UnifiedWorkoutManager 完成後立即同步
-            // 不依賴通知，直接從主線程讀取數據
+            // ✅ 智能載入邏輯：
+            // 1. 先同步現有數據（如果有）
             await self.syncFromUnifiedWorkoutManagerAsync()
+
+            // 2. 如果沒有數據，強制從 API 載入
+            if await MainActor.run(body: { self.workouts.isEmpty }) {
+                print("🎯 沒有緩存數據，強制從 API 載入")
+                await self.unifiedWorkoutManager.forceRefreshFromAPI()
+                await self.syncFromUnifiedWorkoutManagerAsync()
+            } else {
+                print("🎯 已有 \(await MainActor.run(body: { self.workouts.count })) 筆緩存數據")
+            }
 
             await MainActor.run {
                 self.isLoading = false
