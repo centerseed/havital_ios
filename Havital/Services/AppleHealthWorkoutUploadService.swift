@@ -125,25 +125,35 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         if !requiredData.isAllRequiredDataAvailable {
             print("❌ [Upload] 數據驗證失敗 - 運動ID: \(workoutId)")
 
+            var missingData: [String] = []
             if requiredData.isRunningRelated {
                 print("   運動類型：跑步相關（需要心率、速度、步頻）")
                 print("   缺失條件：")
                 if requiredData.heartRateData.count < 2 {
                     print("   - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
+                    missingData.append("heart_rate")
                 }
                 if requiredData.speedData.count < 2 {
                     print("   - 速度數據不足 (\(requiredData.speedData.count) < 2) [必需]")
+                    missingData.append("speed")
                 }
                 if requiredData.cadenceData.count < 2 {
                     print("   - 步頻數據不足 (\(requiredData.cadenceData.count) < 2) [必需]")
+                    missingData.append("cadence")
                 }
             } else {
                 print("   運動類型：其他運動（只需要心率）")
                 print("   缺失條件：")
                 if requiredData.heartRateData.count < 2 {
                     print("   - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
+                    missingData.append("heart_rate")
                 }
             }
+
+            // 記錄上傳失敗
+            let failureReason = "缺少必要數據: \(missingData.joined(separator: ", "))"
+            workoutUploadTracker.markWorkoutAsFailed(workout, reason: failureReason, apiVersion: .v2)
+
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
 
@@ -201,6 +211,9 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         // 標記為已上傳（所有必要數據都已驗證）
         let hasHeartRateData = requiredData.heartRateData.count >= 2
         workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData, apiVersion: .v2)
+
+        // 清除失敗記錄（如果有的話）
+        workoutUploadTracker.clearFailureRecord(workout)
 
         print("✅ [Upload] 上傳成功 - 運動ID: \(workoutId)")
         return .success(hasHeartRate: hasHeartRateData)
@@ -527,6 +540,10 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 body: try JSONEncoder().encode(workoutData)
             )
         } catch {
+            // 記錄上傳失敗
+            let errorDescription = error.localizedDescription
+            workoutUploadTracker.markWorkoutAsFailed(workout, reason: "API 上傳失敗: \(errorDescription)", apiVersion: .v2)
+
             // 如果失敗，記錄詳細錯誤
             await reportDetailedUploadError(
                 workout: workout,

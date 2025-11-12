@@ -12,7 +12,13 @@ class WorkoutUploadTracker {
     private let defaults = UserDefaults.standard
     private let uploadedWorkoutsKey = "uploaded_workouts"
     private let uploadedWorkoutsV2Key = "uploaded_workouts_v2"
-    
+    private let failedWorkoutsKey = "failed_workouts_v2"
+
+    // 最大重试次数：一个 workout 最多尝试上传 3 次
+    private let maxRetryAttempts = 3
+    // 重试冷却时间：失败后 24 小时内不再重试
+    private let retryCooldownSeconds: TimeInterval = 24 * 3600
+
     private init() {}
     
     /// 生成穩定的工作識別碼
@@ -221,12 +227,12 @@ class WorkoutUploadTracker {
     /// 批量清除舊的記錄，只保留最近的N條
     func cleanupOldRecords(keepLatest: Int = 200) {
         var uploadedWorkouts = getUploadedWorkouts()
-        
+
         // 如果記錄數少於保留閾值，則不執行清理
         if uploadedWorkouts.count <= keepLatest {
             return
         }
-        
+
         // 將記錄轉換為可排序的數組
         var records: [(String, TimeInterval)] = []
         for (stableId, info) in uploadedWorkouts {
@@ -235,13 +241,13 @@ class WorkoutUploadTracker {
                 records.append((stableId, timestamp))
             }
         }
-        
+
         // 按時間戳排序（降序）
         records.sort { $0.1 > $1.1 }
-        
+
         // 只保留最新的N條記錄
         let recordsToKeep = records.prefix(keepLatest)
-        
+
         // 建立新的字典
         var newUploadedWorkouts: [String: Any] = [:]
         for (stableId, _) in recordsToKeep {
@@ -249,16 +255,144 @@ class WorkoutUploadTracker {
                 newUploadedWorkouts[stableId] = info
             }
         }
-        
+
         // 保存新的字典
         do {
             let data = try JSONSerialization.data(withJSONObject: newUploadedWorkouts)
             defaults.set(data, forKey: uploadedWorkoutsKey)
             defaults.synchronize()
-            
+
             print("清理完成，從 \(uploadedWorkouts.count) 條記錄減少到 \(newUploadedWorkouts.count) 條")
         } catch {
             print("清理舊記錄時出錯: \(error)")
         }
+    }
+
+    // MARK: - Upload Failure Tracking
+
+    /// 記錄 workout 上傳失敗
+    /// - Parameters:
+    ///   - workout: 失敗的 workout
+    ///   - reason: 失敗原因
+    ///   - apiVersion: API 版本
+    func markWorkoutAsFailed(_ workout: HKWorkout, reason: String, apiVersion: APIVersion = .v2) {
+        let stableId = generateStableWorkoutId(workout)
+        var failedWorkouts = getFailedWorkouts()
+
+        // 獲取現有的失敗記錄或創建新記錄
+        var failureInfo = failedWorkouts[stableId] as? [String: Any] ?? [:]
+
+        // 增加重試計數
+        let retryCount = (failureInfo["retryCount"] as? Int ?? 0) + 1
+
+        // 更新失敗信息
+        failureInfo = [
+            "retryCount": retryCount,
+            "lastFailureTime": Date().timeIntervalSince1970,
+            "lastFailureReason": reason,
+            "firstFailureTime": failureInfo["firstFailureTime"] as? TimeInterval ?? Date().timeIntervalSince1970
+        ]
+
+        failedWorkouts[stableId] = failureInfo
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: failedWorkouts)
+            defaults.set(data, forKey: failedWorkoutsKey)
+            defaults.synchronize()
+
+            print("🚨 [WorkoutUploadTracker] 記錄上傳失敗: \(stableId)")
+            print("   - 重試次數: \(retryCount)/\(maxRetryAttempts)")
+            print("   - 失敗原因: \(reason)")
+        } catch {
+            print("保存失敗記錄時出錯: \(error)")
+        }
+    }
+
+    /// 檢查 workout 是否應該重試上傳
+    /// - Parameter workout: 要檢查的 workout
+    /// - Returns: true 表示應該重試，false 表示不應該重試
+    func shouldRetryUpload(_ workout: HKWorkout) -> Bool {
+        let stableId = generateStableWorkoutId(workout)
+        let failedWorkouts = getFailedWorkouts()
+
+        guard let failureInfo = failedWorkouts[stableId] as? [String: Any] else {
+            // 沒有失敗記錄，可以重試
+            return true
+        }
+
+        // 檢查重試次數
+        let retryCount = failureInfo["retryCount"] as? Int ?? 0
+        if retryCount >= maxRetryAttempts {
+            print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 已達最大重試次數 (\(retryCount)/\(maxRetryAttempts))，跳過上傳")
+            return false
+        }
+
+        // 檢查冷卻時間
+        if let lastFailureTime = failureInfo["lastFailureTime"] as? TimeInterval {
+            let timeSinceFailure = Date().timeIntervalSince1970 - lastFailureTime
+            if timeSinceFailure < retryCooldownSeconds {
+                let remainingHours = Int((retryCooldownSeconds - timeSinceFailure) / 3600)
+                print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 在冷卻期內，還需等待 \(remainingHours) 小時")
+                return false
+            }
+        }
+
+        // 可以重試
+        print("✅ [WorkoutUploadTracker] Workout \(stableId) 可以重試上傳 (嘗試 \(retryCount + 1)/\(maxRetryAttempts))")
+        return true
+    }
+
+    /// 清除 workout 的失敗記錄（上傳成功後調用）
+    /// - Parameter workout: 成功上傳的 workout
+    func clearFailureRecord(_ workout: HKWorkout) {
+        let stableId = generateStableWorkoutId(workout)
+        var failedWorkouts = getFailedWorkouts()
+
+        if failedWorkouts.removeValue(forKey: stableId) != nil {
+            do {
+                let data = try JSONSerialization.data(withJSONObject: failedWorkouts)
+                defaults.set(data, forKey: failedWorkoutsKey)
+                defaults.synchronize()
+                print("✅ [WorkoutUploadTracker] 清除失敗記錄: \(stableId)")
+            } catch {
+                print("清除失敗記錄時出錯: \(error)")
+            }
+        }
+    }
+
+    /// 獲取所有失敗的 workout 記錄
+    private func getFailedWorkouts() -> [String: Any] {
+        guard let data = defaults.data(forKey: failedWorkoutsKey) else {
+            return [:]
+        }
+
+        do {
+            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                return dict
+            }
+        } catch {
+            print("讀取失敗記錄時出錯: \(error)")
+        }
+
+        return [:]
+    }
+
+    /// 獲取失敗統計信息
+    func getFailureStats() -> (totalFailed: Int, permanentlyFailed: Int) {
+        let failedWorkouts = getFailedWorkouts()
+        let totalFailed = failedWorkouts.count
+
+        let permanentlyFailed = failedWorkouts.values.compactMap { $0 as? [String: Any] }
+            .filter { ($0["retryCount"] as? Int ?? 0) >= maxRetryAttempts }
+            .count
+
+        return (totalFailed, permanentlyFailed)
+    }
+
+    /// 清除所有失敗記錄
+    func clearAllFailureRecords() {
+        defaults.removeObject(forKey: failedWorkoutsKey)
+        defaults.synchronize()
+        print("🗑️ [WorkoutUploadTracker] 已清除所有失敗記錄")
     }
 }
