@@ -16,8 +16,8 @@ class WorkoutUploadTracker {
 
     // 最大重试次数：一个 workout 最多尝试上传 3 次
     private let maxRetryAttempts = 3
-    // 重试冷却时间：失败后 24 小时内不再重试
-    private let retryCooldownSeconds: TimeInterval = 24 * 3600
+    // 重试冷却时间：失败后 30 分钟内不再重试
+    private let retryCooldownSeconds: TimeInterval = 30 * 60
 
     private init() {}
     
@@ -331,8 +331,8 @@ class WorkoutUploadTracker {
         if let lastFailureTime = failureInfo["lastFailureTime"] as? TimeInterval {
             let timeSinceFailure = Date().timeIntervalSince1970 - lastFailureTime
             if timeSinceFailure < retryCooldownSeconds {
-                let remainingHours = Int((retryCooldownSeconds - timeSinceFailure) / 3600)
-                print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 在冷卻期內，還需等待 \(remainingHours) 小時")
+                let remainingMinutes = Int((retryCooldownSeconds - timeSinceFailure) / 60)
+                print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 在冷卻期內，還需等待 \(remainingMinutes) 分鐘")
                 return false
             }
         }
