@@ -395,4 +395,96 @@ class WorkoutUploadTracker {
         defaults.synchronize()
         print("🗑️ [WorkoutUploadTracker] 已清除所有失敗記錄")
     }
+
+    /// 調試：打印所有失敗的 workout 記錄
+    func debugPrintAllFailedWorkouts() {
+        let failedWorkouts = getFailedWorkouts()
+
+        if failedWorkouts.isEmpty {
+            print("📋 [DEBUG] 沒有失敗的運動記錄")
+            return
+        }
+
+        print("📋 [DEBUG] 所有失敗的運動記錄 (\(failedWorkouts.count) 個):")
+        print(String(repeating: "=", count: 50))
+
+        for (stableId, info) in failedWorkouts.sorted(by: {
+            let time1 = ($0.value as? [String: Any])?["lastFailureTime"] as? TimeInterval ?? 0
+            let time2 = ($1.value as? [String: Any])?["lastFailureTime"] as? TimeInterval ?? 0
+            return time1 > time2  // 降序排列，最新的在前
+        }) {
+            guard let failureInfo = info as? [String: Any] else { continue }
+
+            let retryCount = failureInfo["retryCount"] as? Int ?? 0
+            let reason = failureInfo["lastFailureReason"] as? String ?? "未知"
+            let lastFailureTime = failureInfo["lastFailureTime"] as? TimeInterval ?? 0
+            let firstFailureTime = failureInfo["firstFailureTime"] as? TimeInterval ?? 0
+
+            let lastFailureDate = Date(timeIntervalSince1970: lastFailureTime)
+            let firstFailureDate = Date(timeIntervalSince1970: firstFailureTime)
+
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+            print("\n📌 Workout ID: \(stableId)")
+            print("   首次失敗: \(dateFormatter.string(from: firstFailureDate))")
+            print("   最後失敗: \(dateFormatter.string(from: lastFailureDate))")
+            print("   重試次數: \(retryCount)/\(maxRetryAttempts)")
+            print("   失敗原因: \(reason)")
+        }
+
+        print(String(repeating: "=", count: 50))
+    }
+
+    /// 調試：搜尋特定日期的失敗 workout
+    func debugFindFailedWorkoutsOnDate(_ date: Date) {
+        let calendar = Calendar.current
+        let targetComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        let failedWorkouts = getFailedWorkouts()
+
+        var matchedWorkouts: [(String, [String: Any])] = []
+
+        for (stableId, info) in failedWorkouts {
+            guard let failureInfo = info as? [String: Any],
+                  let lastFailureTime = failureInfo["lastFailureTime"] as? TimeInterval else {
+                continue
+            }
+
+            let failureDate = Date(timeIntervalSince1970: lastFailureTime)
+            let failureDateComponents = calendar.dateComponents([.year, .month, .day], from: failureDate)
+
+            if failureDateComponents == targetComponents {
+                matchedWorkouts.append((stableId, failureInfo))
+            }
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: date)
+
+        if matchedWorkouts.isEmpty {
+            print("🔍 [DEBUG] \(dateString) 沒有失敗的運動記錄")
+            return
+        }
+
+        print("🔍 [DEBUG] \(dateString) 失敗的運動記錄 (\(matchedWorkouts.count) 個):")
+        print(String(repeating: "=", count: 50))
+
+        for (stableId, failureInfo) in matchedWorkouts {
+            let retryCount = failureInfo["retryCount"] as? Int ?? 0
+            let reason = failureInfo["lastFailureReason"] as? String ?? "未知"
+            let lastFailureTime = failureInfo["lastFailureTime"] as? TimeInterval ?? 0
+
+            let lastFailureDate = Date(timeIntervalSince1970: lastFailureTime)
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "HH:mm:ss"
+
+            print("\n📌 Workout ID: \(stableId)")
+            print("   失敗時間: \(timeFormatter.string(from: lastFailureDate))")
+            print("   重試次數: \(retryCount)/\(maxRetryAttempts)")
+            print("   失敗原因: \(reason)")
+        }
+
+        print(String(repeating: "=", count: 50))
+    }
 }

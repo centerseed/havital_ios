@@ -56,6 +56,79 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                activityType == .walking
     }
 
+    /// 判斷是否有可靠的速度/距離資訊（優先級驗證）
+    /// - 優先級 1: GPS 速度樣本
+    /// - 優先級 2: 分圈中有距離資訊
+    /// - 優先級 3: 總距離 > 0
+    /// - 優先級 4: 至少有步頻資訊
+    private func hasReliableSpeedData(requiredData: WorkoutRequiredData) -> Bool {
+        // 優先級 1: GPS 速度樣本 (最可靠)
+        if requiredData.speedData.count >= 2 {
+            print("✅ [驗證] 優先級 1 - GPS 速度樣本可用 (\(requiredData.speedData.count) 筆)")
+            return true
+        }
+
+        // 優先級 2: 分圈中有距離資訊
+        if let laps = requiredData.lapData, !laps.isEmpty {
+            let hasDistanceInLaps = laps.contains { ($0.totalDistanceM ?? 0) > 0 }
+            if hasDistanceInLaps {
+                let lapDistances = laps.compactMap { $0.totalDistanceM }.reduce(0, +)
+                print("✅ [驗證] 優先級 2 - 分圈距離可用 (總計: \(String(format: "%.0f", lapDistances)) m，\(laps.count) 圈)")
+                return true
+            }
+        }
+
+        // 優先級 3: 總距離 > 0
+        if let distance = requiredData.workout.totalDistance?.doubleValue(for: .meter()),
+           distance > 0 {
+            print("✅ [驗證] 優先級 3 - 總距離可用 (\(String(format: "%.0f", distance)) m)")
+            return true
+        }
+
+        // 優先級 4: 至少有步頻資訊（可在後端推算速度）
+        if requiredData.cadenceData.count >= 2 {
+            print("⚠️ [驗證] 優先級 4 - 只有步頻資訊，無距離資訊")
+            return true
+        }
+
+        // 都沒有可靠資訊
+        print("❌ [驗證] 無可靠速度或距離資訊")
+        return false
+    }
+
+    /// 判斷是否需要重試速度資料
+    /// 策略：只有當既無GPS速度也無任何距離來源時才不重試
+    /// 如果有分圈距離或總距離，就不重試（已有可靠的速度計算基礎）
+    private func shouldRetrySpeedData(workout: HKWorkout, speedData: [(Date, Double)], lapData: [LapData]?) -> Bool {
+        let isRunning = isRunningRelatedWorkout(workout)
+        let noSpeedData = speedData.count < 2
+
+        // 只在跑步運動且無 GPS 速度時考慮
+        if !isRunning || !noSpeedData {
+            return false  // 非跑步運動或有速度就不重試
+        }
+
+        // 檢查是否有其他可靠的距離來源
+        // 如果有分圈距離，就不重試速度（分圈已有平均速度）
+        if let laps = lapData, !laps.isEmpty {
+            let hasDistanceInLaps = laps.contains { ($0.totalDistanceM ?? 0) > 0 }
+            if hasDistanceInLaps {
+                print("⚠️ [驗證] 有分圈距離但無 GPS 速度樣本，分圈已有平均速度，跳過速度重試")
+                return false
+            }
+        }
+
+        // 檢查是否有總距離（即使沒有分圈也有距離）
+        if let totalDistance = workout.totalDistance?.doubleValue(for: .meter()), totalDistance > 0 {
+            print("⚠️ [驗證] 有總距離但無 GPS 速度樣本，可推算平均速度，跳過速度重試")
+            return false
+        }
+
+        // 都沒有距離來源，才重試速度（最多 3 次）
+        print("⚠️ [驗證] 無 GPS 速度也無距離來源，進行速度重試...")
+        return true
+    }
+
     // MARK: - Core Upload API
     func uploadWorkout(_ workout: HKWorkout,
                        force: Bool = false,
@@ -126,27 +199,34 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             print("❌ [Upload] 數據驗證失敗 - 運動ID: \(workoutId)")
 
             var missingData: [String] = []
-            if requiredData.isRunningRelated {
-                print("   運動類型：跑步相關（需要心率、速度、步頻）")
-                print("   缺失條件：")
-                if requiredData.heartRateData.count < 2 {
-                    print("   - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
-                    missingData.append("heart_rate")
+
+            // 第一層：檢查心率（所有運動都必需）
+            if requiredData.heartRateData.count < 2 {
+                print("   ❌ 第一層驗證失敗 - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
+                print("      將進入心率重試機制...")
+                missingData.append("heart_rate")
+            }
+
+            // 第二層：跑步運動檢查速度/距離來源
+            if requiredData.isRunningRelated && requiredData.heartRateData.count >= 2 {
+                if !hasReliableSpeedData(requiredData: requiredData) {
+                    print("   ❌ 第二層驗證失敗 - 無可靠的速度/距離來源 [必需]")
+                    print("      - GPS 速度樣本: \(requiredData.speedData.count) 筆")
+                    print("      - 分圈資料: \(requiredData.lapData?.count ?? 0) 圈")
+                    if let distance = requiredData.workout.totalDistance?.doubleValue(for: .meter()) {
+                        print("      - 總距離: \(String(format: "%.0f", distance)) m")
+                    }
+                    missingData.append("speed_or_distance")
                 }
-                if requiredData.speedData.count < 2 {
-                    print("   - 速度數據不足 (\(requiredData.speedData.count) < 2) [必需]")
-                    missingData.append("speed")
-                }
-                if requiredData.cadenceData.count < 2 {
-                    print("   - 步頻數據不足 (\(requiredData.cadenceData.count) < 2) [必需]")
-                    missingData.append("cadence")
-                }
-            } else {
-                print("   運動類型：其他運動（只需要心率）")
-                print("   缺失條件：")
-                if requiredData.heartRateData.count < 2 {
-                    print("   - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
-                    missingData.append("heart_rate")
+
+                // 第三層：檢查步頻或分圈
+                let hasCadence = requiredData.cadenceData.count >= 2
+                let hasLaps = (requiredData.lapData?.count ?? 0) > 0
+                if !hasCadence && !hasLaps {
+                    print("   ❌ 第三層驗證失敗 - 無步頻也無分圈資料 [至少一個必需]")
+                    print("      - 步頻: \(requiredData.cadenceData.count) 筆")
+                    print("      - 分圈: \(requiredData.lapData?.count ?? 0) 圈")
+                    missingData.append("cadence_or_laps")
                 }
             }
 
@@ -312,14 +392,28 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             await reportHealthKitDataError(workout: workout, dataType: "heart_rate", error: error)
         }
 
-        // 2. 獲取速度數據（跑步運動才需要重試，其他運動只嘗試一次）
+        // 2. 先獲取分圈資料（需要在速度驗證之前）
+        var lapData: [LapData]?
+        do {
+            lapData = try await healthKitManager.fetchLapData(for: workout)
+            if let laps = lapData {
+                let hasDistance = laps.contains { ($0.totalDistanceM ?? 0) > 0 }
+                print("🏃‍♂️ [驗證] 分圈資料獲取成功: \(laps.count) 圈，有距離: \(hasDistance)")
+            }
+        } catch {
+            lapData = nil
+            await reportHealthKitDataError(workout: workout, dataType: "lap_data", error: error)
+            print("⚠️ [驗證] 分圈資料獲取失敗，將繼續驗證其他數據")
+        }
+
+        // 3. 獲取速度數據（基於分圈決定是否重試）
         var speedData: [(Date, Double)] = []
         do {
             speedData = try await healthKitManager.fetchSpeedData(for: workout)
             print("📊 [驗證] 初次速度數據獲取: \(speedData.count) 筆")
 
-            // 只有跑步相關運動才進行速度數據重試
-            if isRunning && speedData.count < 2 {
+            // 根據分圈決定是否重試速度
+            if shouldRetrySpeedData(workout: workout, speedData: speedData, lapData: lapData) {
                 speedData = await retryFetchingData(
                     name: "速度",
                     currentData: speedData,
@@ -333,7 +427,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             await reportHealthKitDataError(workout: workout, dataType: "speed", error: error)
         }
 
-        // 3. 獲取步頻數據（跑步運動才需要重試，其他運動只嘗試一次）
+        // 4. 獲取步頻數據（跑步運動才需要重試，其他運動只嘗試一次）
         var cadenceData: [(Date, Double)] = []
         do {
             cadenceData = try await healthKitManager.fetchCadenceData(for: workout)
@@ -354,7 +448,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             await reportHealthKitDataError(workout: workout, dataType: "cadence", error: error)
         }
 
-        // 4. 獲取輔助數據（可選）
+        // 5. 獲取輔助數據（可選）
         var strideLengthData: [(Date, Double)]?
         do {
             strideLengthData = try await healthKitManager.fetchStrideLengthData(for: workout)
@@ -387,16 +481,6 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             await reportHealthKitDataError(workout: workout, dataType: "calories", error: error)
         }
 
-        var lapData: [LapData]?
-        do {
-            lapData = try await healthKitManager.fetchLapData(for: workout)
-            print("🏃‍♂️ [驗證] 分圈資料獲取成功: \(lapData?.count ?? 0) 圈")
-        } catch {
-            lapData = nil
-            await reportHealthKitDataError(workout: workout, dataType: "lap_data", error: error)
-            print("⚠️ [驗證] 分圈資料獲取失敗，將繼續上傳運動記錄")
-        }
-
         return WorkoutRequiredData(
             workout: workout,
             heartRateData: heartRateData,
@@ -411,16 +495,27 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     }
 
     /// 重試獲取必要數據（用於心率、速度等非可選數據）
+    /// - 心率: 5 次重試（關鍵數據，運動有效性）
+    /// - 速度: 3 次重試（可用分圈或總距離替代）
+    /// - 步頻: 5 次重試（關鍵數據，跑步運動必需）
     private func retryFetchingData(
         name: String,
         currentData: [(Date, Double)],
         fetchOperation: @escaping (_ attempt: Int) async throws -> [(Date, Double)]
     ) async -> [(Date, Double)] {
         var data = currentData
-        let maxRetries = 5
+
+        // 根據數據類型調整重試次數
+        let maxRetries: Int
+        if name.contains("速度") {
+            maxRetries = 3  // 速度有分圈和總距離可替代，3次即可
+        } else {
+            maxRetries = 5  // 心率和步頻重要，保留 5 次
+        }
+
         let retryInterval: UInt64 = 30_000_000_000 // 30秒
 
-        print("🔄 [驗證] \(name)數據不足(\(data.count) < 2)，開始重試流程...")
+        print("🔄 [驗證] \(name)數據不足(\(data.count) < 2)，開始重試流程... (最多 \(maxRetries) 次)")
 
         for attempt in 1...maxRetries {
             print("🔄 [驗證] \(name)數據重試 \(attempt)/\(maxRetries)，等待30秒...")
@@ -1037,32 +1132,98 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
 
         /// 檢查是否滿足所有必要的數據條件
-        /// - 跑步相關運動：需要心率 >= 2, 速度 >= 2, 步頻 >= 2
+        /// - 所有運動：必須有心率 >= 2
+        /// - 跑步相關運動：需要心率 >= 2 + (有可靠的速度/距離來源) + (步頻或分圈)
         /// - 其他運動：只需要心率 >= 2
         var isAllRequiredDataAvailable: Bool {
+            // 第一層：心率是所有運動的必需資料
+            guard heartRateData.count >= 2 else {
+                return false  // 會觸發現有的重試機制
+            }
+
             if isRunningRelated {
-                // 跑步運動需要三個條件都滿足
-                return heartRateData.count >= 2 && speedData.count >= 2 && cadenceData.count >= 2
+                // 第二層：跑步運動需要可靠的速度/距離來源
+                let hasReliableSpeed = checkReliableSpeedData()
+                guard hasReliableSpeed else {
+                    return false
+                }
+
+                // 第三層：步頻或分圈（至少一個）
+                let hasCadence = cadenceData.count >= 2
+                let hasLaps = (lapData?.count ?? 0) > 0
+                guard hasCadence || hasLaps else {
+                    return false
+                }
+
+                return true
             } else {
                 // 其他運動只需要心率
-                return heartRateData.count >= 2
+                return true
             }
+        }
+
+        /// 檢查是否有可靠的速度/距離來源（WorkoutRequiredData 內部方法）
+        private func checkReliableSpeedData() -> Bool {
+            // 優先級 1: GPS 速度樣本 (最可靠)
+            if speedData.count >= 2 {
+                return true
+            }
+
+            // 優先級 2: 分圈中有距離資訊
+            if let laps = lapData, !laps.isEmpty {
+                let hasDistanceInLaps = laps.contains { ($0.totalDistanceM ?? 0) > 0 }
+                if hasDistanceInLaps {
+                    return true
+                }
+            }
+
+            // 優先級 3: 總距離 > 0
+            if let distance = workout.totalDistance?.doubleValue(for: .meter()),
+               distance > 0 {
+                return true
+            }
+
+            // 優先級 4: 至少有步頻資訊（可在後端推算速度）
+            if cadenceData.count >= 2 {
+                return true
+            }
+
+            // 都沒有可靠資訊
+            return false
         }
 
         func logSummary(workoutId: String) {
             print("📊 [數據驗證] 運動ID: \(workoutId) | 類型: \(isRunningRelated ? "跑步相關" : "其他運動")")
-            print("   - 心率: \(heartRateData.count) 筆 \(heartRateData.count >= 2 ? "✅" : "❌")")
+            print("   📍 第一層驗證 - 心率（所有運動必需）:")
+            print("     - 心率: \(heartRateData.count) 筆 \(heartRateData.count >= 2 ? "✅" : "❌")")
+
             if isRunningRelated {
-                print("   - 速度: \(speedData.count) 筆 \(speedData.count >= 2 ? "✅" : "❌") [跑步必需]")
-                print("   - 步頻: \(cadenceData.count) 筆 \(cadenceData.count >= 2 ? "✅" : "❌") [跑步必需]")
+                print("   📍 第二層驗證 - 速度/距離來源（跑步必需）:")
+                print("     - GPS 速度樣本: \(speedData.count) 筆")
+                print("     - 分圈資料: \(lapData?.count ?? 0) 圈")
+                if let laps = lapData, !laps.isEmpty {
+                    let lapDistances = laps.compactMap { $0.totalDistanceM }.reduce(0, +)
+                    print("     - 分圈距離: \(String(format: "%.0f", lapDistances)) m")
+                }
+                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                    print("     - 總距離: \(String(format: "%.0f", distance)) m")
+                }
+                print("     - 可靠速度來源: \(checkReliableSpeedData() ? "✅" : "❌")")
+
+                print("   📍 第三層驗證 - 步頻或分圈（至少一個）:")
+                print("     - 步頻: \(cadenceData.count) 筆 \(cadenceData.count >= 2 ? "✅" : "❌")")
+                print("     - 分圈: \((lapData?.count ?? 0) > 0 ? "✅" : "❌")")
             } else {
-                print("   - 速度: \(speedData.count) 筆 (可選)")
-                print("   - 步頻: \(cadenceData.count) 筆 (可選)")
+                print("   📍 其他運動：只需心率")
+                print("     - 速度: \(speedData.count) 筆 (可選)")
+                print("     - 步頻: \(cadenceData.count) 筆 (可選)")
             }
-            print("   - 步幅: \(strideLengthData?.count ?? 0) 筆")
-            print("   - 觸地時間: \(groundContactTimeData?.count ?? 0) 筆")
-            print("   - 垂直振幅: \(verticalOscillationData?.count ?? 0) 筆")
-            print("   - 總體結果: \(isAllRequiredDataAvailable ? "✅ 滿足所有條件" : "❌ 未滿足所有條件")")
+
+            print("   📍 可選資料:")
+            print("     - 步幅: \(strideLengthData?.count ?? 0) 筆")
+            print("     - 觸地時間: \(groundContactTimeData?.count ?? 0) 筆")
+            print("     - 垂直振幅: \(verticalOscillationData?.count ?? 0) 筆")
+            print("   📋 驗證結果: \(isAllRequiredDataAvailable ? "✅ 滿足所有條件" : "❌ 未滿足所有條件")")
         }
     }
 }

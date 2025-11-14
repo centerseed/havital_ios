@@ -28,7 +28,8 @@ struct UserProfileView: View {
     @State private var showLanguageSettings = false
     @State private var showTimezoneSettings = false
     @State private var showFeedbackReport = false
-    
+    @State private var showDebugFailedWorkouts = false
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
@@ -132,6 +133,9 @@ struct UserProfileView: View {
             } else {
                 FeedbackReportView(userEmail: "")
             }
+        }
+        .sheet(isPresented: $showDebugFailedWorkouts) {
+            DebugFailedWorkoutsView()
         }
         // 重新 OnBoarding 確認對話框
         .confirmationDialog(
@@ -456,6 +460,16 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.orange)
+
+            Button {
+                showDebugFailedWorkouts = true
+            } label: {
+                HStack {
+                    Image(systemName: "exclamationmark.circle")
+                    Text("調試 - 失敗運動記錄")
+                }
+            }
+            .foregroundColor(.red)
         }
     }
     #endif
