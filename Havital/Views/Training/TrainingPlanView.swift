@@ -250,6 +250,7 @@ struct TrainingPlanView: View {
     @State private var isGeneratingScreenshot = false
     @State private var showEditSchedule = false
     @State private var showHeartRateSetup = false
+    @State private var showHeartRateSetupFullScreen = false
     @ObservedObject private var userPreferenceManager = UserPreferenceManager.shared
     
     
@@ -457,9 +458,17 @@ struct TrainingPlanView: View {
             }
         }
         .sheet(isPresented: $showHeartRateSetup) {
-            HeartRateSetupAlertView()
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
+            HeartRateSetupAlertView {
+                // 點擊「立即設定」時，顯示滿版心率設置頁面
+                showHeartRateSetupFullScreen = true
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(isPresented: $showHeartRateSetupFullScreen) {
+            NavigationStack {
+                HeartRateZoneInfoView(mode: .profile)
+            }
         }
     }
     

@@ -4,8 +4,10 @@ import SwiftUI
 /// 用于在用户进入主画面时，提醒尚未设置心率数据的用户进行设置
 struct HeartRateSetupAlertView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var navigateToHeartRateSetup = false
     @ObservedObject private var userPreferenceManager = UserPreferenceManager.shared
+
+    /// 当用户点击「立即设定」时的回调
+    var onSetupNow: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -36,7 +38,11 @@ struct HeartRateSetupAlertView: View {
                 VStack(spacing: 12) {
                     // 去设置按钮
                     Button(action: {
-                        navigateToHeartRateSetup = true
+                        dismiss()
+                        // 延遲一小段時間讓 sheet dismiss 動畫完成，然後觸發滿版心率設置
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onSetupNow()
+                        }
                     }) {
                         HStack {
                             Image(systemName: "heart.circle.fill")
@@ -84,16 +90,6 @@ struct HeartRateSetupAlertView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
             }
-            .background(
-                NavigationLink(
-                    destination: HeartRateZoneInfoView(mode: .profile)
-                        .navigationBarBackButtonHidden(false),
-                    isActive: $navigateToHeartRateSetup
-                ) {
-                    EmptyView()
-                }
-                .hidden()
-            )
         }
     }
 
@@ -115,5 +111,7 @@ struct HeartRateSetupAlertView: View {
 }
 
 #Preview {
-    HeartRateSetupAlertView()
+    HeartRateSetupAlertView {
+        print("設定心率")
+    }
 }
