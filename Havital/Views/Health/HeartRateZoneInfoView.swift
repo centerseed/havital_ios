@@ -82,6 +82,7 @@ struct HeartRateZoneInfoView: View {
                 }
             }
         }
+        .background(Color(UIColor.systemBackground)) // 確保有不透明的背景
     }
 
     @ViewBuilder
