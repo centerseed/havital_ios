@@ -697,11 +697,10 @@ struct TrainingPlanView: View {
         if !hasMaxHeartRate && !hasRestingHeartRate {
             Logger.debug("✅ User has not set heart rate values, showing setup prompt after 3 seconds")
             // 延遲 3 秒顯示，確保視圖完全加載且不干擾用戶初始體驗
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                guard let self = self else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 Logger.debug("⏰ 3 seconds elapsed, setting showHeartRateSetup = true")
-                self.showHeartRateSetup = true
-                Logger.debug("✅ showHeartRateSetup is now: \(self.showHeartRateSetup)")
+                showHeartRateSetup = true
+                Logger.debug("✅ showHeartRateSetup is now: \(showHeartRateSetup)")
             }
         } else {
             Logger.debug("❌ Heart rate setup prompt: User has already set heart rate values, skipping (maxHR: \(userPreferenceManager.maxHeartRate ?? 0), restingHR: \(userPreferenceManager.restingHeartRate ?? 0))")
