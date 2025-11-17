@@ -194,47 +194,45 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         // 顯示數據驗證摘要
         requiredData.logSummary(workoutId: workoutId)
 
-        // 檢查是否滿足所有必要條件
-        if !requiredData.isAllRequiredDataAvailable {
-            print("❌ [Upload] 數據驗證失敗 - 運動ID: \(workoutId)")
+        // 第一次驗證：使用嚴格要求
+        var finalRequiredData = requiredData
+        if !requiredData.isAllRequiredDataAvailable(relaxed: false) {
+            print("❌ [Upload] 第一次數據驗證失敗 - 運動ID: \(workoutId)")
+            print("⏳ [Upload] 等待 5 秒後重新收集數據（Apple Watch 數據可能還沒準備好）...")
 
-            var missingData: [String] = []
+            // 等待 5 秒讓數據準備好
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
 
-            // 第一層：檢查心率（所有運動都必需）
-            if requiredData.heartRateData.count < 2 {
-                print("   ❌ 第一層驗證失敗 - 心率數據不足 (\(requiredData.heartRateData.count) < 2) [必需]")
-                print("      將進入心率重試機制...")
-                missingData.append("heart_rate")
-            }
+            print("🔄 [Upload] 重新收集運動數據...")
+            // 重新收集數據
+            let retryRequiredData = await validateAndFetchRequiredWorkoutData(
+                for: workout,
+                retryHeartRate: retryHeartRate
+            )
 
-            // 第二層：跑步運動檢查速度/距離來源
-            if requiredData.isRunningRelated && requiredData.heartRateData.count >= 2 {
-                if !hasReliableSpeedData(requiredData: requiredData) {
-                    print("   ❌ 第二層驗證失敗 - 無可靠的速度/距離來源 [必需]")
-                    print("      - GPS 速度樣本: \(requiredData.speedData.count) 筆")
-                    print("      - 分圈資料: \(requiredData.lapData?.count ?? 0) 圈")
-                    if let distance = requiredData.workout.totalDistance?.doubleValue(for: .meter()) {
-                        print("      - 總距離: \(String(format: "%.0f", distance)) m")
-                    }
-                    missingData.append("speed_or_distance")
+            retryRequiredData.logSummary(workoutId: workoutId)
+
+            // 第二次驗證：放寬限制（只要有心率就可以上傳）
+            if !retryRequiredData.isAllRequiredDataAvailable(relaxed: true) {
+                print("❌ [Upload] 第二次數據驗證失敗（放寬限制後）- 運動ID: \(workoutId)")
+
+                var missingData: [String] = []
+
+                // 放寬限制後，只檢查心率
+                if retryRequiredData.heartRateData.count < 2 {
+                    print("   ❌ 心率數據不足 (\(retryRequiredData.heartRateData.count) < 2) [必需]")
+                    missingData.append("heart_rate")
                 }
 
-                // 第三層：檢查步頻或分圈
-                let hasCadence = requiredData.cadenceData.count >= 2
-                let hasLaps = (requiredData.lapData?.count ?? 0) > 0
-                if !hasCadence && !hasLaps {
-                    print("   ❌ 第三層驗證失敗 - 無步頻也無分圈資料 [至少一個必需]")
-                    print("      - 步頻: \(requiredData.cadenceData.count) 筆")
-                    print("      - 分圈: \(requiredData.lapData?.count ?? 0) 圈")
-                    missingData.append("cadence_or_laps")
-                }
+                // 記錄上傳失敗
+                let failureReason = "缺少必要數據（放寬限制後）: \(missingData.joined(separator: ", "))"
+                workoutUploadTracker.markWorkoutAsFailed(workout, reason: failureReason, apiVersion: .v2)
+
+                throw WorkoutV2ServiceError.invalidWorkoutData
+            } else {
+                print("✅ [Upload] 第二次驗證通過（放寬限制）- 運動ID: \(workoutId)")
+                finalRequiredData = retryRequiredData
             }
-
-            // 記錄上傳失敗
-            let failureReason = "缺少必要數據: \(missingData.joined(separator: ", "))"
-            workoutUploadTracker.markWorkoutAsFailed(workout, reason: failureReason, apiVersion: .v2)
-
-            throw WorkoutV2ServiceError.invalidWorkoutData
         }
 
         print("✅ [Upload] 數據驗證通過 - 運動ID: \(workoutId)，即將延遲5秒後上傳...")
@@ -251,13 +249,13 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let actualSource = deviceInfo.source
         let actualDevice = deviceInfo.device
 
-        // 轉成 DataPoint
-        let heartRates      = requiredData.heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
-        let speeds          = requiredData.speedData.map { DataPoint(time: $0.0, value: $0.1) }
-        let strides         = requiredData.strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
-        let cadences        = requiredData.cadenceData.map { DataPoint(time: $0.0, value: $0.1) }
-        let contacts        = requiredData.groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
-        let oscillations    = requiredData.verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
+        // 轉成 DataPoint（使用最終驗證通過的數據）
+        let heartRates      = finalRequiredData.heartRateData.map { DataPoint(time: $0.0, value: $0.1) }
+        let speeds          = finalRequiredData.speedData.map { DataPoint(time: $0.0, value: $0.1) }
+        let strides         = finalRequiredData.strideLengthData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let cadences        = finalRequiredData.cadenceData.map { DataPoint(time: $0.0, value: $0.1) }
+        let contacts        = finalRequiredData.groundContactTimeData?.map { DataPoint(time: $0.0, value: $0.1) }
+        let oscillations    = finalRequiredData.verticalOscillationData?.map { DataPoint(time: $0.0, value: $0.1) }
 
         // 🌡️ 獲取環境數據（溫度、天氣、濕度）
         let temperature = healthKitManager.fetchEnvironmentTemperature(for: workout)
@@ -282,14 +280,14 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      cadences: cadences,
                                      groundContactTimes: contacts,
                                      verticalOscillations: oscillations,
-                                     totalCalories: requiredData.totalCalories,
-                                     laps: requiredData.lapData,
+                                     totalCalories: finalRequiredData.totalCalories,
+                                     laps: finalRequiredData.lapData,
                                      source: actualSource,
                                      device: actualDevice,
                                      metadata: workoutMetadata)
 
         // 標記為已上傳（所有必要數據都已驗證）
-        let hasHeartRateData = requiredData.heartRateData.count >= 2
+        let hasHeartRateData = finalRequiredData.heartRateData.count >= 2
         workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData, apiVersion: .v2)
 
         // 清除失敗記錄（如果有的話）
@@ -1211,16 +1209,29 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
 
         /// 檢查是否滿足所有必要的數據條件
-        /// - 所有運動：必須有心率 >= 2
-        /// - Apple Watch 跑步運動：需要心率 >= 2 + (有可靠的速度/距離來源) + (步頻或分圈)
-        /// - 第三方設備跑步運動：只需要心率 >= 2（Garmin 等設備的詳細數據在其平台上）
-        /// - 其他運動：只需要心率 >= 2
-        var isAllRequiredDataAvailable: Bool {
+        /// - Parameter relaxed: 是否放寬驗證要求（第二次重試時使用）
+        /// - Returns: 是否滿足所有必要條件
+        ///
+        /// ## 驗證策略：
+        /// ### 第一次驗證（relaxed = false）：
+        /// - 所有運動：心率 >= 2
+        /// - 跑步運動：心率 >= 2 + 速度/距離來源 + (步頻或分圈)
+        ///
+        /// ### 第二次驗證（relaxed = true，等待 5 秒後）：
+        /// - 所有運動：只需心率 >= 2
+        /// - 跑步運動：只需心率 >= 2（Apple Watch 數據可能已準備好，第三方設備則沒有詳細數據）
+        func isAllRequiredDataAvailable(relaxed: Bool = false) -> Bool {
             // 第一層：心率是所有運動的必需資料
             guard heartRateData.count >= 2 else {
-                return false  // 會觸發現有的重試機制
+                return false
             }
 
+            // 如果放寬限制，只要有心率就通過
+            if relaxed {
+                return true
+            }
+
+            // 嚴格驗證模式
             // 檢查是否為第三方數據源
             let isThirdParty = isThirdPartyWorkout()
 
@@ -1356,7 +1367,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             print("     - 步幅: \(strideLengthData?.count ?? 0) 筆")
             print("     - 觸地時間: \(groundContactTimeData?.count ?? 0) 筆")
             print("     - 垂直振幅: \(verticalOscillationData?.count ?? 0) 筆")
-            print("   📋 驗證結果: \(isAllRequiredDataAvailable ? "✅ 滿足所有條件" : "❌ 未滿足所有條件")")
+            print("   📋 驗證結果: \(isAllRequiredDataAvailable(relaxed: false) ? "✅ 滿足所有條件" : "❌ 未滿足所有條件")")
         }
     }
 }
