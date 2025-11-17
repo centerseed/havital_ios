@@ -1380,6 +1380,11 @@
 "hr_setup.invalid_max_hr" = "Max heart rate should be between 1 and 220";
 "hr_setup.invalid_resting_hr" = "Resting heart rate should be between 1 and 99";
 "hr_setup.at_least_one_required" = "Please enter at least one heart rate value";
+"heart_rate.setup_prompt_title" = "Set Up Heart Rate";
+"heart_rate.setup_prompt_message" = "Setting your max and resting heart rate helps us provide more accurate training recommendations and heart rate zone analysis.";
+"heart_rate.go_to_setup" = "Set Up Now";
+"heart_rate.remind_tomorrow" = "Remind Me Tomorrow";
+"heart_rate.never_remind" = "Don't Remind Me";
 "common.ok" = "OK";
 "common.error" = "Error";
 "common.generating" = "Generating...";

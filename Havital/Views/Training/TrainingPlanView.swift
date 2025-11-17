@@ -657,8 +657,20 @@ struct TrainingPlanView: View {
     private func checkAndShowHeartRateSetup() {
         // 如果用戶已經選擇不再顯示，則跳過
         if userPreferenceManager.doNotShowHeartRatePrompt {
-            Logger.debug("Heart rate setup prompt has been dismissed by user")
+            Logger.debug("Heart rate setup prompt has been dismissed by user (never remind)")
             return
+        }
+
+        // 檢查是否在"明天再提醒"的時間範圍內
+        if let nextRemindDate = userPreferenceManager.heartRatePromptNextRemindDate {
+            if Date() < nextRemindDate {
+                Logger.debug("Heart rate setup prompt: Still within 'remind me tomorrow' period, skipping")
+                return
+            } else {
+                // 時間已過期，清除這個標記
+                Logger.debug("Heart rate setup prompt: 'Remind me tomorrow' period expired, clearing flag")
+                userPreferenceManager.heartRatePromptNextRemindDate = nil
+            }
         }
 
         // 檢查是否至少設定了最大心率或靜息心率
@@ -666,11 +678,13 @@ struct TrainingPlanView: View {
         let hasRestingHeartRate = userPreferenceManager.restingHeartRate != nil && (userPreferenceManager.restingHeartRate ?? 0) > 0
 
         if !hasMaxHeartRate && !hasRestingHeartRate {
-            Logger.debug("User has not set heart rate values, showing setup prompt")
-            // 延遲顯示，確保視圖完全加載
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Logger.debug("User has not set heart rate values, showing setup prompt after 3 seconds")
+            // 延遲 3 秒顯示，確保視圖完全加載且不干擾用戶初始體驗
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 showHeartRateSetup = true
             }
+        } else {
+            Logger.debug("Heart rate setup prompt: User has already set heart rate values, skipping")
         }
     }
 

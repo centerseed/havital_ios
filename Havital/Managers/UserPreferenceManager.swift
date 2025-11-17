@@ -93,7 +93,18 @@ class UserPreferenceManager: ObservableObject {
             UserDefaults.standard.set(doNotShowHeartRatePrompt, forKey: "do_not_show_heart_rate_prompt")
         }
     }
-    
+
+    /// 心率提示的下次提醒日期（用於"明天再提醒我"功能）
+    @Published var heartRatePromptNextRemindDate: Date? {
+        didSet {
+            if let date = heartRatePromptNextRemindDate {
+                UserDefaults.standard.set(date.timeIntervalSince1970, forKey: "heart_rate_prompt_next_remind_date")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "heart_rate_prompt_next_remind_date")
+            }
+        }
+    }
+
     /// 心率區間的JSON資料
     @Published var heartRateZones: Data? {
         didSet {
@@ -209,6 +220,11 @@ class UserPreferenceManager: ObservableObject {
         self.heartRateZones = UserDefaults.standard.data(forKey: "heart_rate_zones")
         self.doNotShowHeartRatePrompt = UserDefaults.standard.bool(forKey: "do_not_show_heart_rate_prompt")
 
+        // 載入下次提醒日期
+        if let timestamp = UserDefaults.standard.object(forKey: "heart_rate_prompt_next_remind_date") as? TimeInterval {
+            self.heartRatePromptNextRemindDate = Date(timeIntervalSince1970: timestamp)
+        }
+
         // 確保心率值有效（如果是0表示未設定）
         if let maxHR = self.maxHeartRate, maxHR == 0 {
             self.maxHeartRate = nil
@@ -267,7 +283,7 @@ class UserPreferenceManager: ObservableObject {
             "current_pace", "current_distance", "prefer_week_days",
             "prefer_week_days_longrun", "week_of_training", "user_photo_url",
             "language_preference", "unit_preference", "resting_heart_rate",
-            "do_not_show_heart_rate_prompt",
+            "do_not_show_heart_rate_prompt", "heart_rate_prompt_next_remind_date",
             // 登出時清除數據來源設定，確保多用戶環境下的數據隔離
             Self.dataSourceKey
         ]

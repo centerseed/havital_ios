@@ -1399,6 +1399,11 @@
 "hr_setup.invalid_max_hr" = "最大心率應介於 1-220 次/分";
 "hr_setup.invalid_resting_hr" = "安靜心率應介於 1-99 次/分";
 "hr_setup.at_least_one_required" = "請至少輸入一個心率值";
+"heart_rate.setup_prompt_title" = "設定心率";
+"heart_rate.setup_prompt_message" = "設定您的最大心率和靜息心率，可幫助我們提供更準確的訓練建議和心率區間分析。";
+"heart_rate.go_to_setup" = "立即設定";
+"heart_rate.remind_tomorrow" = "明天再提醒我";
+"heart_rate.never_remind" = "不再提醒";
 "common.ok" = "確定";
 "common.error" = "錯誤";
 "common.generating" = "生成中...";

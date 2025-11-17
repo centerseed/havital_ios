@@ -1375,6 +1375,11 @@
 "hr_setup.invalid_max_hr" = "最大心拍数は1～220の間である必要があります";
 "hr_setup.invalid_resting_hr" = "安静時心拍数は1～99の間である必要があります";
 "hr_setup.at_least_one_required" = "少なくとも1つの心拍数値を入力してください";
+"heart_rate.setup_prompt_title" = "心拍数を設定";
+"heart_rate.setup_prompt_message" = "最大心拍数と安静時心拍数を設定することで、より正確なトレーニング推奨と心拍ゾーン分析を提供できます。";
+"heart_rate.go_to_setup" = "今すぐ設定";
+"heart_rate.remind_tomorrow" = "明日に通知";
+"heart_rate.never_remind" = "今後表示しない";
 "common.ok" = "OK";
 "common.error" = "エラー";
 "common.generating" = "生成中...";
