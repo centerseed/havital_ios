@@ -466,9 +466,8 @@ struct TrainingPlanView: View {
             .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showHeartRateSetupFullScreen) {
-            NavigationStack {
-                HeartRateZoneInfoView(mode: .profile)
-            }
+            // HeartRateZoneInfoView 內部已有 NavigationView，不需要再包裝
+            HeartRateZoneInfoView(mode: .profile)
         }
     }
     
