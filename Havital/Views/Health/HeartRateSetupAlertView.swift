@@ -8,7 +8,7 @@ struct HeartRateSetupAlertView: View {
     @ObservedObject private var userPreferenceManager = UserPreferenceManager.shared
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 24) {
                 // 图标
                 Image(systemName: "heart.text.square.fill")
@@ -84,9 +84,6 @@ struct HeartRateSetupAlertView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarHidden(true)
             .background(
                 NavigationLink(
                     destination: HeartRateZoneInfoView(mode: .profile)

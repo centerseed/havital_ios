@@ -458,6 +458,8 @@ struct TrainingPlanView: View {
         }
         .sheet(isPresented: $showHeartRateSetup) {
             HeartRateSetupAlertView()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
     
