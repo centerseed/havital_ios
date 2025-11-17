@@ -170,7 +170,9 @@
 ### 所有運動必需
 - ✅ **心率數據** ≥ 2 筆
 
-### 跑步運動額外必需
+### Apple Watch 跑步運動額外必需
+僅適用於 Apple Watch、iPhone 等 Apple 設備錄製的跑步運動：
+
 - ✅ **速度/距離來源**（優先級順序）：
   1. GPS 速度樣本 ≥ 2 筆
   2. 分圈距離 > 0
@@ -181,10 +183,45 @@
   - 步頻數據 ≥ 2 筆
   - **或** 有分圈資料
 
+### 第三方設備跑步運動（Garmin/Polar/Suunto 等）
+**放寬要求**：只需要心率數據 ≥ 2 筆
+
+- ℹ️ 原因：第三方設備同步到 Apple Health 的數據通常只有摘要信息
+- ℹ️ 詳細的配速曲線、步頻等數據在其原平台（如 Garmin Connect）上
+- ℹ️ 我們仍會嘗試獲取速度、步頻等數據，但不會因為缺失而拒絕上傳
+
+### 設備識別邏輯（重要）
+
+**正面識別策略**：使用雙重正面識別來確保安全性
+
+1. **Apple 設備識別**（Bundle ID + Source Name）：
+   - Bundle ID: `com.apple.health`, `com.apple.healthd`, `com.apple.Fitness`
+   - Source Name: `Health`, `Apple Watch`, `iPhone`, `健康`, `Fitness`
+
+2. **已知第三方設備識別**（Bundle ID + Source Name）：
+   - Garmin: `com.garmin.connect.mobile` / `Garmin Connect`
+   - Polar: `com.polar.polarflow` / `Polar Flow`
+   - Suunto: `com.suunto.suuntolink` / `Suunto`
+   - Strava: `com.strava.strava` / `Strava`
+   - 等等...
+
+3. **未知來源處理**：
+   - ⚠️ 未知來源 → **套用嚴格驗證**（與 Apple Watch 相同）
+   - ✅ 這確保不會誤判 Apple Watch 為第三方
+   - ✅ 避免上傳不完整的資料
+   - 📝 系統會記錄未知來源的詳細資訊，方便後續添加到已知列表
+
+**為什麼這樣設計？**
+- **安全優先**：寧可拒絕上傳，也不要上傳不完整的資料
+- **避免誤判**：如果有新的 Apple 設備/App，不會被錯誤地套用寬鬆驗證
+- **可擴展性**：發現新的第三方設備時，可以輕鬆添加到已知列表
+
 ### 可選數據
 - 步幅（Stride Length）
 - 觸地時間（Ground Contact Time）
 - 垂直振幅（Vertical Oscillation）
+- GPS 速度樣本（第三方設備）
+- 步頻數據（第三方設備）
 
 ---
 

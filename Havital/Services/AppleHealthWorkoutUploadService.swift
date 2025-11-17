@@ -1103,16 +1103,19 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         return false
     }
     
-    /// 檢查是否為第三方數據源
-    private func isThirdPartyDataSource(sourceName: String, bundleId: String) -> Bool {
-        // Apple 官方來源
+    /// 檢測是否為第三方數據源（Garmin, Polar, Strava 等）
+    /// - 只有「已知的第三方」才返回 true
+    /// - 未知來源返回 false，會套用嚴格驗證（更安全，避免誤判）
+    /// - 這確保 Apple Watch/iPhone 運動不會被誤判為第三方
+    internal func isThirdPartyDataSource(sourceName: String, bundleId: String) -> Bool {
+        // Apple 官方來源（正面識別）
         let appleSourceIdentifiers = [
             "com.apple.health",
             "com.apple.Health",
             "com.apple.healthd",
             "com.apple.Fitness"
         ]
-        
+
         let appleSourceNames = [
             "Health",
             "Apple Watch",
@@ -1120,18 +1123,17 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             "健康",
             "Fitness"
         ]
-        
-        // 檢查 bundle ID
+
+        // 如果是 Apple 來源，直接返回 false
         if appleSourceIdentifiers.contains(bundleId) {
             return false
         }
-        
-        // 檢查來源名稱
+
         if appleSourceNames.contains(sourceName) {
             return false
         }
-        
-        // 其他常見的第三方健身設備/應用
+
+        // 已知的第三方健身設備/應用（正面識別）
         let thirdPartyIdentifiers = [
             "com.garmin.connect.mobile",
             "com.polar.polarflow",
@@ -1142,11 +1144,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             "com.runtastic.Runtastic",
             "com.nike.nikeplus-gps"
         ]
-        
+
         let thirdPartyNames = [
             "Connect",
             "Garmin Connect",
-            "Polar Flow", 
+            "Polar Flow",
             "Suunto",
             "Fitbit",
             "Wahoo",
@@ -1154,7 +1156,9 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             "Runtastic",
             "Nike Run Club"
         ]
-        
+
+        // 只有明確識別為已知第三方，才返回 true
+        // 未知來源會返回 false，套用嚴格驗證（避免誤判 Apple 設備）
         return thirdPartyIdentifiers.contains(bundleId) || thirdPartyNames.contains(sourceName)
     }
 
@@ -1208,7 +1212,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
         /// 檢查是否滿足所有必要的數據條件
         /// - 所有運動：必須有心率 >= 2
-        /// - 跑步相關運動：需要心率 >= 2 + (有可靠的速度/距離來源) + (步頻或分圈)
+        /// - Apple Watch 跑步運動：需要心率 >= 2 + (有可靠的速度/距離來源) + (步頻或分圈)
+        /// - 第三方設備跑步運動：只需要心率 >= 2（Garmin 等設備的詳細數據在其平台上）
         /// - 其他運動：只需要心率 >= 2
         var isAllRequiredDataAvailable: Bool {
             // 第一層：心率是所有運動的必需資料
@@ -1216,7 +1221,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 return false  // 會觸發現有的重試機制
             }
 
-            if isRunningRelated {
+            // 檢查是否為第三方數據源
+            let isThirdParty = isThirdPartyWorkout()
+
+            if isRunningRelated && !isThirdParty {
+                // Apple Watch 跑步運動：需要更嚴格的驗證
                 // 第二層：跑步運動需要可靠的速度/距離來源
                 let hasReliableSpeed = checkReliableSpeedData()
                 guard hasReliableSpeed else {
@@ -1232,9 +1241,23 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
                 return true
             } else {
-                // 其他運動只需要心率
+                // 第三方設備或其他運動：只需要心率
+                // Garmin/Polar 等設備的詳細數據在其自己的平台上
                 return true
             }
+        }
+
+        /// 檢查是否為第三方數據源
+        /// 注意：只有「已知的第三方」才返回 true，未知來源會套用嚴格驗證（較安全）
+        private func isThirdPartyWorkout() -> Bool {
+            let sourceName = workout.sourceRevision.source.name
+            let bundleId = workout.sourceRevision.source.bundleIdentifier
+
+            // 使用現有的檢測邏輯（只有已知第三方才返回 true）
+            return AppleHealthWorkoutUploadService.shared.isThirdPartyDataSource(
+                sourceName: sourceName,
+                bundleId: bundleId
+            )
         }
 
         /// 檢查是否有可靠的速度/距離來源（WorkoutRequiredData 內部方法）
@@ -1268,12 +1291,38 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
 
         func logSummary(workoutId: String) {
+            let isThirdParty = isThirdPartyWorkout()
+            let sourceName = workout.sourceRevision.source.name
+            let bundleId = workout.sourceRevision.source.bundleIdentifier
+
             print("📊 [數據驗證] 運動ID: \(workoutId) | 類型: \(isRunningRelated ? "跑步相關" : "其他運動")")
+
+            // 檢測數據來源並記錄詳細資訊
+            if isThirdParty {
+                print("   🔌 數據來源: \(sourceName) (已知第三方設備)")
+                print("      Bundle ID: \(bundleId)")
+            } else {
+                // 檢查是否為已知的 Apple 設備
+                let appleIdentifiers = ["com.apple.health", "com.apple.Health", "com.apple.healthd", "com.apple.Fitness"]
+                let appleNames = ["Health", "Apple Watch", "iPhone", "健康", "Fitness"]
+                let isKnownApple = appleIdentifiers.contains(bundleId) || appleNames.contains(sourceName)
+
+                if isKnownApple {
+                    print("   🍎 數據來源: \(sourceName) (Apple 設備)")
+                    print("      Bundle ID: \(bundleId)")
+                } else {
+                    // 未知來源 - 套用嚴格驗證以策安全
+                    print("   ⚠️  數據來源: \(sourceName) (未知來源，套用嚴格驗證)")
+                    print("      Bundle ID: \(bundleId)")
+                    print("      ⚠️  請檢查此來源是否應加入已知列表")
+                }
+            }
             print("   📍 第一層驗證 - 心率（所有運動必需）:")
             print("     - 心率: \(heartRateData.count) 筆 \(heartRateData.count >= 2 ? "✅" : "❌")")
 
-            if isRunningRelated {
-                print("   📍 第二層驗證 - 速度/距離來源（跑步必需）:")
+            if isRunningRelated && !isThirdParty {
+                // Apple Watch 跑步運動需要更多驗證
+                print("   📍 第二層驗證 - 速度/距離來源（Apple Watch 跑步必需）:")
                 print("     - GPS 速度樣本: \(speedData.count) 筆")
                 print("     - 分圈資料: \(lapData?.count ?? 0) 圈")
                 if let laps = lapData, !laps.isEmpty {
@@ -1288,7 +1337,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 print("   📍 第三層驗證 - 步頻或分圈（至少一個）:")
                 print("     - 步頻: \(cadenceData.count) 筆 \(cadenceData.count >= 2 ? "✅" : "❌")")
                 print("     - 分圈: \((lapData?.count ?? 0) > 0 ? "✅" : "❌")")
+            } else if isThirdParty {
+                // 第三方設備：只需心率
+                print("   ℹ️  第三方設備運動：只需心率（詳細數據在原平台）")
+                print("     - 速度: \(speedData.count) 筆 (可選)")
+                print("     - 步頻: \(cadenceData.count) 筆 (可選)")
+                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                    print("     - 總距離: \(String(format: "%.0f", distance)) m (可選)")
+                }
             } else {
+                // 其他運動
                 print("   📍 其他運動：只需心率")
                 print("     - 速度: \(speedData.count) 筆 (可選)")
                 print("     - 步頻: \(cadenceData.count) 筆 (可選)")
