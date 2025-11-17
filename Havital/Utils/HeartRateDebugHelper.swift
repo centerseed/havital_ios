@@ -6,35 +6,35 @@ struct HeartRateDebugHelper {
 
     /// 打印当前所有心率相关的 UserDefaults 值
     static func printAllHeartRateSettings() {
-        Logger.debug("=== Heart Rate Settings Debug Info ===")
+        Logger.debug("[HeartRateDebug] ========== 心率設置完整狀態 ==========")
 
         let maxHR = UserDefaults.standard.integer(forKey: "max_heart_rate")
         let restingHR = UserDefaults.standard.integer(forKey: "resting_heart_rate")
         let doNotShow = UserDefaults.standard.bool(forKey: "do_not_show_heart_rate_prompt")
 
-        Logger.debug("UserDefaults - max_heart_rate: \(maxHR)")
-        Logger.debug("UserDefaults - resting_heart_rate: \(restingHR)")
-        Logger.debug("UserDefaults - do_not_show_heart_rate_prompt: \(doNotShow)")
+        Logger.debug("[HeartRateDebug] UserDefaults.max_heart_rate: \(maxHR)")
+        Logger.debug("[HeartRateDebug] UserDefaults.resting_heart_rate: \(restingHR)")
+        Logger.debug("[HeartRateDebug] UserDefaults.do_not_show_heart_rate_prompt: \(doNotShow)")
 
         if let timestamp = UserDefaults.standard.object(forKey: "heart_rate_prompt_next_remind_date") as? TimeInterval {
             let date = Date(timeIntervalSince1970: timestamp)
-            Logger.debug("UserDefaults - heart_rate_prompt_next_remind_date: \(date)")
+            Logger.debug("[HeartRateDebug] UserDefaults.heart_rate_prompt_next_remind_date: \(date)")
         } else {
-            Logger.debug("UserDefaults - heart_rate_prompt_next_remind_date: nil")
+            Logger.debug("[HeartRateDebug] UserDefaults.heart_rate_prompt_next_remind_date: nil")
         }
 
         let manager = UserPreferenceManager.shared
-        Logger.debug("UserPreferenceManager - maxHeartRate: \(manager.maxHeartRate ?? 0)")
-        Logger.debug("UserPreferenceManager - restingHeartRate: \(manager.restingHeartRate ?? 0)")
-        Logger.debug("UserPreferenceManager - doNotShowHeartRatePrompt: \(manager.doNotShowHeartRatePrompt)")
-        Logger.debug("UserPreferenceManager - heartRatePromptNextRemindDate: \(manager.heartRatePromptNextRemindDate?.description ?? "nil")")
+        Logger.debug("[HeartRateDebug] Manager.maxHeartRate: \(manager.maxHeartRate ?? 0)")
+        Logger.debug("[HeartRateDebug] Manager.restingHeartRate: \(manager.restingHeartRate ?? 0)")
+        Logger.debug("[HeartRateDebug] Manager.doNotShowHeartRatePrompt: \(manager.doNotShowHeartRatePrompt)")
+        Logger.debug("[HeartRateDebug] Manager.heartRatePromptNextRemindDate: \(manager.heartRatePromptNextRemindDate?.description ?? "nil")")
 
-        Logger.debug("=== End Debug Info ===")
+        Logger.debug("[HeartRateDebug] ==========================================")
     }
 
     /// 强制清除所有心率设置（仅用于调试）
     static func forceClearAllHeartRateSettings() {
-        Logger.debug("🧹 Forcefully clearing all heart rate settings...")
+        Logger.debug("[HeartRateDebug] 🧹 開始清除所有心率設置...")
 
         UserDefaults.standard.removeObject(forKey: "max_heart_rate")
         UserDefaults.standard.removeObject(forKey: "resting_heart_rate")
@@ -49,15 +49,15 @@ struct HeartRateDebugHelper {
         manager.heartRatePromptNextRemindDate = nil
         manager.heartRateZones = nil
 
-        Logger.debug("✅ All heart rate settings cleared")
+        Logger.debug("[HeartRateDebug] ✅ 所有心率設置已清除")
         printAllHeartRateSettings()
     }
 
     /// 模拟"明天再提醒"场景（设置为1分钟后过期）
     static func simulateRemindMeTomorrow() {
-        Logger.debug("⏰ Simulating 'Remind Me Tomorrow' (expires in 1 minute)")
+        Logger.debug("[HeartRateDebug] ⏰ 模擬「明天再提醒」（1分鐘後過期）")
         let oneMinuteLater = Date().addingTimeInterval(60)
         UserPreferenceManager.shared.heartRatePromptNextRemindDate = oneMinuteLater
-        Logger.debug("✅ Next remind date set to: \(oneMinuteLater)")
+        Logger.debug("[HeartRateDebug] ✅ 下次提醒時間設為：\(oneMinuteLater)")
     }
 }

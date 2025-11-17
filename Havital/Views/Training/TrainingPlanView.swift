@@ -434,7 +434,7 @@ struct TrainingPlanView: View {
             }
         }
         .onAppear {
-            Logger.debug("TrainingPlanView onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
+            Logger.debug("[TrainingPlanView] onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
 
             // 打印心率设置调试信息
             #if DEBUG
@@ -442,10 +442,7 @@ struct TrainingPlanView: View {
             #endif
 
             if hasCompletedOnboarding && AppStateManager.shared.currentState.isReady {
-                Logger.debug("View onAppear: Onboarding completed")
-                // ❌ 移除 refreshWorkouts() 調用，避免與 AppStateManager.setupServices() 的 loadWorkouts() 產生並發競爭
-                // AppStateManager 已經在啟動時調用了 UnifiedWorkoutManager.loadWorkouts()
-                // 這裡再調用 refreshWorkouts() 會導致重複的 API 請求
+                Logger.debug("[TrainingPlanView] ✅ 條件符合，開始檢查")
 
                 // 檢查用戶是否設定了心率，如果未設定則顯示提示
                 checkAndShowHeartRateSetup()
@@ -456,7 +453,7 @@ struct TrainingPlanView: View {
                     await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
                 }
             } else {
-                Logger.debug("TrainingPlanView onAppear: Skipping checks - conditions not met")
+                Logger.debug("[TrainingPlanView] ❌ 條件不符，跳過檢查")
             }
         }
         .sheet(isPresented: $showHeartRateSetup) {
@@ -664,46 +661,52 @@ struct TrainingPlanView: View {
     // 刷新訓練記錄
     /// 檢查用戶是否設定了心率，如果未設定則顯示提示對話框
     private func checkAndShowHeartRateSetup() {
-        Logger.debug("🔍 checkAndShowHeartRateSetup() called")
-        Logger.debug("🔍 doNotShowHeartRatePrompt: \(userPreferenceManager.doNotShowHeartRatePrompt)")
-        Logger.debug("🔍 maxHeartRate: \(userPreferenceManager.maxHeartRate ?? 0)")
-        Logger.debug("🔍 restingHeartRate: \(userPreferenceManager.restingHeartRate ?? 0)")
+        Logger.debug("[HeartRatePrompt] 開始檢查心率設置")
+        Logger.debug("[HeartRatePrompt] doNotShowHeartRatePrompt: \(userPreferenceManager.doNotShowHeartRatePrompt)")
+        Logger.debug("[HeartRatePrompt] maxHeartRate: \(userPreferenceManager.maxHeartRate ?? 0)")
+        Logger.debug("[HeartRatePrompt] restingHeartRate: \(userPreferenceManager.restingHeartRate ?? 0)")
 
         // 如果用戶已經選擇不再顯示，則跳過
         if userPreferenceManager.doNotShowHeartRatePrompt {
-            Logger.debug("❌ Heart rate setup prompt has been dismissed by user (never remind)")
+            Logger.debug("[HeartRatePrompt] ❌ 用戶已選擇「永不提醒」，跳過")
             return
         }
 
         // 檢查是否在"明天再提醒"的時間範圍內
         if let nextRemindDate = userPreferenceManager.heartRatePromptNextRemindDate {
-            Logger.debug("🔍 nextRemindDate: \(nextRemindDate), now: \(Date())")
+            Logger.debug("[HeartRatePrompt] 檢查「明天再提醒」時間：\(nextRemindDate)")
             if Date() < nextRemindDate {
-                Logger.debug("❌ Heart rate setup prompt: Still within 'remind me tomorrow' period, skipping")
+                Logger.debug("[HeartRatePrompt] ❌ 仍在等待期內，跳過（\(nextRemindDate) > 現在）")
                 return
             } else {
                 // 時間已過期，清除這個標記
-                Logger.debug("✅ Heart rate setup prompt: 'Remind me tomorrow' period expired, clearing flag")
+                Logger.debug("[HeartRatePrompt] ✅ 等待期已過期，清除標記")
                 userPreferenceManager.heartRatePromptNextRemindDate = nil
             }
         }
 
-        // 檢查是否至少設定了最大心率或靜息心率
+        // 檢查是否設定了最大心率和靜息心率
         let hasMaxHeartRate = userPreferenceManager.maxHeartRate != nil && (userPreferenceManager.maxHeartRate ?? 0) > 0
         let hasRestingHeartRate = userPreferenceManager.restingHeartRate != nil && (userPreferenceManager.restingHeartRate ?? 0) > 0
 
-        Logger.debug("🔍 hasMaxHeartRate: \(hasMaxHeartRate), hasRestingHeartRate: \(hasRestingHeartRate)")
+        Logger.debug("[HeartRatePrompt] 檢查結果 - hasMaxHeartRate: \(hasMaxHeartRate), hasRestingHeartRate: \(hasRestingHeartRate)")
 
-        if !hasMaxHeartRate && !hasRestingHeartRate {
-            Logger.debug("✅ User has not set heart rate values, showing setup prompt after 3 seconds")
+        // ⚠️ 修正邏輯：只要有一個沒設置就提醒（使用 OR 而不是 AND）
+        if !hasMaxHeartRate || !hasRestingHeartRate {
+            let missingItems = [
+                !hasMaxHeartRate ? "最大心率" : nil,
+                !hasRestingHeartRate ? "靜息心率" : nil
+            ].compactMap { $0 }
+
+            Logger.debug("[HeartRatePrompt] ✅ 缺少心率數據：\(missingItems.joined(separator: "、"))，3秒後顯示提醒")
+
             // 延遲 3 秒顯示，確保視圖完全加載且不干擾用戶初始體驗
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                Logger.debug("⏰ 3 seconds elapsed, setting showHeartRateSetup = true")
+                Logger.debug("[HeartRatePrompt] ⏰ 3秒已過，顯示心率設置對話框")
                 showHeartRateSetup = true
-                Logger.debug("✅ showHeartRateSetup is now: \(showHeartRateSetup)")
             }
         } else {
-            Logger.debug("❌ Heart rate setup prompt: User has already set heart rate values, skipping (maxHR: \(userPreferenceManager.maxHeartRate ?? 0), restingHR: \(userPreferenceManager.restingHeartRate ?? 0))")
+            Logger.debug("[HeartRatePrompt] ❌ 心率數據已完整，跳過（maxHR: \(userPreferenceManager.maxHeartRate ?? 0), restingHR: \(userPreferenceManager.restingHeartRate ?? 0)）")
         }
     }
 
