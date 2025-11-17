@@ -249,6 +249,8 @@ struct TrainingPlanView: View {
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
     @State private var showEditSchedule = false
+    @State private var showHeartRateSetup = false
+    @ObservedObject private var userPreferenceManager = UserPreferenceManager.shared
     
     
     var body: some View {
@@ -438,12 +440,18 @@ struct TrainingPlanView: View {
                 // AppStateManager 已經在啟動時調用了 UnifiedWorkoutManager.loadWorkouts()
                 // 這裡再調用 refreshWorkouts() 會導致重複的 API 請求
 
+                // 檢查用戶是否設定了心率，如果未設定則顯示提示
+                checkAndShowHeartRateSetup()
+
                 // 在訓練計劃載入後檢查評分提示
                 TrackedTask("TrainingPlanView: checkAppRating") {
                     // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
                     await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
                 }
             }
+        }
+        .sheet(isPresented: $showHeartRateSetup) {
+            HeartRateSetupAlertView()
         }
     }
     
@@ -645,6 +653,27 @@ struct TrainingPlanView: View {
     }
     
     // 刷新訓練記錄
+    /// 檢查用戶是否設定了心率，如果未設定則顯示提示對話框
+    private func checkAndShowHeartRateSetup() {
+        // 如果用戶已經選擇不再顯示，則跳過
+        if userPreferenceManager.doNotShowHeartRatePrompt {
+            Logger.debug("Heart rate setup prompt has been dismissed by user")
+            return
+        }
+
+        // 檢查是否至少設定了最大心率或靜息心率
+        let hasMaxHeartRate = userPreferenceManager.maxHeartRate != nil && (userPreferenceManager.maxHeartRate ?? 0) > 0
+        let hasRestingHeartRate = userPreferenceManager.restingHeartRate != nil && (userPreferenceManager.restingHeartRate ?? 0) > 0
+
+        if !hasMaxHeartRate && !hasRestingHeartRate {
+            Logger.debug("User has not set heart rate values, showing setup prompt")
+            // 延遲顯示，確保視圖完全加載
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showHeartRateSetup = true
+            }
+        }
+    }
+
     private func refreshWorkouts() {
         Logger.debug("Refreshing training records and weekly volume")
         TrackedTask("TrainingPlanView: refreshWorkouts") {

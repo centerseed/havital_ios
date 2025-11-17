@@ -382,10 +382,13 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         // 更新 onboarding 與用戶偏好
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
-        
+
         // 在用戶資料完全載入後檢查 Garmin 和 Strava 連線狀態
         await checkGarminConnectionAfterUserData()
         await checkStravaConnectionAfterUserData()
+
+        // 檢查數據源綁定狀態（僅在 onboarding 完成後）
+        await checkDataSourceBinding(user: user)
 
     }
     
@@ -561,6 +564,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 Task {
                     await self?.checkGarminConnectionAfterUserData()
                     await self?.checkStravaConnectionAfterUserData()
+
+                    // 檢查數據源綁定狀態（僅在 onboarding 完成後）
+                    await self?.checkDataSourceBinding(user: user)
                 }
             }
             .store(in: &cancellables)
@@ -741,6 +747,53 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             }
         } else {
             print("🔍 用戶偏好不是 Strava，跳過 Strava 狀態檢查")
+        }
+    }
+
+    /// 檢查數據源綁定狀態（僅在 onboarding 完成後執行）
+    private func checkDataSourceBinding(user: User) async {
+        // 只有在已完成 onboarding 的情況下才檢查
+        guard hasCompletedOnboarding else {
+            print("⏭️ Onboarding 未完成，跳過數據源綁定檢查")
+            return
+        }
+
+        print("🔍 檢查數據源綁定狀態...")
+
+        // 檢查後端的 data_source 字段
+        let backendDataSource = user.dataSource
+
+        print("  - 後端 data_source: \(backendDataSource ?? "nil")")
+        print("  - 本地偏好: \(UserPreferenceManager.shared.dataSourcePreference.rawValue)")
+
+        // 如果後端沒有設定數據源，發送通知提示用戶綁定
+        if backendDataSource == nil || backendDataSource == "unbound" {
+            print("⚠️ 檢測到未綁定數據源，發送通知提示用戶")
+
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .dataSourceNotBound,
+                    object: nil
+                )
+            }
+
+            Logger.firebase("檢測到未綁定數據源", level: .warn, labels: [
+                "module": "AuthenticationService",
+                "action": "checkDataSourceBinding",
+                "backend_data_source": backendDataSource ?? "nil",
+                "local_preference": UserPreferenceManager.shared.dataSourcePreference.rawValue
+            ])
+        } else {
+            print("✅ 數據源已綁定: \(backendDataSource!)")
+
+            // 如果後端有設定但本地沒有，同步到本地
+            if let dataSourceString = backendDataSource,
+               let dataSourceType = DataSourceType(rawValue: dataSourceString),
+               UserPreferenceManager.shared.dataSourcePreference != dataSourceType {
+
+                print("🔄 後端數據源與本地不一致，同步到本地: \(dataSourceType.displayName)")
+                UserPreferenceManager.shared.dataSourcePreference = dataSourceType
+            }
         }
     }
 }

@@ -611,23 +611,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         cancelAllTasks()
     }
     
-    // 安排背景任務
+    // 安排背景任務 - 委派給 HavitalApp 的 scheduleBackgroundWorkoutSync()
     private func scheduleBackgroundTask() {
-        let taskIdentifier = "com.havital.workout-sync"
-        
-        let request = BGProcessingTaskRequest(identifier: taskIdentifier)
-        request.requiresNetworkConnectivity = true
-        request.requiresExternalPower = false
-        
-        // 至少 1 小時後執行
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60)
-        
-        do {
-            try BGTaskScheduler.shared.submit(request)
-            print("已安排背景健身記錄同步任務")
-        } catch {
-            print("無法安排背景同步任務: \(error.localizedDescription)")
-        }
+        // ✅ 修復：不再在這裡獨立排程任務，而是委派給全局的 scheduleBackgroundWorkoutSync()
+        // 這樣避免重複任務競爭和 error 3（NotPermitted）
+        scheduleBackgroundWorkoutSync()
     }
     
     // 獲取最近的健身記錄 - 修正版

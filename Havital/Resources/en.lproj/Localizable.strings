@@ -1372,3 +1372,16 @@
 "datasource.switch.strava_to_garmin" = "Switching to Garmin Connect™ will unbind your Strava connection and require Garmin authorization. Your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.";
 "datasource.switch.to_unbound" = "Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.";
 "datasource.switch.default" = "Are you sure you want to proceed with this operation?";
+
+// MARK: - Heart Rate Setup Prompt
+"hr_setup.title" = "Set Heart Rate";
+"hr_setup.description" = "Heart rate is important for training zone calculation";
+"hr_setup.do_not_show_again" = "Don't show again";
+"hr_setup.invalid_max_hr" = "Max heart rate should be between 1 and 220";
+"hr_setup.invalid_resting_hr" = "Resting heart rate should be between 1 and 99";
+"hr_setup.at_least_one_required" = "Please enter at least one heart rate value";
+"common.ok" = "OK";
+"common.error" = "Error";
+"common.generating" = "Generating...";
+// MARK: - Training Readiness - Estimated Race Time
+"training_readiness.estimated_race_time" = "Est. Finish";

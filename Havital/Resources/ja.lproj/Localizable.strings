@@ -1367,3 +1367,16 @@
 "datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えはStravaとの接続を解除し、Garmin認可が必要になります。トレーニング記録はGarmin Connect™から読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
 "datasource.switch.to_unbound" = "未バインド状態への切り替えはすべてのローカルワークアウトデータを削除します。後でプロファイルページでデータソースを再選択して接続できます。";
 "datasource.switch.default" = "この操作を続行しますか？";
+
+// MARK: - 心拍数設定プロンプト
+"hr_setup.title" = "心拍数を設定";
+"hr_setup.description" = "心拍数はトレーニングゾーン計算に重要です";
+"hr_setup.do_not_show_again" = "もう表示しない";
+"hr_setup.invalid_max_hr" = "最大心拍数は1～220の間である必要があります";
+"hr_setup.invalid_resting_hr" = "安静時心拍数は1～99の間である必要があります";
+"hr_setup.at_least_one_required" = "少なくとも1つの心拍数値を入力してください";
+"common.ok" = "OK";
+"common.error" = "エラー";
+"common.generating" = "生成中...";
+// MARK: - Training Readiness - Estimated Race Time
+"training_readiness.estimated_race_time" = "予想完走時間";

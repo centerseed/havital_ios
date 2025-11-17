@@ -7,11 +7,14 @@ class AppViewModel: ObservableObject {
     // 新增 Garmin 數據源不一致相關的狀態
     @Published var showGarminMismatchAlert = false
     @Published var isHandlingGarminMismatch = false
-    
+
+    // 新增數據源未綁定相關的狀態
+    @Published var showDataSourceNotBoundAlert = false
+
     // 使用新的狀態管理中心
     private let appStateManager = AppStateManager.shared
     private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
-    
+
     init() {
         // 監聽 HealthKit 權限提示通知
         NotificationCenter.default.addObserver(
@@ -24,7 +27,7 @@ class AppViewModel: ObservableObject {
                 self?.showHealthKitAlert = true
             }
         }
-        
+
         // 監聽 Garmin 數據源不一致通知
         NotificationCenter.default.addObserver(
             forName: .garminDataSourceMismatch,
@@ -33,6 +36,16 @@ class AppViewModel: ObservableObject {
         ) { [weak self] _ in
             print("收到 Garmin 數據源不一致通知，顯示重新綁定對話框")
             self?.showGarminMismatchAlert = true
+        }
+
+        // 監聽數據源未綁定通知
+        NotificationCenter.default.addObserver(
+            forName: .dataSourceNotBound,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("收到數據源未綁定通知，顯示綁定提示對話框")
+            self?.showDataSourceNotBoundAlert = true
         }
     }
     

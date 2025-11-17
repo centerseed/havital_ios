@@ -906,30 +906,36 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         if let plan = plan {
             Logger.debug("updateWeeklyPlanUI: 更新週計劃 - 週數=\(plan.weekOfPlan), ID=\(plan.id)")
             Logger.debug("updateWeeklyPlanUI: 更新前 selectedWeek=\(self.selectedWeek)")
-            
+
             self.weeklyPlan = plan
             self.currentPlanWeek = plan.weekOfPlan
             if let info = WeekDateService.weekDateInfo(createdAt: self.trainingOverview!.createdAt, weekNumber: plan.weekOfPlan) {
                 self.weekDateInfo = info
             }
             self.selectedWeek = plan.weekOfPlan
-            
+
             Logger.debug("updateWeeklyPlanUI: 更新後 selectedWeek=\(self.selectedWeek)")
-            
+
             // Save the plan to cache when updating UI
             TrainingPlanStorage.saveWeeklyPlan(plan)
             if planChanged {
                 self.workoutsByDay.removeAll()
                 self.expandedDayIndices.removeAll()
             }
+
+            // 🔧 關鍵修復：更新週計劃後，立即載入該週的訓練記錄
+            // 這確保 workoutsByDayV2 被填充，使得 TrainingPlanView 中的訓練記錄能正確顯示
+            Task {
+                await self.loadWorkoutsForCurrentWeek()
+            }
         } else {
             Logger.debug("updateWeeklyPlanUI: 週計劃為 nil")
         }
         self.planStatus = status
-        
+
         // 🔧 修復：確保載入狀態重置，避免按鈕被禁用
         self.isLoading = false
-        
+
         updatePromptViews()
     }
     
@@ -1548,31 +1554,58 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     private func groupWorkoutsByDayFromV2(_ workouts: [WorkoutV2]) -> [Int: [WorkoutV2]] {
         let calendar = Calendar.current
         var grouped: [Int: [WorkoutV2]] = [:]
-        
+
         // 定義跑步相關的活動類型
         let runningActivityTypes = ["running", "walking", "hiking", "cross_training"]
-        
+
         for workout in workouts {
             // 只處理跑步相關的鍛煉
             guard runningActivityTypes.contains(workout.activityType) else {
                 continue
             }
-            
-            let weekday = calendar.component(.weekday, from: workout.startDate)
-            // 轉換 weekday 為 1-7（週一到週日）
-            let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
-            
-            if grouped[adjustedWeekday] == nil {
-                grouped[adjustedWeekday] = []
+
+            // 🔧 關鍵修復：使用 weekDateInfo 的日期映射而不是純粹的 Calendar.weekday
+            // 這確保了 workoutsByDayV2 的鍵與 dayIndexInt 保持一致
+            var dayIndex: Int?
+
+            if let weekDateInfo = self.weekDateInfo {
+                // 逐一檢查 daysMap 中的日期，找到與 workout 日期匹配的日期索引
+                for (index, dateInWeek) in weekDateInfo.daysMap {
+                    if calendar.isDate(workout.startDate, inSameDayAs: dateInWeek) {
+                        dayIndex = index
+                        break
+                    }
+                }
             }
-            grouped[adjustedWeekday]?.append(workout)
+
+            // 後備方案：如果沒有 weekDateInfo，使用 Calendar.weekday
+            if dayIndex == nil {
+                let weekday = calendar.component(.weekday, from: workout.startDate)
+                dayIndex = weekday == 1 ? 7 : weekday - 1
+
+                Logger.debug("⚠️ 使用後備方案計算 dayIndex: \(dayIndex ?? 0)")
+            }
+
+            guard let dayIndex = dayIndex else {
+                Logger.error("❌ 無法計算 workout 的 dayIndex: \(workout.startDate)")
+                continue
+            }
+
+            Logger.debug("📅 workout (\(workout.startDate.formatted(date: .abbreviated, time: .omitted))) → dayIndex: \(dayIndex)")
+
+            if grouped[dayIndex] == nil {
+                grouped[dayIndex] = []
+            }
+            grouped[dayIndex]?.append(workout)
         }
-        
+
         // 對每天的運動記錄按日期排序（最新的在前面）
         for (day, dayWorkouts) in grouped {
             grouped[day] = dayWorkouts.sorted { $0.startDate > $1.startDate }
         }
-        
+
+        Logger.debug("✅ groupWorkoutsByDayFromV2 分組結果: \(grouped.map { "dayIndex:\($0.key)=\($0.value.count)個workout" }.joined(separator: ", "))")
+
         return grouped
     }
     

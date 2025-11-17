@@ -1391,3 +1391,16 @@
 "datasource.switch.strava_to_garmin" = "切換至 Garmin Connect™ 將解除與 Strava 的連接，並需要進行 Garmin 授權。您的訓練記錄將從 Garmin Connect™ 載入，目前顯示的記錄將被新資料來源的內容替換。";
 "datasource.switch.to_unbound" = "切換至未綁定狀態將清除所有本機訓練資料。您稍後可以在資料檔案頁面重新選擇並連接資料來源。";
 "datasource.switch.default" = "您確定要進行此操作嗎？";
+
+// MARK: - 心率設定提示
+"hr_setup.title" = "設定心率";
+"hr_setup.description" = "心率對於訓練區間計算非常重要";
+"hr_setup.do_not_show_again" = "不再顯示";
+"hr_setup.invalid_max_hr" = "最大心率應介於 1-220 次/分";
+"hr_setup.invalid_resting_hr" = "安靜心率應介於 1-99 次/分";
+"hr_setup.at_least_one_required" = "請至少輸入一個心率值";
+"common.ok" = "確定";
+"common.error" = "錯誤";
+"common.generating" = "生成中...";
+// MARK: - Training Readiness - Estimated Race Time
+"training_readiness.estimated_race_time" = "預計完賽時間";
