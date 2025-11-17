@@ -237,11 +237,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
 
-        print("✅ [Upload] 數據驗證通過 - 運動ID: \(workoutId)，即將延遲20秒後上傳...")
+        print("✅ [Upload] 數據驗證通過 - 運動ID: \(workoutId)，即將延遲5秒後上傳...")
 
-        // 所有必要數據都滿足條件，延遲20秒再上傳
-        // 這樣做是為了給Apple Health更多時間同步所有數據
-        let delayInNanoseconds: UInt64 = 20_000_000_000 // 20秒
+        // 所有必要數據都滿足條件，延遲5秒再上傳
+        // 優化：從20秒減少到5秒，因為數據已經通過驗證
+        let delayInNanoseconds: UInt64 = 5_000_000_000 // 5秒
         try? await Task.sleep(nanoseconds: delayInNanoseconds)
 
         print("📤 [Upload] 延遲完成，現在開始上傳 - 運動ID: \(workoutId)")
@@ -323,32 +323,67 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         var success = 0
         var failed  = 0
         var failedList: [FailedWorkout] = []
-        
+
         print("🚨 批次上傳開始：\(workouts.count) 筆 workout，將暫停通知避免頻繁 API 調用")
-        
-        for w in workouts {
+
+        for (index, w) in workouts.enumerated() {
+            let workoutId = makeWorkoutId(for: w)
+            print("📤 [批次上傳] 正在處理 \(index + 1)/\(workouts.count) - \(workoutId)")
+
             do {
-                _ = try await uploadWorkout(w, force: force, retryHeartRate: retryHeartRate)
+                // 為每個運動設置 60 秒超時限制，避免整個批次被阻塞
+                let uploadTask = Task {
+                    try await uploadWorkout(w, force: force, retryHeartRate: retryHeartRate)
+                }
+
+                let timeoutTask = Task {
+                    try await Task.sleep(nanoseconds: 60_000_000_000) // 60秒超時
+                    throw WorkoutV2ServiceError.invalidWorkoutData
+                }
+
+                // 使用 withTaskGroup 實現超時
+                let result = try await withThrowingTaskGroup(of: UploadResult.self) { group in
+                    group.addTask { try await uploadTask.value }
+                    group.addTask { try await timeoutTask.value }
+
+                    // 返回第一個完成的任務結果
+                    let result = try await group.next()!
+                    group.cancelAll()  // 取消另一個任務
+                    return result
+                }
+
+                _ = result
                 success += 1
-                try? await Task.sleep(nanoseconds: 500_000_000)
+                print("✅ [批次上傳] \(workoutId) 上傳成功")
+
+                // 減少批次間隔到 200ms
+                try? await Task.sleep(nanoseconds: 200_000_000)
             } catch {
                 failed += 1
+                let errorMsg = error.localizedDescription
+
+                if errorMsg.contains("cancelled") || errorMsg == "invalidWorkoutData" {
+                    print("⏰ [批次上傳] \(workoutId) 超時或被取消，跳過")
+                } else {
+                    print("❌ [批次上傳] \(workoutId) 上傳失敗: \(errorMsg)")
+                }
+
                 failedList.append(FailedWorkout(workout: w, error: error))
             }
         }
-        
+
         // 🚨 批次上傳完成後，只發送一次統一通知，避免每個 workout 都觸發 GET API
         if success > 0 {
             print("🚨 批次上傳完成：成功 \(success) 筆，失敗 \(failed) 筆")
             // 延遲發送通知，給 UI 足夠時間準備
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-            
+
             NotificationCenter.default.post(
-                name: .workoutsDidUpdate, 
+                name: .workoutsDidUpdate,
                 object: ["batchUpload": true, "count": success]
             )
         }
-        
+
         return UploadBatchResult(total: workouts.count, success: success, failed: failed, failedWorkouts: failedList)
     }
 
@@ -384,7 +419,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                             forceRefresh: true,
                             retryAttempt: 0
                         )
-                    }
+                    },
+                    workout: workout
                 )
             }
         } catch {
@@ -419,7 +455,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     currentData: speedData,
                     fetchOperation: { _ in
                         try await self.healthKitManager.fetchSpeedData(for: workout)
-                    }
+                    },
+                    workout: workout
                 )
             }
         } catch {
@@ -440,7 +477,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     currentData: cadenceData,
                     fetchOperation: { _ in
                         try await self.healthKitManager.fetchCadenceData(for: workout)
-                    }
+                    },
+                    workout: workout
                 )
             }
         } catch {
@@ -495,30 +533,43 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     }
 
     /// 重試獲取必要數據（用於心率、速度等非可選數據）
-    /// - 心率: 5 次重試（關鍵數據，運動有效性）
-    /// - 速度: 3 次重試（可用分圈或總距離替代）
-    /// - 步頻: 5 次重試（關鍵數據，跑步運動必需）
+    /// - 心率: 2 次重試（優化用戶體驗，避免過長等待）
+    /// - 速度: 2 次重試（可用分圈或總距離替代）
+    /// - 步頻: 2 次重試（可用分圈替代）
     private func retryFetchingData(
         name: String,
         currentData: [(Date, Double)],
-        fetchOperation: @escaping (_ attempt: Int) async throws -> [(Date, Double)]
+        fetchOperation: @escaping (_ attempt: Int) async throws -> [(Date, Double)],
+        workout: HKWorkout? = nil
     ) async -> [(Date, Double)] {
         var data = currentData
 
-        // 根據數據類型調整重試次數
+        // 檢查是否為第三方數據源（如 Garmin Connect）
+        let isThirdParty = workout.map { isThirdPartyWorkout($0) } ?? false
+        let sourceName = workout?.sourceRevision.source.name ?? "Unknown"
+
+        // 根據數據類型和來源調整重試策略
         let maxRetries: Int
-        if name.contains("速度") {
-            maxRetries = 3  // 速度有分圈和總距離可替代，3次即可
+        let retryInterval: UInt64
+
+        if isThirdParty {
+            // 第三方數據源（如 Garmin）通常只有摘要信息，不重試
+            maxRetries = 1
+            retryInterval = 5_000_000_000 // 5秒
+            print("🔍 [驗證] 檢測到第三方數據源 (\(sourceName))，減少重試次數")
+        } else if name.contains("速度") {
+            maxRetries = 2  // 速度有分圈和總距離可替代，2次即可
+            retryInterval = 10_000_000_000 // 10秒
         } else {
-            maxRetries = 5  // 心率和步頻重要，保留 5 次
+            maxRetries = 2  // 心率和步頻優化為2次，避免過長等待
+            retryInterval = 10_000_000_000 // 10秒
         }
 
-        let retryInterval: UInt64 = 30_000_000_000 // 30秒
-
-        print("🔄 [驗證] \(name)數據不足(\(data.count) < 2)，開始重試流程... (最多 \(maxRetries) 次)")
+        print("🔄 [驗證] \(name)數據不足(\(data.count) < 2)，開始重試流程... (最多 \(maxRetries) 次，間隔 \(retryInterval/1_000_000_000)秒)")
 
         for attempt in 1...maxRetries {
-            print("🔄 [驗證] \(name)數據重試 \(attempt)/\(maxRetries)，等待30秒...")
+            let intervalSeconds = retryInterval / 1_000_000_000
+            print("🔄 [驗證] \(name)數據重試 \(attempt)/\(maxRetries)，等待\(intervalSeconds)秒...")
 
             try? await Task.sleep(nanoseconds: retryInterval)
 
@@ -531,20 +582,44 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     print("✅ [驗證] 重試成功，更新\(name)數據：\(data.count) 筆")
                 }
 
-                if data.count >= 5 {
+                if data.count >= 2 {
                     print("✅ [驗證] \(name)數據充足，停止重試")
                     break
                 }
             } catch {
-                print("⚠️ [驗證] 重試第 \(attempt) 次失敗: \(error.localizedDescription)")
+                let errorMessage = error.localizedDescription
+                print("⚠️ [驗證] 重試第 \(attempt) 次失敗: \(errorMessage)")
+
+                // 檢查是否為手機鎖定導致的錯誤
+                if errorMessage.contains("Protected health data is inaccessible") {
+                    print("🔒 [驗證] 檢測到手機鎖定錯誤，停止重試（請解鎖手機後數據會自動上傳）")
+                    break  // 快速失敗，不繼續重試
+                }
+
+                // 檢查是否為第三方數據源授權問題
+                if isThirdParty && (errorMessage.contains("authorization") || errorMessage.contains("not determined")) {
+                    print("🔐 [驗證] 第三方數據源授權問題，停止重試")
+                    break
+                }
             }
         }
 
-        if data.count < 5 {
-            print("⚠️ [驗證] 重試 \(maxRetries) 次後\(name)數據仍不足：\(data.count) 筆")
+        if data.count < 2 {
+            if isThirdParty {
+                print("ℹ️ [驗證] 第三方數據源 (\(sourceName)) 通常只有摘要信息，缺少詳細\(name)數據是正常的")
+            } else {
+                print("⚠️ [驗證] 重試 \(maxRetries) 次後\(name)數據仍不足：\(data.count) 筆")
+            }
         }
 
         return data
+    }
+
+    /// 檢查是否為第三方應用同步的運動
+    private func isThirdPartyWorkout(_ workout: HKWorkout) -> Bool {
+        let sourceName = workout.sourceRevision.source.name
+        let bundleId = workout.sourceRevision.source.bundleIdentifier
+        return isThirdPartyDataSource(sourceName: sourceName, bundleId: bundleId)
     }
 
     /// 重試獲取可選數據
