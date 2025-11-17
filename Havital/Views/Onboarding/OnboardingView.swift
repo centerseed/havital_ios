@@ -56,8 +56,33 @@ class OnboardingViewModel: ObservableObject {
     func createTarget() async -> Bool { // 返回 Bool 表示是否成功
         isLoading = true
         error = nil
-        
+
         do {
+            // 如果是重新設定目標模式，先刪除舊的主要目標
+            if AuthenticationService.shared.isReonboardingMode {
+                print("🔄 重新設定目標模式：開始刪除舊的主要目標")
+
+                do {
+                    // 獲取所有目標
+                    let existingTargets = try await TargetService.shared.getTargets()
+
+                    // 找到主要賽事目標
+                    if let oldMainTarget = existingTargets.first(where: { $0.isMainRace }) {
+                        print("🗑️ 找到舊的主要目標: \(oldMainTarget.name) (ID: \(oldMainTarget.id))")
+
+                        // 刪除舊的主要目標
+                        try await TargetService.shared.deleteTarget(id: oldMainTarget.id)
+                        print("✅ 成功刪除舊的主要目標")
+                    } else {
+                        print("ℹ️ 未找到舊的主要目標，繼續創建新目標")
+                    }
+                } catch {
+                    print("⚠️ 刪除舊目標時發生錯誤: \(error.localizedDescription)")
+                    // 即使刪除失敗，也繼續創建新目標（後端應該會處理覆蓋邏輯）
+                }
+            }
+
+            // 創建新的主要目標
             let target = Target(
                 id: UUID().uuidString,
                 type: "race_run", // 或許可以考慮增加 "personal_goal" 類型
@@ -70,7 +95,7 @@ class OnboardingViewModel: ObservableObject {
                 trainingWeeks: trainingWeeks
                 // timezone 會自動使用預設的 "Asia/Taipei"
             )
-            
+
             try await UserService.shared.createTarget(target)
             print(NSLocalizedString("onboarding.target_created", comment: "Training goal created"))
             isLoading = false
