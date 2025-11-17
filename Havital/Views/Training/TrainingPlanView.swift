@@ -434,6 +434,13 @@ struct TrainingPlanView: View {
             }
         }
         .onAppear {
+            Logger.debug("TrainingPlanView onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
+
+            // 打印心率设置调试信息
+            #if DEBUG
+            HeartRateDebugHelper.printAllHeartRateSettings()
+            #endif
+
             if hasCompletedOnboarding && AppStateManager.shared.currentState.isReady {
                 Logger.debug("View onAppear: Onboarding completed")
                 // ❌ 移除 refreshWorkouts() 調用，避免與 AppStateManager.setupServices() 的 loadWorkouts() 產生並發競爭
@@ -448,6 +455,8 @@ struct TrainingPlanView: View {
                     // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
                     await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
                 }
+            } else {
+                Logger.debug("TrainingPlanView onAppear: Skipping checks - conditions not met")
             }
         }
         .sheet(isPresented: $showHeartRateSetup) {
@@ -655,20 +664,26 @@ struct TrainingPlanView: View {
     // 刷新訓練記錄
     /// 檢查用戶是否設定了心率，如果未設定則顯示提示對話框
     private func checkAndShowHeartRateSetup() {
+        Logger.debug("🔍 checkAndShowHeartRateSetup() called")
+        Logger.debug("🔍 doNotShowHeartRatePrompt: \(userPreferenceManager.doNotShowHeartRatePrompt)")
+        Logger.debug("🔍 maxHeartRate: \(userPreferenceManager.maxHeartRate ?? 0)")
+        Logger.debug("🔍 restingHeartRate: \(userPreferenceManager.restingHeartRate ?? 0)")
+
         // 如果用戶已經選擇不再顯示，則跳過
         if userPreferenceManager.doNotShowHeartRatePrompt {
-            Logger.debug("Heart rate setup prompt has been dismissed by user (never remind)")
+            Logger.debug("❌ Heart rate setup prompt has been dismissed by user (never remind)")
             return
         }
 
         // 檢查是否在"明天再提醒"的時間範圍內
         if let nextRemindDate = userPreferenceManager.heartRatePromptNextRemindDate {
+            Logger.debug("🔍 nextRemindDate: \(nextRemindDate), now: \(Date())")
             if Date() < nextRemindDate {
-                Logger.debug("Heart rate setup prompt: Still within 'remind me tomorrow' period, skipping")
+                Logger.debug("❌ Heart rate setup prompt: Still within 'remind me tomorrow' period, skipping")
                 return
             } else {
                 // 時間已過期，清除這個標記
-                Logger.debug("Heart rate setup prompt: 'Remind me tomorrow' period expired, clearing flag")
+                Logger.debug("✅ Heart rate setup prompt: 'Remind me tomorrow' period expired, clearing flag")
                 userPreferenceManager.heartRatePromptNextRemindDate = nil
             }
         }
@@ -677,14 +692,19 @@ struct TrainingPlanView: View {
         let hasMaxHeartRate = userPreferenceManager.maxHeartRate != nil && (userPreferenceManager.maxHeartRate ?? 0) > 0
         let hasRestingHeartRate = userPreferenceManager.restingHeartRate != nil && (userPreferenceManager.restingHeartRate ?? 0) > 0
 
+        Logger.debug("🔍 hasMaxHeartRate: \(hasMaxHeartRate), hasRestingHeartRate: \(hasRestingHeartRate)")
+
         if !hasMaxHeartRate && !hasRestingHeartRate {
-            Logger.debug("User has not set heart rate values, showing setup prompt after 3 seconds")
+            Logger.debug("✅ User has not set heart rate values, showing setup prompt after 3 seconds")
             // 延遲 3 秒顯示，確保視圖完全加載且不干擾用戶初始體驗
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                showHeartRateSetup = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                guard let self = self else { return }
+                Logger.debug("⏰ 3 seconds elapsed, setting showHeartRateSetup = true")
+                self.showHeartRateSetup = true
+                Logger.debug("✅ showHeartRateSetup is now: \(self.showHeartRateSetup)")
             }
         } else {
-            Logger.debug("Heart rate setup prompt: User has already set heart rate values, skipping")
+            Logger.debug("❌ Heart rate setup prompt: User has already set heart rate values, skipping (maxHR: \(userPreferenceManager.maxHeartRate ?? 0), restingHR: \(userPreferenceManager.restingHeartRate ?? 0))")
         }
     }
 

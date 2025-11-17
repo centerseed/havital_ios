@@ -470,6 +470,38 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.red)
+
+            Divider()
+
+            Button {
+                HeartRateDebugHelper.printAllHeartRateSettings()
+            } label: {
+                HStack {
+                    Image(systemName: "heart.text.square")
+                    Text("打印心率設定狀態")
+                }
+            }
+            .foregroundColor(.blue)
+
+            Button {
+                HeartRateDebugHelper.forceClearAllHeartRateSettings()
+            } label: {
+                HStack {
+                    Image(systemName: "heart.slash")
+                    Text("清除所有心率設定")
+                }
+            }
+            .foregroundColor(.red)
+
+            Button {
+                HeartRateDebugHelper.simulateRemindMeTomorrow()
+            } label: {
+                HStack {
+                    Image(systemName: "clock.arrow.circlepath")
+                    Text("模擬「明天再提醒」(1分鐘後過期)")
+                }
+            }
+            .foregroundColor(.orange)
         }
     }
     #endif
