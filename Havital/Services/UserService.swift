@@ -173,9 +173,11 @@ class UserService {
         userPreferenceManager.email = user.email ?? firebaseUser?.email ?? ""
         userPreferenceManager.name = user.displayName ?? firebaseUser?.displayName ?? ""
         userPreferenceManager.photoURL = user.photoUrl ?? firebaseUser?.photoURL?.absoluteString
-        
+
+        // 同步心率數據到本地緩存
         userPreferenceManager.maxHeartRate = user.maxHr
-        
+        userPreferenceManager.restingHeartRate = user.relaxingHr
+
         // Update week of training if available
         userPreferenceManager.weekOfTraining = user.weekOfTraining
         

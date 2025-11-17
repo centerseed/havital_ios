@@ -273,26 +273,19 @@ struct DataSourceSelectionView: View {
             "action": "garminSelection",
             "step": "start"
         ])
-        
-        // 設置數據源偏好為 Garmin
+
+        // 設置數據源偏好為 Garmin（僅本地設定，不同步到後端）
         userPreferenceManager.dataSourcePreference = .garmin
-        
-        // 同步到後端
-        do {
-            try await UserService.shared.updateDataSource(DataSourceType.garmin.rawValue)
-        } catch {
-            print("同步 Garmin 數據源設定到後端失敗: \(error.localizedDescription)")
-        }
-        
+
         // 開始 Garmin OAuth 流程（不等待完成）
         await garminManager.startConnection()
-        
+
         Logger.firebase("Garmin OAuth 流程已啟動", level: .info, labels: [
             "module": "DataSourceSelectionView",
             "action": "garminSelection",
             "result": "oauth_started"
         ])
-        
+
         // 不等待 OAuth 完成，直接繼續到下一步
         // OAuth 流程會在後台進行，用戶可以稍後在設置中完成連接
     }
@@ -303,26 +296,19 @@ struct DataSourceSelectionView: View {
             "action": "stravaSelection",
             "step": "start"
         ])
-        
-        // 設置數據源偏好為 Strava
+
+        // 設置數據源偏好為 Strava（僅本地設定，不同步到後端）
         userPreferenceManager.dataSourcePreference = .strava
-        
-        // 同步到後端
-        do {
-            try await UserService.shared.updateDataSource(DataSourceType.strava.rawValue)
-        } catch {
-            print("同步 Strava 數據源設定到後端失敗: \(error.localizedDescription)")
-        }
-        
+
         // 開始 Strava OAuth 流程（不等待完成）
         await stravaManager.startConnection()
-        
+
         Logger.firebase("Strava OAuth 流程已啟動", level: .info, labels: [
             "module": "DataSourceSelectionView",
             "action": "stravaSelection",
             "result": "oauth_started"
         ])
-        
+
         // 不等待 OAuth 完成，直接繼續到下一步
         // OAuth 流程會在後台進行，用戶可以稍後在設置中完成連接
     }

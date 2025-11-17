@@ -8,8 +8,6 @@ struct HRRHeartRateZoneEditorView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    @State private var showingMaxHRInfo = false
-    @State private var showingRestingHRInfo = false
     
     private let userPreferenceManager = UserPreferenceManager.shared
     
@@ -23,16 +21,32 @@ struct HRRHeartRateZoneEditorView: View {
                         .padding(.vertical, 8)
                 }
                 
-                Section(header: Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))) {
-                    HStack {
-                        TextField(NSLocalizedString("hr_zone.max_hr_placeholder", comment: "Max Heart Rate (bpm)"), text: $maxHeartRate)
-                            .keyboardType(.numberPad)
-                        
-                        Button(action: {
-                            showingMaxHRInfo = true
-                        }) {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.blue)
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
+                                    .font(.headline)
+
+                                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                TextField("", text: $maxHeartRate)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 60)
+
+                                Text("bpm")
+                                    .foregroundColor(.secondary)
+                                    .font(.subheadline)
+                            }
                         }
                     }
                     .onAppear {
@@ -44,16 +58,32 @@ struct HRRHeartRateZoneEditorView: View {
                     }
                 }
                 
-                Section(header: Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))) {
-                    HStack {
-                        TextField(NSLocalizedString("hr_zone.resting_hr_placeholder", comment: "Resting Heart Rate (bpm)"), text: $restingHeartRate)
-                            .keyboardType(.numberPad)
-                        
-                        Button(action: {
-                            showingRestingHRInfo = true
-                        }) {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.blue)
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
+                                    .font(.headline)
+
+                                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                TextField("", text: $restingHeartRate)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 60)
+
+                                Text("bpm")
+                                    .foregroundColor(.secondary)
+                                    .font(.subheadline)
+                            }
                         }
                     }
                     .onAppear {
@@ -112,16 +142,6 @@ struct HRRHeartRateZoneEditorView: View {
                 Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
             } message: {
                 Text(alertMessage)
-            }
-            .alert(NSLocalizedString("hr_zone.max_hr_info_title", comment: "Max Heart Rate"), isPresented: $showingMaxHRInfo) {
-                Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
-            } message: {
-                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-            }
-            .alert(NSLocalizedString("hr_zone.resting_hr_info_title", comment: "Resting Heart Rate"), isPresented: $showingRestingHRInfo) {
-                Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
-            } message: {
-                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
             }
         }
     }

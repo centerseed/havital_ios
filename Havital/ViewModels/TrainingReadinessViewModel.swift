@@ -211,6 +211,11 @@ extension TrainingReadinessViewModel {
         return metrics?.recovery
     }
 
+    /// Estimated race time from race fitness metric (nil-safe)
+    var estimatedRaceTime: String? {
+        return raceFitnessMetric?.estimatedRaceTime
+    }
+
     /// Format score
     func formatScore(_ score: Double?) -> String {
         guard let score = score else { return "--" }

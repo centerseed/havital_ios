@@ -160,6 +160,7 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
             }
             if let raceFitness = response.metrics?.raceFitness {
                 print("[TrainingReadinessManager] 🏁 比賽適能分數: \(raceFitness.score), 描述: \(raceFitness.description ?? "無")")
+                print("[TrainingReadinessManager] ⏱️ 預計完賽時間: \(raceFitness.estimatedRaceTime ?? "未設定")")
             }
             if let trainingLoad = response.metrics?.trainingLoad {
                 print("[TrainingReadinessManager] 📊 訓練負荷分數: \(trainingLoad.score), 描述: \(trainingLoad.description ?? "無")")

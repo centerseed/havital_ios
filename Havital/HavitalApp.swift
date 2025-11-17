@@ -310,47 +310,50 @@ struct HavitalApp: App {
     // 註冊背景任務 - 只在初始化時呼叫一次
     private func registerBackgroundTasks() {
         let taskIdentifier = "com.havital.workout-sync"
-        
-        // 先取消現有的所有任務請求
-        BGTaskScheduler.shared.cancelAllTaskRequests()
-        
-        // 註冊背景處理任務
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
-            // 背景同步任務
-            print("背景任務開始執行")
-            
-            // 設置任務到期處理
-            task.expirationHandler = {
-                print("背景健身記錄同步任務到期")
-            }
-            
-            Task {
-                // 確保用戶已登入
-                guard AuthenticationService.shared.isAuthenticated else {
-                    (task as? BGProcessingTask)?.setTaskCompleted(success: false)
-                    return
+
+        // ✅ 修復：不要全局清除所有任務，只檢查任務是否已註冊
+        // BGTaskScheduler.shared.cancelAllTaskRequests() 已移除
+
+        // 只註冊一次背景處理任務
+        do {
+            BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
+                // 背景同步任務
+                print("背景任務開始執行")
+
+                // 設置任務到期處理
+                task.expirationHandler = {
+                    print("背景健身記錄同步任務到期")
                 }
-                
-                // 確認當前數據來源是 Apple Health
-                let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
-                guard dataSourcePreference == .appleHealth else {
-                    print("背景任務 - 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 同步")
+
+                Task {
+                    // 確保用戶已登入
+                    guard AuthenticationService.shared.isAuthenticated else {
+                        (task as? BGProcessingTask)?.setTaskCompleted(success: false)
+                        return
+                    }
+
+                    // 確認當前數據來源是 Apple Health
+                    let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+                    guard dataSourcePreference == .appleHealth else {
+                        print("背景任務 - 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 同步")
+                        (task as? BGProcessingTask)?.setTaskCompleted(success: true)
+                        return
+                    }
+
+                    // 執行背景同步
+                    await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
+
+                    // 任務完成
                     (task as? BGProcessingTask)?.setTaskCompleted(success: true)
-                    return
+
+                    // 安排下一次執行
+                    scheduleBackgroundWorkoutSync()
                 }
-                
-                // 執行背景同步
-                await WorkoutBackgroundManager.shared.checkAndUploadPendingWorkouts()
-                
-                // 任務完成
-                (task as? BGProcessingTask)?.setTaskCompleted(success: true)
-                
-                // 安排下一次執行
-                scheduleBackgroundWorkoutSync()
             }
+            print("已註冊背景任務: \(taskIdentifier)")
+        } catch {
+            print("❌ 背景任務註冊失敗: \(error.localizedDescription)")
         }
-        
-        print("已註冊背景任務: \(taskIdentifier)")
     }
     
     // MARK: - 深度連結處理

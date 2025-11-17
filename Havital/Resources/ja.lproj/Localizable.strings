@@ -786,7 +786,7 @@
 
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "心拍数設定";
-"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます";
+"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます。後でプロフィールからこれらの値を更新して、心拍ゾーンをより正確にし、トレーニング効果を向上させることができます。";
 "onboarding.heart_rate_intro" = "最大心拍数と安静時心拍数を設定してください";
 "onboarding.skip_heart_rate" = "スキップ（デフォルト値を使用）";
 
@@ -878,9 +878,9 @@
 "hr_zone.loading" = "読み込み中...";
 "hr_zone.benefit" = "効果：%@";
 "hr_zone.max_hr_info_title" = "最大心拍数";
-"hr_zone.max_hr_info_message" = "最大心拍数は極度の運動中に到達できる最高心拍数です。\n\n一般的には220-年齢の公式で推定できますが、実際の値は個人差があります。\n\n推奨範囲：100-250 bpm";
+"hr_zone.max_hr_info_message" = "最大心拍数は極度の運動中に到達できる最高心拍数です。一般的には220-年齢の公式で推定できますが、実際の値は個人差があります。";
 "hr_zone.resting_hr_info_title" = "安静時心拍数";
-"hr_zone.resting_hr_info_message" = "安静時心拍数は完全にリラックスした状態（朝起きたときなど）での心拍数です。\n\n一般成人の安静時心拍数は60-100 bpmで、アスリートはより低い場合があります。\n\n推奨範囲：30-120 bpm";
+"hr_zone.resting_hr_info_message" = "安静時心拍数は完全にリラックスした状態（朝起きたときなど）での心拍数です。一般成人の安静時心拍数は60-100 bpmで、アスリートはより低い場合があります。";
 "hr_zone.invalid_input" = "有効な心拍数値を入力してください";
 "hr_zone.max_greater_than_resting" = "最大心拍数は安静時心拍数より大きくなければなりません";
 "hr_zone.max_hr_range" = "最大心拍数は100-250 bpmの間にしてください";
@@ -1367,3 +1367,21 @@
 "datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えはStravaとの接続を解除し、Garmin認可が必要になります。トレーニング記録はGarmin Connect™から読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
 "datasource.switch.to_unbound" = "未バインド状態への切り替えはすべてのローカルワークアウトデータを削除します。後でプロファイルページでデータソースを再選択して接続できます。";
 "datasource.switch.default" = "この操作を続行しますか？";
+
+// MARK: - 心拍数設定プロンプト
+"hr_setup.title" = "心拍数を設定";
+"hr_setup.description" = "心拍数はトレーニングゾーン計算に重要です";
+"hr_setup.do_not_show_again" = "もう表示しない";
+"hr_setup.invalid_max_hr" = "最大心拍数は1～220の間である必要があります";
+"hr_setup.invalid_resting_hr" = "安静時心拍数は1～99の間である必要があります";
+"hr_setup.at_least_one_required" = "少なくとも1つの心拍数値を入力してください";
+"heart_rate.setup_prompt_title" = "心拍数を設定";
+"heart_rate.setup_prompt_message" = "最大心拍数と安静時心拍数を設定することで、より正確なトレーニング推奨と心拍ゾーン分析を提供できます。";
+"heart_rate.go_to_setup" = "今すぐ設定";
+"heart_rate.remind_tomorrow" = "明日に通知";
+"heart_rate.never_remind" = "今後表示しない";
+"common.ok" = "OK";
+"common.error" = "エラー";
+"common.generating" = "生成中...";
+// MARK: - Training Readiness - Estimated Race Time
+"training_readiness.estimated_race_time" = "予想完走時間";

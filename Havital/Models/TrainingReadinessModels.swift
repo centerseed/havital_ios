@@ -140,6 +140,7 @@ struct RaceFitnessMetric: Codable {
     let statusText: String?           // ✅ New: Two-line status text
     let description: String?          // ✅ New: Metric description
     let trendData: TrendData?         // ✅ New: Trend chart data
+    let estimatedRaceTime: String?    // ✅ New: Estimated race time (e.g., "2:01:32")
     let message: String?
 
     enum CodingKeys: String, CodingKey {
@@ -150,6 +151,7 @@ struct RaceFitnessMetric: Codable {
         case statusText = "status_text"
         case description
         case trendData = "trend_data"
+        case estimatedRaceTime = "estimated_race_time"
         case message
     }
 }

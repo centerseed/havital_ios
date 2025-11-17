@@ -31,10 +31,17 @@ class WorkoutBackgroundUploader {
         
         // 篩選出需要上傳的運動記錄
         var workoutsToUpload: [HKWorkout] = []
-        
+        var skippedDueToRetryLimit = 0
+
         for workout in workouts {
             // 只有在非強制模式下才跳過已上傳的 workout
             if !force {
+                // 檢查是否應該重試上傳（檢查重試次數和冷卻時間）
+                if !workoutUploadTracker.shouldRetryUpload(workout) {
+                    skippedDueToRetryLimit += 1
+                    continue
+                }
+
                 // 已上傳且有心率資料，則跳過
                 if workoutUploadTracker.isWorkoutUploaded(workout) &&
                    workoutUploadTracker.workoutHasHeartRate(workout) {
@@ -52,8 +59,12 @@ class WorkoutBackgroundUploader {
                     }
                 }
             }
-            
+
             workoutsToUpload.append(workout)
+        }
+
+        if skippedDueToRetryLimit > 0 {
+            print("⚠️ [WorkoutBackgroundUploader] 跳過 \(skippedDueToRetryLimit) 個已達重試上限的 workout")
         }
         
         // 篩選結果

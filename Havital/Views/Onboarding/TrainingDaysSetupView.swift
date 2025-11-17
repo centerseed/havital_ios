@@ -284,14 +284,24 @@ struct TrainingDaysSetupView: View {
                                     await viewModel.generateFinalPlanAndCompleteOnboarding()
                                 }
                             }) {
-                                HStack {
+                                HStack(spacing: 12) {
                                     Spacer()
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title2)
                                     Text(NSLocalizedString("onboarding.complete_setup_view_schedule", comment: "Complete Setup View Schedule"))
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
                                     Spacer()
                                 }
+                                .padding(.vertical, 16)
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading)
+                            .buttonStyle(PlainButtonStyle())
                             .id("finalPlanButton")
+                            .padding(.top, 8)
                         }
                     }
                     .id("overviewSection")

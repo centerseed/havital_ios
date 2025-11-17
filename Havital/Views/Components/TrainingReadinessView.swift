@@ -140,13 +140,27 @@ struct TrainingReadinessView: View {
                     size: 100
                 )
 
-                // Right side: Score + Status text
+                // VStack: [HStack(Score + Race Time), Status text]
                 VStack(alignment: .leading, spacing: 8) {
-                    // Score with label
-                    VStack(alignment: .leading, spacing: 4) {
+                    // HStack: Score + Estimated Race Time
+                    HStack(alignment: .center, spacing: 32) {
+                        // Overall Score
                         Text(viewModel.overallScoreFormatted)
                             .font(.system(size: 48, weight: .bold))
                             .foregroundColor(scoreColor)
+
+                        // Estimated Race Time (if available)
+                        if let estimatedTime = viewModel.estimatedRaceTime, !estimatedTime.isEmpty {
+                            VStack(alignment: .center, spacing: 2) {
+                                Text(NSLocalizedString("training_readiness.estimated_race_time", comment: "Estimated Race Time"))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Text(estimatedTime)
+                                    .font(.system(.body, design: .monospaced))
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                            }
+                        }
                     }
 
                     // Status text
@@ -156,6 +170,10 @@ struct TrainingReadinessView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .onAppear {
+                print("[TrainingReadinessView] 🏁 RaceFitness 指標: \(viewModel.raceFitnessMetric?.score ?? 0)")
+                print("[TrainingReadinessView] ⏱️ 預計完賽時間: \(viewModel.estimatedRaceTime ?? "未設定")")
             }
         }
         .padding(.bottom, 8)

@@ -15,8 +15,6 @@ struct HeartRateZoneInfoView: View {
     @State private var isEditing = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
-    @State private var showingMaxHRInfo = false
-    @State private var showingRestingHRInfo = false
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
 
@@ -63,16 +61,6 @@ struct HeartRateZoneInfoView: View {
                 } message: {
                     Text(alertMessage)
                 }
-                .alert(NSLocalizedString("hr_zone.max_hr_info_title", comment: "Max Heart Rate"), isPresented: $showingMaxHRInfo) {
-                    Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
-                } message: {
-                    Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                }
-                .alert(NSLocalizedString("hr_zone.resting_hr_info_title", comment: "Resting Heart Rate"), isPresented: $showingRestingHRInfo) {
-                    Button(NSLocalizedString("hr_zone.understand", comment: "Understand"), role: .cancel) { }
-                } message: {
-                    Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
-                }
                 .task {
                     await loadZoneData()
                 }
@@ -94,6 +82,7 @@ struct HeartRateZoneInfoView: View {
                 }
             }
         }
+        .background(Color(UIColor.systemBackground)) // 確保有不透明的背景
     }
 
     @ViewBuilder
@@ -167,66 +156,70 @@ struct HeartRateZoneInfoView: View {
 
     @ViewBuilder
     private var maxHeartRateEditor: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
                     .font(.headline)
-                Spacer()
-                Button(action: { showingMaxHRInfo = true }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
 
-            HStack {
-                Spacer()
+                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+
+            HStack(spacing: 4) {
                 Picker("", selection: $maxHeartRate) {
                     ForEach(100...250, id: \.self) { value in
                         Text("\(value)").tag(value)
                     }
                 }
                 .pickerStyle(.wheel)
-                .frame(width: 100)
+                .frame(width: 80)
 
                 Text("bpm")
                     .foregroundColor(.secondary)
-                Spacer()
+                    .font(.subheadline)
             }
-            .padding(.vertical, 4)
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     @ViewBuilder
     private var restingHeartRateEditor: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
                     .font(.headline)
-                Spacer()
-                Button(action: { showingRestingHRInfo = true }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
 
-            HStack {
-                Spacer()
+                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+
+            HStack(spacing: 4) {
                 Picker("", selection: $restingHeartRate) {
                     ForEach(30...120, id: \.self) { value in
                         Text("\(value)").tag(value)
                     }
                 }
                 .pickerStyle(.wheel)
-                .frame(width: 100)
+                .frame(width: 80)
 
                 Text("bpm")
                     .foregroundColor(.secondary)
-                Spacer()
+                    .font(.subheadline)
             }
-            .padding(.vertical, 4)
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     @ViewBuilder
