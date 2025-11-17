@@ -43,7 +43,8 @@ struct ContentView: View {
                     }
             }
             // 如果用戶未完成引導，顯示引導畫面
-            else if !authService.hasCompletedOnboarding {
+            else if !authService.hasCompletedOnboarding && !authService.isReonboardingMode {
+                // 首次使用，顯示完整 onboarding 流程
                 OnboardingIntroView()
                     .environmentObject(authService)
                     .onAppear {
@@ -80,6 +81,34 @@ struct ContentView: View {
                                 "has_completed_onboarding": authService.hasCompletedOnboarding
                             ]
                         )
+                    }
+                    .sheet(isPresented: Binding(
+                        get: { authService.isReonboardingMode },
+                        set: { newValue in
+                            if !newValue {
+                                // 當 sheet 關閉時，重置 reonboarding 模式並恢復 onboarding 狀態
+                                authService.isReonboardingMode = false
+                                authService.hasCompletedOnboarding = true
+                                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                            }
+                        }
+                    )) {
+                        NavigationView {
+                            OnboardingView()
+                                .environmentObject(authService)
+                        }
+                        .navigationViewStyle(StackNavigationViewStyle())
+                        .onAppear {
+                            Logger.firebase(
+                                "顯示重新設定目標畫面 (Sheet)",
+                                level: .info,
+                                labels: [
+                                    "module": "ContentView",
+                                    "action": "show_reonboarding_sheet",
+                                    "user_id": authService.user?.uid ?? "unknown"
+                                ]
+                            )
+                        }
                     }
             }
         }
