@@ -330,19 +330,17 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
             do {
                 // 為每個運動設置 60 秒超時限制，避免整個批次被阻塞
-                let uploadTask = Task {
-                    try await uploadWorkout(w, force: force, retryHeartRate: retryHeartRate)
-                }
-
-                let timeoutTask = Task {
-                    try await Task.sleep(nanoseconds: 60_000_000_000) // 60秒超時
-                    throw WorkoutV2ServiceError.invalidWorkoutData
-                }
-
-                // 使用 withTaskGroup 實現超時
                 let result = try await withThrowingTaskGroup(of: UploadResult.self) { group in
-                    group.addTask { try await uploadTask.value }
-                    group.addTask { try await timeoutTask.value }
+                    // 任務 1: 實際上傳
+                    group.addTask {
+                        try await self.uploadWorkout(w, force: force, retryHeartRate: retryHeartRate)
+                    }
+
+                    // 任務 2: 60 秒超時
+                    group.addTask {
+                        try await Task.sleep(nanoseconds: 60_000_000_000)
+                        throw WorkoutV2ServiceError.invalidWorkoutData
+                    }
 
                     // 返回第一個完成的任務結果
                     let result = try await group.next()!
