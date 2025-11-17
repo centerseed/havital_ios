@@ -56,8 +56,26 @@ class OnboardingViewModel: ObservableObject {
     func createTarget() async -> Bool { // 返回 Bool 表示是否成功
         isLoading = true
         error = nil
-        
+
         do {
+            // 1. 先刪除舊的主賽事（如果存在）
+            // 這樣可以確保系統中只有一個 isMainRace = true 的目標
+            let existingTargets = try await TargetService.shared.getTargets()
+            if let oldMainTarget = existingTargets.first(where: { $0.isMainRace }) {
+                Logger.firebase(
+                    "刪除舊的主賽事",
+                    level: .info,
+                    labels: [
+                        "module": "OnboardingViewModel",
+                        "action": "delete_old_main_target",
+                        "old_target_id": oldMainTarget.id,
+                        "old_target_name": oldMainTarget.name
+                    ]
+                )
+                try await TargetService.shared.deleteTarget(id: oldMainTarget.id)
+            }
+
+            // 2. 創建新的主賽事目標
             let target = Target(
                 id: UUID().uuidString,
                 type: "race_run", // 或許可以考慮增加 "personal_goal" 類型
@@ -70,12 +88,36 @@ class OnboardingViewModel: ObservableObject {
                 trainingWeeks: trainingWeeks
                 // timezone 會自動使用預設的 "Asia/Taipei"
             )
-            
+
             try await UserService.shared.createTarget(target)
+
+            Logger.firebase(
+                "創建新的主賽事目標",
+                level: .info,
+                labels: [
+                    "module": "OnboardingViewModel",
+                    "action": "create_new_main_target",
+                    "target_id": target.id,
+                    "target_name": target.name,
+                    "distance_km": "\(target.distanceKm)",
+                    "training_weeks": "\(target.trainingWeeks)"
+                ]
+            )
+
             print(NSLocalizedString("onboarding.target_created", comment: "Training goal created"))
             isLoading = false
             return true
         } catch {
+            Logger.firebase(
+                "創建目標失敗",
+                level: .error,
+                labels: [
+                    "module": "OnboardingViewModel",
+                    "action": "create_target_failed",
+                    "error": error.localizedDescription
+                ]
+            )
+
             self.error = error.localizedDescription
             isLoading = false
             return false
