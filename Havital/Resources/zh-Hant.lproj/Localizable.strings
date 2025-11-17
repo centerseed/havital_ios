@@ -802,6 +802,9 @@
 "onboarding.skip" = "略過";
 "onboarding.back" = "返回";
 "onboarding.next_step" = "下一步";
+"onboarding.exit_setup_title" = "離開目標設定？";
+"onboarding.exit_setup_confirm" = "離開設定";
+"onboarding.exit_setup_message" = "確定要離開目標設定嗎？您目前的訓練計畫將保持不變。";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "今天";

@@ -801,6 +801,9 @@
 "onboarding.skip" = "Skip";
 "onboarding.back" = "Back";
 "onboarding.next_step" = "Next";
+"onboarding.exit_setup_title" = "Exit Goal Setup?";
+"onboarding.exit_setup_confirm" = "Exit Setup";
+"onboarding.exit_setup_message" = "Are you sure you want to exit the goal setup? Your current training plan will remain unchanged.";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "Today";

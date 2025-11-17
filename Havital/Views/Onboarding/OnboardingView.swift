@@ -85,12 +85,13 @@ class OnboardingViewModel: ObservableObject {
 
 struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
+    @EnvironmentObject private var authService: AuthenticationService
     @Environment(\.dismiss) private var dismiss
     @State private var showHeartRateSetup = false
     @State private var showPersonalBest = false
     @State private var showStageSelection = false
     @State private var showTimeWarning = false
-    // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
+    @State private var showExitConfirmation = false  // 新增：退出確認對話框
 
     var body: some View {
         VStack {
@@ -224,11 +225,17 @@ struct OnboardingView: View {
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button(NSLocalizedString("onboarding.back", comment: "Back")) {
-                    dismiss()
+                Button(authService.isReonboardingMode ? NSLocalizedString("common.cancel", comment: "Cancel") : NSLocalizedString("onboarding.back", comment: "Back")) {
+                    if authService.isReonboardingMode {
+                        // 如果是重新設定模式，顯示確認對話框
+                        showExitConfirmation = true
+                    } else {
+                        // 正常返回
+                        dismiss()
+                    }
                 }
             }
-            
+
             // 右上角「下一步」按鈕
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
@@ -247,9 +254,41 @@ struct OnboardingView: View {
                 .disabled(viewModel.isLoading)
             }
         }
+        .confirmationDialog(
+            NSLocalizedString("onboarding.exit_setup_title", comment: "Exit Goal Setup?"),
+            isPresented: $showExitConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(NSLocalizedString("onboarding.exit_setup_confirm", comment: "Exit Setup"), role: .destructive) {
+                exitReonboarding()
+            }
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("onboarding.exit_setup_message", comment: "Are you sure you want to exit the goal setup? Your current training plan will remain unchanged."))
+        }
     }
 
     // MARK: - 導航邏輯處理
+
+    /// 退出重新設定模式，回到主畫面
+    private func exitReonboarding() {
+        authService.hasCompletedOnboarding = true
+        authService.isReonboardingMode = false
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+
+        Logger.firebase(
+            "用戶取消重新設定目標",
+            level: .info,
+            labels: [
+                "module": "OnboardingView",
+                "action": "exit_reonboarding"
+            ]
+        )
+
+        // dismiss 會觸發 ContentView 切換回主畫面
+        dismiss()
+    }
+
     /// 根據訓練週數判斷導航目標
     private func handleNavigationAfterTargetCreation() {
         let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(
