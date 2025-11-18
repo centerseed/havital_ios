@@ -217,26 +217,336 @@ struct HeartRateZoneInputView: View {
 
 **目標**：30秒完成，backfill 在背景執行
 
-**變更**：重用現有的 `DataSourceSelectionView`，但移除不必要的說明
+**變更**：重用現有的 `DataSourceSelectionView`，加入 Backfill API 調用
 
 **關鍵改動**：
 1. **觸發 backfill**：選擇數據源後立即觸發 backfill API
 2. **不等待完成**：backfill 在背景執行，用戶可繼續下一步
 3. **顯示狀態**：簡單顯示「同步中...」但不阻擋流程
+4. **輪詢進度**：在背景輪詢 backfill 狀態（可選）
 
+**UI 設計**：
 ```swift
-// 在 DataSourceSelectionView 中加入
-private func handleAppleHealthSelection() async throws {
-    try await healthKitManager.requestAuthorization()
-    userPreferenceManager.dataSourcePreference = .appleHealth
-    try await UserService.shared.updateDataSource(DataSourceType.appleHealth.rawValue)
+struct DataSourceBindingView: View {
+    @StateObject private var viewModel = DataSourceBindingViewModel()
+    @State private var selectedDataSource: DataSourceType?
+    @State private var navigateToNextStep = false
 
-    // 🆕 觸發 backfill（不等待完成）
-    Task.detached {
-        await WorkoutSyncManager.shared.triggerBackfill(days: 14)
+    var body: some View {
+        VStack {
+            // ... 數據源選擇 UI（保持現有設計）
+
+            // 🆕 Backfill 狀態顯示（底部提示）
+            if viewModel.isBackfilling {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("正在同步訓練記錄...")
+                            .font(.caption)
+                        if let progress = viewModel.backfillProgress {
+                            Text("已找到 \(progress.newWorkouts) 筆訓練")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                .transition(.opacity)
+            }
+
+            Button("繼續") {
+                navigateToNextStep = true
+            }
+            .disabled(selectedDataSource == nil)
+        }
     }
 }
+
+class DataSourceBindingViewModel: ObservableObject {
+    @Published var isBackfilling = false
+    @Published var backfillProgress: BackfillProgress?
+
+    private var backfillId: String?
+    private var pollingTask: Task<Void, Never>?
+
+    func handleDataSourceSelection(_ source: DataSourceType) async throws {
+        switch source {
+        case .appleHealth:
+            try await handleAppleHealthSelection()
+        case .garmin:
+            await handleGarminSelection()
+        case .strava:
+            await handleStravaSelection()
+        default:
+            break
+        }
+    }
+
+    private func handleAppleHealthSelection() async throws {
+        // 1. 請求權限
+        try await HealthKitManager.shared.requestAuthorization()
+
+        // 2. 更新數據源偏好
+        UserPreferenceManager.shared.dataSourcePreference = .appleHealth
+        try await UserService.shared.updateDataSource("apple_health")
+
+        // 3. Apple Health 直接上傳最近 14 天數據（同步）
+        isBackfilling = true
+        do {
+            try await HealthKitManager.shared.uploadRecentWorkouts(days: 14)
+            isBackfilling = false
+        } catch {
+            print("⚠️ Apple Health 數據上傳失敗: \(error)")
+            isBackfilling = false
+        }
+    }
+
+    private func handleGarminSelection() async {
+        // 1. 設置數據源偏好
+        UserPreferenceManager.shared.dataSourcePreference = .garmin
+
+        // 2. 開始 OAuth 流程（不等待完成）
+        await GarminManager.shared.startConnection()
+
+        // 3. 🆕 觸發 Garmin Backfill（OAuth 成功後會自動執行）
+        //    這裡不主動觸發，因為 OAuth 完成後會觸發
+        //    但如果 OAuth 已完成，可以直接觸發
+        if GarminManager.shared.isConnected {
+            await triggerGarminBackfill()
+        }
+    }
+
+    private func handleStravaSelection() async {
+        // 1. 設置數據源偏好
+        UserPreferenceManager.shared.dataSourcePreference = .strava
+
+        // 2. 開始 OAuth 流程（不等待完成）
+        await StravaManager.shared.startConnection()
+
+        // 3. 🆕 Strava Backfill（待補充）
+        //    類似 Garmin 的處理方式
+    }
+
+    // 🆕 觸發 Garmin Backfill
+    private func triggerGarminBackfill() async {
+        isBackfilling = true
+
+        do {
+            // 計算日期範圍
+            let endDate = Date()
+            let startDate = Calendar.current.date(byAdding: .day, value: -14, to: endDate)!
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+
+            // 調用 Backfill API
+            let response = try await GarminService.shared.triggerBackfill(
+                startDate: dateFormatter.string(from: startDate),
+                days: 14
+            )
+
+            backfillId = response.backfillId
+            print("✅ Backfill 已觸發: \(response.backfillId)")
+
+            // 🆕 開始輪詢狀態（背景執行）
+            startPollingBackfillStatus()
+
+        } catch {
+            print("⚠️ Backfill 觸發失敗: \(error)")
+            isBackfilling = false
+        }
+    }
+
+    // 🆕 輪詢 Backfill 狀態
+    private func startPollingBackfillStatus() {
+        guard let backfillId = backfillId else { return }
+
+        pollingTask = Task.detached { [weak self] in
+            var pollCount = 0
+            let maxPolls = 30  // 最多輪詢 30 次（約 30 秒）
+
+            while pollCount < maxPolls {
+                do {
+                    let status = try await GarminService.shared.getBackfillStatus(backfillId: backfillId)
+
+                    await MainActor.run {
+                        self?.backfillProgress = BackfillProgress(
+                            newWorkouts: status.progress.newWorkouts,
+                            currentWorkoutCount: status.progress.currentWorkoutCount
+                        )
+                    }
+
+                    // 檢查是否完成
+                    if status.status == "completed" {
+                        print("✅ Backfill 完成: \(status.completionReason ?? "unknown")")
+                        await MainActor.run {
+                            self?.isBackfilling = false
+                        }
+                        break
+                    } else if status.status == "failed" {
+                        print("❌ Backfill 失敗: \(status.error ?? "unknown")")
+                        await MainActor.run {
+                            self?.isBackfilling = false
+                        }
+                        break
+                    }
+
+                    // 等待 1 秒後繼續輪詢
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    pollCount += 1
+
+                } catch {
+                    print("⚠️ 查詢 Backfill 狀態失敗: \(error)")
+                    break
+                }
+            }
+
+            // 超時或完成後清理
+            await MainActor.run {
+                self?.isBackfilling = false
+            }
+        }
+    }
+
+    deinit {
+        pollingTask?.cancel()
+    }
+}
+
+struct BackfillProgress {
+    let newWorkouts: Int
+    let currentWorkoutCount: Int
+}
 ```
+
+**GarminService 新增方法**：
+```swift
+extension GarminService {
+    /// 觸發 Garmin Backfill
+    func triggerBackfill(startDate: String, days: Int) async throws -> BackfillResponse {
+        let body = [
+            "start_date": startDate,
+            "days": days
+        ]
+        let bodyData = try JSONEncoder().encode(body)
+
+        return try await makeAPICall(
+            BackfillResponse.self,
+            path: "/garmin/backfill",
+            method: .POST,
+            body: bodyData
+        )
+    }
+
+    /// 查詢 Backfill 狀態
+    func getBackfillStatus(backfillId: String) async throws -> BackfillStatusResponse {
+        return try await makeAPICall(
+            BackfillStatusResponse.self,
+            path: "/garmin/backfill/\(backfillId)",
+            method: .GET
+        )
+    }
+}
+
+// 🆕 Backfill Response Models
+struct BackfillResponse: Codable {
+    let data: BackfillData
+
+    struct BackfillData: Codable {
+        let backfillId: String
+        let status: String
+        let message: String
+
+        enum CodingKeys: String, CodingKey {
+            case backfillId = "backfill_id"
+            case status
+            case message
+        }
+    }
+
+    var backfillId: String { data.backfillId }
+    var status: String { data.status }
+}
+
+struct BackfillStatusResponse: Codable {
+    let data: BackfillStatusData
+
+    struct BackfillStatusData: Codable {
+        let backfillId: String
+        let status: String
+        let provider: String
+        let timeRange: TimeRange
+        let progress: Progress
+        let timestamps: Timestamps
+        let completionReason: String?
+        let error: String?
+
+        struct TimeRange: Codable {
+            let startDate: String
+            let endDate: String
+            let days: Int
+
+            enum CodingKeys: String, CodingKey {
+                case startDate = "start_date"
+                case endDate = "end_date"
+                case days
+            }
+        }
+
+        struct Progress: Codable {
+            let initialWorkoutCount: Int
+            let currentWorkoutCount: Int
+            let newWorkouts: Int
+
+            enum CodingKeys: String, CodingKey {
+                case initialWorkoutCount = "initial_workout_count"
+                case currentWorkoutCount = "current_workout_count"
+                case newWorkouts = "new_workouts"
+            }
+        }
+
+        struct Timestamps: Codable {
+            let triggeredAt: String
+            let lastCheckedAt: String?
+            let lastWorkoutReceivedAt: String?
+            let completedAt: String?
+
+            enum CodingKeys: String, CodingKey {
+                case triggeredAt = "triggered_at"
+                case lastCheckedAt = "last_checked_at"
+                case lastWorkoutReceivedAt = "last_workout_received_at"
+                case completedAt = "completed_at"
+            }
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case backfillId = "backfill_id"
+            case status
+            case provider
+            case timeRange = "time_range"
+            case progress
+            case timestamps
+            case completionReason = "completion_reason"
+            case error
+        }
+    }
+
+    var status: String { data.status }
+    var progress: BackfillStatusData.Progress { data.progress }
+    var completionReason: String? { data.completionReason }
+    var error: String? { data.error }
+}
+```
+
+**關鍵設計決策**：
+1. ✅ **Apple Health 同步執行**：直接上傳數據，耗時短（幾秒）
+2. ✅ **Garmin/Strava 背景執行**：觸發 backfill 後輪詢狀態
+3. ✅ **UI 不阻擋**：即使 backfill 未完成，用戶也可繼續下一步
+4. ✅ **進度顯示**：底部提示顯示新增的訓練筆數
+5. ✅ **輪詢策略**：每 1 秒輪詢一次，最多 30 秒（超時自動停止）
+6. ✅ **錯誤處理**：Backfill 失敗不影響 Onboarding 流程
 
 ---
 
