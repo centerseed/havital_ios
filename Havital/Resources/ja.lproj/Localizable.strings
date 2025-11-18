@@ -1613,3 +1613,6 @@
 "edit_schedule.pace_zone.anaerobic.benefit" = "効果：無酸素持久力を向上、高強度持続能力を強化、乳酸耐性を改善";
 "edit_schedule.pace_zone.interval.description" = "高強度インターバルトレーニング、短距離スプリント、スピードと爆発力を向上";
 "edit_schedule.pace_zone.interval.benefit" = "効果：最大酸素摂取量を向上、スピードと爆発力を強化、ランニング効率を改善";
+
+// MARK: - Edit Schedule Additional Keys
+"edit_schedule.edit_training" = "トレーニング編集";

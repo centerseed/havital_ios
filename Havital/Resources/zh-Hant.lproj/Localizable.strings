@@ -1637,3 +1637,6 @@
 "edit_schedule.pace_zone.anaerobic.benefit" = "效益：提升無氧耐力、增強高強度持續能力、改善乳酸耐受度";
 "edit_schedule.pace_zone.interval.description" = "高強度間歇訓練，短距離快速，提升速度與爆發力";
 "edit_schedule.pace_zone.interval.benefit" = "效益：提升最大攝氧量、增強速度與爆發力、改善跑步效率";
+
+// MARK: - Edit Schedule Additional Keys
+"edit_schedule.edit_training" = "編輯訓練";

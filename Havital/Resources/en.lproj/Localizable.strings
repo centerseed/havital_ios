@@ -1618,3 +1618,6 @@
 "edit_schedule.pace_zone.anaerobic.benefit" = "Benefits: Improve anaerobic endurance, enhance high-intensity sustained ability, improve lactate tolerance";
 "edit_schedule.pace_zone.interval.description" = "High-intensity interval training, short-distance sprints, improve speed and explosiveness";
 "edit_schedule.pace_zone.interval.benefit" = "Benefits: Improve VO2 max, enhance speed and explosiveness, improve running efficiency";
+
+// MARK: - Edit Schedule Additional Keys
+"edit_schedule.edit_training" = "Edit Training";

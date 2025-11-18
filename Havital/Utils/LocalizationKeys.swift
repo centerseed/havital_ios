@@ -1069,6 +1069,7 @@ extension L10n {
     // MARK: - Edit Schedule
     enum EditSchedule {
         // General
+        static let editTraining = "edit_schedule.edit_training" // "編輯訓練"
         static let cancel = "edit_schedule.cancel" // "取消"
         static let save = "edit_schedule.save" // "儲存"
         static let confirm = "edit_schedule.confirm" // "確定"
