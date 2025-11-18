@@ -1162,6 +1162,54 @@ extension L10n {
             static let tip3 = "training_readiness.tips.tip3" // "關注分數趨勢，不要糾結每日波動"
             static let tip4 = "training_readiness.tips.tip4" // "如果訓練負荷分數很低，需要安排恢復時間"
         }
+
+        // Metric Labels for Radar Chart
+        static let speedLabel = "training_readiness.speed_label" // "速度"
+        static let enduranceLabel = "training_readiness.endurance_label" // "耐力"
+        static let raceFitnessLabel = "training_readiness.race_fitness_label" // "比賽適能"
+        static let trainingLoadLabel = "training_readiness.training_load_label" // "訓練負荷"
+
+        // Speed Metric Details
+        enum Speed {
+            static let title = "training_readiness.speed.title" // "速度指標"
+            static let description = "training_readiness.speed.description" // "評估您的跑步配速能力"
+            static let whatItMeans = "training_readiness.speed.what_it_means" // "配速是否符合訓練進展的期望"
+            static let howToImprove1 = "training_readiness.speed.how_to_improve_1" // "儘量達成速度課表的計劃配速"
+            static let howToImprove2 = "training_readiness.speed.how_to_improve_2" // "跑好間歇跑的衝刺區間配速"
+            static let whenDecreases = "training_readiness.speed.when_decreases" // "無法跑到目標配速，或太久沒有訓練"
+        }
+
+        // Endurance Metric Details
+        enum Endurance {
+            static let title = "training_readiness.endurance.title" // "耐力指標"
+            static let description = "training_readiness.endurance.description" // "評估您的長距離跑穩定性"
+            static let whatItMeans = "training_readiness.endurance.what_it_means" // "長距離跑的心率和配速的穩定性"
+            static let howToImprove1 = "training_readiness.endurance.how_to_improve_1" // "輕鬆跑、LSD 確實跑在 Zone 2 心率區間"
+            static let howToImprove2 = "training_readiness.endurance.how_to_improve_2" // "逐週增加距離，保持配速穩定"
+            static let whenDecreases = "training_readiness.endurance.when_decreases" // "心率提升幅度較配速提升還大，或太久沒有長跑"
+        }
+
+        // Race Fitness Metric Details
+        enum RaceFitness {
+            static let title = "training_readiness.race_fitness.title" // "比賽適能"
+            static let description = "training_readiness.race_fitness.description" // "評估為目標賽事的準備進度"
+            static let whatItMeans = "training_readiness.race_fitness.what_it_means" // "體能表現狀態離目標配速還有多遠"
+            static let howToImprove1 = "training_readiness.race_fitness.how_to_improve_1" // "儘量跟上每週的課表安排"
+            static let howToImprove2 = "training_readiness.race_fitness.how_to_improve_2" // "高品質的休息與恢復"
+            static let howToImprove3 = "training_readiness.race_fitness.how_to_improve_3" // "適當的力量訓練"
+            static let whenDecreases = "training_readiness.race_fitness.when_decreases" // "天氣過熱、身體狀況不佳，或缺乏多樣訓練"
+        }
+
+        // Training Load Metric Details
+        enum Load {
+            static let title = "training_readiness.load.title" // "訓練負荷"
+            static let description = "training_readiness.load.description" // "評估訓練量是否適當"
+            static let whatItMeans = "training_readiness.load.what_it_means" // "訓練量是否過大"
+            static let howToImprove1 = "training_readiness.load.how_to_improve_1" // "跑量、強度按照課表安排穩步提升"
+            static let howToImprove2 = "training_readiness.load.how_to_improve_2" // "如果負荷過大，考慮安排休息週好好恢復"
+            static let howToImprove3 = "training_readiness.load.how_to_improve_3" // "高強度訓練後安排恢復日"
+            static let whenDecreases = "training_readiness.load.when_decreases" // "訓練量持續過高，且恢復狀態不好"
+        }
     }
 
     // MARK: - My Achievement View

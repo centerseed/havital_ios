@@ -1557,3 +1557,43 @@
 
 // MARK: - My Achievement Additional
 "my_achievement.updated" = " 更新";
+
+// MARK: - Training Readiness Metric Labels
+"training_readiness.speed_label" = "速度";
+"training_readiness.endurance_label" = "持久力";
+"training_readiness.race_fitness_label" = "レース適性";
+"training_readiness.training_load_label" = "トレーニング負荷";
+
+// MARK: - Speed Metric
+"training_readiness.speed.title" = "速度指標";
+"training_readiness.speed.description" = "ランニングペース能力を評価";
+"training_readiness.speed.what_it_means" = "ペースがトレーニング進捗の期待に合っているか";
+"training_readiness.speed.how_to_improve_1" = "スピードトレーニングの計画ペースを達成する";
+"training_readiness.speed.how_to_improve_2" = "インターバルのスプリント区間ペースを維持する";
+"training_readiness.speed.when_decreases" = "目標ペースに達しない、または長期間トレーニングしていない";
+
+// MARK: - Endurance Metric
+"training_readiness.endurance.title" = "持久力指標";
+"training_readiness.endurance.description" = "長距離ランの安定性を評価";
+"training_readiness.endurance.what_it_means" = "長距離ランでの心拍数とペースの安定性";
+"training_readiness.endurance.how_to_improve_1" = "イージーラン・LSD を Zone 2 心拍ゾーンで維持する";
+"training_readiness.endurance.how_to_improve_2" = "週ごとに距離を増やし、ペースを安定させる";
+"training_readiness.endurance.when_decreases" = "心拍数の上昇がペース上昇より大きい、または長距離ランの不足";
+
+// MARK: - Race Fitness Metric
+"training_readiness.race_fitness.title" = "レース適性";
+"training_readiness.race_fitness.description" = "目標レースへの準備進捗を評価";
+"training_readiness.race_fitness.what_it_means" = "フィットネス状態が目標ペースからどれだけ離れているか";
+"training_readiness.race_fitness.how_to_improve_1" = "毎週のトレーニング計画に従う";
+"training_readiness.race_fitness.how_to_improve_2" = "質の高い休息と回復";
+"training_readiness.race_fitness.how_to_improve_3" = "適切な筋力トレーニング";
+"training_readiness.race_fitness.when_decreases" = "暑い天候、体調不良、または多様なトレーニングの不足";
+
+// MARK: - Training Load Metric
+"training_readiness.load.title" = "トレーニング負荷";
+"training_readiness.load.description" = "トレーニング量が適切かどうかを評価";
+"training_readiness.load.what_it_means" = "トレーニング量が過剰かどうか";
+"training_readiness.load.how_to_improve_1" = "計画に従って走行量と強度を着実に増やす";
+"training_readiness.load.how_to_improve_2" = "負荷が過剰な場合は回復週を検討する";
+"training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定する";
+"training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い";

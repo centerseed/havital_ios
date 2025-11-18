@@ -1562,3 +1562,43 @@
 
 // MARK: - My Achievement Additional
 "my_achievement.updated" = " Updated";
+
+// MARK: - Training Readiness Metric Labels
+"training_readiness.speed_label" = "Speed";
+"training_readiness.endurance_label" = "Endurance";
+"training_readiness.race_fitness_label" = "Race Fitness";
+"training_readiness.training_load_label" = "Training Load";
+
+// MARK: - Speed Metric
+"training_readiness.speed.title" = "Speed Metric";
+"training_readiness.speed.description" = "Evaluates your running pace ability";
+"training_readiness.speed.what_it_means" = "Whether your pace meets training progress expectations";
+"training_readiness.speed.how_to_improve_1" = "Achieve planned pace in speed workouts";
+"training_readiness.speed.how_to_improve_2" = "Maintain interval sprint pace consistently";
+"training_readiness.speed.when_decreases" = "Unable to reach target pace, or lack of recent training";
+
+// MARK: - Endurance Metric
+"training_readiness.endurance.title" = "Endurance Metric";
+"training_readiness.endurance.description" = "Evaluates your long-distance run stability";
+"training_readiness.endurance.what_it_means" = "Heart rate and pace stability during long runs";
+"training_readiness.endurance.how_to_improve_1" = "Keep easy runs and LSDs in Zone 2 heart rate";
+"training_readiness.endurance.how_to_improve_2" = "Gradually increase distance while maintaining stable pace";
+"training_readiness.endurance.when_decreases" = "Heart rate increases more than pace, or lack of long runs";
+
+// MARK: - Race Fitness Metric
+"training_readiness.race_fitness.title" = "Race Fitness";
+"training_readiness.race_fitness.description" = "Evaluates preparation progress for target race";
+"training_readiness.race_fitness.what_it_means" = "How far your fitness is from target race pace";
+"training_readiness.race_fitness.how_to_improve_1" = "Follow weekly training plan consistently";
+"training_readiness.race_fitness.how_to_improve_2" = "Quality rest and recovery";
+"training_readiness.race_fitness.how_to_improve_3" = "Appropriate strength training";
+"training_readiness.race_fitness.when_decreases" = "Hot weather, poor physical condition, or lack of varied training";
+
+// MARK: - Training Load Metric
+"training_readiness.load.title" = "Training Load";
+"training_readiness.load.description" = "Evaluates whether training volume is appropriate";
+"training_readiness.load.what_it_means" = "Whether training volume is excessive";
+"training_readiness.load.how_to_improve_1" = "Steadily increase volume and intensity according to plan";
+"training_readiness.load.how_to_improve_2" = "If load is excessive, consider recovery week";
+"training_readiness.load.how_to_improve_3" = "Schedule recovery after high-intensity training";
+"training_readiness.load.when_decreases" = "Continuous high training volume with poor recovery";
