@@ -111,7 +111,7 @@
 // MARK: - Training Progress View
 "training_progress.review" = "Review";
 "training_progress.schedule" = "Schedule";
-"training_progress.generate_schedule" = "Generate Schedule";
+"training_progress.generate_schedule" = "Generate Plan";
 
 // MARK: - Training Plan View
 "training_plan.cycle_completed" = "Training Cycle Completed";
@@ -125,12 +125,12 @@
 "next_week_planning.title" = "Next Week Planning";
 "next_week_planning.weekly_feeling" = "This week's training feeling (0-worst, 5-best)";
 "next_week_planning.overall_feeling" = "Overall feeling: ";
-"next_week_planning.training_expectation" = "For next week's training expectations, Vita will make adjustments based on actual conditions, and you can also freely edit the newly generated exercise plan";
+"next_week_planning.training_expectation" = "Tell us your expectations for next week's training, and Paceriz will make adjustments based on your actual performance. You can also freely edit the newly generated training plan";
 "next_week_planning.difficulty_adjustment" = "Difficulty Adjustment";
 "next_week_planning.days_adjustment" = "Training Days Adjustment";
 "next_week_planning.training_item_adjustment" = "Training Item Variation Adjustment";
 "next_week_planning.start_generating" = "Start Generating Next Plan";
-"next_week_planning.generating_plan" = "Vita is generating your training plan...";
+"next_week_planning.generating_plan" = "Paceriz is generating your training plan...";
 "next_week_planning.please_wait" = "Please wait";
 "next_week_planning.cancel" = "Cancel";
 "next_week_planning.adjustment.decrease" = "Decrease";
@@ -268,7 +268,7 @@
 "training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
 "training.training_review" = "Training Review";
-"training.generate_plan" = "Generate Schedule";
+"training.generate_plan" = "Generate Plan";
 "training.no_plan" = "No Training Plan";
 "training.create_plan" = "Create Training Plan";
 "training.week" = "Week %d";
@@ -321,7 +321,7 @@
 "training.need_complete_review" = "Need to complete this week's review first";
 "training.review_completed" = "This week's review completed";
 "training.confirm_training_completed_title" = "Confirm Training Completion";
-"training.confirm_training_completed_message" = "Please confirm that all this week's training has been completed. Generating the weekly review requires complete training data for accurate analysis.";
+"training.confirm_training_completed_message" = "Please confirm that you've completed all of this week's training sessions. Generating the weekly review requires complete training data for accurate analysis.";
 
 // MARK: - Training Plan Info Card
 "training.plan_info" = "Training Plan Info";
@@ -596,7 +596,7 @@
 // MARK: - Additional Training Strings
 "training.current_week_progress" = "Current training progress has entered week";
 "training.paceriz_plan_description" = "Paceriz will generate a personalized weekly schedule based on your training condition. Let's check this week's training status and generate a new schedule!";
-"training.get_weekly_review" = "Get Weekly Review ";
+"training.get_weekly_review" = "Get Weekly Review";
 "training.daily_training" = "Daily Training";
 "training.cycle_completed_message" = "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!";
 "training.set_new_goal" = "Set New Goal";
@@ -609,7 +609,7 @@
 "training.cannot_load_plan" = "Unable to load training plan";
 "training.week_schedule" = "Week Schedule";
 "training.no_schedule_generated" = "This week's schedule has not been generated yet";
-"training.generate_review_first" = "Please generate a weekly review first to get personalized training recommendations";
+"training.generate_review_first" = "Please complete this week's review to get personalized training recommendations";
 "training.loading_records" = "Loading training records...";
 "training.loading_more_records" = "Loading more records...";
 "training.pace_zone" = "Pace Zone";
@@ -639,7 +639,7 @@
 
 // MARK: - Performance
 "performance.weekly_volume_trend" = "Weekly Volume Trend";
-"performance.weekly_volume_trend_description" = "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.";
+"performance.weekly_volume_trend_description" = "Track your weekly running mileage trends to adjust your training plans accordingly.";
 "performance.select_data_source_resting_hr" = "Please select a data source to view resting heart rate trends";
 
 // MARK: - Error Additional
@@ -679,7 +679,7 @@
 "training.week_number" = "Week %d";
 "training.view_schedule" = "View Schedule";
 "training.training_review" = "Training Review";
-"training.generate_schedule" = "Generate Schedule";
+"training.generate_schedule" = "Generate Plan";
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "Total weeks: %d weeks";
@@ -754,7 +754,7 @@
 "onboarding.select_training_days" = "Select Your Convenient Training Days";
 "onboarding.training_days_description" = "Please select the days of the week when you can usually arrange running training. Paceriz will arrange different types of running schedules on these days based on your goals and fitness level. We recommend selecting at least %d days.";
 "onboarding.setup_long_run_day" = "Set Your Long Run Day";
-"onboarding.long_run_day_description" = "Long runs are key to building endurance. Please select one day from your chosen training days as your long run day. It's usually recommended to schedule it on weekends or days when you have more time for adequate recovery.";
+"onboarding.long_run_day_description" = "Long runs are essential for building endurance. Select one of your training days for your long run—typically a weekend day when you have more time for adequate recovery.";
 "onboarding.select_long_run_day" = "Select Long Run Day";
 "onboarding.long_run_day_must_be_training_day" = "Long run day must be one of your selected training days.";
 "onboarding.suggest_saturday_long_run" = "We recommend setting Saturday as your long run day for sufficient time for long-distance training.";
@@ -792,7 +792,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "Current Weekly Running Volume";
-"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Paceriz understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
+"onboarding.weekly_distance_description" = "Weekly running volume is the total distance you typically run in a week. This helps Paceriz understand your current running habits and set appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
 "onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
@@ -1254,7 +1254,7 @@
 "feedback.type.suggestion" = "Suggestion";
 "feedback.category" = "Category";
 "feedback.category.weekly_plan_failed" = "Weekly Plan Generation Failed";
-"feedback.category.weekly_summary_failed" = "Weekly Summary Generation Failed";
+"feedback.category.weekly_summary_failed" = "Weekly Review Generation Failed";
 "feedback.category.training_overview_failed" = "Training Overview Generation Failed";
 "feedback.category.other" = "Other";
 "feedback.description" = "Description";
@@ -1370,7 +1370,7 @@
 "datasource.switch.garmin_to_strava" = "Switching to Strava will unbind your Garmin Connect™ connection and require Strava authorization. Your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.";
 "datasource.switch.strava_to_apple" = "Switching to Apple Health will unbind your Strava connection. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content.";
 "datasource.switch.strava_to_garmin" = "Switching to Garmin Connect™ will unbind your Strava connection and require Garmin authorization. Your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.";
-"datasource.switch.to_unbound" = "Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.";
+"datasource.switch.to_unbound" = "Disconnecting all data sources will clear all local workout data. You can later reconnect data sources in the profile page.";
 "datasource.switch.default" = "Are you sure you want to proceed with this operation?";
 
 // MARK: - Heart Rate Setup Prompt
