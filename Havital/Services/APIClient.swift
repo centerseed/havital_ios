@@ -14,12 +14,25 @@ class NetworkMonitor {
     static let shared = NetworkMonitor()
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "NetworkMonitor")
-    
-    var isConnected: Bool = true
-    
+
+    // ✅ 使用 Optional，初始狀態未知，避免誤判
+    private var _isConnected: Bool?
+
+    var isConnected: Bool {
+        // 如果還沒收到第一次更新，檢查當前路徑狀態
+        // 這樣可以避免初始化時默認為 true 導致的誤判
+        return _isConnected ?? (monitor.currentPath.status == .satisfied)
+    }
+
     private init() {
+        // 立即獲取當前狀態作為初始值
+        _isConnected = monitor.currentPath.status == .satisfied
+        print("🌐 [NetworkMonitor] 初始化 - 當前網路狀態: \(_isConnected == true ? "已連接" : "未連接")")
+
         monitor.pathUpdateHandler = { [weak self] path in
-            self?.isConnected = path.status == .satisfied
+            let isConnected = path.status == .satisfied
+            self?._isConnected = isConnected
+            print("🌐 [NetworkMonitor] 網路狀態變更: \(isConnected ? "已連接" : "未連接")")
         }
         monitor.start(queue: queue)
     }
@@ -68,21 +81,26 @@ actor APIClient {
                                 method: String = "GET",
                                 body: Data? = nil) async throws -> T {
         let req = try await makeRequest(path: path, method: method, body: body)
-        
+
         // 檢查網路連接狀態
         if !NetworkMonitor.shared.isConnected {
+            print("❌ [APIClient] NetworkMonitor 檢測到無網路連接 - \(method) \(path)")
             throw APINetworkError.noConnection
         }
-        
+
         let (data, resp): (Data, URLResponse)
-        
+
         do {
             (data, resp) = try await URLSession.shared.data(for: req)
         } catch let urlError as URLError {
             // 處理URLError錯誤
+            print("❌ [APIClient] URLError - \(method) \(path)")
+            print("   - Code: \(urlError.code.rawValue)")
+            print("   - Description: \(urlError.localizedDescription)")
             throw self.classifyURLError(urlError)
         } catch {
             // 其他錯誤直接拋出
+            print("❌ [APIClient] 未知錯誤 - \(method) \(path): \(error.localizedDescription)")
             throw error
         }
         

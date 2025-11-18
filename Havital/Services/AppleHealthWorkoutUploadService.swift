@@ -696,7 +696,20 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             source: source,
             device: device,
             metadata: metadata)
-        
+
+        // ✅ 上傳前記錄詳細數據摘要和網路狀態
+        print("📤 [Upload] 準備上傳運動記錄到 V2 API")
+        print("   - Workout ID: \(workoutData.id)")
+        print("   - Type: \(workoutData.type) (\(workoutData.name))")
+        print("   - Duration: \(String(format: "%.0f", workoutData.duration))秒")
+        print("   - Distance: \(String(format: "%.1f", workoutData.distance))米")
+        print("   - Source: \(source) | Device: \(device ?? "unknown")")
+        print("   - Heart Rates: \(workoutData.heartRates.count) 筆")
+        print("   - Speeds: \(workoutData.speeds.count) 筆")
+        print("   - Cadences: \(workoutData.cadences?.count ?? 0) 筆")
+        print("   - Laps: \(workoutData.laps?.count ?? 0) 圈")
+        print("   - Network Status: \(NetworkMonitor.shared.isConnected ? "✅ 已連接" : "❌ 未連接")")
+
         do {
             // 先嘗試上傳，如果成功就結束
             let _: EmptyResponse = try await APIClient.shared.request(
@@ -705,6 +718,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 method: "POST",
                 body: try JSONEncoder().encode(workoutData)
             )
+            print("✅ [Upload] 運動記錄上傳成功 - \(workoutData.id)")
         } catch {
             // 記錄上傳失敗
             let errorDescription = error.localizedDescription
