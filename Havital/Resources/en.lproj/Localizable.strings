@@ -1390,3 +1390,26 @@
 "common.generating" = "Generating...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "Est. Finish";
+
+// MARK: - Content View
+"content_view.data_source_required" = "Data Source Required";
+"content_view.go_to_settings" = "Go to Settings";
+"content_view.later" = "Later";
+"content_view.data_source_required_message" = "You haven't bound a data source yet. Please go to the profile page to select Apple Health, Garmin Connect™, or Strava as your training data source.";
+
+// MARK: - Profile View
+"profile_view.apple_user" = "Apple User";
+"profile_view.garmin_already_bound" = "Garmin Connect™ Account Already Bound";
+"profile_view.strava_already_bound" = "Strava Account Already Bound";
+"profile_view.ok" = "OK";
+"profile_view.garmin_already_bound_message" = "This Garmin Connect™ account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account, unbind Garmin Connect™ in the profile page, then connect with this account.";
+"profile_view.strava_already_bound_message" = "This Strava account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account, unbind Strava in the profile page, then connect with this account.";
+
+// Developer Section
+"profile_view.developer.section_title" = "🧪 Developer Testing";
+"profile_view.developer.test_rating" = "Test Rating Prompt";
+"profile_view.developer.clear_rating_cache" = "Clear Rating Cache";
+"profile_view.developer.debug_failed_workouts" = "Debug - Failed Workouts";
+"profile_view.developer.print_heart_rate" = "Print Heart Rate Settings";
+"profile_view.developer.clear_heart_rate" = "Clear All Heart Rate Settings";
+"profile_view.developer.simulate_remind_tomorrow" = "Simulate 'Remind Tomorrow' (Expires in 1 minute)";

@@ -1385,3 +1385,26 @@
 "common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "予想完走時間";
+
+// MARK: - Content View
+"content_view.data_source_required" = "データソースの接続が必要です";
+"content_view.go_to_settings" = "設定へ";
+"content_view.later" = "あとで";
+"content_view.data_source_required_message" = "データソースが接続されていません。プロフィールページで Apple Health、Garmin Connect™、または Strava をトレーニングデータソースとして選択してください。";
+
+// MARK: - Profile View
+"profile_view.apple_user" = "Apple ユーザー";
+"profile_view.garmin_already_bound" = "Garmin Connect™ アカウントは既に接続されています";
+"profile_view.strava_already_bound" = "Strava アカウントは既に接続されています";
+"profile_view.ok" = "OK";
+"profile_view.garmin_already_bound_message" = "この Garmin Connect™ アカウントは既に別の Paceriz アカウントに接続されています。元の Paceriz アカウントでログインし、プロフィールページで Garmin Connect™ の接続を解除してから、このアカウントで接続してください。";
+"profile_view.strava_already_bound_message" = "この Strava アカウントは既に別の Paceriz アカウントに接続されています。元の Paceriz アカウントでログインし、プロフィールページで Strava の接続を解除してから、このアカウントで接続してください。";
+
+// Developer Section
+"profile_view.developer.section_title" = "🧪 開発者テスト";
+"profile_view.developer.test_rating" = "評価プロンプトをテスト";
+"profile_view.developer.clear_rating_cache" = "評価キャッシュをクリア";
+"profile_view.developer.debug_failed_workouts" = "デバッグ - 失敗したワークアウト";
+"profile_view.developer.print_heart_rate" = "心拍数設定を出力";
+"profile_view.developer.clear_heart_rate" = "すべての心拍数設定をクリア";
+"profile_view.developer.simulate_remind_tomorrow" = "「明日通知」をシミュレート（1分後に期限切れ）";

@@ -1030,4 +1030,212 @@ extension L10n {
             static let descriptionRequired = "feedback.error.description_required"
         }
     }
+
+    // MARK: - Content View
+    enum ContentView {
+        static let dataSourceRequired = "content_view.data_source_required" // "需要綁定數據源"
+        static let goToSettings = "content_view.go_to_settings" // "前往設定"
+        static let later = "content_view.later" // "稍後"
+        static let dataSourceRequiredMessage = "content_view.data_source_required_message" // "您尚未綁定數據源，請前往個人資料頁面選擇 Apple Health、Garmin Connect 或 Strava 作為您的訓練數據來源。"
+    }
+
+    // MARK: - Profile View
+    enum ProfileView {
+        static let appleUser = "profile_view.apple_user" // "Apple User"
+        static let garminAlreadyBound = "profile_view.garmin_already_bound" // "Garmin Connect™ Account Already Bound"
+        static let stravaAlreadyBound = "profile_view.strava_already_bound" // "Strava Account Already Bound"
+        static let ok = "profile_view.ok" // "OK"
+        static let garminAlreadyBoundMessage = "profile_view.garmin_already_bound_message"
+        static let stravaAlreadyBoundMessage = "profile_view.strava_already_bound_message"
+
+        // Developer Section
+        enum Developer {
+            static let sectionTitle = "profile_view.developer.section_title" // "🧪 開發者測試"
+            static let testRating = "profile_view.developer.test_rating" // "測試評分提示"
+            static let clearRatingCache = "profile_view.developer.clear_rating_cache" // "清除評分快取"
+            static let debugFailedWorkouts = "profile_view.developer.debug_failed_workouts" // "調試 - 失敗運動記錄"
+            static let printHeartRate = "profile_view.developer.print_heart_rate" // "打印心率設定狀態"
+            static let clearHeartRate = "profile_view.developer.clear_heart_rate" // "清除所有心率設定"
+            static let simulateRemindTomorrow = "profile_view.developer.simulate_remind_tomorrow" // "模擬「明天再提醒」(1分鐘後過期)"
+        }
+    }
+
+    // MARK: - Edit Schedule
+    enum EditSchedule {
+        // General
+        static let cancel = "edit_schedule.cancel" // "取消"
+        static let save = "edit_schedule.save" // "儲存"
+        static let confirm = "edit_schedule.confirm" // "確定"
+        static let apply = "edit_schedule.apply" // "套用"
+        static let delete = "edit_schedule.delete" // "刪除"
+        static let close = "edit_schedule.close" // "關閉"
+        static let cannotEdit = "edit_schedule.cannot_edit" // "無法編輯"
+        static let addSegment = "edit_schedule.add_segment" // "新增區段"
+
+        // Training Types
+        static let easyRun = "edit_schedule.easy_run" // "輕鬆跑"
+        static let tempoRun = "edit_schedule.tempo_run" // "節奏跑"
+        static let intervalTraining = "edit_schedule.interval_training" // "間歇訓練"
+        static let combinationRun = "edit_schedule.combination_run" // "組合訓練"
+        static let longDistanceRun = "edit_schedule.long_distance_run" // "長距離跑"
+        static let longEasyRun = "edit_schedule.long_easy_run" // "長距離輕鬆跑"
+        static let recoveryRun = "edit_schedule.recovery_run" // "恢復跑"
+        static let thresholdRun = "edit_schedule.threshold_run" // "閾值跑"
+        static let rest = "edit_schedule.rest" // "休息"
+
+        // Training Detail Editor
+        static let easyRunSettings = "edit_schedule.easy_run_settings" // "輕鬆跑設定"
+        static let tempoRunSettings = "edit_schedule.tempo_run_settings" // "節奏跑設定"
+        static let intervalSettings = "edit_schedule.interval_settings" // "間歇訓練設定"
+        static let combinationSettings = "edit_schedule.combination_settings" // "組合跑設定"
+        static let longRunSettings = "edit_schedule.long_run_settings" // "長距離跑設定"
+        static let trainingSettings = "edit_schedule.training_settings" // "訓練設定"
+
+        static let suggestedPace = "edit_schedule.suggested_pace" // "建議配速: %@"
+        static let sprintSuggestedPace = "edit_schedule.sprint_suggested_pace" // "衝刺段建議配速: %@"
+        static let paceRange = "edit_schedule.pace_range" // "配速區間: %@ - %@"
+        static let intervalPaceRange = "edit_schedule.interval_pace_range" // "間歇配速區間: %@ - %@"
+
+        static let distance = "edit_schedule.distance" // "距離 (公里)"
+        static let distancePlaceholder = "edit_schedule.distance_placeholder" // "例如: 5.0"
+        static let pace = "edit_schedule.pace" // "配速 (分:秒/公里)"
+        static let pacePlaceholder = "edit_schedule.pace_placeholder" // "例如: 4:30"
+        static let description = "edit_schedule.description" // "訓練說明"
+        static let segmentDescription = "edit_schedule.segment_description" // "區段描述"
+
+        static let repeats = "edit_schedule.repeats" // "重複次數"
+        static let repeatsPlaceholder = "edit_schedule.repeats_placeholder" // "例如: 6"
+        static let sprintSegment = "edit_schedule.sprint_segment" // "衝刺段"
+        static let recoverySegment = "edit_schedule.recovery_segment" // "恢復段"
+        static let segment = "edit_schedule.segment" // "區段 %d"
+
+        // Pace Selection
+        static let selectPace = "edit_schedule.select_pace" // "選擇配速"
+        static let paceSelection = "edit_schedule.pace_selection" // "配速選擇"
+        static let selectIntervalDistance = "edit_schedule.select_interval_distance" // "選擇間歇距離"
+        static let intervalDistanceSelection = "edit_schedule.interval_distance_selection" // "間歇距離選擇"
+        static let selectTrainingType = "edit_schedule.select_training_type" // "選擇訓練類型"
+        static let trainingTypeSelection = "edit_schedule.training_type_selection" // "訓練類型選擇"
+
+        // Pace Table
+        static let paceTableDescription = "edit_schedule.pace_table_description" // "根據您的跑力計算的訓練配速建議，每個區間顯示最快配速 - 最慢配速範圍"
+        static let paceZoneDetails = "edit_schedule.pace_zone_details" // "配速區間詳情"
+        static let referencePaceTable = "edit_schedule.reference_pace_table" // "參考配速表"
+    }
+
+    // MARK: - Training Readiness
+    enum TrainingReadiness {
+        static let trainingMetrics = "training_readiness.training_metrics" // "訓練指標"
+        static let metricsExplanation = "training_readiness.metrics_explanation" // "訓練指標說明"
+        static let metricsSubtitle = "training_readiness.metrics_subtitle" // "了解每個指標的含義，學習如何提升分數"
+        static let quickTips = "training_readiness.quick_tips" // "快速建議"
+        static let done = "training_readiness.done" // "完成"
+        static let whatItMeans = "training_readiness.what_it_means" // "這個指標代表什麼"
+        static let howToImprove = "training_readiness.how_to_improve" // "如何提升分數"
+        static let whenItDecreases = "training_readiness.when_it_decreases" // "分數何時下降"
+
+        enum Tips {
+            static let tip1 = "training_readiness.tips.tip1" // "每週包含：3-4 次輕鬆跑 + 1 次速度課表 + 1-2 次長跑"
+            static let tip2 = "training_readiness.tips.tip2" // "保持訓練頻率，比偶爾的高強度訓練更重要"
+            static let tip3 = "training_readiness.tips.tip3" // "關注分數趨勢，不要糾結每日波動"
+            static let tip4 = "training_readiness.tips.tip4" // "如果訓練負荷分數很低，需要安排恢復時間"
+        }
+    }
+
+    // MARK: - My Achievement View
+    enum MyAchievement {
+        static let fitnessAndTSB = "my_achievement.fitness_and_tsb" // "體適能指數 & 訓練壓力平衡"
+        static let syncing = "my_achievement.syncing" // "同步中..."
+        static let tsbStatus = "my_achievement.tsb_status" // "TSB 狀態指標"
+        static let fatigue = "my_achievement.fatigue" // "疲勞累積"
+        static let balanced = "my_achievement.balanced" // "平衡狀態"
+        static let optimal = "my_achievement.optimal" // "最佳狀態"
+        static let markerExplanation = "my_achievement.marker_explanation" // "標記說明"
+        static let hasTraining = "my_achievement.has_training" // "有訓練"
+        static let restDay = "my_achievement.rest_day" // "休息日"
+        static let reasonableTrainingLoad = "my_achievement.reasonable_training_load" // "合理訓練負荷區域"
+
+        // Training Load Detail
+        static let trainingLoadDetail = "my_achievement.training_load_detail" // "訓練負荷詳細說明"
+        static let trainingLoadSubtitle = "my_achievement.training_load_subtitle" // "了解您的體適能指數和訓練壓力平衡，幫助您優化訓練計劃"
+        static let fitnessIndex = "my_achievement.fitness_index" // "體適能指數 (Fitness Index)"
+        static let fitnessIndexDescription = "my_achievement.fitness_index_description" // "體適能指數反映您**相對於自己過往表現**的運動能力水平。這個數值會根據您最近的訓練強度、頻率和持續時間動態調整，重點在於觀察**趨勢變化**。"
+        static let howToInterpret = "my_achievement.how_to_interpret" // "如何解讀趨勢："
+        static let keyPoint = "my_achievement.key_point" // "💡 重點：關注線條的**走向**比單一數值更重要"
+        static let tsb = "my_achievement.tsb" // "訓練壓力平衡 (TSB)"
+        static let tsbDescription = "my_achievement.tsb_description" // "TSB 反映您當前的訓練疲勞與恢復狀態之間的平衡。這個指標幫助您了解何時需要休息，何時可以增加訓練強度。"
+        static let tsbInterpretation = "my_achievement.tsb_interpretation" // "TSB 狀態解讀："
+        static let chartGuide = "my_achievement.chart_guide" // "圖表解讀指南"
+        static let dotExplanation = "my_achievement.dot_explanation" // "圓點標記說明"
+        static let solidDot = "my_achievement.solid_dot" // "實心圓點：有訓練的日子"
+        static let hollowDot = "my_achievement.hollow_dot" // "空心圓點：當日無訓練"
+        static let practicalTips = "my_achievement.practical_tips" // "實用建議"
+        static let importantReminder = "my_achievement.important_reminder" // "重要提醒"
+        static let reminder1 = "my_achievement.reminder1" // "• 訓練負荷數據需要至少 2-3 週的運動記錄才能提供準確的趨勢分析"
+        static let reminder2 = "my_achievement.reminder2" // "• 體適能指數下降不一定是壞事，可能代表正在進行有計畫的減量或恢復期"
+        static let reminder3 = "my_achievement.reminder3" // "• 建議同時觀察 TSB 和 HRV 趨勢，綜合判斷身體的恢復狀態"
+        static let reminder4 = "my_achievement.reminder4" // "• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴"
+        static let complete = "my_achievement.complete" // "完成"
+    }
+
+    // MARK: - Debug Tools (Optional - Low Priority)
+    #if DEBUG
+    enum Debug {
+        static let confirmDelete = "debug.confirm_delete" // "確定要刪除測試數據嗎？"
+        static let deleteByTimeRange = "debug.delete_by_time_range" // "根據時間範圍刪除"
+        static let deleteMarkedOnly = "debug.delete_marked_only" // "只刪除已標記測試記錄"
+        static let deleteAll = "debug.delete_all" // "刪除所有數據"
+        static let selectDeleteMethod = "debug.select_delete_method" // "選擇刪除方式。時間範圍刪除可以刪除指定時間內的所有健身記錄。"
+        static let syncStatus = "debug.sync_status" // "同步狀態"
+        static let refreshStatus = "debug.refresh_status" // "重新整理狀態"
+        static let testFeatures = "debug.test_features" // "測試功能"
+        static let createTestWorkout = "debug.create_test_workout" // "創建測試健身記錄"
+        static let manualCheckUpload = "debug.manual_check_upload" // "手動檢查並上傳"
+        static let testNotification = "debug.test_notification" // "測試通知"
+        static let clearUploadHistory = "debug.clear_upload_history" // "清除上傳歷史"
+        static let testDataManagement = "debug.test_data_management" // "測試數據管理"
+        static let deleteTestData = "debug.delete_test_data" // "刪除測試數據"
+        static let findWorkouts = "debug.find_workouts" // "查找健身記錄"
+        static let deleteWarning = "debug.delete_warning" // "刪除功能會移除 HealthKit 中的健身記錄。請謹慎操作，刪除後無法恢復。"
+        static let healthKitObserver = "debug.health_kit_observer" // "HealthKit 觀察者設置"
+        static let testObserver = "debug.test_observer" // "測試觀察者設置"
+        static let operationLog = "debug.operation_log" // "操作日誌"
+        static let selectTimeRange = "debug.select_time_range" // "選擇時間範圍"
+        static let foundWorkouts = "debug.found_workouts" // "找到的健身記錄"
+        static let deleteAllRecords = "debug.delete_all_records" // "刪除所有記錄 (%d)"
+        static let deleteWarningMessage = "debug.delete_warning_message" // "警告：此操作將從您的健康數據中永久刪除這些健身記錄"
+        static let confirmDeleteTitle = "debug.confirm_delete_title" // "確定刪除"
+        static let confirmDeleteMessage = "debug.confirm_delete_message" // "這將從您的 HealthKit 數據中永久刪除 %d 條健身記錄。此操作無法撤銷。"
+        static let createdTestWorkout = "debug.created_test_workout" // "已創建測試健身記錄 ID: %@"
+    }
+    #endif
+
+    // MARK: - Share Card
+    enum ShareCard {
+        static let generateShareCard = "share_card.generate" // "生成分享卡"
+        static let choosePhoto = "share_card.choose_photo" // "選擇照片"
+    }
+
+    // MARK: - Onboarding Additional
+    enum OnboardingAdditional {
+        static let trainingPlanPreview = "onboarding.training_plan_preview" // "您的訓練計畫預覽"
+        static let goalAssessment = "onboarding.goal_assessment" // "目標評估"
+        static let trainingFocus = "onboarding.training_focus" // "訓練重點"
+    }
+
+    // MARK: - Miscellaneous
+    enum Misc {
+        static let loading = "misc.loading" // "載入中..."
+        static let retry = "misc.retry" // "重試"
+        static let back = "misc.back" // "返回"
+        static let backToThisWeek = "misc.back_to_this_week" // "返回本週"
+        static let segment = "misc.segment" // "第%d段"
+        static let times = "misc.times" // "× %d"
+        static let noEnoughData = "misc.no_enough_data" // "沒有足夠的訓練資料"
+        static let recentThreeMonthsPerformance = "misc.recent_three_months_performance" // "近三個月訓練表現"
+        static let trainingDay = "misc.training_day" // "訓練日"
+        static let mainContent = "misc.main_content" // "主要內容"
+        static let diagHRVIssue = "misc.diag_hrv_issue" // "診斷 HRV 問題"
+        static let stravaAccountBound = "misc.strava_account_bound" // "Strava Account Already Bound"
+    }
 }

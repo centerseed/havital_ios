@@ -1409,3 +1409,26 @@
 "common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "預計完賽時間";
+
+// MARK: - Content View
+"content_view.data_source_required" = "需要綁定數據源";
+"content_view.go_to_settings" = "前往設定";
+"content_view.later" = "稍後";
+"content_view.data_source_required_message" = "您尚未綁定數據源，請前往個人資料頁面選擇 Apple Health、Garmin Connect 或 Strava 作為您的訓練數據來源。";
+
+// MARK: - Profile View
+"profile_view.apple_user" = "Apple 用戶";
+"profile_view.garmin_already_bound" = "Garmin Connect™ 帳號已綁定";
+"profile_view.strava_already_bound" = "Strava 帳號已綁定";
+"profile_view.ok" = "確定";
+"profile_view.garmin_already_bound_message" = "此 Garmin Connect™ 帳號已綁定至另一個 Paceriz 帳號。請先使用原綁定的 Paceriz 帳號登入，在個人資料頁面解除 Garmin Connect™ 綁定後，再使用此帳號連接。";
+"profile_view.strava_already_bound_message" = "此 Strava 帳號已綁定至另一個 Paceriz 帳號。請先使用原綁定的 Paceriz 帳號登入，在個人資料頁面解除 Strava 綁定後，再使用此帳號連接。";
+
+// Developer Section
+"profile_view.developer.section_title" = "🧪 開發者測試";
+"profile_view.developer.test_rating" = "測試評分提示";
+"profile_view.developer.clear_rating_cache" = "清除評分快取";
+"profile_view.developer.debug_failed_workouts" = "調試 - 失敗運動記錄";
+"profile_view.developer.print_heart_rate" = "打印心率設定狀態";
+"profile_view.developer.clear_heart_rate" = "清除所有心率設定";
+"profile_view.developer.simulate_remind_tomorrow" = "模擬「明天再提醒」(1分鐘後過期)";
