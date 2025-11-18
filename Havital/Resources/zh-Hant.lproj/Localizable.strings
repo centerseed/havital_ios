@@ -1640,3 +1640,25 @@
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "編輯訓練";
+
+// MARK: - Empty State
+"empty_state.no_data_title" = "無%@數據";
+"empty_state.loading_failed_title" = "載入失敗";
+"empty_state.api_error_title" = "數據載入失敗";
+"empty_state.no_permission_title" = "無權限";
+"empty_state.no_data_source_title" = "未選擇數據來源";
+"empty_state.hrv_data_title" = "無 HRV 數據";
+"empty_state.sleep_heart_rate_data_title" = "無睡眠心率數據";
+"empty_state.vdot_data_title" = "無跑力數據";
+"empty_state.workout_data_title" = "無運動數據";
+"empty_state.health_data_title" = "無健康數據";
+"empty_state.no_data_desc" = "目前沒有可顯示的%@數據";
+"empty_state.loading_failed_desc" = "無法載入數據，請檢查網路連線後重試";
+"empty_state.api_error_desc" = "伺服器暫時無法提供數據";
+"empty_state.no_permission_desc" = "請在設定中允許存取相關數據";
+"empty_state.no_data_source_desc" = "請選擇數據來源以查看相關資訊";
+"empty_state.hrv_data_desc" = "無法獲取心率變異性數據";
+"empty_state.sleep_heart_rate_data_desc" = "無法獲取睡眠心率數據";
+"empty_state.vdot_data_desc" = "暫無跑力數據，請先完成跑步訓練";
+"empty_state.workout_data_desc" = "尚未記錄任何運動數據";
+"empty_state.health_data_desc" = "無法獲取健康數據";

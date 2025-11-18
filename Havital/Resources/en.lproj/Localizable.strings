@@ -1621,3 +1621,25 @@
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "Edit Training";
+
+// MARK: - Empty State
+"empty_state.no_data_title" = "No %@ Data";
+"empty_state.loading_failed_title" = "Loading Failed";
+"empty_state.api_error_title" = "Data Loading Failed";
+"empty_state.no_permission_title" = "No Permission";
+"empty_state.no_data_source_title" = "No Data Source Selected";
+"empty_state.hrv_data_title" = "No HRV Data";
+"empty_state.sleep_heart_rate_data_title" = "No Sleep Heart Rate Data";
+"empty_state.vdot_data_title" = "No VDOT Data";
+"empty_state.workout_data_title" = "No Workout Data";
+"empty_state.health_data_title" = "No Health Data";
+"empty_state.no_data_desc" = "No %@ data to display";
+"empty_state.loading_failed_desc" = "Unable to load data. Please check your network connection and try again";
+"empty_state.api_error_desc" = "Server temporarily unavailable";
+"empty_state.no_permission_desc" = "Please allow access to related data in Settings";
+"empty_state.no_data_source_desc" = "Please select a data source to view information";
+"empty_state.hrv_data_desc" = "Unable to retrieve heart rate variability data";
+"empty_state.sleep_heart_rate_data_desc" = "Unable to retrieve sleep heart rate data";
+"empty_state.vdot_data_desc" = "No VDOT data yet. Please complete a running workout first";
+"empty_state.workout_data_desc" = "No workout data recorded yet";
+"empty_state.health_data_desc" = "Unable to retrieve health data";

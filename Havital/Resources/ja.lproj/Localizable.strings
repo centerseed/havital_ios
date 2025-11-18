@@ -1616,3 +1616,25 @@
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "トレーニング編集";
+
+// MARK: - Empty State
+"empty_state.no_data_title" = "%@データなし";
+"empty_state.loading_failed_title" = "読み込み失敗";
+"empty_state.api_error_title" = "データ読み込み失敗";
+"empty_state.no_permission_title" = "権限なし";
+"empty_state.no_data_source_title" = "データソース未選択";
+"empty_state.hrv_data_title" = "HRVデータなし";
+"empty_state.sleep_heart_rate_data_title" = "睡眠心拍データなし";
+"empty_state.vdot_data_title" = "VDOTデータなし";
+"empty_state.workout_data_title" = "ワークアウトデータなし";
+"empty_state.health_data_title" = "健康データなし";
+"empty_state.no_data_desc" = "表示する%@データがありません";
+"empty_state.loading_failed_desc" = "データを読み込めません。ネットワーク接続を確認して再試行してください";
+"empty_state.api_error_desc" = "サーバーが一時的に利用できません";
+"empty_state.no_permission_desc" = "設定で関連データへのアクセスを許可してください";
+"empty_state.no_data_source_desc" = "データソースを選択して情報を表示してください";
+"empty_state.hrv_data_desc" = "心拍変動データを取得できません";
+"empty_state.sleep_heart_rate_data_desc" = "睡眠心拍データを取得できません";
+"empty_state.vdot_data_desc" = "VDOTデータがありません。まずランニングワークアウトを完了してください";
+"empty_state.workout_data_desc" = "まだワークアウトデータが記録されていません";
+"empty_state.health_data_desc" = "健康データを取得できません";

@@ -1341,4 +1341,31 @@ extension L10n {
         static let diagHRVIssue = "misc.diag_hrv_issue" // "診斷 HRV 問題"
         static let stravaAccountBound = "misc.strava_account_bound" // "Strava Account Already Bound"
     }
+
+    // MARK: - Empty State
+    enum EmptyState {
+        // Titles
+        static let noDataTitle = "empty_state.no_data_title" // "無%@數據"
+        static let loadingFailedTitle = "empty_state.loading_failed_title" // "載入失敗"
+        static let apiErrorTitle = "empty_state.api_error_title" // "數據載入失敗"
+        static let noPermissionTitle = "empty_state.no_permission_title" // "無權限"
+        static let noDataSourceTitle = "empty_state.no_data_source_title" // "未選擇數據來源"
+        static let hrvDataTitle = "empty_state.hrv_data_title" // "無 HRV 數據"
+        static let sleepHeartRateDataTitle = "empty_state.sleep_heart_rate_data_title" // "無睡眠心率數據"
+        static let vdotDataTitle = "empty_state.vdot_data_title" // "無跑力數據"
+        static let workoutDataTitle = "empty_state.workout_data_title" // "無運動數據"
+        static let healthDataTitle = "empty_state.health_data_title" // "無健康數據"
+
+        // Descriptions
+        static let noDataDesc = "empty_state.no_data_desc" // "目前沒有可顯示的%@數據"
+        static let loadingFailedDesc = "empty_state.loading_failed_desc" // "無法載入數據，請檢查網路連線後重試"
+        static let apiErrorDesc = "empty_state.api_error_desc" // "伺服器暫時無法提供數據"
+        static let noPermissionDesc = "empty_state.no_permission_desc" // "請在設定中允許存取相關數據"
+        static let noDataSourceDesc = "empty_state.no_data_source_desc" // "請選擇數據來源以查看相關資訊"
+        static let hrvDataDesc = "empty_state.hrv_data_desc" // "無法獲取心率變異性數據"
+        static let sleepHeartRateDataDesc = "empty_state.sleep_heart_rate_data_desc" // "無法獲取睡眠心率數據"
+        static let vdotDataDesc = "empty_state.vdot_data_desc" // "暫無跑力數據，請先完成跑步訓練"
+        static let workoutDataDesc = "empty_state.workout_data_desc" // "尚未記錄任何運動數據"
+        static let healthDataDesc = "empty_state.health_data_desc" // "無法獲取健康數據"
+    }
 }
