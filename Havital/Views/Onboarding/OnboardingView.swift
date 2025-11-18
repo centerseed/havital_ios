@@ -209,14 +209,14 @@ struct OnboardingView: View {
             }
             .background(Color(.systemGroupedBackground))
             
-            // 導航到心率設定頁面
-            NavigationLink(destination: HeartRateZoneInfoView(mode: .onboarding(targetDistance: Double(viewModel.selectedDistance) ?? 42.195))
+            // 導航到訓練日數設定頁面（新流程：赛事设定完成后）
+            NavigationLink(destination: TrainingDaysSetupView()
                 .navigationBarBackButtonHidden(true),
                            isActive: $showHeartRateSetup) {
                 EmptyView()
             }
 
-            // 導航到起始階段選擇頁面
+            // 導航到起始階段選擇頁面（時間緊張時）
             NavigationLink(destination: StartStageSelectionView(
                 weeksRemaining: viewModel.trainingWeeks,
                 targetDistanceKm: Double(viewModel.selectedDistance) ?? 42.195,
@@ -231,7 +231,7 @@ struct OnboardingView: View {
                         UserDefaults.standard.removeObject(forKey: "selectedStartStage")
                     }
                     showStageSelection = false
-                    showHeartRateSetup = true
+                    showHeartRateSetup = true // 選擇完階段後導航到訓練日數設定
                 }
             ).navigationBarBackButtonHidden(true),
                isActive: $showStageSelection) {

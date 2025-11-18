@@ -100,9 +100,9 @@ struct DataSourceSelectionView: View {
                     .padding()
                 }
                 
-                // 隱藏的 NavigationLink
+                // 隱藏的 NavigationLink - 導航到心率設定
                 NavigationLink(
-                    destination: OnboardingView()
+                    destination: HeartRateZoneInfoView(mode: .onboarding(targetDistance: 0))
                         .navigationBarBackButtonHidden(true),
                     isActive: $navigateToNextStep
                 ) {

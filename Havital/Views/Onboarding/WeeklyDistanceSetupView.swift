@@ -175,8 +175,8 @@ struct WeeklyDistanceSetupView: View {
         }
         // .disabled(viewModel.isLoading) // Form 層級的 disabled 可以移除，因為按鈕已單獨處理
         .background(
-            // 加上 .navigationBarBackButtonHidden(true)
-            NavigationLink(destination: TrainingDaysSetupView().navigationBarBackButtonHidden(true), isActive: $viewModel.navigateToTrainingDays) {
+            // 導航到目標類型選擇頁面
+            NavigationLink(destination: GoalTypeSelectionView().navigationBarBackButtonHidden(true), isActive: $viewModel.navigateToTrainingDays) {
                 EmptyView()
             }
         )
