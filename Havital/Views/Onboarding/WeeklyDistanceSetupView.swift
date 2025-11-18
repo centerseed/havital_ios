@@ -6,17 +6,23 @@ class WeeklyDistanceViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var navigateToTrainingDays = false
-    
-    let targetDistance: Double
+
+    let targetDistance: Double?
     // 調整預設週跑量的上限
     let defaultMaxWeeklyDistanceCap = 30.0 // 預設週跑量上限調整為30公里
     let minimumWeeklyDistance = 0.0 // 允許使用者選擇0公里
-    
-    init(targetDistance: Double) {
+    let maxWeeklyDistance = 180.0 // 最大週跑量上限為180公里
+
+    init(targetDistance: Double?) {
         self.targetDistance = targetDistance
         // 預設週跑量為目標距離的30%，但不超過 defaultMaxWeeklyDistanceCap，最低為0
-        let suggestedDistance = targetDistance * 0.3
-        self.weeklyDistance = max(minimumWeeklyDistance, min(suggestedDistance, defaultMaxWeeklyDistanceCap))
+        // 如果沒有目標距離，預設為10公里
+        if let targetDistance = targetDistance {
+            let suggestedDistance = targetDistance * 0.3
+            self.weeklyDistance = max(minimumWeeklyDistance, min(suggestedDistance, defaultMaxWeeklyDistanceCap))
+        } else {
+            self.weeklyDistance = 10.0 // 沒有目標時預設為10公里
+        }
     }
     
     func saveWeeklyDistance() async {
@@ -65,8 +71,8 @@ class WeeklyDistanceViewModel: ObservableObject {
 struct WeeklyDistanceSetupView: View {
     @StateObject private var viewModel: WeeklyDistanceViewModel
     @Environment(\.dismiss) private var dismiss
-    
-    init(targetDistance: Double) {
+
+    init(targetDistance: Double? = nil) {
         _viewModel = StateObject(wrappedValue: WeeklyDistanceViewModel(targetDistance: targetDistance))
     }
     
@@ -76,26 +82,40 @@ struct WeeklyDistanceSetupView: View {
                 header: Text(NSLocalizedString("onboarding.current_weekly_distance", comment: "Current Weekly Distance")).padding(.top, 10),
                 footer: Text(NSLocalizedString("onboarding.weekly_distance_description", comment: "Weekly Distance Description"))
             ) {
-                Text(String(format: NSLocalizedString("onboarding.target_distance_label", comment: "Target Distance Label"), viewModel.targetDistance))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.bottom, 5)
+                // 只在有目標距離時顯示
+                if let targetDistance = viewModel.targetDistance {
+                    Text(String(format: NSLocalizedString("onboarding.target_distance_label", comment: "Target Distance Label"), targetDistance))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 5)
+                }
 
                 Text(NSLocalizedString("onboarding.adjust_weekly_volume", comment: "Adjust Weekly Volume"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.bottom, 10)
 
-                // Slider 的最大值為目標距離的4倍，最少60公里
-                let sliderMaxDistance = max(viewModel.targetDistance * 4, 60.0)
+                // Slider 的最大值：如果有目標距離則為目標距離的4倍（最少60公里），否則固定180公里
+                let sliderMaxDistance: Double
+                if let targetDistance = viewModel.targetDistance {
+                    sliderMaxDistance = max(targetDistance * 4, 60.0)
+                } else {
+                    sliderMaxDistance = viewModel.maxWeeklyDistance
+                }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(String(format: NSLocalizedString("onboarding.weekly_volume_label", comment: "Weekly Volume Label"), viewModel.weeklyDistance))
-                        .fontWeight(.medium)
+                    // 週跑量標籤加上 Stepper 方便微調
+                    HStack {
+                        Text(String(format: NSLocalizedString("onboarding.weekly_volume_label", comment: "Weekly Volume Label"), viewModel.weeklyDistance))
+                            .fontWeight(.medium)
+                        Spacer()
+                        Stepper("", value: $viewModel.weeklyDistance, in: viewModel.minimumWeeklyDistance...sliderMaxDistance, step: 1)
+                            .labelsHidden()
+                    }
 
                     Slider(
                         value: $viewModel.weeklyDistance,
-                        in: viewModel.minimumWeeklyDistance...sliderMaxDistance, // 從 ViewModel 取最小跑量
+                        in: viewModel.minimumWeeklyDistance...sliderMaxDistance,
                         step: 1
                     )
 
@@ -170,6 +190,9 @@ struct WeeklyDistanceSetupView_Previews: PreviewProvider {
         }
         NavigationView {
             WeeklyDistanceSetupView(targetDistance: 5) // 5K
+        }
+        NavigationView {
+            WeeklyDistanceSetupView(targetDistance: nil) // 無目標（新 onboarding 流程）
         }
     }
 }
