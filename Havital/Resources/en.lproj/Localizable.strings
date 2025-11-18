@@ -35,6 +35,7 @@
 "common.resume" = "Resume";
 "common.finish" = "Finish";
 "common.week_unit" = "week";
+"common.weeks" = "weeks";
 
 // MARK: - Authentication
 "auth.welcome" = "Welcome to Paceriz";
@@ -729,6 +730,20 @@
 "onboarding.goal_type_beginner_5k_desc" = "Start from zero, achieve 5km goal in 12 weeks";
 "onboarding.goal_type_nav_title" = "Training Goal";
 "onboarding.beginner_5k_goal" = "能跑 5 公里";
+
+// MARK: - Training Overview View
+"onboarding.training_overview_title" = "Training Overview";
+"onboarding.training_summary" = "Training Summary";
+"onboarding.total_weeks" = "Total Weeks";
+"onboarding.race_date" = "Race Date";
+"onboarding.target_pace" = "Target Pace";
+"onboarding.target_evaluate" = "Target Evaluation";
+"onboarding.training_timeline" = "Training Timeline";
+"onboarding.training_focus" = "Training Focus";
+"onboarding.training_highlight" = "Training Highlight";
+"onboarding.generate_first_week" = "Generate First Week Plan";
+"onboarding.week_range" = "Week %d-%d";
+"onboarding.week_single" = "Week %d";
 
 // MARK: - Distance Labels
 "distance.3k" = "3 km";

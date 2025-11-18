@@ -35,6 +35,7 @@
 "common.resume" = "再開";
 "common.finish" = "終了";
 "common.week_unit" = "週";
+"common.weeks" = "週";
 
 // MARK: - Authentication
 "auth.welcome" = "Pacerizへようこそ";
@@ -729,6 +730,20 @@
 "onboarding.goal_type_beginner_5k_desc" = "ゼロから始めて、12週間で5km完走を目指します";
 "onboarding.goal_type_nav_title" = "トレーニング目標";
 "onboarding.beginner_5k_goal" = "5km走れるようになる";
+
+// MARK: - Training Overview View
+"onboarding.training_overview_title" = "トレーニング概要";
+"onboarding.training_summary" = "トレーニングサマリー";
+"onboarding.total_weeks" = "総週数";
+"onboarding.race_date" = "レース日";
+"onboarding.target_pace" = "目標ペース";
+"onboarding.target_evaluate" = "目標評価";
+"onboarding.training_timeline" = "トレーニングタイムライン";
+"onboarding.training_focus" = "トレーニング重点";
+"onboarding.training_highlight" = "トレーニングハイライト";
+"onboarding.generate_first_week" = "第1週のプランを生成";
+"onboarding.week_range" = "第%d-%d週";
+"onboarding.week_single" = "第%d週";
 
 // MARK: - Distance Labels
 "distance.3k" = "3 km";

@@ -35,6 +35,7 @@
 "common.resume" = "繼續";
 "common.finish" = "完成";
 "common.week_unit" = "週";
+"common.weeks" = "週";
 
 // MARK: - Authentication
 "auth.welcome" = "歡迎使用 Paceriz";
@@ -730,6 +731,20 @@
 "onboarding.goal_type_beginner_5k_desc" = "從零開始，12 週達到完成 5 公里的目標";
 "onboarding.goal_type_nav_title" = "訓練目標";
 "onboarding.beginner_5k_goal" = "能跑 5 公里";
+
+// MARK: - Training Overview View
+"onboarding.training_overview_title" = "訓練總覽";
+"onboarding.training_summary" = "訓練摘要";
+"onboarding.total_weeks" = "總週數";
+"onboarding.race_date" = "賽事日期";
+"onboarding.target_pace" = "目標配速";
+"onboarding.target_evaluate" = "目標評估";
+"onboarding.training_timeline" = "訓練時間軸";
+"onboarding.training_focus" = "訓練重點";
+"onboarding.training_highlight" = "訓練亮點";
+"onboarding.generate_first_week" = "生成第一週訓練計劃";
+"onboarding.week_range" = "第 %d-%d 週";
+"onboarding.week_single" = "第 %d 週";
 
 // MARK: - Distance Labels
 "distance.3k" = "3公里";
