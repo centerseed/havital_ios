@@ -35,6 +35,12 @@ enum L10n {
         static let resume = "common.resume"
         static let finish = "common.finish"
         static let weekUnit = "common.week_unit" // "週"
+        static let ok = "common.ok" // "OK"
+        static let error = "common.error" // "Error"
+        static let generating = "common.generating" // "Generating..."
+        static let submit = "common.submit" // "Submit"
+        static let later = "common.later" // "Later"
+        static let reload = "common.reload" // "Reload"
     }
     
     // MARK: - Authentication
