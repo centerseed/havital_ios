@@ -60,13 +60,13 @@ class PersonalBestViewModel: ObservableObject {
                     "distance_km": Double(selectedDistance) ?? 3.0,
                     "complete_time": targetHours * 3600 + targetMinutes * 60 + targetSeconds
                 ] as [String : Any]
-                
+
                 try await UserService.shared.updatePersonalBestData(userData)
                 print("個人最佳成績已更新")
             } else {
-                // 如果使用者選擇沒有PB，可以考慮清除已儲存的PB數據或不執行任何操作
-                // 目前 UserService 沒有直接清除PB的方法，所以這裡暫不處理清除
-                print("使用者選擇沒有個人最佳成績或不確定。")
+                // ✅ 跳過 API 調用：使用者選擇沒有個人最佳成績
+                // 符合新 onboarding 流程要求，不上傳任何 PB 數據
+                print("使用者選擇沒有個人最佳成績，跳過 API 調用。")
             }
             navigateToWeeklyDistance = true
         } catch {
@@ -169,8 +169,9 @@ struct PersonalBestView: View {
             }
             
             // 隱藏導航用的 NavigationLink
+            // 新 onboarding 流程中，WeeklyDistanceSetupView 不需要 targetDistance
             NavigationLink(
-                destination: WeeklyDistanceSetupView(targetDistance: viewModel.targetDistance)
+                destination: WeeklyDistanceSetupView(targetDistance: nil)
                     .navigationBarBackButtonHidden(true),
                 isActive: $viewModel.navigateToWeeklyDistance
             ) {
