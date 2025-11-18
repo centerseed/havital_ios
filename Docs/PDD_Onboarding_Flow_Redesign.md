@@ -270,6 +270,7 @@ class DataSourceBindingViewModel: ObservableObject {
     @Published var backfillProgress: BackfillProgress?
 
     private var backfillId: String?
+    private var currentProvider: DataSourceType?
     private var pollingTask: Task<Void, Never>?
 
     func handleDataSourceSelection(_ source: DataSourceType) async throws {
@@ -326,13 +327,28 @@ class DataSourceBindingViewModel: ObservableObject {
         // 2. 開始 OAuth 流程（不等待完成）
         await StravaManager.shared.startConnection()
 
-        // 3. 🆕 Strava Backfill（待補充）
-        //    類似 Garmin 的處理方式
+        // 3. 🆕 觸發 Strava Backfill（OAuth 成功後會自動執行）
+        //    這裡不主動觸發，因為 OAuth 完成後會觸發
+        //    但如果 OAuth 已完成，可以直接觸發
+        if StravaManager.shared.isConnected {
+            await triggerStravaBackfill()
+        }
     }
 
     // 🆕 觸發 Garmin Backfill
     private func triggerGarminBackfill() async {
+        await triggerBackfill(provider: .garmin, service: GarminService.shared)
+    }
+
+    // 🆕 觸發 Strava Backfill
+    private func triggerStravaBackfill() async {
+        await triggerBackfill(provider: .strava, service: StravaService.shared)
+    }
+
+    // 🆕 通用 Backfill 觸發方法
+    private func triggerBackfill(provider: DataSourceType, service: BackfillService) async {
         isBackfilling = true
+        currentProvider = provider
 
         do {
             // 計算日期範圍
@@ -342,25 +358,25 @@ class DataSourceBindingViewModel: ObservableObject {
             dateFormatter.dateFormat = "yyyy-MM-dd"
 
             // 調用 Backfill API
-            let response = try await GarminService.shared.triggerBackfill(
+            let response = try await service.triggerBackfill(
                 startDate: dateFormatter.string(from: startDate),
                 days: 14
             )
 
             backfillId = response.backfillId
-            print("✅ Backfill 已觸發: \(response.backfillId)")
+            print("✅ \(provider.rawValue) Backfill 已觸發: \(response.backfillId)")
 
             // 🆕 開始輪詢狀態（背景執行）
-            startPollingBackfillStatus()
+            startPollingBackfillStatus(service: service)
 
         } catch {
-            print("⚠️ Backfill 觸發失敗: \(error)")
+            print("⚠️ \(provider.rawValue) Backfill 觸發失敗: \(error)")
             isBackfilling = false
         }
     }
 
     // 🆕 輪詢 Backfill 狀態
-    private func startPollingBackfillStatus() {
+    private func startPollingBackfillStatus(service: BackfillService) {
         guard let backfillId = backfillId else { return }
 
         pollingTask = Task.detached { [weak self] in
@@ -369,7 +385,7 @@ class DataSourceBindingViewModel: ObservableObject {
 
             while pollCount < maxPolls {
                 do {
-                    let status = try await GarminService.shared.getBackfillStatus(backfillId: backfillId)
+                    let status = try await service.getBackfillStatus(backfillId: backfillId)
 
                     await MainActor.run {
                         self?.backfillProgress = BackfillProgress(
@@ -421,9 +437,18 @@ struct BackfillProgress {
 }
 ```
 
-**GarminService 新增方法**：
+**BackfillService Protocol**：
 ```swift
-extension GarminService {
+/// Backfill 服務協議（Garmin 和 Strava 共用）
+protocol BackfillService {
+    func triggerBackfill(startDate: String, days: Int) async throws -> BackfillResponse
+    func getBackfillStatus(backfillId: String) async throws -> BackfillStatusResponse
+}
+```
+
+**GarminService 實現 Backfill**：
+```swift
+extension GarminService: BackfillService {
     /// 觸發 Garmin Backfill
     func triggerBackfill(startDate: String, days: Int) async throws -> BackfillResponse {
         let body = [
@@ -445,6 +470,34 @@ extension GarminService {
         return try await makeAPICall(
             BackfillStatusResponse.self,
             path: "/garmin/backfill/\(backfillId)",
+            method: .GET
+        )
+    }
+}
+
+/// 🆕 StravaService 實現 Backfill
+extension StravaService: BackfillService {
+    /// 觸發 Strava Backfill
+    func triggerBackfill(startDate: String, days: Int) async throws -> BackfillResponse {
+        let body = [
+            "start_date": startDate,
+            "days": days
+        ]
+        let bodyData = try JSONEncoder().encode(body)
+
+        return try await makeAPICall(
+            BackfillResponse.self,
+            path: "/strava/backfill",  // 🆕 Strava 路徑
+            method: .POST,
+            body: bodyData
+        )
+    }
+
+    /// 查詢 Backfill 狀態
+    func getBackfillStatus(backfillId: String) async throws -> BackfillStatusResponse {
+        return try await makeAPICall(
+            BackfillStatusResponse.self,
+            path: "/strava/backfill/\(backfillId)",  // 🆕 Strava 路徑
             method: .GET
         )
     }
@@ -543,10 +596,14 @@ struct BackfillStatusResponse: Codable {
 **關鍵設計決策**：
 1. ✅ **Apple Health 同步執行**：直接上傳數據，耗時短（幾秒）
 2. ✅ **Garmin/Strava 背景執行**：觸發 backfill 後輪詢狀態
-3. ✅ **UI 不阻擋**：即使 backfill 未完成，用戶也可繼續下一步
-4. ✅ **進度顯示**：底部提示顯示新增的訓練筆數
-5. ✅ **輪詢策略**：每 1 秒輪詢一次，最多 30 秒（超時自動停止）
-6. ✅ **錯誤處理**：Backfill 失敗不影響 Onboarding 流程
+   - Garmin: `POST /garmin/backfill` → 輪詢 `GET /garmin/backfill/{id}`
+   - Strava: `POST /strava/backfill` → 輪詢 `GET /strava/backfill/{id}`
+   - 兩者使用相同的 API 結構和 Response Models
+3. ✅ **統一介面**：透過 `BackfillService` protocol 統一處理
+4. ✅ **UI 不阻擋**：即使 backfill 未完成，用戶也可繼續下一步
+5. ✅ **進度顯示**：底部提示顯示新增的訓練筆數
+6. ✅ **輪詢策略**：每 1 秒輪詢一次，最多 30 秒（超時自動停止）
+7. ✅ **錯誤處理**：Backfill 失敗不影響 Onboarding 流程
 
 ---
 
