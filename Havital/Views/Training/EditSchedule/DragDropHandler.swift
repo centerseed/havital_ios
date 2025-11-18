@@ -135,7 +135,7 @@ struct DragDropModifier: ViewModifier {
                     Spacer()
                 }
 
-                Text("拖曳到目標位置")
+                Text(L10n.EditSchedule.dragToTarget.localized)
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -162,9 +162,17 @@ struct DragDropModifier: ViewModifier {
 
     // 🆕 輔助方法：取得星期名稱
     private func weekdayName(for dayIndex: Int) -> String {
-        let weekdays = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
+        let weekdays = [
+            L10n.EditSchedule.monday.localized,
+            L10n.EditSchedule.tuesday.localized,
+            L10n.EditSchedule.wednesday.localized,
+            L10n.EditSchedule.thursday.localized,
+            L10n.EditSchedule.friday.localized,
+            L10n.EditSchedule.saturday.localized,
+            L10n.EditSchedule.sunday.localized
+        ]
         let index = dayIndex - 1  // dayIndex 從 1 開始
-        guard index >= 0 && index < weekdays.count else { return "未知" }
+        guard index >= 0 && index < weekdays.count else { return L10n.EditSchedule.unknown.localized }
         return weekdays[index]
     }
 }
@@ -193,7 +201,7 @@ struct DragPreview: View {
                     .cornerRadius(8)
             }
             
-            Text("拖曳中...")
+            Text(L10n.EditSchedule.dragging.localized)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
@@ -208,8 +216,16 @@ struct DragPreview: View {
     }
     
     private func weekdayName(for dayIndex: Int) -> String {
-        let weekdays = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
-        guard dayIndex >= 0 && dayIndex < weekdays.count else { return "未知" }
+        let weekdays = [
+            L10n.EditSchedule.monday.localized,
+            L10n.EditSchedule.tuesday.localized,
+            L10n.EditSchedule.wednesday.localized,
+            L10n.EditSchedule.thursday.localized,
+            L10n.EditSchedule.friday.localized,
+            L10n.EditSchedule.saturday.localized,
+            L10n.EditSchedule.sunday.localized
+        ]
+        guard dayIndex >= 0 && dayIndex < weekdays.count else { return L10n.EditSchedule.unknown.localized }
         return weekdays[dayIndex]
     }
 }
