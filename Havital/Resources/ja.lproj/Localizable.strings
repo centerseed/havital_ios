@@ -1546,13 +1546,13 @@
 "edit_schedule.rest_in_place" = "その場で休息";
 "edit_schedule.dragging" = "ドラッグ中...";
 "edit_schedule.drag_to_target" = "目標位置にドラッグ";
-"edit_schedule.monday" = "月";
-"edit_schedule.tuesday" = "火";
-"edit_schedule.wednesday" = "水";
-"edit_schedule.thursday" = "木";
-"edit_schedule.friday" = "金";
-"edit_schedule.saturday" = "土";
-"edit_schedule.sunday" = "日";
+"edit_schedule.monday" = "月曜日";
+"edit_schedule.tuesday" = "火曜日";
+"edit_schedule.wednesday" = "水曜日";
+"edit_schedule.thursday" = "木曜日";
+"edit_schedule.friday" = "金曜日";
+"edit_schedule.saturday" = "土曜日";
+"edit_schedule.sunday" = "日曜日";
 "edit_schedule.unknown" = "不明";
 
 // MARK: - My Achievement Additional
@@ -1566,53 +1566,53 @@
 
 // MARK: - Speed Metric
 "training_readiness.speed.title" = "速度指標";
-"training_readiness.speed.description" = "ランニングペース能力を評価";
-"training_readiness.speed.what_it_means" = "ペースがトレーニング進捗の期待に合っているか";
-"training_readiness.speed.how_to_improve_1" = "スピードトレーニングの計画ペースを達成する";
-"training_readiness.speed.how_to_improve_2" = "インターバルのスプリント区間ペースを維持する";
-"training_readiness.speed.when_decreases" = "目標ペースに達しない、または長期間トレーニングしていない";
+"training_readiness.speed.description" = "ランニングペース能力を評価します";
+"training_readiness.speed.what_it_means" = "ペースがトレーニング進捗の期待に合っているかを示します";
+"training_readiness.speed.how_to_improve_1" = "スピードトレーニングの計画ペースを達成します";
+"training_readiness.speed.how_to_improve_2" = "インターバルのスプリント区間ペースを維持します";
+"training_readiness.speed.when_decreases" = "目標ペースに達しない、または長期間トレーニングしていない場合に低下します";
 
 // MARK: - Endurance Metric
 "training_readiness.endurance.title" = "持久力指標";
-"training_readiness.endurance.description" = "長距離ランの安定性を評価";
-"training_readiness.endurance.what_it_means" = "長距離ランでの心拍数とペースの安定性";
-"training_readiness.endurance.how_to_improve_1" = "イージーラン・LSD を Zone 2 心拍ゾーンで維持する";
-"training_readiness.endurance.how_to_improve_2" = "週ごとに距離を増やし、ペースを安定させる";
-"training_readiness.endurance.when_decreases" = "心拍数の上昇がペース上昇より大きい、または長距離ランの不足";
+"training_readiness.endurance.description" = "長距離ランの安定性を評価します";
+"training_readiness.endurance.what_it_means" = "長距離ランでの心拍数とペースの安定性を示します";
+"training_readiness.endurance.how_to_improve_1" = "イージーラン・LSDをZone 2心拍ゾーンで維持します";
+"training_readiness.endurance.how_to_improve_2" = "週ごとに距離を増やし、ペースを安定させます";
+"training_readiness.endurance.when_decreases" = "心拍数の上昇がペース上昇より大きい、または長距離ランが不足している場合に低下します";
 
 // MARK: - Race Fitness Metric
 "training_readiness.race_fitness.title" = "レース適性";
-"training_readiness.race_fitness.description" = "目標レースへの準備進捗を評価";
-"training_readiness.race_fitness.what_it_means" = "フィットネス状態が目標ペースからどれだけ離れているか";
-"training_readiness.race_fitness.how_to_improve_1" = "毎週のトレーニング計画に従う";
-"training_readiness.race_fitness.how_to_improve_2" = "質の高い休息と回復";
-"training_readiness.race_fitness.how_to_improve_3" = "適切な筋力トレーニング";
-"training_readiness.race_fitness.when_decreases" = "暑い天候、体調不良、または多様なトレーニングの不足";
+"training_readiness.race_fitness.description" = "目標レースへの準備進捗を評価します";
+"training_readiness.race_fitness.what_it_means" = "フィットネス状態が目標ペースからどれだけ離れているかを示します";
+"training_readiness.race_fitness.how_to_improve_1" = "毎週のトレーニング計画に従います";
+"training_readiness.race_fitness.how_to_improve_2" = "質の高い休息と回復を取ります";
+"training_readiness.race_fitness.how_to_improve_3" = "適切な筋力トレーニングを行います";
+"training_readiness.race_fitness.when_decreases" = "暑い天候、体調不良、または多様なトレーニングが不足している場合に低下します";
 
 // MARK: - Training Load Metric
 "training_readiness.load.title" = "トレーニング負荷";
-"training_readiness.load.description" = "トレーニング量が適切かどうかを評価";
-"training_readiness.load.what_it_means" = "トレーニング量が過剰かどうか";
-"training_readiness.load.how_to_improve_1" = "計画に従って走行量と強度を着実に増やす";
-"training_readiness.load.how_to_improve_2" = "負荷が過剰な場合は回復週を検討する";
-"training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定する";
-"training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い";
+"training_readiness.load.description" = "トレーニング量が適切かどうかを評価します";
+"training_readiness.load.what_it_means" = "トレーニング量が過剰かどうかを示します";
+"training_readiness.load.how_to_improve_1" = "計画に従って走行量と強度を着実に増やします";
+"training_readiness.load.how_to_improve_2" = "負荷が過剰な場合は回復週を検討します";
+"training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定します";
+"training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い場合に低下します";
 
 // MARK: - Edit Schedule Pace Zones
-"edit_schedule.pace_zone.recovery.description" = "回復日用、リラックスしたジョギング、身体の回復を促進";
-"edit_schedule.pace_zone.recovery.benefit" = "効果：筋肉の回復を促進、疲労の蓄積を軽減";
-"edit_schedule.pace_zone.easy.description" = "日常トレーニングの基本ペース、快適に会話できる、有酸素基礎を構築";
-"edit_schedule.pace_zone.easy.benefit" = "効果：有酸素基礎を構築、持久力を強化、怪我のリスクを低減";
-"edit_schedule.pace_zone.tempo.description" = "乳酸閾値トレーニング、20-30分維持、ランニングエコノミーを向上";
-"edit_schedule.pace_zone.tempo.benefit" = "効果：乳酸閾値を向上、ランニングエコノミーを改善、心肺機能を強化";
-"edit_schedule.pace_zone.marathon.description" = "目標マラソンレースペース、長距離持続ペーストレーニング";
-"edit_schedule.pace_zone.marathon.benefit" = "効果：マラソンペースに適応、長距離持久力を向上、レース強度をシミュレート";
-"edit_schedule.pace_zone.threshold.description" = "高強度有酸素トレーニング、最大酸素摂取量を向上";
-"edit_schedule.pace_zone.threshold.benefit" = "効果：最大酸素摂取量を向上、有酸素能力を強化、スピード持久力を改善";
-"edit_schedule.pace_zone.anaerobic.description" = "無酸素持久力トレーニング、最大強度に近い、無酸素能力を向上";
-"edit_schedule.pace_zone.anaerobic.benefit" = "効果：無酸素持久力を向上、高強度持続能力を強化、乳酸耐性を改善";
-"edit_schedule.pace_zone.interval.description" = "高強度インターバルトレーニング、短距離スプリント、スピードと爆発力を向上";
-"edit_schedule.pace_zone.interval.benefit" = "効果：最大酸素摂取量を向上、スピードと爆発力を強化、ランニング効率を改善";
+"edit_schedule.pace_zone.recovery.description" = "回復日用のリラックスしたジョギングで、身体の回復を促進します";
+"edit_schedule.pace_zone.recovery.benefit" = "筋肉の回復を促進し、疲労の蓄積を軽減します";
+"edit_schedule.pace_zone.easy.description" = "日常トレーニングの基本ペースで、快適に会話できる速度で走り、有酸素基礎を構築します";
+"edit_schedule.pace_zone.easy.benefit" = "有酸素基礎を構築し、持久力を強化し、怪我のリスクを低減します";
+"edit_schedule.pace_zone.tempo.description" = "乳酸閾値トレーニングとして20〜30分維持し、ランニングエコノミーを向上させます";
+"edit_schedule.pace_zone.tempo.benefit" = "乳酸閾値を向上させ、ランニングエコノミーを改善し、心肺機能を強化します";
+"edit_schedule.pace_zone.marathon.description" = "目標マラソンレースペースでの長距離持続ペーストレーニングです";
+"edit_schedule.pace_zone.marathon.benefit" = "マラソンペースに適応し、長距離持久力を向上させ、レース強度をシミュレートします";
+"edit_schedule.pace_zone.threshold.description" = "高強度有酸素トレーニングで、最大酸素摂取量を向上させます";
+"edit_schedule.pace_zone.threshold.benefit" = "最大酸素摂取量を向上させ、有酸素能力を強化し、スピード持久力を改善します";
+"edit_schedule.pace_zone.anaerobic.description" = "最大強度に近い無酸素持久力トレーニングで、無酸素能力を向上させます";
+"edit_schedule.pace_zone.anaerobic.benefit" = "無酸素持久力を向上させ、高強度持続能力を強化し、乳酸耐性を改善します";
+"edit_schedule.pace_zone.interval.description" = "短距離スプリントによる高強度インターバルトレーニングで、スピードと爆発力を向上させます";
+"edit_schedule.pace_zone.interval.benefit" = "最大酸素摂取量を向上させ、スピードと爆発力を強化し、ランニング効率を改善します";
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "トレーニング編集";
