@@ -1408,3 +1408,152 @@
 "profile_view.developer.print_heart_rate" = "心拍数設定を出力";
 "profile_view.developer.clear_heart_rate" = "すべての心拍数設定をクリア";
 "profile_view.developer.simulate_remind_tomorrow" = "「明日通知」をシミュレート（1分後に期限切れ）";
+
+// MARK: - Edit Schedule
+"edit_schedule.cancel" = "キャンセル";
+"edit_schedule.save" = "保存";
+"edit_schedule.confirm" = "確定";
+"edit_schedule.apply" = "適用";
+"edit_schedule.delete" = "削除";
+"edit_schedule.close" = "閉じる";
+"edit_schedule.cannot_edit" = "編集できません";
+"edit_schedule.addSegment" = "セグメントを追加";
+
+// Training Types
+"edit_schedule.easy_run" = "イージーラン";
+"edit_schedule.tempo_run" = "テンポラン";
+"edit_schedule.interval_training" = "インターバルトレーニング";
+"edit_schedule.combination_run" = "コンビネーションラン";
+"edit_schedule.long_distance_run" = "ロングディスタンスラン";
+"edit_schedule.long_easy_run" = "ロングイージーラン";
+"edit_schedule.recovery_run" = "リカバリーラン";
+"edit_schedule.threshold_run" = "閾値ラン";
+"edit_schedule.rest" = "休息";
+
+// Training Detail Editor
+"edit_schedule.easy_run_settings" = "イージーラン設定";
+"edit_schedule.tempo_run_settings" = "テンポラン設定";
+"edit_schedule.interval_settings" = "インターバルトレーニング設定";
+"edit_schedule.combination_settings" = "コンビネーションラン設定";
+"edit_schedule.long_run_settings" = "ロングラン設定";
+"edit_schedule.training_settings" = "トレーニング設定";
+
+"edit_schedule.suggested_pace" = "推奨ペース: %@";
+"edit_schedule.sprint_suggested_pace" = "スプリント推奨ペース: %@";
+"edit_schedule.pace_range" = "ペース範囲: %@ - %@";
+"edit_schedule.interval_pace_range" = "インターバルペース範囲: %@ - %@";
+
+"edit_schedule.distance" = "距離 (km)";
+"edit_schedule.distance_placeholder" = "例: 5.0";
+"edit_schedule.pace" = "ペース (分:秒/km)";
+"edit_schedule.pace_placeholder" = "例: 4:30";
+"edit_schedule.description" = "トレーニング説明";
+"edit_schedule.segment_description" = "セグメント説明";
+
+"edit_schedule.repeats" = "繰り返し回数";
+"edit_schedule.repeats_placeholder" = "例: 6";
+"edit_schedule.sprint_segment" = "スプリントセグメント";
+"edit_schedule.recovery_segment" = "リカバリーセグメント";
+"edit_schedule.segment" = "セグメント %d";
+
+// Pace Selection
+"edit_schedule.select_pace" = "ペースを選択";
+"edit_schedule.pace_selection" = "ペース選択";
+"edit_schedule.select_interval_distance" = "インターバル距離を選択";
+"edit_schedule.interval_distance_selection" = "インターバル距離選択";
+"edit_schedule.select_training_type" = "トレーニングタイプを選択";
+"edit_schedule.training_type_selection" = "トレーニングタイプ選択";
+
+// Pace Table
+"edit_schedule.pace_table_description" = "ランニング能力に基づいて計算されたトレーニングペースの推奨。各ゾーンは最速 - 最遅ペース範囲を表示";
+"edit_schedule.pace_zone_details" = "ペースゾーンの詳細";
+"edit_schedule.reference_pace_table" = "参照ペーステーブル";
+
+// MARK: - My Achievement View
+"my_achievement.fitness_and_tsb" = "フィットネス & TSB";
+"my_achievement.training_load_detail" = "トレーニング負荷詳細";
+"my_achievement.tsb_description" = "トレーニングストレスバランス（TSB）は現在の回復状態を反映します。正の値は良好な回復を示し、負の値は疲労の蓄積を示します。";
+"my_achievement.fitness_description" = "フィットネスは現在のフィットネスレベルを表し、最近のトレーニング負荷の加重平均から計算されます。";
+"my_achievement.fatigue_description" = "疲労は最近のトレーニングストレスの蓄積を反映します。値が高いほど疲労が蓄積しており、より多くの回復時間が必要です。";
+"my_achievement.fitness_curve" = "フィットネス";
+"my_achievement.fatigue_curve" = "疲労";
+"my_achievement.tsb_curve" = "TSB";
+"my_achievement.training_load_chart" = "トレーニング負荷トレンドチャート";
+"my_achievement.select_training_load_type" = "トレーニング負荷タイプを選択";
+"my_achievement.daily_load" = "日次負荷";
+"my_achievement.weekly_load" = "週次負荷";
+"my_achievement.monthly_load" = "月次負荷";
+"my_achievement.cumulative_mileage" = "累積走行距離";
+"my_achievement.loading_data" = "データ読み込み中...";
+"my_achievement.data_load_failed" = "データの読み込みに失敗しました";
+"my_achievement.no_training_data" = "トレーニングデータがありません";
+"my_achievement.view_training_readiness" = "トレーニング準備状況を表示";
+"my_achievement.view_more_data" = "詳細データを表示";
+"my_achievement.current_fitness" = "現在のフィットネス";
+"my_achievement.current_fatigue" = "現在の疲労";
+"my_achievement.current_tsb" = "現在のTSB";
+"my_achievement.good_recovery" = "良好な回復";
+"my_achievement.moderate_fatigue" = "中程度の疲労";
+"my_achievement.high_fatigue" = "高い疲労";
+"my_achievement.fitness_trend" = "フィットネストレンド";
+"my_achievement.fatigue_trend" = "疲労トレンド";
+"my_achievement.tsb_trend" = "TSBトレンド";
+"my_achievement.training_suggestion" = "トレーニング提案";
+"my_achievement.suitable_for_high_intensity" = "良好な回復状態、高強度トレーニングに適しています";
+"my_achievement.moderate_training_recommended" = "中程度の疲労、中程度の強度トレーニングを維持することをお勧めします";
+"my_achievement.rest_recommended" = "高い疲労蓄積、休息または軽いトレーニングをお勧めします";
+"my_achievement.weekly_mileage" = "週間走行距離";
+"my_achievement.monthly_mileage" = "月間走行距離";
+
+// MARK: - Training Readiness View
+"training_readiness.title" = "トレーニング準備状況";
+"training_readiness.overall_score" = "総合スコア";
+"training_readiness.fitness_level" = "フィットネスレベル";
+"training_readiness.fatigue_level" = "疲労レベル";
+"training_readiness.recovery_status" = "回復状態";
+"training_readiness.training_suggestion" = "トレーニング提案";
+"training_readiness.excellent_condition" = "優れた状態";
+"training_readiness.good_condition" = "良好な状態";
+"training_readiness.moderate_condition" = "中程度の状態";
+"training_readiness.need_rest" = "休息が必要";
+"training_readiness.detailed_analysis" = "詳細分析";
+"training_readiness.last_updated" = "最終更新";
+"training_readiness.refresh_data" = "データを更新";
+
+// MARK: - Share Card
+"share_card.my_training_plan" = "私のトレーニングプラン";
+"share_card.share_to_social" = "ソーシャルメディアに共有";
+
+// MARK: - Onboarding Additional
+"onboarding_additional.skip" = "スキップ";
+"onboarding_additional.next" = "次へ";
+"onboarding_additional.get_started" = "始める";
+
+// MARK: - Misc
+"misc.data_syncing" = "データ同期中...";
+"misc.sync_complete" = "同期完了";
+"misc.sync_failed" = "同期失敗";
+"misc.no_internet_connection" = "インターネット接続がありません";
+"misc.retry" = "再試行";
+"misc.dismiss" = "閉じる";
+"misc.save_changes" = "変更を保存";
+"misc.discard_changes" = "変更を破棄";
+"misc.unsaved_changes" = "未保存の変更";
+"misc.unsaved_changes_message" = "未保存の変更があります。終了する前に保存しますか？";
+
+// MARK: - Edit Schedule Additional
+"edit_schedule.save_failed" = "保存に失敗しました";
+"edit_schedule.rest_in_place" = "その場で休息";
+"edit_schedule.dragging" = "ドラッグ中...";
+"edit_schedule.drag_to_target" = "目標位置にドラッグ";
+"edit_schedule.monday" = "月";
+"edit_schedule.tuesday" = "火";
+"edit_schedule.wednesday" = "水";
+"edit_schedule.thursday" = "木";
+"edit_schedule.friday" = "金";
+"edit_schedule.saturday" = "土";
+"edit_schedule.sunday" = "日";
+"edit_schedule.unknown" = "不明";
+
+// MARK: - My Achievement Additional
+"my_achievement.updated" = " 更新";

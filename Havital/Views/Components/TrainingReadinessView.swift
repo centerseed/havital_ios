@@ -110,7 +110,7 @@ struct TrainingReadinessView: View {
             // Metrics Grid (2x2) with explanation button
             if viewModel.hasAnyMetric {
                 HStack {
-                    Text("訓練指標")
+                    Text(L10n.TrainingReadiness.trainingMetrics.localized)
                         .font(.headline)
                         .foregroundColor(.primary)
 

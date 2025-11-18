@@ -61,15 +61,15 @@ struct EditableDailyCard: View {
                     // 訓練類型標籤（可點擊編輯）
                     if isEditable {
                         Menu {
-                            Button("輕鬆跑") { updateTrainingType(.easyRun) }
-                            Button("節奏跑") { updateTrainingType(.tempo) }
-                            Button("間歇訓練") { updateTrainingType(.interval) }
-                            Button("組合訓練") { updateTrainingType(.combination) }
-                            Button("長距離跑") { updateTrainingType(.longRun) }
-                            Button("長距離輕鬆跑") { updateTrainingType(.lsd) }
-                            Button("恢復跑") { updateTrainingType(.recovery_run) }
-                            Button("閾值跑") { updateTrainingType(.threshold) }
-                            Button("休息") { updateTrainingType(.rest) }
+                            Button(L10n.EditSchedule.easyRun.localized) { updateTrainingType(.easyRun) }
+                            Button(L10n.EditSchedule.tempoRun.localized) { updateTrainingType(.tempo) }
+                            Button(L10n.EditSchedule.intervalTraining.localized) { updateTrainingType(.interval) }
+                            Button(L10n.EditSchedule.combinationRun.localized) { updateTrainingType(.combination) }
+                            Button(L10n.EditSchedule.longDistanceRun.localized) { updateTrainingType(.longRun) }
+                            Button(L10n.EditSchedule.longEasyRun.localized) { updateTrainingType(.lsd) }
+                            Button(L10n.EditSchedule.recoveryRun.localized) { updateTrainingType(.recovery_run) }
+                            Button(L10n.EditSchedule.thresholdRun.localized) { updateTrainingType(.threshold) }
+                            Button(L10n.EditSchedule.rest.localized) { updateTrainingType(.rest) }
                         } label: {
                             HStack {
                                 Text(day.type.localizedName)
@@ -154,8 +154,8 @@ struct EditableDailyCard: View {
                 viewModel: viewModel
             )
         }
-        .alert("無法編輯", isPresented: $showingInfoAlert) {
-            Button("確定", role: .cancel) { }
+        .alert(L10n.EditSchedule.cannotEdit.localized, isPresented: $showingInfoAlert) {
+            Button(L10n.EditSchedule.confirm.localized, role: .cancel) { }
         } message: {
             Text(getEditStatusMessage())
         }

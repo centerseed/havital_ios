@@ -1127,6 +1127,22 @@ extension L10n {
         static let paceTableDescription = "edit_schedule.pace_table_description" // "根據您的跑力計算的訓練配速建議，每個區間顯示最快配速 - 最慢配速範圍"
         static let paceZoneDetails = "edit_schedule.pace_zone_details" // "配速區間詳情"
         static let referencePaceTable = "edit_schedule.reference_pace_table" // "參考配速表"
+
+        // Additional
+        static let saveFailed = "edit_schedule.save_failed" // "保存失敗"
+        static let restInPlace = "edit_schedule.rest_in_place" // "原地休息"
+        static let dragging = "edit_schedule.dragging" // "拖曳中..."
+        static let dragToTarget = "edit_schedule.drag_to_target" // "拖曳到目標位置"
+
+        // Weekdays
+        static let monday = "edit_schedule.monday" // "週一"
+        static let tuesday = "edit_schedule.tuesday" // "週二"
+        static let wednesday = "edit_schedule.wednesday" // "週三"
+        static let thursday = "edit_schedule.thursday" // "週四"
+        static let friday = "edit_schedule.friday" // "週五"
+        static let saturday = "edit_schedule.saturday" // "週六"
+        static let sunday = "edit_schedule.sunday" // "週日"
+        static let unknown = "edit_schedule.unknown" // "未知"
     }
 
     // MARK: - Training Readiness
@@ -1182,6 +1198,7 @@ extension L10n {
         static let reminder3 = "my_achievement.reminder3" // "• 建議同時觀察 TSB 和 HRV 趨勢，綜合判斷身體的恢復狀態"
         static let reminder4 = "my_achievement.reminder4" // "• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴"
         static let complete = "my_achievement.complete" // "完成"
+        static let updated = "my_achievement.updated" // " 更新"
     }
 
     // MARK: - Debug Tools (Optional - Low Priority)

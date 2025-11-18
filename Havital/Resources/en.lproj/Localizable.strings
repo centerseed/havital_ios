@@ -1413,3 +1413,152 @@
 "profile_view.developer.print_heart_rate" = "Print Heart Rate Settings";
 "profile_view.developer.clear_heart_rate" = "Clear All Heart Rate Settings";
 "profile_view.developer.simulate_remind_tomorrow" = "Simulate 'Remind Tomorrow' (Expires in 1 minute)";
+
+// MARK: - Edit Schedule
+"edit_schedule.cancel" = "Cancel";
+"edit_schedule.save" = "Save";
+"edit_schedule.confirm" = "Confirm";
+"edit_schedule.apply" = "Apply";
+"edit_schedule.delete" = "Delete";
+"edit_schedule.close" = "Close";
+"edit_schedule.cannot_edit" = "Cannot Edit";
+"edit_schedule.addSegment" = "Add Segment";
+
+// Training Types
+"edit_schedule.easy_run" = "Easy Run";
+"edit_schedule.tempo_run" = "Tempo Run";
+"edit_schedule.interval_training" = "Interval Training";
+"edit_schedule.combination_run" = "Combination Run";
+"edit_schedule.long_distance_run" = "Long Distance Run";
+"edit_schedule.long_easy_run" = "Long Easy Run";
+"edit_schedule.recovery_run" = "Recovery Run";
+"edit_schedule.threshold_run" = "Threshold Run";
+"edit_schedule.rest" = "Rest";
+
+// Training Detail Editor
+"edit_schedule.easy_run_settings" = "Easy Run Settings";
+"edit_schedule.tempo_run_settings" = "Tempo Run Settings";
+"edit_schedule.interval_settings" = "Interval Training Settings";
+"edit_schedule.combination_settings" = "Combination Run Settings";
+"edit_schedule.long_run_settings" = "Long Run Settings";
+"edit_schedule.training_settings" = "Training Settings";
+
+"edit_schedule.suggested_pace" = "Suggested Pace: %@";
+"edit_schedule.sprint_suggested_pace" = "Sprint Suggested Pace: %@";
+"edit_schedule.pace_range" = "Pace Range: %@ - %@";
+"edit_schedule.interval_pace_range" = "Interval Pace Range: %@ - %@";
+
+"edit_schedule.distance" = "Distance (km)";
+"edit_schedule.distance_placeholder" = "e.g., 5.0";
+"edit_schedule.pace" = "Pace (min:sec/km)";
+"edit_schedule.pace_placeholder" = "e.g., 4:30";
+"edit_schedule.description" = "Training Description";
+"edit_schedule.segment_description" = "Segment Description";
+
+"edit_schedule.repeats" = "Repeats";
+"edit_schedule.repeats_placeholder" = "e.g., 6";
+"edit_schedule.sprint_segment" = "Sprint Segment";
+"edit_schedule.recovery_segment" = "Recovery Segment";
+"edit_schedule.segment" = "Segment %d";
+
+// Pace Selection
+"edit_schedule.select_pace" = "Select Pace";
+"edit_schedule.pace_selection" = "Pace Selection";
+"edit_schedule.select_interval_distance" = "Select Interval Distance";
+"edit_schedule.interval_distance_selection" = "Interval Distance Selection";
+"edit_schedule.select_training_type" = "Select Training Type";
+"edit_schedule.training_type_selection" = "Training Type Selection";
+
+// Pace Table
+"edit_schedule.pace_table_description" = "Training pace recommendations calculated based on your running ability. Each zone shows the fastest - slowest pace range";
+"edit_schedule.pace_zone_details" = "Pace Zone Details";
+"edit_schedule.reference_pace_table" = "Reference Pace Table";
+
+// MARK: - My Achievement View
+"my_achievement.fitness_and_tsb" = "Fitness & TSB";
+"my_achievement.training_load_detail" = "Training Load Details";
+"my_achievement.tsb_description" = "Training Stress Balance (TSB) reflects your current recovery status. Positive values indicate good recovery, negative values suggest accumulated fatigue.";
+"my_achievement.fitness_description" = "Fitness represents your current fitness level, calculated from the weighted average of recent training load.";
+"my_achievement.fatigue_description" = "Fatigue reflects recent training stress accumulation. Higher values indicate greater accumulated fatigue requiring more recovery time.";
+"my_achievement.fitness_curve" = "Fitness";
+"my_achievement.fatigue_curve" = "Fatigue";
+"my_achievement.tsb_curve" = "TSB";
+"my_achievement.training_load_chart" = "Training Load Trend Chart";
+"my_achievement.select_training_load_type" = "Select Training Load Type";
+"my_achievement.daily_load" = "Daily Load";
+"my_achievement.weekly_load" = "Weekly Load";
+"my_achievement.monthly_load" = "Monthly Load";
+"my_achievement.cumulative_mileage" = "Cumulative Mileage";
+"my_achievement.loading_data" = "Loading data...";
+"my_achievement.data_load_failed" = "Failed to load data";
+"my_achievement.no_training_data" = "No training data available";
+"my_achievement.view_training_readiness" = "View Training Readiness";
+"my_achievement.view_more_data" = "View More Data";
+"my_achievement.current_fitness" = "Current Fitness";
+"my_achievement.current_fatigue" = "Current Fatigue";
+"my_achievement.current_tsb" = "Current TSB";
+"my_achievement.good_recovery" = "Good Recovery";
+"my_achievement.moderate_fatigue" = "Moderate Fatigue";
+"my_achievement.high_fatigue" = "High Fatigue";
+"my_achievement.fitness_trend" = "Fitness Trend";
+"my_achievement.fatigue_trend" = "Fatigue Trend";
+"my_achievement.tsb_trend" = "TSB Trend";
+"my_achievement.training_suggestion" = "Training Suggestion";
+"my_achievement.suitable_for_high_intensity" = "Good recovery status, suitable for high-intensity training";
+"my_achievement.moderate_training_recommended" = "Moderate fatigue, recommended to maintain moderate intensity training";
+"my_achievement.rest_recommended" = "High fatigue accumulation, rest or light training recommended";
+"my_achievement.weekly_mileage" = "Weekly Mileage";
+"my_achievement.monthly_mileage" = "Monthly Mileage";
+
+// MARK: - Training Readiness View
+"training_readiness.title" = "Training Readiness";
+"training_readiness.overall_score" = "Overall Score";
+"training_readiness.fitness_level" = "Fitness Level";
+"training_readiness.fatigue_level" = "Fatigue Level";
+"training_readiness.recovery_status" = "Recovery Status";
+"training_readiness.training_suggestion" = "Training Suggestion";
+"training_readiness.excellent_condition" = "Excellent Condition";
+"training_readiness.good_condition" = "Good Condition";
+"training_readiness.moderate_condition" = "Moderate Condition";
+"training_readiness.need_rest" = "Need Rest";
+"training_readiness.detailed_analysis" = "Detailed Analysis";
+"training_readiness.last_updated" = "Last Updated";
+"training_readiness.refresh_data" = "Refresh Data";
+
+// MARK: - Share Card
+"share_card.my_training_plan" = "My Training Plan";
+"share_card.share_to_social" = "Share to Social Media";
+
+// MARK: - Onboarding Additional
+"onboarding_additional.skip" = "Skip";
+"onboarding_additional.next" = "Next";
+"onboarding_additional.get_started" = "Get Started";
+
+// MARK: - Misc
+"misc.data_syncing" = "Data syncing...";
+"misc.sync_complete" = "Sync complete";
+"misc.sync_failed" = "Sync failed";
+"misc.no_internet_connection" = "No internet connection";
+"misc.retry" = "Retry";
+"misc.dismiss" = "Dismiss";
+"misc.save_changes" = "Save Changes";
+"misc.discard_changes" = "Discard Changes";
+"misc.unsaved_changes" = "Unsaved Changes";
+"misc.unsaved_changes_message" = "You have unsaved changes. Do you want to save them before leaving?";
+
+// MARK: - Edit Schedule Additional
+"edit_schedule.save_failed" = "Save Failed";
+"edit_schedule.rest_in_place" = "Rest in Place";
+"edit_schedule.dragging" = "Dragging...";
+"edit_schedule.drag_to_target" = "Drag to Target Position";
+"edit_schedule.monday" = "Mon";
+"edit_schedule.tuesday" = "Tue";
+"edit_schedule.wednesday" = "Wed";
+"edit_schedule.thursday" = "Thu";
+"edit_schedule.friday" = "Fri";
+"edit_schedule.saturday" = "Sat";
+"edit_schedule.sunday" = "Sun";
+"edit_schedule.unknown" = "Unknown";
+
+// MARK: - My Achievement Additional
+"my_achievement.updated" = " Updated";

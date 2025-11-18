@@ -117,7 +117,7 @@ struct MyAchievementView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         formatter.timeZone = TimeZone.current
-        return "\(formatter.string(from: lastSync)) 更新"
+        return "\(formatter.string(from: lastSync))\(L10n.MyAchievement.updated.localized)"
     }
 
     var body: some View {
