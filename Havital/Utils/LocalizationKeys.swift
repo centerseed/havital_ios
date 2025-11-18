@@ -1128,6 +1128,37 @@ extension L10n {
         static let paceZoneDetails = "edit_schedule.pace_zone_details" // "配速區間詳情"
         static let referencePaceTable = "edit_schedule.reference_pace_table" // "參考配速表"
 
+        // Pace Zone Descriptions
+        enum PaceZone {
+            // Recovery
+            static let recoveryDesc = "edit_schedule.pace_zone.recovery.description" // "用於恢復日，放鬆慢跑，促進身體恢復"
+            static let recoveryBenefit = "edit_schedule.pace_zone.recovery.benefit" // "效益：促進肌肉恢復、減少疲勞累積"
+
+            // Easy
+            static let easyDesc = "edit_schedule.pace_zone.easy.description" // "日常訓練基礎配速，可以舒適對話，建立有氧基礎"
+            static let easyBenefit = "edit_schedule.pace_zone.easy.benefit" // "效益：建立有氧基礎、增強耐力、降低受傷風險"
+
+            // Tempo
+            static let tempoDesc = "edit_schedule.pace_zone.tempo.description" // "乳酸閾值訓練，維持 20-30 分鐘，提升跑步經濟性"
+            static let tempoBenefit = "edit_schedule.pace_zone.tempo.benefit" // "效益：提升乳酸閾值、改善跑步經濟性、增強心肺功能"
+
+            // Marathon
+            static let marathonDesc = "edit_schedule.pace_zone.marathon.description" // "目標馬拉松比賽配速，長距離持續配速訓練"
+            static let marathonBenefit = "edit_schedule.pace_zone.marathon.benefit" // "效益：適應馬拉松配速、提升長距離耐力、模擬比賽強度"
+
+            // Threshold
+            static let thresholdDesc = "edit_schedule.pace_zone.threshold.description" // "高強度有氧訓練，提升最大攝氧量"
+            static let thresholdBenefit = "edit_schedule.pace_zone.threshold.benefit" // "效益：提升最大攝氧量、增強有氧能力、改善速度耐力"
+
+            // Anaerobic
+            static let anaerobicDesc = "edit_schedule.pace_zone.anaerobic.description" // "無氧耐力訓練，接近最大強度，提升無氧能力"
+            static let anaerobicBenefit = "edit_schedule.pace_zone.anaerobic.benefit" // "效益：提升無氧耐力、增強高強度持續能力、改善乳酸耐受度"
+
+            // Interval
+            static let intervalDesc = "edit_schedule.pace_zone.interval.description" // "高強度間歇訓練，短距離快速，提升速度與爆發力"
+            static let intervalBenefit = "edit_schedule.pace_zone.interval.benefit" // "效益：提升最大攝氧量、增強速度與爆發力、改善跑步效率"
+        }
+
         // Additional
         static let saveFailed = "edit_schedule.save_failed" // "保存失敗"
         static let restInPlace = "edit_schedule.rest_in_place" // "原地休息"

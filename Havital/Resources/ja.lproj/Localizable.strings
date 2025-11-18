@@ -1597,3 +1597,19 @@
 "training_readiness.load.how_to_improve_2" = "負荷が過剰な場合は回復週を検討する";
 "training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定する";
 "training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い";
+
+// MARK: - Edit Schedule Pace Zones
+"edit_schedule.pace_zone.recovery.description" = "回復日用、リラックスしたジョギング、身体の回復を促進";
+"edit_schedule.pace_zone.recovery.benefit" = "効果：筋肉の回復を促進、疲労の蓄積を軽減";
+"edit_schedule.pace_zone.easy.description" = "日常トレーニングの基本ペース、快適に会話できる、有酸素基礎を構築";
+"edit_schedule.pace_zone.easy.benefit" = "効果：有酸素基礎を構築、持久力を強化、怪我のリスクを低減";
+"edit_schedule.pace_zone.tempo.description" = "乳酸閾値トレーニング、20-30分維持、ランニングエコノミーを向上";
+"edit_schedule.pace_zone.tempo.benefit" = "効果：乳酸閾値を向上、ランニングエコノミーを改善、心肺機能を強化";
+"edit_schedule.pace_zone.marathon.description" = "目標マラソンレースペース、長距離持続ペーストレーニング";
+"edit_schedule.pace_zone.marathon.benefit" = "効果：マラソンペースに適応、長距離持久力を向上、レース強度をシミュレート";
+"edit_schedule.pace_zone.threshold.description" = "高強度有酸素トレーニング、最大酸素摂取量を向上";
+"edit_schedule.pace_zone.threshold.benefit" = "効果：最大酸素摂取量を向上、有酸素能力を強化、スピード持久力を改善";
+"edit_schedule.pace_zone.anaerobic.description" = "無酸素持久力トレーニング、最大強度に近い、無酸素能力を向上";
+"edit_schedule.pace_zone.anaerobic.benefit" = "効果：無酸素持久力を向上、高強度持続能力を強化、乳酸耐性を改善";
+"edit_schedule.pace_zone.interval.description" = "高強度インターバルトレーニング、短距離スプリント、スピードと爆発力を向上";
+"edit_schedule.pace_zone.interval.benefit" = "効果：最大酸素摂取量を向上、スピードと爆発力を強化、ランニング効率を改善";

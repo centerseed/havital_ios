@@ -1602,3 +1602,19 @@
 "training_readiness.load.how_to_improve_2" = "If load is excessive, consider recovery week";
 "training_readiness.load.how_to_improve_3" = "Schedule recovery after high-intensity training";
 "training_readiness.load.when_decreases" = "Continuous high training volume with poor recovery";
+
+// MARK: - Edit Schedule Pace Zones
+"edit_schedule.pace_zone.recovery.description" = "For recovery days, easy jogging to promote physical recovery";
+"edit_schedule.pace_zone.recovery.benefit" = "Benefits: Promote muscle recovery, reduce fatigue accumulation";
+"edit_schedule.pace_zone.easy.description" = "Basic daily training pace, comfortable conversation pace, build aerobic base";
+"edit_schedule.pace_zone.easy.benefit" = "Benefits: Build aerobic base, enhance endurance, reduce injury risk";
+"edit_schedule.pace_zone.tempo.description" = "Lactate threshold training, maintain 20-30 minutes, improve running economy";
+"edit_schedule.pace_zone.tempo.benefit" = "Benefits: Improve lactate threshold, enhance running economy, strengthen cardiovascular function";
+"edit_schedule.pace_zone.marathon.description" = "Target marathon race pace, long-distance sustained pace training";
+"edit_schedule.pace_zone.marathon.benefit" = "Benefits: Adapt to marathon pace, improve long-distance endurance, simulate race intensity";
+"edit_schedule.pace_zone.threshold.description" = "High-intensity aerobic training, improve maximum oxygen uptake";
+"edit_schedule.pace_zone.threshold.benefit" = "Benefits: Improve VO2 max, enhance aerobic capacity, improve speed endurance";
+"edit_schedule.pace_zone.anaerobic.description" = "Anaerobic endurance training, near maximum intensity, improve anaerobic capacity";
+"edit_schedule.pace_zone.anaerobic.benefit" = "Benefits: Improve anaerobic endurance, enhance high-intensity sustained ability, improve lactate tolerance";
+"edit_schedule.pace_zone.interval.description" = "High-intensity interval training, short-distance sprints, improve speed and explosiveness";
+"edit_schedule.pace_zone.interval.benefit" = "Benefits: Improve VO2 max, enhance speed and explosiveness, improve running efficiency";
