@@ -879,6 +879,7 @@
 "hr_zone.benefit" = "効果：%@";
 "hr_zone.max_hr_info_title" = "最大心拍数";
 "hr_zone.max_hr_info_message" = "最大心拍数は極度の運動中に到達できる最高心拍数です。一般的には220-年齢の公式で推定できますが、実際の値は個人差があります。";
+"hr_zone.max_hr_formula_hint" = "ヒント：220 - 年齢で推定できます";
 "hr_zone.resting_hr_info_title" = "安静時心拍数";
 "hr_zone.resting_hr_info_message" = "安静時心拍数は完全にリラックスした状態（朝起きたときなど）での心拍数です。一般成人の安静時心拍数は60-100 bpmで、アスリートはより低い場合があります。";
 "hr_zone.invalid_input" = "有効な心拍数値を入力してください";

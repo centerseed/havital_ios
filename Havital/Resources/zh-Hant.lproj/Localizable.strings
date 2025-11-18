@@ -880,6 +880,7 @@
 "hr_zone.benefit" = "效果：%@";
 "hr_zone.max_hr_info_title" = "最大心率";
 "hr_zone.max_hr_info_message" = "最大心率是你在極度運動時能達到的最高心率。一般可用 220-年齡 的公式估算，但實際數值因人而異。";
+"hr_zone.max_hr_formula_hint" = "提示：可使用 220 - 年齡 來估算";
 "hr_zone.resting_hr_info_title" = "安靜心率";
 "hr_zone.resting_hr_info_message" = "安靜心率是你在完全放鬆狀態 (如剛起床時) 的心率。一般成年人的安靜心率在 60-100 次/分，運動員可能更低。";
 "hr_zone.invalid_input" = "請輸入有效的心率數值";

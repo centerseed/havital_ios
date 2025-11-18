@@ -156,33 +156,41 @@ struct HeartRateZoneInfoView: View {
 
     @ViewBuilder
     private var maxHeartRateEditor: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
+                        .font(.headline)
 
-                Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                Picker("", selection: $maxHeartRate) {
-                    ForEach(100...250, id: \.self) { value in
-                        Text("\(value)").tag(value)
-                    }
+                    Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .pickerStyle(.wheel)
-                .frame(width: 80)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("bpm")
-                    .foregroundColor(.secondary)
-                    .font(.subheadline)
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Picker("", selection: $maxHeartRate) {
+                        ForEach(100...250, id: \.self) { value in
+                            Text("\(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+
+                    Text("bpm")
+                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                }
             }
+
+            // 添加 220-年齡 公式提示
+            Text(NSLocalizedString("hr_zone.max_hr_formula_hint", comment: "Tip: You can estimate your max heart rate using the formula: 220 - age"))
+                .font(.caption2)
+                .foregroundColor(.secondary.opacity(0.8))
+                .italic()
         }
         .padding(.horizontal)
         .padding(.vertical, 8)

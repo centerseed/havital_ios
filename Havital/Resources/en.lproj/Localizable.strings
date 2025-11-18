@@ -879,6 +879,7 @@
 "hr_zone.benefit" = "Benefit: %@";
 "hr_zone.max_hr_info_title" = "Max Heart Rate";
 "hr_zone.max_hr_info_message" = "Max heart rate is the highest heart rate you can achieve during extreme exercise. Generally, you can use the formula 220-age to estimate, but actual values may vary from person to person.";
+"hr_zone.max_hr_formula_hint" = "Tip: You can estimate using 220 - age";
 "hr_zone.resting_hr_info_title" = "Resting Heart Rate";
 "hr_zone.resting_hr_info_message" = "Resting heart rate is your heart rate when you are completely relaxed (such as when you just wake up). General adults have a resting heart rate between 60-100 bpm, athletes may be lower.";
 "hr_zone.invalid_input" = "Please enter valid heart rate values";
