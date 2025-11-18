@@ -720,6 +720,16 @@
 "onboarding.my_training_goal" = "私のトレーニング目標";
 "onboarding.target_created" = "トレーニング目標が作成されました";
 
+// MARK: - Goal Type Selection
+"onboarding.goal_type_title" = "トレーニング目標を選択";
+"onboarding.goal_type_description" = "ランニング経験と目標に基づいて、適切なトレーニングプランを作成します";
+"onboarding.goal_type_specific_race" = "具体的なレース目標があります";
+"onboarding.goal_type_specific_race_desc" = "レース日程、距離、目標時間を設定";
+"onboarding.goal_type_beginner_5k" = "初心者で、まず5km走れるようになりたい";
+"onboarding.goal_type_beginner_5k_desc" = "ゼロから始めて、12週間で5km完走を目指します";
+"onboarding.goal_type_nav_title" = "トレーニング目標";
+"onboarding.beginner_5k_goal" = "5km走れるようになる";
+
 // MARK: - Distance Labels
 "distance.3k" = "3 km";
 "distance.5k" = "5 km";

@@ -721,6 +721,16 @@
 "onboarding.my_training_goal" = "我的訓練目標";
 "onboarding.target_created" = "訓練目標已建立";
 
+// MARK: - Goal Type Selection
+"onboarding.goal_type_title" = "選擇你的訓練目標";
+"onboarding.goal_type_description" = "根據你的跑步經驗和目標，我們會為你制定合適的訓練計劃";
+"onboarding.goal_type_specific_race" = "我有具體賽事目標";
+"onboarding.goal_type_specific_race_desc" = "設定賽事日期、距離和目標時間";
+"onboarding.goal_type_beginner_5k" = "我是新手，想先能跑 5 公里";
+"onboarding.goal_type_beginner_5k_desc" = "從零開始，12 週達到完成 5 公里的目標";
+"onboarding.goal_type_nav_title" = "訓練目標";
+"onboarding.beginner_5k_goal" = "能跑 5 公里";
+
 // MARK: - Distance Labels
 "distance.3k" = "3公里";
 "distance.5k" = "5公里";
