@@ -73,7 +73,7 @@ struct DraggableTextOverlay: View {
     var onPositionChanged: ((UUID, CGPoint) -> Void)?
 
     @State private var dragOffset: CGSize = .zero
-    @State private var isDragging: Bool = false
+    @State private var committedOffset: CGSize = .zero  // 已提交但父組件還沒更新的偏移
 
     var body: some View {
         Text(overlay.text)
@@ -90,15 +90,14 @@ struct DraggableTextOverlay: View {
             .scaleEffect(overlay.scale)
             .rotationEffect(overlay.rotation)
             .position(
-                x: overlay.position.x + dragOffset.width,
-                y: overlay.position.y + dragOffset.height
+                x: overlay.position.x + committedOffset.width + dragOffset.width,
+                y: overlay.position.y + committedOffset.height + dragOffset.height
             )
             .allowsHitTesting(onPositionChanged != nil)
             .gesture(
                 onPositionChanged != nil ?
                 DragGesture()
                     .onChanged { value in
-                        isDragging = true
                         // 將螢幕座標轉換為卡片座標
                         dragOffset = CGSize(
                             width: value.translation.width / previewScale,
@@ -112,24 +111,26 @@ struct DraggableTextOverlay: View {
                             height: value.translation.height / previewScale
                         )
 
-                        // 計算最終位置
+                        // 立即累加到已提交的偏移（本地更新，不等父組件）
+                        committedOffset.width += scaledTranslation.width
+                        committedOffset.height += scaledTranslation.height
+
+                        // 重置拖曳偏移
+                        dragOffset = .zero
+
+                        // 計算最終位置並通知父組件（異步，不管什麼時候完成）
                         let finalPosition = CGPoint(
-                            x: overlay.position.x + scaledTranslation.width,
-                            y: overlay.position.y + scaledTranslation.height
+                            x: overlay.position.x + committedOffset.width,
+                            y: overlay.position.y + committedOffset.height
                         )
-
-                        // 通知父組件更新
                         onPositionChanged?(overlay.id, finalPosition)
-
-                        // 標記拖曳結束
-                        isDragging = false
                     }
                 : nil
             )
-            .onChange(of: overlay.position) { _, _ in
-                // 當父組件更新位置後，才重置 dragOffset
-                if !isDragging {
-                    dragOffset = .zero
+            .onChange(of: overlay.position) { oldValue, newValue in
+                // 當父組件更新位置後，清除已提交的偏移（因為已經被吸收到 position 中）
+                if oldValue != newValue {
+                    committedOffset = .zero
                 }
             }
     }
