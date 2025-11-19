@@ -65,10 +65,10 @@ struct WorkoutShareCardData {
 
     /// 成就主語句（優先順序：自訂 > API > 本地生成）
     var achievementTitle: String {
-        // 優先使用用戶自訂標題
-        if let customTitle = customAchievementTitle, !customTitle.isEmpty {
+        // 如果有自訂值（包括空字串表示已刪除），優先使用
+        if let customTitle = customAchievementTitle {
             print("✅ [ShareCardData] 使用自訂標題: \(customTitle)")
-            return customTitle
+            return customTitle  // 可能是 "" 或自訂內容
         }
 
         // 其次使用 API 標題
@@ -85,10 +85,10 @@ struct WorkoutShareCardData {
 
     /// 鼓勵語（優先順序：自訂 > API > 本地生成）
     var encouragementText: String {
-        // 優先使用用戶自訂鼓勵語
-        if let customText = customEncouragementText, !customText.isEmpty {
+        // 如果有自訂值（包括空字串表示已刪除），優先使用
+        if let customText = customEncouragementText {
             print("✅ [ShareCardData] 使用自訂鼓勵語: \(customText)")
-            return customText
+            return customText  // 可能是 "" 或自訂內容
         }
 
         // 其次使用 API 鼓勵語
