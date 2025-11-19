@@ -56,6 +56,7 @@ struct WorkoutShareCardView: View {
             ForEach(data.textOverlays) { overlay in
                 DraggableTextOverlay(
                     overlay: overlay,
+                    previewScale: previewScale,
                     onPositionChanged: onTextOverlayPositionChanged
                 )
             }
@@ -68,6 +69,7 @@ struct WorkoutShareCardView: View {
 /// 可拖曳的文字疊加層組件
 struct DraggableTextOverlay: View {
     let overlay: TextOverlay
+    let previewScale: CGFloat
     var onPositionChanged: ((UUID, CGPoint) -> Void)?
 
     @State private var dragOffset: CGSize = .zero
@@ -95,16 +97,26 @@ struct DraggableTextOverlay: View {
                 onPositionChanged != nil ?
                 DragGesture()
                     .onChanged { value in
-                        dragOffset = value.translation
+                        // 將螢幕座標轉換為卡片座標
+                        dragOffset = CGSize(
+                            width: value.translation.width / previewScale,
+                            height: value.translation.height / previewScale
+                        )
                     }
                     .onEnded { value in
-                        // 計算最終位置
-                        let finalPosition = CGPoint(
-                            x: overlay.position.x + value.translation.width,
-                            y: overlay.position.y + value.translation.height
+                        // 將螢幕座標轉換為卡片座標
+                        let scaledTranslation = CGSize(
+                            width: value.translation.width / previewScale,
+                            height: value.translation.height / previewScale
                         )
 
-                        // 立即手動重置（完全控制重置時機）
+                        // 計算最終位置
+                        let finalPosition = CGPoint(
+                            x: overlay.position.x + scaledTranslation.width,
+                            y: overlay.position.y + scaledTranslation.height
+                        )
+
+                        // 立即重置
                         dragOffset = .zero
 
                         // 通知父組件更新
