@@ -141,8 +141,12 @@ struct WorkoutShareCardSheetView: View {
                 customTitle = editingTitle.isEmpty ? nil : editingTitle
             }
         }
+        Button("刪除", role: .destructive) {
+            customTitle = ""  // 空字串代表已刪除
+            editingTitle = ""
+        }
         Button("重置") {
-            customTitle = nil
+            customTitle = nil  // nil 代表使用原始值
             editingTitle = ""
         }
         Button("取消", role: .cancel) { }
@@ -157,8 +161,12 @@ struct WorkoutShareCardSheetView: View {
                 customEncouragement = editingEncouragement.isEmpty ? nil : editingEncouragement
             }
         }
+        Button("刪除", role: .destructive) {
+            customEncouragement = ""  // 空字串代表已刪除
+            editingEncouragement = ""
+        }
         Button("重置") {
-            customEncouragement = nil
+            customEncouragement = nil  // nil 代表使用原始值
             editingEncouragement = ""
         }
         Button("取消", role: .cancel) { }
