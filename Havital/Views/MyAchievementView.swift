@@ -115,7 +115,7 @@ struct MyAchievementView: View {
             return nil
         }
         // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
-        return "\(DateFormatterHelper.formatTime(lastSync)) 更新"
+        return "\(DateFormatterHelper.formatTime(lastSync))\(L10n.MyAchievement.updated.localized)"
     }
 
     var body: some View {
