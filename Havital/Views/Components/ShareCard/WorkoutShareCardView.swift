@@ -96,24 +96,15 @@ struct DraggableTextOverlay: View {
             .allowsHitTesting(onPositionChanged != nil)
             .gesture(
                 onPositionChanged != nil ?
-                DragGesture()
+                DragGesture(coordinateSpace: .local)
                     .onChanged { value in
-                        // 將螢幕座標轉換為卡片座標
-                        dragOffset = CGSize(
-                            width: value.translation.width / previewScale,
-                            height: value.translation.height / previewScale
-                        )
+                        // 使用 local 座標空間，直接對應卡片座標
+                        dragOffset = value.translation
                     }
                     .onEnded { value in
-                        // 將螢幕座標轉換為卡片座標
-                        let scaledTranslation = CGSize(
-                            width: value.translation.width / previewScale,
-                            height: value.translation.height / previewScale
-                        )
-
                         // 立即累加到已提交的偏移（本地更新，不等父組件）
-                        committedOffset.width += scaledTranslation.width
-                        committedOffset.height += scaledTranslation.height
+                        committedOffset.width += value.translation.width
+                        committedOffset.height += value.translation.height
 
                         // 重置拖曳偏移
                         dragOffset = .zero
