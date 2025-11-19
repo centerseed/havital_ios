@@ -9,8 +9,6 @@ struct WorkoutShareCardView: View {
     var onEditTitle: (() -> Void)? = nil
     var onEditEncouragement: (() -> Void)? = nil
 
-    @State private var dragOffsets: [UUID: CGSize] = [:]
-
     var body: some View {
         ZStack(alignment: .center) {
             // 背景照片層
@@ -56,63 +54,69 @@ struct WorkoutShareCardView: View {
 
             // 文字疊加層
             ForEach(data.textOverlays) { overlay in
-                let currentOffset = dragOffsets[overlay.id] ?? .zero
-                // 將屏幕座標的偏移轉換為卡片座標
-                let scaledOffset = CGSize(
-                    width: currentOffset.width / previewScale,
-                    height: currentOffset.height / previewScale
+                DraggableTextOverlay(
+                    overlay: overlay,
+                    onPositionChanged: onTextOverlayPositionChanged
                 )
-                let displayPosition = CGPoint(
-                    x: overlay.position.x + scaledOffset.width,
-                    y: overlay.position.y + scaledOffset.height
-                )
-
-                Text(overlay.text)
-                    .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
-                    .foregroundColor(overlay.textColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        overlay.backgroundColor.map { color in
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(color)
-                        }
-                    )
-                    .scaleEffect(overlay.scale)
-                    .rotationEffect(overlay.rotation)
-                    .position(displayPosition)
-                    .allowsHitTesting(onTextOverlayPositionChanged != nil)
-                    .gesture(
-                        onTextOverlayPositionChanged != nil ?
-                        DragGesture()
-                            .onChanged { value in
-                                // 保存屏幕座標的 translation
-                                dragOffsets[overlay.id] = value.translation
-                            }
-                            .onEnded { value in
-                                // 將屏幕座標轉換為卡片座標
-                                let scaledTranslation = CGSize(
-                                    width: value.translation.width / previewScale,
-                                    height: value.translation.height / previewScale
-                                )
-                                let newPosition = CGPoint(
-                                    x: overlay.position.x + scaledTranslation.width,
-                                    y: overlay.position.y + scaledTranslation.height
-                                )
-                                onTextOverlayPositionChanged?(overlay.id, newPosition)
-
-                                // 延遲重置 offset，等待父組件狀態更新完成
-                                Task { @MainActor in
-                                    try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 秒
-                                    dragOffsets[overlay.id] = .zero
-                                }
-                            }
-                        : nil
-                    )
             }
         }
         .frame(width: size.width, height: size.height)
         .clipped()
+    }
+}
+
+/// 可拖曳的文字疊加層組件
+struct DraggableTextOverlay: View {
+    let overlay: TextOverlay
+    var onPositionChanged: ((UUID, CGPoint) -> Void)?
+
+    @GestureState private var dragOffset: CGSize = .zero
+    @State private var accumulatedOffset: CGSize = .zero
+
+    var body: some View {
+        Text(overlay.text)
+            .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
+            .foregroundColor(overlay.textColor)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                overlay.backgroundColor.map { color in
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(color)
+                }
+            )
+            .scaleEffect(overlay.scale)
+            .rotationEffect(overlay.rotation)
+            .position(
+                x: overlay.position.x + accumulatedOffset.width + dragOffset.width,
+                y: overlay.position.y + accumulatedOffset.height + dragOffset.height
+            )
+            .allowsHitTesting(onPositionChanged != nil)
+            .gesture(
+                onPositionChanged != nil ?
+                DragGesture(coordinateSpace: .local)
+                    .updating($dragOffset) { value, state, _ in
+                        state = value.translation
+                    }
+                    .onEnded { value in
+                        // 累積偏移
+                        accumulatedOffset.width += value.translation.width
+                        accumulatedOffset.height += value.translation.height
+
+                        // 計算最終位置
+                        let finalPosition = CGPoint(
+                            x: overlay.position.x + accumulatedOffset.width,
+                            y: overlay.position.y + accumulatedOffset.height
+                        )
+
+                        // 通知父組件更新
+                        onPositionChanged?(overlay.id, finalPosition)
+
+                        // 重置累積偏移
+                        accumulatedOffset = .zero
+                    }
+                : nil
+            )
     }
 }
 

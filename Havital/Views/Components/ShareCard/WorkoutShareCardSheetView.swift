@@ -77,9 +77,8 @@ struct WorkoutShareCardSheetView: View {
             .onChange(of: customEncouragement) { _, _ in
                 Task { await updateShareImage() }
             }
-            .onChange(of: textOverlays) { _, _ in
-                Task { await updateShareImage() }
-            }
+            // 注意：不監聽 textOverlays 變化，避免拖曳過程中重複生成圖片
+            // 會在 updateTextOverlayPosition 中手動延遲更新
     }
 
     private var contentWithPhotoHandlers: some View {
@@ -638,6 +637,11 @@ struct WorkoutShareCardSheetView: View {
 
     private func deleteTextOverlay(_ id: UUID) {
         textOverlays.removeAll { $0.id == id }
+
+        // 手動更新分享圖片
+        Task {
+            await updateShareImage()
+        }
     }
 
     private func saveTextOverlay() {
@@ -661,6 +665,11 @@ struct WorkoutShareCardSheetView: View {
 
         editingOverlayId = nil
         editingOverlayText = ""
+
+        // 手動更新分享圖片
+        Task {
+            await updateShareImage()
+        }
     }
 
     private func updateTextOverlayPosition(overlayId: UUID, newPosition: CGPoint) {
@@ -671,6 +680,12 @@ struct WorkoutShareCardSheetView: View {
             let clampedY = max(0, min(newPosition.y, selectedSize.height))
             overlay.position = CGPoint(x: clampedX, y: clampedY)
             textOverlays[index] = overlay
+
+            // 延遲更新分享圖片，避免拖曳過程中頻繁重新生成
+            Task {
+                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 秒
+                await updateShareImage()
+            }
         }
     }
 }
