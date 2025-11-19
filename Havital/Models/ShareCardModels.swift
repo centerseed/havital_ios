@@ -67,40 +67,32 @@ struct WorkoutShareCardData {
     var achievementTitle: String {
         // 如果有自訂值（包括空字串表示已刪除），優先使用
         if let customTitle = customAchievementTitle {
-            print("✅ [ShareCardData] 使用自訂標題: \(customTitle)")
             return customTitle  // 可能是 "" 或自訂內容
         }
 
         // 其次使用 API 標題
         if let apiTitle = workout.shareCardContent?.achievementTitle, !apiTitle.isEmpty {
-            print("✅ [ShareCardData] 使用 API 成就標題: \(apiTitle)")
             return apiTitle
         }
 
         // 最後使用本地生成
-        let localTitle = generateLocalAchievementTitle()
-        print("⚠️ [ShareCardData] 使用本地生成標題: \(localTitle)")
-        return localTitle
+        return generateLocalAchievementTitle()
     }
 
     /// 鼓勵語（優先順序：自訂 > API > 本地生成）
     var encouragementText: String {
         // 如果有自訂值（包括空字串表示已刪除），優先使用
         if let customText = customEncouragementText {
-            print("✅ [ShareCardData] 使用自訂鼓勵語: \(customText)")
             return customText  // 可能是 "" 或自訂內容
         }
 
         // 其次使用 API 鼓勵語
         if let apiText = workout.shareCardContent?.encouragementText, !apiText.isEmpty {
-            print("✅ [ShareCardData] 使用 API 鼓勵語: \(apiText)")
             return apiText
         }
 
         // 最後使用本地生成
-        let localText = generateLocalEncouragement()
-        print("⚠️ [ShareCardData] 使用本地生成鼓勵語: \(localText)")
-        return localText
+        return generateLocalEncouragement()
     }
 
     /// 連續訓練資訊

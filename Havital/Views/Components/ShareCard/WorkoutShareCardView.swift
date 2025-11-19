@@ -99,14 +99,13 @@ struct WorkoutShareCardView: View {
                                     x: overlay.position.x + scaledTranslation.width,
                                     y: overlay.position.y + scaledTranslation.height
                                 )
-                                print("🔵 [DragGesture] 拖曳結束 - overlay.id: \(overlay.id)")
-                                print("  - previewScale: \(previewScale)")
-                                print("  - 屏幕位移: \(value.translation)")
-                                print("  - 縮放後位移: \(scaledTranslation)")
-                                print("  - 原始位置: \(overlay.position)")
-                                print("  - 新位置: \(newPosition)")
                                 onTextOverlayPositionChanged?(overlay.id, newPosition)
-                                dragOffsets[overlay.id] = .zero
+
+                                // 延遲重置 offset，等待父組件狀態更新完成
+                                Task { @MainActor in
+                                    try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 秒
+                                    dragOffsets[overlay.id] = .zero
+                                }
                             }
                         : nil
                     )

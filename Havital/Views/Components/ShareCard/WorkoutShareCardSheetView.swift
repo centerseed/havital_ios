@@ -665,21 +665,12 @@ struct WorkoutShareCardSheetView: View {
 
     private func updateTextOverlayPosition(overlayId: UUID, newPosition: CGPoint) {
         if let index = textOverlays.firstIndex(where: { $0.id == overlayId }) {
-            let oldPosition = textOverlays[index].position
             var overlay = textOverlays[index]
             // 限制位置在卡片範圍內
             let clampedX = max(0, min(newPosition.x, selectedSize.width))
             let clampedY = max(0, min(newPosition.y, selectedSize.height))
             overlay.position = CGPoint(x: clampedX, y: clampedY)
-            print("🟢 [updateTextOverlayPosition]")
-            print("  - overlayId: \(overlayId)")
-            print("  - 舊位置: \(oldPosition)")
-            print("  - 新位置(傳入): \(newPosition)")
-            print("  - 新位置(限制後): \(overlay.position)")
-            print("  - selectedSize: \(selectedSize.width) x \(selectedSize.height)")
             textOverlays[index] = overlay
-        } else {
-            print("❌ [updateTextOverlayPosition] 找不到 overlay: \(overlayId)")
         }
     }
 }
