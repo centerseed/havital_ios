@@ -70,17 +70,7 @@ struct WorkoutShareCardSheetView: View {
     }
 
     private var contentWithChangeHandlers: some View {
-        mainContentView
-            .background(Color(UIColor.systemBackground))
-            .onChange(of: selectedPhoto, perform: handlePhotoChange)
-            .onChange(of: viewModel.cardData) { _, newData in
-                if newData != nil {
-                    Task { await updateShareImage() }
-                }
-            }
-            .onChange(of: selectedSize) { _, _ in
-                Task { await updateShareImage() }
-            }
+        contentWithPhotoHandlers
             .onChange(of: customTitle) { _, _ in
                 Task { await updateShareImage() }
             }
@@ -90,10 +80,28 @@ struct WorkoutShareCardSheetView: View {
             .onChange(of: textOverlays) { _, _ in
                 Task { await updateShareImage() }
             }
+    }
+
+    private var contentWithPhotoHandlers: some View {
+        contentWithCardDataHandlers
+            .onChange(of: selectedPhoto, perform: handlePhotoChange)
             .onChange(of: photoScale) { _, _ in
                 Task { await updateShareImage() }
             }
             .onChange(of: photoOffset) { _, _ in
+                Task { await updateShareImage() }
+            }
+    }
+
+    private var contentWithCardDataHandlers: some View {
+        mainContentView
+            .background(Color(UIColor.systemBackground))
+            .onChange(of: viewModel.cardData) { _, newData in
+                if newData != nil {
+                    Task { await updateShareImage() }
+                }
+            }
+            .onChange(of: selectedSize) { _, _ in
                 Task { await updateShareImage() }
             }
     }
