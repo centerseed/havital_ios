@@ -679,11 +679,13 @@ struct WorkoutShareCardSheetView: View {
             let clampedX = max(0, min(newPosition.x, selectedSize.width))
             let clampedY = max(0, min(newPosition.y, selectedSize.height))
             overlay.position = CGPoint(x: clampedX, y: clampedY)
+
+            // 立即更新位置（讓視覺即時反映）
             textOverlays[index] = overlay
 
-            // 延遲更新分享圖片，避免拖曳過程中頻繁重新生成
-            Task {
-                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 秒
+            // 延遲重新生成分享圖片（避免頻繁重複生成，節省性能）
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 秒
                 await updateShareImage()
             }
         }
