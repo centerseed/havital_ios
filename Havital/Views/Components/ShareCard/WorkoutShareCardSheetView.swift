@@ -49,7 +49,7 @@ struct WorkoutShareCardSheetView: View {
             } message: {
                 Text("自訂你的成就標題，讓分享更個人化！")
             }
-            .alert("編輯鼓勵語", isPresented: $showEncouragementEditor) {
+            .alert("編輯 AI 簡評", isPresented: $showEncouragementEditor) {
                 encouragementEditorAlert
             } message: {
                 Text("添加你的訓練感想或勵志語錄！")
@@ -150,7 +150,7 @@ struct WorkoutShareCardSheetView: View {
 
     @ViewBuilder
     private var encouragementEditorAlert: some View {
-        TextField("輸入鼓勵語（最多80字）", text: $editingEncouragement)
+        TextField("輸入 AI 簡評（最多80字）", text: $editingEncouragement)
             .lineLimit(3)
         Button("確定") {
             if editingEncouragement.count <= 80 {
@@ -258,6 +258,7 @@ struct WorkoutShareCardSheetView: View {
                         WorkoutShareCardView(
                             data: transformedData,
                             size: selectedSize,
+                            previewScale: previewScale(for: geometry.size),
                             onTextOverlayPositionChanged: { overlayId, newPosition in
                                 updateTextOverlayPosition(overlayId: overlayId, newPosition: newPosition)
                             },
@@ -481,28 +482,6 @@ struct WorkoutShareCardSheetView: View {
                         label: "新增文字",
                         action: {
                             addNewTextOverlay()
-                        }
-                    )
-
-                    // ✏️ 編輯標題
-                    ToolbarButton(
-                        icon: "text.cursor",
-                        label: "標題",
-                        action: {
-                            let currentData = viewModel.cardData
-                            editingTitle = customTitle ?? currentData?.workout.shareCardContent?.achievementTitle ?? ""
-                            showTitleEditor = true
-                        }
-                    )
-
-                    // 💬 編輯鼓勵語
-                    ToolbarButton(
-                        icon: "bubble.left",
-                        label: "鼓勵",
-                        action: {
-                            let currentData = viewModel.cardData
-                            editingEncouragement = customEncouragement ?? currentData?.workout.shareCardContent?.encouragementText ?? ""
-                            showEncouragementEditor = true
                         }
                     )
 

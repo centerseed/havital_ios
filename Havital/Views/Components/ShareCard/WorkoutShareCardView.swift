@@ -4,6 +4,7 @@ import SwiftUI
 struct WorkoutShareCardView: View {
     let data: WorkoutShareCardData
     let size: ShareCardSize
+    var previewScale: CGFloat = 1.0  // 預覽縮放比例
     var onTextOverlayPositionChanged: ((UUID, CGPoint) -> Void)? = nil
     var onEditTitle: (() -> Void)? = nil
     var onEditEncouragement: (() -> Void)? = nil
@@ -83,9 +84,14 @@ struct WorkoutShareCardView: View {
                                 dragOffsets[overlay.id] = value.translation
                             }
                             .onEnded { value in
+                                // 考慮預覽縮放比例，將屏幕座標轉換為卡片座標
+                                let scaledTranslation = CGSize(
+                                    width: value.translation.width / previewScale,
+                                    height: value.translation.height / previewScale
+                                )
                                 let newPosition = CGPoint(
-                                    x: overlay.position.x + value.translation.width,
-                                    y: overlay.position.y + value.translation.height
+                                    x: overlay.position.x + scaledTranslation.width,
+                                    y: overlay.position.y + scaledTranslation.height
                                 )
                                 onTextOverlayPositionChanged?(overlay.id, newPosition)
                                 dragOffsets[overlay.id] = .zero

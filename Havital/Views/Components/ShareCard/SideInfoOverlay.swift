@@ -101,22 +101,23 @@ struct SideInfoOverlay: View {
                     .padding(.horizontal, 42)
                     .padding(.vertical, 20)
 
-                    // 分隔線
-                    Rectangle()
-                        .fill(Color.white.opacity(0.2))
-                        .frame(height: 1)
-
-                    // 品牌標示區域
-                    Image("paceriz_light")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.white)
-                        .frame(height: 50)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-
                     Spacer() // 下方留白，使內容垂直居中
+
+                    // 分隔線和品牌標示區域（固定在最底部）
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(height: 1)
+
+                        Image("paceriz_light")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.white)
+                            .frame(height: 50)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                    }
                 }
                 .frame(maxWidth: .infinity)
 

@@ -99,13 +99,16 @@ struct TopInfoOverlay: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
                     .padding(.vertical, 20)
+                }
 
-                    // 分隔線
+                Spacer()
+
+                // 分隔線和品牌標示區域（固定在最底部）
+                VStack(spacing: 0) {
                     Rectangle()
                         .fill(Color.white.opacity(0.2))
                         .frame(height: 1)
 
-                    // 品牌標示區域
                     Image("paceriz_light")
                         .renderingMode(.template)
                         .resizable()
@@ -115,8 +118,6 @@ struct TopInfoOverlay: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                 }
-
-                Spacer()
             }
         }
     }

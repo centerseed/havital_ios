@@ -11,7 +11,7 @@ struct TextOverlay: Identifiable, Equatable {
     var fontSize: CGFloat = 48     // 字體大小
     var fontWeight: Font.Weight = .bold
     var textColor: Color = .white
-    var backgroundColor: Color? = Color.black.opacity(0.3)  // 背景顏色（可選）
+    var backgroundColor: Color? = nil  // 背景顏色（可選，預設無背景）
     var rotation: Angle = .zero
     var scale: CGFloat = 1.0
 
@@ -21,7 +21,7 @@ struct TextOverlay: Identifiable, Equatable {
          fontSize: CGFloat = 48,
          fontWeight: Font.Weight = .bold,
          textColor: Color = .white,
-         backgroundColor: Color? = Color.black.opacity(0.3),
+         backgroundColor: Color? = nil,
          rotation: Angle = .zero,
          scale: CGFloat = 1.0) {
         self.id = id
