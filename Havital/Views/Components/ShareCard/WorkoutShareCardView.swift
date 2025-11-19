@@ -73,6 +73,7 @@ struct DraggableTextOverlay: View {
     var onPositionChanged: ((UUID, CGPoint) -> Void)?
 
     @State private var dragOffset: CGSize = .zero
+    @State private var isDragging: Bool = false
 
     var body: some View {
         Text(overlay.text)
@@ -97,6 +98,7 @@ struct DraggableTextOverlay: View {
                 onPositionChanged != nil ?
                 DragGesture()
                     .onChanged { value in
+                        isDragging = true
                         // 將螢幕座標轉換為卡片座標
                         dragOffset = CGSize(
                             width: value.translation.width / previewScale,
@@ -116,14 +118,20 @@ struct DraggableTextOverlay: View {
                             y: overlay.position.y + scaledTranslation.height
                         )
 
-                        // 立即重置
-                        dragOffset = .zero
-
                         // 通知父組件更新
                         onPositionChanged?(overlay.id, finalPosition)
+
+                        // 標記拖曳結束
+                        isDragging = false
                     }
                 : nil
             )
+            .onChange(of: overlay.position) { _, _ in
+                // 當父組件更新位置後，才重置 dragOffset
+                if !isDragging {
+                    dragOffset = .zero
+                }
+            }
     }
 }
 
