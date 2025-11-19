@@ -3,6 +3,43 @@ import SwiftUI
 
 // MARK: - Share Card Data Models
 
+/// 文字疊加層
+struct TextOverlay: Identifiable, Equatable {
+    let id: UUID
+    var text: String
+    var position: CGPoint          // 相對於卡片的位置 (0-1080, 0-1920)
+    var fontSize: CGFloat = 48     // 字體大小
+    var fontWeight: Font.Weight = .bold
+    var textColor: Color = .white
+    var backgroundColor: Color? = Color.black.opacity(0.3)  // 背景顏色（可選）
+    var rotation: Angle = .zero
+    var scale: CGFloat = 1.0
+
+    init(id: UUID = UUID(),
+         text: String,
+         position: CGPoint,
+         fontSize: CGFloat = 48,
+         fontWeight: Font.Weight = .bold,
+         textColor: Color = .white,
+         backgroundColor: Color? = Color.black.opacity(0.3),
+         rotation: Angle = .zero,
+         scale: CGFloat = 1.0) {
+        self.id = id
+        self.text = text
+        self.position = position
+        self.fontSize = fontSize
+        self.fontWeight = fontWeight
+        self.textColor = textColor
+        self.backgroundColor = backgroundColor
+        self.rotation = rotation
+        self.scale = scale
+    }
+
+    static func == (lhs: TextOverlay, rhs: TextOverlay) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 /// 分享卡完整數據結構
 struct WorkoutShareCardData {
     let workout: WorkoutV2
@@ -17,32 +54,50 @@ struct WorkoutShareCardData {
     var photoScale: CGFloat = 1.0
     var photoOffset: CGSize = .zero
 
+    // 自訂文案
+    var customAchievementTitle: String?  // 用戶自訂標題
+    var customEncouragementText: String? // 用戶自訂鼓勵語
+
+    // 文字疊加層
+    var textOverlays: [TextOverlay] = []  // 用戶添加的自由文字
+
     // MARK: - 文案內容 (優先使用 API,回退到本地生成)
 
-    /// 成就主語句
+    /// 成就主語句（優先順序：自訂 > API > 本地生成）
     var achievementTitle: String {
-        // 詳細的調試信息
-        if workout.shareCardContent == nil {
-            print("⚠️ [ShareCardData] workout.shareCardContent 為 nil")
-        } else if let content = workout.shareCardContent {
-            print("📋 [ShareCardData] shareCardContent 存在: achievementTitle=\(content.achievementTitle ?? "nil"), encouragementText=\(content.encouragementText ?? "nil"), streakDays=\(content.streakDays?.description ?? "nil")")
+        // 優先使用用戶自訂標題
+        if let customTitle = customAchievementTitle, !customTitle.isEmpty {
+            print("✅ [ShareCardData] 使用自訂標題: \(customTitle)")
+            return customTitle
         }
 
-        if let title = workout.shareCardContent?.achievementTitle, !title.isEmpty {
-            print("✅ [ShareCardData] 使用 API 成就標題: \(title)")
-            return title
+        // 其次使用 API 標題
+        if let apiTitle = workout.shareCardContent?.achievementTitle, !apiTitle.isEmpty {
+            print("✅ [ShareCardData] 使用 API 成就標題: \(apiTitle)")
+            return apiTitle
         }
+
+        // 最後使用本地生成
         let localTitle = generateLocalAchievementTitle()
         print("⚠️ [ShareCardData] 使用本地生成標題: \(localTitle)")
         return localTitle
     }
 
-    /// 鼓勵語
+    /// 鼓勵語（優先順序：自訂 > API > 本地生成）
     var encouragementText: String {
-        if let text = workout.shareCardContent?.encouragementText, !text.isEmpty {
-            print("✅ [ShareCardData] 使用 API 鼓勵語: \(text)")
-            return text
+        // 優先使用用戶自訂鼓勵語
+        if let customText = customEncouragementText, !customText.isEmpty {
+            print("✅ [ShareCardData] 使用自訂鼓勵語: \(customText)")
+            return customText
         }
+
+        // 其次使用 API 鼓勵語
+        if let apiText = workout.shareCardContent?.encouragementText, !apiText.isEmpty {
+            print("✅ [ShareCardData] 使用 API 鼓勵語: \(apiText)")
+            return apiText
+        }
+
+        // 最後使用本地生成
         let localText = generateLocalEncouragement()
         print("⚠️ [ShareCardData] 使用本地生成鼓勵語: \(localText)")
         return localText
@@ -173,9 +228,10 @@ enum SubjectPosition {
 // MARK: - Export Size
 
 /// 導出尺寸
-enum ShareCardSize {
-    case instagram916  // 1080x1920 (9:16)
-    case instagram11   // 1080x1080 (1:1)
+enum ShareCardSize: CaseIterable {
+    case instagram916  // 1080x1920 (9:16) - Stories
+    case instagram11   // 1080x1080 (1:1) - Square Post
+    case instagram45   // 1080x1350 (4:5) - Portrait Post
 
     var cgSize: CGSize {
         switch self {
@@ -183,6 +239,8 @@ enum ShareCardSize {
             return CGSize(width: 1080, height: 1920)
         case .instagram11:
             return CGSize(width: 1080, height: 1080)
+        case .instagram45:
+            return CGSize(width: 1080, height: 1350)
         }
     }
 
@@ -192,6 +250,15 @@ enum ShareCardSize {
         switch self {
         case .instagram916: return "9:16"
         case .instagram11: return "1:1"
+        case .instagram45: return "4:5"
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .instagram916: return "Stories (9:16)"
+        case .instagram11: return "Square (1:1)"
+        case .instagram45: return "Portrait (4:5)"
         }
     }
 }

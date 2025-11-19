@@ -13,6 +13,7 @@ struct WorkoutShareCardSheetView: View {
     @State private var selectedPhoto: UIImage?
     @State private var showPhotoPicker = false
     @State private var selectedSize: ShareCardSize = .instagram11  // 預設 1:1 比例
+    @State private var selectedLayoutMode: ShareCardLayoutMode = .bottom  // 預設底部版型
     @State private var showShareSheet = false
     @State private var generatedImage: UIImage?
     @State private var fullWorkout: WorkoutV2?  // 完整的 workout 數據（包含 shareCardContent）
@@ -23,13 +24,28 @@ struct WorkoutShareCardSheetView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGSize = .zero
 
+    // 文字編輯狀態
+    @State private var showTitleEditor = false
+    @State private var showEncouragementEditor = false
+    @State private var editingTitle: String = ""
+    @State private var editingEncouragement: String = ""
+    @State private var customTitle: String?
+    @State private var customEncouragement: String?
+
+    // 文字疊加層管理
+    @State private var textOverlays: [TextOverlay] = []
+    @State private var showTextOverlayEditor = false
+    @State private var editingOverlayText: String = ""
+    @State private var editingOverlayId: UUID?  // 正在編輯的疊加層 ID（nil 表示新增）
+    @State private var selectedOverlayId: UUID?  // 選中的疊加層（用於刪除或編輯）
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // 預覽區域
                 if let cardData = viewModel.cardData {
                     ScrollView {
-                        // 創建包含變換參數的 cardData
+                        // 創建包含變換參數、自訂文案和文字疊加層的 cardData
                         let transformedData = WorkoutShareCardData(
                             workout: cardData.workout,
                             workoutDetail: cardData.workoutDetail,
@@ -37,10 +53,13 @@ struct WorkoutShareCardSheetView: View {
                             layoutMode: cardData.layoutMode,
                             colorScheme: cardData.colorScheme,
                             photoScale: photoScale,
-                            photoOffset: photoOffset
+                            photoOffset: photoOffset,
+                            customAchievementTitle: customTitle,
+                            customEncouragementText: customEncouragement,
+                            textOverlays: textOverlays
                         )
 
-                        VStack {
+                        VStack(spacing: 12) {
                             // 提示文字（僅在有照片時顯示）
                             if selectedPhoto != nil {
                                 Text("雙指縮放、拖曳調整圖片位置")
@@ -49,12 +68,115 @@ struct WorkoutShareCardSheetView: View {
                                     .padding(.top, 8)
                             }
 
+                            // 分享卡預覽
                             WorkoutShareCardView(data: transformedData, size: selectedSize)
                                 .scaleEffect(previewScale)
                                 .frame(width: previewWidth, height: previewHeight)
                                 .cornerRadius(12)
                                 .shadow(radius: 8)
-                                .padding()
+                                .padding(.horizontal)
+
+                            // 文字編輯按鈕
+                            HStack(spacing: 12) {
+                                Button(action: {
+                                    editingTitle = customTitle ?? transformedData.achievementTitle
+                                    showTitleEditor = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "text.cursor")
+                                            .font(.system(size: 14))
+                                        Text("編輯標題")
+                                            .font(.system(size: 14, weight: .medium))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 36)
+                                    .foregroundColor(.blue)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                                }
+
+                                Button(action: {
+                                    editingEncouragement = customEncouragement ?? transformedData.encouragementText
+                                    showEncouragementEditor = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "bubble.left")
+                                            .font(.system(size: 14))
+                                        Text("編輯鼓勵語")
+                                            .font(.system(size: 14, weight: .medium))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 36)
+                                    .foregroundColor(.blue)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                                }
+                            }
+                            .padding(.horizontal)
+
+                            // 添加文字按鈕
+                            Button(action: {
+                                addNewTextOverlay()
+                            }) {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 16))
+                                    Text("添加自由文字")
+                                        .font(.system(size: 15, weight: .semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 40)
+                                .foregroundColor(.white)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(10)
+                            }
+                            .padding(.horizontal)
+
+                            // 文字疊加層列表（如果有的話）
+                            if !textOverlays.isEmpty {
+                                VStack(spacing: 8) {
+                                    Text("已添加的文字 (\(textOverlays.count))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    ForEach(textOverlays) { overlay in
+                                        HStack {
+                                            Text(overlay.text)
+                                                .font(.subheadline)
+                                                .lineLimit(1)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                                            Button(action: {
+                                                editTextOverlay(overlay)
+                                            }) {
+                                                Image(systemName: "pencil")
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.blue)
+                                            }
+
+                                            Button(action: {
+                                                deleteTextOverlay(overlay.id)
+                                            }) {
+                                                Image(systemName: "trash")
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.red)
+                                            }
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .background(Color.gray.opacity(0.1))
+                                        .cornerRadius(8)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                         .gesture(
                             // 僅在有照片時啟用手勢
@@ -139,16 +261,87 @@ struct WorkoutShareCardSheetView: View {
                         }
                     }
 
-                    // 尺寸選擇（顯示當前比例）
+                    // 布局選擇器
                     if viewModel.cardData != nil {
-                        Button(action: {
-                            // 切換尺寸
-                            selectedSize = selectedSize == .instagram916 ? .instagram11 : .instagram916
-                        }) {
+                        Menu {
+                            Button(action: {
+                                changeLayout(.bottom)
+                            }) {
+                                HStack {
+                                    Text("底部版型")
+                                    if selectedLayoutMode == .bottom {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+
+                            Button(action: {
+                                changeLayout(.top)
+                            }) {
+                                HStack {
+                                    Text("頂部版型")
+                                    if selectedLayoutMode == .top {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+
+                            Button(action: {
+                                changeLayout(.side)
+                            }) {
+                                HStack {
+                                    Text("側邊版型")
+                                    if selectedLayoutMode == .side {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+
+                            Button(action: {
+                                changeLayout(.auto)
+                            }) {
+                                HStack {
+                                    Text("自動選擇")
+                                    if selectedLayoutMode == .auto {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "rectangle.3.group")
+                                    .font(.system(size: 14))
+                                Text(layoutDisplayName(selectedLayoutMode))
+                                    .font(.system(size: 16, weight: .medium))
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 12))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .foregroundColor(.blue)
+                        }
+                    }
+
+                    // 尺寸選擇（3 種比例）
+                    if viewModel.cardData != nil {
+                        Menu {
+                            ForEach(ShareCardSize.allCases, id: \.aspectRatio) { size in
+                                Button(action: {
+                                    selectedSize = size
+                                }) {
+                                    HStack {
+                                        Text(size.displayName)
+                                        if selectedSize == size {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
                             HStack {
                                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                                     .font(.system(size: 14))
-                                Text(selectedSize == .instagram916 ? "1:1 (Instagram Post)" : "9:16 (Instagram Stories)")
+                                Text(selectedSize.displayName)
                                     .font(.system(size: 16, weight: .medium))
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.system(size: 12))
@@ -237,6 +430,50 @@ struct WorkoutShareCardSheetView: View {
                     ActivityViewController(activityItems: [image])
                 }
             }
+            .alert("編輯成就標題", isPresented: $showTitleEditor) {
+                TextField("輸入標題（最多50字）", text: $editingTitle)
+                    .lineLimit(2)
+                Button("確定") {
+                    if editingTitle.count <= 50 {
+                        customTitle = editingTitle.isEmpty ? nil : editingTitle
+                    }
+                }
+                Button("重置") {
+                    customTitle = nil
+                    editingTitle = ""
+                }
+                Button("取消", role: .cancel) { }
+            } message: {
+                Text("自訂你的成就標題，讓分享更個人化！")
+            }
+            .alert("編輯鼓勵語", isPresented: $showEncouragementEditor) {
+                TextField("輸入鼓勵語（最多80字）", text: $editingEncouragement)
+                    .lineLimit(3)
+                Button("確定") {
+                    if editingEncouragement.count <= 80 {
+                        customEncouragement = editingEncouragement.isEmpty ? nil : editingEncouragement
+                    }
+                }
+                Button("重置") {
+                    customEncouragement = nil
+                    editingEncouragement = ""
+                }
+                Button("取消", role: .cancel) { }
+            } message: {
+                Text("添加你的訓練感想或勵志語錄！")
+            }
+            .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
+                TextField("輸入文字（最多30字）", text: $editingOverlayText)
+                    .lineLimit(2)
+                Button("確定") {
+                    saveTextOverlay()
+                }
+                Button("取消", role: .cancel) {
+                    editingOverlayId = nil
+                }
+            } message: {
+                Text(editingOverlayId == nil ? "在分享卡上添加你的個性文字！" : "修改你的文字內容")
+            }
         }
     }
 
@@ -274,11 +511,14 @@ struct WorkoutShareCardSheetView: View {
 
         switch selectedSize {
         case .instagram916:
-            // 保持 9:16 比例
+            // 保持 9:16 比例 (豎屏，較窄)
             return min(maxWidth, 300)
         case .instagram11:
-            // 保持 1:1 比例
+            // 保持 1:1 比例 (正方形)
             return min(maxWidth, 360)
+        case .instagram45:
+            // 保持 4:5 比例 (豎屏，中等寬度)
+            return min(maxWidth, 320)
         }
     }
 
@@ -288,17 +528,14 @@ struct WorkoutShareCardSheetView: View {
             return previewWidth * (16.0 / 9.0)
         case .instagram11:
             return previewWidth
+        case .instagram45:
+            return previewWidth * (5.0 / 4.0)
         }
     }
 
     /// 預覽縮放比例（將 1080x1920 縮放到預覽尺寸）
     private var previewScale: CGFloat {
-        switch selectedSize {
-        case .instagram916:
-            return previewWidth / selectedSize.width
-        case .instagram11:
-            return previewWidth / selectedSize.width
-        }
+        return previewWidth / selectedSize.width
     }
 
     // MARK: - Data Loading
@@ -336,7 +573,7 @@ struct WorkoutShareCardSheetView: View {
     private func exportAndShare() async {
         guard let cardData = viewModel.cardData else { return }
 
-        // 創建包含用戶調整後變換參數的 cardData
+        // 創建包含用戶調整後變換參數、自訂文案和文字疊加層的 cardData
         let transformedData = WorkoutShareCardData(
             workout: cardData.workout,
             workoutDetail: cardData.workoutDetail,
@@ -344,7 +581,10 @@ struct WorkoutShareCardSheetView: View {
             layoutMode: cardData.layoutMode,
             colorScheme: cardData.colorScheme,
             photoScale: photoScale,
-            photoOffset: photoOffset
+            photoOffset: photoOffset,
+            customAchievementTitle: customTitle,
+            customEncouragementText: customEncouragement,
+            textOverlays: textOverlays
         )
 
         let shareCardView = WorkoutShareCardView(data: transformedData, size: selectedSize)
@@ -355,6 +595,74 @@ struct WorkoutShareCardSheetView: View {
                 self.showShareSheet = true
             }
         }
+    }
+
+    // MARK: - Layout Management
+
+    /// 切換布局模式
+    private func changeLayout(_ layout: ShareCardLayoutMode) {
+        selectedLayoutMode = layout
+        Task {
+            await viewModel.regenerateWithLayout(layout)
+        }
+    }
+
+    /// 布局模式顯示名稱
+    private func layoutDisplayName(_ layout: ShareCardLayoutMode) -> String {
+        switch layout {
+        case .bottom: return "底部版型"
+        case .top: return "頂部版型"
+        case .side: return "側邊版型"
+        case .auto: return "自動選擇"
+        }
+    }
+
+    // MARK: - Text Overlay Management
+
+    /// 添加新文字疊加層
+    private func addNewTextOverlay() {
+        editingOverlayText = ""
+        editingOverlayId = nil
+        showTextOverlayEditor = true
+    }
+
+    /// 編輯現有文字疊加層
+    private func editTextOverlay(_ overlay: TextOverlay) {
+        editingOverlayText = overlay.text
+        editingOverlayId = overlay.id
+        showTextOverlayEditor = true
+    }
+
+    /// 刪除文字疊加層
+    private func deleteTextOverlay(_ id: UUID) {
+        textOverlays.removeAll { $0.id == id }
+    }
+
+    /// 保存文字疊加層
+    private func saveTextOverlay() {
+        guard !editingOverlayText.isEmpty, editingOverlayText.count <= 30 else { return }
+
+        if let editingId = editingOverlayId {
+            // 編輯現有疊加層
+            if let index = textOverlays.firstIndex(where: { $0.id == editingId }) {
+                textOverlays[index].text = editingOverlayText
+            }
+        } else {
+            // 添加新疊加層（預設位置在畫面中央）
+            let centerPosition = CGPoint(
+                x: selectedSize.width / 2,
+                y: selectedSize.height / 2
+            )
+            let newOverlay = TextOverlay(
+                text: editingOverlayText,
+                position: centerPosition
+            )
+            textOverlays.append(newOverlay)
+        }
+
+        // 重置編輯狀態
+        editingOverlayId = nil
+        editingOverlayText = ""
     }
 }
 

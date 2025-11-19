@@ -22,10 +22,38 @@ struct WorkoutShareCardView: View {
                     .frame(width: size.width, height: size.height)
             }
 
-            // 資訊浮層 (統一使用底部版型)
-            BottomInfoOverlay(data: data)
-                .frame(width: size.width, height: size.height)
-                .allowsHitTesting(false)
+            // 資訊浮層 (根據版型模式選擇)
+            Group {
+                switch data.layoutMode {
+                case .bottom, .auto:
+                    BottomInfoOverlay(data: data)
+                case .top:
+                    TopInfoOverlay(data: data)
+                case .side:
+                    SideInfoOverlay(data: data)
+                }
+            }
+            .frame(width: size.width, height: size.height)
+            .allowsHitTesting(false)
+
+            // 文字疊加層
+            ForEach(data.textOverlays) { overlay in
+                Text(overlay.text)
+                    .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
+                    .foregroundColor(overlay.textColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        overlay.backgroundColor.map { color in
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(color)
+                        }
+                    )
+                    .scaleEffect(overlay.scale)
+                    .rotationEffect(overlay.rotation)
+                    .position(overlay.position)
+                    .allowsHitTesting(false)
+            }
         }
         .frame(width: size.width, height: size.height)
         .clipped()
