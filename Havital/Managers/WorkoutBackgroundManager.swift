@@ -631,7 +631,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             let query = HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
-                limit: 50, // 只獲取最近的50條記錄
+                limit: 14, // 只獲取最近的14條記錄
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in
                 if let error = error {
