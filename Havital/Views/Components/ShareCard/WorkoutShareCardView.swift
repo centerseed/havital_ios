@@ -57,9 +57,14 @@ struct WorkoutShareCardView: View {
             // 文字疊加層
             ForEach(data.textOverlays) { overlay in
                 let currentOffset = dragOffsets[overlay.id] ?? .zero
+                // 將屏幕座標的偏移轉換為卡片座標
+                let scaledOffset = CGSize(
+                    width: currentOffset.width / previewScale,
+                    height: currentOffset.height / previewScale
+                )
                 let displayPosition = CGPoint(
-                    x: overlay.position.x + currentOffset.width,
-                    y: overlay.position.y + currentOffset.height
+                    x: overlay.position.x + scaledOffset.width,
+                    y: overlay.position.y + scaledOffset.height
                 )
 
                 Text(overlay.text)
@@ -81,10 +86,11 @@ struct WorkoutShareCardView: View {
                         onTextOverlayPositionChanged != nil ?
                         DragGesture()
                             .onChanged { value in
+                                // 保存屏幕座標的 translation
                                 dragOffsets[overlay.id] = value.translation
                             }
                             .onEnded { value in
-                                // 考慮預覽縮放比例，將屏幕座標轉換為卡片座標
+                                // 將屏幕座標轉換為卡片座標
                                 let scaledTranslation = CGSize(
                                     width: value.translation.width / previewScale,
                                     height: value.translation.height / previewScale

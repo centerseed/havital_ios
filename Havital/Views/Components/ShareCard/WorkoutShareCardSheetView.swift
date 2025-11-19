@@ -485,6 +485,28 @@ struct WorkoutShareCardSheetView: View {
                         }
                     )
 
+                    // ✏️ 編輯標題
+                    ToolbarButton(
+                        icon: "text.cursor",
+                        label: "編輯標題",
+                        action: {
+                            let currentData = viewModel.cardData
+                            editingTitle = customTitle ?? currentData?.workout.shareCardContent?.achievementTitle ?? ""
+                            showTitleEditor = true
+                        }
+                    )
+
+                    // 💬 編輯AI簡評
+                    ToolbarButton(
+                        icon: "bubble.left",
+                        label: "編輯AI簡評",
+                        action: {
+                            let currentData = viewModel.cardData
+                            editingEncouragement = customEncouragement ?? currentData?.workout.shareCardContent?.encouragementText ?? ""
+                            showEncouragementEditor = true
+                        }
+                    )
+
                     // 重置圖片按鈕（僅在有照片且有變換時顯示）
                     if selectedPhoto != nil && (photoScale != 1.0 || photoOffset != .zero) {
                         ToolbarButton(
