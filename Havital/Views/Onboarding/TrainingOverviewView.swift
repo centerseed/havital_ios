@@ -39,20 +39,20 @@ class TrainingOverviewViewModel: ObservableObject {
         isGeneratingPlan = true
         error = nil
 
-        do {
-            // 調用生成第一週計劃的 API
-            // TODO: 實現 API 調用
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 模擬延遲
+        // 調用生成第一週計劃的 API（如果還沒生成的話）
+        // TrainingDaysSetupView 已經調用過 createWeeklyPlan，
+        // 這裡可以直接標記完成
+        print("[TrainingOverviewViewModel] 生成第一週計劃完成")
 
-            await MainActor.run {
-                self.isGeneratingPlan = false
-                self.navigateToMainApp = true
-            }
-        } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
-                self.isGeneratingPlan = false
-            }
+        // 標記 onboarding 完成
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        print("[TrainingOverviewViewModel] 已設置 hasCompletedOnboarding = true")
+
+        await MainActor.run {
+            self.isGeneratingPlan = false
+            // 設置完成標誌，讓 AuthenticationService 觸發導航
+            AuthenticationService.shared.hasCompletedOnboarding = true
+            print("[TrainingOverviewViewModel] Onboarding 完成，導航到主應用")
         }
     }
 }

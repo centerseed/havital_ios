@@ -14,6 +14,7 @@ class TrainingDaysViewModel: ObservableObject {
     // 控制按鈕顯示的狀態
     @Published var canShowPlanOverviewButton = false // 是否可以顯示「儲存偏好並預覽計畫」按鈕
     @Published var canGenerateFinalPlanButton = false // 是否可以顯示「完成並查看第一週課表」按鈕
+    @Published var navigateToTrainingOverview = false // 導航到 TrainingOverviewView
 
     private let userPreferenceManager = UserPreferenceManager.shared
     private let authService = AuthenticationService.shared
@@ -112,11 +113,9 @@ class TrainingDaysViewModel: ObservableObject {
 
             // 清除已使用的階段選擇
             UserDefaults.standard.removeObject(forKey: "selectedStartStage")
-            
-            // 直接更新 UserDefaults 中的 hasCompletedOnboarding 值
-            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-            print("[TrainingDaysViewModel] Updated hasCompletedOnboarding in UserDefaults to true")
-            
+
+            print("[TrainingDaysViewModel] 新流程：導航到 TrainingOverviewView")
+
         } catch {
             // 特別處理任務取消錯誤，但也記錄其他錯誤
             if (error as NSError).code != NSURLErrorCancelled {
@@ -124,14 +123,14 @@ class TrainingDaysViewModel: ObservableObject {
                 self.error = "產生課表失敗：\(error.localizedDescription)"
             }
         }
-        
+
         // 確保 isLoading 在所有情況下都會被重置
         isLoading = false
-        
+
         if planSuccessfullyCreated {
-            // 只有成功才標記完成並觸發導航
-            print("[TrainingDaysViewModel] Setting hasCompletedOnboarding to true.")
-            authService.hasCompletedOnboarding = true
+            // 新流程：導航到 TrainingOverviewView 而不是直接完成 onboarding
+            print("[TrainingDaysViewModel] 導航到訓練總覽頁面")
+            navigateToTrainingOverview = true
         }
     }
 
@@ -350,6 +349,17 @@ struct TrainingDaysSetupView: View {
                 NSLocalizedString("onboarding.almost_ready", comment: "Almost Ready")
             ], totalDuration: loadingDuration)
         }
+        .background(
+            // 導航到訓練總覽頁面
+            NavigationLink(
+                destination: TrainingOverviewView()
+                    .navigationBarBackButtonHidden(true),
+                isActive: $viewModel.navigateToTrainingOverview
+            ) {
+                EmptyView()
+            }
+            .hidden()
+        )
     }
     
     private func getWeekdayName(_ weekday: Int) -> String {
