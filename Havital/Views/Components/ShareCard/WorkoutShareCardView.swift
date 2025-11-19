@@ -70,8 +70,7 @@ struct DraggableTextOverlay: View {
     let overlay: TextOverlay
     var onPositionChanged: ((UUID, CGPoint) -> Void)?
 
-    @GestureState private var dragOffset: CGSize = .zero
-    @State private var accumulatedOffset: CGSize = .zero
+    @State private var dragOffset: CGSize = .zero
 
     var body: some View {
         Text(overlay.text)
@@ -88,27 +87,27 @@ struct DraggableTextOverlay: View {
             .scaleEffect(overlay.scale)
             .rotationEffect(overlay.rotation)
             .position(
-                x: overlay.position.x + accumulatedOffset.width + dragOffset.width,
-                y: overlay.position.y + accumulatedOffset.height + dragOffset.height
+                x: overlay.position.x + dragOffset.width,
+                y: overlay.position.y + dragOffset.height
             )
             .allowsHitTesting(onPositionChanged != nil)
             .gesture(
                 onPositionChanged != nil ?
-                DragGesture(coordinateSpace: .local)
-                    .updating($dragOffset) { value, state, _ in
-                        state = value.translation
+                DragGesture()
+                    .onChanged { value in
+                        dragOffset = value.translation
                     }
                     .onEnded { value in
-                        // 計算最終位置（使用當前累積偏移 + 本次拖曳偏移）
+                        // 計算最終位置
                         let finalPosition = CGPoint(
-                            x: overlay.position.x + accumulatedOffset.width + value.translation.width,
-                            y: overlay.position.y + accumulatedOffset.height + value.translation.height
+                            x: overlay.position.x + value.translation.width,
+                            y: overlay.position.y + value.translation.height
                         )
 
-                        // 先重置累積偏移（避免視圖刷新時位置錯誤）
-                        accumulatedOffset = .zero
+                        // 立即手動重置（完全控制重置時機）
+                        dragOffset = .zero
 
-                        // 再通知父組件更新
+                        // 通知父組件更新
                         onPositionChanged?(overlay.id, finalPosition)
                     }
                 : nil
