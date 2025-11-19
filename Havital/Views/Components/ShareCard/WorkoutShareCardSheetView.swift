@@ -39,12 +39,39 @@ struct WorkoutShareCardSheetView: View {
     @State private var editingOverlayId: UUID?
 
     var body: some View {
-        mainContentView
-            .background(Color(UIColor.systemBackground))
+        contentWithAlerts
+    }
+
+    private var contentWithAlerts: some View {
+        contentWithLifecycle
+            .alert("編輯成就標題", isPresented: $showTitleEditor) {
+                titleEditorAlert
+            } message: {
+                Text("自訂你的成就標題，讓分享更個人化！")
+            }
+            .alert("編輯鼓勵語", isPresented: $showEncouragementEditor) {
+                encouragementEditorAlert
+            } message: {
+                Text("添加你的訓練感想或勵志語錄！")
+            }
+            .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
+                textOverlayEditorAlert
+            } message: {
+                Text(editingOverlayId == nil ? "在分享卡上添加你的個性文字！" : "修改你的文字內容")
+            }
+    }
+
+    private var contentWithLifecycle: some View {
+        contentWithChangeHandlers
             .onAppear(perform: setupInitialCard)
             .sheet(isPresented: $showPhotoPicker) {
                 PhotoPicker(selectedImage: $selectedPhoto)
             }
+    }
+
+    private var contentWithChangeHandlers: some View {
+        mainContentView
+            .background(Color(UIColor.systemBackground))
             .onChange(of: selectedPhoto, perform: handlePhotoChange)
             .onChange(of: viewModel.cardData) { _, newData in
                 if newData != nil {
@@ -68,21 +95,6 @@ struct WorkoutShareCardSheetView: View {
             }
             .onChange(of: photoOffset) { _, _ in
                 Task { await updateShareImage() }
-            }
-            .alert("編輯成就標題", isPresented: $showTitleEditor) {
-                titleEditorAlert
-            } message: {
-                Text("自訂你的成就標題，讓分享更個人化！")
-            }
-            .alert("編輯鼓勵語", isPresented: $showEncouragementEditor) {
-                encouragementEditorAlert
-            } message: {
-                Text("添加你的訓練感想或勵志語錄！")
-            }
-            .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
-                textOverlayEditorAlert
-            } message: {
-                Text(editingOverlayId == nil ? "在分享卡上添加你的個性文字！" : "修改你的文字內容")
             }
     }
 
