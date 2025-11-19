@@ -84,7 +84,23 @@ struct WorkoutShareCardSheetView: View {
 
     private var contentWithPhotoHandlers: some View {
         contentWithCardDataHandlers
-            .onChange(of: selectedPhoto, perform: handlePhotoChange)
+            .onChange(of: selectedPhoto) { _, newPhoto in
+                if let photo = newPhoto {
+                    photoScale = 1.0
+                    photoOffset = .zero
+                    lastScale = 1.0
+                    lastOffset = .zero
+
+                    Task {
+                        await viewModel.generateShareCard(
+                            workout: fullWorkout ?? workout,
+                            workoutDetail: workoutDetail,
+                            userPhoto: photo
+                        )
+                        await updateShareImage()
+                    }
+                }
+            }
             .onChange(of: photoScale) { _, _ in
                 Task { await updateShareImage() }
             }
@@ -96,10 +112,8 @@ struct WorkoutShareCardSheetView: View {
     private var contentWithCardDataHandlers: some View {
         mainContentView
             .background(Color(UIColor.systemBackground))
-            .onChange(of: viewModel.cardData) { _, newData in
-                if newData != nil {
-                    Task { await updateShareImage() }
-                }
+            .onChange(of: viewModel.cardData?.workout.id) { _, _ in
+                Task { await updateShareImage() }
             }
             .onChange(of: selectedSize) { _, _ in
                 Task { await updateShareImage() }
@@ -172,24 +186,6 @@ struct WorkoutShareCardSheetView: View {
                 workoutDetail: workoutDetail,
                 userPhoto: nil
             )
-        }
-    }
-
-    private func handlePhotoChange(old: UIImage?, new: UIImage?) {
-        if let photo = new {
-            photoScale = 1.0
-            photoOffset = .zero
-            lastScale = 1.0
-            lastOffset = .zero
-
-            Task {
-                await viewModel.generateShareCard(
-                    workout: fullWorkout ?? workout,
-                    workoutDetail: workoutDetail,
-                    userPhoto: photo
-                )
-                await updateShareImage()
-            }
         }
     }
 
