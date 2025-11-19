@@ -440,6 +440,26 @@ struct UserProfileView: View {
     @ViewBuilder
     private var developerSection: some View {
         Section(header: Text("🧪 開發者測試")) {
+            // 重新開始完整 Onboarding 流程
+            Button {
+                // 清除 onboarding 完成標記
+                UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                AuthenticationService.shared.hasCompletedOnboarding = false
+
+                // 清除可能存在的重新 onboarding 標記
+                AuthenticationService.shared.isReonboardingMode = false
+
+                print("✅ 已清除 onboarding 完成標記，應用將返回 OnboardingIntroView")
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.counterclockwise.circle")
+                    Text("重新開始完整 Onboarding")
+                }
+            }
+            .foregroundColor(.purple)
+
+            Divider()
+
             Button {
                 Task {
                     await AppRatingManager.shared.forceShowRating()
