@@ -1409,3 +1409,261 @@
 "common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "預計完賽時間";
+
+// MARK: - Content View
+"content_view.data_source_required" = "需要綁定數據源";
+"content_view.go_to_settings" = "前往設定";
+"content_view.later" = "稍後";
+"content_view.data_source_required_message" = "您尚未綁定數據源，請前往個人資料頁面選擇 Apple Health、Garmin Connect 或 Strava 作為您的訓練數據來源。";
+
+// MARK: - Profile View
+"profile_view.apple_user" = "Apple 用戶";
+"profile_view.garmin_already_bound" = "Garmin Connect™ 帳號已綁定";
+"profile_view.strava_already_bound" = "Strava 帳號已綁定";
+"profile_view.ok" = "確定";
+"profile_view.garmin_already_bound_message" = "此 Garmin Connect™ 帳號已綁定至另一個 Paceriz 帳號。請先使用原綁定的 Paceriz 帳號登入，在個人資料頁面解除 Garmin Connect™ 綁定後，再使用此帳號連接。";
+"profile_view.strava_already_bound_message" = "此 Strava 帳號已綁定至另一個 Paceriz 帳號。請先使用原綁定的 Paceriz 帳號登入，在個人資料頁面解除 Strava 綁定後，再使用此帳號連接。";
+
+// Developer Section
+"profile_view.developer.section_title" = "🧪 開發者測試";
+"profile_view.developer.test_rating" = "測試評分提示";
+"profile_view.developer.clear_rating_cache" = "清除評分快取";
+"profile_view.developer.debug_failed_workouts" = "調試 - 失敗運動記錄";
+"profile_view.developer.print_heart_rate" = "打印心率設定狀態";
+"profile_view.developer.clear_heart_rate" = "清除所有心率設定";
+"profile_view.developer.simulate_remind_tomorrow" = "模擬「明天再提醒」(1分鐘後過期)";
+
+// MARK: - Edit Schedule
+"edit_schedule.cancel" = "取消";
+"edit_schedule.save" = "儲存";
+"edit_schedule.confirm" = "確定";
+"edit_schedule.apply" = "套用";
+"edit_schedule.delete" = "刪除";
+"edit_schedule.close" = "關閉";
+"edit_schedule.cannot_edit" = "無法編輯";
+"edit_schedule.addSegment" = "新增區段";
+
+// Training Types
+"edit_schedule.easy_run" = "輕鬆跑";
+"edit_schedule.tempo_run" = "節奏跑";
+"edit_schedule.interval_training" = "間歇訓練";
+"edit_schedule.combination_run" = "組合訓練";
+"edit_schedule.long_distance_run" = "長距離跑";
+"edit_schedule.long_easy_run" = "長距離輕鬆跑";
+"edit_schedule.recovery_run" = "恢復跑";
+"edit_schedule.threshold_run" = "閾值跑";
+"edit_schedule.rest" = "休息";
+
+// Training Detail Editor
+"edit_schedule.easy_run_settings" = "輕鬆跑設定";
+"edit_schedule.tempo_run_settings" = "節奏跑設定";
+"edit_schedule.interval_settings" = "間歇訓練設定";
+"edit_schedule.combination_settings" = "組合跑設定";
+"edit_schedule.long_run_settings" = "長距離跑設定";
+"edit_schedule.training_settings" = "訓練設定";
+
+"edit_schedule.suggested_pace" = "建議配速: %@";
+"edit_schedule.sprint_suggested_pace" = "衝刺段建議配速: %@";
+"edit_schedule.pace_range" = "配速區間: %@ - %@";
+"edit_schedule.interval_pace_range" = "間歇配速區間: %@ - %@";
+
+"edit_schedule.distance" = "距離 (公里)";
+"edit_schedule.distance_placeholder" = "例如: 5.0";
+"edit_schedule.pace" = "配速 (分:秒/公里)";
+"edit_schedule.pace_placeholder" = "例如: 4:30";
+"edit_schedule.description" = "訓練說明";
+"edit_schedule.segment_description" = "區段描述";
+
+"edit_schedule.repeats" = "重複次數";
+"edit_schedule.repeats_placeholder" = "例如: 6";
+"edit_schedule.sprint_segment" = "衝刺段";
+"edit_schedule.recovery_segment" = "恢復段";
+"edit_schedule.segment" = "區段 %d";
+
+// Pace Selection
+"edit_schedule.select_pace" = "選擇配速";
+"edit_schedule.pace_selection" = "配速選擇";
+"edit_schedule.select_interval_distance" = "選擇間歇距離";
+"edit_schedule.interval_distance_selection" = "間歇距離選擇";
+"edit_schedule.select_training_type" = "選擇訓練類型";
+"edit_schedule.training_type_selection" = "訓練類型選擇";
+
+// Pace Table
+"edit_schedule.pace_table_description" = "根據您的跑力計算的訓練配速建議，每個區間顯示最快配速 - 最慢配速範圍";
+"edit_schedule.pace_zone_details" = "配速區間詳情";
+"edit_schedule.reference_pace_table" = "參考配速表";
+
+// MARK: - Training Readiness
+"training_readiness.training_metrics" = "訓練指標";
+"training_readiness.metrics_explanation" = "訓練指標說明";
+"training_readiness.metrics_subtitle" = "了解每個指標的含義，學習如何提升分數";
+"training_readiness.quick_tips" = "快速建議";
+"training_readiness.done" = "完成";
+"training_readiness.what_it_means" = "這個指標代表什麼";
+"training_readiness.how_to_improve" = "如何提升分數";
+"training_readiness.when_it_decreases" = "分數何時下降";
+
+"training_readiness.tips.tip1" = "每週包含：3-4 次輕鬆跑 + 1 次速度課表 + 1-2 次長跑";
+"training_readiness.tips.tip2" = "保持訓練頻率，比偶爾的高強度訓練更重要";
+"training_readiness.tips.tip3" = "關注分數趨勢，不要糾結每日波動";
+"training_readiness.tips.tip4" = "如果訓練負荷分數很低，需要安排恢復時間";
+
+// MARK: - My Achievement View
+"my_achievement.fitness_and_tsb" = "體適能指數 & 訓練壓力平衡";
+"my_achievement.syncing" = "同步中...";
+"my_achievement.tsb_status" = "TSB 狀態指標";
+"my_achievement.fatigue" = "疲勞累積";
+"my_achievement.balanced" = "平衡狀態";
+"my_achievement.optimal" = "最佳狀態";
+"my_achievement.marker_explanation" = "標記說明";
+"my_achievement.has_training" = "有訓練";
+"my_achievement.rest_day" = "休息日";
+"my_achievement.reasonable_training_load" = "合理訓練負荷區域";
+
+// Training Load Detail
+"my_achievement.training_load_detail" = "訓練負荷詳細說明";
+"my_achievement.training_load_subtitle" = "了解您的體適能指數和訓練壓力平衡，幫助您優化訓練計劃";
+"my_achievement.fitness_index" = "體適能指數 (Fitness Index)";
+"my_achievement.fitness_index_description" = "體適能指數反映您**相對於自己過往表現**的運動能力水平。這個數值會根據您最近的訓練強度、頻率和持續時間動態調整，重點在於觀察**趨勢變化**。";
+"my_achievement.how_to_interpret" = "如何解讀趨勢：";
+"my_achievement.key_point" = "💡 重點：關注線條的**走向**比單一數值更重要";
+"my_achievement.tsb" = "訓練壓力平衡 (TSB)";
+"my_achievement.tsb_description" = "TSB 反映您當前的訓練疲勞與恢復狀態之間的平衡。這個指標幫助您了解何時需要休息，何時可以增加訓練強度。";
+"my_achievement.tsb_interpretation" = "TSB 狀態解讀：";
+"my_achievement.chart_guide" = "圖表解讀指南";
+"my_achievement.dot_explanation" = "圓點標記說明";
+"my_achievement.solid_dot" = "實心圓點：有訓練的日子";
+"my_achievement.hollow_dot" = "空心圓點：當日無訓練";
+"my_achievement.practical_tips" = "實用建議";
+"my_achievement.important_reminder" = "重要提醒";
+"my_achievement.reminder1" = "• 訓練負荷數據需要至少 2-3 週的運動記錄才能提供準確的趨勢分析";
+"my_achievement.reminder2" = "• 體適能指數下降不一定是壞事，可能代表正在進行有計畫的減量或恢復期";
+"my_achievement.reminder3" = "• 建議同時觀察 TSB 和 HRV 趨勢，綜合判斷身體的恢復狀態";
+"my_achievement.reminder4" = "• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴";
+"my_achievement.complete" = "完成";
+
+// MARK: - Share Card
+"share_card.generate" = "生成分享卡";
+"share_card.choose_photo" = "選擇照片";
+
+// MARK: - Onboarding Additional
+"onboarding.training_plan_preview" = "您的訓練計畫預覽";
+"onboarding.goal_assessment" = "目標評估";
+"onboarding.training_focus" = "訓練重點";
+
+// MARK: - Miscellaneous
+"misc.loading" = "載入中...";
+"misc.retry" = "重試";
+"misc.back" = "返回";
+"misc.back_to_this_week" = "返回本週";
+"misc.segment" = "第%d段";
+"misc.times" = "× %d";
+"misc.no_enough_data" = "沒有足夠的訓練資料";
+"misc.recent_three_months_performance" = "近三個月訓練表現";
+"misc.training_day" = "訓練日";
+"misc.main_content" = "主要內容";
+"misc.diag_hrv_issue" = "診斷 HRV 問題";
+"misc.strava_account_bound" = "Strava 帳號已綁定";
+
+// MARK: - Edit Schedule Additional
+"edit_schedule.save_failed" = "保存失敗";
+"edit_schedule.rest_in_place" = "原地休息";
+"edit_schedule.dragging" = "拖曳中...";
+"edit_schedule.drag_to_target" = "拖曳到目標位置";
+"edit_schedule.monday" = "週一";
+"edit_schedule.tuesday" = "週二";
+"edit_schedule.wednesday" = "週三";
+"edit_schedule.thursday" = "週四";
+"edit_schedule.friday" = "週五";
+"edit_schedule.saturday" = "週六";
+"edit_schedule.sunday" = "週日";
+"edit_schedule.unknown" = "未知";
+
+// MARK: - My Achievement Additional
+"my_achievement.updated" = " 更新";
+
+// MARK: - Training Readiness Metric Labels
+"training_readiness.speed_label" = "速度";
+"training_readiness.endurance_label" = "耐力";
+"training_readiness.race_fitness_label" = "比賽適能";
+"training_readiness.training_load_label" = "訓練負荷";
+
+// MARK: - Speed Metric
+"training_readiness.speed.title" = "速度指標";
+"training_readiness.speed.description" = "評估您的跑步配速能力";
+"training_readiness.speed.what_it_means" = "配速是否符合訓練進展的期望";
+"training_readiness.speed.how_to_improve_1" = "儘量達成速度課表的計劃配速";
+"training_readiness.speed.how_to_improve_2" = "跑好間歇跑的衝刺區間配速";
+"training_readiness.speed.when_decreases" = "無法跑到目標配速，或太久沒有訓練";
+
+// MARK: - Endurance Metric
+"training_readiness.endurance.title" = "耐力指標";
+"training_readiness.endurance.description" = "評估您的長距離跑穩定性";
+"training_readiness.endurance.what_it_means" = "長距離跑的心率和配速的穩定性";
+"training_readiness.endurance.how_to_improve_1" = "輕鬆跑、LSD 確實跑在 Zone 2 心率區間";
+"training_readiness.endurance.how_to_improve_2" = "逐週增加距離，保持配速穩定";
+"training_readiness.endurance.when_decreases" = "心率提升幅度較配速提升還大，或太久沒有長跑";
+
+// MARK: - Race Fitness Metric
+"training_readiness.race_fitness.title" = "比賽適能";
+"training_readiness.race_fitness.description" = "評估為目標賽事的準備進度";
+"training_readiness.race_fitness.what_it_means" = "體能表現狀態離目標配速還有多遠";
+"training_readiness.race_fitness.how_to_improve_1" = "儘量跟上每週的課表安排";
+"training_readiness.race_fitness.how_to_improve_2" = "高品質的休息與恢復";
+"training_readiness.race_fitness.how_to_improve_3" = "適當的力量訓練";
+"training_readiness.race_fitness.when_decreases" = "天氣過熱、身體狀況不佳，或缺乏多樣訓練";
+
+// MARK: - Training Load Metric
+"training_readiness.load.title" = "訓練負荷";
+"training_readiness.load.description" = "評估訓練量是否適當";
+"training_readiness.load.what_it_means" = "訓練量是否過大";
+"training_readiness.load.how_to_improve_1" = "跑量、強度按照課表安排穩步提升";
+"training_readiness.load.how_to_improve_2" = "如果負荷過大，考慮安排休息週好好恢復";
+"training_readiness.load.how_to_improve_3" = "高強度訓練後安排恢復日";
+"training_readiness.load.when_decreases" = "訓練量持續過高，且恢復狀態不好";
+
+// MARK: - Edit Schedule Pace Zones
+"edit_schedule.pace_zone.recovery.description" = "用於恢復日，放鬆慢跑，促進身體恢復";
+"edit_schedule.pace_zone.recovery.benefit" = "效益：促進肌肉恢復、減少疲勞累積";
+"edit_schedule.pace_zone.easy.description" = "日常訓練基礎配速，可以舒適對話，建立有氧基礎";
+"edit_schedule.pace_zone.easy.benefit" = "效益：建立有氧基礎、增強耐力、降低受傷風險";
+"edit_schedule.pace_zone.tempo.description" = "乳酸閾值訓練，維持 20-30 分鐘，提升跑步經濟性";
+"edit_schedule.pace_zone.tempo.benefit" = "效益：提升乳酸閾值、改善跑步經濟性、增強心肺功能";
+"edit_schedule.pace_zone.marathon.description" = "目標馬拉松比賽配速，長距離持續配速訓練";
+"edit_schedule.pace_zone.marathon.benefit" = "效益：適應馬拉松配速、提升長距離耐力、模擬比賽強度";
+"edit_schedule.pace_zone.threshold.description" = "高強度有氧訓練，提升最大攝氧量";
+"edit_schedule.pace_zone.threshold.benefit" = "效益：提升最大攝氧量、增強有氧能力、改善速度耐力";
+"edit_schedule.pace_zone.anaerobic.description" = "無氧耐力訓練，接近最大強度，提升無氧能力";
+"edit_schedule.pace_zone.anaerobic.benefit" = "效益：提升無氧耐力、增強高強度持續能力、改善乳酸耐受度";
+"edit_schedule.pace_zone.interval.description" = "高強度間歇訓練，短距離快速，提升速度與爆發力";
+"edit_schedule.pace_zone.interval.benefit" = "效益：提升最大攝氧量、增強速度與爆發力、改善跑步效率";
+
+// MARK: - Edit Schedule Additional Keys
+"edit_schedule.edit_training" = "編輯訓練";
+
+// MARK: - Empty State
+"empty_state.no_data_title" = "無%@數據";
+"empty_state.loading_failed_title" = "載入失敗";
+"empty_state.api_error_title" = "數據載入失敗";
+"empty_state.no_permission_title" = "無權限";
+"empty_state.no_data_source_title" = "未選擇數據來源";
+"empty_state.hrv_data_title" = "無 HRV 數據";
+"empty_state.sleep_heart_rate_data_title" = "無睡眠心率數據";
+"empty_state.vdot_data_title" = "無跑力數據";
+"empty_state.workout_data_title" = "無運動數據";
+"empty_state.health_data_title" = "無健康數據";
+"empty_state.no_data_desc" = "目前沒有可顯示的%@數據";
+"empty_state.loading_failed_desc" = "無法載入數據，請檢查網路連線後重試";
+"empty_state.api_error_desc" = "伺服器暫時無法提供數據";
+"empty_state.no_permission_desc" = "請在設定中允許存取相關數據";
+"empty_state.no_data_source_desc" = "請選擇數據來源以查看相關資訊";
+"empty_state.hrv_data_desc" = "無法獲取心率變異性數據";
+"empty_state.sleep_heart_rate_data_desc" = "無法獲取睡眠心率數據";
+"empty_state.vdot_data_desc" = "暫無跑力數據，請先完成跑步訓練";
+"empty_state.workout_data_desc" = "尚未記錄任何運動數據";
+"empty_state.health_data_desc" = "無法獲取健康數據";
+
+// MARK: - Share Card
+"share_card.format" = "格式";
+"share_card.edit_title" = "編輯標題";
+"share_card.edit_ai_review" = "編輯AI簡評";

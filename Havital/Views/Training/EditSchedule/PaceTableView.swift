@@ -12,7 +12,7 @@ struct PaceTableView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // 說明文字
-                    Text("根據您的跑力計算的訓練配速建議，每個區間顯示最快配速 - 最慢配速範圍")
+                    Text(L10n.EditSchedule.paceTableDescription.localized)
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .padding(.horizontal)
@@ -20,7 +20,7 @@ struct PaceTableView: View {
 
                     // 配速區間詳情
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("配速區間詳情")
+                        Text(L10n.EditSchedule.paceZoneDetails.localized)
                             .font(.headline)
                             .padding(.horizontal)
 
@@ -31,7 +31,7 @@ struct PaceTableView: View {
                     .padding(.vertical, 8)
                 }
             }
-            .navigationTitle("參考配速表")
+            .navigationTitle(L10n.EditSchedule.referencePaceTable.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -125,38 +125,38 @@ struct PaceTableView: View {
     private func paceDescription(for zone: PaceCalculator.PaceZone) -> String {
         switch zone {
         case .recovery:
-            return "用於恢復日，放鬆慢跑，促進身體恢復"
+            return L10n.EditSchedule.PaceZone.recoveryDesc.localized
         case .easy:
-            return "日常訓練基礎配速，可以舒適對話，建立有氧基礎"
+            return L10n.EditSchedule.PaceZone.easyDesc.localized
         case .tempo:
-            return "乳酸閾值訓練，維持 20-30 分鐘，提升跑步經濟性"
+            return L10n.EditSchedule.PaceZone.tempoDesc.localized
         case .marathon:
-            return "目標馬拉松比賽配速，長距離持續配速訓練"
+            return L10n.EditSchedule.PaceZone.marathonDesc.localized
         case .threshold:
-            return "高強度有氧訓練，提升最大攝氧量"
+            return L10n.EditSchedule.PaceZone.thresholdDesc.localized
         case .anaerobic:
-            return "無氧耐力訓練，接近最大強度，提升無氧能力"
+            return L10n.EditSchedule.PaceZone.anaerobicDesc.localized
         case .interval:
-            return "高強度間歇訓練，短距離快速，提升速度與爆發力"
+            return L10n.EditSchedule.PaceZone.intervalDesc.localized
         }
     }
 
     private func paceBenefit(for zone: PaceCalculator.PaceZone) -> String {
         switch zone {
         case .recovery:
-            return "效益：促進肌肉恢復、減少疲勞累積"
+            return L10n.EditSchedule.PaceZone.recoveryBenefit.localized
         case .easy:
-            return "效益：建立有氧基礎、增強耐力、降低受傷風險"
+            return L10n.EditSchedule.PaceZone.easyBenefit.localized
         case .tempo:
-            return "效益：提升乳酸閾值、改善跑步經濟性、增強心肺功能"
+            return L10n.EditSchedule.PaceZone.tempoBenefit.localized
         case .marathon:
-            return "效益：適應馬拉松配速、提升長距離耐力、模擬比賽強度"
+            return L10n.EditSchedule.PaceZone.marathonBenefit.localized
         case .threshold:
-            return "效益：提升最大攝氧量、增強有氧能力、改善速度耐力"
+            return L10n.EditSchedule.PaceZone.thresholdBenefit.localized
         case .anaerobic:
-            return "效益：提升無氧耐力、增強高強度持續能力、改善乳酸耐受度"
+            return L10n.EditSchedule.PaceZone.anaerobicBenefit.localized
         case .interval:
-            return "效益：提升最大攝氧量、增強速度與爆發力、改善跑步效率"
+            return L10n.EditSchedule.PaceZone.intervalBenefit.localized
         }
     }
 }

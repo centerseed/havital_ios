@@ -195,16 +195,16 @@ struct ContentView: View {
         } message: {
             Text(NSLocalizedString("alert.garmin_not_connected_message", comment: "Your account is set to use Garmin data, but is not currently connected to your Garmin account. Please choose to reconnect Garmin or switch back to Apple Health."))
         }
-        .alert("需要綁定數據源", isPresented: $appViewModel.showDataSourceNotBoundAlert) {
-            Button("前往設定") {
+        .alert(L10n.ContentView.dataSourceRequired.localized, isPresented: $appViewModel.showDataSourceNotBoundAlert) {
+            Button(L10n.ContentView.goToSettings.localized) {
                 // TODO: 導航到設定頁面的數據源選擇
                 appViewModel.showDataSourceNotBoundAlert = false
             }
-            Button("稍後", role: .cancel) {
+            Button(L10n.ContentView.later.localized, role: .cancel) {
                 appViewModel.showDataSourceNotBoundAlert = false
             }
         } message: {
-            Text("您尚未綁定數據源，請前往個人資料頁面選擇 Apple Health、Garmin Connect 或 Strava 作為您的訓練數據來源。")
+            Text(L10n.ContentView.dataSourceRequiredMessage.localized)
         }
         .garminReconnectionAlert() // 添加 Garmin 重新連接警告
     }

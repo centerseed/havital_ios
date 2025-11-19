@@ -153,22 +153,22 @@ struct UserProfileView: View {
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
         }
-        .alert("Garmin Connect™ Account Already Bound", isPresented: $showGarminAlreadyBoundAlert) {
-            Button("OK", role: .cancel) {
+        .alert(L10n.ProfileView.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
+            Button(L10n.ProfileView.ok.localized, role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
             }
         } message: {
-            Text(garminManager.garminAlreadyBoundMessage ?? "This Garmin Connect™ account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account and unbind Garmin Connect™ in the profile page, then connect with this account.")
+            Text(garminManager.garminAlreadyBoundMessage ?? L10n.ProfileView.garminAlreadyBoundMessage.localized)
         }
         .onReceive(stravaManager.$stravaAlreadyBoundMessage) { msg in
             showStravaAlreadyBoundAlert = (msg != nil)
         }
-        .alert("Strava Account Already Bound", isPresented: $showStravaAlreadyBoundAlert) {
-            Button("OK", role: .cancel) {
+        .alert(L10n.ProfileView.stravaAlreadyBound.localized, isPresented: $showStravaAlreadyBoundAlert) {
+            Button(L10n.ProfileView.ok.localized, role: .cancel) {
                 stravaManager.stravaAlreadyBoundMessage = nil
             }
         } message: {
-            Text(stravaManager.stravaAlreadyBoundMessage ?? "This Strava account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account and unbind Strava in the profile page, then connect with this account.")
+            Text(stravaManager.stravaAlreadyBoundMessage ?? L10n.ProfileView.stravaAlreadyBoundMessage.localized)
         }
     }
     
@@ -200,9 +200,9 @@ struct UserProfileView: View {
                 
                 // 檢查是否為 Apple 登入且 email 為空或匿名
                 if let providerData = Auth.auth().currentUser?.providerData.first,
-                   providerData.providerID == "apple.com" && 
+                   providerData.providerID == "apple.com" &&
                    (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
-                    Text("Apple User")
+                    Text(L10n.ProfileView.appleUser.localized)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 } else {
@@ -439,7 +439,7 @@ struct UserProfileView: View {
     #if DEBUG
     @ViewBuilder
     private var developerSection: some View {
-        Section(header: Text("🧪 開發者測試")) {
+        Section(header: Text(L10n.ProfileView.Developer.sectionTitle.localized)) {
             Button {
                 Task {
                     await AppRatingManager.shared.forceShowRating()
@@ -447,7 +447,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "star.circle")
-                    Text("測試評分提示")
+                    Text(L10n.ProfileView.Developer.testRating.localized)
                 }
             }
 
@@ -456,7 +456,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "trash")
-                    Text("清除評分快取")
+                    Text(L10n.ProfileView.Developer.clearRatingCache.localized)
                 }
             }
             .foregroundColor(.orange)
@@ -466,7 +466,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "exclamationmark.circle")
-                    Text("調試 - 失敗運動記錄")
+                    Text(L10n.ProfileView.Developer.debugFailedWorkouts.localized)
                 }
             }
             .foregroundColor(.red)
@@ -478,7 +478,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "heart.text.square")
-                    Text("打印心率設定狀態")
+                    Text(L10n.ProfileView.Developer.printHeartRate.localized)
                 }
             }
             .foregroundColor(.blue)
@@ -488,7 +488,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "heart.slash")
-                    Text("清除所有心率設定")
+                    Text(L10n.ProfileView.Developer.clearHeartRate.localized)
                 }
             }
             .foregroundColor(.red)
@@ -498,7 +498,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "clock.arrow.circlepath")
-                    Text("模擬「明天再提醒」(1分鐘後過期)")
+                    Text(L10n.ProfileView.Developer.simulateRemindTomorrow.localized)
                 }
             }
             .foregroundColor(.orange)

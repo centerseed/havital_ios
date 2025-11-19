@@ -111,11 +111,11 @@ struct CalendarSyncSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(L10n.Common.cancel.localized) {
                         isPresented = false
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.CalendarSyncSetup.startSync.localized) {
                         startSync()
@@ -123,8 +123,8 @@ struct CalendarSyncSetupView: View {
                     .disabled(isLoading)
                 }
             }
-            .alert("錯誤", isPresented: .constant(error != nil)) {
-                Button("確定") {
+            .alert(L10n.Common.error.localized, isPresented: .constant(error != nil)) {
+                Button(L10n.Common.confirm.localized) {
                     error = nil
                 }
             } message: {

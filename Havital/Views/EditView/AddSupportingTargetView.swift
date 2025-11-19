@@ -66,13 +66,13 @@ struct AddSupportingTargetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(L10n.Common.cancel.localized) {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("儲存") {
+                    Button(L10n.Common.save.localized) {
                         Task {
                             if await viewModel.createTarget() {
                                 NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)

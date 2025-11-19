@@ -9,14 +9,14 @@ struct EmailLoginView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            TextField("Email", text: $viewModel.email)
+            TextField(L10n.Auth.emailPlaceholder.localized, text: $viewModel.email)
                 .keyboardType(.emailAddress)
                 .autocapitalization(.none)
                 .padding()
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)
 
-            SecureField("Password", text: $viewModel.password)
+            SecureField(L10n.Auth.passwordPlaceholder.localized, text: $viewModel.password)
                 .padding()
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)

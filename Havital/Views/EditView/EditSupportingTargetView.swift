@@ -78,13 +78,13 @@ struct EditSupportingTargetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(L10n.Common.cancel.localized) {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("儲存") {
+                    Button(L10n.Common.save.localized) {
                         Task {
                             if await viewModel.updateTarget() {
                                 NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)
@@ -96,7 +96,7 @@ struct EditSupportingTargetView: View {
                 }
             }
             .alert(L10n.EditTarget.deleteConfirmTitle.localized, isPresented: $viewModel.showDeleteConfirmation) {
-                Button("取消", role: .cancel) { }
+                Button(L10n.Common.cancel.localized, role: .cancel) { }
                 Button(L10n.Common.delete.localized, role: .destructive) {
                     Task {
                         if await viewModel.deleteTarget() {
