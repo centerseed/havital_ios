@@ -14,8 +14,7 @@ struct WorkoutShareCardSheetView: View {
     @State private var showPhotoPicker = false
     @State private var selectedSize: ShareCardSize = .instagram11  // 預設 1:1 比例
     @State private var selectedLayoutMode: ShareCardLayoutMode = .bottom  // 預設底部版型
-    @State private var showShareSheet = false
-    @State private var generatedImage: UIImage?
+    @State private var shareImage: UIImage?  // ShareLink 使用的圖片
     @State private var fullWorkout: WorkoutV2?  // 完整的 workout 數據（包含 shareCardContent）
 
     // 圖片變換狀態
@@ -77,12 +76,45 @@ struct WorkoutShareCardSheetView: View {
                         workoutDetail: workoutDetail,
                         userPhoto: photo
                     )
+                    await updateShareImage()
                 }
             }
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let image = generatedImage {
-                ActivityViewController(activityItems: [image])
+        .onChange(of: viewModel.cardData) { oldData, newData in
+            if newData != nil {
+                Task {
+                    await updateShareImage()
+                }
+            }
+        }
+        .onChange(of: selectedSize) { oldSize, newSize in
+            Task {
+                await updateShareImage()
+            }
+        }
+        .onChange(of: customTitle) { oldTitle, newTitle in
+            Task {
+                await updateShareImage()
+            }
+        }
+        .onChange(of: customEncouragement) { oldEnc, newEnc in
+            Task {
+                await updateShareImage()
+            }
+        }
+        .onChange(of: textOverlays) { oldOverlays, newOverlays in
+            Task {
+                await updateShareImage()
+            }
+        }
+        .onChange(of: photoScale) { oldScale, newScale in
+            Task {
+                await updateShareImage()
+            }
+        }
+        .onChange(of: photoOffset) { oldOffset, newOffset in
+            Task {
+                await updateShareImage()
             }
         }
         .alert("編輯成就標題", isPresented: $showTitleEditor) {
@@ -151,16 +183,12 @@ struct WorkoutShareCardSheetView: View {
 
             Spacer()
 
-            if viewModel.cardData != nil {
-                Button(action: {
-                    Task {
-                        await exportAndShare()
-                    }
-                }) {
+            if let shareImage = shareImage {
+                ShareLink(item: Image(uiImage: shareImage), preview: SharePreview("分享卡", image: Image(uiImage: shareImage))) {
                     HStack(spacing: 4) {
                         Text("分享")
                             .font(.system(size: 16, weight: .semibold))
-                        Image(systemName: "arrow.up.right")
+                        Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 14))
                     }
                     .foregroundColor(.blue)
@@ -201,7 +229,23 @@ struct WorkoutShareCardSheetView: View {
                     )
 
                     VStack(spacing: 16) {
-                        WorkoutShareCardView(data: transformedData, size: selectedSize)
+                        WorkoutShareCardView(
+                            data: transformedData,
+                            size: selectedSize,
+                            onTextOverlayPositionChanged: { overlayId, newPosition in
+                                updateTextOverlayPosition(overlayId: overlayId, newPosition: newPosition)
+                            },
+                            onEditTitle: {
+                                let currentData = viewModel.cardData
+                                editingTitle = customTitle ?? currentData?.workout.shareCardContent?.achievementTitle ?? ""
+                                showTitleEditor = true
+                            },
+                            onEditEncouragement: {
+                                let currentData = viewModel.cardData
+                                editingEncouragement = customEncouragement ?? currentData?.workout.shareCardContent?.encouragementText ?? ""
+                                showEncouragementEditor = true
+                            }
+                        )
                             .scaleEffect(previewScale(for: geometry.size))
                             .frame(width: previewWidth(for: geometry.size), height: previewHeight(for: geometry.size))
                             .cornerRadius(12)
@@ -408,7 +452,7 @@ struct WorkoutShareCardSheetView: View {
                     // Aa 添加文字
                     ToolbarButton(
                         icon: "textformat",
-                        label: "文字",
+                        label: "新增文字",
                         action: {
                             addNewTextOverlay()
                         }
@@ -513,7 +557,7 @@ struct WorkoutShareCardSheetView: View {
         }
     }
 
-    private func exportAndShare() async {
+    private func updateShareImage() async {
         guard let cardData = viewModel.cardData else { return }
 
         let transformedData = WorkoutShareCardData(
@@ -533,8 +577,7 @@ struct WorkoutShareCardSheetView: View {
 
         if let image = await viewModel.exportAsImage(size: selectedSize, view: AnyView(shareCardView)) {
             await MainActor.run {
-                self.generatedImage = image
-                self.showShareSheet = true
+                self.shareImage = image
             }
         }
     }
@@ -583,6 +626,17 @@ struct WorkoutShareCardSheetView: View {
 
         editingOverlayId = nil
         editingOverlayText = ""
+    }
+
+    private func updateTextOverlayPosition(overlayId: UUID, newPosition: CGPoint) {
+        if let index = textOverlays.firstIndex(where: { $0.id == overlayId }) {
+            var overlay = textOverlays[index]
+            // 限制位置在卡片範圍內
+            let clampedX = max(0, min(newPosition.x, selectedSize.width))
+            let clampedY = max(0, min(newPosition.y, selectedSize.height))
+            overlay.position = CGPoint(x: clampedX, y: clampedY)
+            textOverlays[index] = overlay
+        }
     }
 }
 

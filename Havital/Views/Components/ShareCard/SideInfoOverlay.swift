@@ -3,21 +3,24 @@ import SwiftUI
 /// 側邊版型 - 使用漸層設計（從右往左）
 struct SideInfoOverlay: View {
     let data: WorkoutShareCardData
+    var onEditTitle: (() -> Void)? = nil
+    var onEditEncouragement: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
-            // 整張圖的統一漸層遮罩（從右往左 0.4 -> 0）
+            // 整張圖的統一漸層遮罩（從左往右 0.4 -> 0，讓左側內容有深色背景）
             LinearGradient(
                 gradient: Gradient(stops: [
                     .init(color: .black.opacity(0.4), location: 0),
                     .init(color: .black.opacity(0), location: 1)
                 ]),
-                startPoint: .trailing,
-                endPoint: .leading
+                startPoint: .leading,
+                endPoint: .trailing
             )
 
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
+                    Spacer() // 上方留白，使內容垂直居中
                     // 主標題區域
                     HStack(spacing: 12) {
                         Image(systemName: "figure.run")
@@ -29,6 +32,9 @@ struct SideInfoOverlay: View {
                             .foregroundColor(.white)
                             .lineLimit(2)
                             .minimumScaleFactor(0.7)
+                            .onTapGesture {
+                                onEditTitle?()
+                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
@@ -87,12 +93,13 @@ struct SideInfoOverlay: View {
                             .foregroundColor(.white.opacity(0.95))
                             .lineLimit(3)
                             .minimumScaleFactor(0.8)
+                            .onTapGesture {
+                                onEditEncouragement?()
+                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
                     .padding(.vertical, 20)
-
-                    Spacer()
 
                     // 分隔線
                     Rectangle()
@@ -108,6 +115,8 @@ struct SideInfoOverlay: View {
                         .frame(height: 50)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
+
+                    Spacer() // 下方留白，使內容垂直居中
                 }
                 .frame(maxWidth: .infinity)
 

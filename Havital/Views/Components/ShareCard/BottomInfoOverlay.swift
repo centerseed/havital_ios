@@ -3,6 +3,8 @@ import SwiftUI
 /// 底部橫條版型 - 緊湊卡片式設計
 struct BottomInfoOverlay: View {
     let data: WorkoutShareCardData
+    var onEditTitle: (() -> Void)? = nil
+    var onEditEncouragement: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -31,6 +33,9 @@ struct BottomInfoOverlay: View {
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
+                            .onTapGesture {
+                                onEditTitle?()
+                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
@@ -89,6 +94,9 @@ struct BottomInfoOverlay: View {
                             .foregroundColor(.white.opacity(0.95))
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
+                            .onTapGesture {
+                                onEditEncouragement?()
+                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)

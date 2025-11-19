@@ -4,6 +4,11 @@ import SwiftUI
 struct WorkoutShareCardView: View {
     let data: WorkoutShareCardData
     let size: ShareCardSize
+    var onTextOverlayPositionChanged: ((UUID, CGPoint) -> Void)? = nil
+    var onEditTitle: (() -> Void)? = nil
+    var onEditEncouragement: (() -> Void)? = nil
+
+    @State private var dragOffsets: [UUID: CGSize] = [:]
 
     var body: some View {
         ZStack(alignment: .center) {
@@ -26,18 +31,36 @@ struct WorkoutShareCardView: View {
             Group {
                 switch data.layoutMode {
                 case .bottom, .auto:
-                    BottomInfoOverlay(data: data)
+                    BottomInfoOverlay(
+                        data: data,
+                        onEditTitle: onEditTitle,
+                        onEditEncouragement: onEditEncouragement
+                    )
                 case .top:
-                    TopInfoOverlay(data: data)
+                    TopInfoOverlay(
+                        data: data,
+                        onEditTitle: onEditTitle,
+                        onEditEncouragement: onEditEncouragement
+                    )
                 case .side:
-                    SideInfoOverlay(data: data)
+                    SideInfoOverlay(
+                        data: data,
+                        onEditTitle: onEditTitle,
+                        onEditEncouragement: onEditEncouragement
+                    )
                 }
             }
             .frame(width: size.width, height: size.height)
-            .allowsHitTesting(false)
+            .allowsHitTesting(onEditTitle != nil || onEditEncouragement != nil)
 
             // 文字疊加層
             ForEach(data.textOverlays) { overlay in
+                let currentOffset = dragOffsets[overlay.id] ?? .zero
+                let displayPosition = CGPoint(
+                    x: overlay.position.x + currentOffset.width,
+                    y: overlay.position.y + currentOffset.height
+                )
+
                 Text(overlay.text)
                     .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
                     .foregroundColor(overlay.textColor)
@@ -51,8 +74,24 @@ struct WorkoutShareCardView: View {
                     )
                     .scaleEffect(overlay.scale)
                     .rotationEffect(overlay.rotation)
-                    .position(overlay.position)
-                    .allowsHitTesting(false)
+                    .position(displayPosition)
+                    .allowsHitTesting(onTextOverlayPositionChanged != nil)
+                    .gesture(
+                        onTextOverlayPositionChanged != nil ?
+                        DragGesture()
+                            .onChanged { value in
+                                dragOffsets[overlay.id] = value.translation
+                            }
+                            .onEnded { value in
+                                let newPosition = CGPoint(
+                                    x: overlay.position.x + value.translation.width,
+                                    y: overlay.position.y + value.translation.height
+                                )
+                                onTextOverlayPositionChanged?(overlay.id, newPosition)
+                                dragOffsets[overlay.id] = .zero
+                            }
+                        : nil
+                    )
             }
         }
         .frame(width: size.width, height: size.height)

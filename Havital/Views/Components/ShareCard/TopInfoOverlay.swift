@@ -3,17 +3,19 @@ import SwiftUI
 /// 頂部版型 - 使用漸層設計（從下往上）
 struct TopInfoOverlay: View {
     let data: WorkoutShareCardData
+    var onEditTitle: (() -> Void)? = nil
+    var onEditEncouragement: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
-            // 整張圖的統一漸層遮罩（從下往上 0.4 -> 0）
+            // 整張圖的統一漸層遮罩（從上往下 0.4 -> 0，讓頂部內容有深色背景）
             LinearGradient(
                 gradient: Gradient(stops: [
                     .init(color: .black.opacity(0.4), location: 0),
                     .init(color: .black.opacity(0), location: 1)
                 ]),
-                startPoint: .bottom,
-                endPoint: .top
+                startPoint: .top,
+                endPoint: .bottom
             )
 
             VStack(spacing: 0) {
@@ -29,6 +31,9 @@ struct TopInfoOverlay: View {
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
+                            .onTapGesture {
+                                onEditTitle?()
+                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
@@ -87,6 +92,9 @@ struct TopInfoOverlay: View {
                             .foregroundColor(.white.opacity(0.95))
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
+                            .onTapGesture {
+                                onEditEncouragement?()
+                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
