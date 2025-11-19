@@ -18,7 +18,7 @@ class TrainingOverviewViewModel: ObservableObject {
 
         do {
             // 獲取訓練總覽
-            let overview = try await TrainingPlanService.shared.getTrainingOverview()
+            let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
 
             // TODO: 獲取目標配速和賽事日期（從 Target 或其他來源）
             // 暫時使用模擬數據

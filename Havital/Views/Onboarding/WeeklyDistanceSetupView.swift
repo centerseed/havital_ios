@@ -76,6 +76,15 @@ struct WeeklyDistanceSetupView: View {
         _viewModel = StateObject(wrappedValue: WeeklyDistanceViewModel(targetDistance: targetDistance))
     }
     
+    // Slider 的最大值：如果有目標距離則為目標距離的4倍（最少60公里），否則固定180公里
+    private var sliderMaxDistance: Double {
+        if let targetDistance = viewModel.targetDistance {
+            return max(targetDistance * 4, 60.0)
+        } else {
+            return viewModel.maxWeeklyDistance
+        }
+    }
+
     var body: some View {
         Form {
             Section(
@@ -94,14 +103,6 @@ struct WeeklyDistanceSetupView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.bottom, 10)
-
-                // Slider 的最大值：如果有目標距離則為目標距離的4倍（最少60公里），否則固定180公里
-                let sliderMaxDistance: Double
-                if let targetDistance = viewModel.targetDistance {
-                    sliderMaxDistance = max(targetDistance * 4, 60.0)
-                } else {
-                    sliderMaxDistance = viewModel.maxWeeklyDistance
-                }
 
                 VStack(alignment: .leading, spacing: 10) {
                     // 週跑量標籤加上 Stepper 方便微調
