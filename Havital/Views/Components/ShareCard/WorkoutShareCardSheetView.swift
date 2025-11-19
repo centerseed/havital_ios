@@ -39,127 +39,137 @@ struct WorkoutShareCardSheetView: View {
     @State private var editingOverlayId: UUID?
 
     var body: some View {
+        mainContentView
+            .background(Color(UIColor.systemBackground))
+            .onAppear(perform: setupInitialCard)
+            .sheet(isPresented: $showPhotoPicker) {
+                PhotoPicker(selectedImage: $selectedPhoto)
+            }
+            .onChange(of: selectedPhoto, perform: handlePhotoChange)
+            .onChange(of: viewModel.cardData) { _, newData in
+                if newData != nil {
+                    Task { await updateShareImage() }
+                }
+            }
+            .onChange(of: selectedSize) { _, _ in
+                Task { await updateShareImage() }
+            }
+            .onChange(of: customTitle) { _, _ in
+                Task { await updateShareImage() }
+            }
+            .onChange(of: customEncouragement) { _, _ in
+                Task { await updateShareImage() }
+            }
+            .onChange(of: textOverlays) { _, _ in
+                Task { await updateShareImage() }
+            }
+            .onChange(of: photoScale) { _, _ in
+                Task { await updateShareImage() }
+            }
+            .onChange(of: photoOffset) { _, _ in
+                Task { await updateShareImage() }
+            }
+            .alert("編輯成就標題", isPresented: $showTitleEditor) {
+                titleEditorAlert
+            } message: {
+                Text("自訂你的成就標題，讓分享更個人化！")
+            }
+            .alert("編輯鼓勵語", isPresented: $showEncouragementEditor) {
+                encouragementEditorAlert
+            } message: {
+                Text("添加你的訓練感想或勵志語錄！")
+            }
+            .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
+                textOverlayEditorAlert
+            } message: {
+                Text(editingOverlayId == nil ? "在分享卡上添加你的個性文字！" : "修改你的文字內容")
+            }
+    }
+
+    // MARK: - Main Content
+
+    private var mainContentView: some View {
         VStack(spacing: 0) {
-            // 頂部導航欄
             topNavigationBar
-
-            // 預覽區域
             previewArea
-
-            // 底部工具列
             bottomToolbar
         }
-        .background(Color(UIColor.systemBackground))
-        .onAppear {
-            prepareFullWorkoutData()
+    }
+
+    // MARK: - Alert Content
+
+    @ViewBuilder
+    private var titleEditorAlert: some View {
+        TextField("輸入標題（最多50字）", text: $editingTitle)
+            .lineLimit(2)
+        Button("確定") {
+            if editingTitle.count <= 50 {
+                customTitle = editingTitle.isEmpty ? nil : editingTitle
+            }
+        }
+        Button("重置") {
+            customTitle = nil
+            editingTitle = ""
+        }
+        Button("取消", role: .cancel) { }
+    }
+
+    @ViewBuilder
+    private var encouragementEditorAlert: some View {
+        TextField("輸入鼓勵語（最多80字）", text: $editingEncouragement)
+            .lineLimit(3)
+        Button("確定") {
+            if editingEncouragement.count <= 80 {
+                customEncouragement = editingEncouragement.isEmpty ? nil : editingEncouragement
+            }
+        }
+        Button("重置") {
+            customEncouragement = nil
+            editingEncouragement = ""
+        }
+        Button("取消", role: .cancel) { }
+    }
+
+    @ViewBuilder
+    private var textOverlayEditorAlert: some View {
+        TextField("輸入文字（最多30字）", text: $editingOverlayText)
+            .lineLimit(2)
+        Button("確定") {
+            saveTextOverlay()
+        }
+        Button("取消", role: .cancel) {
+            editingOverlayId = nil
+        }
+    }
+
+    // MARK: - Event Handlers
+
+    private func setupInitialCard() {
+        prepareFullWorkoutData()
+        Task {
+            await viewModel.generateShareCard(
+                workout: fullWorkout ?? workout,
+                workoutDetail: workoutDetail,
+                userPhoto: nil
+            )
+        }
+    }
+
+    private func handlePhotoChange(old: UIImage?, new: UIImage?) {
+        if let photo = new {
+            photoScale = 1.0
+            photoOffset = .zero
+            lastScale = 1.0
+            lastOffset = .zero
+
             Task {
                 await viewModel.generateShareCard(
                     workout: fullWorkout ?? workout,
                     workoutDetail: workoutDetail,
-                    userPhoto: nil
+                    userPhoto: photo
                 )
-            }
-        }
-        .sheet(isPresented: $showPhotoPicker) {
-            PhotoPicker(selectedImage: $selectedPhoto)
-        }
-        .onChange(of: selectedPhoto) { oldPhoto, newPhoto in
-            if let photo = newPhoto {
-                photoScale = 1.0
-                photoOffset = .zero
-                lastScale = 1.0
-                lastOffset = .zero
-
-                Task {
-                    await viewModel.generateShareCard(
-                        workout: fullWorkout ?? workout,
-                        workoutDetail: workoutDetail,
-                        userPhoto: photo
-                    )
-                    await updateShareImage()
-                }
-            }
-        }
-        .onChange(of: viewModel.cardData) { oldData, newData in
-            if newData != nil {
-                Task {
-                    await updateShareImage()
-                }
-            }
-        }
-        .onChange(of: selectedSize) { oldSize, newSize in
-            Task {
                 await updateShareImage()
             }
-        }
-        .onChange(of: customTitle) { oldTitle, newTitle in
-            Task {
-                await updateShareImage()
-            }
-        }
-        .onChange(of: customEncouragement) { oldEnc, newEnc in
-            Task {
-                await updateShareImage()
-            }
-        }
-        .onChange(of: textOverlays) { oldOverlays, newOverlays in
-            Task {
-                await updateShareImage()
-            }
-        }
-        .onChange(of: photoScale) { oldScale, newScale in
-            Task {
-                await updateShareImage()
-            }
-        }
-        .onChange(of: photoOffset) { oldOffset, newOffset in
-            Task {
-                await updateShareImage()
-            }
-        }
-        .alert("編輯成就標題", isPresented: $showTitleEditor) {
-            TextField("輸入標題（最多50字）", text: $editingTitle)
-                .lineLimit(2)
-            Button("確定") {
-                if editingTitle.count <= 50 {
-                    customTitle = editingTitle.isEmpty ? nil : editingTitle
-                }
-            }
-            Button("重置") {
-                customTitle = nil
-                editingTitle = ""
-            }
-            Button("取消", role: .cancel) { }
-        } message: {
-            Text("自訂你的成就標題，讓分享更個人化！")
-        }
-        .alert("編輯鼓勵語", isPresented: $showEncouragementEditor) {
-            TextField("輸入鼓勵語（最多80字）", text: $editingEncouragement)
-                .lineLimit(3)
-            Button("確定") {
-                if editingEncouragement.count <= 80 {
-                    customEncouragement = editingEncouragement.isEmpty ? nil : editingEncouragement
-                }
-            }
-            Button("重置") {
-                customEncouragement = nil
-                editingEncouragement = ""
-            }
-            Button("取消", role: .cancel) { }
-        } message: {
-            Text("添加你的訓練感想或勵志語錄！")
-        }
-        .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
-            TextField("輸入文字（最多30字）", text: $editingOverlayText)
-                .lineLimit(2)
-            Button("確定") {
-                saveTextOverlay()
-            }
-            Button("取消", role: .cancel) {
-                editingOverlayId = nil
-            }
-        } message: {
-            Text(editingOverlayId == nil ? "在分享卡上添加你的個性文字！" : "修改你的文字內容")
         }
     }
 
