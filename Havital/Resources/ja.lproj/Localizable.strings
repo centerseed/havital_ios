@@ -1638,3 +1638,8 @@
 "empty_state.vdot_data_desc" = "VDOTデータがありません。まずランニングワークアウトを完了してください";
 "empty_state.workout_data_desc" = "まだワークアウトデータが記録されていません";
 "empty_state.health_data_desc" = "健康データを取得できません";
+
+// MARK: - Share Card
+"share_card.format" = "フォーマット";
+"share_card.edit_title" = "タイトルを編集";
+"share_card.edit_ai_review" = "AI評価を編集";

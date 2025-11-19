@@ -1662,3 +1662,8 @@
 "empty_state.vdot_data_desc" = "暫無跑力數據，請先完成跑步訓練";
 "empty_state.workout_data_desc" = "尚未記錄任何運動數據";
 "empty_state.health_data_desc" = "無法獲取健康數據";
+
+// MARK: - Share Card
+"share_card.format" = "格式";
+"share_card.edit_title" = "編輯標題";
+"share_card.edit_ai_review" = "編輯AI簡評";

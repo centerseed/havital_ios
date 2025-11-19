@@ -1528,6 +1528,9 @@
 // MARK: - Share Card
 "share_card.my_training_plan" = "My Training Plan";
 "share_card.share_to_social" = "Share to Social Media";
+"share_card.format" = "Format";
+"share_card.edit_title" = "Edit Title";
+"share_card.edit_ai_review" = "Edit AI Review";
 
 // MARK: - Onboarding Additional
 "onboarding_additional.skip" = "Skip";
