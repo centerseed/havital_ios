@@ -1409,3 +1409,8 @@
 "common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "預計完賽時間";
+
+// MARK: - Share Card
+"share_card.format" = "格式";
+"share_card.edit_title" = "編輯標題";
+"share_card.edit_ai_review" = "編輯AI簡評";

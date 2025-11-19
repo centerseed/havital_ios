@@ -1390,3 +1390,8 @@
 "common.generating" = "Generating...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "Est. Finish";
+
+// MARK: - Share Card
+"share_card.format" = "Format";
+"share_card.edit_title" = "Edit Title";
+"share_card.edit_ai_review" = "Edit AI Review";

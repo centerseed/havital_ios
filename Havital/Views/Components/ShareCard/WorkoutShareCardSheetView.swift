@@ -485,34 +485,46 @@ struct WorkoutShareCardSheetView: View {
 
                     // Aa 添加文字
                     ToolbarButton(
-                        icon: "textformat",
+                        icon: "character.textbox",
                         label: "新增文字",
                         action: {
                             addNewTextOverlay()
                         }
                     )
 
-                    // ✏️ 編輯標題
-                    ToolbarButton(
-                        icon: "text.cursor",
-                        label: "編輯標題",
-                        action: {
+                    // 格式 (原本的編輯標題按鈕，改為新增文字的樣式)
+                    Menu {
+                        Button(action: {
                             let currentData = viewModel.cardData
                             editingTitle = customTitle ?? currentData?.workout.shareCardContent?.achievementTitle ?? ""
                             showTitleEditor = true
+                        }) {
+                            HStack {
+                                Text(NSLocalizedString("share_card.edit_title", comment: ""))
+                                Image(systemName: "text.cursor")
+                            }
                         }
-                    )
-
-                    // 💬 編輯AI簡評
-                    ToolbarButton(
-                        icon: "bubble.left",
-                        label: "編輯AI簡評",
-                        action: {
+                        Button(action: {
                             let currentData = viewModel.cardData
                             editingEncouragement = customEncouragement ?? currentData?.workout.shareCardContent?.encouragementText ?? ""
                             showEncouragementEditor = true
+                        }) {
+                            HStack {
+                                Text(NSLocalizedString("share_card.edit_ai_review", comment: ""))
+                                Image(systemName: "bubble.left")
+                            }
                         }
-                    )
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 24))
+                                .foregroundColor(.primary)
+                            Text(NSLocalizedString("share_card.format", comment: ""))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(width: 60)
+                    }
 
                     // 重置圖片按鈕（僅在有照片且有變換時顯示）
                     if selectedPhoto != nil && (photoScale != 1.0 || photoOffset != .zero) {

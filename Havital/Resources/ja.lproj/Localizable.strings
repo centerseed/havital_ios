@@ -1385,3 +1385,8 @@
 "common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "予想完走時間";
+
+// MARK: - Share Card
+"share_card.format" = "フォーマット";
+"share_card.edit_title" = "タイトルを編集";
+"share_card.edit_ai_review" = "AI評価を編集";
