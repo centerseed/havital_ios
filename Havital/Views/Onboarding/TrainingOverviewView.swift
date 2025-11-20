@@ -236,7 +236,7 @@ struct TrainingOverviewView: View {
                     targetPace: viewModel.targetPace,
                     stageIndex: index,
                     isLast: index == overview.trainingStageDescription.count - 1,
-                    nextStageColor: index < overview.trainingStageDescription.count - 1 ? stageColor(for: index + 1) : nil
+                    nextStageColor: index < overview.trainingStageDescription.count - 1 ? stageColor(for: index) : nil
                 )
             }
         }
