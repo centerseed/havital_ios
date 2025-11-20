@@ -43,7 +43,37 @@ struct WorkoutShareCardSheetView: View {
     private let tutorialShownKey = "ShareCardTutorialShown"
 
     var body: some View {
-        contentWithAlerts
+        NavigationStack {
+            contentWithAlerts
+                .navigationTitle("生成分享卡")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Text("關閉")
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                showTutorial = true
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                            }
+
+                            if let shareImage = shareImage {
+                                ShareLink(
+                                    item: Image(uiImage: shareImage),
+                                    preview: SharePreview("分享卡", image: Image(uiImage: shareImage))
+                                )
+                            }
+                        }
+                    }
+                }
+        }
     }
 
     private var contentWithAlerts: some View {
@@ -128,7 +158,6 @@ struct WorkoutShareCardSheetView: View {
     private var mainContentView: some View {
         ZStack {
             VStack(spacing: 0) {
-                topNavigationBar
                 previewArea
                 bottomToolbar
             }
@@ -235,67 +264,6 @@ struct WorkoutShareCardSheetView: View {
     private func updateTextOverlaysForLayout(_ layout: ShareCardLayoutMode) {
         // 標題和鼓勵語由 Overlay 固定渲染，不需要更新位置
         // textOverlays 只包含用戶自定義文字，切換版型時保持原位
-    }
-
-    // MARK: - Top Navigation Bar
-
-    private var topNavigationBar: some View {
-        ZStack {
-            // 背景層：左右按鈕
-            HStack {
-                // 左側：關閉按鈕
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
-                }
-
-                Spacer()
-
-                // 右側：問號按鈕 + 分享按鈕
-                HStack(spacing: 8) {
-                    Button(action: {
-                        showTutorial = true
-                    }) {
-                        Image(systemName: "questionmark.circle")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.blue)
-                            .frame(width: 44, height: 44)
-                    }
-
-                    if let shareImage = shareImage {
-                        ShareLink(item: Image(uiImage: shareImage), preview: SharePreview("分享卡", image: Image(uiImage: shareImage))) {
-                            HStack(spacing: 4) {
-                                Text("分享")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 14))
-                            }
-                            .foregroundColor(.blue)
-                            .frame(height: 44)
-                        }
-                    } else {
-                        Color.clear.frame(width: 70, height: 44)
-                    }
-                }
-            }
-            .padding(.horizontal)
-
-            // 前景層：標題（完全居中）
-            Text("生成分享卡")
-                .font(.headline)
-        }
-        .frame(height: 56)
-        .background(Color(UIColor.systemBackground))
-        .overlay(
-            Divider()
-                .frame(height: 0.5)
-                .background(Color.gray.opacity(0.3)),
-            alignment: .bottom
-        )
     }
 
     // MARK: - Preview Area

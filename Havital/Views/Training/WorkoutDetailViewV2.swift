@@ -127,6 +127,12 @@ struct WorkoutDetailViewV2: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
+                Button(NSLocalizedString("common.close", comment: "Close")) {
+                    dismiss()
+                }
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
                 // 分享按鈕 - 點擊彈出選單
                 Menu {
                     // 分享訓練成果（照片分享卡）
@@ -152,12 +158,6 @@ struct WorkoutDetailViewV2: View {
                     } else {
                         Image(systemName: "square.and.arrow.up")
                     }
-                }
-            }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(NSLocalizedString("common.close", comment: "Close")) {
-                    dismiss()
                 }
             }
         }
