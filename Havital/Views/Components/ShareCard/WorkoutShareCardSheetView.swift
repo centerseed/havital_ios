@@ -207,25 +207,33 @@ struct WorkoutShareCardSheetView: View {
 
         var overlays: [TextOverlay] = []
 
-        // 根據版型決定標題和鼓勵語的初始位置（使用比例計算，避免超出畫面）
+        // 根據版型決定標題和鼓勵語的初始位置
         let titlePosition: CGPoint
         let encouragementPosition: CGPoint
         let width = selectedSize.width
         let height = selectedSize.height
 
+        // 計算 x 座標以對齊數據區域的圖標
+        // 數據區域: .padding(.horizontal, 42) - 圖標左邊緣在 42pt
+        // 標題 HStack: .padding(.horizontal, 12) + icon(42pt) + spacing(12) + text(~250-350pt)
+        // 要讓 icon 左邊緣對齊，HStack 左邊緣應在 42 - 12 = 30pt
+        // 假設平均寬度 366pt (24+42+12+288)，半寬 183pt，中心點 = 30 + 183 = 213pt
+        // 使用 200pt 作為平衡值，避免過長文字切邊
+        let titleCenterX = CGFloat(200)
+
         switch selectedLayoutMode {
         case .bottom, .auto:
             // 底部版型：標題和鼓勵語在底部偏上區域（留空間給數據和 badge）
-            titlePosition = CGPoint(x: width * 0.30, y: height * 0.72)
-            encouragementPosition = CGPoint(x: width * 0.30, y: height * 0.80)
+            titlePosition = CGPoint(x: titleCenterX, y: height * 0.72)
+            encouragementPosition = CGPoint(x: titleCenterX, y: height * 0.80)
         case .top:
             // 頂部版型：標題和鼓勵語在頂部區域（留空間給數據，增加上邊距避免切邊）
-            titlePosition = CGPoint(x: width * 0.30, y: height * 0.12)
-            encouragementPosition = CGPoint(x: width * 0.30, y: height * 0.20)
+            titlePosition = CGPoint(x: titleCenterX, y: height * 0.12)
+            encouragementPosition = CGPoint(x: titleCenterX, y: height * 0.20)
         case .side:
-            // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域，增加左邊距）
-            titlePosition = CGPoint(x: width * 0.32, y: height * 0.35)
-            encouragementPosition = CGPoint(x: width * 0.32, y: height * 0.55)
+            // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域）
+            titlePosition = CGPoint(x: titleCenterX, y: height * 0.35)
+            encouragementPosition = CGPoint(x: titleCenterX, y: height * 0.55)
         }
 
         // 創建標題 TextOverlay（帶 icon）
@@ -264,8 +272,10 @@ struct WorkoutShareCardSheetView: View {
 
     private func updateTextOverlaysForLayout(_ layout: ShareCardLayoutMode) {
         // 當版型改變時，只更新標題和鼓勵語的位置（保留自訂文字）
-        let width = selectedSize.width
         let height = selectedSize.height
+
+        // 使用與 createInitialTextOverlays 相同的 x 座標計算
+        let titleCenterX = CGFloat(200)
 
         for index in textOverlays.indices {
             let overlay = textOverlays[index]
@@ -275,21 +285,21 @@ struct WorkoutShareCardSheetView: View {
                 // 這是標題
                 switch layout {
                 case .bottom, .auto:
-                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.72)
+                    textOverlays[index].position = CGPoint(x: titleCenterX, y: height * 0.72)
                 case .top:
-                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.12)
+                    textOverlays[index].position = CGPoint(x: titleCenterX, y: height * 0.12)
                 case .side:
-                    textOverlays[index].position = CGPoint(x: width * 0.32, y: height * 0.35)
+                    textOverlays[index].position = CGPoint(x: titleCenterX, y: height * 0.35)
                 }
             } else if overlay.iconName == "bubble.left.fill" {
                 // 這是鼓勵語
                 switch layout {
                 case .bottom, .auto:
-                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.80)
+                    textOverlays[index].position = CGPoint(x: titleCenterX, y: height * 0.80)
                 case .top:
-                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.20)
+                    textOverlays[index].position = CGPoint(x: titleCenterX, y: height * 0.20)
                 case .side:
-                    textOverlays[index].position = CGPoint(x: width * 0.32, y: height * 0.55)
+                    textOverlays[index].position = CGPoint(x: titleCenterX, y: height * 0.55)
                 }
             }
             // 自訂文字（沒有 icon 或其他 icon）保持原位
