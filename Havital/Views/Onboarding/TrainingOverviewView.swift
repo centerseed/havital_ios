@@ -1,5 +1,11 @@
 import SwiftUI
 
+// MARK: - Mode Enum
+enum TrainingOverviewMode {
+    case preview   // 從 TrainingDaysSetupView 預覽，需要生成第一週計劃
+    case final     // 從 TrainingDaysSetupView 生成計劃後最終展示
+}
+
 // MARK: - ViewModel
 @MainActor
 class TrainingOverviewViewModel: ObservableObject {
@@ -12,7 +18,20 @@ class TrainingOverviewViewModel: ObservableObject {
     @Published var isGeneratingPlan = false
     @Published var navigateToMainApp = false
 
+    let mode: TrainingOverviewMode
+
+    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil) {
+        self.mode = mode
+        self.trainingOverview = trainingOverview
+    }
+
     func loadTrainingOverview() async {
+        // 如果是 preview 模式且已經有 overview，則不需要載入
+        if mode == .preview && trainingOverview != nil {
+            print("[TrainingOverviewViewModel] Preview 模式，使用傳入的 overview")
+            return
+        }
+
         isLoading = true
         error = nil
 
@@ -39,28 +58,41 @@ class TrainingOverviewViewModel: ObservableObject {
         isGeneratingPlan = true
         error = nil
 
-        // 調用生成第一週計劃的 API（如果還沒生成的話）
-        // TrainingDaysSetupView 已經調用過 createWeeklyPlan，
-        // 這裡可以直接標記完成
-        print("[TrainingOverviewViewModel] 生成第一週計劃完成")
+        do {
+            // 如果是 preview 模式，需要調用 createWeeklyPlan API
+            if mode == .preview {
+                print("[TrainingOverviewViewModel] Preview 模式，調用 createWeeklyPlan")
+                let _ = try await TrainingPlanService.shared.createWeeklyPlan(startFromStage: nil)
+                print("[TrainingOverviewViewModel] 第一週計劃生成成功")
+            }
 
-        // 標記 onboarding 完成
-        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-        print("[TrainingOverviewViewModel] 已設置 hasCompletedOnboarding = true")
+            // 標記 onboarding 完成
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            print("[TrainingOverviewViewModel] 已設置 hasCompletedOnboarding = true")
 
-        await MainActor.run {
-            self.isGeneratingPlan = false
-            // 設置完成標誌，讓 AuthenticationService 觸發導航
-            AuthenticationService.shared.hasCompletedOnboarding = true
-            print("[TrainingOverviewViewModel] Onboarding 完成，導航到主應用")
+            await MainActor.run {
+                self.isGeneratingPlan = false
+                // 設置完成標誌，讓 AuthenticationService 觸發導航
+                AuthenticationService.shared.hasCompletedOnboarding = true
+                print("[TrainingOverviewViewModel] Onboarding 完成，導航到主應用")
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error.localizedDescription
+                self.isGeneratingPlan = false
+            }
         }
     }
 }
 
 // MARK: - View
 struct TrainingOverviewView: View {
-    @StateObject private var viewModel = TrainingOverviewViewModel()
+    @StateObject private var viewModel: TrainingOverviewViewModel
     @Environment(\.dismiss) private var dismiss
+
+    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil) {
+        _viewModel = StateObject(wrappedValue: TrainingOverviewViewModel(mode: mode, trainingOverview: trainingOverview))
+    }
 
     var body: some View {
         ZStack {
@@ -323,7 +355,9 @@ struct TrainingOverviewView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     }
-                    Text(NSLocalizedString("onboarding.generate_first_week", comment: "Generate First Week Plan"))
+                    Text(viewModel.mode == .preview ?
+                         NSLocalizedString("onboarding.confirm_generate_first_week", comment: "確認並生成第一週計劃") :
+                         NSLocalizedString("onboarding.generate_first_week", comment: "生成第一週計劃"))
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)

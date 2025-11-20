@@ -8,13 +8,11 @@ class TrainingDaysViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var trainingPlanOverview: TrainingPlanOverview?
-    @Published var showOverview = false // 是否顯示計畫概覽
     @Published var weeklyPlan: WeeklyPlan? // 儲存產生的週計畫 (目前似乎未直接在 UI 使用)
-    
-    // 控制按鈕顯示的狀態
-    @Published var canShowPlanOverviewButton = false // 是否可以顯示「儲存偏好並預覽計畫」按鈕
-    @Published var canGenerateFinalPlanButton = false // 是否可以顯示「完成並查看第一週課表」按鈕
-    @Published var navigateToTrainingOverview = false // 導航到 TrainingOverviewView
+
+    // 導航狀態
+    @Published var navigateToPreview = false // 導航到預覽頁面
+    @Published var navigateToTrainingOverview = false // 導航到最終訓練總覽頁面
 
     private let userPreferenceManager = UserPreferenceManager.shared
     private let authService = AuthenticationService.shared
@@ -22,22 +20,17 @@ class TrainingDaysViewModel: ObservableObject {
     let recommendedMinTrainingDays = 2 // 最小建議訓練天數
 
     init() {
-        // 當 selectedWeekdays 或 selectedLongRunDay 改變時，更新按鈕狀態
-        // 這裡使用 combine 會更優雅，但為了簡化，我們先在 action 中手動更新
-        // 或者在 onAppear 和按鈕 action 中檢查
-        updateButtonStates()
+        // 初始化
     }
 
-    func updateButtonStates() {
+    var canSavePreferences: Bool {
         // 至少選擇 recommendedMinTrainingDays
         let hasEnoughDays = selectedWeekdays.count >= recommendedMinTrainingDays
-        
+
         // 長跑日必須是選擇的訓練日之一
         let isLongRunDayValid = selectedWeekdays.contains(selectedLongRunDay) || selectedWeekdays.isEmpty
-        
-        // 初始按鈕：用於獲取概覽
-        // 條件：已選擇足夠的訓練日，且長跑日是訓練日之一，且概覽尚未顯示，且最終計畫按鈕也未顯示
-        canShowPlanOverviewButton = hasEnoughDays && isLongRunDayValid && !showOverview && !canGenerateFinalPlanButton
+
+        return hasEnoughDays && isLongRunDayValid
     }
 
 
@@ -77,14 +70,13 @@ class TrainingDaysViewModel: ObservableObject {
 
                 TrainingPlanStorage.saveTrainingPlanOverview(overview)
 
-                self.showOverview = true // 顯示概覽
-                self.canShowPlanOverviewButton = false // 隱藏「預覽」按鈕
-                self.canGenerateFinalPlanButton = true // 顯示「產生最終計畫」按鈕
-
-                // ... (儲存 userPreferenceManager 部分不變)
+                // 儲存 userPreferenceManager
                 let weekdaysDisplay = self.selectedWeekdays.map { self.getWeekdayNameStatic($0) }
                 self.userPreferenceManager.preferWeekDays = weekdaysDisplay
                 self.userPreferenceManager.preferWeekDaysLongRun = [self.getWeekdayNameStatic(self.selectedLongRunDay)]
+
+                // 導航到預覽頁面
+                self.navigateToPreview = true
 
             } catch {
                 self.error = error.localizedDescription
@@ -188,7 +180,6 @@ struct TrainingDaysSetupView: View {
                             } else {
                                 viewModel.selectedWeekdays.insert(weekday)
                             }
-                            viewModel.updateButtonStates() // 更新按鈕狀態
                         }) {
                             HStack {
                                 Text(getWeekdayName(weekday))
@@ -232,15 +223,11 @@ struct TrainingDaysSetupView: View {
                         else if !newWeekdays.contains(viewModel.selectedLongRunDay), let first = newWeekdays.sorted().first {
                             viewModel.selectedLongRunDay = first
                         }
-                        viewModel.updateButtonStates()
-                    }
-                    .onChange(of: viewModel.selectedLongRunDay) { _ in
-                        viewModel.updateButtonStates()
                     }
                     // 如果長跑日不在已選的訓練日中，顯示提示
                     if !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay) {
                         Text(NSLocalizedString("onboarding.long_run_day_must_be_training_day", comment: "Long run day must be training day")).foregroundColor(.red)
-                    } else if !viewModel.selectedWeekdays.contains(6) && !viewModel.showOverview {
+                    } else if !viewModel.selectedWeekdays.contains(6) {
                         Text(NSLocalizedString("onboarding.suggest_saturday_long_run", comment: "Suggest Saturday long run")).foregroundColor(.orange)
                     }
                 }              
@@ -252,77 +239,24 @@ struct TrainingDaysSetupView: View {
                 
                 // --- 按鈕區域 ---
                 Section {
-                    if viewModel.canShowPlanOverviewButton {
-                        Button(action: {
-                            Task {
-                                await viewModel.savePreferencesAndGetOverview()
-                            }
-                        }) {
-                            HStack {
-                                Spacer()
-                                if viewModel.isLoading && !viewModel.showOverview { // Loading for overview
-                                    ProgressView()
-                                } else {
-                                    Text(NSLocalizedString("onboarding.save_preferences_preview", comment: "Save Preferences Preview"))
-                                }
-                                Spacer()
-                            }
+                    Button(action: {
+                        Task {
+                            await viewModel.savePreferencesAndGetOverview()
                         }
-                        .disabled(viewModel.isLoading && !viewModel.showOverview)
-                    }
-                }
-
-                if viewModel.showOverview, let overview = viewModel.trainingPlanOverview {
-                    Section(header: Text("您的訓練計畫預覽").padding(.top, 10)) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("目標評估").font(.headline)
-                            Text(overview.targetEvaluate).font(.body).foregroundColor(.secondary)
-
-                            Text("訓練重點").font(.headline).padding(.top, 5)
-                            Text(overview.trainingHighlight).font(.body).foregroundColor(.secondary)
-                        }
-                        if viewModel.canGenerateFinalPlanButton {
-                            Button(action: {
-                                Task {
-                                    await viewModel.generateFinalPlanAndCompleteOnboarding()
-                                }
-                            }) {
-                                HStack(spacing: 12) {
-                                    Spacer()
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title2)
-                                    Text(NSLocalizedString("onboarding.complete_setup_view_schedule", comment: "Complete Setup View Schedule"))
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                    Spacer()
-                                }
-                                .padding(.vertical, 16)
-                                .background(Color.accentColor)
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
+                    }) {
+                        HStack {
+                            Spacer()
+                            if viewModel.isLoading {
+                                ProgressView()
+                            } else {
+                                Text(NSLocalizedString("onboarding.save_preferences_preview", comment: "Save Preferences Preview"))
                             }
-                            .disabled(viewModel.isLoading)
-                            .buttonStyle(PlainButtonStyle())
-                            .id("finalPlanButton")
-                            .padding(.top, 8)
+                            Spacer()
                         }
                     }
-                    .id("overviewSection")
+                    .disabled(viewModel.isLoading || !viewModel.canSavePreferences)
                 }
             } // Form End
-            .onAppear {
-                viewModel.updateButtonStates() // 初始檢查按鈕狀態
-            }
-            .onChange(of: viewModel.showOverview) { showOverview in
-                if showOverview {
-                    // 延遲一點點時間，確保 UI 已經渲染完成
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            proxy.scrollTo("finalPlanButton", anchor: .center)
-                        }
-                    }
-                }
-            }
             .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -333,36 +267,33 @@ struct TrainingDaysSetupView: View {
                 }
             }
         } // ScrollViewReader End
-        .fullScreenCover(isPresented: Binding(
-            get: { viewModel.isLoading && !viewModel.showOverview },
-            set: { _ in }
-        )) {
+        .fullScreenCover(isPresented: $viewModel.isLoading) {
             LoadingAnimationView(messages: [
                 NSLocalizedString("onboarding.evaluating_goal", comment: "Evaluating Goal"),
                 NSLocalizedString("onboarding.calculating_training_intensity", comment: "Calculating Training Intensity"),
                 NSLocalizedString("onboarding.generating_overview", comment: "Generating Overview")
             ], totalDuration: previewLoadingDuration)
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { viewModel.isLoading && viewModel.showOverview },
-            set: { _ in }
-        )) {
-            LoadingAnimationView(messages: [
-                NSLocalizedString("onboarding.analyzing_preferences", comment: "Analyzing Preferences"),
-                NSLocalizedString("onboarding.calculating_intensity", comment: "Calculating Intensity"),
-                NSLocalizedString("onboarding.almost_ready", comment: "Almost Ready")
-            ], totalDuration: loadingDuration)
-        }
         .background(
-            // 導航到訓練總覽頁面
-            NavigationLink(
-                destination: TrainingOverviewView()
-                    .navigationBarBackButtonHidden(true),
-                isActive: $viewModel.navigateToTrainingOverview
-            ) {
-                EmptyView()
+            Group {
+                // 導航到預覽頁面
+                NavigationLink(
+                    destination: TrainingOverviewView(mode: .preview, trainingOverview: viewModel.trainingPlanOverview)
+                        .navigationBarBackButtonHidden(true),
+                    isActive: $viewModel.navigateToPreview
+                ) {
+                    EmptyView()
+                }
+
+                // 導航到最終訓練總覽頁面
+                NavigationLink(
+                    destination: TrainingOverviewView(mode: .final)
+                        .navigationBarBackButtonHidden(true),
+                    isActive: $viewModel.navigateToTrainingOverview
+                ) {
+                    EmptyView()
+                }
             }
-            .hidden()
         )
     }
     

@@ -742,6 +742,7 @@
 "onboarding.training_focus" = "トレーニング重点";
 "onboarding.training_highlight" = "トレーニングハイライト";
 "onboarding.generate_first_week" = "第1週のプランを生成";
+"onboarding.confirm_generate_first_week" = "確認して第1週のプランを生成";
 "onboarding.week_range" = "第%d-%d週";
 "onboarding.week_single" = "第%d週";
 

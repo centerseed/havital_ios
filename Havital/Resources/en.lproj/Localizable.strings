@@ -742,6 +742,7 @@
 "onboarding.training_focus" = "Training Focus";
 "onboarding.training_highlight" = "Training Highlight";
 "onboarding.generate_first_week" = "Generate First Week Plan";
+"onboarding.confirm_generate_first_week" = "Confirm and Generate First Week Plan";
 "onboarding.week_range" = "Week %d-%d";
 "onboarding.week_single" = "Week %d";
 
