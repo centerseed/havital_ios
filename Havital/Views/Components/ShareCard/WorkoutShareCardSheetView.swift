@@ -38,6 +38,10 @@ struct WorkoutShareCardSheetView: View {
     @State private var editingOverlayText: String = ""
     @State private var editingOverlayId: UUID?
 
+    // 引導畫面
+    @State private var showTutorial = false
+    private let tutorialShownKey = "ShareCardTutorialShown"
+
     var body: some View {
         contentWithAlerts
     }
@@ -122,11 +126,23 @@ struct WorkoutShareCardSheetView: View {
     // MARK: - Main Content
 
     private var mainContentView: some View {
-        VStack(spacing: 0) {
-            topNavigationBar
-            previewArea
-            bottomToolbar
+        ZStack {
+            VStack(spacing: 0) {
+                topNavigationBar
+                previewArea
+                bottomToolbar
+            }
+
+            // 引導畫面
+            if showTutorial {
+                ShareCardTutorialOverlay(onDismiss: {
+                    showTutorial = false
+                    UserDefaults.standard.set(true, forKey: tutorialShownKey)
+                })
+                .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: showTutorial)
     }
 
     // MARK: - Alert Content
@@ -196,6 +212,17 @@ struct WorkoutShareCardSheetView: View {
 
             // 自動創建標題和鼓勵語的 TextOverlay（如果還沒有的話）
             await createInitialTextOverlays()
+
+            // 檢查是否需要顯示引導
+            await MainActor.run {
+                let hasShownTutorial = UserDefaults.standard.bool(forKey: tutorialShownKey)
+                if !hasShownTutorial {
+                    // 延遲顯示，讓畫面先完成初始化
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showTutorial = true
+                    }
+                }
+            }
         }
     }
 
@@ -214,13 +241,24 @@ struct WorkoutShareCardSheetView: View {
 
     private var topNavigationBar: some View {
         HStack {
-            Button(action: {
-                dismiss()
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
+            HStack(spacing: 8) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.primary)
+                        .frame(width: 44, height: 44)
+                }
+
+                Button(action: {
+                    showTutorial = true
+                }) {
+                    Image(systemName: "questionmark.circle")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.blue)
+                        .frame(width: 44, height: 44)
+                }
             }
 
             Spacer()
