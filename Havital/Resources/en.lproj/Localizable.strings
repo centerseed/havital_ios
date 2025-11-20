@@ -726,8 +726,8 @@
 "onboarding.goal_type_description" = "Based on your running experience and goals, we'll create a suitable training plan for you";
 "onboarding.goal_type_specific_race" = "I have a specific race goal";
 "onboarding.goal_type_specific_race_desc" = "Set race date, distance, and target time";
-"onboarding.goal_type_beginner_5k" = "I'm a beginner, want to run 5km";
-"onboarding.goal_type_beginner_5k_desc" = "Start from zero, achieve 5km goal in 12 weeks";
+"onboarding.goal_type_beginner_5k" = "Complete your first 5K and experience the joy of running";
+"onboarding.goal_type_beginner_5k_desc" = "12-week training plan to help you reach the 5K goal";
 "onboarding.goal_type_nav_title" = "Training Goal";
 "onboarding.beginner_5k_goal" = "能跑 5 公里";
 

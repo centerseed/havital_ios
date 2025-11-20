@@ -82,11 +82,11 @@ struct GoalTypeSelectionView: View {
                     }
                     .padding(.horizontal)
 
-                    // 選項 2: 新手，想先能跑5km
+                    // 選項 2: 完成第一個五公里
                     GoalTypeCard(
                         icon: "figure.run",
-                        title: NSLocalizedString("onboarding.goal_type_beginner_5k", comment: "我是新手，想先能跑 5 公里"),
-                        description: NSLocalizedString("onboarding.goal_type_beginner_5k_desc", comment: "從零開始，12 週達到完成 5 公里的目標"),
+                        title: NSLocalizedString("onboarding.goal_type_beginner_5k", comment: "完成第一個五公里，感受跑步樂趣"),
+                        description: NSLocalizedString("onboarding.goal_type_beginner_5k_desc", comment: "12 週訓練計劃，帶你達成 5 公里目標"),
                         isSelected: viewModel.selectedGoalType == .beginner5k
                     ) {
                         viewModel.selectedGoalType = .beginner5k
