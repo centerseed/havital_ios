@@ -548,13 +548,17 @@ struct WorkoutShareCardSheetView: View {
                     } label: {
                         VStack(spacing: 6) {
                             Image(systemName: "rectangle.3.group")
-                                .font(.system(size: 24))
+                                .font(.system(size: 22))
                                 .foregroundColor(.primary)
+                                .frame(width: 24, height: 24)
                             Text("版型")
-                                .font(.caption)
+                                .font(.system(size: 11))
                                 .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .fixedSize()
                         }
-                        .frame(width: 60)
+                        .frame(width: 60, height: 60)
+                        .contentShape(Rectangle())
                     }
 
                     // 📐 尺寸選擇
@@ -574,13 +578,17 @@ struct WorkoutShareCardSheetView: View {
                     } label: {
                         VStack(spacing: 6) {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 24))
+                                .font(.system(size: 22))
                                 .foregroundColor(.primary)
+                                .frame(width: 24, height: 24)
                             Text("尺寸")
-                                .font(.caption)
+                                .font(.system(size: 11))
                                 .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .fixedSize()
                         }
-                        .frame(width: 60)
+                        .frame(width: 60, height: 60)
+                        .contentShape(Rectangle())
                     }
 
                     // Aa 添加文字
@@ -609,8 +617,8 @@ struct WorkoutShareCardSheetView: View {
                     }
                 }
                 .padding(.horizontal, 16)
+                .padding(.vertical, 10)
             }
-            .frame(height: 80)
             .background(Color(UIColor.systemBackground))
         }
     }
@@ -793,7 +801,7 @@ struct ToolbarButton: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                    .fixedSize()
+                    .minimumScaleFactor(0.7)
             }
             .frame(width: 60, height: 60)
             .contentShape(Rectangle())
