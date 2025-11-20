@@ -727,7 +727,7 @@
 "onboarding.goal_type_specific_race" = "具体的なレース目標があります";
 "onboarding.goal_type_specific_race_desc" = "レース日程、距離、目標時間を設定";
 "onboarding.goal_type_beginner_5k" = "最初の5キロを完走し、ランニングの楽しさを体験する";
-"onboarding.goal_type_beginner_5k_desc" = "12週間のトレーニングプランで5kmゴールを達成";
+"onboarding.goal_type_beginner_5k_desc" = "4週間のトレーニングプランで5kmゴールを達成";
 "onboarding.goal_type_nav_title" = "トレーニング目標";
 "onboarding.beginner_5k_goal" = "5km走れるようになる";
 

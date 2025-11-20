@@ -728,7 +728,7 @@
 "onboarding.goal_type_specific_race" = "我有具體賽事目標";
 "onboarding.goal_type_specific_race_desc" = "設定賽事日期、距離和目標時間";
 "onboarding.goal_type_beginner_5k" = "完成第一個五公里，感受跑步樂趣";
-"onboarding.goal_type_beginner_5k_desc" = "12 週訓練計劃，帶你達成 5 公里目標";
+"onboarding.goal_type_beginner_5k_desc" = "4 週訓練計劃，帶你達成 5 公里目標";
 "onboarding.goal_type_nav_title" = "訓練目標";
 "onboarding.beginner_5k_goal" = "能跑 5 公里";
 
