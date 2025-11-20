@@ -231,32 +231,49 @@ struct TrainingOverviewView: View {
 
             // 階段卡片
             ForEach(Array(overview.trainingStageDescription.enumerated()), id: \.offset) { index, stage in
-                VStack(spacing: 0) {
-                    // 階段卡片
-                    stageCard(stage, targetPace: viewModel.targetPace, stageIndex: index)
-
-                    // 時間軸連接線（除了最後一個階段）
-                    if index < overview.trainingStageDescription.count - 1 {
-                        timelineConnector(color: stageColor(for: index + 1))
-                    }
-                }
+                stageCard(
+                    stage,
+                    targetPace: viewModel.targetPace,
+                    stageIndex: index,
+                    isLast: index == overview.trainingStageDescription.count - 1,
+                    nextStageColor: index < overview.trainingStageDescription.count - 1 ? stageColor(for: index + 1) : nil
+                )
             }
         }
     }
 
     // MARK: - Stage Card
     @ViewBuilder
-    private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int) -> some View {
+    private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸圓點
-            Circle()
-                .fill(stageColor(for: stageIndex))
-                .frame(width: 20, height: 20)
-                .overlay(
-                    Circle()
-                        .stroke(Color.white, lineWidth: 3)
-                )
-                .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
+            // 左側時間軸（圓點 + 連接線）
+            VStack(spacing: 0) {
+                // 圓點
+                Circle()
+                    .fill(stageColor(for: stageIndex))
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                    )
+                    .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
+
+                // 連接線（如果不是最後一個階段）
+                if !isLast, let nextColor = nextStageColor {
+                    VStack(spacing: 2) {
+                        ForEach(0..<8) { _ in
+                            Rectangle()
+                                .fill(nextColor.opacity(0.6))
+                                .frame(width: 3, height: 6)
+                        }
+                        Image(systemName: "arrowtriangle.down.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(nextColor.opacity(0.6))
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .frame(width: 20)
 
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
@@ -345,28 +362,6 @@ struct TrainingOverviewView: View {
                 .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
         )
         .cornerRadius(12)
-    }
-
-    // MARK: - Timeline Connector
-    @ViewBuilder
-    private func timelineConnector(color: Color) -> some View {
-        HStack(spacing: 12) {
-            // 左側連接線（對齊圓點中心）
-            VStack(spacing: 2) {
-                ForEach(0..<8) { _ in
-                    Rectangle()
-                        .fill(color.opacity(0.6))
-                        .frame(width: 3, height: 6)
-                }
-                Image(systemName: "arrowtriangle.down.fill")
-                    .font(.system(size: 10))
-                    .foregroundColor(color.opacity(0.6))
-            }
-            .frame(width: 20)
-
-            Spacer()
-        }
-        .frame(height: 70)
     }
 
     // MARK: - Generate Button
