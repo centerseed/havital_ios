@@ -193,7 +193,67 @@ struct WorkoutShareCardSheetView: View {
                 workoutDetail: workoutDetail,
                 userPhoto: nil
             )
+
+            // 自動創建標題和鼓勵語的 TextOverlay（如果還沒有的話）
+            await createInitialTextOverlays()
         }
+    }
+
+    private func createInitialTextOverlays() async {
+        guard let cardData = viewModel.cardData else { return }
+
+        // 只有在第一次載入且沒有任何自訂文字時才自動創建
+        guard textOverlays.isEmpty else { return }
+
+        var overlays: [TextOverlay] = []
+
+        // 根據版型決定標題和鼓勵語的初始位置
+        let titlePosition: CGPoint
+        let encouragementPosition: CGPoint
+
+        switch selectedLayoutMode {
+        case .bottom:
+            titlePosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 200)
+            encouragementPosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 120)
+        case .top:
+            titlePosition = CGPoint(x: selectedSize.width / 2, y: 150)
+            encouragementPosition = CGPoint(x: selectedSize.width / 2, y: 280)
+        case .side:
+            titlePosition = CGPoint(x: selectedSize.width / 3, y: selectedSize.height / 2 - 100)
+            encouragementPosition = CGPoint(x: selectedSize.width / 3, y: selectedSize.height / 2 + 100)
+        case .auto:
+            titlePosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 200)
+            encouragementPosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 120)
+        }
+
+        // 創建標題 TextOverlay
+        if !cardData.achievementTitle.isEmpty {
+            let titleOverlay = TextOverlay(
+                text: cardData.achievementTitle,
+                position: titlePosition,
+                fontSize: 48,
+                fontWeight: .semibold,
+                textColor: .white
+            )
+            overlays.append(titleOverlay)
+        }
+
+        // 創建鼓勵語 TextOverlay
+        if !cardData.encouragementText.isEmpty {
+            let encouragementOverlay = TextOverlay(
+                text: cardData.encouragementText,
+                position: encouragementPosition,
+                fontSize: 42,
+                fontWeight: .regular,
+                textColor: .white.opacity(0.95)
+            )
+            overlays.append(encouragementOverlay)
+        }
+
+        textOverlays = overlays
+
+        // 更新分享圖片
+        await updateShareImage()
     }
 
     // MARK: - Top Navigation Bar
@@ -346,15 +406,15 @@ struct WorkoutShareCardSheetView: View {
                     }) {
                         HStack {
                             Text("已添加的文字 (\(textOverlays.count))")
-                                .font(.caption)
+                                .font(.body)
                                 .foregroundColor(.secondary)
                             Spacer()
                             Image(systemName: showTextOverlayList ? "chevron.down" : "chevron.up")
-                                .font(.caption)
+                                .font(.body)
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .background(Color(UIColor.secondarySystemBackground))
                     }
 
@@ -364,14 +424,14 @@ struct WorkoutShareCardSheetView: View {
                                 ForEach(textOverlays) { overlay in
                                     HStack(spacing: 8) {
                                         Text(overlay.text)
-                                            .font(.subheadline)
+                                            .font(.body)
                                             .lineLimit(1)
 
                                         Button(action: {
                                             editTextOverlay(overlay)
                                         }) {
                                             Image(systemName: "pencil")
-                                                .font(.system(size: 12))
+                                                .font(.system(size: 16))
                                                 .foregroundColor(.blue)
                                         }
 
@@ -379,12 +439,12 @@ struct WorkoutShareCardSheetView: View {
                                             deleteTextOverlay(overlay.id)
                                         }) {
                                             Image(systemName: "trash")
-                                                .font(.system(size: 12))
+                                                .font(.system(size: 16))
                                                 .foregroundColor(.red)
                                         }
                                     }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
                                     .background(Color.gray.opacity(0.1))
                                     .cornerRadius(8)
                                 }
@@ -491,40 +551,6 @@ struct WorkoutShareCardSheetView: View {
                             addNewTextOverlay()
                         }
                     )
-
-                    // 格式 (原本的編輯標題按鈕，改為新增文字的樣式)
-                    Menu {
-                        Button(action: {
-                            let currentData = viewModel.cardData
-                            editingTitle = customTitle ?? currentData?.workout.shareCardContent?.achievementTitle ?? ""
-                            showTitleEditor = true
-                        }) {
-                            HStack {
-                                Text(NSLocalizedString("share_card.edit_title", comment: ""))
-                                Image(systemName: "text.cursor")
-                            }
-                        }
-                        Button(action: {
-                            let currentData = viewModel.cardData
-                            editingEncouragement = customEncouragement ?? currentData?.workout.shareCardContent?.encouragementText ?? ""
-                            showEncouragementEditor = true
-                        }) {
-                            HStack {
-                                Text(NSLocalizedString("share_card.edit_ai_review", comment: ""))
-                                Image(systemName: "bubble.left")
-                            }
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 24))
-                                .foregroundColor(.primary)
-                            Text(NSLocalizedString("share_card.format", comment: ""))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(width: 60)
-                    }
 
                     // 重置圖片按鈕（僅在有照片且有變換時顯示）
                     if selectedPhoto != nil && (photoScale != 1.0 || photoOffset != .zero) {

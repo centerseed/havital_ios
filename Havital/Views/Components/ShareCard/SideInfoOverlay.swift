@@ -21,26 +21,6 @@ struct SideInfoOverlay: View {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
                     Spacer() // 上方留白，使內容垂直居中
-                    // 主標題區域（如果標題為空字串則不顯示）
-                    if !data.achievementTitle.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "figure.run")
-                                .font(.system(size: 42, weight: .bold))
-                                .foregroundColor(.white)
-
-                            Text(data.achievementTitle)
-                                .font(.system(size: 48, weight: .semibold))
-                                .foregroundColor(.white)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.7)
-                                .onTapGesture {
-                                    onEditTitle?()
-                                }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 42)
-                        .padding(.vertical, 20)
-                    }
 
                     // 核心數據區域（垂直排列）
                     VStack(alignment: .leading, spacing: 18) {
@@ -83,27 +63,6 @@ struct SideInfoOverlay: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
                     .padding(.vertical, 18)
-
-                    // AI 評語區域（如果簡評為空字串則不顯示）
-                    if !data.encouragementText.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "bubble.left.fill")
-                                .font(.system(size: 36))
-                                .foregroundColor(.white.opacity(0.9))
-
-                            Text(data.encouragementText)
-                                .font(.system(size: 42, weight: .regular))
-                                .foregroundColor(.white.opacity(0.95))
-                                .lineLimit(3)
-                                .minimumScaleFactor(0.8)
-                                .onTapGesture {
-                                    onEditEncouragement?()
-                                }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 42)
-                        .padding(.vertical, 20)
-                    }
 
                     Spacer() // 下方留白，使內容垂直居中
 
