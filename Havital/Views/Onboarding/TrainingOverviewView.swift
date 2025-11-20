@@ -15,6 +15,7 @@ class TrainingOverviewViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var isTargetEvaluateExpanded = false
+    @Published var isHighlightExpanded = false  // 計劃亮點收折狀態
     @Published var isGeneratingPlan = false
     @Published var navigateToMainApp = false
 
@@ -221,24 +222,21 @@ struct TrainingOverviewView: View {
             Text(NSLocalizedString("onboarding.training_timeline", comment: "Training Timeline"))
                 .font(.headline)
 
+            // Training Highlight 卡片（移到最上方）
+            if !overview.trainingHighlight.isEmpty {
+                highlightCard(overview.trainingHighlight)
+            }
+
             // 階段卡片
             ForEach(Array(overview.trainingStageDescription.enumerated()), id: \.offset) { index, stage in
                 VStack(spacing: 0) {
                     // 階段卡片
-                    stageCard(stage, targetPace: viewModel.targetPace)
+                    stageCard(stage, targetPace: viewModel.targetPace, stageIndex: index)
 
-                    // 虛線箭頭連接（除了最後一個階段）
+                    // 時間軸連接線（除了最後一個階段）
                     if index < overview.trainingStageDescription.count - 1 {
-                        dashedArrow
+                        timelineConnector(color: stageColor(for: index))
                     }
-                }
-            }
-
-            // Training Highlight 卡片
-            if !overview.trainingHighlight.isEmpty {
-                VStack(spacing: 0) {
-                    dashedArrow
-                    highlightCard(overview.trainingHighlight)
                 }
             }
         }
@@ -246,51 +244,67 @@ struct TrainingOverviewView: View {
 
     // MARK: - Stage Card
     @ViewBuilder
-    private func stageCard(_ stage: TrainingStage, targetPace: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 階段名稱 + 週數範圍（同一行）
-            HStack {
-                Text(stage.stageName)
-                    .font(.headline)
-                Spacer()
-                Text(weekRangeText(stage))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+    private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            // 左側時間軸圓點
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(stageColor(for: stageIndex))
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                    )
+                    .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
             }
+            .frame(width: 20)
 
-            // Target Pace
-            HStack {
-                Image(systemName: "speedometer")
-                    .foregroundColor(.accentColor)
-                    .font(.caption)
-                Text(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"))
-                    .font(.subheadline)
-                Spacer()
-                Text("\(targetPace) /km")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-
-            // Training Focus
-            if !stage.trainingFocus.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "target")
-                            .foregroundColor(.accentColor)
-                            .font(.caption)
-                        Text(NSLocalizedString("onboarding.training_focus", comment: "Training Focus"))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    Text(stage.trainingFocus)
-                        .font(.caption)
+            // 右側內容卡片
+            VStack(alignment: .leading, spacing: 8) {
+                // 階段名稱 + 週數範圍（同一行）
+                HStack {
+                    Text(stage.stageName)
+                        .font(.headline)
+                    Spacer()
+                    Text(weekRangeText(stage))
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
+
+                // Target Pace
+                HStack {
+                    Image(systemName: "speedometer")
+                        .foregroundColor(stageColor(for: stageIndex))
+                        .font(.caption)
+                    Text(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"))
+                        .font(.subheadline)
+                    Spacer()
+                    Text("\(targetPace) /km")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                // Training Focus
+                if !stage.trainingFocus.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: "target")
+                                .foregroundColor(stageColor(for: stageIndex))
+                                .font(.caption)
+                            Text(NSLocalizedString("onboarding.training_focus", comment: "Training Focus"))
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        Text(stage.trainingFocus)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
+            .padding()
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(12)
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
     }
 
     // MARK: - Highlight Card
@@ -302,35 +316,59 @@ struct TrainingOverviewView: View {
                     .foregroundColor(.yellow)
                 Text(NSLocalizedString("onboarding.training_highlight", comment: "Training Highlight"))
                     .font(.headline)
+                Spacer()
+                Button(action: {
+                    withAnimation {
+                        viewModel.isHighlightExpanded.toggle()
+                    }
+                }) {
+                    Image(systemName: viewModel.isHighlightExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.secondary)
+                }
             }
 
             Text(highlight)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .lineLimit(viewModel.isHighlightExpanded ? nil : 2)
+                .animation(.easeInOut, value: viewModel.isHighlightExpanded)
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.yellow.opacity(0.1), Color.orange.opacity(0.05)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+        )
         .cornerRadius(12)
     }
 
-    // MARK: - Dashed Arrow
+    // MARK: - Timeline Connector
     @ViewBuilder
-    private var dashedArrow: some View {
-        HStack {
-            Spacer()
-            VStack(spacing: 4) {
-                ForEach(0..<3) { _ in
+    private func timelineConnector(color: Color) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            // 左側連接線（對齊圓點中心）
+            VStack(spacing: 2) {
+                ForEach(0..<5) { _ in
                     Rectangle()
-                        .fill(Color.secondary.opacity(0.5))
-                        .frame(width: 2, height: 8)
+                        .fill(color.opacity(0.6))
+                        .frame(width: 3, height: 6)
                 }
                 Image(systemName: "arrowtriangle.down.fill")
-                    .font(.caption)
-                    .foregroundColor(.secondary.opacity(0.5))
+                    .font(.system(size: 10))
+                    .foregroundColor(color.opacity(0.6))
             }
+            .frame(width: 20)
+
             Spacer()
         }
-        .frame(height: 30)
+        .frame(height: 40)
+        .padding(.leading, 0)
     }
 
     // MARK: - Generate Button
@@ -380,6 +418,18 @@ struct TrainingOverviewView: View {
         } else {
             return String(format: NSLocalizedString("onboarding.week_single", comment: "Week %d"), stage.weekStart)
         }
+    }
+
+    /// 根據階段索引返回對應的顏色
+    private func stageColor(for index: Int) -> Color {
+        let colors: [Color] = [
+            Color(red: 0.2, green: 0.7, blue: 0.9),   // 淺藍色 - 第一階段
+            Color(red: 0.4, green: 0.8, blue: 0.4),   // 綠色 - 第二階段
+            Color(red: 1.0, green: 0.6, blue: 0.2),   // 橘色 - 第三階段
+            Color(red: 0.9, green: 0.3, blue: 0.5),   // 粉紅色 - 第四階段
+            Color(red: 0.6, green: 0.4, blue: 0.9)    // 紫色 - 第五階段
+        ]
+        return colors[index % colors.count]
     }
 }
 
