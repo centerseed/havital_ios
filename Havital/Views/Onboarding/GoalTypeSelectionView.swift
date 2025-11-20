@@ -21,8 +21,8 @@ class GoalTypeSelectionViewModel: ObservableObject {
         error = nil
 
         do {
-            // 創建一個 12 週的 5km 訓練目標
-            let raceDate = Calendar.current.date(byAdding: .weekOfYear, value: 12, to: Date()) ?? Date()
+            // 創建一個 4 週的 5km 訓練目標（約一個月）
+            let raceDate = Calendar.current.date(byAdding: .weekOfYear, value: 4, to: Date()) ?? Date()
             let target = Target(
                 id: UUID().uuidString,
                 type: "race_run",
@@ -32,7 +32,7 @@ class GoalTypeSelectionViewModel: ObservableObject {
                 targetPace: "6:00", // 配速 6:00/km
                 raceDate: Int(raceDate.timeIntervalSince1970),
                 isMainRace: true,
-                trainingWeeks: 12
+                trainingWeeks: 4  // 改為 4 週
             )
 
             try await UserService.shared.createTarget(target)
