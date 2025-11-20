@@ -252,7 +252,7 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸圓點
+            // 左側時間軸圓點（包含從上方延伸的連接線）
             VStack(spacing: 0) {
                 Circle()
                     .fill(stageColor(for: stageIndex))
@@ -264,6 +264,7 @@ struct TrainingOverviewView: View {
                     .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
             }
             .frame(width: 20)
+            .padding(.top, 8)
 
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
@@ -357,8 +358,8 @@ struct TrainingOverviewView: View {
     // MARK: - Long Timeline Connector (從訓練亮點到第一個階段)
     @ViewBuilder
     private func longTimelineConnector(color: Color) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            // 左側長箭頭
+        HStack(spacing: 0) {
+            // 左側長箭頭（對齊圓點位置）
             VStack(spacing: 2) {
                 ForEach(0..<12) { _ in
                     Rectangle()
@@ -370,17 +371,17 @@ struct TrainingOverviewView: View {
                     .foregroundColor(color.opacity(0.6))
             }
             .frame(width: 20)
+            .padding(.leading, 0)
 
             Spacer()
         }
         .frame(height: 100)
-        .padding(.leading, 0)
     }
 
     // MARK: - Timeline Connector
     @ViewBuilder
     private func timelineConnector(color: Color) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(spacing: 0) {
             // 左側連接線（對齊圓點中心）
             VStack(spacing: 2) {
                 ForEach(0..<5) { _ in
@@ -393,11 +394,11 @@ struct TrainingOverviewView: View {
                     .foregroundColor(color.opacity(0.6))
             }
             .frame(width: 20)
+            .padding(.leading, 10)  // 對齊圓點中心（20寬度的一半）
 
             Spacer()
         }
         .frame(height: 40)
-        .padding(.leading, 0)
     }
 
     // MARK: - Generate Button
