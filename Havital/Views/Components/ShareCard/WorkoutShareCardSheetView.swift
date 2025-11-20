@@ -216,16 +216,16 @@ struct WorkoutShareCardSheetView: View {
         switch selectedLayoutMode {
         case .bottom, .auto:
             // 底部版型：標題和鼓勵語在底部偏上區域（留空間給數據和 badge）
-            titlePosition = CGPoint(x: width * 0.26, y: height * 0.76)
-            encouragementPosition = CGPoint(x: width * 0.26, y: height * 0.84)
+            titlePosition = CGPoint(x: width * 0.30, y: height * 0.72)
+            encouragementPosition = CGPoint(x: width * 0.30, y: height * 0.80)
         case .top:
-            // 頂部版型：標題和鼓勵語在頂部區域（留空間給數據）
-            titlePosition = CGPoint(x: width * 0.26, y: height * 0.08)
-            encouragementPosition = CGPoint(x: width * 0.26, y: height * 0.16)
+            // 頂部版型：標題和鼓勵語在頂部區域（留空間給數據，增加上邊距避免切邊）
+            titlePosition = CGPoint(x: width * 0.30, y: height * 0.12)
+            encouragementPosition = CGPoint(x: width * 0.30, y: height * 0.20)
         case .side:
-            // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域）
-            titlePosition = CGPoint(x: width * 0.26, y: height * 0.35)
-            encouragementPosition = CGPoint(x: width * 0.26, y: height * 0.55)
+            // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域，增加左邊距）
+            titlePosition = CGPoint(x: width * 0.32, y: height * 0.35)
+            encouragementPosition = CGPoint(x: width * 0.32, y: height * 0.55)
         }
 
         // 創建標題 TextOverlay（帶 icon）
@@ -275,21 +275,21 @@ struct WorkoutShareCardSheetView: View {
                 // 這是標題
                 switch layout {
                 case .bottom, .auto:
-                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.76)
+                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.72)
                 case .top:
-                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.08)
+                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.12)
                 case .side:
-                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.35)
+                    textOverlays[index].position = CGPoint(x: width * 0.32, y: height * 0.35)
                 }
             } else if overlay.iconName == "bubble.left.fill" {
                 // 這是鼓勵語
                 switch layout {
                 case .bottom, .auto:
-                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.84)
+                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.80)
                 case .top:
-                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.16)
+                    textOverlays[index].position = CGPoint(x: width * 0.30, y: height * 0.20)
                 case .side:
-                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.55)
+                    textOverlays[index].position = CGPoint(x: width * 0.32, y: height * 0.55)
                 }
             }
             // 自訂文字（沒有 icon 或其他 icon）保持原位
@@ -501,7 +501,7 @@ struct WorkoutShareCardSheetView: View {
 
             // 工具列
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
+                HStack(alignment: .center, spacing: 20) {
                     // 📷 選擇照片
                     ToolbarButton(
                         icon: "photo",
@@ -546,19 +546,7 @@ struct WorkoutShareCardSheetView: View {
                             }
                         }
                     } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: "rectangle.3.group")
-                                .font(.system(size: 22))
-                                .foregroundColor(.primary)
-                                .frame(width: 24, height: 24)
-                            Text("版型")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
-                        .frame(width: 60, height: 60)
-                        .contentShape(Rectangle())
+                        ToolbarButtonLabel(icon: "rectangle.3.group", label: "版型")
                     }
 
                     // 📐 尺寸選擇
@@ -576,19 +564,7 @@ struct WorkoutShareCardSheetView: View {
                             }
                         }
                     } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 22))
-                                .foregroundColor(.primary)
-                                .frame(width: 24, height: 24)
-                            Text("尺寸")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
-                        .frame(width: 60, height: 60)
-                        .contentShape(Rectangle())
+                        ToolbarButtonLabel(icon: "arrow.up.left.and.arrow.down.right", label: "尺寸")
                     }
 
                     // Aa 添加文字
@@ -616,6 +592,7 @@ struct WorkoutShareCardSheetView: View {
                         )
                     }
                 }
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
             }
@@ -785,6 +762,30 @@ struct WorkoutShareCardSheetView: View {
 
 // MARK: - Toolbar Button Component
 
+// MARK: - Toolbar Button Components
+
+/// 統一的工具列按鈕標籤視圖（供 Menu 和 Button 共用）
+struct ToolbarButtonLabel: View {
+    let icon: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .foregroundColor(.primary)
+                .frame(width: 24, height: 24)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(width: 60, height: 60)
+        .contentShape(Rectangle())
+    }
+}
+
 struct ToolbarButton: View {
     let icon: String
     let label: String
@@ -792,19 +793,7 @@ struct ToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 22))
-                    .foregroundColor(.primary)
-                    .frame(width: 24, height: 24)
-                Text(label)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .frame(width: 60, height: 60)
-            .contentShape(Rectangle())
+            ToolbarButtonLabel(icon: icon, label: label)
         }
         .buttonStyle(.plain)
     }
