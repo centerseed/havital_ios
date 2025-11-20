@@ -353,7 +353,7 @@ struct TrainingOverviewView: View {
         HStack(spacing: 12) {
             // 左側連接線（對齊圓點中心）
             VStack(spacing: 2) {
-                ForEach(0..<5) { _ in
+                ForEach(0..<8) { _ in
                     Rectangle()
                         .fill(color.opacity(0.6))
                         .frame(width: 3, height: 6)
@@ -366,7 +366,7 @@ struct TrainingOverviewView: View {
 
             Spacer()
         }
-        .frame(height: 40)
+        .frame(height: 70)
     }
 
     // MARK: - Generate Button
