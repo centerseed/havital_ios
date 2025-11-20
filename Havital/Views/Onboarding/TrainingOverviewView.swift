@@ -275,8 +275,8 @@ struct TrainingOverviewView: View {
             }
             .frame(width: 20)
 
-            // 右側內容卡片
-            VStack(alignment: .leading, spacing: 8) {
+            // 右側內容（無背景卡片）
+            VStack(alignment: .leading, spacing: 4) {
                 // 階段名稱 + 週數範圍（同一行）
                 HStack {
                     Text(stage.stageName)
@@ -287,40 +287,21 @@ struct TrainingOverviewView: View {
                         .foregroundColor(.secondary)
                 }
 
-                // Target Pace
-                HStack {
-                    Image(systemName: "speedometer")
-                        .foregroundColor(stageColor(for: stageIndex))
+                // Target Pace（彩色加粗）
+                Text("\(targetPace) /km")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(stageColor(for: stageIndex))
+
+                // Training Focus（小字灰色）
+                if !stage.trainingFocus.isEmpty {
+                    Text(stage.trainingFocus)
                         .font(.caption)
-                    Text(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"))
-                        .font(.subheadline)
-                    Spacer()
-                    Text("\(targetPace) /km")
-                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
-
-                // Training Focus
-                if !stage.trainingFocus.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "target")
-                                .foregroundColor(stageColor(for: stageIndex))
-                                .font(.caption)
-                            Text(NSLocalizedString("onboarding.training_focus", comment: "Training Focus"))
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                        Text(stage.trainingFocus)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
             }
-            .padding()
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(12)
         }
+        .padding(.bottom, isLast ? 0 : 8)
     }
 
     // MARK: - Highlight Card
