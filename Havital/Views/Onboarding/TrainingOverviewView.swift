@@ -226,11 +226,7 @@ struct TrainingOverviewView: View {
             // Training Highlight 卡片（移到最上方）
             if !overview.trainingHighlight.isEmpty {
                 highlightCard(overview.trainingHighlight)
-
-                // 從訓練亮點到第一個階段的長箭頭
-                if !overview.trainingStageDescription.isEmpty {
-                    longTimelineConnector(color: stageColor(for: 0))
-                }
+                    .padding(.bottom, 16)
             }
 
             // 階段卡片
@@ -241,7 +237,7 @@ struct TrainingOverviewView: View {
 
                     // 時間軸連接線（除了最後一個階段）
                     if index < overview.trainingStageDescription.count - 1 {
-                        timelineConnector(color: stageColor(for: index))
+                        timelineConnector(color: stageColor(for: index + 1))
                     }
                 }
             }
@@ -252,19 +248,15 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸圓點（包含從上方延伸的連接線）
-            VStack(spacing: 0) {
-                Circle()
-                    .fill(stageColor(for: stageIndex))
-                    .frame(width: 20, height: 20)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white, lineWidth: 3)
-                    )
-                    .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
-            }
-            .frame(width: 20)
-            .padding(.top, 8)
+            // 左側時間軸圓點
+            Circle()
+                .fill(stageColor(for: stageIndex))
+                .frame(width: 20, height: 20)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: 3)
+                )
+                .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
 
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
@@ -355,33 +347,10 @@ struct TrainingOverviewView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Long Timeline Connector (從訓練亮點到第一個階段)
-    @ViewBuilder
-    private func longTimelineConnector(color: Color) -> some View {
-        HStack(spacing: 0) {
-            // 左側長箭頭（對齊圓點位置）
-            VStack(spacing: 2) {
-                ForEach(0..<12) { _ in
-                    Rectangle()
-                        .fill(color.opacity(0.6))
-                        .frame(width: 3, height: 6)
-                }
-                Image(systemName: "arrowtriangle.down.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(color.opacity(0.6))
-            }
-            .frame(width: 20)
-            .padding(.leading, 10)  // 對齊圓點中心（20寬度的一半）
-
-            Spacer()
-        }
-        .frame(height: 100)
-    }
-
     // MARK: - Timeline Connector
     @ViewBuilder
     private func timelineConnector(color: Color) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 12) {
             // 左側連接線（對齊圓點中心）
             VStack(spacing: 2) {
                 ForEach(0..<5) { _ in
@@ -394,7 +363,6 @@ struct TrainingOverviewView: View {
                     .foregroundColor(color.opacity(0.6))
             }
             .frame(width: 20)
-            .padding(.leading, 10)  // 對齊圓點中心（20寬度的一半）
 
             Spacer()
         }
