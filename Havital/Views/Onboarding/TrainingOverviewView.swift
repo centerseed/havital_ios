@@ -218,13 +218,19 @@ struct TrainingOverviewView: View {
     // MARK: - Timeline Section
     @ViewBuilder
     private func timelineSection(_ overview: TrainingPlanOverview) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(NSLocalizedString("onboarding.training_timeline", comment: "Training Timeline"))
                 .font(.headline)
+                .padding(.bottom, 16)
 
             // Training Highlight 卡片（移到最上方）
             if !overview.trainingHighlight.isEmpty {
                 highlightCard(overview.trainingHighlight)
+
+                // 從訓練亮點到第一個階段的長箭頭
+                if !overview.trainingStageDescription.isEmpty {
+                    longTimelineConnector(color: stageColor(for: 0))
+                }
             }
 
             // 階段卡片
@@ -346,6 +352,29 @@ struct TrainingOverviewView: View {
                 .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
         )
         .cornerRadius(12)
+    }
+
+    // MARK: - Long Timeline Connector (從訓練亮點到第一個階段)
+    @ViewBuilder
+    private func longTimelineConnector(color: Color) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            // 左側長箭頭
+            VStack(spacing: 2) {
+                ForEach(0..<12) { _ in
+                    Rectangle()
+                        .fill(color.opacity(0.6))
+                        .frame(width: 3, height: 6)
+                }
+                Image(systemName: "arrowtriangle.down.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(color.opacity(0.6))
+            }
+            .frame(width: 20)
+
+            Spacer()
+        }
+        .frame(height: 100)
+        .padding(.leading, 0)
     }
 
     // MARK: - Timeline Connector
