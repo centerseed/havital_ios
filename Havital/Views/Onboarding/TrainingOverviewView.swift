@@ -445,33 +445,38 @@ struct TrainingOverviewView_Previews: PreviewProvider {
     static var mockTrainingOverview: TrainingPlanOverview {
         TrainingPlanOverview(
             id: "mock_overview_123",
-            targetId: "mock_target_456",
-            totalWeeks: 12,
-            currentWeek: 1,
+            mainRaceId: "mock_race_456",
             targetEvaluate: "根據您目前的跑步經驗和設定的目標，這是一個具有挑戰性但可達成的目標。建議在訓練過程中注意身體狀況，適度調整訓練強度。如果感到過度疲勞，請適當休息，避免受傷。保持規律的訓練和充足的恢復時間，將有助於您逐步提升跑步能力，最終達成目標。",
+            totalWeeks: 12,
             trainingHighlight: "本計畫將直接進入強化期，著重於提升您的速度耐力與比賽配速適應能力。透過間歇跑、節奏跑、速度耐力提升等多元化的訓練方式，循序漸進地增強您的心肺功能與肌肉耐力。在訓練後期，我們會安排充分的減量與恢復期，讓您的身體在比賽日達到最佳狀態。",
+            trainingPlanName: "半程馬拉松訓練計劃",
             trainingStageDescription: [
                 TrainingStage(
                     stageName: "速度與耐力強化",
+                    stageId: "stage_1",
+                    stageDescription: "建立跑步基礎，提升心肺功能",
+                    trainingFocus: "間歇跑、節奏跑、速度耐力提升",
                     weekStart: 1,
-                    weekEnd: 4,
-                    trainingFocus: "間歇跑、節奏跑、速度耐力提升"
+                    weekEnd: 4
                 ),
                 TrainingStage(
                     stageName: "比賽配速適應",
+                    stageId: "stage_2",
+                    stageDescription: "熟悉目標配速，建立比賽節奏感",
+                    trainingFocus: "目標配速跑、長間歇、比賽策略模擬",
                     weekStart: 5,
-                    weekEnd: 8,
-                    trainingFocus: "目標配速跑、長間歇、比賽策略模擬"
+                    weekEnd: 8
                 ),
                 TrainingStage(
                     stageName: "賽前減量與恢復",
+                    stageId: "stage_3",
+                    stageDescription: "降低訓練量，讓身體充分恢復",
+                    trainingFocus: "輕量跑、短距離配速刺激、充分休息",
                     weekStart: 9,
-                    weekEnd: 12,
-                    trainingFocus: "輕量跑、短距離配速刺激、充分休息"
+                    weekEnd: 12
                 )
             ],
-            createdAt: Int(Date().timeIntervalSince1970),
-            updatedAt: Int(Date().timeIntervalSince1970)
+            createdAt: "2025-01-15T10:30:00Z"
         )
     }
 }
