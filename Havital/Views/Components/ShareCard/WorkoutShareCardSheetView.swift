@@ -240,8 +240,10 @@ struct WorkoutShareCardSheetView: View {
     // MARK: - Top Navigation Bar
 
     private var topNavigationBar: some View {
-        HStack {
-            HStack(spacing: 8) {
+        ZStack {
+            // 背景層：左右按鈕
+            HStack {
+                // 左側：關閉按鈕
                 Button(action: {
                     dismiss()
                 }) {
@@ -251,39 +253,41 @@ struct WorkoutShareCardSheetView: View {
                         .frame(width: 44, height: 44)
                 }
 
-                Button(action: {
-                    showTutorial = true
-                }) {
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.blue)
-                        .frame(width: 44, height: 44)
+                Spacer()
+
+                // 右側：問號按鈕 + 分享按鈕
+                HStack(spacing: 8) {
+                    Button(action: {
+                        showTutorial = true
+                    }) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 44, height: 44)
+                    }
+
+                    if let shareImage = shareImage {
+                        ShareLink(item: Image(uiImage: shareImage), preview: SharePreview("分享卡", image: Image(uiImage: shareImage))) {
+                            HStack(spacing: 4) {
+                                Text("分享")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 14))
+                            }
+                            .foregroundColor(.blue)
+                            .frame(height: 44)
+                        }
+                    } else {
+                        Color.clear.frame(width: 70, height: 44)
+                    }
                 }
             }
+            .padding(.horizontal)
 
-            Spacer()
-
+            // 前景層：標題（完全居中）
             Text("生成分享卡")
                 .font(.headline)
-
-            Spacer()
-
-            if let shareImage = shareImage {
-                ShareLink(item: Image(uiImage: shareImage), preview: SharePreview("分享卡", image: Image(uiImage: shareImage))) {
-                    HStack(spacing: 4) {
-                        Text("分享")
-                            .font(.system(size: 16, weight: .semibold))
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14))
-                    }
-                    .foregroundColor(.blue)
-                    .frame(width: 70, height: 44)
-                }
-            } else {
-                Color.clear.frame(width: 70, height: 44)
-            }
         }
-        .padding(.horizontal)
         .frame(height: 56)
         .background(Color(UIColor.systemBackground))
         .overlay(
