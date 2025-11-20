@@ -207,23 +207,25 @@ struct WorkoutShareCardSheetView: View {
 
         var overlays: [TextOverlay] = []
 
-        // 根據版型決定標題和鼓勵語的初始位置
+        // 根據版型決定標題和鼓勵語的初始位置（使用比例計算，避免超出畫面）
         let titlePosition: CGPoint
         let encouragementPosition: CGPoint
+        let width = selectedSize.width
+        let height = selectedSize.height
 
         switch selectedLayoutMode {
         case .bottom, .auto:
             // 底部版型：標題和鼓勵語在底部偏上區域（留空間給數據和 badge）
-            titlePosition = CGPoint(x: 280, y: selectedSize.height - 340)
-            encouragementPosition = CGPoint(x: 280, y: selectedSize.height - 240)
+            titlePosition = CGPoint(x: width * 0.26, y: height * 0.76)
+            encouragementPosition = CGPoint(x: width * 0.26, y: height * 0.84)
         case .top:
             // 頂部版型：標題和鼓勵語在頂部區域（留空間給數據）
-            titlePosition = CGPoint(x: 280, y: 110)
-            encouragementPosition = CGPoint(x: 280, y: 240)
+            titlePosition = CGPoint(x: width * 0.26, y: height * 0.08)
+            encouragementPosition = CGPoint(x: width * 0.26, y: height * 0.16)
         case .side:
             // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域）
-            titlePosition = CGPoint(x: 280, y: selectedSize.height / 2 - 250)
-            encouragementPosition = CGPoint(x: 280, y: selectedSize.height / 2 + 80)
+            titlePosition = CGPoint(x: width * 0.26, y: height * 0.35)
+            encouragementPosition = CGPoint(x: width * 0.26, y: height * 0.55)
         }
 
         // 創建標題 TextOverlay（帶 icon）
@@ -258,6 +260,40 @@ struct WorkoutShareCardSheetView: View {
 
         // 更新分享圖片
         await updateShareImage()
+    }
+
+    private func updateTextOverlaysForLayout(_ layout: ShareCardLayoutMode) {
+        // 當版型改變時，只更新標題和鼓勵語的位置（保留自訂文字）
+        let width = selectedSize.width
+        let height = selectedSize.height
+
+        for index in textOverlays.indices {
+            let overlay = textOverlays[index]
+
+            // 判斷是標題還是鼓勵語（根據 icon）
+            if overlay.iconName == "figure.run" {
+                // 這是標題
+                switch layout {
+                case .bottom, .auto:
+                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.76)
+                case .top:
+                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.08)
+                case .side:
+                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.35)
+                }
+            } else if overlay.iconName == "bubble.left.fill" {
+                // 這是鼓勵語
+                switch layout {
+                case .bottom, .auto:
+                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.84)
+                case .top:
+                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.16)
+                case .side:
+                    textOverlays[index].position = CGPoint(x: width * 0.26, y: height * 0.55)
+                }
+            }
+            // 自訂文字（沒有 icon 或其他 icon）保持原位
+        }
     }
 
     // MARK: - Top Navigation Bar
@@ -660,8 +696,13 @@ struct WorkoutShareCardSheetView: View {
 
     private func changeLayout(_ layout: ShareCardLayoutMode) {
         selectedLayoutMode = layout
+
+        // 更新標題和鼓勵語的位置以適應新版型
+        updateTextOverlaysForLayout(layout)
+
         Task {
             await viewModel.regenerateWithLayout(layout)
+            await updateShareImage()
         }
     }
 
@@ -743,19 +784,21 @@ struct ToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(.system(size: 22))
                     .foregroundColor(.primary)
-                    .frame(height: 24)
+                    .frame(width: 24, height: 24)
                 Text(label)
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .fixedSize()
             }
             .frame(width: 60, height: 60)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 
