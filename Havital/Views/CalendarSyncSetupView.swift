@@ -4,11 +4,20 @@ struct CalendarSyncSetupView: View {
     @EnvironmentObject var calendarManager: CalendarManager
     @Binding var isPresented: Bool
     let onComplete: (CalendarManager.SyncPreference) -> Void
-    
+
     @State private var selectedPreference: CalendarManager.SyncPreference = .allDay
     @State private var isLoading = false
     @State private var error: String?
-    
+
+    // ✅ 獲取用戶設定的時區
+    private var userTimeZone: TimeZone {
+        if let timezoneId = UserPreferenceManager.shared.timezonePreference,
+           let timezone = TimeZone(identifier: timezoneId) {
+            return timezone
+        }
+        return TimeZone.current
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -42,7 +51,7 @@ struct CalendarSyncSetupView: View {
                                              displayedComponents: .hourAndMinute)
                                         .datePickerStyle(.wheel)
                                         .environment(\.locale, Locale(identifier: "zh_TW"))
-                                        .environment(\.timeZone, TimeZone.current)
+                                        .environment(\.timeZone, userTimeZone)  // ✅ 使用用戶設定的時區
                                         .onChange(of: calendarManager.preferredStartTime) { newValue in
                                             let calendar = Calendar.current
                                             let components = calendar.dateComponents([.hour, .minute], from: newValue)
@@ -67,7 +76,7 @@ struct CalendarSyncSetupView: View {
                                              displayedComponents: .hourAndMinute)
                                         .datePickerStyle(.wheel)
                                         .environment(\.locale, Locale(identifier: "zh_TW"))
-                                        .environment(\.timeZone, TimeZone.current)
+                                        .environment(\.timeZone, userTimeZone)  // ✅ 使用用戶設定的時區
                                         .onChange(of: calendarManager.preferredEndTime) { newValue in
                                             let calendar = Calendar.current
                                             let components = calendar.dateComponents([.hour, .minute], from: newValue)
@@ -102,11 +111,11 @@ struct CalendarSyncSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(L10n.Common.cancel.localized) {
                         isPresented = false
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.CalendarSyncSetup.startSync.localized) {
                         startSync()
@@ -114,8 +123,8 @@ struct CalendarSyncSetupView: View {
                     .disabled(isLoading)
                 }
             }
-            .alert("錯誤", isPresented: .constant(error != nil)) {
-                Button("確定") {
+            .alert(L10n.Common.error.localized, isPresented: .constant(error != nil)) {
+                Button(L10n.Common.confirm.localized) {
                     error = nil
                 }
             } message: {

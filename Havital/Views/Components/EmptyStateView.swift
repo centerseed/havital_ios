@@ -44,7 +44,7 @@ struct EmptyStateView: View {
             }
             
             if showRetryButton, let onRetry = onRetry {
-                Button("重試") {
+                Button(L10n.Misc.retry.localized) {
                     onRetry()
                 }
                 .font(.subheadline)
@@ -97,31 +97,31 @@ enum EmptyStateType {
     
     var title: String {
         switch self {
-        case .noData(let dataType): return "無\(dataType)數據"
-        case .loadingFailed: return "載入失敗"
-        case .apiError: return "數據載入失敗"
-        case .noPermission: return "無權限"
-        case .noDataSource: return "未選擇數據來源"
-        case .hrvData: return "無 HRV 數據"
-        case .sleepHeartRateData: return "無睡眠心率數據"
-        case .vdotData: return "無跑力數據"
-        case .workoutData: return "無運動數據"
-        case .healthData: return "無健康數據"
+        case .noData(let dataType): return String(format: L10n.EmptyState.noDataTitle.localized, dataType)
+        case .loadingFailed: return L10n.EmptyState.loadingFailedTitle.localized
+        case .apiError: return L10n.EmptyState.apiErrorTitle.localized
+        case .noPermission: return L10n.EmptyState.noPermissionTitle.localized
+        case .noDataSource: return L10n.EmptyState.noDataSourceTitle.localized
+        case .hrvData: return L10n.EmptyState.hrvDataTitle.localized
+        case .sleepHeartRateData: return L10n.EmptyState.sleepHeartRateDataTitle.localized
+        case .vdotData: return L10n.EmptyState.vdotDataTitle.localized
+        case .workoutData: return L10n.EmptyState.workoutDataTitle.localized
+        case .healthData: return L10n.EmptyState.healthDataTitle.localized
         }
     }
     
     var description: String {
         switch self {
-        case .noData(let dataType): return "目前沒有可顯示的\(dataType)數據"
-        case .loadingFailed: return "無法載入數據，請檢查網路連線後重試"
-        case .apiError: return "伺服器暫時無法提供數據"
-        case .noPermission: return "請在設定中允許存取相關數據"
-        case .noDataSource: return "請選擇數據來源以查看相關資訊"
-        case .hrvData: return "無法獲取心率變異性數據"
-        case .sleepHeartRateData: return "無法獲取睡眠心率數據"
-        case .vdotData: return "暫無跑力數據，請先完成跑步訓練"
-        case .workoutData: return "尚未記錄任何運動數據"
-        case .healthData: return "無法獲取健康數據"
+        case .noData(let dataType): return String(format: L10n.EmptyState.noDataDesc.localized, dataType)
+        case .loadingFailed: return L10n.EmptyState.loadingFailedDesc.localized
+        case .apiError: return L10n.EmptyState.apiErrorDesc.localized
+        case .noPermission: return L10n.EmptyState.noPermissionDesc.localized
+        case .noDataSource: return L10n.EmptyState.noDataSourceDesc.localized
+        case .hrvData: return L10n.EmptyState.hrvDataDesc.localized
+        case .sleepHeartRateData: return L10n.EmptyState.sleepHeartRateDataDesc.localized
+        case .vdotData: return L10n.EmptyState.vdotDataDesc.localized
+        case .workoutData: return L10n.EmptyState.workoutDataDesc.localized
+        case .healthData: return L10n.EmptyState.healthDataDesc.localized
         }
     }
 }
@@ -167,7 +167,7 @@ struct ContentUnavailableWrapper: View {
             }
             
             if showRetryButton, let onRetry = onRetry {
-                Button("重試") {
+                Button(L10n.Misc.retry.localized) {
                     onRetry()
                 }
                 .font(.subheadline)

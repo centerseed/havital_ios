@@ -110,7 +110,7 @@ struct TrainingReadinessView: View {
             // Metrics Grid (2x2) with explanation button
             if viewModel.hasAnyMetric {
                 HStack {
-                    Text("訓練指標")
+                    Text(L10n.TrainingReadiness.trainingMetrics.localized)
                         .font(.headline)
                         .foregroundColor(.primary)
 
@@ -184,16 +184,16 @@ struct TrainingReadinessView: View {
         var metrics: [RadarChartView.RadarMetric] = []
 
         if let speed = viewModel.speedMetric {
-            metrics.append(RadarChartView.RadarMetric(label: "速度", value: speed.score, color: .blue))
+            metrics.append(RadarChartView.RadarMetric(label: L10n.TrainingReadiness.speedLabel.localized, value: speed.score, color: .blue))
         }
         if let endurance = viewModel.enduranceMetric {
-            metrics.append(RadarChartView.RadarMetric(label: "耐力", value: endurance.score, color: .green))
+            metrics.append(RadarChartView.RadarMetric(label: L10n.TrainingReadiness.enduranceLabel.localized, value: endurance.score, color: .green))
         }
         if let raceFitness = viewModel.raceFitnessMetric {
-            metrics.append(RadarChartView.RadarMetric(label: "比賽適能", value: raceFitness.score, color: .purple))
+            metrics.append(RadarChartView.RadarMetric(label: L10n.TrainingReadiness.raceFitnessLabel.localized, value: raceFitness.score, color: .purple))
         }
         if let trainingLoad = viewModel.trainingLoadMetric {
-            metrics.append(RadarChartView.RadarMetric(label: "訓練負荷", value: trainingLoad.score, color: .orange))
+            metrics.append(RadarChartView.RadarMetric(label: L10n.TrainingReadiness.trainingLoadLabel.localized, value: trainingLoad.score, color: .orange))
         }
 
         return metrics
@@ -568,11 +568,11 @@ struct TrainingReadinessMetricsExplanationView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("訓練指標說明")
+                        Text(L10n.TrainingReadiness.metricsExplanation.localized)
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("了解每個指標的含義，學習如何提升分數")
+                        Text(L10n.TrainingReadiness.metricsSubtitle.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -584,58 +584,58 @@ struct TrainingReadinessMetricsExplanationView: View {
                     metricCard(
                         icon: "speedometer",
                         iconColor: .blue,
-                        title: "速度指標",
-                        description: "評估您的跑步配速能力",
-                        whatItMeans: "配速是否符合訓練進展的期望",
+                        title: L10n.TrainingReadiness.Speed.title.localized,
+                        description: L10n.TrainingReadiness.Speed.description.localized,
+                        whatItMeans: L10n.TrainingReadiness.Speed.whatItMeans.localized,
                         howToImprove: [
-                            "儘量達成速度課表的計劃配速",
-                            "跑好間歇跑的衝刺區間配速"
+                            L10n.TrainingReadiness.Speed.howToImprove1.localized,
+                            L10n.TrainingReadiness.Speed.howToImprove2.localized
                         ],
-                        whenDecreases: "無法跑到目標配速，或太久沒有訓練"
+                        whenDecreases: L10n.TrainingReadiness.Speed.whenDecreases.localized
                     )
 
                     // 耐力指標卡片
                     metricCard(
                         icon: "figure.walk",
                         iconColor: .green,
-                        title: "耐力指標",
-                        description: "評估您的長距離跑穩定性",
-                        whatItMeans: "長距離跑的心率和配速的穩定性",
+                        title: L10n.TrainingReadiness.Endurance.title.localized,
+                        description: L10n.TrainingReadiness.Endurance.description.localized,
+                        whatItMeans: L10n.TrainingReadiness.Endurance.whatItMeans.localized,
                         howToImprove: [
-                            "輕鬆跑、LSD 確實跑在 Zone 2 心率區間",
-                            "逐週增加距離，保持配速穩定"
+                            L10n.TrainingReadiness.Endurance.howToImprove1.localized,
+                            L10n.TrainingReadiness.Endurance.howToImprove2.localized
                         ],
-                        whenDecreases: "心率提升幅度較配速提升還大，或太久沒有長跑"
+                        whenDecreases: L10n.TrainingReadiness.Endurance.whenDecreases.localized
                     )
 
                     // 比賽適能卡片
                     metricCard(
                         icon: "medal",
                         iconColor: .purple,
-                        title: "比賽適能",
-                        description: "評估為目標賽事的準備進度",
-                        whatItMeans: "體能表現狀態離目標配速還有多遠",
+                        title: L10n.TrainingReadiness.RaceFitness.title.localized,
+                        description: L10n.TrainingReadiness.RaceFitness.description.localized,
+                        whatItMeans: L10n.TrainingReadiness.RaceFitness.whatItMeans.localized,
                         howToImprove: [
-                            "儘量跟上每週的課表安排",
-                            "高品質的休息與恢復",
-                            "適當的力量訓練"
+                            L10n.TrainingReadiness.RaceFitness.howToImprove1.localized,
+                            L10n.TrainingReadiness.RaceFitness.howToImprove2.localized,
+                            L10n.TrainingReadiness.RaceFitness.howToImprove3.localized
                         ],
-                        whenDecreases: "天氣過熱、身體狀況不佳，或缺乏多樣訓練"
+                        whenDecreases: L10n.TrainingReadiness.RaceFitness.whenDecreases.localized
                     )
 
                     // 訓練負荷卡片
                     metricCard(
                         icon: "chart.bar.fill",
                         iconColor: .orange,
-                        title: "訓練負荷",
-                        description: "評估訓練量是否適當",
-                        whatItMeans: "訓練量是否過大",
+                        title: L10n.TrainingReadiness.Load.title.localized,
+                        description: L10n.TrainingReadiness.Load.description.localized,
+                        whatItMeans: L10n.TrainingReadiness.Load.whatItMeans.localized,
                         howToImprove: [
-                            "跑量、強度按照課表安排穩步提升",
-                            "如果負荷過大，考慮安排休息週好好恢復",
-                            "高強度訓練後安排恢復日"
+                            L10n.TrainingReadiness.Load.howToImprove1.localized,
+                            L10n.TrainingReadiness.Load.howToImprove2.localized,
+                            L10n.TrainingReadiness.Load.howToImprove3.localized
                         ],
-                        whenDecreases: "訓練量持續過高，且恢復狀態不好"
+                        whenDecreases: L10n.TrainingReadiness.Load.whenDecreases.localized
                     )
 
                     Divider()
@@ -646,15 +646,15 @@ struct TrainingReadinessMetricsExplanationView: View {
                             Image(systemName: "lightbulb.fill")
                                 .foregroundColor(.yellow)
                                 .font(.headline)
-                            Text("快速建議")
+                            Text(L10n.TrainingReadiness.quickTips.localized)
                                 .font(.headline)
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
-                            bulletPoint("每週包含：3-4 次輕鬆跑 + 1 次速度課表 + 1-2 次長跑")
-                            bulletPoint("保持訓練頻率，比偶爾的高強度訓練更重要")
-                            bulletPoint("關注分數趨勢，不要糾結每日波動")
-                            bulletPoint("如果訓練負荷分數很低，需要安排恢復時間")
+                            bulletPoint(L10n.TrainingReadiness.Tips.tip1.localized)
+                            bulletPoint(L10n.TrainingReadiness.Tips.tip2.localized)
+                            bulletPoint(L10n.TrainingReadiness.Tips.tip3.localized)
+                            bulletPoint(L10n.TrainingReadiness.Tips.tip4.localized)
                         }
                     }
                     .padding(.horizontal)
@@ -669,7 +669,7 @@ struct TrainingReadinessMetricsExplanationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button(L10n.TrainingReadiness.done.localized) {
                         dismiss()
                     }
                 }
@@ -711,7 +711,7 @@ struct TrainingReadinessMetricsExplanationView: View {
 
             // 含義
             VStack(alignment: .leading, spacing: 4) {
-                Text("這個指標代表什麼")
+                Text(L10n.TrainingReadiness.whatItMeans.localized)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
@@ -722,7 +722,7 @@ struct TrainingReadinessMetricsExplanationView: View {
 
             // 如何提升
             VStack(alignment: .leading, spacing: 6) {
-                Text("如何提升分數")
+                Text(L10n.TrainingReadiness.howToImprove.localized)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
@@ -745,7 +745,7 @@ struct TrainingReadinessMetricsExplanationView: View {
 
             // 分數下降
             VStack(alignment: .leading, spacing: 4) {
-                Text("分數何時下降")
+                Text(L10n.TrainingReadiness.whenItDecreases.localized)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)

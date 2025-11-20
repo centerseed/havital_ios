@@ -138,9 +138,8 @@ struct SupportingRaceRow: View {
     // 格式化日期
     private func formatDate(_ timestamp: Int) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter.string(from: date)
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.formatShortDate(date)
     }
     
 

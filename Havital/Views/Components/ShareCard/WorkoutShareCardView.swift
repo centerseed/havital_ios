@@ -4,6 +4,10 @@ import SwiftUI
 struct WorkoutShareCardView: View {
     let data: WorkoutShareCardData
     let size: ShareCardSize
+    var previewScale: CGFloat = 1.0  // 預覽縮放比例
+    var onTextOverlayPositionChanged: ((UUID, CGPoint) -> Void)? = nil
+    var onEditTitle: (() -> Void)? = nil
+    var onEditEncouragement: (() -> Void)? = nil
 
     var body: some View {
         ZStack(alignment: .center) {
@@ -22,13 +26,111 @@ struct WorkoutShareCardView: View {
                     .frame(width: size.width, height: size.height)
             }
 
-            // 資訊浮層 (統一使用底部版型)
-            BottomInfoOverlay(data: data)
-                .frame(width: size.width, height: size.height)
-                .allowsHitTesting(false)
+            // 資訊浮層 (根據版型模式選擇)
+            Group {
+                switch data.layoutMode {
+                case .bottom, .auto:
+                    BottomInfoOverlay(
+                        data: data,
+                        onEditTitle: onEditTitle,
+                        onEditEncouragement: onEditEncouragement
+                    )
+                case .top:
+                    TopInfoOverlay(
+                        data: data,
+                        onEditTitle: onEditTitle,
+                        onEditEncouragement: onEditEncouragement
+                    )
+                case .side:
+                    SideInfoOverlay(
+                        data: data,
+                        onEditTitle: onEditTitle,
+                        onEditEncouragement: onEditEncouragement
+                    )
+                }
+            }
+            .frame(width: size.width, height: size.height)
+            .allowsHitTesting(onEditTitle != nil || onEditEncouragement != nil)
+
+            // 文字疊加層
+            ForEach(data.textOverlays) { overlay in
+                DraggableTextOverlay(
+                    overlay: overlay,
+                    previewScale: previewScale,
+                    onPositionChanged: onTextOverlayPositionChanged
+                )
+            }
         }
         .frame(width: size.width, height: size.height)
         .clipped()
+    }
+}
+
+/// 可拖曳的文字疊加層組件
+struct DraggableTextOverlay: View {
+    let overlay: TextOverlay
+    let previewScale: CGFloat
+    var onPositionChanged: ((UUID, CGPoint) -> Void)?
+
+    @State private var dragOffset: CGSize = .zero
+    @State private var committedOffset: CGSize = .zero  // 已提交但父組件還沒更新的偏移
+
+    var body: some View {
+        HStack(spacing: overlay.iconName != nil ? 12 : 0) {
+            if let iconName = overlay.iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: overlay.iconSize, weight: .bold))
+                    .foregroundColor(overlay.textColor)
+            }
+            Text(overlay.text)
+                .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
+                .foregroundColor(overlay.textColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            overlay.backgroundColor.map { color in
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(color)
+            }
+        )
+        .scaleEffect(overlay.scale)
+        .rotationEffect(overlay.rotation)
+        .position(
+            x: overlay.position.x + committedOffset.width + dragOffset.width,
+            y: overlay.position.y + committedOffset.height + dragOffset.height
+        )
+        .allowsHitTesting(onPositionChanged != nil)
+        .gesture(
+                onPositionChanged != nil ?
+                DragGesture(coordinateSpace: .local)
+                    .onChanged { value in
+                        // 使用 local 座標空間，直接對應卡片座標
+                        dragOffset = value.translation
+                    }
+                    .onEnded { value in
+                        // 立即累加到已提交的偏移（本地更新，不等父組件）
+                        committedOffset.width += value.translation.width
+                        committedOffset.height += value.translation.height
+
+                        // 重置拖曳偏移
+                        dragOffset = .zero
+
+                        // 計算最終位置並通知父組件（異步，不管什麼時候完成）
+                        let finalPosition = CGPoint(
+                            x: overlay.position.x + committedOffset.width,
+                            y: overlay.position.y + committedOffset.height
+                        )
+                        onPositionChanged?(overlay.id, finalPosition)
+                    }
+                : nil
+            )
+            .onChange(of: overlay.position) { oldValue, newValue in
+                // 當父組件更新位置後，清除已提交的偏移（因為已經被吸收到 position 中）
+                if oldValue != newValue {
+                    committedOffset = .zero
+                }
+            }
     }
 }
 

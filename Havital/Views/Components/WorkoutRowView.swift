@@ -113,9 +113,8 @@ struct WorkoutRowView: View {
     }
     
     private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd HH:mm"
-        return formatter.string(from: date)
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.formatDateTime(date)
     }
 }
 

@@ -112,7 +112,7 @@
 // MARK: - Training Progress View
 "training_progress.review" = "Review";
 "training_progress.schedule" = "Schedule";
-"training_progress.generate_schedule" = "Generate Schedule";
+"training_progress.generate_schedule" = "Generate Plan";
 
 // MARK: - Training Plan View
 "training_plan.cycle_completed" = "Training Cycle Completed";
@@ -126,12 +126,12 @@
 "next_week_planning.title" = "Next Week Planning";
 "next_week_planning.weekly_feeling" = "This week's training feeling (0-worst, 5-best)";
 "next_week_planning.overall_feeling" = "Overall feeling: ";
-"next_week_planning.training_expectation" = "For next week's training expectations, Vita will make adjustments based on actual conditions, and you can also freely edit the newly generated exercise plan";
+"next_week_planning.training_expectation" = "Tell us your expectations for next week's training, and Paceriz will make adjustments based on your actual performance. You can also freely edit the newly generated training plan";
 "next_week_planning.difficulty_adjustment" = "Difficulty Adjustment";
 "next_week_planning.days_adjustment" = "Training Days Adjustment";
 "next_week_planning.training_item_adjustment" = "Training Item Variation Adjustment";
 "next_week_planning.start_generating" = "Start Generating Next Plan";
-"next_week_planning.generating_plan" = "Vita is generating your training plan...";
+"next_week_planning.generating_plan" = "Paceriz is generating your training plan...";
 "next_week_planning.please_wait" = "Please wait";
 "next_week_planning.cancel" = "Cancel";
 "next_week_planning.adjustment.decrease" = "Decrease";
@@ -269,7 +269,7 @@
 "training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
 "training.training_review" = "Training Review";
-"training.generate_plan" = "Generate Schedule";
+"training.generate_plan" = "Generate Plan";
 "training.no_plan" = "No Training Plan";
 "training.create_plan" = "Create Training Plan";
 "training.week" = "Week %d";
@@ -322,7 +322,7 @@
 "training.need_complete_review" = "Need to complete this week's review first";
 "training.review_completed" = "This week's review completed";
 "training.confirm_training_completed_title" = "Confirm Training Completion";
-"training.confirm_training_completed_message" = "Please confirm that all this week's training has been completed. Generating the weekly review requires complete training data for accurate analysis.";
+"training.confirm_training_completed_message" = "Please confirm that you've completed all of this week's training sessions. Generating the weekly review requires complete training data for accurate analysis.";
 
 // MARK: - Training Plan Info Card
 "training.plan_info" = "Training Plan Info";
@@ -597,7 +597,7 @@
 // MARK: - Additional Training Strings
 "training.current_week_progress" = "Current training progress has entered week";
 "training.paceriz_plan_description" = "Paceriz will generate a personalized weekly schedule based on your training condition. Let's check this week's training status and generate a new schedule!";
-"training.get_weekly_review" = "Get Weekly Review ";
+"training.get_weekly_review" = "Get Weekly Review";
 "training.daily_training" = "Daily Training";
 "training.cycle_completed_message" = "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!";
 "training.set_new_goal" = "Set New Goal";
@@ -610,7 +610,7 @@
 "training.cannot_load_plan" = "Unable to load training plan";
 "training.week_schedule" = "Week Schedule";
 "training.no_schedule_generated" = "This week's schedule has not been generated yet";
-"training.generate_review_first" = "Please generate a weekly review first to get personalized training recommendations";
+"training.generate_review_first" = "Please complete this week's review to get personalized training recommendations";
 "training.loading_records" = "Loading training records...";
 "training.loading_more_records" = "Loading more records...";
 "training.pace_zone" = "Pace Zone";
@@ -640,7 +640,7 @@
 
 // MARK: - Performance
 "performance.weekly_volume_trend" = "Weekly Volume Trend";
-"performance.weekly_volume_trend_description" = "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.";
+"performance.weekly_volume_trend_description" = "Track your weekly running mileage trends to adjust your training plans accordingly.";
 "performance.select_data_source_resting_hr" = "Please select a data source to view resting heart rate trends";
 
 // MARK: - Error Additional
@@ -680,7 +680,7 @@
 "training.week_number" = "Week %d";
 "training.view_schedule" = "View Schedule";
 "training.training_review" = "Training Review";
-"training.generate_schedule" = "Generate Schedule";
+"training.generate_schedule" = "Generate Plan";
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "Total weeks: %d weeks";
@@ -779,7 +779,7 @@
 "onboarding.select_training_days" = "Select Your Convenient Training Days";
 "onboarding.training_days_description" = "Please select the days of the week when you can usually arrange running training. Paceriz will arrange different types of running schedules on these days based on your goals and fitness level. We recommend selecting at least %d days.";
 "onboarding.setup_long_run_day" = "Set Your Long Run Day";
-"onboarding.long_run_day_description" = "Long runs are key to building endurance. Please select one day from your chosen training days as your long run day. It's usually recommended to schedule it on weekends or days when you have more time for adequate recovery.";
+"onboarding.long_run_day_description" = "Long runs are essential for building endurance. Select one of your training days for your long run—typically a weekend day when you have more time for adequate recovery.";
 "onboarding.select_long_run_day" = "Select Long Run Day";
 "onboarding.long_run_day_must_be_training_day" = "Long run day must be one of your selected training days.";
 "onboarding.suggest_saturday_long_run" = "We recommend setting Saturday as your long run day for sufficient time for long-distance training.";
@@ -817,7 +817,7 @@
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "Current Weekly Running Volume";
-"onboarding.weekly_distance_description" = "Weekly running volume is the total kilometers you usually run in a week. This data helps Paceriz understand your current running habits and arrange appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
+"onboarding.weekly_distance_description" = "Weekly running volume is the total distance you typically run in a week. This helps Paceriz understand your current running habits and set appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
 "onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
@@ -1280,7 +1280,7 @@
 "feedback.type.suggestion" = "Suggestion";
 "feedback.category" = "Category";
 "feedback.category.weekly_plan_failed" = "Weekly Plan Generation Failed";
-"feedback.category.weekly_summary_failed" = "Weekly Summary Generation Failed";
+"feedback.category.weekly_summary_failed" = "Weekly Review Generation Failed";
 "feedback.category.training_overview_failed" = "Training Overview Generation Failed";
 "feedback.category.other" = "Other";
 "feedback.description" = "Description";
@@ -1396,7 +1396,7 @@
 "datasource.switch.garmin_to_strava" = "Switching to Strava will unbind your Garmin Connect™ connection and require Strava authorization. Your training records will be loaded from Strava, and current displayed records will be replaced with new data source content.";
 "datasource.switch.strava_to_apple" = "Switching to Apple Health will unbind your Strava connection. Your training records will be loaded from Apple Health, and current displayed records will be replaced with new data source content.";
 "datasource.switch.strava_to_garmin" = "Switching to Garmin Connect™ will unbind your Strava connection and require Garmin authorization. Your training records will be loaded from Garmin Connect™, and current displayed records will be replaced with new data source content.";
-"datasource.switch.to_unbound" = "Switching to unbound status will clear all local workout data. You can later reselect and connect data sources in the profile page.";
+"datasource.switch.to_unbound" = "Disconnecting all data sources will clear all local workout data. You can later reconnect data sources in the profile page.";
 "datasource.switch.default" = "Are you sure you want to proceed with this operation?";
 
 // MARK: - Heart Rate Setup Prompt
@@ -1416,3 +1416,259 @@
 "common.generating" = "Generating...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "Est. Finish";
+
+// MARK: - Content View
+"content_view.data_source_required" = "Data Source Required";
+"content_view.go_to_settings" = "Go to Settings";
+"content_view.later" = "Later";
+"content_view.data_source_required_message" = "You haven't bound a data source yet. Please go to the profile page to select Apple Health, Garmin Connect™, or Strava as your training data source.";
+
+// MARK: - Profile View
+"profile_view.apple_user" = "Apple User";
+"profile_view.garmin_already_bound" = "Garmin Connect™ Account Already Bound";
+"profile_view.strava_already_bound" = "Strava Account Already Bound";
+"profile_view.ok" = "OK";
+"profile_view.garmin_already_bound_message" = "This Garmin Connect™ account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account, unbind Garmin Connect™ in the profile page, then connect with this account.";
+"profile_view.strava_already_bound_message" = "This Strava account is already bound to another Paceriz account. Please first log in with the originally bound Paceriz account, unbind Strava in the profile page, then connect with this account.";
+
+// Developer Section
+"profile_view.developer.section_title" = "🧪 Developer Testing";
+"profile_view.developer.test_rating" = "Test Rating Prompt";
+"profile_view.developer.clear_rating_cache" = "Clear Rating Cache";
+"profile_view.developer.debug_failed_workouts" = "Debug - Failed Workouts";
+"profile_view.developer.print_heart_rate" = "Print Heart Rate Settings";
+"profile_view.developer.clear_heart_rate" = "Clear All Heart Rate Settings";
+"profile_view.developer.simulate_remind_tomorrow" = "Simulate 'Remind Tomorrow' (Expires in 1 minute)";
+
+// MARK: - Edit Schedule
+"edit_schedule.cancel" = "Cancel";
+"edit_schedule.save" = "Save";
+"edit_schedule.confirm" = "Confirm";
+"edit_schedule.apply" = "Apply";
+"edit_schedule.delete" = "Delete";
+"edit_schedule.close" = "Close";
+"edit_schedule.cannot_edit" = "Cannot Edit";
+"edit_schedule.addSegment" = "Add Segment";
+
+// Training Types
+"edit_schedule.easy_run" = "Easy Run";
+"edit_schedule.tempo_run" = "Tempo Run";
+"edit_schedule.interval_training" = "Interval Training";
+"edit_schedule.combination_run" = "Combination Run";
+"edit_schedule.long_distance_run" = "Long Distance Run";
+"edit_schedule.long_easy_run" = "Long Easy Run";
+"edit_schedule.recovery_run" = "Recovery Run";
+"edit_schedule.threshold_run" = "Threshold Run";
+"edit_schedule.rest" = "Rest";
+
+// Training Detail Editor
+"edit_schedule.easy_run_settings" = "Easy Run Settings";
+"edit_schedule.tempo_run_settings" = "Tempo Run Settings";
+"edit_schedule.interval_settings" = "Interval Training Settings";
+"edit_schedule.combination_settings" = "Combination Run Settings";
+"edit_schedule.long_run_settings" = "Long Run Settings";
+"edit_schedule.training_settings" = "Training Settings";
+
+"edit_schedule.suggested_pace" = "Suggested Pace: %@";
+"edit_schedule.sprint_suggested_pace" = "Sprint Suggested Pace: %@";
+"edit_schedule.pace_range" = "Pace Range: %@ - %@";
+"edit_schedule.interval_pace_range" = "Interval Pace Range: %@ - %@";
+
+"edit_schedule.distance" = "Distance (km)";
+"edit_schedule.distance_placeholder" = "e.g., 5.0";
+"edit_schedule.pace" = "Pace (min:sec/km)";
+"edit_schedule.pace_placeholder" = "e.g., 4:30";
+"edit_schedule.description" = "Training Description";
+"edit_schedule.segment_description" = "Segment Description";
+
+"edit_schedule.repeats" = "Repeats";
+"edit_schedule.repeats_placeholder" = "e.g., 6";
+"edit_schedule.sprint_segment" = "Sprint Segment";
+"edit_schedule.recovery_segment" = "Recovery Segment";
+"edit_schedule.segment" = "Segment %d";
+
+// Pace Selection
+"edit_schedule.select_pace" = "Select Pace";
+"edit_schedule.pace_selection" = "Pace Selection";
+"edit_schedule.select_interval_distance" = "Select Interval Distance";
+"edit_schedule.interval_distance_selection" = "Interval Distance Selection";
+"edit_schedule.select_training_type" = "Select Training Type";
+"edit_schedule.training_type_selection" = "Training Type Selection";
+
+// Pace Table
+"edit_schedule.pace_table_description" = "Training pace recommendations calculated based on your running ability. Each zone shows the fastest - slowest pace range";
+"edit_schedule.pace_zone_details" = "Pace Zone Details";
+"edit_schedule.reference_pace_table" = "Reference Pace Table";
+
+// MARK: - My Achievement View
+"my_achievement.fitness_and_tsb" = "Fitness & TSB";
+"my_achievement.training_load_detail" = "Training Load Details";
+"my_achievement.tsb_description" = "Training Stress Balance (TSB) reflects your current recovery status. Positive values indicate good recovery, negative values suggest accumulated fatigue.";
+"my_achievement.fitness_description" = "Fitness represents your current fitness level, calculated from the weighted average of recent training load.";
+"my_achievement.fatigue_description" = "Fatigue reflects recent training stress accumulation. Higher values indicate greater accumulated fatigue requiring more recovery time.";
+"my_achievement.fitness_curve" = "Fitness";
+"my_achievement.fatigue_curve" = "Fatigue";
+"my_achievement.tsb_curve" = "TSB";
+"my_achievement.training_load_chart" = "Training Load Trend Chart";
+"my_achievement.select_training_load_type" = "Select Training Load Type";
+"my_achievement.daily_load" = "Daily Load";
+"my_achievement.weekly_load" = "Weekly Load";
+"my_achievement.monthly_load" = "Monthly Load";
+"my_achievement.cumulative_mileage" = "Cumulative Mileage";
+"my_achievement.loading_data" = "Loading data...";
+"my_achievement.data_load_failed" = "Failed to load data";
+"my_achievement.no_training_data" = "No training data available";
+"my_achievement.view_training_readiness" = "View Training Readiness";
+"my_achievement.view_more_data" = "View More Data";
+"my_achievement.current_fitness" = "Current Fitness";
+"my_achievement.current_fatigue" = "Current Fatigue";
+"my_achievement.current_tsb" = "Current TSB";
+"my_achievement.good_recovery" = "Good Recovery";
+"my_achievement.moderate_fatigue" = "Moderate Fatigue";
+"my_achievement.high_fatigue" = "High Fatigue";
+"my_achievement.fitness_trend" = "Fitness Trend";
+"my_achievement.fatigue_trend" = "Fatigue Trend";
+"my_achievement.tsb_trend" = "TSB Trend";
+"my_achievement.training_suggestion" = "Training Suggestion";
+"my_achievement.suitable_for_high_intensity" = "Good recovery status, suitable for high-intensity training";
+"my_achievement.moderate_training_recommended" = "Moderate fatigue, recommended to maintain moderate intensity training";
+"my_achievement.rest_recommended" = "High fatigue accumulation, rest or light training recommended";
+"my_achievement.weekly_mileage" = "Weekly Mileage";
+"my_achievement.monthly_mileage" = "Monthly Mileage";
+
+// MARK: - Training Readiness View
+"training_readiness.title" = "Training Readiness";
+"training_readiness.overall_score" = "Overall Score";
+"training_readiness.fitness_level" = "Fitness Level";
+"training_readiness.fatigue_level" = "Fatigue Level";
+"training_readiness.recovery_status" = "Recovery Status";
+"training_readiness.training_suggestion" = "Training Suggestion";
+"training_readiness.excellent_condition" = "Excellent Condition";
+"training_readiness.good_condition" = "Good Condition";
+"training_readiness.moderate_condition" = "Moderate Condition";
+"training_readiness.need_rest" = "Need Rest";
+"training_readiness.detailed_analysis" = "Detailed Analysis";
+"training_readiness.last_updated" = "Last Updated";
+"training_readiness.refresh_data" = "Refresh Data";
+
+// MARK: - Share Card
+"share_card.my_training_plan" = "My Training Plan";
+"share_card.share_to_social" = "Share to Social Media";
+"share_card.format" = "Format";
+"share_card.edit_title" = "Edit Title";
+"share_card.edit_ai_review" = "Edit AI Review";
+
+// MARK: - Onboarding Additional
+"onboarding_additional.skip" = "Skip";
+"onboarding_additional.next" = "Next";
+"onboarding_additional.get_started" = "Get Started";
+
+// MARK: - Misc
+"misc.data_syncing" = "Data syncing...";
+"misc.sync_complete" = "Sync complete";
+"misc.sync_failed" = "Sync failed";
+"misc.no_internet_connection" = "No internet connection";
+"misc.retry" = "Retry";
+"misc.dismiss" = "Dismiss";
+"misc.save_changes" = "Save Changes";
+"misc.discard_changes" = "Discard Changes";
+"misc.unsaved_changes" = "Unsaved Changes";
+"misc.unsaved_changes_message" = "You have unsaved changes. Do you want to save them before leaving?";
+
+// MARK: - Edit Schedule Additional
+"edit_schedule.save_failed" = "Save Failed";
+"edit_schedule.rest_in_place" = "Rest in Place";
+"edit_schedule.dragging" = "Dragging...";
+"edit_schedule.drag_to_target" = "Drag to Target Position";
+"edit_schedule.monday" = "Mon";
+"edit_schedule.tuesday" = "Tue";
+"edit_schedule.wednesday" = "Wed";
+"edit_schedule.thursday" = "Thu";
+"edit_schedule.friday" = "Fri";
+"edit_schedule.saturday" = "Sat";
+"edit_schedule.sunday" = "Sun";
+"edit_schedule.unknown" = "Unknown";
+
+// MARK: - My Achievement Additional
+"my_achievement.updated" = " Updated";
+
+// MARK: - Training Readiness Metric Labels
+"training_readiness.speed_label" = "Speed";
+"training_readiness.endurance_label" = "Endurance";
+"training_readiness.race_fitness_label" = "Race Fitness";
+"training_readiness.training_load_label" = "Training Load";
+
+// MARK: - Speed Metric
+"training_readiness.speed.title" = "Speed Metric";
+"training_readiness.speed.description" = "Evaluates your running pace ability";
+"training_readiness.speed.what_it_means" = "Whether your pace meets training progress expectations";
+"training_readiness.speed.how_to_improve_1" = "Achieve planned pace in speed workouts";
+"training_readiness.speed.how_to_improve_2" = "Maintain interval sprint pace consistently";
+"training_readiness.speed.when_decreases" = "Unable to reach target pace, or lack of recent training";
+
+// MARK: - Endurance Metric
+"training_readiness.endurance.title" = "Endurance Metric";
+"training_readiness.endurance.description" = "Evaluates your long-distance run stability";
+"training_readiness.endurance.what_it_means" = "Heart rate and pace stability during long runs";
+"training_readiness.endurance.how_to_improve_1" = "Keep easy runs and LSDs in Zone 2 heart rate";
+"training_readiness.endurance.how_to_improve_2" = "Gradually increase distance while maintaining stable pace";
+"training_readiness.endurance.when_decreases" = "Heart rate increases more than pace, or lack of long runs";
+
+// MARK: - Race Fitness Metric
+"training_readiness.race_fitness.title" = "Race Fitness";
+"training_readiness.race_fitness.description" = "Evaluates preparation progress for target race";
+"training_readiness.race_fitness.what_it_means" = "How far your fitness is from target race pace";
+"training_readiness.race_fitness.how_to_improve_1" = "Follow weekly training plan consistently";
+"training_readiness.race_fitness.how_to_improve_2" = "Quality rest and recovery";
+"training_readiness.race_fitness.how_to_improve_3" = "Appropriate strength training";
+"training_readiness.race_fitness.when_decreases" = "Hot weather, poor physical condition, or lack of varied training";
+
+// MARK: - Training Load Metric
+"training_readiness.load.title" = "Training Load";
+"training_readiness.load.description" = "Evaluates whether training volume is appropriate";
+"training_readiness.load.what_it_means" = "Whether training volume is excessive";
+"training_readiness.load.how_to_improve_1" = "Steadily increase volume and intensity according to plan";
+"training_readiness.load.how_to_improve_2" = "If load is excessive, consider recovery week";
+"training_readiness.load.how_to_improve_3" = "Schedule recovery after high-intensity training";
+"training_readiness.load.when_decreases" = "Continuous high training volume with poor recovery";
+
+// MARK: - Edit Schedule Pace Zones
+"edit_schedule.pace_zone.recovery.description" = "For recovery days, easy jogging to promote physical recovery";
+"edit_schedule.pace_zone.recovery.benefit" = "Benefits: Promote muscle recovery, reduce fatigue accumulation";
+"edit_schedule.pace_zone.easy.description" = "Basic daily training pace, comfortable conversation pace, build aerobic base";
+"edit_schedule.pace_zone.easy.benefit" = "Benefits: Build aerobic base, enhance endurance, reduce injury risk";
+"edit_schedule.pace_zone.tempo.description" = "Lactate threshold training, maintain 20-30 minutes, improve running economy";
+"edit_schedule.pace_zone.tempo.benefit" = "Benefits: Improve lactate threshold, enhance running economy, strengthen cardiovascular function";
+"edit_schedule.pace_zone.marathon.description" = "Target marathon race pace, long-distance sustained pace training";
+"edit_schedule.pace_zone.marathon.benefit" = "Benefits: Adapt to marathon pace, improve long-distance endurance, simulate race intensity";
+"edit_schedule.pace_zone.threshold.description" = "High-intensity aerobic training, improve maximum oxygen uptake";
+"edit_schedule.pace_zone.threshold.benefit" = "Benefits: Improve VO2 max, enhance aerobic capacity, improve speed endurance";
+"edit_schedule.pace_zone.anaerobic.description" = "Anaerobic endurance training, near maximum intensity, improve anaerobic capacity";
+"edit_schedule.pace_zone.anaerobic.benefit" = "Benefits: Improve anaerobic endurance, enhance high-intensity sustained ability, improve lactate tolerance";
+"edit_schedule.pace_zone.interval.description" = "High-intensity interval training, short-distance sprints, improve speed and explosiveness";
+"edit_schedule.pace_zone.interval.benefit" = "Benefits: Improve VO2 max, enhance speed and explosiveness, improve running efficiency";
+
+// MARK: - Edit Schedule Additional Keys
+"edit_schedule.edit_training" = "Edit Training";
+
+// MARK: - Empty State
+"empty_state.no_data_title" = "No %@ Data";
+"empty_state.loading_failed_title" = "Loading Failed";
+"empty_state.api_error_title" = "Data Loading Failed";
+"empty_state.no_permission_title" = "No Permission";
+"empty_state.no_data_source_title" = "No Data Source Selected";
+"empty_state.hrv_data_title" = "No HRV Data";
+"empty_state.sleep_heart_rate_data_title" = "No Sleep Heart Rate Data";
+"empty_state.vdot_data_title" = "No VDOT Data";
+"empty_state.workout_data_title" = "No Workout Data";
+"empty_state.health_data_title" = "No Health Data";
+"empty_state.no_data_desc" = "No %@ data to display";
+"empty_state.loading_failed_desc" = "Unable to load data. Please check your network connection and try again";
+"empty_state.api_error_desc" = "Server temporarily unavailable";
+"empty_state.no_permission_desc" = "Please allow access to related data in Settings";
+"empty_state.no_data_source_desc" = "Please select a data source to view information";
+"empty_state.hrv_data_desc" = "Unable to retrieve heart rate variability data";
+"empty_state.sleep_heart_rate_data_desc" = "Unable to retrieve sleep heart rate data";
+"empty_state.vdot_data_desc" = "No VDOT data yet. Please complete a running workout first";
+"empty_state.workout_data_desc" = "No workout data recorded yet";
+"empty_state.health_data_desc" = "Unable to retrieve health data";

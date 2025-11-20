@@ -198,7 +198,7 @@ struct EditScheduleView: View {
             
         } catch {
             await MainActor.run {
-                showError("保存失敗：\(error.localizedDescription)")
+                showError("\(L10n.EditSchedule.saveFailed.localized)：\(error.localizedDescription)")
             }
         }
     }

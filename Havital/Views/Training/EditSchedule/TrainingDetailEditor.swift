@@ -61,11 +61,11 @@ struct TrainingDetailEditor: View {
                 }
                 .padding()
             }
-            .navigationTitle(NSLocalizedString("edit_schedule.edit_training", comment: "編輯訓練"))
+            .navigationTitle(L10n.EditSchedule.editTraining.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
+                    Button(L10n.EditSchedule.cancel.localized) {
                         dismiss()
                     }
                 }
@@ -82,7 +82,7 @@ struct TrainingDetailEditor: View {
                             }
                         }
 
-                        Button(NSLocalizedString("edit_schedule.save", comment: "儲存")) {
+                        Button(L10n.EditSchedule.save.localized) {
                             onSave(editedDay)
                             dismiss()
                         }
@@ -125,7 +125,7 @@ struct EasyRunDetailEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("輕鬆跑設定")
+            Text(L10n.EditSchedule.easyRunSettings.localized)
                 .font(.headline)
                 .foregroundColor(.green)
 
@@ -137,13 +137,13 @@ struct EasyRunDetailEditor: View {
                             .foregroundColor(.yellow)
                             .font(.caption)
 
-                        Text("建議配速: \(suggestedPace)")
+                        Text(String(format: L10n.EditSchedule.suggestedPace.localized, suggestedPace))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
-                        Button("套用") {
+                        Button(L10n.EditSchedule.apply.localized) {
                             applyPaceField(suggestedPace)
                         }
                         .font(.caption)
@@ -158,7 +158,7 @@ struct EasyRunDetailEditor: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
 
-                            Text("配速區間: \(paceRange.max) - \(paceRange.min)")
+                            Text(String(format: L10n.EditSchedule.paceRange.localized, paceRange.max, paceRange.min))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
 
@@ -172,18 +172,18 @@ struct EasyRunDetailEditor: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("距離 (公里)")
+                Text(L10n.EditSchedule.distance.localized)
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
-                TextField("例如: 5.0", text: $distance)
+                TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.decimalPad)
             }
             
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("訓練說明")
+                    Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
@@ -251,7 +251,7 @@ struct TempoRunDetailEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("節奏跑設定")
+            Text(L10n.EditSchedule.tempoRunSettings.localized)
                 .font(.headline)
                 .foregroundColor(.orange)
 
@@ -263,13 +263,13 @@ struct TempoRunDetailEditor: View {
                             .foregroundColor(.yellow)
                             .font(.caption)
 
-                        Text("建議配速: \(suggestedPace)")
+                        Text(String(format: L10n.EditSchedule.suggestedPace.localized, suggestedPace))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
-                        Button("套用") {
+                        Button(L10n.EditSchedule.apply.localized) {
                             pace = suggestedPace
                             updatePace(suggestedPace)
                         }
@@ -285,7 +285,7 @@ struct TempoRunDetailEditor: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
 
-                            Text("配速區間: \(paceRange.max) - \(paceRange.min)")
+                            Text(String(format: L10n.EditSchedule.paceRange.localized, paceRange.max, paceRange.min))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
 
@@ -300,28 +300,28 @@ struct TempoRunDetailEditor: View {
 
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("距離 (公里)")
+                    Text(L10n.EditSchedule.distance.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    TextField("例如: 8.0", text: $distance)
+                    TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.decimalPad)
                 }
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("配速 (分:秒/公里)")
+                    Text(L10n.EditSchedule.pace.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    TextField("例如: 4:30", text: $pace)
+                    TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $pace)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
             }
             
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("訓練說明")
+                    Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
@@ -400,7 +400,7 @@ struct IntervalDetailEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("間歇訓練設定")
+            Text(L10n.EditSchedule.intervalSettings.localized)
                 .font(.headline)
                 .foregroundColor(.orange)
 
@@ -412,13 +412,13 @@ struct IntervalDetailEditor: View {
                             .foregroundColor(.yellow)
                             .font(.caption)
 
-                        Text("衝刺段建議配速: \(suggestedPace)")
+                        Text(String(format: L10n.EditSchedule.sprintSuggestedPace.localized, suggestedPace))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
-                        Button("套用") {
+                        Button(L10n.EditSchedule.apply.localized) {
                             sprintPace = suggestedPace
                             updateSprintPace(suggestedPace)
                         }
@@ -434,7 +434,7 @@ struct IntervalDetailEditor: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
 
-                            Text("間歇配速區間: \(paceRange.max) - \(paceRange.min)")
+                            Text(String(format: L10n.EditSchedule.intervalPaceRange.localized, paceRange.max, paceRange.min))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
 
@@ -449,39 +449,39 @@ struct IntervalDetailEditor: View {
 
             // 重複次數
             VStack(alignment: .leading, spacing: 8) {
-                Text("重複次數")
+                Text(L10n.EditSchedule.repeats.localized)
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
-                TextField("例如: 6", text: $repeats)
+                TextField(L10n.EditSchedule.repeatsPlaceholder.localized, text: $repeats)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.numberPad)
             }
             
             // 衝刺段設定
             VStack(alignment: .leading, spacing: 12) {
-                Text("衝刺段")
+                Text(L10n.EditSchedule.sprintSegment.localized)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.red)
                 
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("距離 (公里)")
+                        Text(L10n.EditSchedule.distance.localized)
                             .font(.caption)
                             .fontWeight(.medium)
                         
-                        TextField("例如: 1.0", text: $sprintDistance)
+                        TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $sprintDistance)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .keyboardType(.decimalPad)
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("配速 (分:秒/公里)")
+                        Text(L10n.EditSchedule.pace.localized)
                             .font(.caption)
                             .fontWeight(.medium)
                         
-                        TextField("例如: 4:00", text: $sprintPace)
+                        TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $sprintPace)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                 }
@@ -492,32 +492,32 @@ struct IntervalDetailEditor: View {
             
             // 恢復段設定
             VStack(alignment: .leading, spacing: 12) {
-                Text("恢復段")
+                Text(L10n.EditSchedule.recoverySegment.localized)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.blue)
                 
-                Toggle("原地休息", isOn: $isRestInPlace)
+                Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $isRestInPlace)
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
                 
                 if !isRestInPlace {
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("距離 (公里)")
+                            Text(L10n.EditSchedule.distance.localized)
                                 .font(.caption)
                                 .fontWeight(.medium)
                             
-                            TextField("例如: 0.4", text: $recoveryDistance)
+                            TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $recoveryDistance)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.decimalPad)
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("配速 (分:秒/公里)")
+                            Text(L10n.EditSchedule.pace.localized)
                                 .font(.caption)
                                 .fontWeight(.medium)
                             
-                            TextField("例如: 5:30", text: $recoveryPace)
+                            TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $recoveryPace)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -529,7 +529,7 @@ struct IntervalDetailEditor: View {
             
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("訓練說明")
+                    Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
@@ -679,13 +679,13 @@ struct CombinationDetailEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("組合跑設定")
+                Text(L10n.EditSchedule.combinationSettings.localized)
                     .font(.headline)
                     .foregroundColor(.orange)
                 
                 Spacer()
                 
-                Button("新增區段") {
+                Button(L10n.EditSchedule.addSegment.localized) {
                     segments.append(EditableSegment(description: "", distance: "", pace: ""))
                 }
                 .buttonStyle(.borderedProminent)
@@ -695,7 +695,7 @@ struct CombinationDetailEditor: View {
             ForEach(segments.indices, id: \.self) { index in
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("區段 \(index + 1)")
+                        Text(String(format: L10n.EditSchedule.segment.localized, index + 1))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.orange)
@@ -703,7 +703,7 @@ struct CombinationDetailEditor: View {
                         Spacer()
                         
                         if segments.count > 1 {
-                            Button("刪除") {
+                            Button(L10n.EditSchedule.delete.localized) {
                                 segments.remove(at: index)
                                 updateSegments()
                             }
@@ -712,26 +712,26 @@ struct CombinationDetailEditor: View {
                         }
                     }
                     
-                    TextField("區段描述", text: $segments[index].description)
+                    TextField(L10n.EditSchedule.segmentDescription.localized, text: $segments[index].description)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                     
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("距離 (公里)")
+                            Text(L10n.EditSchedule.distance.localized)
                                 .font(.caption)
                                 .fontWeight(.medium)
                             
-                            TextField("例如: 2.0", text: $segments[index].distance)
+                            TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $segments[index].distance)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.decimalPad)
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("配速 (分:秒/公里)")
+                            Text(L10n.EditSchedule.pace.localized)
                                 .font(.caption)
                                 .fontWeight(.medium)
                             
-                            TextField("例如: 4:45", text: $segments[index].pace)
+                            TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $segments[index].pace)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -746,7 +746,7 @@ struct CombinationDetailEditor: View {
             
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("訓練說明")
+                    Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
@@ -826,23 +826,23 @@ struct LongRunDetailEditor: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("長距離跑設定")
+            Text(L10n.EditSchedule.longRunSettings.localized)
                 .font(.headline)
                 .foregroundColor(.blue)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("距離 (公里)")
+                Text(L10n.EditSchedule.distance.localized)
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
-                TextField("例如: 15.0", text: $distance)
+                TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.decimalPad)
             }
             
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("訓練說明")
+                    Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
@@ -886,17 +886,17 @@ struct SimpleTrainingDetailEditor: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("訓練設定")
+            Text(L10n.EditSchedule.trainingSettings.localized)
                 .font(.headline)
                 .foregroundColor(.blue)
             
             if day.type != .rest {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("距離 (公里)")
+                    Text(L10n.EditSchedule.distance.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    TextField("例如: 5.0", text: $distance)
+                    TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.decimalPad)
                 }
@@ -904,7 +904,7 @@ struct SimpleTrainingDetailEditor: View {
             
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("訓練說明")
+                    Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     

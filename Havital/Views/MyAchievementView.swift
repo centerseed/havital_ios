@@ -114,10 +114,8 @@ struct MyAchievementView: View {
         guard let lastSync = trainingReadinessManager.lastSyncTime else {
             return nil
         }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.timeZone = TimeZone.current
-        return "\(formatter.string(from: lastSync)) 更新"
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return "\(DateFormatterHelper.formatTime(lastSync))\(L10n.MyAchievement.updated.localized)"
     }
 
     var body: some View {
@@ -947,16 +945,13 @@ struct SharedHealthDataChartView: View {
     
     
     private func formatDateForChart(_ dateString: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: dateString) ?? Date()
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") ?? Date()
     }
     
     private func formatDateForDisplay(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter.string(from: date)
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.formatShortDate(date)
     }
     
     // MARK: - Independent Data Loading
@@ -1169,10 +1164,8 @@ struct APIBasedHRVChartView: View {
     }
     
     private func formatDateForChart(_ dateString: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: dateString) ?? Date()
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") ?? Date()
     }
 }
 
@@ -1268,10 +1261,8 @@ struct APIBasedRestingHeartRateChartView: View {
     }
     
     private func formatDateForChart(_ dateString: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: dateString) ?? Date()
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") ?? Date()
     }
 }
 
@@ -1748,16 +1739,13 @@ struct TrainingLoadChartView: View {
     }
 
     private func formatDateForChart(_ dateString: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: dateString) ?? Date()
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") ?? Date()
     }
 
     private func formatDateForDisplay(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter.string(from: date)
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.formatShortDate(date)
     }
 
     /// 格式化週數顯示（例如: w23, w24, w25, w26）
@@ -2247,10 +2235,8 @@ struct FitnessIndexChartView: View {
     }
 
     private func formatDateForChart(_ dateString: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: dateString) ?? Date()
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") ?? Date()
     }
 
     private func formatWeekForDisplay(_ date: Date) -> String {
@@ -2571,10 +2557,8 @@ struct TSBChartView: View {
     }
 
     private func formatDateForChart(_ dateString: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: dateString) ?? Date()
+        // ✅ 使用統一的日期格式化工具，確保使用用戶設定的時區
+        return DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") ?? Date()
     }
 
     private func formatWeekForDisplay(_ date: Date) -> String {

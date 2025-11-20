@@ -100,14 +100,14 @@
 // MARK: - Weekly Distance Editor View
 "weekly_distance_editor.title" = "週間走行距離編集";
 "weekly_distance_editor.weekly_distance" = "週間走行距離：%d km";
-"weekly_distance_editor.next_week_notice" = "週間走行距離の変更は来週のトレーニングプランに反映されます";
+"weekly_distance_editor.next_week_notice" = "週間走行距離の変更は来週のトレーニング計画に反映されます";
 
 // MARK: - Training Item Detail View
 "training_item_detail.purpose" = "目的";
 "training_item_detail.benefits" = "効果";
 "training_item_detail.method" = "実施方法";
 "training_item_detail.precautions" = "注意事項";
-"training_item_detail.not_found" = "この運動項目の説明が見つかりません";
+"training_item_detail.not_found" = "このトレーニング項目の説明が見つかりません";
 
 // MARK: - Training Progress View
 "training_progress.review" = "振り返り";
@@ -126,12 +126,12 @@
 "next_week_planning.title" = "来週計画設定";
 "next_week_planning.weekly_feeling" = "今週のトレーニングの感想（0-最悪、5-最高）";
 "next_week_planning.overall_feeling" = "全体的な感想：";
-"next_week_planning.training_expectation" = "来週のトレーニングの期待について、Vitaは実際の状況に基づいて調整を行い、新しく生成された運動計画を自由に編集することもできます";
+"next_week_planning.training_expectation" = "来週のトレーニングに関するご要望をお聞かせください。Pacerizが実際の状況に基づいて調整します。生成された計画は自由に編集可能です";
 "next_week_planning.difficulty_adjustment" = "難易度調整";
 "next_week_planning.days_adjustment" = "トレーニング日数調整";
 "next_week_planning.training_item_adjustment" = "トレーニング項目変更調整";
 "next_week_planning.start_generating" = "次回計画の生成を開始";
-"next_week_planning.generating_plan" = "Vitaがあなたのトレーニング計画を作成しています...";
+"next_week_planning.generating_plan" = "Pacerizがあなたのトレーニング計画を作成しています...";
 "next_week_planning.please_wait" = "お待ちください";
 "next_week_planning.cancel" = "キャンセル";
 "next_week_planning.adjustment.decrease" = "減少";
@@ -183,9 +183,9 @@
 "gait_analysis_chart.gait_tab.stance_time" = "接地時間";
 "gait_analysis_chart.gait_tab.vertical_ratio" = "移動効率";
 "gait_analysis_chart.gait_tab.cadence" = "ケイデンス";
-"gait_analysis_chart.gait_tab.stance_time_description" = "足が地面に接触する時間、短い時間ほど効率的な走り方を示します";
-"gait_analysis_chart.gait_tab.vertical_ratio_description" = "垂直移動と総移動距離の比率、低い比率ほど移動効率が良い";
-"gait_analysis_chart.gait_tab.cadence_description" = "毎分の歩数、理想的な範囲は約180前後";
+"gait_analysis_chart.gait_tab.stance_time_description" = "足が地面に接触する時間を示します。時間が短いほど効率的な走り方です";
+"gait_analysis_chart.gait_tab.vertical_ratio_description" = "垂直移動と総移動距離の比率を示します。比率が低いほど移動効率が良好です";
+"gait_analysis_chart.gait_tab.cadence_description" = "毎分の歩数を示します。理想的な範囲は約180前後です";
 
 // MARK: - Onboarding
 "onboarding.welcome" = "Pacerizへようこそ";
@@ -268,7 +268,7 @@
 "training.daily_training" = "日々のトレーニング";
 "training.design_reason" = "今週のトレーニング計画設計理由";
 "training.weekly_volume" = "週間走行距離";
-"training.training_review" = "トレーニングレビュー";
+"training.training_review" = "トレーニング振り返り";
 "training.generate_plan" = "スケジュール作成";
 "training.no_plan" = "トレーニング計画なし";
 "training.create_plan" = "トレーニング計画を作成";
@@ -289,17 +289,17 @@
 "training.loading.preparing_custom_plan" = "カスタマイズされた計画を準備中...";
 "training.loading.analyzing_training_data" = "今週のトレーニングデータを分析中...";
 "training.loading.evaluating_progress" = "今週のトレーニング状況を評価中...";
-"training.loading.preparing_review" = "素晴らしい！トレーニングレビューが準備完了です！";
+"training.loading.preparing_review" = "素晴らしい！トレーニング振り返りが準備完了です！";
 
 // MARK: - Training Review Sections
-"training.review.weekly_review" = "週間トレーニングレビュー";
-"training.review.last_week_review" = "先週のトレーニングレビュー";
-"training.review.week_review" = "第%d週トレーニングレビュー";
+"training.review.weekly_review" = "週間トレーニング振り返り";
+"training.review.last_week_review" = "先週のトレーニング振り返り";
+"training.review.week_review" = "第%d週トレーニング振り返り";
 "training.review.generate_next_week_plan" = "来週の計画を作成";
 "training.review.training_completion" = "トレーニング完了度";
 "training.review.training_analysis" = "トレーニング分析";
 "training.review.next_week_focus" = "来週のトレーニング重点";
-"training.review.plan_adjustment_suggestions" = "プラン調整提案";
+"training.review.plan_adjustment_suggestions" = "計画調整提案";
 "training.review.heart_rate_performance" = "心拍数パフォーマンス";
 "training.review.pace_performance" = "ペースパフォーマンス";
 "training.review.distance_performance" = "距離パフォーマンス";
@@ -312,17 +312,17 @@
 "training.review.total_distance" = "総距離";
 "training.review.trend" = "傾向";
 "training.review.analyzing_data" = "トレーニングデータを分析中...";
-"training.review.loading_message" = "詳細なトレーニングレビューを準備中です";
-"training.review.loading_error" = "トレーニングレビューを読み込めませんでした";
+"training.review.loading_message" = "詳細なトレーニング振り返りを準備中です";
+"training.review.loading_error" = "トレーニング振り返りを読み込めませんでした";
 "training.review.retry" = "再試行";
 
 // MARK: - Generate Next Week
 "training.ready_for_next_week" = "🎯 来週のトレーニングの準備はできましたか？";
-"training.generate_week_plan" = "第%d週のプランを生成";
-"training.need_complete_review" = "今週のレビューを先に完了する必要があります";
-"training.review_completed" = "今週のレビューが完了しました";
+"training.generate_week_plan" = "第%d週の計画を生成";
+"training.need_complete_review" = "今週の振り返りを先に完了する必要があります";
+"training.review_completed" = "今週の振り返りが完了しました";
 "training.confirm_training_completed_title" = "トレーニング完了の確認";
-"training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次レビューには完全なトレーニングデータが必要です。";
+"training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次振り返りには完全なトレーニングデータが必要です。";
 
 // MARK: - Training Plan Info Card
 "training.plan_info" = "トレーニング計画情報";
@@ -459,7 +459,7 @@
 // Device Info
 "record.device_info.title" = "対応デバイス";
 "record.device_info.description" = "情報";
-"record.device_info.native_support" = "Pacerizは最高のデータ品質のためにApple Health（iPhone＆Apple Watch）およびGarmin Connect™をネイティブサポートしています。最適な体験のために：Apple WatchまたはGarminデバイスをお持ちの場合は、ネイティブ統合をご利用ください。ネイティブサポートがない他のスポーツウォッチ（Coros、Suunto、Polarなど）の場合、Stravaを通じてデータを同期するか、デバイスの元のアプリを使用してApple Healthにインポートすれば、Pacerizが自動的に読み取ります。";
+"record.device_info.native_support" = "Pacerizは、最高のデータ品質を実現するため、Apple Health（iPhone・Apple Watch）およびGarmin Connect™をネイティブサポートしています。\n\n【推奨】Apple WatchまたはGarminデバイスをお持ちの場合は、ネイティブ統合をご利用ください。\n\n【その他のデバイス】Coros、Suunto、Polarなどのスポーツウォッチの場合は、以下の方法でデータを同期できます：\n・Stravaを通じて同期\n・デバイスの専用アプリからApple Healthにインポート（Pacerizが自動的に読み取ります）";
 "record.device_info.limitations" = "注意：ネイティブ統合がデータ品質を最も高めます。ネイティブサポートがないデバイスの場合、データの完全性はデータソース（Strava、Apple Health）とデバイスの機能によって異なる場合があります。";
 "record.device_info.future_support" = "最高のスポーツデータ分析体験を提供するために、ネイティブデバイスサポートを継続的に拡大しています。ネイティブサポート付きデバイスの場合、常に最も完全なトレーニングデータが得られます。";
 
@@ -597,9 +597,9 @@
 // MARK: - Additional Training Strings
 "training.current_week_progress" = "現在のトレーニング進捗は第";
 "training.paceriz_plan_description" = "Pacerizがあなたのトレーニング状況に基づいて個別の週間スケジュールを作成します。今週のトレーニング状況を確認して新しいスケジュールを作成しましょう！";
-"training.get_weekly_review" = "週間レビューを取得 ";
+"training.get_weekly_review" = "週間振り返りを取得 ";
 "training.daily_training" = "日々のトレーニング";
-"training.cycle_completed_message" = "素晴らしい！トレーニングサイクルが完了しました。トレーニングをレビューした後、次のトレーニング目標を設定することを忘れないでください！";
+"training.cycle_completed_message" = "素晴らしい！トレーニングサイクルが完了しました。トレーニングを振り返った後、次のトレーニング目標を設定することを忘れないでください！";
 "training.set_new_goal" = "新しい目標を設定";
 "training.loading_plan" = "トレーニング計画を読み込み中...";
 "training.share_schedule" = "スケジュールを共有";
@@ -610,7 +610,7 @@
 "training.cannot_load_plan" = "トレーニング計画を読み込めません";
 "training.week_schedule" = "週間スケジュール";
 "training.no_schedule_generated" = "今週のスケジュールはまだ作成されていません";
-"training.generate_review_first" = "個別トレーニング推奨事項を取得するため、まず週間レビューを作成してください";
+"training.generate_review_first" = "個別トレーニング推奨事項を取得するため、まず週間振り返りを作成してください";
 "training.loading_records" = "トレーニング記録を読み込み中...";
 "training.loading_more_records" = "さらに記録を読み込み中...";
 "training.pace_zone" = "ペースゾーン";
@@ -679,7 +679,7 @@
 "training.cannot_get_stages" = "トレーニングステージ情報を取得できません";
 "training.week_number" = "第%d週";
 "training.view_schedule" = "スケジュールを表示";
-"training.training_review" = "トレーニングレビュー";
+"training.training_review" = "トレーニング振り返り";
 "training.generate_schedule" = "スケジュールを作成";
 
 // MARK: - Training Overview Strings
@@ -783,7 +783,7 @@
 "onboarding.select_long_run_day" = "ロングラン日を選択";
 "onboarding.long_run_day_must_be_training_day" = "ロングラン日は選択したトレーニング日の一つでなければなりません。";
 "onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、土曜日をロングラン日に設定することをお勧めします。";
-"onboarding.save_preferences_preview" = "設定を保存してプランをプレビュー";
+"onboarding.save_preferences_preview" = "設定を保存して計画をプレビュー";
 "onboarding.complete_setup_view_schedule" = "設定を完了して第1週のスケジュールを表示";
 
 // MARK: - WeeklyDistanceSetupView (if it exists)
@@ -811,7 +811,7 @@
 
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "心拍数設定";
-"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます。後でプロフィールからこれらの値を更新して、心拍ゾーンをより正確にし、トレーニング効果を向上させることができます。";
+"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニング計画を作成できます。後でプロフィールからこれらの値を更新して、心拍ゾーンをより正確にし、トレーニング効果を向上させることができます。";
 "onboarding.heart_rate_intro" = "最大心拍数と安静時心拍数を設定してください";
 "onboarding.skip_heart_rate" = "スキップ（デフォルト値を使用）";
 
@@ -1068,7 +1068,7 @@
 
 "training_type_info.rest.title" = "レストデー Rest Day";
 "training_type_info.rest.how_to_run" = "構造化されたランニングトレーニングはありません。軽いウォーキングまたは完全な静的休息を選択でき、体の声に耳を傾けてください。";
-"training_type_info.rest.why_run" = "休息はトレーニングプランの中で最も見落とされやすいのに、最も重要な部分です。完全な休息日は筋肉修復、神経系の回復、エネルギー貯蔵の補充を可能にします。";
+"training_type_info.rest.why_run" = "休息はトレーニング計画の中で最も見落とされやすいのに、最も重要な部分です。完全な休息日は筋肉修復、神経系の回復、エネルギー貯蔵の補充を可能にします。";
 "training_type_info.rest.logic" = "トレーニング負荷がない場合、体は深い修復を行います。筋肉タンパク質合成が増加し、疲労毒素が消失し、ホルモンと免疫系のバランスが再調整される——これが「休息を通じて強くなる」プロセスです。";
 "training_type_info.rest.role" = "毎週1～2日の完全休息日をスケジュールします。通常、ハードトレーニング後に配置します。十分な休息日は過度なトレーニングを防ぎ、長期的なパフォーマンスと健康を維持します。";
 
@@ -1204,7 +1204,7 @@
 "performance.training_load.fitness_index_explanation" = "過去の実績と比較した相対的な運動能力レベルを示します。上昇トレンドは体力向上を示しますが疲労蓄積に注意。下降トレンドは通常テーパリング期間で、TSBとHRVの回復を観察しましょう";
 "performance.training_load.tsb" = "トレーニングストレスバランス（TSB）";
 "performance.training_load.tsb_explanation" = "トレーニング疲労と回復のバランスを示す指標。正の値は良い回復を、負の値は蓄積された疲労を示します";
-"performance.training_load.insufficient_data" = "運動データが不足しています。少なくとも5つのレコードが必要です";
+"performance.training_load.insufficient_data" = "トレーニングデータが不足しています。少なくとも5つのレコードが必要です";
 "performance.training_load.loading_training_load" = "トレーニング負荷データ読み込み中...";
 "performance.training_load.no_training_load_data" = "トレーニング負荷データなし";
 "performance.training_load.select_data_source_training_load" = "トレーニング負荷トレンドを表示するためにデータソースを選択してください";
@@ -1279,7 +1279,7 @@
 "feedback.type.issue" = "問題";
 "feedback.type.suggestion" = "提案";
 "feedback.category" = "カテゴリー";
-"feedback.category.weekly_plan_failed" = "週間プラン生成失敗";
+"feedback.category.weekly_plan_failed" = "週間計画生成失敗";
 "feedback.category.weekly_summary_failed" = "週間サマリー生成失敗";
 "feedback.category.training_overview_failed" = "トレーニング概要生成失敗";
 "feedback.category.other" = "その他";
@@ -1345,7 +1345,7 @@
 // Stage Alternatives
 "start_stage.peak_suitable" = "十分なトレーニングを積んだ経験豊富なランナー";
 "start_stage.peak_description" = "週40km以上走るランナーに適しています";
-"start_stage.base_suitable" = "完全なプラン";
+"start_stage.base_suitable" = "完全な計画";
 "start_stage.base_description" = "基礎期から段階的に構築";
 "start_stage.build_suitable" = "トレーニング習慣があるランナー";
 "start_stage.build_description" = "より安全な選択";
@@ -1411,3 +1411,261 @@
 "common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "予想完走時間";
+
+// MARK: - Content View
+"content_view.data_source_required" = "データソースの接続が必要です";
+"content_view.go_to_settings" = "設定へ";
+"content_view.later" = "あとで";
+"content_view.data_source_required_message" = "データソースが接続されていません。プロフィールページで Apple Health、Garmin Connect™、または Strava をトレーニングデータソースとして選択してください。";
+
+// MARK: - Profile View
+"profile_view.apple_user" = "Apple ユーザー";
+"profile_view.garmin_already_bound" = "Garmin Connect™ アカウントは既に接続されています";
+"profile_view.strava_already_bound" = "Strava アカウントは既に接続されています";
+"profile_view.ok" = "OK";
+"profile_view.garmin_already_bound_message" = "この Garmin Connect™ アカウントは既に別の Paceriz アカウントに接続されています。元の Paceriz アカウントでログインし、プロフィールページで Garmin Connect™ の接続を解除してから、このアカウントで接続してください。";
+"profile_view.strava_already_bound_message" = "この Strava アカウントは既に別の Paceriz アカウントに接続されています。元の Paceriz アカウントでログインし、プロフィールページで Strava の接続を解除してから、このアカウントで接続してください。";
+
+// Developer Section
+"profile_view.developer.section_title" = "🧪 開発者テスト";
+"profile_view.developer.test_rating" = "評価プロンプトをテスト";
+"profile_view.developer.clear_rating_cache" = "評価キャッシュをクリア";
+"profile_view.developer.debug_failed_workouts" = "デバッグ - 失敗したワークアウト";
+"profile_view.developer.print_heart_rate" = "心拍数設定を出力";
+"profile_view.developer.clear_heart_rate" = "すべての心拍数設定をクリア";
+"profile_view.developer.simulate_remind_tomorrow" = "「明日通知」をシミュレート（1分後に期限切れ）";
+
+// MARK: - Edit Schedule
+"edit_schedule.cancel" = "キャンセル";
+"edit_schedule.save" = "保存";
+"edit_schedule.confirm" = "確定";
+"edit_schedule.apply" = "適用";
+"edit_schedule.delete" = "削除";
+"edit_schedule.close" = "閉じる";
+"edit_schedule.cannot_edit" = "編集できません";
+"edit_schedule.addSegment" = "セグメントを追加";
+
+// Training Types
+"edit_schedule.easy_run" = "イージーラン";
+"edit_schedule.tempo_run" = "テンポラン";
+"edit_schedule.interval_training" = "インターバルトレーニング";
+"edit_schedule.combination_run" = "コンビネーションラン";
+"edit_schedule.long_distance_run" = "ロングディスタンスラン";
+"edit_schedule.long_easy_run" = "ロングイージーラン";
+"edit_schedule.recovery_run" = "リカバリーラン";
+"edit_schedule.threshold_run" = "閾値ラン";
+"edit_schedule.rest" = "休息";
+
+// Training Detail Editor
+"edit_schedule.easy_run_settings" = "イージーラン設定";
+"edit_schedule.tempo_run_settings" = "テンポラン設定";
+"edit_schedule.interval_settings" = "インターバルトレーニング設定";
+"edit_schedule.combination_settings" = "コンビネーションラン設定";
+"edit_schedule.long_run_settings" = "ロングラン設定";
+"edit_schedule.training_settings" = "トレーニング設定";
+
+"edit_schedule.suggested_pace" = "推奨ペース: %@";
+"edit_schedule.sprint_suggested_pace" = "スプリント推奨ペース: %@";
+"edit_schedule.pace_range" = "ペース範囲: %@ - %@";
+"edit_schedule.interval_pace_range" = "インターバルペース範囲: %@ - %@";
+
+"edit_schedule.distance" = "距離 (km)";
+"edit_schedule.distance_placeholder" = "例: 5.0";
+"edit_schedule.pace" = "ペース (分:秒/km)";
+"edit_schedule.pace_placeholder" = "例: 4:30";
+"edit_schedule.description" = "トレーニング説明";
+"edit_schedule.segment_description" = "セグメント説明";
+
+"edit_schedule.repeats" = "繰り返し回数";
+"edit_schedule.repeats_placeholder" = "例: 6";
+"edit_schedule.sprint_segment" = "スプリントセグメント";
+"edit_schedule.recovery_segment" = "リカバリーセグメント";
+"edit_schedule.segment" = "セグメント %d";
+
+// Pace Selection
+"edit_schedule.select_pace" = "ペースを選択";
+"edit_schedule.pace_selection" = "ペース選択";
+"edit_schedule.select_interval_distance" = "インターバル距離を選択";
+"edit_schedule.interval_distance_selection" = "インターバル距離選択";
+"edit_schedule.select_training_type" = "トレーニングタイプを選択";
+"edit_schedule.training_type_selection" = "トレーニングタイプ選択";
+
+// Pace Table
+"edit_schedule.pace_table_description" = "ランニング能力に基づいて計算されたトレーニングペースの推奨。各ゾーンは最速 - 最遅ペース範囲を表示";
+"edit_schedule.pace_zone_details" = "ペースゾーンの詳細";
+"edit_schedule.reference_pace_table" = "参照ペーステーブル";
+
+// MARK: - My Achievement View
+"my_achievement.fitness_and_tsb" = "フィットネス & TSB";
+"my_achievement.training_load_detail" = "トレーニング負荷詳細";
+"my_achievement.tsb_description" = "トレーニングストレスバランス（TSB）は現在の回復状態を反映します。正の値は良好な回復を示し、負の値は疲労の蓄積を示します。";
+"my_achievement.fitness_description" = "フィットネスは現在のフィットネスレベルを表し、最近のトレーニング負荷の加重平均から計算されます。";
+"my_achievement.fatigue_description" = "疲労は最近のトレーニングストレスの蓄積を反映します。値が高いほど疲労が蓄積しており、より多くの回復時間が必要です。";
+"my_achievement.fitness_curve" = "フィットネス";
+"my_achievement.fatigue_curve" = "疲労";
+"my_achievement.tsb_curve" = "TSB";
+"my_achievement.training_load_chart" = "トレーニング負荷トレンドチャート";
+"my_achievement.select_training_load_type" = "トレーニング負荷タイプを選択";
+"my_achievement.daily_load" = "日次負荷";
+"my_achievement.weekly_load" = "週次負荷";
+"my_achievement.monthly_load" = "月次負荷";
+"my_achievement.cumulative_mileage" = "累積走行距離";
+"my_achievement.loading_data" = "データ読み込み中...";
+"my_achievement.data_load_failed" = "データの読み込みに失敗しました";
+"my_achievement.no_training_data" = "トレーニングデータがありません";
+"my_achievement.view_training_readiness" = "トレーニング準備状況を表示";
+"my_achievement.view_more_data" = "詳細データを表示";
+"my_achievement.current_fitness" = "現在のフィットネス";
+"my_achievement.current_fatigue" = "現在の疲労";
+"my_achievement.current_tsb" = "現在のTSB";
+"my_achievement.good_recovery" = "良好な回復";
+"my_achievement.moderate_fatigue" = "中程度の疲労";
+"my_achievement.high_fatigue" = "高い疲労";
+"my_achievement.fitness_trend" = "フィットネストレンド";
+"my_achievement.fatigue_trend" = "疲労トレンド";
+"my_achievement.tsb_trend" = "TSBトレンド";
+"my_achievement.training_suggestion" = "トレーニング提案";
+"my_achievement.suitable_for_high_intensity" = "良好な回復状態、高強度トレーニングに適しています";
+"my_achievement.moderate_training_recommended" = "中程度の疲労、中程度の強度トレーニングを維持することをお勧めします";
+"my_achievement.rest_recommended" = "高い疲労蓄積、休息または軽いトレーニングをお勧めします";
+"my_achievement.weekly_mileage" = "週間走行距離";
+"my_achievement.monthly_mileage" = "月間走行距離";
+
+// MARK: - Training Readiness View
+"training_readiness.title" = "トレーニング準備状況";
+"training_readiness.overall_score" = "総合スコア";
+"training_readiness.fitness_level" = "フィットネスレベル";
+"training_readiness.fatigue_level" = "疲労レベル";
+"training_readiness.recovery_status" = "回復状態";
+"training_readiness.training_suggestion" = "トレーニング提案";
+"training_readiness.excellent_condition" = "優れた状態";
+"training_readiness.good_condition" = "良好な状態";
+"training_readiness.moderate_condition" = "中程度の状態";
+"training_readiness.need_rest" = "休息が必要";
+"training_readiness.detailed_analysis" = "詳細分析";
+"training_readiness.last_updated" = "最終更新";
+"training_readiness.refresh_data" = "データを更新";
+
+// MARK: - Share Card
+"share_card.my_training_plan" = "私のトレーニング計画";
+"share_card.share_to_social" = "ソーシャルメディアに共有";
+
+// MARK: - Onboarding Additional
+"onboarding_additional.skip" = "スキップ";
+"onboarding_additional.next" = "次へ";
+"onboarding_additional.get_started" = "始める";
+
+// MARK: - Misc
+"misc.data_syncing" = "データ同期中...";
+"misc.sync_complete" = "同期完了";
+"misc.sync_failed" = "同期失敗";
+"misc.no_internet_connection" = "インターネット接続がありません";
+"misc.retry" = "再試行";
+"misc.dismiss" = "閉じる";
+"misc.save_changes" = "変更を保存";
+"misc.discard_changes" = "変更を破棄";
+"misc.unsaved_changes" = "未保存の変更";
+"misc.unsaved_changes_message" = "未保存の変更があります。終了する前に保存しますか？";
+
+// MARK: - Edit Schedule Additional
+"edit_schedule.save_failed" = "保存に失敗しました";
+"edit_schedule.rest_in_place" = "その場で休息";
+"edit_schedule.dragging" = "ドラッグ中...";
+"edit_schedule.drag_to_target" = "目標位置にドラッグ";
+"edit_schedule.monday" = "月曜日";
+"edit_schedule.tuesday" = "火曜日";
+"edit_schedule.wednesday" = "水曜日";
+"edit_schedule.thursday" = "木曜日";
+"edit_schedule.friday" = "金曜日";
+"edit_schedule.saturday" = "土曜日";
+"edit_schedule.sunday" = "日曜日";
+"edit_schedule.unknown" = "不明";
+
+// MARK: - My Achievement Additional
+"my_achievement.updated" = " 更新";
+
+// MARK: - Training Readiness Metric Labels
+"training_readiness.speed_label" = "速度";
+"training_readiness.endurance_label" = "持久力";
+"training_readiness.race_fitness_label" = "レース適性";
+"training_readiness.training_load_label" = "トレーニング負荷";
+
+// MARK: - Speed Metric
+"training_readiness.speed.title" = "速度指標";
+"training_readiness.speed.description" = "ランニングペース能力を評価します";
+"training_readiness.speed.what_it_means" = "ペースがトレーニング進捗の期待に合っているかを示します";
+"training_readiness.speed.how_to_improve_1" = "スピードトレーニングの計画ペースを達成します";
+"training_readiness.speed.how_to_improve_2" = "インターバルのスプリント区間ペースを維持します";
+"training_readiness.speed.when_decreases" = "目標ペースに達しない、または長期間トレーニングしていない場合に低下します";
+
+// MARK: - Endurance Metric
+"training_readiness.endurance.title" = "持久力指標";
+"training_readiness.endurance.description" = "長距離ランの安定性を評価します";
+"training_readiness.endurance.what_it_means" = "長距離ランでの心拍数とペースの安定性を示します";
+"training_readiness.endurance.how_to_improve_1" = "イージーラン・LSDをZone 2心拍ゾーンで維持します";
+"training_readiness.endurance.how_to_improve_2" = "週ごとに距離を増やし、ペースを安定させます";
+"training_readiness.endurance.when_decreases" = "心拍数の上昇がペース上昇より大きい、または長距離ランが不足している場合に低下します";
+
+// MARK: - Race Fitness Metric
+"training_readiness.race_fitness.title" = "レース適性";
+"training_readiness.race_fitness.description" = "目標レースへの準備進捗を評価します";
+"training_readiness.race_fitness.what_it_means" = "フィットネス状態が目標ペースからどれだけ離れているかを示します";
+"training_readiness.race_fitness.how_to_improve_1" = "毎週のトレーニング計画に従います";
+"training_readiness.race_fitness.how_to_improve_2" = "質の高い休息と回復を取ります";
+"training_readiness.race_fitness.how_to_improve_3" = "適切な筋力トレーニングを行います";
+"training_readiness.race_fitness.when_decreases" = "暑い天候、体調不良、または多様なトレーニングが不足している場合に低下します";
+
+// MARK: - Training Load Metric
+"training_readiness.load.title" = "トレーニング負荷";
+"training_readiness.load.description" = "トレーニング量が適切かどうかを評価します";
+"training_readiness.load.what_it_means" = "トレーニング量が過剰かどうかを示します";
+"training_readiness.load.how_to_improve_1" = "計画に従って走行量と強度を着実に増やします";
+"training_readiness.load.how_to_improve_2" = "負荷が過剰な場合は回復週を検討します";
+"training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定します";
+"training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い場合に低下します";
+
+// MARK: - Edit Schedule Pace Zones
+"edit_schedule.pace_zone.recovery.description" = "回復日用のリラックスしたジョギングで、身体の回復を促進します";
+"edit_schedule.pace_zone.recovery.benefit" = "筋肉の回復を促進し、疲労の蓄積を軽減します";
+"edit_schedule.pace_zone.easy.description" = "日常トレーニングの基本ペースで、快適に会話できる速度で走り、有酸素基礎を構築します";
+"edit_schedule.pace_zone.easy.benefit" = "有酸素基礎を構築し、持久力を強化し、怪我のリスクを低減します";
+"edit_schedule.pace_zone.tempo.description" = "乳酸閾値トレーニングとして20〜30分維持し、ランニングエコノミーを向上させます";
+"edit_schedule.pace_zone.tempo.benefit" = "乳酸閾値を向上させ、ランニングエコノミーを改善し、心肺機能を強化します";
+"edit_schedule.pace_zone.marathon.description" = "目標マラソンレースペースでの長距離持続ペーストレーニングです";
+"edit_schedule.pace_zone.marathon.benefit" = "マラソンペースに適応し、長距離持久力を向上させ、レース強度をシミュレートします";
+"edit_schedule.pace_zone.threshold.description" = "高強度有酸素トレーニングで、最大酸素摂取量を向上させます";
+"edit_schedule.pace_zone.threshold.benefit" = "最大酸素摂取量を向上させ、有酸素能力を強化し、スピード持久力を改善します";
+"edit_schedule.pace_zone.anaerobic.description" = "最大強度に近い無酸素持久力トレーニングで、無酸素能力を向上させます";
+"edit_schedule.pace_zone.anaerobic.benefit" = "無酸素持久力を向上させ、高強度持続能力を強化し、乳酸耐性を改善します";
+"edit_schedule.pace_zone.interval.description" = "短距離スプリントによる高強度インターバルトレーニングで、スピードと爆発力を向上させます";
+"edit_schedule.pace_zone.interval.benefit" = "最大酸素摂取量を向上させ、スピードと爆発力を強化し、ランニング効率を改善します";
+
+// MARK: - Edit Schedule Additional Keys
+"edit_schedule.edit_training" = "トレーニング編集";
+
+// MARK: - Empty State
+"empty_state.no_data_title" = "%@データなし";
+"empty_state.loading_failed_title" = "読み込み失敗";
+"empty_state.api_error_title" = "データ読み込み失敗";
+"empty_state.no_permission_title" = "権限なし";
+"empty_state.no_data_source_title" = "データソース未選択";
+"empty_state.hrv_data_title" = "HRVデータなし";
+"empty_state.sleep_heart_rate_data_title" = "睡眠心拍データなし";
+"empty_state.vdot_data_title" = "VDOTデータなし";
+"empty_state.workout_data_title" = "ワークアウトデータなし";
+"empty_state.health_data_title" = "健康データなし";
+"empty_state.no_data_desc" = "表示する%@データがありません";
+"empty_state.loading_failed_desc" = "データを読み込めません。ネットワーク接続を確認して再試行してください";
+"empty_state.api_error_desc" = "サーバーが一時的に利用できません";
+"empty_state.no_permission_desc" = "設定で関連データへのアクセスを許可してください";
+"empty_state.no_data_source_desc" = "データソースを選択して情報を表示してください";
+"empty_state.hrv_data_desc" = "心拍変動データを取得できません";
+"empty_state.sleep_heart_rate_data_desc" = "睡眠心拍データを取得できません";
+"empty_state.vdot_data_desc" = "VDOTデータがありません。まずランニングワークアウトを完了してください";
+"empty_state.workout_data_desc" = "まだワークアウトデータが記録されていません";
+"empty_state.health_data_desc" = "健康データを取得できません";
+
+// MARK: - Share Card
+"share_card.format" = "フォーマット";
+"share_card.edit_title" = "タイトルを編集";
+"share_card.edit_ai_review" = "AI評価を編集";
