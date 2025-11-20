@@ -68,11 +68,15 @@ class PersonalBestViewModel: ObservableObject {
                 // 符合新 onboarding 流程要求，不上傳任何 PB 數據
                 print("使用者選擇沒有個人最佳成績，跳過 API 調用。")
             }
+
+            // 保存 hasPersonalBest 狀態，供 WeeklyDistanceSetupView 判斷導航邏輯使用
+            UserDefaults.standard.set(hasPersonalBest, forKey: "onboarding_hasPersonalBest")
+
             navigateToWeeklyDistance = true
         } catch {
             self.error = error.localizedDescription
         }
-        
+
         isLoading = false
     }
 }

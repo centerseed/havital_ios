@@ -5,7 +5,8 @@ class WeeklyDistanceViewModel: ObservableObject {
     @Published var weeklyDistance: Double
     @Published var isLoading = false
     @Published var error: String?
-    @Published var navigateToTrainingDays = false
+    @Published var navigateToGoalTypeSelection = false  // 導航到目標類型選擇
+    @Published var navigateToRaceSetup = false  // 導航到賽事設定
 
     let targetDistance: Double?
     // 調整預設週跑量的上限
@@ -28,43 +29,64 @@ class WeeklyDistanceViewModel: ObservableObject {
     func saveWeeklyDistance() async {
         isLoading = true
         error = nil
-        
+
         do {
             // 將週跑量轉換為整數
             let weeklyDistanceInt = Int(weeklyDistance.rounded())
             let userData = [
                 "current_week_distance": weeklyDistanceInt
             ] as [String: Any]
-            
+
             try await UserService.shared.updateUserData(userData)
-            print("週跑量數據 (\(weeklyDistanceInt)km) 上傳成功，準備導航到訓練日設置頁面")
-            navigateToTrainingDays = true
+            print("週跑量數據 (\(weeklyDistanceInt)km) 上傳成功")
+
+            // 判斷導航邏輯
+            navigateToNextStep(weeklyDistance: weeklyDistanceInt)
         } catch {
             self.error = error.localizedDescription
         }
-        
+
         isLoading = false
     }
-    
+
     func skipSetup() async {
         isLoading = true
         error = nil
-        
+
         do {
             // 如果略過，將週跑量設為0（整數）
             let skippedWeeklyDistance = 0
             let userData = [
                 "current_week_distance": skippedWeeklyDistance
             ] as [String: Any]
-            
+
             try await UserService.shared.updateUserData(userData)
             print("Skipped weekly distance setup, set to \(skippedWeeklyDistance) km")
-            navigateToTrainingDays = true
+
+            // 判斷導航邏輯
+            navigateToNextStep(weeklyDistance: skippedWeeklyDistance)
         } catch {
             self.error = error.localizedDescription
         }
-        
+
         isLoading = false
+    }
+
+    /// 判斷下一步導航目標
+    private func navigateToNextStep(weeklyDistance: Int) {
+        // 讀取用戶是否設定了最佳成績
+        let hasPersonalBest = UserDefaults.standard.bool(forKey: "onboarding_hasPersonalBest")
+
+        // 判斷邏輯：
+        // 如果用戶沒有設定最佳成績 AND 沒設定週跑量（0km）：顯示目標類型選擇（包含 5km 選項）
+        // 否則：直接進入賽事設定
+        if !hasPersonalBest && weeklyDistance == 0 {
+            print("用戶沒有 PB 且週跑量為 0，導航到目標類型選擇")
+            navigateToGoalTypeSelection = true
+        } else {
+            print("用戶有 PB 或週跑量 > 0，直接導航到賽事設定")
+            navigateToRaceSetup = true
+        }
     }
 }
 
@@ -176,9 +198,22 @@ struct WeeklyDistanceSetupView: View {
         }
         // .disabled(viewModel.isLoading) // Form 層級的 disabled 可以移除，因為按鈕已單獨處理
         .background(
-            // 導航到目標類型選擇頁面
-            NavigationLink(destination: GoalTypeSelectionView().navigationBarBackButtonHidden(true), isActive: $viewModel.navigateToTrainingDays) {
-                EmptyView()
+            Group {
+                // 導航到目標類型選擇頁面（新手）
+                NavigationLink(
+                    destination: GoalTypeSelectionView().navigationBarBackButtonHidden(true),
+                    isActive: $viewModel.navigateToGoalTypeSelection
+                ) {
+                    EmptyView()
+                }
+
+                // 導航到賽事設定頁面（有經驗的跑者）
+                NavigationLink(
+                    destination: OnboardingView().navigationBarBackButtonHidden(true),
+                    isActive: $viewModel.navigateToRaceSetup
+                ) {
+                    EmptyView()
+                }
             }
         )
     }
