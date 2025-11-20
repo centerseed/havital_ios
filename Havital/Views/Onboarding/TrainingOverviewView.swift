@@ -371,7 +371,7 @@ struct TrainingOverviewView: View {
                     .foregroundColor(color.opacity(0.6))
             }
             .frame(width: 20)
-            .padding(.leading, 0)
+            .padding(.leading, 10)  // 對齊圓點中心（20寬度的一半）
 
             Spacer()
         }
