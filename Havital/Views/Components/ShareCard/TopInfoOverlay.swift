@@ -20,6 +20,27 @@ struct TopInfoOverlay: View {
 
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
+                    // 主標題區域（如果標題為空字串則不顯示）
+                    if !data.achievementTitle.isEmpty {
+                        HStack(spacing: 12) {
+                            Image(systemName: "figure.run")
+                                .font(.system(size: 42, weight: .bold))
+                                .foregroundColor(.white)
+
+                            Text(data.achievementTitle)
+                                .font(.system(size: 48, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                                .onTapGesture {
+                                    onEditTitle?()
+                                }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 42)
+                        .padding(.vertical, 20)
+                    }
+
                     // 核心數據區域（水平排列，簡潔樣式）
                     HStack(spacing: 24) {
                         // 距離
@@ -61,6 +82,27 @@ struct TopInfoOverlay: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
                     .padding(.vertical, 18)
+
+                    // AI 評語區域（如果簡評為空字串則不顯示）
+                    if !data.encouragementText.isEmpty {
+                        HStack(spacing: 12) {
+                            Image(systemName: "bubble.left.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(.white.opacity(0.9))
+
+                            Text(data.encouragementText)
+                                .font(.system(size: 42, weight: .regular))
+                                .foregroundColor(.white.opacity(0.95))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .onTapGesture {
+                                    onEditEncouragement?()
+                                }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 42)
+                        .padding(.vertical, 20)
+                    }
                 }
 
                 Spacer()

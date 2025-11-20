@@ -200,107 +200,14 @@ struct WorkoutShareCardSheetView: View {
     }
 
     private func createInitialTextOverlays() async {
-        guard let cardData = viewModel.cardData else { return }
-
-        // 只有在第一次載入且沒有任何自訂文字時才自動創建
-        guard textOverlays.isEmpty else { return }
-
-        var overlays: [TextOverlay] = []
-
-        // 根據版型決定標題和鼓勵語的初始位置
-        let titlePosition: CGPoint
-        let encouragementPosition: CGPoint
-        let width = selectedSize.width
-        let height = selectedSize.height
-
-        // 使用原本的 x 座標比例 0.26（已驗證可正確對齊數據區域）
-        // y 座標調整以避免切邊
-        let titleX = width * 0.26
-
-        switch selectedLayoutMode {
-        case .bottom, .auto:
-            // 底部版型：標題和鼓勵語在底部偏上區域（留空間給數據和 badge）
-            titlePosition = CGPoint(x: titleX, y: height * 0.72)
-            encouragementPosition = CGPoint(x: titleX, y: height * 0.80)
-        case .top:
-            // 頂部版型：標題和鼓勵語在頂部區域（增加上邊距避免切邊）
-            titlePosition = CGPoint(x: titleX, y: height * 0.12)
-            encouragementPosition = CGPoint(x: titleX, y: height * 0.20)
-        case .side:
-            // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域）
-            titlePosition = CGPoint(x: titleX, y: height * 0.35)
-            encouragementPosition = CGPoint(x: titleX, y: height * 0.55)
-        }
-
-        // 創建標題 TextOverlay（帶 icon）
-        if !cardData.achievementTitle.isEmpty {
-            let titleOverlay = TextOverlay(
-                text: cardData.achievementTitle,
-                position: titlePosition,
-                fontSize: 48,
-                fontWeight: .semibold,
-                textColor: .white,
-                iconName: "figure.run",
-                iconSize: 42
-            )
-            overlays.append(titleOverlay)
-        }
-
-        // 創建鼓勵語 TextOverlay（帶 icon）
-        if !cardData.encouragementText.isEmpty {
-            let encouragementOverlay = TextOverlay(
-                text: cardData.encouragementText,
-                position: encouragementPosition,
-                fontSize: 42,
-                fontWeight: .regular,
-                textColor: .white.opacity(0.95),
-                iconName: "bubble.left.fill",
-                iconSize: 36
-            )
-            overlays.append(encouragementOverlay)
-        }
-
-        textOverlays = overlays
-
-        // 更新分享圖片
-        await updateShareImage()
+        // textOverlays 只用於用戶自定義添加的文字
+        // 標題和鼓勵語已經在 BottomInfoOverlay/TopInfoOverlay/SideInfoOverlay 中固定顯示
+        // 這裡不需要創建任何初始 overlay
     }
 
     private func updateTextOverlaysForLayout(_ layout: ShareCardLayoutMode) {
-        // 當版型改變時，只更新標題和鼓勵語的位置（保留自訂文字）
-        let width = selectedSize.width
-        let height = selectedSize.height
-
-        // 使用與 createInitialTextOverlays 相同的 x 座標比例
-        let titleX = width * 0.26
-
-        for index in textOverlays.indices {
-            let overlay = textOverlays[index]
-
-            // 判斷是標題還是鼓勵語（根據 icon）
-            if overlay.iconName == "figure.run" {
-                // 這是標題
-                switch layout {
-                case .bottom, .auto:
-                    textOverlays[index].position = CGPoint(x: titleX, y: height * 0.72)
-                case .top:
-                    textOverlays[index].position = CGPoint(x: titleX, y: height * 0.12)
-                case .side:
-                    textOverlays[index].position = CGPoint(x: titleX, y: height * 0.35)
-                }
-            } else if overlay.iconName == "bubble.left.fill" {
-                // 這是鼓勵語
-                switch layout {
-                case .bottom, .auto:
-                    textOverlays[index].position = CGPoint(x: titleX, y: height * 0.80)
-                case .top:
-                    textOverlays[index].position = CGPoint(x: titleX, y: height * 0.20)
-                case .side:
-                    textOverlays[index].position = CGPoint(x: titleX, y: height * 0.55)
-                }
-            }
-            // 自訂文字（沒有 icon 或其他 icon）保持原位
-        }
+        // 標題和鼓勵語由 Overlay 固定渲染，不需要更新位置
+        // textOverlays 只包含用戶自定義文字，切換版型時保持原位
     }
 
     // MARK: - Top Navigation Bar
