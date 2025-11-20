@@ -153,7 +153,11 @@ struct TrainingDaysSetupView: View {
     @StateObject private var viewModel = TrainingDaysViewModel()
     @Environment(\.dismiss) private var dismiss
 
-    
+    // 檢查是否為新手 5km 計劃
+    private var isBeginner5kPlan: Bool {
+        UserDefaults.standard.bool(forKey: "onboarding_isBeginner5kPlan")
+    }
+
     // For loading animation after final plan generation
     private let loadingMessages = [
         "正在分析您的訓練偏好...",
@@ -200,8 +204,8 @@ struct TrainingDaysSetupView: View {
                 }
                 
                 Section(
-                    header: Text(NSLocalizedString("onboarding.setup_long_run_day", comment: "Setup Long Run Day")),
-                    footer: Text(NSLocalizedString("onboarding.long_run_day_description", comment: "Long Run Day Description"))
+                    header: Text(isBeginner5kPlan ? NSLocalizedString("onboarding.setup_long_run_day_beginner", comment: "選擇一個能跑比較多一點點的日期") : NSLocalizedString("onboarding.setup_long_run_day", comment: "選擇一天長跑日")),
+                    footer: Text(isBeginner5kPlan ? NSLocalizedString("onboarding.long_run_day_description_beginner", comment: "這天會安排稍微長一點的距離，讓身體慢慢適應") : NSLocalizedString("onboarding.long_run_day_description", comment: "每週會有一天進行長距離訓練"))
                 ) {
                     // 只有在有選擇訓練日時，提供長跑日選項
                     let longRunOptions = viewModel.selectedWeekdays.isEmpty ? [6] : Array(viewModel.selectedWeekdays).sorted()

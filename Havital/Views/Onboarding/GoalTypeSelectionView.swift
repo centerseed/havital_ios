@@ -38,6 +38,9 @@ class GoalTypeSelectionViewModel: ObservableObject {
             try await UserService.shared.createTarget(target)
             print("✅ 新手 5km 目標創建成功")
 
+            // 保存新手計劃標記，供後續頁面使用
+            UserDefaults.standard.set(true, forKey: "onboarding_isBeginner5kPlan")
+
             isLoading = false
             return true
         } catch {

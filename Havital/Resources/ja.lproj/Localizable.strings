@@ -778,8 +778,10 @@
 "onboarding.training_days_title" = "トレーニング設定";
 "onboarding.select_training_days" = "都合の良いトレーニング日を選択";
 "onboarding.training_days_description" = "通常ランニングトレーニングをスケジュールできる曜日を選択してください。Pacerizは目標とフィットネスレベルに基づいて、これらの日に異なるタイプのランニングスケジュールを配置します。最低%d日選択することをお勧めします。";
-"onboarding.setup_long_run_day" = "ロングラン日の設定";
-"onboarding.long_run_day_description" = "ロングランは持久力向上の鍵です。選択したトレーニング日の中からロングラン日として1日選んでください。通常は週末や十分な回復時間がある日をお勧めします。";
+"onboarding.setup_long_run_day" = "ロングラン日を1日選択";
+"onboarding.setup_long_run_day_beginner" = "少し長めに走る日を選ぶ";
+"onboarding.long_run_day_description" = "週に1日、長距離トレーニングを行います。週末や時間に余裕のある日がおすすめです";
+"onboarding.long_run_day_description_beginner" = "この日は少し長めの距離で体を徐々に慣らします。心配しないで、段階的に進めます";
 "onboarding.select_long_run_day" = "ロングラン日を選択";
 "onboarding.long_run_day_must_be_training_day" = "ロングラン日は選択したトレーニング日の一つでなければなりません。";
 "onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、土曜日をロングラン日に設定することをお勧めします。";
