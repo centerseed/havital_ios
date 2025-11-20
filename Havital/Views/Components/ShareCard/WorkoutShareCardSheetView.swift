@@ -212,40 +212,44 @@ struct WorkoutShareCardSheetView: View {
         let encouragementPosition: CGPoint
 
         switch selectedLayoutMode {
-        case .bottom:
-            titlePosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 200)
-            encouragementPosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 120)
+        case .bottom, .auto:
+            // 底部版型：標題和鼓勵語在底部偏上區域（留空間給數據和 badge）
+            titlePosition = CGPoint(x: 280, y: selectedSize.height - 340)
+            encouragementPosition = CGPoint(x: 280, y: selectedSize.height - 240)
         case .top:
-            titlePosition = CGPoint(x: selectedSize.width / 2, y: 150)
-            encouragementPosition = CGPoint(x: selectedSize.width / 2, y: 280)
+            // 頂部版型：標題和鼓勵語在頂部區域（留空間給數據）
+            titlePosition = CGPoint(x: 280, y: 110)
+            encouragementPosition = CGPoint(x: 280, y: 240)
         case .side:
-            titlePosition = CGPoint(x: selectedSize.width / 3, y: selectedSize.height / 2 - 100)
-            encouragementPosition = CGPoint(x: selectedSize.width / 3, y: selectedSize.height / 2 + 100)
-        case .auto:
-            titlePosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 200)
-            encouragementPosition = CGPoint(x: selectedSize.width / 2, y: selectedSize.height - 120)
+            // 側邊版型：標題和鼓勵語在左側垂直居中（避開數據區域）
+            titlePosition = CGPoint(x: 280, y: selectedSize.height / 2 - 250)
+            encouragementPosition = CGPoint(x: 280, y: selectedSize.height / 2 + 80)
         }
 
-        // 創建標題 TextOverlay
+        // 創建標題 TextOverlay（帶 icon）
         if !cardData.achievementTitle.isEmpty {
             let titleOverlay = TextOverlay(
                 text: cardData.achievementTitle,
                 position: titlePosition,
                 fontSize: 48,
                 fontWeight: .semibold,
-                textColor: .white
+                textColor: .white,
+                iconName: "figure.run",
+                iconSize: 42
             )
             overlays.append(titleOverlay)
         }
 
-        // 創建鼓勵語 TextOverlay
+        // 創建鼓勵語 TextOverlay（帶 icon）
         if !cardData.encouragementText.isEmpty {
             let encouragementOverlay = TextOverlay(
                 text: cardData.encouragementText,
                 position: encouragementPosition,
                 fontSize: 42,
                 fontWeight: .regular,
-                textColor: .white.opacity(0.95)
+                textColor: .white.opacity(0.95),
+                iconName: "bubble.left.fill",
+                iconSize: 36
             )
             overlays.append(encouragementOverlay)
         }
@@ -739,15 +743,18 @@ struct ToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 24))
                     .foregroundColor(.primary)
+                    .frame(height: 24)
                 Text(label)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .frame(width: 60)
+            .frame(width: 60, height: 60)
         }
     }
 }

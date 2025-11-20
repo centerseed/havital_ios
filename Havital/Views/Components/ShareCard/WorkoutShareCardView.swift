@@ -76,25 +76,32 @@ struct DraggableTextOverlay: View {
     @State private var committedOffset: CGSize = .zero  // 已提交但父組件還沒更新的偏移
 
     var body: some View {
-        Text(overlay.text)
-            .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
-            .foregroundColor(overlay.textColor)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                overlay.backgroundColor.map { color in
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(color)
-                }
-            )
-            .scaleEffect(overlay.scale)
-            .rotationEffect(overlay.rotation)
-            .position(
-                x: overlay.position.x + committedOffset.width + dragOffset.width,
-                y: overlay.position.y + committedOffset.height + dragOffset.height
-            )
-            .allowsHitTesting(onPositionChanged != nil)
-            .gesture(
+        HStack(spacing: overlay.iconName != nil ? 12 : 0) {
+            if let iconName = overlay.iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: overlay.iconSize, weight: .bold))
+                    .foregroundColor(overlay.textColor)
+            }
+            Text(overlay.text)
+                .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
+                .foregroundColor(overlay.textColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            overlay.backgroundColor.map { color in
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(color)
+            }
+        )
+        .scaleEffect(overlay.scale)
+        .rotationEffect(overlay.rotation)
+        .position(
+            x: overlay.position.x + committedOffset.width + dragOffset.width,
+            y: overlay.position.y + committedOffset.height + dragOffset.height
+        )
+        .allowsHitTesting(onPositionChanged != nil)
+        .gesture(
                 onPositionChanged != nil ?
                 DragGesture(coordinateSpace: .local)
                     .onChanged { value in

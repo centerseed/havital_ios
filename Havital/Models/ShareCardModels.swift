@@ -14,6 +14,8 @@ struct TextOverlay: Identifiable, Equatable {
     var backgroundColor: Color? = nil  // 背景顏色（可選，預設無背景）
     var rotation: Angle = .zero
     var scale: CGFloat = 1.0
+    var iconName: String? = nil    // SF Symbol 圖標名稱（可選）
+    var iconSize: CGFloat = 36     // 圖標大小
 
     init(id: UUID = UUID(),
          text: String,
@@ -23,7 +25,9 @@ struct TextOverlay: Identifiable, Equatable {
          textColor: Color = .white,
          backgroundColor: Color? = nil,
          rotation: Angle = .zero,
-         scale: CGFloat = 1.0) {
+         scale: CGFloat = 1.0,
+         iconName: String? = nil,
+         iconSize: CGFloat = 36) {
         self.id = id
         self.text = text
         self.position = position
@@ -33,6 +37,8 @@ struct TextOverlay: Identifiable, Equatable {
         self.backgroundColor = backgroundColor
         self.rotation = rotation
         self.scale = scale
+        self.iconName = iconName
+        self.iconSize = iconSize
     }
 
     static func == (lhs: TextOverlay, rhs: TextOverlay) -> Bool {
