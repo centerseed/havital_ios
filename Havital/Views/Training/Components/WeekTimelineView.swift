@@ -521,7 +521,8 @@ struct TimelineItemView: View {
     // 獲取卡片背景色
     private func getCardBackgroundColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
         if isToday {
-            return Color.blue.opacity(0.2)  // 當日：更顯眼的藍色
+            // 白天模式用更淺的藍色，暗黑模式用較深的藍色
+            return colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.08)
         } else {
             return Color(.secondarySystemGroupedBackground)  // 與訓練記錄卡片保持一致的底色
         }
@@ -530,7 +531,8 @@ struct TimelineItemView: View {
     // 獲取卡片邊框顏色
     private func getCardBorderColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
         if isToday {
-            return Color.blue.opacity(0.3)  // 當日：藍色邊框
+            // 白天模式用更淺的藍色邊框，暗黑模式用較深的藍色邊框
+            return colorScheme == .dark ? Color.blue.opacity(0.3) : Color.blue.opacity(0.2)
         } else if !isCompleted && !isPast {
             return Color.orange.opacity(0.3)  // 未來未完成：橙色邊框
         } else {
