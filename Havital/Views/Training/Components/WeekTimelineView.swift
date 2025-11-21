@@ -61,42 +61,55 @@ struct TimelineItemView: View {
         let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
 
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸線和狀態點
-            VStack(spacing: 0) {
-                // 上方連接線
-                if day.dayIndexInt > 0 {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 2, height: 20)
-                }
-
+            // 左側時間軸狀態點（使用 overlay 繪製連接線）
+            ZStack {
                 // 狀態圓點
-                ZStack {
-                    Circle()
-                        .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
-                        .frame(width: 16, height: 16)
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 40) // 為上方連接線留空間
 
-                    if isCompleted {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(.white)
-                    } else if isToday {
+                    ZStack {
                         Circle()
-                            .fill(Color.white)
-                            .frame(width: 6, height: 6)
-                    }
-                }
+                            .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
+                            .frame(width: 16, height: 16)
 
-                // 下方連接線
-                if day.dayIndexInt < 6 {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 2)
-                        .frame(maxHeight: .infinity)
+                        if isCompleted {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                        } else if isToday {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+
+                    Spacer()
                 }
             }
-            .frame(width: 16, alignment: .top)
-            .frame(maxHeight: .infinity)
+            .frame(width: 16)
+            .overlay(
+                // 使用 GeometryReader 繪製連接線
+                GeometryReader { geometry in
+                    ZStack {
+                        // 上方連接線
+                        if day.dayIndexInt > 0 {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 2, height: 40)
+                                .position(x: geometry.size.width / 2, y: 20)
+                        }
+
+                        // 下方連接線（從圓點中心到卡片底部）
+                        if day.dayIndexInt < 6 {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 2, height: max(0, geometry.size.height - 40))
+                                .position(x: geometry.size.width / 2, y: 40 + max(0, geometry.size.height - 40) / 2)
+                        }
+                    }
+                }
+            )
 
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
@@ -107,9 +120,9 @@ struct TimelineItemView: View {
                         }
                     }
                 }) {
-                    HStack(alignment: .center) {
+                    HStack(alignment: .center, spacing: 8) {
+                        // 日期和距離
                         VStack(alignment: .leading, spacing: 4) {
-                            // 日期和星期
                             HStack(spacing: 6) {
                                 Text(viewModel.weekdayName(for: day.dayIndexInt))
                                     .font(.subheadline)
@@ -133,48 +146,48 @@ struct TimelineItemView: View {
                                 }
                             }
 
-                            // 訓練類型和距離摘要
-                            HStack(spacing: 8) {
-                                // 訓練類型標籤（可點擊查看說明）
-                                if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
-                                    Button(action: {
-                                        showTrainingTypeInfo = true
-                                    }) {
-                                        Text(day.type.localizedName)
-                                            .font(.caption)
-                                            .foregroundColor(getTypeColor())
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(getTypeColor().opacity(0.15))
-                                            .cornerRadius(6)
-                                    }
-                                    .buttonStyle(.borderless)
-                                } else {
-                                    Text(day.type.localizedName)
-                                        .font(.caption)
-                                        .foregroundColor(getTypeColor())
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 3)
-                                        .background(getTypeColor().opacity(0.15))
-                                        .cornerRadius(6)
-                                }
-
-                                if let distance = day.trainingDetails?.totalDistanceKm {
-                                    Text(String(format: "%.1f km", distance))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
+                            // 距離
+                            if let distance = day.trainingDetails?.totalDistanceKm {
+                                Text(String(format: "%.1f km", distance))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
 
                         Spacer()
+
+                        // 訓練類型標籤（可點擊查看說明，放大並移到右側）
+                        if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
+                            Button(action: {
+                                showTrainingTypeInfo = true
+                            }) {
+                                Text(day.type.localizedName)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(getTypeColor())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(getTypeColor().opacity(0.15))
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.borderless)
+                        } else {
+                            Text(day.type.localizedName)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(getTypeColor())
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(getTypeColor().opacity(0.15))
+                                .cornerRadius(8)
+                        }
 
                         // 展開/收起圖示（今日訓練不顯示）
                         if !isToday {
                             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .foregroundColor(.secondary)
                                 .font(.system(size: 14))
-                                .frame(width: 50, height: 44)
+                                .frame(width: 44, height: 44)
                                 .contentShape(Rectangle())
                         }
                     }
