@@ -21,7 +21,7 @@ struct WeekTimelineView: View {
             .padding(.horizontal, 4)
 
             // 時間軸列表
-            VStack(spacing: 4) {
+            VStack(spacing: 12) {
                 ForEach(plan.days) { day in
                     TimelineItemView(
                         viewModel: viewModel,
@@ -33,6 +33,15 @@ struct WeekTimelineView: View {
                     )
                 }
             }
+            .background(
+                // 在整個列表背景繪製完整的垂直連接線
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 2)
+                        .offset(x: 7)  // 對齊到左側時間軸中心位置
+                }
+            )
         }
         .sheet(item: $selectedWorkout) { workout in
             NavigationStack {
@@ -61,56 +70,26 @@ struct TimelineItemView: View {
         let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
 
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸狀態點 - 使用 ZStack + overlay 繪製連接線
-            ZStack(alignment: .top) {
-                // 連接線容器（透明，但佔據整個高度）
-                Color.clear
+            // 左側時間軸狀態點（只有圓點，連接線在外層背景繪製）
+            ZStack {
+                Circle()
+                    .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
+                    .frame(width: 16, height: 16)
 
-                // 時間軸內容
-                VStack(spacing: 0) {
-                    // 上方連接線空間
-                    ZStack {
-                        if day.dayIndexInt > 0 {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 2)
-                        }
-                    }
-                    .frame(height: 40)
-
-                    // 狀態圓點
-                    ZStack {
-                        Circle()
-                            .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
-                            .frame(width: 16, height: 16)
-
-                        if isCompleted {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(.white)
-                        } else if isToday {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 6, height: 6)
-                        }
-                    }
-
-                    // 下方連接線空間（自動填充剩餘高度）
-                    ZStack {
-                        if day.dayIndexInt < 6 {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 2)
-                        }
-                    }
-                    .frame(maxHeight: .infinity)
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                } else if isToday {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 6, height: 6)
                 }
             }
-            .frame(width: 16)
+            .frame(width: 16, height: 16)
 
-            // 右側內容卡片容器 - 撐滿高度以匹配左側時間軸
-            VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 8) {
+            // 右側內容卡片
+            VStack(alignment: .leading, spacing: 8) {
                 Button(action: {
                     if !isToday {  // 今日訓練不在這裡展開
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -531,10 +510,6 @@ struct TimelineItemView: View {
                 x: 0,
                 y: getShadowY(isToday: isToday, isCompleted: isCompleted)
             )
-
-                Spacer(minLength: 0)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
