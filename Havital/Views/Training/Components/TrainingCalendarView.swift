@@ -67,11 +67,11 @@ struct TrainingCalendarView: View {
             }
             .padding()
         }
-        .navigationTitle("訓練日曆")
+        .navigationTitle(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("關閉") {
+                Button(NSLocalizedString("common.close", comment: "Close")) {
                     dismiss()
                 }
             }
@@ -129,7 +129,7 @@ struct TrainingCalendarView: View {
     private var statsCard: some View {
         HStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("月總距離")
+                Text(NSLocalizedString("training_plan.monthly_total_distance", comment: "Monthly Total Distance"))
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -148,7 +148,7 @@ struct TrainingCalendarView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text("平均配速")
+                Text(NSLocalizedString("training_plan.average_pace", comment: "Average Pace"))
                     .font(.caption)
                     .foregroundColor(.secondary)
 

@@ -109,7 +109,7 @@ struct WeekOverviewCard: View {
                                 .foregroundColor(.green)
                                 .font(.subheadline)
 
-                            Text("訓練日曆")
+                            Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 

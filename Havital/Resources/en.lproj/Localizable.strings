@@ -958,7 +958,10 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "Week Overview";
 "training_plan.weekly_volume_load" = "Weekly Volume";
-"training_plan.week_target" = "Week Target";
+"training_plan.week_target" = "This Week's Target";
+"training_plan.training_calendar" = "Training Calendar";
+"training_plan.monthly_total_distance" = "Monthly Total";
+"training_plan.average_pace" = "Avg Pace";
 "training_plan.today" = "Today";
 "training_plan.tip" = "Tip: %@";
 "training_plan.segment" = "Segment %d";

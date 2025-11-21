@@ -959,7 +959,10 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "週總覽";
 "training_plan.weekly_volume_load" = "週跑量";
-"training_plan.week_target" = "週目標";
+"training_plan.week_target" = "本週目標";
+"training_plan.training_calendar" = "訓練日曆";
+"training_plan.monthly_total_distance" = "月總距離";
+"training_plan.average_pace" = "平均配速";
 "training_plan.today" = "今日";
 "training_plan.tip" = "小提示：%@";
 "training_plan.segment" = "第 %d 段";
