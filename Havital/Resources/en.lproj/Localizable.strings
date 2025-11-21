@@ -667,14 +667,15 @@
 "performance.load_failed" = "Load failed";
 "performance.cannot_load_chart_data" = "Unable to load chart data";
 
-// MARK: - Training Progress Strings  
+// MARK: - Training Progress Strings
 "training.current_progress" = "Current Progress";
 "training.current_week_of_total" = "Week %d / Total %d weeks";
 "training.current_stage" = "Current Stage: %@";
 "training.week_range" = "Week %d-%d";
+"training.stage_description" = "Stage Description";
 "training.cannot_get_progress" = "Unable to get current training progress";
 "training.target_race" = "Target Race";
-"training.race_assessment" = "Race Assessment";  
+"training.race_assessment" = "Race Assessment";
 "training.training_stages" = "Training Stages";
 "training.cannot_get_stages" = "Unable to get training stage information";
 "training.week_number" = "Week %d";

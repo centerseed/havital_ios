@@ -24,7 +24,7 @@ struct TrainingPlanOverviewDetailView: View {
     @State private var isRaceInfoExpanded = true   // 賽事規劃默認展開
     @State private var isGoalEvalExpanded = false  // 目標評估默認收起
     @State private var isHighlightExpanded = false // 訓練重點默認收起
-    @State private var isStagesExpanded = false    // 訓練階段默認收起
+    @State private var isStagesExpanded = true     // 訓練階段默認展開
 
     init(overview: TrainingPlanOverview) {
         _overview = State(initialValue: overview)

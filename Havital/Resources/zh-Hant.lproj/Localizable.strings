@@ -668,14 +668,15 @@
 "performance.load_failed" = "載入失敗";
 "performance.cannot_load_chart_data" = "無法載入圖表資料";
 
-// MARK: - Training Progress Strings  
+// MARK: - Training Progress Strings
 "training.current_progress" = "目前進度";
 "training.current_week_of_total" = "第 %d 週 / 總共 %d 週";
 "training.current_stage" = "目前階段：%@";
 "training.week_range" = "第 %d-%d 週";
+"training.stage_description" = "階段說明";
 "training.cannot_get_progress" = "無法取得目前訓練進度";
 "training.target_race" = "目標賽事";
-"training.race_assessment" = "賽事評估";  
+"training.race_assessment" = "賽事評估";
 "training.training_stages" = "訓練階段";
 "training.cannot_get_stages" = "無法取得訓練階段資訊";
 "training.week_number" = "第 %d 週";

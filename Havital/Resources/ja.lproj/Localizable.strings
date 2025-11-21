@@ -667,14 +667,15 @@
 "performance.load_failed" = "読み込みに失敗";
 "performance.cannot_load_chart_data" = "チャートデータを読み込めません";
 
-// MARK: - Training Progress Strings  
+// MARK: - Training Progress Strings
 "training.current_progress" = "現在の進捗";
 "training.current_week_of_total" = "第%d週 / 全%d週";
 "training.current_stage" = "現在のステージ：%@";
 "training.week_range" = "第%d-%d週";
+"training.stage_description" = "ステージの説明";
 "training.cannot_get_progress" = "現在のトレーニング進捗を取得できません";
 "training.target_race" = "目標レース";
-"training.race_assessment" = "レース評価";  
+"training.race_assessment" = "レース評価";
 "training.training_stages" = "トレーニングステージ";
 "training.cannot_get_stages" = "トレーニングステージ情報を取得できません";
 "training.week_number" = "第%d週";
