@@ -6,6 +6,7 @@ struct WeekOverviewCard: View {
     let plan: WeeklyPlan
     @EnvironmentObject private var healthKitManager: HealthKitManager
     @State private var showWeekTargetDetail = false
+    @State private var showTrainingCalendar = false
 
     private var weekProgress: Double {
         guard plan.totalDistance > 0 else { return 0 }
@@ -78,8 +79,9 @@ struct WeekOverviewCard: View {
 
                 Spacer()
 
-                // 右側：本週目標按鈕（統一入口）
+                // 右側：本週目標和訓練日曆按鈕
                 VStack(alignment: .leading, spacing: 10) {
+                    // 本週目標
                     Button(action: {
                         showWeekTargetDetail = true
                     }) {
@@ -89,6 +91,30 @@ struct WeekOverviewCard: View {
                                 .font(.subheadline)
 
                             Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    // 訓練日曆
+                    Button(action: {
+                        showTrainingCalendar = true
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar")
+                                .foregroundColor(.green)
+                                .font(.subheadline)
+
+                            Text("訓練日曆")
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 
@@ -145,6 +171,11 @@ struct WeekOverviewCard: View {
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailView(purpose: plan.purpose, designReason: plan.designReason)
+            }
+        }
+        .sheet(isPresented: $showTrainingCalendar) {
+            NavigationView {
+                TrainingCalendarView(healthKitManager: healthKitManager)
             }
         }
     }
