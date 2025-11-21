@@ -61,28 +61,50 @@ struct TimelineItemView: View {
         let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
 
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸狀態點
-            VStack(spacing: 0) {
-                Spacer()
+            // 左側時間軸狀態點 - 使用 ZStack + overlay 繪製連接線
+            ZStack(alignment: .top) {
+                // 連接線容器（透明，但佔據整個高度）
+                Color.clear
+
+                // 時間軸內容
+                VStack(spacing: 0) {
+                    // 上方連接線空間
+                    ZStack {
+                        if day.dayIndexInt > 0 {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 2)
+                        }
+                    }
                     .frame(height: 40)
 
-                ZStack {
-                    Circle()
-                        .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
-                        .frame(width: 16, height: 16)
-
-                    if isCompleted {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(.white)
-                    } else if isToday {
+                    // 狀態圓點
+                    ZStack {
                         Circle()
-                            .fill(Color.white)
-                            .frame(width: 6, height: 6)
-                    }
-                }
+                            .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
+                            .frame(width: 16, height: 16)
 
-                Spacer()
+                        if isCompleted {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                        } else if isToday {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+
+                    // 下方連接線空間（自動填充剩餘高度）
+                    ZStack {
+                        if day.dayIndexInt < 6 {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 2)
+                        }
+                    }
+                    .frame(maxHeight: .infinity)
+                }
             }
             .frame(width: 16)
 
@@ -509,28 +531,6 @@ struct TimelineItemView: View {
                 y: getShadowY(isToday: isToday, isCompleted: isCompleted)
             )
         }
-        .background(
-            // 在整個 HStack 背景繪製連接線
-            GeometryReader { geometry in
-                ZStack {
-                    // 上方連接線（從頂部延伸到圓點位置）
-                    if day.dayIndexInt > 0 {
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 2, height: 40)
-                            .offset(x: 7, y: 0)  // x: 7 = (16-2)/2，讓線居中於左側16pt區域
-                    }
-
-                    // 下方連接線（從圓點位置延伸到卡片底部 + 穿過 spacing）
-                    if day.dayIndexInt < 6 {
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 2, height: max(0, geometry.size.height - 40 + 4))
-                            .offset(x: 7, y: 40)  // y: 40 = 圓點位置
-                    }
-                }
-            }
-        )
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
                 TrainingTypeInfoView(trainingTypeInfo: trainingTypeInfo)
