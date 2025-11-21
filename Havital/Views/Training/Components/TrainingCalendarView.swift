@@ -1,15 +1,16 @@
 import SwiftUI
 import HealthKit
 
-/// 訓練日曆視圖 - 顯示每月訓練記錄
+/// 訓練日曆視圖 - 顯示每月訓練記錄（從緩存讀取）
 struct TrainingCalendarView: View {
-    @ObservedObject var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
 
     @State private var selectedMonth = Date()
     @State private var workoutsByDate: [Date: Double] = [:]  // 日期 -> 總距離 (km)
-    @State private var isLoading = false
+
+    // 使用 UnifiedWorkoutManager 作為數據源（緩存）
+    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
 
     private var monthName: String {
         let formatter = DateFormatter()
@@ -45,8 +46,8 @@ struct TrainingCalendarView: View {
                 }
             }
         }
-        .task {
-            await loadWorkoutsForMonth()
+        .onAppear {
+            loadWorkoutsForMonth()
         }
     }
 
@@ -56,7 +57,7 @@ struct TrainingCalendarView: View {
         HStack {
             Button(action: {
                 selectedMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
-                Task { await loadWorkoutsForMonth() }
+                loadWorkoutsForMonth()
             }) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
@@ -76,7 +77,7 @@ struct TrainingCalendarView: View {
                 let nextMonth = Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
                 if nextMonth <= Date() {
                     selectedMonth = nextMonth
-                    Task { await loadWorkoutsForMonth() }
+                    loadWorkoutsForMonth()
                 }
             }) {
                 Image(systemName: "chevron.right")
@@ -148,17 +149,12 @@ struct TrainingCalendarView: View {
             weekdayHeader
 
             // 日期網格
-            if isLoading {
-                ProgressView()
-                    .frame(height: 300)
-            } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
-                    ForEach(daysInMonth, id: \.self) { date in
-                        if let date = date {
-                            DayCell(date: date, distance: workoutsByDate[normalizeDate(date)])
-                        } else {
-                            EmptyDayCell()
-                        }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
+                ForEach(daysInMonth, id: \.self) { date in
+                    if let date = date {
+                        DayCell(date: date, distance: workoutsByDate[normalizeDate(date)])
+                    } else {
+                        EmptyDayCell()
                     }
                 }
             }
@@ -184,38 +180,35 @@ struct TrainingCalendarView: View {
         .padding(.bottom, 4)
     }
 
-    // MARK: - 數據加載
+    // MARK: - 數據加載（從緩存讀取，不調用 API）
 
-    private func loadWorkoutsForMonth() async {
-        isLoading = true
-        defer { isLoading = false }
-
+    private func loadWorkoutsForMonth() {
         let calendar = Calendar.current
         guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth)),
               let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
             return
         }
 
-        do {
-            let workouts = try await healthKitManager.fetchWorkoutsForDateRange(
-                start: startOfMonth,
-                end: calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
-            )
+        // ✅ 從 UnifiedWorkoutManager 緩存讀取，不調用 API
+        let allWorkouts = unifiedWorkoutManager.workouts
 
-            // 按日期分組並計算總距離
-            var grouped: [Date: Double] = [:]
-            for workout in workouts {
-                let date = normalizeDate(workout.startDate)
-                let distance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
-                grouped[date, default: 0] += distance / 1000.0  // 轉換為公里
-            }
-
-            await MainActor.run {
-                workoutsByDate = grouped
-            }
-        } catch {
-            print("載入訓練記錄失敗: \(error)")
+        // 過濾當月的訓練記錄
+        let monthWorkouts = allWorkouts.filter { workout in
+            let workoutDate = workout.startDate
+            return workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
         }
+
+        // 按日期分組並計算總距離
+        var grouped: [Date: Double] = [:]
+        for workout in monthWorkouts {
+            let date = normalizeDate(workout.startDate)
+            let distance = (workout.distance ?? 0) / 1000.0  // 轉換為公里
+            grouped[date, default: 0] += distance
+        }
+
+        workoutsByDate = grouped
+
+        print("📅 日曆載入完成：\(selectedMonth) 共 \(monthWorkouts.count) 筆記錄")
     }
 
     // MARK: - Helper Functions
@@ -316,6 +309,6 @@ struct EmptyDayCell: View {
 
 #Preview {
     NavigationView {
-        TrainingCalendarView(healthKitManager: HealthKitManager())
+        TrainingCalendarView()
     }
 }

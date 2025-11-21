@@ -175,7 +175,7 @@ struct WeekOverviewCard: View {
         }
         .sheet(isPresented: $showTrainingCalendar) {
             NavigationView {
-                TrainingCalendarView(healthKitManager: healthKitManager)
+                TrainingCalendarView()
             }
         }
     }
