@@ -545,10 +545,8 @@ struct TimelineItemView: View {
     private func getCardBackgroundColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
         if isToday {
             return Color.blue.opacity(0.2)  // 當日：更顯眼的藍色
-        } else if isCompleted {
-            return Color.green.opacity(0.15)  // 已完成：更顯眼的綠色
         } else {
-            return Color(UIColor.secondarySystemBackground)  // 其他：默認灰色
+            return Color(UIColor.secondarySystemBackground)  // 其他：默認灰色（包括已完成）
         }
     }
 
