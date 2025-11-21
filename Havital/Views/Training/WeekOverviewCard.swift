@@ -90,24 +90,24 @@ struct WeekOverviewCard: View {
                             // 低強度
                             MiniIntensityBar(
                                 label: NSLocalizedString("training.low_intensity", comment: "Low"),
-                                minutes: viewModel.currentWeekIntensity?.low ?? 0,
-                                targetMinutes: intensity.low,
+                                minutes: Int(viewModel.currentWeekIntensity.low),
+                                targetMinutes: Int(intensity.low),
                                 color: .green
                             )
 
                             // 中強度
                             MiniIntensityBar(
                                 label: NSLocalizedString("training.medium_intensity", comment: "Medium"),
-                                minutes: viewModel.currentWeekIntensity?.medium ?? 0,
-                                targetMinutes: intensity.medium,
+                                minutes: Int(viewModel.currentWeekIntensity.medium),
+                                targetMinutes: Int(intensity.medium),
                                 color: .orange
                             )
 
                             // 高強度
                             MiniIntensityBar(
                                 label: NSLocalizedString("training.high_intensity", comment: "High"),
-                                minutes: viewModel.currentWeekIntensity?.high ?? 0,
-                                targetMinutes: intensity.high,
+                                minutes: Int(viewModel.currentWeekIntensity.high),
+                                targetMinutes: Int(intensity.high),
                                 color: .red
                             )
                         }
