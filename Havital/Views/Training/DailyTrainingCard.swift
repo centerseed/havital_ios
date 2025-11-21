@@ -19,7 +19,7 @@ struct DayHeaderView: View {
     private func getTypeColor() -> Color {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
-            return Color.green
+            return Color.mint
         case .interval, .tempo, .progression, .threshold, .combination:
             return Color.orange
         case .longRun, .hiking, .cycling:
@@ -623,7 +623,7 @@ struct DailyTrainingCard: View {
     private func getTypeColor() -> Color {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
-            return Color.green
+            return Color.mint
         case .interval, .tempo, .progression, .threshold, .combination:
             return Color.orange
         case .longRun, .hiking, .cycling:
