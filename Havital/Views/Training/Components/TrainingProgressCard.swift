@@ -4,7 +4,7 @@ import SwiftUI
 struct TrainingProgressCard: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
-    @State private var showWeekSelector = false
+    @State private var showTrainingProgress = false
 
     private var progress: Double {
         let totalWeeks = Double(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks)
@@ -18,7 +18,7 @@ struct TrainingProgressCard: View {
 
     var body: some View {
         Button(action: {
-            showWeekSelector = true
+            showTrainingProgress = true
         }) {
             VStack(alignment: .leading, spacing: 8) {
                 // 標題和週數
@@ -56,8 +56,8 @@ struct TrainingProgressCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showWeekSelector) {
-            WeekSelectorSheet(viewModel: viewModel, isPresented: $showWeekSelector)
+        .sheet(isPresented: $showTrainingProgress) {
+            TrainingProgressView(viewModel: viewModel)
         }
     }
 }
