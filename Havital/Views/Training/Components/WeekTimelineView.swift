@@ -92,7 +92,7 @@ struct TimelineItemView: View {
                 // 使用 GeometryReader 繪製連接線
                 GeometryReader { geometry in
                     ZStack {
-                        // 上方連接線
+                        // 上方連接線（從頂部延伸到圓點）
                         if day.dayIndexInt > 0 {
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
@@ -100,12 +100,12 @@ struct TimelineItemView: View {
                                 .position(x: geometry.size.width / 2, y: 20)
                         }
 
-                        // 下方連接線（從圓點中心到卡片底部）
+                        // 下方連接線（從圓點延伸到超過卡片底部，確保連接到下一張卡片）
                         if day.dayIndexInt < 6 {
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
-                                .frame(width: 2, height: max(0, geometry.size.height - 40))
-                                .position(x: geometry.size.width / 2, y: 40 + max(0, geometry.size.height - 40) / 2)
+                                .frame(width: 2, height: max(0, geometry.size.height - 40 + 4))  // +4 穿過 spacing
+                                .position(x: geometry.size.width / 2, y: 40 + max(0, geometry.size.height - 40 + 4) / 2)
                         }
                     }
                 }
@@ -120,9 +120,10 @@ struct TimelineItemView: View {
                         }
                     }
                 }) {
-                    HStack(alignment: .center, spacing: 8) {
-                        // 日期和距離
-                        VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        // 第一行：日期 + 訓練類型標籤 + 收折按鈕
+                        HStack(alignment: .center, spacing: 8) {
+                            // 日期
                             HStack(spacing: 6) {
                                 Text(viewModel.weekdayName(for: day.dayIndexInt))
                                     .font(.subheadline)
@@ -146,21 +147,24 @@ struct TimelineItemView: View {
                                 }
                             }
 
-                            // 距離
-                            if let distance = day.trainingDetails?.totalDistanceKm {
-                                Text(String(format: "%.1f km", distance))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                            Spacer()
 
-                        Spacer()
-
-                        // 訓練類型標籤（可點擊查看說明，放大並移到右側）
-                        if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
-                            Button(action: {
-                                showTrainingTypeInfo = true
-                            }) {
+                            // 訓練類型標籤（右上角）
+                            if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
+                                Button(action: {
+                                    showTrainingTypeInfo = true
+                                }) {
+                                    Text(day.type.localizedName)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(getTypeColor())
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(getTypeColor().opacity(0.15))
+                                        .cornerRadius(8)
+                                }
+                                .buttonStyle(.borderless)
+                            } else {
                                 Text(day.type.localizedName)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
@@ -170,25 +174,22 @@ struct TimelineItemView: View {
                                     .background(getTypeColor().opacity(0.15))
                                     .cornerRadius(8)
                             }
-                            .buttonStyle(.borderless)
-                        } else {
-                            Text(day.type.localizedName)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(getTypeColor())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(getTypeColor().opacity(0.15))
-                                .cornerRadius(8)
+
+                            // 展開/收起圖示
+                            if !isToday {
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 14))
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
                         }
 
-                        // 展開/收起圖示（今日訓練不顯示）
-                        if !isToday {
-                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        // 第二行：距離
+                        if let distance = day.trainingDetails?.totalDistanceKm {
+                            Text(String(format: "%.1f km", distance))
+                                .font(.caption)
                                 .foregroundColor(.secondary)
-                                .font(.system(size: 14))
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
                         }
                     }
                 }
