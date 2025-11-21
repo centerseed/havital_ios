@@ -212,24 +212,24 @@ struct TimelineItemView: View {
                                             HStack(spacing: 6) {
                                                 Text("衝刺段")
                                                     .font(.system(size: 10, weight: .medium))
-                                                    .foregroundColor(.orange)
+                                                    .foregroundColor(.white)
                                                     .padding(.horizontal, 6)
                                                     .padding(.vertical, 3)
-                                                    .background(Color.orange.opacity(0.15))
+                                                    .background(Color.orange)
                                                     .cornerRadius(4)
 
                                                 if let pace = sprintItem.goals.pace {
                                                     HStack(spacing: 2) {
                                                         Image(systemName: "speedometer")
                                                             .font(.system(size: 8))
-                                                            .foregroundColor(.blue)
+                                                            .foregroundColor(.white)
                                                         Text(pace)
                                                             .font(.system(size: 10, weight: .medium))
-                                                            .foregroundColor(.blue)
+                                                            .foregroundColor(.white)
                                                     }
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
-                                                    .background(Color.blue.opacity(0.15))
+                                                    .background(Color.blue)
                                                     .cornerRadius(4)
                                                 }
 
@@ -251,10 +251,10 @@ struct TimelineItemView: View {
                                                 HStack(spacing: 6) {
                                                     Text("恢復段")
                                                         .font(.system(size: 10, weight: .medium))
-                                                        .foregroundColor(.green)
+                                                        .foregroundColor(.white)
                                                         .padding(.horizontal, 6)
                                                         .padding(.vertical, 3)
-                                                        .background(Color.green.opacity(0.15))
+                                                        .background(Color.mint)
                                                         .cornerRadius(4)
 
                                                     if recoveryItem.goals.pace == nil && recoveryItem.goals.distanceKm == nil {
@@ -270,14 +270,14 @@ struct TimelineItemView: View {
                                                             HStack(spacing: 2) {
                                                                 Image(systemName: "speedometer")
                                                                     .font(.system(size: 8))
-                                                                    .foregroundColor(.blue)
+                                                                    .foregroundColor(.white)
                                                                 Text(pace)
                                                                     .font(.system(size: 10, weight: .medium))
-                                                                    .foregroundColor(.blue)
+                                                                    .foregroundColor(.white)
                                                             }
                                                             .padding(.horizontal, 5)
                                                             .padding(.vertical, 3)
-                                                            .background(Color.blue.opacity(0.15))
+                                                            .background(Color.blue)
                                                             .cornerRadius(4)
                                                         }
 
@@ -310,10 +310,10 @@ struct TimelineItemView: View {
                                             // 段落標籤
                                             Text("第\(index + 1)段")
                                                 .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
-                                                .background(Color.orange.opacity(0.15))
+                                                .background(Color.orange)
                                                 .cornerRadius(4)
 
                                             // 配速（根據訓練類型決定是否顯示）
@@ -321,14 +321,14 @@ struct TimelineItemView: View {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
                                                         .font(.system(size: 8))
-                                                        .foregroundColor(.blue)
+                                                        .foregroundColor(.white)
                                                     Text(pace)
                                                         .font(.system(size: 10, weight: .medium))
-                                                        .foregroundColor(.blue)
+                                                        .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
                                                 .padding(.vertical, 3)
-                                                .background(Color.blue.opacity(0.15))
+                                                .background(Color.blue)
                                                 .cornerRadius(4)
                                             }
 
@@ -356,14 +356,14 @@ struct TimelineItemView: View {
                                         HStack(spacing: 2) {
                                             Image(systemName: "figure.run")
                                                 .font(.system(size: 8))
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(.white)
                                             Text(String(format: "%.1fkm", distance))
                                                 .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 3)
-                                        .background(Color.blue.opacity(0.15))
+                                        .background(Color.blue)
                                         .cornerRadius(4)
                                     }
 
@@ -372,14 +372,14 @@ struct TimelineItemView: View {
                                         HStack(spacing: 2) {
                                             Image(systemName: "speedometer")
                                                 .font(.system(size: 8))
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.white)
                                             Text(pace)
                                                 .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 3)
-                                        .background(Color.orange.opacity(0.15))
+                                        .background(Color.orange)
                                         .cornerRadius(4)
                                     }
 
@@ -388,14 +388,14 @@ struct TimelineItemView: View {
                                         HStack(spacing: 2) {
                                             Image(systemName: "heart.fill")
                                                 .font(.system(size: 8))
-                                                .foregroundColor(.red)
+                                                .foregroundColor(.white)
                                             Text(displayText)
                                                 .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.red)
+                                                .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 3)
-                                        .background(Color.red.opacity(0.15))
+                                        .background(Color.red)
                                         .cornerRadius(4)
                                     }
 
