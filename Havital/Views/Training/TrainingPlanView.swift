@@ -82,44 +82,6 @@ struct NewWeekPromptView: View {
     }
 }
 
-// Design Reason 顯示視圖
-struct DesignReasonView: View {
-    let designReason: [String]
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "\(index + 1).circle.fill")
-                                .foregroundColor(.blue)
-                                .font(.title3)
-
-                            Text(reason)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("common.close", comment: "Close")) {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
 // 拆分每日訓練列表視圖
 struct DailyTrainingListView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
@@ -144,7 +106,9 @@ struct DailyTrainingListView: View {
                             .font(.headline)
                     }
                     .sheet(isPresented: $showDesignReason) {
-                        DesignReasonView(designReason: designReason)
+                        NavigationView {
+                            DesignReasonView(designReason: designReason)
+                        }
                     }
                 }
 
