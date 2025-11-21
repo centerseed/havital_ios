@@ -172,7 +172,7 @@ struct TrainingProgressCard: View {
 
     /// 獲取階段顏色（與 TrainingProgressView 保持一致）
     private func getStageColor(stageIndex: Int) -> Color {
-        let colors: [Color] = [.blue, .green, .orange, .purple, .pink]
+        let colors: [Color] = [.blue, .mint, .orange, .purple, .pink]
         return colors[stageIndex % colors.count]
     }
 }

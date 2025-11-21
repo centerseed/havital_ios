@@ -252,7 +252,7 @@ struct WorkoutV2RowView: View {
                 if trainingTypeLower.contains("easy") ||
                    trainingTypeLower.contains("recovery") ||
                    trainingTypeLower.contains("lsd") {
-                    return .green
+                    return .mint
                 }
                 // 橘色：間歇、節奏跑、閾值跑、漸進跑、組合跑
                 else if trainingTypeLower.contains("interval") ||
@@ -277,10 +277,10 @@ struct WorkoutV2RowView: View {
                 }
                 // 默認綠色
                 else {
-                    return .green
+                    return .mint
                 }
             } else {
-                return .green  // 沒有訓練類型時默認綠色
+                return .mint  // 沒有訓練類型時默認綠色
             }
         }
         // 其他運動類型
@@ -293,11 +293,11 @@ struct WorkoutV2RowView: View {
         } else if type.contains("swimming") || type.contains("swim") {
             return .cyan
         } else if type.contains("yoga") {
-            return .green
+            return .mint
         } else if type.contains("walking") || type.contains("walk") {
-            return .green
+            return .mint
         } else {
-            return .green
+            return .mint
         }
     }
 }

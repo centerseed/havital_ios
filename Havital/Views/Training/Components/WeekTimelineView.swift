@@ -585,7 +585,7 @@ struct TimelineItemView: View {
     // 獲取狀態顏色
     private func getStatusColor(isCompleted: Bool, isToday: Bool, isPast: Bool) -> Color {
         if isCompleted {
-            return .green
+            return .mint
         } else if isToday {
             return .blue
         } else if isPast {
@@ -599,7 +599,7 @@ struct TimelineItemView: View {
     private func getTypeColor() -> Color {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
-            return .green
+            return .mint
         case .interval, .tempo, .progression, .threshold, .combination:
             return .orange
         case .longRun, .hiking, .cycling:

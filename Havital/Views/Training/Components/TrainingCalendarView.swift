@@ -324,7 +324,7 @@ struct DayCell: View {
         // 根據運動類型返回不同顏色
         switch info.primaryType.lowercased() {
         case "running", "run":
-            return .green
+            return .mint
         case "cycling", "cycle", "bike":
             return .blue
         case "strength", "weight", "gym":
@@ -336,7 +336,7 @@ struct DayCell: View {
         case "hiking", "hike":
             return .orange
         default:
-            return .green
+            return .mint
         }
     }
 
