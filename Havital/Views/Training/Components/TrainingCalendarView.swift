@@ -24,8 +24,25 @@ struct TrainingCalendarView: View {
     }
 
     private var averagePace: String {
-        let totalDistance = workoutsByDate.values.reduce(0.0) { $0 + $1.totalDistance }
-        let totalDuration = workoutsByDate.values.reduce(0.0) { $0 + $1.totalDuration }
+        let calendar = Calendar.current
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth)),
+              let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
+            return "--:--"
+        }
+
+        // ✅ 只計算跑步類型的訓練記錄
+        let runningWorkouts = unifiedWorkoutManager.workouts.filter { workout in
+            let workoutDate = workout.startDate
+            let isInMonth = workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
+            let isRunning = workout.activityType.lowercased().contains("run")
+            return isInMonth && isRunning
+        }
+
+        guard !runningWorkouts.isEmpty else { return "--:--" }
+
+        // 計算跑步的總距離和總時長
+        let totalDistance = runningWorkouts.reduce(0.0) { $0 + (($1.distance ?? 0) / 1000.0) }  // 轉換為公里
+        let totalDuration = runningWorkouts.reduce(0.0) { $0 + $1.duration }
 
         guard totalDistance > 0 else { return "--:--" }
 
