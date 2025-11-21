@@ -60,17 +60,8 @@ struct TargetRaceCard: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.1))
-                )
 
-                // 距離標籤
-                HStack {
-                    Spacer()
+                    // 距離標籤
                     Text("\(target.distanceKm) \(NSLocalizedString("target_race_card.distance_unit", comment: "公里"))")
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -79,8 +70,13 @@ struct TargetRaceCard: View {
                         .padding(.vertical, 6)
                         .background(Color.green)
                         .cornerRadius(8)
-                    Spacer()
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.1))
+                )
 
                 // ╔═══╗ 目標時間和配速卡片（強調）
                 HStack(spacing: 0) {

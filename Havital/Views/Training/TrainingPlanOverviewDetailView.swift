@@ -433,20 +433,19 @@ struct SectionHeader: View {
 struct SectionCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading) // 確保佔據最大寬度
-        .padding(.horizontal)
+        .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colorScheme == .dark ? Color(UIColor.systemGray6) : Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
         )
-        .padding(.horizontal)
     }
 }
 
