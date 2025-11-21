@@ -523,7 +523,7 @@ struct TimelineItemView: View {
         if isToday {
             return Color.blue.opacity(0.2)  // 當日：更顯眼的藍色
         } else {
-            return Color(UIColor.systemBackground)  // 其他：使用 systemBackground 提升對比度（在 Light Mode 為白色）
+            return Color(.secondarySystemGroupedBackground)  // 與訓練記錄卡片保持一致的底色
         }
     }
 
