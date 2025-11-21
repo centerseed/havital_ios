@@ -5,37 +5,21 @@ struct TrainingProgressView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedStageIndex: Int? = nil
     @State private var isLoadingWeeklySummaries = false
-
-    // 摺疊狀態管理
-    @State private var isRacesSectionExpanded = true  // 賽事規劃默認展開
-    @State private var isEvaluationExpanded = false   // 目標評估默認收起
-    @State private var isHighlightExpanded = false    // 訓練重點默認收起
-    @State private var isStagesExpanded = false       // 訓練階段默認收起
-
+    
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                     // 當前訓練進度概覽
                     currentTrainingStatusCard
 
-                    // 賽事規劃區塊（可摺疊）
+                    // 目標賽事資訊
                     if let overview = viewModel.trainingOverview {
-                        racesPlanningSection(overview: overview)
+                        targetRaceCard(overview: overview)
                     }
 
-                    // 目標評估區塊（可摺疊）
-                    if let overview = viewModel.trainingOverview {
-                        evaluationSection(overview: overview)
-                    }
-
-                    // 訓練重點區塊（可摺疊）
-                    if let overview = viewModel.trainingOverview {
-                        highlightSection(overview: overview)
-                    }
-
-                    // 訓練階段區塊（可摺疊）
-                    trainingStagesSectionCollapsible
+                    // 各階段訓練進度
+                    trainingStagesSection
                 }
                 .padding()
             }
@@ -127,90 +111,49 @@ struct TrainingProgressView: View {
         .padding()
         .background(Color(UIColor.systemBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
     }
     
-    // MARK: - 賽事規劃區塊（可摺疊）
-    private func racesPlanningSection(overview: TrainingPlanOverview) -> some View {
-        CollapsibleCard(
-            title: "🎯 賽事規劃",
-            isExpanded: $isRacesSectionExpanded,
-            summary: overview.trainingPlanName
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                // 主要賽事資訊
+    // 目標賽事卡片
+    private func targetRaceCard(overview: TrainingPlanOverview) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(NSLocalizedString("training.target_race", comment: "Target Race"))
+                .font(.headline)
+            
+            VStack(alignment: .leading, spacing: 8) {
                 Text(overview.trainingPlanName)
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-
+                
+                // 分隔線
                 Divider()
-
-                // 這裡可以添加主要賽事和支援賽事的詳細信息
-                // 暫時保持簡單，只顯示計畫名稱
-                Text(NSLocalizedString("training.main_race", comment: "Main Race"))
-                    .font(.caption)
+                
+                Text(NSLocalizedString("training.race_assessment", comment: "Race Assessment"))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.top, 4)
+                
+                Text(overview.targetEvaluate)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
             }
         }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(12)
     }
-
-    // MARK: - 目標評估區塊（可摺疊）
-    private func evaluationSection(overview: TrainingPlanOverview) -> some View {
-        CollapsibleCard(
-            title: "📊 目標評估",
-            isExpanded: $isEvaluationExpanded,
-            summary: String(overview.targetEvaluate.prefix(50)) + "..."
-        ) {
-            Text(overview.targetEvaluate)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    // MARK: - 訓練重點區塊（可摺疊）
-    private func highlightSection(overview: TrainingPlanOverview) -> some View {
-        let stagesCount = overview.trainingStageDescription.count
-        let summaryText = "\(stagesCount) 個階段 · \(overview.totalWeeks) 週訓練"
-
-        return CollapsibleCard(
-            title: "✨ 訓練重點",
-            isExpanded: $isHighlightExpanded,
-            summary: summaryText
-        ) {
-            Text(overview.trainingHighlight)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    // MARK: - 訓練階段區塊（可摺疊）
-    private var trainingStagesSectionCollapsible: some View {
-        let currentWeek = viewModel.calculateCurrentTrainingWeek() ?? 0
-        let currentStageName = viewModel.trainingOverview?.trainingStageDescription.first(where: { stage in
-            currentWeek >= stage.weekStart && currentWeek <= (stage.weekEnd ?? stage.weekStart)
-        })?.stageName ?? ""
-
-        return CollapsibleCard(
-            title: "📈 訓練階段",
-            isExpanded: $isStagesExpanded,
-            summary: "當前：\(currentStageName)（第 \(currentWeek) 週）"
-        ) {
-            trainingStagesContent
-        }
-    }
-
-    // 訓練階段內容
-    private var trainingStagesContent: some View {
+    
+    // 訓練階段區塊
+    private var trainingStagesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text(NSLocalizedString("training.training_stages", comment: "Training Stages"))
+                .font(.headline)
+            
             if let overview = viewModel.trainingOverview,
                let currentWeek = viewModel.calculateCurrentTrainingWeek() {
                 ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
                     let stage = overview.trainingStageDescription[index]
                     let isCurrentStage = currentWeek >= stage.weekStart && currentWeek <= (stage.weekEnd ?? stage.weekStart)
-
+                    
                     stageSection(stage: stage, index: index, isCurrentStage: isCurrentStage)
                 }
             } else {
@@ -279,7 +222,7 @@ struct TrainingProgressView: View {
                 .cornerRadius(8)
             }
         }
-        .background(Color(UIColor.secondarySystemBackground))  // ← 階段卡片使用次級背景，與主卡片區分
+        .background(Color(UIColor.systemBackground))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -550,71 +493,6 @@ struct TrainingProgressView: View {
         // 沒有緩存數據時直接載入
         await viewModel.fetchWeeklySummaries()
         isLoadingWeeklySummaries = false
-    }
-}
-
-// MARK: - 可摺疊卡片組件
-struct CollapsibleCard<Content: View>: View {
-    let title: String
-    @Binding var isExpanded: Bool
-    let summary: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 標題行（可點擊展開/收起）
-            Button {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-
-                    Spacer()
-
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // 摘要（收起時顯示）
-            if !isExpanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .padding(.horizontal, 16)
-
-                    Text(summary)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 14)
-                }
-            }
-
-            // 完整內容（展開時顯示）
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    Divider()
-                        .padding(.horizontal, 16)
-
-                    content()
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 14)
-                }
-            }
-        }
-        .background(Color(UIColor.systemBackground))  // ← 使用 systemBackground 確保對比度
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)  // ← 添加輕微陰影
     }
 }
 
