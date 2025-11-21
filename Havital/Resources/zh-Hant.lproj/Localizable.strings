@@ -688,6 +688,8 @@
 "training.total_weeks" = "總週數：%d 週";
 "training.race_planning" = "賽事規劃";
 "training.race_planning_summary" = "查看主要賽事和支援賽事";
+"training.race_info" = "賽事資訊";
+"training.plan_overview" = "訓練總覽";
 "training.goal_assessment" = "目標評估";
 "training.plan_highlights" = "計畫重點";
 "training.training_stages" = "訓練階段";

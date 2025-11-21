@@ -687,6 +687,8 @@
 "training.total_weeks" = "総週数：%d週";
 "training.race_planning" = "レース計画";
 "training.race_planning_summary" = "メインレースとサポートレースを確認";
+"training.race_info" = "レース情報";
+"training.plan_overview" = "計画概要";
 "training.goal_assessment" = "目標評価";
 "training.plan_highlights" = "計画のハイライト";
 "training.training_stages" = "トレーニングステージ";

@@ -687,6 +687,8 @@
 "training.total_weeks" = "Total weeks: %d weeks";
 "training.race_planning" = "Race Planning";
 "training.race_planning_summary" = "View main and supporting races";
+"training.race_info" = "Race Info";
+"training.plan_overview" = "Plan Overview";
 "training.goal_assessment" = "Goal Assessment";
 "training.plan_highlights" = "Plan Highlights";
 "training.training_stages" = "Training Stages";
