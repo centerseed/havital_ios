@@ -19,82 +19,72 @@ struct WeekOverviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 標題
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundColor(.blue)
-                    .font(.headline)
-
-                Text(NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度"))
-                    .font(.headline)
-                    .foregroundColor(.primary)
-
-                Spacer()
-            }
+            // 標題（移除 icon）
+            Text(NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度"))
+                .font(.headline)
+                .foregroundColor(.primary)
 
             // 上半部：圓形進度 + 可點擊項目
-            HStack(alignment: .center, spacing: 20) {
-                // 左側：圓形週跑量進度
-                VStack(spacing: 4) {
-                    ZStack {
-                        Circle()
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 8)
-                            .frame(width: 80, height: 80)
+            HStack(alignment: .center, spacing: 16) {
+                // 左側：圓形週跑量進度（放大，移除百分比）
+                ZStack {
+                    Circle()
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 10)
+                        .frame(width: 100, height: 100)
 
-                        Circle()
-                            .trim(from: 0, to: weekProgress)
-                            .stroke(
-                                weekPercentage >= 80 ? Color.green :
-                                    (weekPercentage >= 50 ? Color.orange : Color.blue),
-                                style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                            )
-                            .frame(width: 80, height: 80)
-                            .rotationEffect(.degrees(-90))
+                    Circle()
+                        .trim(from: 0, to: weekProgress)
+                        .stroke(
+                            weekPercentage >= 80 ? Color.green :
+                                (weekPercentage >= 50 ? Color.orange : Color.blue),
+                            style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                        )
+                        .frame(width: 100, height: 100)
+                        .rotationEffect(.degrees(-90))
 
-                        VStack(spacing: 2) {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 2) {
                             Text(viewModel.formatDistance(viewModel.currentWeekDistance, unit: nil))
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.primary)
 
                             Text("/")
-                                .font(.caption2)
+                                .font(.system(size: 14))
                                 .foregroundColor(.secondary)
 
                             Text(viewModel.formatDistance(plan.totalDistance, unit: nil))
-                                .font(.caption)
+                                .font(.system(size: 14))
                                 .foregroundColor(.secondary)
                         }
-                    }
 
-                    Text("\(weekPercentage)%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("\(weekPercentage)%")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
-                // 右側：可點擊項目
-                VStack(alignment: .leading, spacing: 12) {
+                // 右側：可點擊項目（緊湊樣式）
+                VStack(alignment: .leading, spacing: 10) {
                     // 設計邏輯
                     if let designReason = plan.designReason, !designReason.isEmpty {
                         Button(action: {
                             showDesignReason = true
                         }) {
-                            HStack(spacing: 8) {
+                            HStack(spacing: 6) {
                                 Image(systemName: "lightbulb.circle.fill")
                                     .foregroundColor(.orange)
-                                    .font(.body)
+                                    .font(.subheadline)
 
                                 Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
                                     .font(.subheadline)
                                     .foregroundColor(.primary)
 
-                                Spacer()
-
                                 Image(systemName: "chevron.right")
-                                    .font(.caption)
+                                    .font(.caption2)
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
                             .background(Color(UIColor.secondarySystemBackground))
                             .cornerRadius(8)
                         }
@@ -105,70 +95,56 @@ struct WeekOverviewCard: View {
                     Button(action: {
                         showWeekTarget = true
                     }) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Image(systemName: "target")
                                 .foregroundColor(.blue)
-                                .font(.body)
+                                .font(.subheadline)
 
                             Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 
-                            Spacer()
-
                             Image(systemName: "chevron.right")
-                                .font(.caption)
+                                .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
                         .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
+
+                Spacer()
             }
 
-            // 下半部：強度分布（一行三個進度條）
+            // 下半部：強度分布（一行三個進度條，移除標題）
             if let intensity = plan.intensityTotalMinutes {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "flame.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+                HStack(spacing: 12) {
+                    // 低強度
+                    CompactIntensityBar(
+                        label: NSLocalizedString("intensity.low", comment: "Low"),
+                        current: Int(viewModel.currentWeekIntensity.low),
+                        target: Int(intensity.low),
+                        color: .green
+                    )
 
-                        Text(NSLocalizedString("training.intensity_distribution", comment: "Intensity Distribution"))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                    }
+                    // 中強度
+                    CompactIntensityBar(
+                        label: NSLocalizedString("intensity.medium", comment: "Medium"),
+                        current: Int(viewModel.currentWeekIntensity.medium),
+                        target: Int(intensity.medium),
+                        color: .orange
+                    )
 
-                    // 一行強度分布
-                    HStack(spacing: 12) {
-                        // 低強度
-                        CompactIntensityBar(
-                            label: NSLocalizedString("intensity.low", comment: "Low"),
-                            current: Int(viewModel.currentWeekIntensity.low),
-                            target: Int(intensity.low),
-                            color: .green
-                        )
-
-                        // 中強度
-                        CompactIntensityBar(
-                            label: NSLocalizedString("intensity.medium", comment: "Medium"),
-                            current: Int(viewModel.currentWeekIntensity.medium),
-                            target: Int(intensity.medium),
-                            color: .orange
-                        )
-
-                        // 高強度
-                        CompactIntensityBar(
-                            label: NSLocalizedString("intensity.high", comment: "High"),
-                            current: Int(viewModel.currentWeekIntensity.high),
-                            target: Int(intensity.high),
-                            color: .red
-                        )
-                    }
+                    // 高強度
+                    CompactIntensityBar(
+                        label: NSLocalizedString("intensity.high", comment: "High"),
+                        current: Int(viewModel.currentWeekIntensity.high),
+                        target: Int(intensity.high),
+                        color: .red
+                    )
                 }
             }
         }

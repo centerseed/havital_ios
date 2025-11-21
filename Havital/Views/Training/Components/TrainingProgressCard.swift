@@ -23,7 +23,7 @@ struct TrainingProgressCard: View {
                     .foregroundColor(.blue)
                     .font(.headline)
 
-                Text(NSLocalizedString("training_plan.training_progress", comment: "Training Progress"))
+                Text(NSLocalizedString("training.progress", comment: "Training Progress"))
                     .font(.headline)
                     .foregroundColor(.primary)
 
@@ -35,16 +35,10 @@ struct TrainingProgressCard: View {
                     .foregroundColor(.secondary)
             }
 
-            // 進度條
-            VStack(alignment: .trailing, spacing: 4) {
-                ProgressView(value: progress)
-                    .tint(.blue)
-                    .scaleEffect(y: 1.8)
-
-                Text("\(percentage)%")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+            // 進度條（移除百分比）
+            ProgressView(value: progress)
+                .tint(.blue)
+                .scaleEffect(y: 1.8)
         }
         .padding()
         .background(
