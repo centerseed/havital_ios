@@ -5,159 +5,170 @@ struct WeekOverviewCard: View {
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlan
     @EnvironmentObject private var healthKitManager: HealthKitManager
-    @State private var showWeekSelector = false
-    @State private var showTrainingProgress = false
-    @State private var isExpanded = false  // 控制展開/摺疊
+    @State private var showDesignReason = false
+    @State private var showWeekTarget = false
+
+    private var weekProgress: Double {
+        guard plan.totalDistance > 0 else { return 0 }
+        return min(viewModel.currentWeekDistance / plan.totalDistance, 1.0)
+    }
+
+    private var weekPercentage: Int {
+        Int(weekProgress * 100)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 摺疊/展開按鈕
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isExpanded.toggle()
-                }
-            }) {
-                HStack(alignment: .center, spacing: 8) {
-                    // 圖示
-                    Image(systemName: "chart.bar.fill")
-                        .foregroundColor(.blue)
-                        .font(.headline)
+        VStack(alignment: .leading, spacing: 16) {
+            // 標題
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundColor(.blue)
+                    .font(.headline)
 
-                    if isExpanded {
-                        // 展開狀態：顯示標題
-                        Text(NSLocalizedString("training_plan.week_overview", comment: "Week Overview"))
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                    } else {
-                        // 摺疊狀態：顯示精簡信息
-                        VStack(alignment: .leading, spacing: 4) {
-                            // 第一行：週數和週跑量
-                            HStack(spacing: 6) {
-                                Text("第 \(plan.weekOfPlan)/\(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks) 週")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                Text(NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度"))
+                    .font(.headline)
+                    .foregroundColor(.primary)
 
-                                Text("·")
-                                    .foregroundColor(.secondary)
-
-                                Text(viewModel.formatDistance(viewModel.currentWeekDistance, unit: nil))
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-
-                                Text("/")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-
-                                Text(viewModel.formatDistance(plan.totalDistance, unit: nil))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-
-                                Text("·")
-                                    .foregroundColor(.secondary)
-
-                                let percentage = Int((viewModel.currentWeekDistance / max(plan.totalDistance, 1.0)) * 100)
-                                Text("\(percentage)%")
-                                    .font(.headline)
-                                    .foregroundColor(percentage >= 80 ? .green : (percentage >= 50 ? .orange : .blue))
-                            }
-
-                            // 第二行：強度摘要（只顯示數字）
-                            if let intensity = plan.intensityTotalMinutes {
-                                HStack(spacing: 12) {
-                                    IntensitySummaryText(
-                                        label: NSLocalizedString("intensity.low", comment: "Low"),
-                                        minutes: Int(viewModel.currentWeekIntensity.low),
-                                        color: .green
-                                    )
-
-                                    IntensitySummaryText(
-                                        label: NSLocalizedString("intensity.medium", comment: "Medium"),
-                                        minutes: Int(viewModel.currentWeekIntensity.medium),
-                                        color: .orange
-                                    )
-
-                                    IntensitySummaryText(
-                                        label: NSLocalizedString("intensity.high", comment: "High"),
-                                        minutes: Int(viewModel.currentWeekIntensity.high),
-                                        color: .red
-                                    )
-                                }
-                                .font(.caption)
-                            }
-                        }
-                    }
-
-                    Spacer()
-
-                    // 展開/收起圖示
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                }
-                .padding(.horizontal, 4)
+                Spacer()
             }
-            .buttonStyle(PlainButtonStyle())
 
+            // 上半部：圓形進度 + 可點擊項目
+            HStack(alignment: .center, spacing: 20) {
+                // 左側：圓形週跑量進度
+                VStack(spacing: 4) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 8)
+                            .frame(width: 80, height: 80)
 
-            // 展開狀態的完整內容
-            if isExpanded {
-                VStack(spacing: 16) {
-                    // 週進度條（合併在頂部）
-                    if plan.intensityTotalMinutes != nil {
-                        WeekProgressHeader(
-                            plan: plan,
-                            overview: viewModel.trainingOverview,
-                            showWeekSelector: $showWeekSelector,
-                            showTrainingProgress: $showTrainingProgress
-                        )
-                    }
+                        Circle()
+                            .trim(from: 0, to: weekProgress)
+                            .stroke(
+                                weekPercentage >= 80 ? Color.green :
+                                    (weekPercentage >= 50 ? Color.orange : Color.blue),
+                                style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                            )
+                            .frame(width: 80, height: 80)
+                            .rotationEffect(.degrees(-90))
 
-                    // 標題
-                    Text(ViewModelUtils.isCurrentLanguageChinese()
-                         ? NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度")
-                         : NSLocalizedString("training_plan.weekly_volume_load", comment: "Weekly Volume and Training Intensity"))
-                        .font(.system(size: 14, weight: .bold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(spacing: 2) {
+                            Text(viewModel.formatDistance(viewModel.currentWeekDistance, unit: nil))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.primary)
 
-                    // 進度圓環和強度進度條（橫向佈局）
-                    if let intensity = plan.intensityTotalMinutes {
-                        ProgressWithIntensitySection(
-                            plan: plan,
-                            planIntensity: intensity,
-                            actualIntensity: viewModel.currentWeekIntensity,
-                            currentWeekDistance: viewModel.currentWeekDistance,
-                            formatDistance: { viewModel.formatDistance($0, unit: nil) },
-                            showTrainingProgress: $showTrainingProgress
-                        )
-                    } else {
-                        ProgressCirclesSection(
-                            plan: plan,
-                            overview: viewModel.trainingOverview,
-                            currentWeekDistance: viewModel.currentWeekDistance,
-                            formatDistance: { viewModel.formatDistance($0, unit: nil) },
-                            showWeekSelector: $showWeekSelector,
-                            showTrainingProgress: $showTrainingProgress
-                        )
-                    }
+                            Text("/")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
 
-                    // 訓練目的
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "lightbulb.fill")
-                                .foregroundColor(.orange)
+                            Text(viewModel.formatDistance(plan.totalDistance, unit: nil))
                                 .font(.caption)
-                            Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                                .font(.subheadline)
-                                .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                         }
-
-                        Text(plan.purpose)
-                            .font(.body)
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text("\(weekPercentage)%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // 右側：可點擊項目
+                VStack(alignment: .leading, spacing: 12) {
+                    // 設計邏輯
+                    if let designReason = plan.designReason, !designReason.isEmpty {
+                        Button(action: {
+                            showDesignReason = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "lightbulb.circle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.body)
+
+                                Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+
+                    // 本週目標
+                    Button(action: {
+                        showWeekTarget = true
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "target")
+                                .foregroundColor(.blue)
+                                .font(.body)
+
+                            Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+
+            // 下半部：強度分布（一行三個進度條）
+            if let intensity = plan.intensityTotalMinutes {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "flame.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+
+                        Text(NSLocalizedString("training.intensity_distribution", comment: "Intensity Distribution"))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+
+                    // 一行強度分布
+                    HStack(spacing: 12) {
+                        // 低強度
+                        CompactIntensityBar(
+                            label: NSLocalizedString("intensity.low", comment: "Low"),
+                            current: Int(viewModel.currentWeekIntensity.low),
+                            target: Int(intensity.low),
+                            color: .green
+                        )
+
+                        // 中強度
+                        CompactIntensityBar(
+                            label: NSLocalizedString("intensity.medium", comment: "Medium"),
+                            current: Int(viewModel.currentWeekIntensity.medium),
+                            target: Int(intensity.medium),
+                            color: .orange
+                        )
+
+                        // 高強度
+                        CompactIntensityBar(
+                            label: NSLocalizedString("intensity.high", comment: "High"),
+                            current: Int(viewModel.currentWeekIntensity.high),
+                            target: Int(intensity.high),
+                            color: .red
+                        )
+                    }
                 }
             }
         }
@@ -167,29 +178,117 @@ struct WeekOverviewCard: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
-        .sheet(isPresented: $showWeekSelector) {
-            WeekSelectorSheet(viewModel: viewModel, isPresented: $showWeekSelector)
+        .sheet(isPresented: $showDesignReason) {
+            if let designReason = plan.designReason {
+                NavigationView {
+                    DesignReasonView(designReason: designReason)
+                }
+            }
         }
-        .sheet(isPresented: $showTrainingProgress) {
-            TrainingProgressView(viewModel: viewModel)
+        .sheet(isPresented: $showWeekTarget) {
+            NavigationView {
+                WeekTargetView(purpose: plan.purpose)
+            }
         }
     }
 }
 
-// MARK: - 強度摘要文字組件（用於摺疊狀態）
-struct IntensitySummaryText: View {
+// MARK: - 緊湊型強度條組件
+struct CompactIntensityBar: View {
     let label: String
-    let minutes: Int
+    let current: Int
+    let target: Int
     let color: Color
 
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .foregroundColor(.secondary)
+    private var progress: Double {
+        guard target > 0 else { return 0 }
+        return min(Double(current) / Double(target), 1.0)
+    }
 
-            Text("\(minutes)")
-                .fontWeight(.semibold)
-                .foregroundColor(color)
+    private var isUnscheduled: Bool {
+        target == 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // 標籤和數字
+            Text("\(label) \(current)/\(target)")
+                .font(.caption)
+                .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
+
+            // 進度條
+            ProgressView(value: progress)
+                .tint(isUnscheduled ? .gray.opacity(0.3) : color)
+                .scaleEffect(y: 1.2)
+        }
+    }
+}
+
+// MARK: - 設計邏輯視圖
+struct DesignReasonView: View {
+    let designReason: [String]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "\(index + 1).circle.fill")
+                            .foregroundColor(.orange)
+                            .font(.title3)
+
+                        Text(reason)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(NSLocalizedString("training.design_reason", comment: "Design Reason"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(NSLocalizedString("common.close", comment: "Close")) {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 週目標視圖
+struct WeekTargetView: View {
+    let purpose: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "target")
+                        .foregroundColor(.blue)
+                        .font(.title2)
+
+                    Text(purpose)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding()
+            }
+        }
+        .navigationTitle(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(NSLocalizedString("common.close", comment: "Close")) {
+                    dismiss()
+                }
+            }
         }
     }
 }
@@ -200,16 +299,19 @@ struct IntensitySummaryText: View {
         viewModel: TrainingPlanViewModel(),
         plan: WeeklyPlan(
             id: "preview",
-            purpose: "預覽測試",
-            weekOfPlan: 1,
-            totalWeeks: 12,
-            totalDistance: 50.0,
-            designReason: ["測試用"],
+            purpose: "本週目標是讓身體在速度與耐力上達到更佳的平衡，為接下來的挑戰累積能量。",
+            weekOfPlan: 35,
+            totalWeeks: 39,
+            totalDistance: 43.0,
+            designReason: [
+                "根據上週訓練狀況調整強度",
+                "增加間歇訓練以提升速度",
+                "保持充足恢復時間"
+            ],
             days: [],
-            intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 120, medium: 45, high: 15)
+            intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 246, medium: 60, high: 39)
         )
     )
     .environmentObject(HealthKitManager())
+    .padding()
 }
-
-

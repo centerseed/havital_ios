@@ -488,12 +488,15 @@ struct TrainingPlanView: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .ready(let plan):
-                // ✨ 階層式佈局：總覽 → 週 → 日
-                VStack(spacing: 20) {
-                    // 1. 週總覽（最頂部 - 整週的目標和進度）
+                // ✨ 階層式佈局：訓練進度 → 週總覽 → 日
+                VStack(spacing: 16) {
+                    // 1. 訓練進度（獨立卡片，不收折）
+                    TrainingProgressCard(viewModel: viewModel, plan: plan)
+
+                    // 2. 週總覽（週跑量和強度，不收折）
                     WeekOverviewCard(viewModel: viewModel, plan: plan)
 
-                    // 2. 週訓練時間軸（中間 - 一週七天的訓練安排）
+                    // 3. 週訓練時間軸
                     WeekTimelineView(viewModel: viewModel, plan: plan)
                 }
                 .transition(.opacity)
