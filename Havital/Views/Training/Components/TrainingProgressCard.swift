@@ -4,6 +4,7 @@ import SwiftUI
 struct TrainingProgressCard: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
+    @State private var showWeekSelector = false
 
     private var progress: Double {
         let totalWeeks = Double(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks)
@@ -16,36 +17,48 @@ struct TrainingProgressCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 標題和週數
-            HStack {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .foregroundColor(.blue)
-                    .font(.headline)
+        Button(action: {
+            showWeekSelector = true
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                // 標題和週數
+                HStack {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundColor(.blue)
+                        .font(.headline)
 
-                Text(NSLocalizedString("training.progress", comment: "Training Progress"))
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                    Text(NSLocalizedString("training.progress", comment: "Training Progress"))
+                        .font(.headline)
+                        .foregroundColor(.primary)
 
-                Spacer()
+                    Spacer()
 
-                Text("第 \(plan.weekOfPlan) / \(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks) 週")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.secondary)
+                    Text("第 \(plan.weekOfPlan) / \(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks) 週")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // 進度條（移除百分比）
+                ProgressView(value: progress)
+                    .tint(.blue)
+                    .scaleEffect(y: 1.8)
             }
-
-            // 進度條（移除百分比）
-            ProgressView(value: progress)
-                .tint(.blue)
-                .scaleEffect(y: 1.8)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.tertiarySystemBackground))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.tertiarySystemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showWeekSelector) {
+            WeekSelectorSheet(viewModel: viewModel, isPresented: $showWeekSelector)
+        }
     }
 }
 

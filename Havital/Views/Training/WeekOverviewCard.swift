@@ -19,14 +19,22 @@ struct WeekOverviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 標題（移除 icon）
-            Text(NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度"))
-                .font(.headline)
-                .foregroundColor(.primary)
+            // 標題（更換 icon）
+            HStack {
+                Image(systemName: "chart.pie.fill")
+                    .foregroundColor(.blue)
+                    .font(.headline)
 
-            // 上半部：圓形進度 + 可點擊項目
-            HStack(alignment: .center, spacing: 16) {
-                // 左側：圓形週跑量進度（放大，移除百分比）
+                Text(NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度"))
+                    .font(.headline)
+                    .foregroundColor(.primary)
+            }
+
+            // 上半部：圓形進度 + 可點擊項目（居中佈局）
+            HStack(spacing: 0) {
+                Spacer()
+
+                // 左側：圓形週跑量進度
                 ZStack {
                     Circle()
                         .stroke(Color.gray.opacity(0.2), lineWidth: 10)
@@ -57,13 +65,15 @@ struct WeekOverviewCard: View {
                                 .foregroundColor(.secondary)
                         }
 
-                        Text("\(weekPercentage)%")
+                        Text("km")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
                 }
 
-                // 右側：可點擊項目（緊湊樣式）
+                Spacer()
+
+                // 右側：可點擊項目
                 VStack(alignment: .leading, spacing: 10) {
                     // 設計邏輯
                     if let designReason = plan.designReason, !designReason.isEmpty {
