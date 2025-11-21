@@ -488,16 +488,12 @@ struct TrainingPlanView: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .ready(let plan):
-                // ✨ 方案二佈局：今日焦點 + 週總覽 + 時間軸
+                // ✨ 階層式佈局：總覽 → 週 → 日
                 VStack(spacing: 20) {
-                    // 1. 今日焦點卡片（最頂部）
-                    let todayTraining = plan.days.first(where: { viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) })
-                    TodayFocusCard(viewModel: viewModel, todayTraining: todayTraining)
-
-                    // 2. 週總覽（緊湊摺疊樣式）
+                    // 1. 週總覽（最頂部 - 整週的目標和進度）
                     WeekOverviewCard(viewModel: viewModel, plan: plan)
 
-                    // 3. 週訓練時間軸
+                    // 2. 週訓練時間軸（中間 - 一週七天的訓練安排）
                     WeekTimelineView(viewModel: viewModel, plan: plan)
                 }
                 .transition(.opacity)
