@@ -43,8 +43,7 @@ struct WeekOverviewCard: View {
                     Circle()
                         .trim(from: 0, to: weekProgress)
                         .stroke(
-                            weekPercentage >= 80 ? Color.green :
-                                (weekPercentage >= 50 ? Color.orange : Color.blue),
+                            Color.blue,
                             style: StrokeStyle(lineWidth: 9, lineCap: .round)
                         )
                         .frame(width: 90, height: 90)
