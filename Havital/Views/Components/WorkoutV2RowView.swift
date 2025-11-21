@@ -160,11 +160,7 @@ struct WorkoutV2RowView: View {
             }
         }
     }
-    
-    private func isToday(date: Date) -> Bool {
-        Calendar.current.isDateInToday(date)
-    }
-    
+
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd HH:mm"

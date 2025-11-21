@@ -13,10 +13,6 @@ struct WeekOverviewCard: View {
         return min(viewModel.currentWeekDistance / plan.totalDistance, 1.0)
     }
 
-    private var weekPercentage: Int {
-        Int(weekProgress * 100)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 標題（更換 icon）

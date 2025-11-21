@@ -12,10 +12,6 @@ struct TrainingProgressCard: View {
         return min(Double(plan.weekOfPlan) / totalWeeks, 1.0)
     }
 
-    private var percentage: Int {
-        Int(progress * 100)
-    }
-
     var body: some View {
         Button(action: {
             showTrainingProgress = true
