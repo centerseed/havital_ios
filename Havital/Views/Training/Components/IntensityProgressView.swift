@@ -13,24 +13,24 @@ struct IntensityProgressView: View {
 
         if target == 0 {
             if currentMinutes > 0 {
-                // 狀況: 目標為 0，實際 > 0
+                // 狀況: 目標為 0，實際 > 0（未排課但有訓練）
                 return (
                     mainText: String(format: NSLocalizedString("intensity.minutes", comment: "Minutes"), currentMinutes),
                     annotationText: NSLocalizedString("intensity.unscheduled", comment: "(Unscheduled)"),
                     showIcon: false,
                     progressValue: 1.0, // 顯示完整進度條以表示活動量
-                    barColor: .gray,     // 灰底
+                    barColor: .gray.opacity(0.5),     // 灰色半透明，更加柔和
                     valueColor: .secondary // 提示文字顏色
                 )
             } else {
-                // 狀況: 目標為 0，實際 = 0
+                // 狀況: 目標為 0，實際 = 0（未排課且無訓練）
                 return (
-                    mainText: NSLocalizedString("intensity.not_scheduled", comment: "Not scheduled"), // 或 "無預計訓練"
+                    mainText: NSLocalizedString("intensity.not_scheduled", comment: "Not scheduled"),
                     annotationText: nil,
                     showIcon: false,
                     progressValue: 0.0,
-                    barColor: .gray, // 維持與「目標0，實際>0」時一致的灰色背景提示
-                    valueColor: .secondary
+                    barColor: .gray.opacity(0.3), // 更淺的灰色，表示空白狀態
+                    valueColor: .secondary.opacity(0.7) // 更淡的文字顏色
                 )
             }
         } else {

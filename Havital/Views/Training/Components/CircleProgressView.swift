@@ -40,16 +40,50 @@ struct CircleProgressView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.center)
                 }
-                
+
+                // 視覺優化：當前值大號，目標值小號
                 VStack(spacing: 0) {
-                    Text(distanceInfo)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.6)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        
+                    if distanceInfo.contains("/") {
+                        // 分割當前值和目標值
+                        let components = distanceInfo.split(separator: "/")
+                        if components.count == 2 {
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                // 當前進度（大號、粗體）
+                                Text(String(components[0]))
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.primary)
+
+                                // 分隔符（小號）
+                                Text("/")
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(.secondary)
+
+                                // 目標值（小號）
+                                Text(String(components[1]))
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(.secondary)
+                            }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                        } else {
+                            // 降級顯示
+                            Text(distanceInfo)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.6)
+                                .multilineTextAlignment(.center)
+                        }
+                    } else {
+                        // 沒有 "/" 的情況，正常顯示
+                        Text(distanceInfo)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.primary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                            .multilineTextAlignment(.center)
+                    }
+
                     Text(unit ?? "km")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)

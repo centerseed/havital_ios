@@ -471,9 +471,9 @@ struct TrainingPlanView: View {
         }
     }
     
-    // 拆分主內容視圖
+    // 拆分主內容視圖 - 使用方案二：時間軸式設計 + 焦點模式
     @ViewBuilder private var mainContentView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             // 🆕 返回本週按鈕（查看未來週時顯示）
             if viewModel.selectedWeek > viewModel.currentWeek {
                 ReturnToCurrentWeekButton(viewModel: viewModel)
@@ -488,11 +488,18 @@ struct TrainingPlanView: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .ready(let plan):
-                WeekPlanContentView(
-                    viewModel: viewModel,
-                    plan: plan,
-                    currentTrainingWeek: viewModel.currentWeek
-                )
+                // ✨ 方案二佈局：今日焦點 + 週總覽 + 時間軸
+                VStack(spacing: 20) {
+                    // 1. 今日焦點卡片（最頂部）
+                    let todayTraining = plan.days.first(where: { viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) })
+                    TodayFocusCard(viewModel: viewModel, todayTraining: todayTraining)
+
+                    // 2. 週總覽（緊湊摺疊樣式）
+                    WeekOverviewCard(viewModel: viewModel, plan: plan)
+
+                    // 3. 週訓練時間軸
+                    WeekTimelineView(viewModel: viewModel, plan: plan)
+                }
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .completed:
