@@ -5,8 +5,7 @@ struct WeekOverviewCard: View {
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlan
     @EnvironmentObject private var healthKitManager: HealthKitManager
-    @State private var showDesignReason = false
-    @State private var showWeekTarget = false
+    @State private var showWeekTargetDetail = false
 
     private var weekProgress: Double {
         guard plan.totalDistance > 0 else { return 0 }
@@ -79,37 +78,10 @@ struct WeekOverviewCard: View {
 
                 Spacer()
 
-                // 右側：可點擊項目
+                // 右側：本週目標按鈕（統一入口）
                 VStack(alignment: .leading, spacing: 10) {
-                    // 設計邏輯
-                    if let designReason = plan.designReason, !designReason.isEmpty {
-                        Button(action: {
-                            showDesignReason = true
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "lightbulb.circle.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.subheadline)
-
-                                Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-                                    .font(.subheadline)
-                                    .foregroundColor(.primary)
-
-                                Image(systemName: "chevron.right")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 10)
-                            .background(Color(UIColor.secondarySystemBackground))
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-
-                    // 本週目標
                     Button(action: {
-                        showWeekTarget = true
+                        showWeekTargetDetail = true
                     }) {
                         HStack(spacing: 6) {
                             Image(systemName: "target")
@@ -170,16 +142,9 @@ struct WeekOverviewCard: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
-        .sheet(isPresented: $showDesignReason) {
-            if let designReason = plan.designReason {
-                NavigationView {
-                    DesignReasonView(designReason: designReason)
-                }
-            }
-        }
-        .sheet(isPresented: $showWeekTarget) {
+        .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
-                WeekTargetView(purpose: plan.purpose)
+                WeekTargetDetailView(purpose: plan.purpose, designReason: plan.designReason)
             }
         }
     }
@@ -216,62 +181,77 @@ struct CompactIntensityBar: View {
     }
 }
 
-// MARK: - 設計邏輯視圖
-struct DesignReasonView: View {
-    let designReason: [String]
+// MARK: - 週目標詳情視圖（整合週目標和設計原因）
+struct WeekTargetDetailView: View {
+    let purpose: String
+    let designReason: [String]?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "\(index + 1).circle.fill")
-                            .foregroundColor(.orange)
+            VStack(alignment: .leading, spacing: 24) {
+                // 週目標區域
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "target")
+                            .foregroundColor(.blue)
                             .font(.title3)
 
-                        Text(reason)
-                            .font(.body)
+                        Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                            .font(.headline)
                             .foregroundColor(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.vertical, 8)
-                }
-            }
-            .padding()
-        }
-        .navigationTitle(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(NSLocalizedString("common.close", comment: "Close")) {
-                    dismiss()
-                }
-            }
-        }
-    }
-}
-
-// MARK: - 週目標視圖
-struct WeekTargetView: View {
-    let purpose: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "target")
-                        .foregroundColor(.blue)
-                        .font(.title2)
 
                     Text(purpose)
                         .font(.body)
                         .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 4)
                 }
                 .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.08))
+                )
+
+                // 設計原因區域（如果有的話）
+                if let designReason = designReason, !designReason.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lightbulb.circle.fill")
+                                .foregroundColor(.orange)
+                                .font(.title3)
+
+                            Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("\(index + 1).")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.orange)
+
+                                    Text(reason)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
+                        .padding(.leading, 4)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.08))
+                    )
+                }
             }
+            .padding()
         }
         .navigationTitle(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
         .navigationBarTitleDisplayMode(.inline)
