@@ -50,7 +50,7 @@ struct TodayFocusCard: View {
                     // 進度圓環
                     if let totalDistance = today.trainingDetails?.totalDistanceKm ?? today.trainingDetails?.distanceKm {
                         let todayWorkouts = viewModel.workoutsByDayV2[today.dayIndexInt] ?? []
-                        let completedDistance = todayWorkouts.reduce(0.0) { $0 + ($1.distance / 1000.0) }
+                        let completedDistance = todayWorkouts.reduce(0.0) { $0 + (($1.distance ?? 0.0) / 1000.0) }
                         let progress = min(completedDistance / totalDistance, 1.0)
 
                         VStack(spacing: 8) {

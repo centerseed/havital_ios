@@ -23,18 +23,10 @@ struct WeekTimelineView: View {
             // 時間軸列表
             VStack(spacing: 12) {
                 ForEach(plan.days) { day in
-                    let isToday = viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: plan.weekOfPlan)
-                    let isPast = viewModel.isPastDay(dayIndex: day.dayIndexInt, planWeek: plan.weekOfPlan)
-                    let workouts = viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
-                    let isCompleted = !workouts.isEmpty
-
                     TimelineItemView(
                         viewModel: viewModel,
                         day: day,
-                        isToday: isToday,
-                        isPast: isPast,
-                        isCompleted: isCompleted,
-                        workouts: workouts,
+                        planWeek: plan.weekOfPlan,
                         onWorkoutSelect: { workout in
                             selectedWorkout = workout
                         }
@@ -54,13 +46,27 @@ struct WeekTimelineView: View {
 struct TimelineItemView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let day: TrainingDay
-    let isToday: Bool
-    let isPast: Bool
-    let isCompleted: Bool
-    let workouts: [WorkoutV2]
+    let planWeek: Int
     let onWorkoutSelect: (WorkoutV2) -> Void
 
     @State private var isExpanded = false
+
+    // 計算屬性
+    private var isToday: Bool {
+        viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: planWeek)
+    }
+
+    private var isPast: Bool {
+        viewModel.isPastDay(dayIndex: day.dayIndexInt, planWeek: planWeek)
+    }
+
+    private var workouts: [WorkoutV2] {
+        viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
+    }
+
+    private var isCompleted: Bool {
+        !workouts.isEmpty
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -203,7 +209,7 @@ struct TimelineItemView: View {
                                                 .foregroundColor(.green)
                                                 .font(.caption2)
 
-                                            Text(String(format: "%.2f km", workout.distance / 1000.0))
+                                            Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
                                                 .font(.caption)
                                                 .foregroundColor(.primary)
 
