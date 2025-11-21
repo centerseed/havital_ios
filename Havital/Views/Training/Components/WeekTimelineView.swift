@@ -60,6 +60,7 @@ struct TimelineItemView: View {
 
     @State private var isExpanded = false
     @State private var showTrainingTypeInfo = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         // 在 body 內部計算這些值
