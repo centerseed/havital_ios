@@ -247,8 +247,36 @@ struct WorkoutV2RowView: View {
     private func getActivityTypeColor(_ activityType: String) -> Color {
         let type = activityType.lowercased()
 
+        // 跑步類型：根據訓練類型細分配色
         if type.contains("running") || type.contains("run") {
-            return .green
+            if let trainingType = workout.trainingType {
+                switch trainingType.lowercased() {
+                case "easy_run", "easy":
+                    return .green
+                case "long_run":
+                    return .blue
+                case "interval":
+                    return .red
+                case "tempo":
+                    return .orange
+                case "threshold":
+                    return .purple
+                case "recovery_run":
+                    return .cyan
+                case "fartlek":
+                    return .pink
+                case "combination":
+                    return .indigo
+                case "hill_training":
+                    return .brown
+                case "race":
+                    return .yellow
+                default:
+                    return .green  // 默認綠色
+                }
+            } else {
+                return .green  // 沒有訓練類型時默認綠色
+            }
         } else if type.contains("cycling") || type.contains("bike") || type.contains("ride") {
             return .blue
         } else if type.contains("strength") || type.contains("weight") || type.contains("gym") {
