@@ -86,31 +86,14 @@ struct NewWeekPromptView: View {
 struct DailyTrainingListView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
-    @State private var showDesignReason = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 添加標題
+            // 標題區域（已移除獨立的設計原因按鈕，用戶可通過 WeekOverviewCard 的「本週目標」查看）
             HStack(alignment: .center) {
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
                     .font(.headline)
                     .foregroundColor(.primary)
-
-                // Design Reason 圖示
-                if let designReason = plan.designReason, !designReason.isEmpty {
-                    Button(action: {
-                        showDesignReason = true
-                    }) {
-                        Image(systemName: "lightbulb.circle.fill")
-                            .foregroundColor(.orange)
-                            .font(.headline)
-                    }
-                    .sheet(isPresented: $showDesignReason) {
-                        NavigationView {
-                            DesignReasonView(designReason: designReason)
-                        }
-                    }
-                }
 
                 Spacer()
 
