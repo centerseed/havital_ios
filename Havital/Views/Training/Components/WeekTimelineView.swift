@@ -230,8 +230,84 @@ struct TimelineItemView: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isToday ? Color.blue.opacity(0.08) : Color(UIColor.secondarySystemBackground))
+                    .fill(getCardBackgroundColor(isToday: isToday, isCompleted: isCompleted, isPast: isPast))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(getCardBorderColor(isToday: isToday, isCompleted: isCompleted, isPast: isPast), lineWidth: getCardBorderWidth(isToday: isToday, isCompleted: isCompleted))
+            )
+            .shadow(
+                color: getShadowColor(isToday: isToday, isCompleted: isCompleted),
+                radius: getShadowRadius(isToday: isToday, isCompleted: isCompleted),
+                x: 0,
+                y: getShadowY(isToday: isToday, isCompleted: isCompleted)
+            )
+        }
+    }
+
+    // 獲取卡片背景色
+    private func getCardBackgroundColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
+        if isToday {
+            return Color.blue.opacity(0.1)  // 當日：淡藍色
+        } else if isCompleted {
+            return Color.green.opacity(0.08)  // 已完成：淡綠色
+        } else {
+            return Color(UIColor.secondarySystemBackground)  // 其他：默認灰色
+        }
+    }
+
+    // 獲取卡片邊框顏色
+    private func getCardBorderColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
+        if isToday {
+            return Color.blue.opacity(0.3)  // 當日：藍色邊框
+        } else if !isCompleted && !isPast {
+            return Color.orange.opacity(0.3)  // 未來未完成：橙色邊框
+        } else {
+            return Color.clear  // 其他：無邊框
+        }
+    }
+
+    // 獲取卡片邊框寬度
+    private func getCardBorderWidth(isToday: Bool, isCompleted: Bool) -> CGFloat {
+        if isToday {
+            return 1.5  // 當日：較粗邊框
+        } else if !isCompleted {
+            return 1.0  // 未完成：細邊框
+        } else {
+            return 0  // 已完成：無邊框
+        }
+    }
+
+    // 獲取陰影顏色
+    private func getShadowColor(isToday: Bool, isCompleted: Bool) -> Color {
+        if isToday {
+            return Color.blue.opacity(0.2)  // 當日：藍色陰影
+        } else if isCompleted {
+            return Color.green.opacity(0.15)  // 已完成：綠色陰影
+        } else {
+            return Color.black.opacity(0.05)  // 其他：淡黑色陰影
+        }
+    }
+
+    // 獲取陰影半徑
+    private func getShadowRadius(isToday: Bool, isCompleted: Bool) -> CGFloat {
+        if isToday {
+            return 8  // 當日：較大陰影
+        } else if isCompleted {
+            return 5  // 已完成：中等陰影
+        } else {
+            return 3  // 其他：小陰影
+        }
+    }
+
+    // 獲取陰影 Y 偏移
+    private func getShadowY(isToday: Bool, isCompleted: Bool) -> CGFloat {
+        if isToday {
+            return 4  // 當日：較大偏移
+        } else if isCompleted {
+            return 2  // 已完成：中等偏移
+        } else {
+            return 1  // 其他：小偏移
         }
     }
 
