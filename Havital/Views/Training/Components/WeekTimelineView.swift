@@ -90,7 +90,8 @@ struct TimelineItemView: View {
                 if day.dayIndexInt < 6 {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 2, height: 60)
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
                 }
             }
             .frame(width: 16, alignment: .top)
@@ -170,100 +171,155 @@ struct TimelineItemView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // 展開內容（今日訓練始終展開）
-                if isExpanded || isToday {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Divider()
+                // 訓練內容區域（始終顯示）
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
 
-                        // 訓練目標
-                        Text(day.dayTarget)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                    // 訓練目標
+                    Text(day.dayTarget)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                        // 顯示分段訓練詳情（針對組合跑、漸進跑等）
-                        if let details = day.trainingDetails, let segments = details.segments, !segments.isEmpty {
-                            VStack(alignment: .leading, spacing: 6) {
-                                ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                                    HStack(spacing: 6) {
-                                        // 段落標籤
-                                        Text("第\(index + 1)段")
+                    // 顯示分段訓練詳情（針對組合跑、漸進跑等）
+                    if let details = day.trainingDetails, let segments = details.segments, !segments.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                                // 檢查是否應該隱藏配速
+                                let shouldHidePace = shouldHidePaceForSegment(segment)
+
+                                HStack(spacing: 6) {
+                                    // 段落標籤
+                                    Text("第\(index + 1)段")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.orange)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(Color.orange.opacity(0.15))
+                                        .cornerRadius(4)
+
+                                    // 配速（根據訓練類型決定是否顯示）
+                                    if let pace = segment.pace, !shouldHidePace {
+                                        HStack(spacing: 2) {
+                                            Image(systemName: "speedometer")
+                                                .font(.system(size: 8))
+                                                .foregroundColor(.blue)
+                                            Text(pace)
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.blue)
+                                        }
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 3)
+                                        .background(Color.blue.opacity(0.15))
+                                        .cornerRadius(4)
+                                    }
+
+                                    // 距離
+                                    if let distance = segment.distanceKm {
+                                        Text(String(format: "%.1fkm", distance))
                                             .font(.system(size: 10, weight: .medium))
-                                            .foregroundColor(.orange)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(Color.orange.opacity(0.15))
-                                            .cornerRadius(4)
-
-                                        // 配速
-                                        if let pace = segment.pace {
-                                            HStack(spacing: 2) {
-                                                Image(systemName: "speedometer")
-                                                    .font(.system(size: 8))
-                                                    .foregroundColor(.blue)
-                                                Text(pace)
-                                                    .font(.system(size: 10, weight: .medium))
-                                                    .foregroundColor(.blue)
-                                            }
+                                            .foregroundColor(.white)
                                             .padding(.horizontal, 5)
                                             .padding(.vertical, 3)
-                                            .background(Color.blue.opacity(0.15))
+                                            .background(Color.purple.opacity(0.8))
                                             .cornerRadius(4)
-                                        }
+                                    }
 
-                                        // 距離
-                                        if let distance = segment.distanceKm {
-                                            Text(String(format: "%.1fkm", distance))
-                                                .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 3)
-                                                .background(Color.purple.opacity(0.8))
-                                                .cornerRadius(4)
-                                        }
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(.top, 4)
+                    } else if let details = day.trainingDetails {
+                        // 顯示非分段訓練的基本信息（輕鬆跑、間歇等）
+                        HStack(spacing: 6) {
+                            // 距離
+                            if let distance = details.distanceKm {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "figure.run")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(.blue)
+                                    Text(String(format: "%.1fkm", distance))
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.blue)
+                                }
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 3)
+                                .background(Color.blue.opacity(0.15))
+                                .cornerRadius(4)
+                            }
+
+                            // 配速（根據訓練類型決定是否顯示）
+                            if let pace = details.pace, !shouldHidePaceForTrainingType() {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "speedometer")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(.orange)
+                                    Text(pace)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 3)
+                                .background(Color.orange.opacity(0.15))
+                                .cornerRadius(4)
+                            }
+
+                            // 心率區間
+                            if let hr = details.heartRateRange, let displayText = hr.displayText {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "heart.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(.red)
+                                    Text(displayText)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.red)
+                                }
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 3)
+                                .background(Color.red.opacity(0.15))
+                                .cornerRadius(4)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.top, 4)
+                    }
+
+                    // 已完成的訓練記錄（只在展開或今日時顯示）
+                    if (isExpanded || isToday) && !workouts.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(workouts.prefix(2), id: \.id) { workout in
+                                Button {
+                                    onWorkoutSelect(workout)
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "figure.run")
+                                            .foregroundColor(.green)
+                                            .font(.caption2)
+
+                                        Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
+                                            .font(.caption)
+                                            .foregroundColor(.primary)
+
+                                        Text("·")
+                                            .foregroundColor(.secondary)
+
+                                        Text(formatDuration(workout.duration))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
 
                                         Spacer()
                                     }
                                 }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .padding(.top, 4)
-                        }
 
-                        // 已完成的訓練記錄
-                        if !workouts.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(workouts.prefix(2), id: \.id) { workout in
-                                    Button {
-                                        onWorkoutSelect(workout)
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "figure.run")
-                                                .foregroundColor(.green)
-                                                .font(.caption2)
-
-                                            Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
-                                                .font(.caption)
-                                                .foregroundColor(.primary)
-
-                                            Text("·")
-                                                .foregroundColor(.secondary)
-
-                                            Text(formatDuration(workout.duration))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-
-                                            Spacer()
-                                        }
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-
-                                if workouts.count > 2 {
-                                    Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
-                                        .font(.caption2)
-                                        .foregroundColor(.blue)
-                                }
+                            if workouts.count > 2 {
+                                Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
                             }
                         }
                     }
@@ -396,6 +452,18 @@ struct TimelineItemView: View {
         } else {
             return String(format: "%d:%02d", minutes, seconds)
         }
+    }
+
+    // 檢查分段是否應該隱藏配速
+    private func shouldHidePaceForSegment(_ segment: ProgressionSegment) -> Bool {
+        guard let description = segment.description else { return false }
+        let desc = description.lowercased()
+        return desc.contains("輕鬆") || desc.contains("恢復") || desc.contains("easy") || desc.contains("recovery") || desc.contains("lsd")
+    }
+
+    // 檢查訓練類型是否應該隱藏配速
+    private func shouldHidePaceForTrainingType() -> Bool {
+        return day.type == .easyRun || day.type == .easy || day.type == .recovery_run || day.type == .lsd
     }
 }
 
