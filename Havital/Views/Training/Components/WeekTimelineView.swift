@@ -90,11 +90,10 @@ struct TimelineItemView: View {
                 if day.dayIndexInt < 6 {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 2)
-                        .frame(minHeight: 40)
+                        .frame(width: 2, height: 60)
                 }
             }
-            .frame(width: 16)
+            .frame(width: 16, alignment: .top)
 
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
@@ -154,12 +153,6 @@ struct TimelineItemView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
-
-                                if isCompleted {
-                                    Text("✓ \(NSLocalizedString("training.completed", comment: "Completed"))")
-                                        .font(.caption)
-                                        .foregroundColor(.green)
-                                }
                             }
                         }
 
@@ -169,7 +162,9 @@ struct TimelineItemView: View {
                         if !isToday {
                             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .foregroundColor(.secondary)
-                                .font(.caption)
+                                .font(.system(size: 14))
+                                .frame(width: 50, height: 44)
+                                .contentShape(Rectangle())
                         }
                     }
                 }
@@ -186,6 +181,54 @@ struct TimelineItemView: View {
                             .foregroundColor(.secondary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        // 顯示分段訓練詳情（針對組合跑、漸進跑等）
+                        if let details = day.trainingDetails, let segments = details.segments, !segments.isEmpty {
+                            VStack(alignment: .leading, spacing: 6) {
+                                ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                                    HStack(spacing: 6) {
+                                        // 段落標籤
+                                        Text("第\(index + 1)段")
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(.orange)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 3)
+                                            .background(Color.orange.opacity(0.15))
+                                            .cornerRadius(4)
+
+                                        // 配速
+                                        if let pace = segment.pace {
+                                            HStack(spacing: 2) {
+                                                Image(systemName: "speedometer")
+                                                    .font(.system(size: 8))
+                                                    .foregroundColor(.blue)
+                                                Text(pace)
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.blue)
+                                            }
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 3)
+                                            .background(Color.blue.opacity(0.15))
+                                            .cornerRadius(4)
+                                        }
+
+                                        // 距離
+                                        if let distance = segment.distanceKm {
+                                            Text(String(format: "%.1fkm", distance))
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                        }
+
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
 
                         // 已完成的訓練記錄
                         if !workouts.isEmpty {
@@ -248,7 +291,7 @@ struct TimelineItemView: View {
     // 獲取卡片背景色
     private func getCardBackgroundColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
         if isToday {
-            return Color.blue.opacity(0.1)  // 當日：淡藍色
+            return Color.blue.opacity(0.2)  // 當日：更顯眼的藍色
         } else if isCompleted {
             return Color.green.opacity(0.08)  // 已完成：淡綠色
         } else {
