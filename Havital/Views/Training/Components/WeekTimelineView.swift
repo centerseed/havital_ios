@@ -95,7 +95,8 @@ struct TimelineItemView: View {
                         .frame(maxHeight: .infinity)
                 }
             }
-            .frame(width: 16, maxHeight: .infinity, alignment: .top)
+            .frame(width: 16, alignment: .top)
+            .frame(maxHeight: .infinity)
 
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
