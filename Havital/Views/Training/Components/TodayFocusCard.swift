@@ -48,7 +48,7 @@ struct TodayFocusCard: View {
                     }
 
                     // 進度圓環
-                    if let totalDistance = today.trainingDetails?.totalDistanceKm {
+                    if let totalDistance = today.trainingDetails?.totalDistanceKm ?? today.trainingDetails?.distanceKm {
                         let todayWorkouts = viewModel.workoutsByDayV2[today.dayIndexInt] ?? []
                         let completedDistance = todayWorkouts.reduce(0.0) { $0 + ($1.distance / 1000.0) }
                         let progress = min(completedDistance / totalDistance, 1.0)
@@ -225,21 +225,26 @@ struct TodayFocusCard: View {
     let viewModel = TrainingPlanViewModel()
     let mockDay = TrainingDay(
         dayIndex: "0",
-        type: .combination,
         dayTarget: "結合多種配速與強度訓練整體能力",
+        reason: nil,
+        tips: nil,
+        trainingType: "combination",
         trainingDetails: TrainingDetails(
             description: "組合訓練",
-            pace: nil,
-            distanceKm: 10.0,
-            heartRateRange: nil,
+            distanceKm: nil,
             totalDistanceKm: 10.0,
+            timeMinutes: nil,
+            pace: nil,
+            work: nil,
+            recovery: nil,
+            repeats: nil,
+            heartRateRange: nil,
             segments: [
-                ProgressionSegment(description: "輕鬆開始", pace: nil, distanceKm: 3.0, heartRateRange: HeartRateRange(min: 141, max: 162)),
-                ProgressionSegment(description: "提速", pace: "5:25", distanceKm: 4.0, heartRateRange: HeartRateRange(min: 162, max: 176)),
-                ProgressionSegment(description: "放鬆結束", pace: nil, distanceKm: 3.0, heartRateRange: HeartRateRange(min: 141, max: 162))
+                ProgressionSegment(distanceKm: 3.0, pace: nil, description: "輕鬆開始", heartRateRange: HeartRateRange(min: 141, max: 162)),
+                ProgressionSegment(distanceKm: 4.0, pace: "5:25", description: "提速", heartRateRange: HeartRateRange(min: 162, max: 176)),
+                ProgressionSegment(distanceKm: 3.0, pace: nil, description: "放鬆結束", heartRateRange: HeartRateRange(min: 141, max: 162))
             ]
-        ),
-        tips: nil
+        )
     )
 
     TodayFocusCard(viewModel: viewModel, todayTraining: mockDay)
