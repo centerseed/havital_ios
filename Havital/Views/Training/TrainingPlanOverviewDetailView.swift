@@ -20,71 +20,94 @@ struct TrainingPlanOverviewDetailView: View {
     @State private var isUpdateSuccessful = false
     @State private var updatedOverview: TrainingPlanOverview?
 
+    // 🆕 摺疊狀態管理
+    @State private var isRaceInfoExpanded = true   // 賽事規劃默認展開
+    @State private var isGoalEvalExpanded = false  // 目標評估默認收起
+    @State private var isHighlightExpanded = false // 訓練重點默認收起
+    @State private var isStagesExpanded = false    // 訓練階段默認收起
+
     init(overview: TrainingPlanOverview) {
         _overview = State(initialValue: overview)
     }
-    
+
     // 給支援賽事排序 - 按照日期由近到遠（最快要比的在上面）
     private var sortedSupportingTargets: [Target] {
         return targetManager.supportingTargets.sorted { $0.raceDate < $1.raceDate }
     }
-    
+
     var body: some View {
         ZStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Target Race Card - 使用 TargetManager
-                    if let target = targetManager.mainTarget {
-                        TargetRaceCard(target: target, onEditTap: {
-                            showEditSheet = true
-                        })
-                    }
-                    
-                    // Supporting Races Card - 使用新到舊且最多五筆的支援賽事
-                    SupportingRacesCard(
-                        supportingTargets: sortedSupportingTargets,
-                        onAddTap: {
-                            showAddSupportingSheet = true
-                        },
-                        onEditTap: { target in
-                            selectedSupportingTarget = target
-                            showEditSupportingSheet = true
-                        }
-                    )
-                    
-                    // Goal Evaluation Section
-                    SectionCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"), systemImage: "target")
-                            
-                            Text(overview.targetEvaluate)
-                                .font(.body)
-                                .lineLimit(nil)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 16) {
+                    // 🎯 賽事規劃（默認展開）
+                    CollapsibleOverviewCard(
+                        title: NSLocalizedString("training.race_planning", comment: "賽事規劃"),
+                        systemImage: "flag.fill",
+                        isExpanded: $isRaceInfoExpanded,
+                        summary: NSLocalizedString("training.race_planning_summary", comment: "查看主要賽事和支援賽事")
+                    ) {
+                        VStack(spacing: 16) {
+                            // Target Race Card - 使用 TargetManager
+                            if let target = targetManager.mainTarget {
+                                TargetRaceCard(target: target, onEditTap: {
+                                    showEditSheet = true
+                                })
+                            }
+
+                            // Supporting Races Card - 使用新到舊且最多五筆的支援賽事
+                            SupportingRacesCard(
+                                supportingTargets: sortedSupportingTargets,
+                                onAddTap: {
+                                    showAddSupportingSheet = true
+                                },
+                                onEditTap: { target in
+                                    selectedSupportingTarget = target
+                                    showEditSupportingSheet = true
+                                }
+                            )
                         }
                     }
-                    
-                    // Training Highlight Section
-                    SectionCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"), systemImage: "sparkles")
-                            
-                            Text(overview.trainingHighlight)
-                                .font(.body)
-                                .lineLimit(nil)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+
+                    // 📊 目標評估（默認收起）
+                    CollapsibleOverviewCard(
+                        title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"),
+                        systemImage: "target",
+                        isExpanded: $isGoalEvalExpanded,
+                        summary: String(overview.targetEvaluate.prefix(50)) + "..."
+                    ) {
+                        Text(overview.targetEvaluate)
+                            .font(.body)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    
-                    // Training Stages
-                    SectionCard {
-                        VStack(alignment: .leading, spacing: 16) {
-                            SectionHeader(title: NSLocalizedString("training.training_stages", comment: "Training Stages"), systemImage: "chart.bar.fill")
-                            
+
+                    // ✨ 訓練重點（默認收起）
+                    CollapsibleOverviewCard(
+                        title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"),
+                        systemImage: "sparkles",
+                        isExpanded: $isHighlightExpanded,
+                        summary: String(overview.trainingHighlight.prefix(50)) + "..."
+                    ) {
+                        Text(overview.trainingHighlight)
+                            .font(.body)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    // 📈 訓練階段（默認收起）
+                    CollapsibleOverviewCard(
+                        title: NSLocalizedString("training.training_stages", comment: "Training Stages"),
+                        systemImage: "chart.bar.fill",
+                        isExpanded: $isStagesExpanded,
+                        summary: String(format: NSLocalizedString("training.stages_summary", comment: "%d stages, %d weeks total"),
+                                      overview.trainingStageDescription.count,
+                                      overview.totalWeeks)
+                    ) {
+                        VStack(spacing: 12) {
                             ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
                                 let stage = overview.trainingStageDescription[index]
                                 TrainingStageCard(stage: stage, index: index)
@@ -178,18 +201,18 @@ struct TrainingPlanOverviewDetailView: View {
                     Logger.debug("支援賽事更新後已刷新資料")
                 }
             }
-            
-            
+
+
             // 加入更新中狀態提示
             if isUpdatingOverview {
                 ZStack {
                     Color.black.opacity(0.4)
                         .edgesIgnoringSafeArea(.all)
-                    
+
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.5)
-                        
+
                         Text(NSLocalizedString("training.updating_plan", comment: "Updating training plan..."))
                             .font(.headline)
                             .foregroundColor(.white)
@@ -201,23 +224,23 @@ struct TrainingPlanOverviewDetailView: View {
                 .transition(.opacity)
                 .animation(.easeInOut, value: isUpdatingOverview)
             }
-            
+
             // 加入更新完成狀態提示
             if showUpdateStatus {
                 VStack {
                     Spacer()
-                    
+
                     HStack(spacing: 12) {
                         Image(systemName: isUpdateSuccessful ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                             .foregroundColor(isUpdateSuccessful ? .green : .red)
                             .font(.title2)
-                        
+
                         Text(updateStatusMessage)
                             .font(.subheadline)
                             .foregroundColor(.primary)
-                        
+
                         Spacer()
-                        
+
                         Button {
                             showUpdateStatus = false
                         } label: {
@@ -247,15 +270,15 @@ struct TrainingPlanOverviewDetailView: View {
         // 顯示更新中狀態
         isUpdatingOverview = true
         showUpdateStatus = false
-        
+
         Task {
             do {
                 // 更新訓練計劃概覽
                 let updatedOverview = try await TrainingPlanService.shared.updateTrainingPlanOverview(overviewId: overview.id)
-                
+
                 // 保存更新後的概覽到本地存儲
                 TrainingPlanStorage.saveTrainingPlanOverview(updatedOverview)
-                
+
                 await MainActor.run {
                     self.overview = updatedOverview
                     self.isUpdatingOverview = false
@@ -263,13 +286,13 @@ struct TrainingPlanOverviewDetailView: View {
                     self.updateStatusMessage = NSLocalizedString("training.plan_regenerated", comment: "Training plan has been regenerated based on latest goals")
                     self.isUpdateSuccessful = true
                     self.hasTargetSaved = false  // 在更新完成後重置狀態
-                    
+
                     // 發送通知通知主畫面重新載入
                     NotificationCenter.default.post(
                         name: NSNotification.Name("TrainingOverviewUpdated"),
                         object: updatedOverview
                     )
-                    
+
                     // 5秒後自動隱藏成功提示
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         if self.isUpdateSuccessful {
@@ -290,6 +313,80 @@ struct TrainingPlanOverviewDetailView: View {
     }
 
     // ❌ 已移除 fetchAndSyncTargets() - 現在使用 TargetManager.forceRefresh()
+}
+
+// MARK: - 可摺疊總覽卡片組件
+struct CollapsibleOverviewCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    @Binding var isExpanded: Bool
+    let summary: String
+    @ViewBuilder let content: () -> Content
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 標題行（可點擊）
+            Button {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Label {
+                        Text(title)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    } icon: {
+                        Image(systemName: systemImage)
+                            .foregroundColor(.blue)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 摘要（收起時顯示）
+            if !isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 16)
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 14)
+                }
+            }
+
+            // 完整內容（展開時顯示）
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 0) {
+                    Divider()
+                        .padding(.horizontal, 16)
+                    content()
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colorScheme == .dark ? Color(UIColor.systemGray6) : Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
+        )
+        .padding(.horizontal)
+    }
 }
 
 // MARK: - Supporting Views

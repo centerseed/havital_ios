@@ -685,9 +685,12 @@
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "總週數：%d 週";
-"training.goal_assessment" = "目標評估"; 
+"training.race_planning" = "賽事規劃";
+"training.race_planning_summary" = "查看主要賽事和支援賽事";
+"training.goal_assessment" = "目標評估";
 "training.plan_highlights" = "計畫重點";
 "training.training_stages" = "訓練階段";
+"training.stages_summary" = "%d 個階段，共 %d 週";
 "training.updating_plan" = "更新訓練計畫中...";
 "training.plan_regenerated" = "訓練計畫已根據最新目標重新產生";
 "training.update_failed" = "訓練計畫更新失敗：%@";

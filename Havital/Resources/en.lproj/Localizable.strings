@@ -684,9 +684,12 @@
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "Total weeks: %d weeks";
-"training.goal_assessment" = "Goal Assessment"; 
+"training.race_planning" = "Race Planning";
+"training.race_planning_summary" = "View main and supporting races";
+"training.goal_assessment" = "Goal Assessment";
 "training.plan_highlights" = "Plan Highlights";
 "training.training_stages" = "Training Stages";
+"training.stages_summary" = "%d stages, %d weeks total";
 "training.updating_plan" = "Updating training plan...";
 "training.plan_regenerated" = "Training plan has been regenerated based on latest goals";
 "training.update_failed" = "Failed to update training plan: %@";

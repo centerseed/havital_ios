@@ -684,9 +684,12 @@
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "総週数：%d週";
-"training.goal_assessment" = "目標評価"; 
+"training.race_planning" = "レース計画";
+"training.race_planning_summary" = "メインレースとサポートレースを確認";
+"training.goal_assessment" = "目標評価";
 "training.plan_highlights" = "計画のハイライト";
 "training.training_stages" = "トレーニングステージ";
+"training.stages_summary" = "%dステージ、合計%d週";
 "training.updating_plan" = "トレーニング計画を更新中...";
 "training.plan_regenerated" = "最新の目標に基づいてトレーニング計画が再作成されました";
 "training.update_failed" = "トレーニング計画の更新に失敗しました：%@";
