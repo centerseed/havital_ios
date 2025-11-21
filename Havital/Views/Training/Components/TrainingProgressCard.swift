@@ -140,12 +140,6 @@ struct TrainingProgressCard: View {
                     }
                 }
 
-                // 當前進度遮罩 - 顯示完成部分
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.white.opacity(0.4))
-                    .frame(width: max(geometry.size.width * (1.0 - currentWeek / totalWeeks), 0), height: 12)
-                    .offset(x: geometry.size.width * (currentWeek / totalWeeks))
-
                 // 當前進度指示線
                 Rectangle()
                     .fill(Color.white)
