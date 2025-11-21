@@ -108,8 +108,9 @@ struct TimelineItemView: View {
             }
             .frame(width: 16)
 
-            // 右側內容卡片
-            VStack(alignment: .leading, spacing: 8) {
+            // 右側內容卡片容器 - 撐滿高度以匹配左側時間軸
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
                 Button(action: {
                     if !isToday {  // 今日訓練不在這裡展開
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -530,6 +531,10 @@ struct TimelineItemView: View {
                 x: 0,
                 y: getShadowY(isToday: isToday, isCompleted: isCompleted)
             )
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
