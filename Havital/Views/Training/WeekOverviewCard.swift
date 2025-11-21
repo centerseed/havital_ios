@@ -34,41 +34,47 @@ struct WeekOverviewCard: View {
             HStack(spacing: 0) {
                 Spacer()
 
-                // 左側：圓形週跑量進度
+                // 左側：圓形週跑量進度（縮小並調整文字位置）
                 ZStack {
                     Circle()
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 10)
-                        .frame(width: 100, height: 100)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 9)
+                        .frame(width: 90, height: 90)
 
                     Circle()
                         .trim(from: 0, to: weekProgress)
                         .stroke(
                             weekPercentage >= 80 ? Color.green :
                                 (weekPercentage >= 50 ? Color.orange : Color.blue),
-                            style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                            style: StrokeStyle(lineWidth: 9, lineCap: .round)
                         )
-                        .frame(width: 100, height: 100)
+                        .frame(width: 90, height: 90)
                         .rotationEffect(.degrees(-90))
 
-                    VStack(spacing: 0) {
-                        HStack(spacing: 2) {
+                    // 文字稍微下移，爭取最大寬度空間
+                    VStack(spacing: 2) {
+                        HStack(spacing: 1) {
                             Text(viewModel.formatDistance(viewModel.currentWeekDistance, unit: nil))
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(.primary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
 
                             Text("/")
-                                .font(.system(size: 14))
+                                .font(.system(size: 13))
                                 .foregroundColor(.secondary)
 
                             Text(viewModel.formatDistance(plan.totalDistance, unit: nil))
-                                .font(.system(size: 14))
+                                .font(.system(size: 13))
                                 .foregroundColor(.secondary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
                         }
 
                         Text("km")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
+                    .offset(y: 3)  // 下移 3pt
                 }
 
                 Spacer()

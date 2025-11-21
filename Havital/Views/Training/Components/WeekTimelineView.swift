@@ -13,7 +13,7 @@ struct WeekTimelineView: View {
                 Image(systemName: "calendar")
                     .foregroundColor(.secondary)
                     .font(.headline)
-                Text(NSLocalizedString("training.this_week_training", comment: "This Week's Training"))
+                Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
                     .font(.headline)
                     .foregroundColor(.primary)
                 Spacer()
