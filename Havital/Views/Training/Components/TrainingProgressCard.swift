@@ -106,10 +106,41 @@ struct TrainingProgressCard: View {
                     ForEach(Array(overview.trainingStageDescription.enumerated()), id: \.offset) { index, stage in
                         let stageWeeks = Double((stage.weekEnd ?? stage.weekStart) - stage.weekStart + 1)
                         let stageWidth = geometry.size.width * (stageWeeks / totalWeeks)
+                        let isFirst = index == 0
+                        let isLast = index == overview.trainingStageDescription.count - 1
 
-                        RoundedRectangle(cornerRadius: 6)
+                        // 根據位置決定圓角樣式
+                        if isFirst && isLast {
+                            // 只有一個階段：全圓角
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(getStageColor(stageIndex: index))
+                                .frame(width: stageWidth, height: 12)
+                        } else if isFirst {
+                            // 第一個階段：左側圓角，右側直角
+                            UnevenRoundedRectangle(cornerRadii: .init(
+                                topLeading: 6,
+                                bottomLeading: 6,
+                                bottomTrailing: 0,
+                                topTrailing: 0
+                            ))
                             .fill(getStageColor(stageIndex: index))
                             .frame(width: stageWidth, height: 12)
+                        } else if isLast {
+                            // 最後階段：左側直角，右側圓角
+                            UnevenRoundedRectangle(cornerRadii: .init(
+                                topLeading: 0,
+                                bottomLeading: 0,
+                                bottomTrailing: 6,
+                                topTrailing: 6
+                            ))
+                            .fill(getStageColor(stageIndex: index))
+                            .frame(width: stageWidth, height: 12)
+                        } else {
+                            // 中間階段：全直角
+                            Rectangle()
+                                .fill(getStageColor(stageIndex: index))
+                                .frame(width: stageWidth, height: 12)
+                        }
                     }
                 }
 
