@@ -302,6 +302,6 @@ struct TimelineItemView: View {
         intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 120, medium: 45, high: 15)
     )
 
-    return WeekTimelineView(viewModel: viewModel, plan: mockPlan)
+    WeekTimelineView(viewModel: viewModel, plan: mockPlan)
         .padding()
 }

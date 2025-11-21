@@ -190,7 +190,7 @@ struct TodayFocusCard: View {
     }
 
     // 獲取訓練類型顏色
-    private func getTypeColor(for type: TrainingType) -> Color {
+    private func getTypeColor(for type: DayType) -> Color {
         switch type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
@@ -242,6 +242,6 @@ struct TodayFocusCard: View {
         tips: nil
     )
 
-    return TodayFocusCard(viewModel: viewModel, todayTraining: mockDay)
+    TodayFocusCard(viewModel: viewModel, todayTraining: mockDay)
         .padding()
 }
