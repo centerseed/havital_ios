@@ -381,6 +381,15 @@ struct TrainingPlanView: View {
                     }
             }
         }
+        // 🆕 生成截圖 Toast（提示用戶等待）
+        .overlay(alignment: .top) {
+            if isGeneratingScreenshot {
+                InfoToast(message: NSLocalizedString("toast.generating_screenshot", comment: "Generating screenshot, please wait..."))
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(), value: isGeneratingScreenshot)
+            }
+        }
         .onAppear {
             Logger.debug("[TrainingPlanView] onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
 

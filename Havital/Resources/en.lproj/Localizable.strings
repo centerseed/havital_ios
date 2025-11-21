@@ -11,6 +11,7 @@
 
 // MARK: - Toast Messages
 "toast.network_error" = "Network connection issue, showing cached data";
+"toast.generating_screenshot" = "Generating screenshot, please wait...";
 
 // MARK: - Common Actions
 "common.save" = "Save";

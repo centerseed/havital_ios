@@ -11,6 +11,7 @@
 
 // MARK: - Toast Messages
 "toast.network_error" = "ネットワーク接続に問題があります。キャッシュデータを表示しています";
+"toast.generating_screenshot" = "スクリーンショットを生成中です。お待ちください...";
 
 // MARK: - Common Actions
 "common.save" = "保存";

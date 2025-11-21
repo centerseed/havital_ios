@@ -199,10 +199,21 @@ struct CompactIntensityBar: View {
                 .font(.caption)
                 .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
 
-            // 進度條
-            ProgressView(value: progress)
-                .tint(isUnscheduled ? .gray.opacity(0.3) : color)
-                .scaleEffect(y: 1.2)
+            // 自定義進度條（確保截圖時顏色正確）
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // 背景
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 4)
+
+                    // 前景進度
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(isUnscheduled ? Color.gray.opacity(0.3) : color)
+                        .frame(width: geometry.size.width * progress, height: 4)
+                }
+            }
+            .frame(height: 4)
         }
     }
 }

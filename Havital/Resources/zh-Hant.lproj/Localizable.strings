@@ -11,6 +11,7 @@
 
 // MARK: - Toast Messages
 "toast.network_error" = "網路連線問題，正在顯示快取資料";
+"toast.generating_screenshot" = "正在生成截圖，請稍候...";
 
 // MARK: - Common Actions
 "common.save" = "儲存";
