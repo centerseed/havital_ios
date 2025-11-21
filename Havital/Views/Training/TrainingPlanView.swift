@@ -693,16 +693,16 @@ struct TrainingPlanView: View {
     // 分享訓練課表
     private func shareTrainingPlan() {
         isGeneratingScreenshot = true
-        
-        LongScreenshotCapture.captureView(
-            VStack(spacing: 24) {
+
+        // ✅ 使用 ImageRenderer (iOS 16+) 生成截圖 - 更簡單可靠
+        let shareContent = VStack(spacing: 24) {
                 // 標題部分
                 VStack(alignment: .leading, spacing: 8) {
                     Text(viewModel.trainingPlanName)
                         .font(.title2)
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     if let plan = viewModel.weeklyPlan {
                         Text(NSLocalizedString("training.week_schedule", comment: "Week Schedule") + " \(plan.weekOfPlan)")
                             .font(.subheadline)
@@ -711,75 +711,99 @@ struct TrainingPlanView: View {
                     }
                 }
                 .padding(.bottom, 8)
-                
+
                 // 根據當前狀態顯示內容
                 switch viewModel.planStatus {
                 case .ready(let plan):
+                    // 訓練進度
+                    TrainingProgressCard(viewModel: viewModel, plan: plan)
+
                     // 週概覽卡片
                     WeekOverviewCard(viewModel: viewModel, plan: plan)
-                    
-                    // 每日訓練列表
-                    DailyTrainingListView(viewModel: viewModel, plan: plan)
-                    
-                case .noPlan:
-                    VStack(spacing: 16) {
-                        Image(systemName: "calendar.badge.plus")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray)
-                        
-                        Text(NSLocalizedString("training.no_schedule_generated", comment: "This week's schedule has not been generated yet"))
-                            .font(.headline)
-                        
-                        Text(NSLocalizedString("training.generate_review_first", comment: "Please generate a weekly review first to get personalized training recommendations"))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    
-                case .completed:
-                    VStack(spacing: 16) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.green)
-                        
-                        Text(L10n.TrainingPlan.cycleCompleted.localized)
-                            .font(.headline)
 
-                        Text(L10n.TrainingPlan.congratulations.localized)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    
-                case .loading, .error:
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray)
-                        
-                        Text(L10n.TrainingPlan.loadingSchedule.localized)
-                            .font(.headline)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
+                    // 週訓練時間軸（包含所有訓練日）
+                    WeekTimelineView(viewModel: viewModel, plan: plan)
+
+            case .noPlan:
+                VStack(spacing: 16) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+
+                    Text(NSLocalizedString("training.no_schedule_generated", comment: "This week's schedule has not been generated yet"))
+                        .font(.headline)
+
+                    Text(NSLocalizedString("training.generate_review_first", comment: "Please generate a weekly review first to get personalized training recommendations"))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+
+            case .completed:
+                VStack(spacing: 16) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.green)
+
+                    Text(L10n.TrainingPlan.cycleCompleted.localized)
+                        .font(.headline)
+
+                    Text(L10n.TrainingPlan.congratulations.localized)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+
+            case .loading, .error:
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+
+                    Text(L10n.TrainingPlan.loadingSchedule.localized)
+                        .font(.headline)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
             }
-            .padding()
-            .background(Color(UIColor.systemGroupedBackground))
-        ) { image in
-            DispatchQueue.main.async {
-                self.isGeneratingScreenshot = false
-                self.shareImage = image
-                self.showShareSheet = true
+        }
+        .padding()
+        .frame(width: UIScreen.main.bounds.width)
+        .background(Color(UIColor.systemGroupedBackground))
+
+        // 使用 ImageRenderer 生成圖片（iOS 16+）
+        let renderer = ImageRenderer(content: shareContent)
+        renderer.scale = UIScreen.main.scale
+
+        // 在背景執行緒生成圖片
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let image = renderer.uiImage {
+                DispatchQueue.main.async {
+                    self.isGeneratingScreenshot = false
+                    self.shareImage = image
+                    self.showShareSheet = true
+                }
+            } else {
+                // 如果生成失敗，重試一次
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if let retryImage = renderer.uiImage {
+                        self.isGeneratingScreenshot = false
+                        self.shareImage = retryImage
+                        self.showShareSheet = true
+                    } else {
+                        self.isGeneratingScreenshot = false
+                        Logger.error("無法生成分享截圖")
+                    }
+                }
             }
         }
     }
