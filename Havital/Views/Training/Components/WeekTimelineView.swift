@@ -65,7 +65,7 @@ struct TimelineItemView: View {
         // 在 body 內部計算這些值
         let isToday = viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: planWeek)
         let workouts = viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
-        let isCompleted = !workouts.isEmpty
+        let isCompleted = day.type == .rest || !workouts.isEmpty  // 休息日自動標記為已完成
         // 簡單判斷：如果不是今天且沒有訓練記錄，認為是未來或過去
         let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
 
