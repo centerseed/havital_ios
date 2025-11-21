@@ -84,7 +84,7 @@ struct TrainingStageCard: View {
                     }
                 } label: {
                     HStack {
-                        Text(L10n.TrainingStageCard.stageDescription.localized)
+                        Text(NSLocalizedString("training.stage_description", comment: "階段說明"))
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
