@@ -30,7 +30,8 @@ struct WeekOverviewCard: View {
                             .foregroundColor(.primary)
                     } else {
                         // 摺疊狀態：顯示精簡信息
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            // 第一行：週數和週跑量
                             HStack(spacing: 6) {
                                 Text("第 \(plan.weekOfPlan)/\(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks) 週")
                                     .font(.subheadline)
@@ -59,6 +60,30 @@ struct WeekOverviewCard: View {
                                     .font(.headline)
                                     .foregroundColor(percentage >= 80 ? .green : (percentage >= 50 ? .orange : .blue))
                             }
+
+                            // 第二行：強度摘要（只顯示數字）
+                            if let intensity = plan.intensityTotalMinutes {
+                                HStack(spacing: 12) {
+                                    IntensitySummaryText(
+                                        label: NSLocalizedString("intensity.low", comment: "Low"),
+                                        minutes: Int(viewModel.currentWeekIntensity.low),
+                                        color: .green
+                                    )
+
+                                    IntensitySummaryText(
+                                        label: NSLocalizedString("intensity.medium", comment: "Medium"),
+                                        minutes: Int(viewModel.currentWeekIntensity.medium),
+                                        color: .orange
+                                    )
+
+                                    IntensitySummaryText(
+                                        label: NSLocalizedString("intensity.high", comment: "High"),
+                                        minutes: Int(viewModel.currentWeekIntensity.high),
+                                        color: .red
+                                    )
+                                }
+                                .font(.caption)
+                            }
                         }
                     }
 
@@ -73,47 +98,6 @@ struct WeekOverviewCard: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            // 摺疊狀態的進度條和迷你強度分布
-            if !isExpanded {
-                let progress = min(viewModel.currentWeekDistance / max(plan.totalDistance, 1.0), 1.0)
-                let percentage = Int(progress * 100)
-
-                VStack(spacing: 8) {
-                    // 距離進度條
-                    ProgressView(value: progress)
-                        .tint(percentage >= 80 ? .green : (percentage >= 50 ? .orange : .blue))
-                        .scaleEffect(y: 1.5)
-
-                    // 迷你強度分布（3個小橫條）
-                    if let intensity = plan.intensityTotalMinutes {
-                        HStack(spacing: 6) {
-                            // 低強度
-                            MiniIntensityBar(
-                                label: NSLocalizedString("training.low_intensity", comment: "Low"),
-                                minutes: Int(viewModel.currentWeekIntensity.low),
-                                targetMinutes: Int(intensity.low),
-                                color: .green
-                            )
-
-                            // 中強度
-                            MiniIntensityBar(
-                                label: NSLocalizedString("training.medium_intensity", comment: "Medium"),
-                                minutes: Int(viewModel.currentWeekIntensity.medium),
-                                targetMinutes: Int(intensity.medium),
-                                color: .orange
-                            )
-
-                            // 高強度
-                            MiniIntensityBar(
-                                label: NSLocalizedString("training.high_intensity", comment: "High"),
-                                minutes: Int(viewModel.currentWeekIntensity.high),
-                                targetMinutes: Int(intensity.high),
-                                color: .red
-                            )
-                        }
-                    }
-                }
-            }
 
             // 展開狀態的完整內容
             if isExpanded {
@@ -192,54 +176,20 @@ struct WeekOverviewCard: View {
     }
 }
 
-// MARK: - 迷你強度條組件
-struct MiniIntensityBar: View {
+// MARK: - 強度摘要文字組件（用於摺疊狀態）
+struct IntensitySummaryText: View {
     let label: String
     let minutes: Int
-    let targetMinutes: Int
     let color: Color
 
-    private var progress: Double {
-        guard targetMinutes > 0 else { return 0 }
-        return min(Double(minutes) / Double(targetMinutes), 1.0)
-    }
-
-    private var isUnscheduled: Bool {
-        targetMinutes == 0
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            // 標籤和數字
-            HStack(spacing: 2) {
-                Text(label)
-                    .font(.caption2)
-                    .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
+        HStack(spacing: 4) {
+            Text(label)
+                .foregroundColor(.secondary)
 
-                Spacer()
-
-                Text("\(minutes)")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .primary)
-            }
-
-            // 進度條
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // 背景
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.gray.opacity(0.2))
-
-                    // 進度
-                    if !isUnscheduled {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(color)
-                            .frame(width: geometry.size.width * progress)
-                    }
-                }
-            }
-            .frame(height: 4)
+            Text("\(minutes)")
+                .fontWeight(.semibold)
+                .foregroundColor(color)
         }
     }
 }
