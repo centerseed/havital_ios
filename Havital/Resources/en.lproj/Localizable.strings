@@ -820,6 +820,7 @@
 
 // MARK: - Target Race Card Component
 "target_race_card.title" = "Target Race";
+"target_race_card.days_remaining" = "Remaining";
 "target_race_card.target_finish_time" = "Target Finish Time";
 "target_race_card.target_pace" = "Target Pace";
 "target_race_card.per_kilometer" = "/km";

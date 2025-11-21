@@ -21,7 +21,6 @@ struct TrainingPlanOverviewDetailView: View {
     @State private var updatedOverview: TrainingPlanOverview?
 
     // 🆕 摺疊狀態管理
-    @State private var isRaceInfoExpanded = true   // 賽事規劃默認展開
     @State private var isGoalEvalExpanded = false  // 目標評估默認收起
     @State private var isHighlightExpanded = false // 訓練重點默認收起
     @State private var isStagesExpanded = true     // 訓練階段默認展開
@@ -39,34 +38,26 @@ struct TrainingPlanOverviewDetailView: View {
         ZStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // 🎯 賽事規劃（默認展開）
-                    CollapsibleOverviewCard(
-                        title: NSLocalizedString("training.race_planning", comment: "賽事規劃"),
-                        systemImage: "flag.fill",
-                        isExpanded: $isRaceInfoExpanded,
-                        summary: NSLocalizedString("training.race_planning_summary", comment: "查看主要賽事和支援賽事")
-                    ) {
-                        VStack(spacing: 16) {
-                            // Target Race Card - 使用 TargetManager
-                            if let target = targetManager.mainTarget {
-                                TargetRaceCard(target: target, onEditTap: {
-                                    showEditSheet = true
-                                })
-                            }
-
-                            // Supporting Races Card - 使用新到舊且最多五筆的支援賽事
-                            SupportingRacesCard(
-                                supportingTargets: sortedSupportingTargets,
-                                onAddTap: {
-                                    showAddSupportingSheet = true
-                                },
-                                onEditTap: { target in
-                                    selectedSupportingTarget = target
-                                    showEditSupportingSheet = true
-                                }
-                            )
-                        }
+                    // 🎯 目標賽事（直接顯示，無摺疊卡片）
+                    if let target = targetManager.mainTarget {
+                        TargetRaceCard(target: target, onEditTap: {
+                            showEditSheet = true
+                        })
+                        .padding(.horizontal)
                     }
+
+                    // 🏁 支援賽事（直接顯示，無摺疊卡片）
+                    SupportingRacesCard(
+                        supportingTargets: sortedSupportingTargets,
+                        onAddTap: {
+                            showAddSupportingSheet = true
+                        },
+                        onEditTap: { target in
+                            selectedSupportingTarget = target
+                            showEditSupportingSheet = true
+                        }
+                    )
+                    .padding(.horizontal)
 
                     // 📊 目標評估（默認收起）
                     CollapsibleOverviewCard(

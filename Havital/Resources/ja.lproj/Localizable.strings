@@ -820,6 +820,7 @@
 
 // MARK: - Target Race Card Component
 "target_race_card.title" = "目標レース";
+"target_race_card.days_remaining" = "残り";
 "target_race_card.target_finish_time" = "目標完走時間";
 "target_race_card.target_pace" = "目標ペース";
 "target_race_card.per_kilometer" = "/km";
