@@ -247,48 +247,59 @@ struct WorkoutV2RowView: View {
     private func getActivityTypeColor(_ activityType: String) -> Color {
         let type = activityType.lowercased()
 
-        // 跑步類型：根據訓練類型細分配色
+        // 跑步類型：根據訓練類型分組配色（與 DailyTrainingCard 一致）
         if type.contains("running") || type.contains("run") {
             if let trainingType = workout.trainingType {
-                switch trainingType.lowercased() {
-                case "easy_run", "easy":
+                let trainingTypeLower = trainingType.lowercased()
+
+                // 綠色：輕鬆跑、恢復跑、LSD
+                if trainingTypeLower.contains("easy") ||
+                   trainingTypeLower.contains("recovery") ||
+                   trainingTypeLower.contains("lsd") {
                     return .green
-                case "long_run":
-                    return .blue
-                case "interval":
-                    return .red
-                case "tempo":
+                }
+                // 橘色：間歇、節奏跑、閾值跑、漸進跑、組合跑
+                else if trainingTypeLower.contains("interval") ||
+                        trainingTypeLower.contains("tempo") ||
+                        trainingTypeLower.contains("threshold") ||
+                        trainingTypeLower.contains("progression") ||
+                        trainingTypeLower.contains("combination") ||
+                        trainingTypeLower.contains("fartlek") {
                     return .orange
-                case "threshold":
-                    return .purple
-                case "recovery_run":
-                    return .cyan
-                case "fartlek":
-                    return .pink
-                case "combination":
-                    return .indigo
-                case "hill_training":
-                    return .brown
-                case "race":
-                    return .yellow
-                default:
-                    return .green  // 默認綠色
+                }
+                // 藍色：長距離跑
+                else if trainingTypeLower.contains("long") {
+                    return .blue
+                }
+                // 紅色：比賽
+                else if trainingTypeLower.contains("race") {
+                    return .red
+                }
+                // 灰色：休息
+                else if trainingTypeLower.contains("rest") {
+                    return .gray
+                }
+                // 默認綠色
+                else {
+                    return .green
                 }
             } else {
                 return .green  // 沒有訓練類型時默認綠色
             }
-        } else if type.contains("cycling") || type.contains("bike") || type.contains("ride") {
+        }
+        // 其他運動類型
+        else if type.contains("cycling") || type.contains("bike") || type.contains("ride") {
             return .blue
-        } else if type.contains("strength") || type.contains("weight") || type.contains("gym") {
+        } else if type.contains("hiking") || type.contains("hike") {
+            return .blue
+        } else if type.contains("strength") || type.contains("weight") || type.contains("gym") || type.contains("cross") {
             return .purple
         } else if type.contains("swimming") || type.contains("swim") {
             return .cyan
         } else if type.contains("yoga") {
-            return .pink
-        } else if type.contains("hiking") || type.contains("hike") {
-            return .orange
+            return .green
         } else if type.contains("walking") || type.contains("walk") {
-            return .indigo
+            return .green
         } else {
             return .green
         }
