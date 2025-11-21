@@ -51,24 +51,14 @@ struct TimelineItemView: View {
 
     @State private var isExpanded = false
 
-    // 計算屬性
-    private var isToday: Bool {
-        viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: planWeek)
-    }
-
-    private var isPast: Bool {
-        viewModel.isPastDay(dayIndex: day.dayIndexInt, planWeek: planWeek)
-    }
-
-    private var workouts: [WorkoutV2] {
-        viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
-    }
-
-    private var isCompleted: Bool {
-        !workouts.isEmpty
-    }
-
     var body: some View {
+        // 在 body 內部計算這些值
+        let isToday = viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: planWeek)
+        let workouts = viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
+        let isCompleted = !workouts.isEmpty
+        // 簡單判斷：如果不是今天且沒有訓練記錄，認為是未來或過去
+        let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
+
         HStack(alignment: .top, spacing: 12) {
             // 左側時間軸線和狀態點
             VStack(spacing: 0) {
@@ -82,7 +72,7 @@ struct TimelineItemView: View {
                 // 狀態圓點
                 ZStack {
                     Circle()
-                        .fill(getStatusColor())
+                        .fill(getStatusColor(isCompleted: isCompleted, isToday: isToday, isPast: isPast))
                         .frame(width: 16, height: 16)
 
                     if isCompleted {
@@ -246,7 +236,7 @@ struct TimelineItemView: View {
     }
 
     // 獲取狀態顏色
-    private func getStatusColor() -> Color {
+    private func getStatusColor(isCompleted: Bool, isToday: Bool, isPast: Bool) -> Color {
         if isCompleted {
             return .green
         } else if isToday {

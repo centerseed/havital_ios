@@ -9,168 +9,16 @@ struct TodayFocusCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 標題
-            HStack {
-                Image(systemName: "target")
-                    .foregroundColor(.blue)
-                    .font(.title3)
-                Text(NSLocalizedString("training.today_training", comment: "Today's Training"))
-                    .font(.title3)
-                    .fontWeight(.bold)
-                Spacer()
-            }
+            todayTrainingHeader
 
             if let today = todayTraining {
-                VStack(alignment: .leading, spacing: 16) {
-                    // 訓練類型和距離
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(today.type.localizedName)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            if let distance = today.trainingDetails?.totalDistanceKm {
-                                Text(String(format: "%.1f km", distance))
-                                    .font(.system(size: 28, weight: .semibold))
-                                    .foregroundColor(.blue)
-                            }
-                        }
-
-                        Spacer()
-
-                        // 訓練類型標籤
-                        Text(today.type.localizedName)
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .foregroundColor(getTypeColor(for: today.type))
-                            .background(getTypeColor(for: today.type).opacity(0.2))
-                            .cornerRadius(8)
-                    }
-
-                    // 進度圓環
-                    if let totalDistance = today.trainingDetails?.totalDistanceKm ?? today.trainingDetails?.distanceKm {
-                        let todayWorkouts = viewModel.workoutsByDayV2[today.dayIndexInt] ?? []
-                        let completedDistance = todayWorkouts.reduce(0.0) { $0 + (($1.distance ?? 0.0) / 1000.0) }
-                        let progress = min(completedDistance / totalDistance, 1.0)
-
-                        VStack(spacing: 8) {
-                            ZStack {
-                                Circle()
-                                    .stroke(Color.gray.opacity(0.2), lineWidth: 12)
-                                    .frame(width: 120, height: 120)
-
-                                Circle()
-                                    .trim(from: 0, to: progress)
-                                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                                    .frame(width: 120, height: 120)
-                                    .rotationEffect(.degrees(-90))
-                                    .animation(.easeInOut, value: progress)
-
-                                VStack(spacing: 2) {
-                                    Text(String(format: "%.1f", completedDistance))
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(.primary)
-                                    Text(String(format: "/ %.1f km", totalDistance))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-
-                    // 訓練分段摘要（如果是組合訓練）
-                    if let segments = today.trainingDetails?.segments, !segments.isEmpty {
-                        Divider()
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                                HStack(spacing: 8) {
-                                    // 狀態圖示
-                                    Image(systemName: "circle.fill")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(.blue)
-
-                                    // 分段描述
-                                    if let description = segment.description {
-                                        Text(description)
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    // 距離
-                                    if let distance = segment.distanceKm {
-                                        Text(String(format: "%.1fkm", distance))
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.blue)
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // 簡單訓練顯示目標
-                        Divider()
-
-                        Text(today.dayTarget)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    // 如果有完成的訓練記錄，顯示列表
-                    if let workouts = viewModel.workoutsByDayV2[today.dayIndexInt], !workouts.isEmpty {
-                        Divider()
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            ForEach(workouts.prefix(2), id: \.id) { workout in
-                                Button {
-                                    selectedWorkout = workout
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.green)
-                                            .font(.caption)
-
-                                        Text(String(format: "%.2f km", workout.distance / 1000.0))
-                                            .font(.caption)
-                                            .foregroundColor(.primary)
-
-                                        Text("·")
-                                            .foregroundColor(.secondary)
-
-                                        Text(formatDuration(workout.duration))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-
-                                        Spacer()
-                                    }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                    }
-                }
+                TodayTrainingContent(
+                    viewModel: viewModel,
+                    today: today,
+                    selectedWorkout: $selectedWorkout
+                )
             } else {
-                // 今天沒有訓練
-                VStack(spacing: 12) {
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-
-                    Text(NSLocalizedString("training.no_training_today", comment: "No training scheduled for today"))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                noTrainingView
             }
         }
         .padding()
@@ -185,6 +33,194 @@ struct TodayFocusCard: View {
         .sheet(item: $selectedWorkout) { workout in
             NavigationStack {
                 WorkoutDetailViewV2(workout: workout)
+            }
+        }
+    }
+
+    private var todayTrainingHeader: some View {
+        HStack {
+            Image(systemName: "target")
+                .foregroundColor(.blue)
+                .font(.title3)
+            Text(NSLocalizedString("training.today_training", comment: "Today's Training"))
+                .font(.title3)
+                .fontWeight(.bold)
+            Spacer()
+        }
+    }
+
+    private var noTrainingView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 40))
+                .foregroundColor(.gray)
+
+            Text(NSLocalizedString("training.no_training_today", comment: "No training scheduled for today"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+    }
+}
+
+/// 今日訓練內容視圖（拆分以簡化類型檢查）
+struct TodayTrainingContent: View {
+    @ObservedObject var viewModel: TrainingPlanViewModel
+    let today: TrainingDay
+    @Binding var selectedWorkout: WorkoutV2?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 訓練類型和距離
+            trainingTypeSection
+
+            // 進度圓環
+            if let totalDistance = today.trainingDetails?.totalDistanceKm ?? today.trainingDetails?.distanceKm {
+                progressCircle(totalDistance: totalDistance)
+            }
+
+            // 訓練分段或目標
+            trainingDetailsSection
+
+            // 已完成的訓練記錄
+            if let workouts = viewModel.workoutsByDayV2[today.dayIndexInt], !workouts.isEmpty {
+                completedWorkoutsSection(workouts: workouts)
+            }
+        }
+    }
+
+    private var trainingTypeSection: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(today.type.localizedName)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                if let distance = today.trainingDetails?.totalDistanceKm {
+                    Text(String(format: "%.1f km", distance))
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(.blue)
+                }
+            }
+
+            Spacer()
+
+            // 訓練類型標籤
+            Text(today.type.localizedName)
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .foregroundColor(getTypeColor(for: today.type))
+                .background(getTypeColor(for: today.type).opacity(0.2))
+                .cornerRadius(8)
+        }
+    }
+
+    private func progressCircle(totalDistance: Double) -> some View {
+        let todayWorkouts = viewModel.workoutsByDayV2[today.dayIndexInt] ?? []
+        let completedDistance = todayWorkouts.reduce(0.0) { $0 + (($1.distance ?? 0.0) / 1000.0) }
+        let progress = min(completedDistance / totalDistance, 1.0)
+
+        return VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 12)
+                    .frame(width: 120, height: 120)
+
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                    .frame(width: 120, height: 120)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut, value: progress)
+
+                VStack(spacing: 2) {
+                    Text(String(format: "%.1f", completedDistance))
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.primary)
+                    Text(String(format: "/ %.1f km", totalDistance))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var trainingDetailsSection: some View {
+        Group {
+            if let segments = today.trainingDetails?.segments, !segments.isEmpty {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 8))
+                                .foregroundColor(.blue)
+
+                            if let description = segment.description {
+                                Text(description)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            if let distance = segment.distanceKm {
+                                Text(String(format: "%.1fkm", distance))
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Divider()
+
+                Text(today.dayTarget)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func completedWorkoutsSection(workouts: [WorkoutV2]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Divider()
+
+            Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            ForEach(workouts.prefix(2), id: \.id) { workout in
+                Button {
+                    selectedWorkout = workout
+                } label: {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+
+                        Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
+                            .font(.caption)
+                            .foregroundColor(.primary)
+
+                        Text("·")
+                            .foregroundColor(.secondary)
+
+                        Text(formatDuration(workout.duration))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
     }
