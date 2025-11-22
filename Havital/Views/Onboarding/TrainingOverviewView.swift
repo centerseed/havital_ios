@@ -140,6 +140,13 @@ struct TrainingOverviewView: View {
         .task {
             await viewModel.loadTrainingOverview()
         }
+        .fullScreenCover(isPresented: $viewModel.isGeneratingPlan) {
+            LoadingAnimationView(messages: [
+                NSLocalizedString("onboarding.analyzing_preferences", comment: "正在分析您的訓練偏好"),
+                NSLocalizedString("onboarding.calculating_intensity", comment: "計算最佳訓練強度中"),
+                NSLocalizedString("onboarding.almost_ready", comment: "就要完成了！正在為您準備專屬課表")
+            ], totalDuration: 20)
+        }
         .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: .constant(viewModel.error != nil)) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {
                 viewModel.error = nil
