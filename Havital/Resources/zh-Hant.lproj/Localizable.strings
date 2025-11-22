@@ -789,7 +789,7 @@
 "onboarding.training_days_description" = "請選擇您一週內通常可以安排跑步訓練的日子。Paceriz會根據您的目標和體能狀況，在這些日子裡安排不同類型的跑步課表。建議至少選擇 %d 天。";
 "onboarding.setup_long_run_day" = "選擇一天長跑日";
 "onboarding.setup_long_run_day_beginner" = "選擇一個能跑比較多一點點的日期";
-"onboarding.long_run_day_description" = "每週會有一天進行長距離訓練，建議安排在週末或有較充裕時間的日子";
+"onboarding.long_run_day_description" = "建議選擇週末的其中一天作為長跑日，以便有充分的時間訓練以及恢復";
 "onboarding.long_run_day_description_beginner" = "這天會安排稍微長一點的距離，讓身體慢慢適應，別擔心，會循序漸進";
 "onboarding.select_long_run_day" = "選擇長跑日";
 "onboarding.long_run_day_must_be_training_day" = "長跑日必須是您選擇的訓練日之一。";

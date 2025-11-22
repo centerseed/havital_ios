@@ -788,7 +788,7 @@
 "onboarding.training_days_description" = "Please select the days of the week when you can usually arrange running training. Paceriz will arrange different types of running schedules on these days based on your goals and fitness level. We recommend selecting at least %d days.";
 "onboarding.setup_long_run_day" = "Choose One Long Run Day";
 "onboarding.setup_long_run_day_beginner" = "Pick a day to run a little bit more";
-"onboarding.long_run_day_description" = "One day per week for longer distance training. Recommended on weekends or days with more free time";
+"onboarding.long_run_day_description" = "We recommend choosing one weekend day as your long run day, so you have ample time for training and recovery";
 "onboarding.long_run_day_description_beginner" = "This day will have slightly longer distances to help your body gradually adapt. Don't worry, we'll take it step by step";
 "onboarding.select_long_run_day" = "Select Long Run Day";
 "onboarding.long_run_day_must_be_training_day" = "Long run day must be one of your selected training days.";
