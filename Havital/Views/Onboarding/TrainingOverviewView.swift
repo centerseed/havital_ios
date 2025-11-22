@@ -366,21 +366,15 @@ struct TrainingOverviewView: View {
                     await viewModel.generateFirstWeekPlan()
                 }
             }) {
-                HStack {
-                    if viewModel.isGeneratingPlan {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    }
-                    Text(viewModel.mode == .preview ?
-                         NSLocalizedString("onboarding.confirm_generate_first_week", comment: "確認並生成第一週計劃") :
-                         NSLocalizedString("onboarding.generate_first_week", comment: "生成第一週計劃"))
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(12)
+                Text(viewModel.mode == .preview ?
+                     NSLocalizedString("onboarding.confirm_generate_first_week", comment: "確認並生成第一週計劃") :
+                     NSLocalizedString("onboarding.generate_first_week", comment: "生成第一週計劃"))
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
             }
             .disabled(viewModel.isGeneratingPlan || viewModel.trainingOverview == nil)
             .padding(.horizontal)
