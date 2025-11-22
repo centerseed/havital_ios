@@ -794,7 +794,7 @@
 "onboarding.select_long_run_day" = "選擇長跑日";
 "onboarding.long_run_day_must_be_training_day" = "長跑日必須是您選擇的訓練日之一。";
 "onboarding.suggest_saturday_long_run" = "建議將週六設為長跑日，以便有充分時間進行長距離訓練。";
-"onboarding.save_preferences_preview" = "儲存偏好並預覽計畫";
+"onboarding.save_preferences_preview" = "產生訓練計劃總覽";
 "onboarding.complete_setup_view_schedule" = "完成設定並查看第一週課表";
 
 // MARK: - WeeklyDistanceSetupView (if it exists)

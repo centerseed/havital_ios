@@ -793,7 +793,7 @@
 "onboarding.select_long_run_day" = "Select Long Run Day";
 "onboarding.long_run_day_must_be_training_day" = "Long run day must be one of your selected training days.";
 "onboarding.suggest_saturday_long_run" = "We recommend setting Saturday as your long run day for sufficient time for long-distance training.";
-"onboarding.save_preferences_preview" = "Save Preferences and Preview Plan";
+"onboarding.save_preferences_preview" = "Generate Training Plan Overview";
 "onboarding.complete_setup_view_schedule" = "Complete Setup and View First Week Schedule";
 
 // MARK: - WeeklyDistanceSetupView (if it exists)

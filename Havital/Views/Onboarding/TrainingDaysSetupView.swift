@@ -248,13 +248,20 @@ struct TrainingDaysSetupView: View {
                             Spacer()
                             if viewModel.isLoading {
                                 ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Text(NSLocalizedString("onboarding.save_preferences_preview", comment: "Save Preferences Preview"))
+                                    .fontWeight(.semibold)
                             }
                             Spacer()
                         }
+                        .padding()
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
                     }
                     .disabled(viewModel.isLoading || !viewModel.canSavePreferences)
+                    .buttonStyle(PlainButtonStyle())
                 }
             } // Form End
             .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))

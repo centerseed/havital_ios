@@ -793,7 +793,7 @@
 "onboarding.select_long_run_day" = "ロングラン日を選択";
 "onboarding.long_run_day_must_be_training_day" = "ロングラン日は選択したトレーニング日の一つでなければなりません。";
 "onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、土曜日をロングラン日に設定することをお勧めします。";
-"onboarding.save_preferences_preview" = "設定を保存して計画をプレビュー";
+"onboarding.save_preferences_preview" = "トレーニング計画概要を生成";
 "onboarding.complete_setup_view_schedule" = "設定を完了して第1週のスケジュールを表示";
 
 // MARK: - WeeklyDistanceSetupView (if it exists)
