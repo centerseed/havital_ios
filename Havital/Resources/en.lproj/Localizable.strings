@@ -11,6 +11,7 @@
 
 // MARK: - Toast Messages
 "toast.network_error" = "Network connection issue, showing cached data";
+"toast.generating_screenshot" = "Generating screenshot, please wait...";
 
 // MARK: - Common Actions
 "common.save" = "Save";
@@ -667,14 +668,15 @@
 "performance.load_failed" = "Load failed";
 "performance.cannot_load_chart_data" = "Unable to load chart data";
 
-// MARK: - Training Progress Strings  
+// MARK: - Training Progress Strings
 "training.current_progress" = "Current Progress";
 "training.current_week_of_total" = "Week %d / Total %d weeks";
 "training.current_stage" = "Current Stage: %@";
 "training.week_range" = "Week %d-%d";
+"training.stage_description" = "Stage Description";
 "training.cannot_get_progress" = "Unable to get current training progress";
 "training.target_race" = "Target Race";
-"training.race_assessment" = "Race Assessment";  
+"training.race_assessment" = "Race Assessment";
 "training.training_stages" = "Training Stages";
 "training.cannot_get_stages" = "Unable to get training stage information";
 "training.week_number" = "Week %d";
@@ -684,9 +686,14 @@
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "Total weeks: %d weeks";
-"training.goal_assessment" = "Goal Assessment"; 
+"training.race_planning" = "Race Planning";
+"training.race_planning_summary" = "View main and supporting races";
+"training.race_info" = "Race Info";
+"training.plan_overview" = "Plan Overview";
+"training.goal_assessment" = "Goal Assessment";
 "training.plan_highlights" = "Plan Highlights";
 "training.training_stages" = "Training Stages";
+"training.stages_summary" = "%d stages, %d weeks total";
 "training.updating_plan" = "Updating training plan...";
 "training.plan_regenerated" = "Training plan has been regenerated based on latest goals";
 "training.update_failed" = "Failed to update training plan: %@";
@@ -843,6 +850,7 @@
 
 // MARK: - Target Race Card Component
 "target_race_card.title" = "Target Race";
+"target_race_card.days_remaining" = "Remaining";
 "target_race_card.target_finish_time" = "Target Finish Time";
 "target_race_card.target_pace" = "Target Pace";
 "target_race_card.per_kilometer" = "/km";
@@ -987,7 +995,10 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "Week Overview";
 "training_plan.weekly_volume_load" = "Weekly Volume";
-"training_plan.week_target" = "Week Target";
+"training_plan.week_target" = "This Week's Target";
+"training_plan.training_calendar" = "Training Calendar";
+"training_plan.monthly_total_distance" = "Monthly Total";
+"training_plan.average_pace" = "Avg Pace";
 "training_plan.today" = "Today";
 "training_plan.tip" = "Tip: %@";
 "training_plan.segment" = "Segment %d";

@@ -11,6 +11,7 @@
 
 // MARK: - Toast Messages
 "toast.network_error" = "網路連線問題，正在顯示快取資料";
+"toast.generating_screenshot" = "正在生成截圖，請稍候...";
 
 // MARK: - Common Actions
 "common.save" = "儲存";
@@ -668,14 +669,15 @@
 "performance.load_failed" = "載入失敗";
 "performance.cannot_load_chart_data" = "無法載入圖表資料";
 
-// MARK: - Training Progress Strings  
+// MARK: - Training Progress Strings
 "training.current_progress" = "目前進度";
 "training.current_week_of_total" = "第 %d 週 / 總共 %d 週";
 "training.current_stage" = "目前階段：%@";
 "training.week_range" = "第 %d-%d 週";
+"training.stage_description" = "階段說明";
 "training.cannot_get_progress" = "無法取得目前訓練進度";
 "training.target_race" = "目標賽事";
-"training.race_assessment" = "賽事評估";  
+"training.race_assessment" = "賽事評估";
 "training.training_stages" = "訓練階段";
 "training.cannot_get_stages" = "無法取得訓練階段資訊";
 "training.week_number" = "第 %d 週";
@@ -685,9 +687,14 @@
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "總週數：%d 週";
-"training.goal_assessment" = "目標評估"; 
+"training.race_planning" = "賽事規劃";
+"training.race_planning_summary" = "查看主要賽事和支援賽事";
+"training.race_info" = "賽事資訊";
+"training.plan_overview" = "訓練總覽";
+"training.goal_assessment" = "目標評估";
 "training.plan_highlights" = "計畫重點";
 "training.training_stages" = "訓練階段";
+"training.stages_summary" = "%d 個階段，共 %d 週";
 "training.updating_plan" = "更新訓練計畫中...";
 "training.plan_regenerated" = "訓練計畫已根據最新目標重新產生";
 "training.update_failed" = "訓練計畫更新失敗：%@";
@@ -844,6 +851,7 @@
 
 // MARK: - Target Race Card Component
 "target_race_card.title" = "目標賽事";
+"target_race_card.days_remaining" = "還有";
 "target_race_card.target_finish_time" = "目標完賽時間";
 "target_race_card.target_pace" = "目標配速";
 "target_race_card.per_kilometer" = "/公里";
@@ -988,7 +996,10 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "週總覽";
 "training_plan.weekly_volume_load" = "週跑量";
-"training_plan.week_target" = "週目標";
+"training_plan.week_target" = "本週目標";
+"training_plan.training_calendar" = "訓練日曆";
+"training_plan.monthly_total_distance" = "月總距離";
+"training_plan.average_pace" = "平均配速";
 "training_plan.today" = "今日";
 "training_plan.tip" = "小提示：%@";
 "training_plan.segment" = "第 %d 段";

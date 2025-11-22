@@ -82,71 +82,18 @@ struct NewWeekPromptView: View {
     }
 }
 
-// Design Reason 顯示視圖
-struct DesignReasonView: View {
-    let designReason: [String]
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "\(index + 1).circle.fill")
-                                .foregroundColor(.blue)
-                                .font(.title3)
-
-                            Text(reason)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("common.close", comment: "Close")) {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
 // 拆分每日訓練列表視圖
 struct DailyTrainingListView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     let plan: WeeklyPlan
-    @State private var showDesignReason = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 添加標題
+            // 標題區域（已移除獨立的設計原因按鈕，用戶可通過 WeekOverviewCard 的「本週目標」查看）
             HStack(alignment: .center) {
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
                     .font(.headline)
                     .foregroundColor(.primary)
-
-                // Design Reason 圖示
-                if let designReason = plan.designReason, !designReason.isEmpty {
-                    Button(action: {
-                        showDesignReason = true
-                    }) {
-                        Image(systemName: "lightbulb.circle.fill")
-                            .foregroundColor(.orange)
-                            .font(.headline)
-                    }
-                    .sheet(isPresented: $showDesignReason) {
-                        DesignReasonView(designReason: designReason)
-                    }
-                }
 
                 Spacer()
 
@@ -434,6 +381,15 @@ struct TrainingPlanView: View {
                     }
             }
         }
+        // 🆕 生成截圖 Toast（提示用戶等待）
+        .overlay(alignment: .top) {
+            if isGeneratingScreenshot {
+                InfoToast(message: NSLocalizedString("toast.generating_screenshot", comment: "Generating screenshot, please wait..."))
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(), value: isGeneratingScreenshot)
+            }
+        }
         .onAppear {
             Logger.debug("[TrainingPlanView] onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
 
@@ -471,9 +427,9 @@ struct TrainingPlanView: View {
         }
     }
     
-    // 拆分主內容視圖
+    // 拆分主內容視圖 - 使用方案二：時間軸式設計 + 焦點模式
     @ViewBuilder private var mainContentView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             // 🆕 返回本週按鈕（查看未來週時顯示）
             if viewModel.selectedWeek > viewModel.currentWeek {
                 ReturnToCurrentWeekButton(viewModel: viewModel)
@@ -488,11 +444,17 @@ struct TrainingPlanView: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .ready(let plan):
-                WeekPlanContentView(
-                    viewModel: viewModel,
-                    plan: plan,
-                    currentTrainingWeek: viewModel.currentWeek
-                )
+                // ✨ 階層式佈局：訓練進度 → 週總覽 → 日
+                VStack(spacing: 16) {
+                    // 1. 訓練進度（獨立卡片，不收折）
+                    TrainingProgressCard(viewModel: viewModel, plan: plan)
+
+                    // 2. 週總覽（週跑量和強度，不收折）
+                    WeekOverviewCard(viewModel: viewModel, plan: plan)
+
+                    // 3. 週訓練時間軸
+                    WeekTimelineView(viewModel: viewModel, plan: plan)
+                }
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: viewModel.planStatus)
             case .completed:
@@ -740,16 +702,16 @@ struct TrainingPlanView: View {
     // 分享訓練課表
     private func shareTrainingPlan() {
         isGeneratingScreenshot = true
-        
-        LongScreenshotCapture.captureView(
-            VStack(spacing: 24) {
+
+        // ✅ 使用 ImageRenderer (iOS 16+) 生成截圖 - 更簡單可靠
+        let shareContent = VStack(spacing: 24) {
                 // 標題部分
                 VStack(alignment: .leading, spacing: 8) {
                     Text(viewModel.trainingPlanName)
                         .font(.title2)
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     if let plan = viewModel.weeklyPlan {
                         Text(NSLocalizedString("training.week_schedule", comment: "Week Schedule") + " \(plan.weekOfPlan)")
                             .font(.subheadline)
@@ -758,75 +720,99 @@ struct TrainingPlanView: View {
                     }
                 }
                 .padding(.bottom, 8)
-                
+
                 // 根據當前狀態顯示內容
                 switch viewModel.planStatus {
                 case .ready(let plan):
+                    // 訓練進度
+                    TrainingProgressCard(viewModel: viewModel, plan: plan)
+
                     // 週概覽卡片
                     WeekOverviewCard(viewModel: viewModel, plan: plan)
-                    
-                    // 每日訓練列表
-                    DailyTrainingListView(viewModel: viewModel, plan: plan)
-                    
-                case .noPlan:
-                    VStack(spacing: 16) {
-                        Image(systemName: "calendar.badge.plus")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray)
-                        
-                        Text(NSLocalizedString("training.no_schedule_generated", comment: "This week's schedule has not been generated yet"))
-                            .font(.headline)
-                        
-                        Text(NSLocalizedString("training.generate_review_first", comment: "Please generate a weekly review first to get personalized training recommendations"))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    
-                case .completed:
-                    VStack(spacing: 16) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.green)
-                        
-                        Text(L10n.TrainingPlan.cycleCompleted.localized)
-                            .font(.headline)
 
-                        Text(L10n.TrainingPlan.congratulations.localized)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    
-                case .loading, .error:
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray)
-                        
-                        Text(L10n.TrainingPlan.loadingSchedule.localized)
-                            .font(.headline)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
+                    // 週訓練時間軸（包含所有訓練日）
+                    WeekTimelineView(viewModel: viewModel, plan: plan)
+
+            case .noPlan:
+                VStack(spacing: 16) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+
+                    Text(NSLocalizedString("training.no_schedule_generated", comment: "This week's schedule has not been generated yet"))
+                        .font(.headline)
+
+                    Text(NSLocalizedString("training.generate_review_first", comment: "Please generate a weekly review first to get personalized training recommendations"))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+
+            case .completed:
+                VStack(spacing: 16) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.green)
+
+                    Text(L10n.TrainingPlan.cycleCompleted.localized)
+                        .font(.headline)
+
+                    Text(L10n.TrainingPlan.congratulations.localized)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+
+            case .loading, .error:
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+
+                    Text(L10n.TrainingPlan.loadingSchedule.localized)
+                        .font(.headline)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
             }
-            .padding()
-            .background(Color(UIColor.systemGroupedBackground))
-        ) { image in
-            DispatchQueue.main.async {
-                self.isGeneratingScreenshot = false
-                self.shareImage = image
-                self.showShareSheet = true
+        }
+        .padding()
+        .frame(width: UIScreen.main.bounds.width)
+        .background(Color(UIColor.systemGroupedBackground))
+
+        // 使用 ImageRenderer 生成圖片（iOS 16+）
+        let renderer = ImageRenderer(content: shareContent)
+        renderer.scale = UIScreen.main.scale
+
+        // 在背景執行緒生成圖片
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let image = renderer.uiImage {
+                DispatchQueue.main.async {
+                    self.isGeneratingScreenshot = false
+                    self.shareImage = image
+                    self.showShareSheet = true
+                }
+            } else {
+                // 如果生成失敗，重試一次
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if let retryImage = renderer.uiImage {
+                        self.isGeneratingScreenshot = false
+                        self.shareImage = retryImage
+                        self.showShareSheet = true
+                    } else {
+                        self.isGeneratingScreenshot = false
+                        Logger.error("無法生成分享截圖")
+                    }
+                }
             }
         }
     }
@@ -835,4 +821,84 @@ struct TrainingPlanView: View {
 
 extension Notification.Name {
     static let onboardingCompleted = Notification.Name("onboardingCompleted")
+}
+
+// MARK: - 預覽
+#Preview("訓練計畫 - 有課表") {
+    TrainingPlanView()
+        .environmentObject(HealthKitManager())
+}
+
+#Preview("今日焦點卡片") {
+    let viewModel = TrainingPlanViewModel()
+    let mockDay = TrainingDay(
+        dayIndex: "0",
+        dayTarget: "結合多種配速與強度訓練整體能力",
+        reason: nil,
+        tips: nil,
+        trainingType: "combination",
+        trainingDetails: TrainingDetails(
+            description: "組合訓練",
+            distanceKm: nil,
+            totalDistanceKm: 10.0,
+            timeMinutes: nil,
+            pace: nil,
+            work: nil,
+            recovery: nil,
+            repeats: nil,
+            heartRateRange: nil,
+            segments: [
+                ProgressionSegment(distanceKm: 3.0, pace: nil, description: "輕鬆開始", heartRateRange: HeartRateRange(min: 141, max: 162)),
+                ProgressionSegment(distanceKm: 4.0, pace: "5:25", description: "提速", heartRateRange: HeartRateRange(min: 162, max: 176)),
+                ProgressionSegment(distanceKm: 3.0, pace: nil, description: "放鬆結束", heartRateRange: HeartRateRange(min: 141, max: 162))
+            ]
+        )
+    )
+
+    return TodayFocusCard(viewModel: viewModel, todayTraining: mockDay)
+        .padding()
+}
+
+#Preview("週時間軸") {
+    let viewModel = TrainingPlanViewModel()
+    let mockPlan = WeeklyPlan(
+        id: "preview",
+        purpose: "預覽測試",
+        weekOfPlan: 35,
+        totalWeeks: 39,
+        totalDistance: 43.0,
+        designReason: ["測試用"],
+        days: [
+            TrainingDay(dayIndex: "0", dayTarget: "恢復跑", reason: nil, tips: nil, trainingType: "recovery_run",
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 6.19, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+            TrainingDay(dayIndex: "1", dayTarget: "間歇訓練", reason: nil, tips: nil, trainingType: "interval",
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 4.42, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+            TrainingDay(dayIndex: "4", dayTarget: "組合訓練", reason: nil, tips: nil, trainingType: "combination",
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: nil, totalDistanceKm: 10.0, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+            TrainingDay(dayIndex: "2", dayTarget: "輕鬆跑", reason: nil, tips: nil, trainingType: "easy",
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 8.0, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil))
+        ],
+        intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 120, medium: 45, high: 15)
+    )
+
+    return WeekTimelineView(viewModel: viewModel, plan: mockPlan)
+        .padding()
+}
+
+#Preview("週總覽卡片") {
+    WeekOverviewCard(
+        viewModel: TrainingPlanViewModel(),
+        plan: WeeklyPlan(
+            id: "preview",
+            purpose: "預覽測試",
+            weekOfPlan: 1,
+            totalWeeks: 12,
+            totalDistance: 50.0,
+            designReason: ["測試用"],
+            days: [],
+            intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 120, medium: 45, high: 15)
+        )
+    )
+    .environmentObject(HealthKitManager())
+    .padding()
 }

@@ -12,12 +12,12 @@ struct TrainingProgressView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // 當前訓練進度概覽
                     currentTrainingStatusCard
-                    
+
                     // 目標賽事資訊
                     if let overview = viewModel.trainingOverview {
                         targetRaceCard(overview: overview)
                     }
-                    
+
                     // 各階段訓練進度
                     trainingStagesSection
                 }
@@ -39,6 +39,10 @@ struct TrainingProgressView: View {
                 // 初始載入週次數據，使用雙軌模式
                 await loadWeeklySummariesWithDualTrack()
             }.value
+        }
+        .onAppear {
+            // 自動展開當前週期對應的階段
+            expandCurrentStage()
         }
     }
     
@@ -448,7 +452,24 @@ struct TrainingProgressView: View {
         let colors: [Color] = [.blue, .green, .orange, .purple, .pink]
         return colors[stageIndex % colors.count]
     }
-    
+
+    // 自動展開當前週期對應的階段
+    private func expandCurrentStage() {
+        guard let overview = viewModel.trainingOverview,
+              let currentWeek = viewModel.calculateCurrentTrainingWeek() else {
+            return
+        }
+
+        // 找到當前週期對應的階段 index
+        for (index, stage) in overview.trainingStageDescription.enumerated() {
+            let endWeek = stage.weekEnd ?? stage.weekStart
+            if currentWeek >= stage.weekStart && currentWeek <= endWeek {
+                selectedStageIndex = index
+                break
+            }
+        }
+    }
+
     // MARK: - 雙軌載入實現
     
     /// 使用雙軌模式載入週次數據：先顯示緩存，背景更新

@@ -129,6 +129,28 @@ struct SuccessToast: View {
     }
 }
 
+/// 資訊 Toast 通知（用於顯示處理中狀態）
+struct InfoToast: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+                .tint(.blue)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .padding(.horizontal)
+    }
+}
+
 // MARK: - Preview
 
 struct GenerateNextWeekButton_Previews: PreviewProvider {
