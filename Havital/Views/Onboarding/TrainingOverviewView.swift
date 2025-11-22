@@ -155,9 +155,6 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private var summarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(NSLocalizedString("onboarding.training_summary", comment: "Training Summary"))
-                .font(.headline)
-
             if let overview = viewModel.trainingOverview {
                 HStack {
                     Label(NSLocalizedString("onboarding.total_weeks", comment: "Total Weeks"), systemImage: "calendar")
