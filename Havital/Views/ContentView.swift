@@ -94,13 +94,13 @@ struct ContentView: View {
                         }
                     )) {
                         NavigationView {
-                            OnboardingView()
+                            PersonalBestView(targetDistance: 0)
                                 .environmentObject(authService)
                         }
                         .navigationViewStyle(StackNavigationViewStyle())
                         .onAppear {
                             Logger.firebase(
-                                "顯示重新設定目標畫面 (Sheet)",
+                                "顯示重新設定目標畫面 (Sheet) - 從最佳成績開始",
                                 level: .info,
                                 labels: [
                                     "module": "ContentView",

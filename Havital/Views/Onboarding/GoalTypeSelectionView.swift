@@ -28,8 +28,8 @@ class GoalTypeSelectionViewModel: ObservableObject {
                 type: "race_run",
                 name: NSLocalizedString("onboarding.beginner_5k_goal", comment: "能跑 5 公里"),
                 distanceKm: 5,
-                targetTime: 30 * 60, // 預設目標 30 分鐘
-                targetPace: "6:00", // 配速 6:00/km
+                targetTime: 40 * 60, // 預設目標 40 分鐘
+                targetPace: "8:00", // 配速 8:00/km
                 raceDate: Int(raceDate.timeIntervalSince1970),
                 isMainRace: true,
                 trainingWeeks: 4  // 改為 4 週
@@ -37,9 +37,6 @@ class GoalTypeSelectionViewModel: ObservableObject {
 
             try await UserService.shared.createTarget(target)
             print("✅ 新手 5km 目標創建成功")
-
-            // 保存新手計劃標記，供後續頁面使用
-            UserDefaults.standard.set(true, forKey: "onboarding_isBeginner5kPlan")
 
             isLoading = false
             return true
@@ -143,9 +140,9 @@ struct GoalTypeSelectionView: View {
             }
             .hidden()
 
-            // 導航到訓練日數選擇頁面
+            // 導航到訓練日數選擇頁面（新手 5km）
             NavigationLink(
-                destination: TrainingDaysSetupView()
+                destination: TrainingDaysSetupView(isBeginner: true)
                     .navigationBarBackButtonHidden(true),
                 isActive: $viewModel.navigateToTrainingDays
             ) {

@@ -47,12 +47,20 @@ final class TrainingPlanService {
         }
     }
     
-    func postTrainingPlanOverview(startFromStage: String? = nil) async throws -> TrainingPlanOverview {
+    func postTrainingPlanOverview(startFromStage: String? = nil, isBeginner: Bool = false) async throws -> TrainingPlanOverview {
         let bodyData: Data?
 
         // 構建請求體參數
+        var params: [String: Any] = [:]
         if let stage = startFromStage {
-            let params: [String: Any] = ["start_from_stage": stage]
+            params["start_from_stage"] = stage
+        }
+        if isBeginner {
+            params["is_beginner"] = true
+        }
+
+        // 如果有參數，轉換為 JSON
+        if !params.isEmpty {
             bodyData = try JSONSerialization.data(withJSONObject: params)
 
             // Debug logging
@@ -61,7 +69,7 @@ final class TrainingPlanService {
             }
         } else {
             bodyData = nil
-            print("[TrainingPlanService] 📤 POST /plan/race_run/overview with no body (startFromStage is nil)")
+            print("[TrainingPlanService] 📤 POST /plan/race_run/overview with no body")
         }
 
         return try await makeAPICall(TrainingPlanOverview.self,
@@ -147,7 +155,7 @@ final class TrainingPlanService {
         }
     }
     
-    func createWeeklyPlan(targetWeek: Int? = nil, startFromStage: String? = nil) async throws -> WeeklyPlan {
+    func createWeeklyPlan(targetWeek: Int? = nil, startFromStage: String? = nil, isBeginner: Bool = false) async throws -> WeeklyPlan {
         let bodyData: Data?
 
         // 構建請求體參數
@@ -158,10 +166,18 @@ final class TrainingPlanService {
         if let stage = startFromStage {
             params["start_from_stage"] = stage
         }
+        if isBeginner {
+            params["is_beginner"] = true
+        }
 
         // 如果有參數，轉換為 JSON
         if !params.isEmpty {
             bodyData = try JSONSerialization.data(withJSONObject: params)
+
+            // Debug logging
+            if let jsonString = String(data: bodyData!, encoding: .utf8) {
+                print("[TrainingPlanService] 📤 POST /plan/race_run/weekly/v2 with body: \(jsonString)")
+            }
         } else {
             bodyData = nil
         }

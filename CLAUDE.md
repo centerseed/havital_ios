@@ -16,6 +16,43 @@ Paceriz is a fitness tracking application supporting Apple Health and Garmin Con
 
 ## Core Architecture Principles
 
+### 0. Verify Before Assuming (CRITICAL - 最優先原則)
+
+**When debugging UI display issues, ALWAYS follow this systematic approach:**
+
+1. **User feedback is the ground truth** - If user says "you changed the wrong view", stop immediately and verify
+2. **Use tools to find all possibilities** - Never assume which view is responsible
+3. **Evidence over intuition** - If logs don't appear, the view is NOT rendering
+
+#### Debugging Display Issues - Required Steps:
+```bash
+# Step 1: Find ALL views that display the data
+grep -r "Text.*targetVariable" Views/ --include="*.swift" -n
+
+# Step 2: Check which views are actually used in the affected screen
+# Read the parent view and trace the view hierarchy
+
+# Step 3: Verify with evidence (logs, breakpoints)
+# If no logs appear, that view is NOT the problem
+
+# Step 4: Only AFTER verification, make changes
+```
+
+#### Anti-patterns that MUST be avoided:
+```swift
+// ❌ WRONG - Assuming without verification
+"I think it's TrainingDetailsView, let me add logs there"
+→ Result: Wasted time, wrong direction
+
+// ✅ CORRECT - Verify first
+grep -r "dayTarget" Views/Training/ -n  // Find all candidates
+→ Check each view's usage context
+→ Identify the actual culprit
+→ Fix in 5 minutes
+```
+
+**Critical Rule**: When user questions your approach ("是不是改錯view"), treat it as a **red flag** - stop, verify all assumptions with grep/search, then proceed.
+
 ### 1. Initialization Order (CRITICAL)
 **Strict sequence must be followed to prevent crashes and UI errors:**
 

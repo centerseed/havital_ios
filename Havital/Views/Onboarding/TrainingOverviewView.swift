@@ -20,10 +20,12 @@ class TrainingOverviewViewModel: ObservableObject {
     @Published var navigateToMainApp = false
 
     let mode: TrainingOverviewMode
+    let isBeginner: Bool
 
-    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil) {
+    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
         self.mode = mode
         self.trainingOverview = trainingOverview
+        self.isBeginner = isBeginner
     }
 
     func loadTrainingOverview() async {
@@ -55,16 +57,18 @@ class TrainingOverviewViewModel: ObservableObject {
         }
     }
 
-    func generateFirstWeekPlan() async {
+    func completeOnboarding(dismiss: DismissAction) async {
         isGeneratingPlan = true
         error = nil
 
         do {
             // 如果是 preview 模式，需要調用 createWeeklyPlan API
             if mode == .preview {
-                print("[TrainingOverviewViewModel] Preview 模式，調用 createWeeklyPlan")
-                let _ = try await TrainingPlanService.shared.createWeeklyPlan(startFromStage: nil)
+                print("[TrainingOverviewViewModel] Preview 模式，調用 createWeeklyPlan，isBeginner: \(self.isBeginner)")
+                let _ = try await TrainingPlanService.shared.createWeeklyPlan(startFromStage: nil, isBeginner: self.isBeginner)
                 print("[TrainingOverviewViewModel] 第一週計劃生成成功")
+            } else {
+                print("[TrainingOverviewViewModel] Final 模式，第一週計劃已生成，直接完成 onboarding")
             }
 
             // 標記 onboarding 完成
@@ -75,7 +79,10 @@ class TrainingOverviewViewModel: ObservableObject {
                 self.isGeneratingPlan = false
                 // 設置完成標誌，讓 AuthenticationService 觸發導航
                 AuthenticationService.shared.hasCompletedOnboarding = true
-                print("[TrainingOverviewViewModel] Onboarding 完成，導航到主應用")
+                print("[TrainingOverviewViewModel] Onboarding 完成")
+
+                // 關閉畫面（如果在 sheet 中會關閉 sheet，在 NavigationView 中會返回）
+                dismiss()
             }
         } catch {
             await MainActor.run {
@@ -91,8 +98,8 @@ struct TrainingOverviewView: View {
     @StateObject private var viewModel: TrainingOverviewViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil) {
-        _viewModel = StateObject(wrappedValue: TrainingOverviewViewModel(mode: mode, trainingOverview: trainingOverview))
+    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
+        _viewModel = StateObject(wrappedValue: TrainingOverviewViewModel(mode: mode, trainingOverview: trainingOverview, isBeginner: isBeginner))
     }
 
     var body: some View {
@@ -363,7 +370,7 @@ struct TrainingOverviewView: View {
 
             Button(action: {
                 Task {
-                    await viewModel.generateFirstWeekPlan()
+                    await viewModel.completeOnboarding(dismiss: dismiss)
                 }
             }) {
                 Text(viewModel.mode == .preview ?

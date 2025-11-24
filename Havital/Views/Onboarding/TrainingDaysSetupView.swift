@@ -16,11 +16,14 @@ class TrainingDaysViewModel: ObservableObject {
 
     private let userPreferenceManager = UserPreferenceManager.shared
     private let authService = AuthenticationService.shared
-    
+
     let recommendedMinTrainingDays = 2 // 最小建議訓練天數
 
-    init() {
-        // 初始化
+    // 是否為新手 5km 計劃
+    let isBeginner: Bool
+
+    init(isBeginner: Bool = false) {
+        self.isBeginner = isBeginner
     }
 
     var canSavePreferences: Bool {
@@ -64,11 +67,20 @@ class TrainingDaysViewModel: ObservableObject {
             // 讀取用戶選擇的起始階段（如果有的話）
             let selectedStage = UserDefaults.standard.string(forKey: "selectedStartStage")
             print("[TrainingDaysViewModel] 🔍 selectedStartStage from UserDefaults: \(selectedStage ?? "nil")")
+            print("[TrainingDaysViewModel] 🔍 isBeginner: \(self.isBeginner)")
 
-                let overview = try await TrainingPlanService.shared.postTrainingPlanOverview(startFromStage: selectedStage)
+                let overview = try await TrainingPlanService.shared.postTrainingPlanOverview(
+                    startFromStage: selectedStage,
+                    isBeginner: self.isBeginner
+                )
                 self.trainingPlanOverview = overview
 
+                // ✅ 方案 1: 同步兩個緩存系統
+                // 1. 更新 TrainingPlanStorage (UserDefaults)
                 TrainingPlanStorage.saveTrainingPlanOverview(overview)
+
+                // 2. 同步更新 TrainingPlanManager 的緩存
+                await TrainingPlanManager.shared.updateTrainingOverviewCache(overview)
 
                 // 儲存 userPreferenceManager
                 let weekdaysDisplay = self.selectedWeekdays.map { self.getWeekdayNameStatic($0) }
@@ -85,46 +97,8 @@ class TrainingDaysViewModel: ObservableObject {
         }.value
     }
     
-    func generateFinalPlanAndCompleteOnboarding() async { // 原 generateWeeklyPlan
-        isLoading = true
-        error = nil
-        var planSuccessfullyCreated = false
-
-        do {
-            print("[TrainingDaysViewModel] Attempting to create weekly plan...") // 新增日誌
-
-            // 讀取用戶選擇的起始階段（如果有的話）
-            let selectedStage = UserDefaults.standard.string(forKey: "selectedStartStage")
-            if let stage = selectedStage {
-                print("[TrainingDaysViewModel] Creating plan with start stage: \(stage)")
-            }
-
-            let _ = try await TrainingPlanService.shared.createWeeklyPlan(startFromStage: selectedStage)
-            print("[TrainingDaysViewModel] Weekly plan created successfully.") // 新增日誌
-            planSuccessfullyCreated = true
-
-            // 清除已使用的階段選擇
-            UserDefaults.standard.removeObject(forKey: "selectedStartStage")
-
-            print("[TrainingDaysViewModel] 新流程：導航到 TrainingOverviewView")
-
-        } catch {
-            // 特別處理任務取消錯誤，但也記錄其他錯誤
-            if (error as NSError).code != NSURLErrorCancelled {
-                print("[TrainingDaysViewModel] Error generating weekly plan: \(error) - Localized: \(error.localizedDescription)") // 詳細錯誤日誌
-                self.error = "產生課表失敗：\(error.localizedDescription)"
-            }
-        }
-
-        // 確保 isLoading 在所有情況下都會被重置
-        isLoading = false
-
-        if planSuccessfullyCreated {
-            // 新流程：導航到 TrainingOverviewView 而不是直接完成 onboarding
-            print("[TrainingDaysViewModel] 導航到訓練總覽頁面")
-            navigateToTrainingOverview = true
-        }
-    }
+    // 這個函數已被移除，因為週課表應該在 TrainingOverviewView 中由用戶確認後才產生
+    // Overview 已經在 savePreferencesAndGetOverview() 中產生了
 
     // Helper for init and saving preferences
     private func getWeekdayNameStatic(_ weekday: Int) -> String {
@@ -142,12 +116,16 @@ class TrainingDaysViewModel: ObservableObject {
 }
 
 struct TrainingDaysSetupView: View {
-    @StateObject private var viewModel = TrainingDaysViewModel()
+    @StateObject private var viewModel: TrainingDaysViewModel
     @Environment(\.dismiss) private var dismiss
+
+    init(isBeginner: Bool = false) {
+        _viewModel = StateObject(wrappedValue: TrainingDaysViewModel(isBeginner: isBeginner))
+    }
 
     // 檢查是否為新手 5km 計劃
     private var isBeginner5kPlan: Bool {
-        UserDefaults.standard.bool(forKey: "onboarding_isBeginner5kPlan")
+        viewModel.isBeginner
     }
 
     // For loading animation after final plan generation
@@ -285,7 +263,7 @@ struct TrainingDaysSetupView: View {
             Group {
                 // 導航到預覽頁面
                 NavigationLink(
-                    destination: TrainingOverviewView(mode: .preview, trainingOverview: viewModel.trainingPlanOverview)
+                    destination: TrainingOverviewView(mode: .preview, trainingOverview: viewModel.trainingPlanOverview, isBeginner: viewModel.isBeginner)
                         .navigationBarBackButtonHidden(true),
                     isActive: $viewModel.navigateToPreview
                 ) {

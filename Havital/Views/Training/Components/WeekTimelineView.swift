@@ -180,12 +180,20 @@ struct TimelineItemView: View {
 
                         // 課表區域
                         VStack(alignment: .leading, spacing: 8) {
-                            // 訓練目標
-                            Text(day.dayTarget)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
+                            // 訓練目標 - 優先顯示 description，否則顯示 dayTarget
+                            if let desc = day.trainingDetails?.description, !desc.isEmpty {
+                                Text(desc)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } else {
+                                Text(day.dayTarget)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
 
                             // 顯示間歇訓練的 trainingItems 詳情
                             if day.type == .interval, let trainingItems = day.trainingItems, !trainingItems.isEmpty {

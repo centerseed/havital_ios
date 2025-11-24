@@ -178,14 +178,6 @@ struct TrainingDetailsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Divider().padding(.vertical, 4)
 
-            // 只在非分段式訓練時顯示 dayTarget（避免與 SegmentedTrainingView 重複）
-            if !isSegmentedTraining {
-                Text(day.dayTarget)
-                    .font(.body)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             if day.isTrainingDay {
                 // 分段式訓練（漸進跑、閾值跑、組合訓練）：顯示 trainingDetails
                 if let details = day.trainingDetails,
@@ -320,15 +312,8 @@ struct SegmentedTrainingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 第一行：說明文字 + 總距離（右上角）
-            // 移除訓練類型名稱（day.type.localizedName），因為已經在 day.dayTarget 中顯示
+            // 第一行：總距離（右上角），description 已在上層顯示
             HStack(alignment: .top) {
-                Text(day.dayTarget)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-
                 Spacer()
 
                 Text(String(format: "%.1fkm", total))
@@ -381,7 +366,7 @@ struct SegmentedTrainingView: View {
 struct SimpleTrainingView: View {
     let day: TrainingDay
     let details: TrainingDetails
-    
+
     // 檢查是否應該隱藏配速資訊
     private var shouldHidePace: Bool {
         return day.type == .easyRun ||
@@ -389,17 +374,9 @@ struct SimpleTrainingView: View {
                day.type == .recovery_run ||
                day.type == .lsd
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let desc = details.description {
-                Text(NSLocalizedString(desc, comment: desc))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 4)
-            }
             HStack(spacing: 8) {
                 // 只在非輕鬆跑/恢復跑時顯示配速
                 if let pace = details.pace, !shouldHidePace {
@@ -639,7 +616,7 @@ struct DailyTrainingCard: View {
     
     var body: some View {
         let isExpanded = isToday || viewModel.expandedDayIndices.contains(day.dayIndexInt)
-        
+
         VStack(alignment: .leading, spacing: 12) {
             // Use the new DayHeaderView
             DayHeaderView(
@@ -657,7 +634,7 @@ struct DailyTrainingCard: View {
                     }
                 }
             )
-            
+
             // 顯示該天的訓練記錄（使用 V2 數據）
             if let workouts = viewModel.workoutsByDayV2[day.dayIndexInt], !workouts.isEmpty {
                 WorkoutListView(
@@ -677,21 +654,10 @@ struct DailyTrainingCard: View {
                     selectedWorkout: selectedWorkout
                 )
             }
-            
+
             // 條件性顯示額外的訓練詳情內容（只在展開時顯示）
             if isExpanded {
                 TrainingDetailsView(day: day)
-            } else if viewModel.workoutsByDayV2[day.dayIndexInt] == nil || viewModel.workoutsByDayV2[day.dayIndexInt]?.isEmpty == true {
-                // 摺疊時只顯示簡短的訓練目標摘要（當天無訓練記錄時）
-                Divider()
-                    .padding(.vertical, 2)
-                
-                Text(day.dayTarget)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
             }
         }
         .padding()

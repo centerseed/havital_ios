@@ -1204,14 +1204,33 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     /// 統一的指定週計劃載入 - 使用 loadWeeklyPlan 更新 selectedWeek
     func fetchWeekPlan(week: Int) async {
+        // ✅ 方案 3: 前端驗證週次範圍
+        if let totalWeeks = trainingOverview?.totalWeeks {
+            if week < 1 || week > totalWeeks {
+                Logger.error("⚠️ ViewModel: 週次 \(week) 超出計劃範圍 (1-\(totalWeeks))，拒絕載入")
+
+                await MainActor.run {
+                    self.error = NSError(
+                        domain: "TrainingPlanViewModel",
+                        code: 400,
+                        userInfo: [
+                            NSLocalizedDescriptionKey: String(format: NSLocalizedString("training.week_out_of_range", comment: "Week %d is out of plan range (1-%d)"), week, totalWeeks)
+                        ]
+                    )
+                    self.showNetworkErrorToast = true
+                }
+                return
+            }
+        }
+
         // 更新當前選擇的週數
         await MainActor.run {
             self.selectedWeek = week
         }
-        
+
         // 使用統一的載入方法，指定載入目標週數
         await loadWeeklyPlan(skipCache: true, targetWeek: week)
-        
+
         // 載入相關數據
         await loadWorkoutsForCurrentWeek()
         await loadCurrentWeekData()

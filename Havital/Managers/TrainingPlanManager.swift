@@ -413,16 +413,40 @@ class TrainingPlanManager: ObservableObject, DataManageable {
             Logger.debug("軌道 B: 訓練概覽背景更新失敗，保持現有緩存: \(error.localizedDescription)")
         }
     }
-    
+
+    /// 更新訓練概覽緩存（用於外部同步，例如 Onboarding 完成後）
+    /// - Parameter overview: 新的訓練計劃概覽
+    @MainActor
+    func updateTrainingOverviewCache(_ overview: TrainingPlanOverview) {
+        self.trainingOverview = overview
+        cacheManager.saveTrainingOverview(overview)
+
+        Logger.debug("✅ 訓練概覽緩存已同步更新: id=\(overview.id), totalWeeks=\(overview.totalWeeks)")
+    }
+
     // MARK: - Week Management
     
     func switchToWeek(_ week: Int) async {
         guard week != selectedWeek else { return }
-        
+
+        // ✅ 方案 3: 前端驗證週次範圍
+        if let totalWeeks = trainingOverview?.totalWeeks {
+            if week < 1 || week > totalWeeks {
+                Logger.error("⚠️ 週次 \(week) 超出計劃範圍 (1-\(totalWeeks))，拒絕切換")
+
+                // 觸發網路錯誤 Toast 提示用戶
+                await MainActor.run {
+                    self.syncError = String(format: NSLocalizedString("training.week_out_of_range", comment: "Week %d is out of plan range (1-%d)"), week, totalWeeks)
+                    self.showNetworkErrorToast = true
+                }
+                return
+            }
+        }
+
         await MainActor.run {
             selectedWeek = week
         }
-        
+
         await loadData()
     }
     
