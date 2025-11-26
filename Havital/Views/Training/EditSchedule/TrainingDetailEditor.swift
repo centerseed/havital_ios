@@ -1,5 +1,173 @@
 import SwiftUI
 
+// MARK: - Wheel Picker Input Components
+
+/// 距離選擇輸入欄位
+struct DistancePickerField: View {
+    let title: String
+    @Binding var distance: Double
+    @State private var showingPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text(String(format: "%.1f km", distance))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                DistanceWheelPicker(selectedDistance: $distance)
+                    .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
+/// 配速選擇輸入欄位
+struct PacePickerField: View {
+    let title: String
+    @Binding var pace: String
+    var referenceDistance: Double? = nil
+    @State private var showingPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text(pace.isEmpty ? "--:--" : "\(pace) /km")
+                        .foregroundColor(pace.isEmpty ? .secondary : .primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                PaceWheelPicker(selectedPace: $pace, referenceDistance: referenceDistance)
+                    .presentationDetents([.height(referenceDistance != nil ? 380 : 320)])
+            }
+        }
+    }
+}
+
+/// 重複次數選擇輸入欄位
+struct RepeatsPickerField: View {
+    let title: String
+    @Binding var repeats: Int
+    @State private var showingPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text("\(repeats) ×")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                RepeatsWheelPicker(selectedRepeats: $repeats)
+                    .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
+/// 間歇距離選擇輸入欄位（公尺格式）
+struct IntervalDistancePickerField: View {
+    let title: String
+    @Binding var distanceKm: Double
+    @State private var showingPicker = false
+
+    private var displayText: String {
+        let meters = Int(distanceKm * 1000)
+        return "\(meters)m"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text(displayText)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                IntervalDistanceWheelPicker(selectedDistanceKm: $distanceKm)
+                    .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
 // MARK: - 詳細訓練編輯器
 
 struct TrainingDetailEditor: View {
@@ -121,8 +289,6 @@ struct EasyRunDetailEditor: View {
     @Binding var day: MutableTrainingDay
     @ObservedObject var viewModel: TrainingPlanViewModel
 
-    @State private var distance: String = ""
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.easyRunSettings.localized)
@@ -170,23 +336,25 @@ struct EasyRunDetailEditor: View {
                 .background(Color.yellow.opacity(0.1))
                 .cornerRadius(8)
             }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.EditSchedule.distance.localized)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.decimalPad)
-            }
-            
+
+            DistancePickerField(
+                title: L10n.EditSchedule.distance.localized,
+                distance: Binding(
+                    get: { day.trainingDetails?.distanceKm ?? 5.0 },
+                    set: { newValue in
+                        if day.trainingDetails != nil {
+                            day.trainingDetails?.distanceKm = newValue
+                        }
+                    }
+                )
+            )
+
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(desc)
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -200,26 +368,12 @@ struct EasyRunDetailEditor: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
         .onAppear {
-            if let distanceKm = day.trainingDetails?.distanceKm {
-                distance = String(format: "%.1f", distanceKm)
-            }
-
             // 自動填充建議配速（如果配速為空）
             if day.trainingDetails?.pace == nil || day.trainingDetails?.pace?.isEmpty == true {
                 if let suggestedPace = getSuggestedPace() {
                     applyPaceField(suggestedPace)
                 }
             }
-        }
-        .onChange(of: distance) { oldValue, newValue in
-            updateDistance(newValue)
-        }
-    }
-
-    private func updateDistance(_ distanceStr: String) {
-        guard let distanceValue = Double(distanceStr) else { return }
-        if day.trainingDetails != nil {
-            day.trainingDetails?.distanceKm = distanceValue
         }
     }
 
@@ -246,9 +400,6 @@ struct TempoRunDetailEditor: View {
     @Binding var day: MutableTrainingDay
     @ObservedObject var viewModel: TrainingPlanViewModel
 
-    @State private var distance: String = ""
-    @State private var pace: String = ""
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.tempoRunSettings.localized)
@@ -270,8 +421,7 @@ struct TempoRunDetailEditor: View {
                         Spacer()
 
                         Button(L10n.EditSchedule.apply.localized) {
-                            pace = suggestedPace
-                            updatePace(suggestedPace)
+                            applyPace(suggestedPace)
                         }
                         .font(.caption)
                         .buttonStyle(.borderedProminent)
@@ -299,32 +449,38 @@ struct TempoRunDetailEditor: View {
             }
 
             HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.distance.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    
-                    TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.decimalPad)
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.pace.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    
-                    TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $pace)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
+                DistancePickerField(
+                    title: L10n.EditSchedule.distance.localized,
+                    distance: Binding(
+                        get: { day.trainingDetails?.distanceKm ?? 5.0 },
+                        set: { newValue in
+                            if day.trainingDetails != nil {
+                                day.trainingDetails?.distanceKm = newValue
+                            }
+                        }
+                    )
+                )
+
+                PacePickerField(
+                    title: L10n.EditSchedule.pace.localized,
+                    pace: Binding(
+                        get: { day.trainingDetails?.pace ?? "" },
+                        set: { newValue in
+                            if day.trainingDetails != nil {
+                                day.trainingDetails?.pace = newValue.isEmpty ? nil : newValue
+                            }
+                        }
+                    ),
+                    referenceDistance: day.trainingDetails?.distanceKm
+                )
             }
-            
+
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(desc)
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -338,41 +494,18 @@ struct TempoRunDetailEditor: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
         .onAppear {
-            if let details = day.trainingDetails {
-                if let distanceKm = details.distanceKm {
-                    distance = String(format: "%.1f", distanceKm)
-                }
-                if let paceStr = details.pace {
-                    pace = paceStr
-                }
-            }
-
             // 自動填充建議配速（如果配速為空）
             if day.trainingDetails?.pace == nil || day.trainingDetails?.pace?.isEmpty == true {
                 if let suggestedPace = getSuggestedPace() {
-                    pace = suggestedPace
-                    updatePace(suggestedPace)
+                    applyPace(suggestedPace)
                 }
             }
         }
-        .onChange(of: distance) { oldValue, newValue in
-            updateDistance(newValue)
-        }
-        .onChange(of: pace) { oldValue, newValue in
-            updatePace(newValue)
-        }
     }
 
-    private func updateDistance(_ distanceStr: String) {
-        guard let distanceValue = Double(distanceStr) else { return }
+    private func applyPace(_ pace: String) {
         if day.trainingDetails != nil {
-            day.trainingDetails?.distanceKm = distanceValue
-        }
-    }
-
-    private func updatePace(_ paceStr: String) {
-        if day.trainingDetails != nil {
-            day.trainingDetails?.pace = paceStr.isEmpty ? nil : paceStr
+            day.trainingDetails?.pace = pace
         }
     }
 
@@ -391,11 +524,6 @@ struct IntervalDetailEditor: View {
     @Binding var day: MutableTrainingDay
     @ObservedObject var viewModel: TrainingPlanViewModel
 
-    @State private var repeats: String = ""
-    @State private var sprintDistance: String = ""
-    @State private var sprintPace: String = ""
-    @State private var recoveryDistance: String = ""
-    @State private var recoveryPace: String = ""
     @State private var isRestInPlace: Bool = false
     @State private var selectedTemplateIndex: Int? = nil
 
@@ -475,8 +603,7 @@ struct IntervalDetailEditor: View {
                         Spacer()
 
                         Button(L10n.EditSchedule.apply.localized) {
-                            sprintPace = suggestedPace
-                            updateSprintPace(suggestedPace)
+                            applySprintPace(suggestedPace)
                         }
                         .font(.caption)
                         .buttonStyle(.borderedProminent)
@@ -504,91 +631,100 @@ struct IntervalDetailEditor: View {
             }
 
             // 重複次數
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.EditSchedule.repeats.localized)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                TextField(L10n.EditSchedule.repeatsPlaceholder.localized, text: $repeats)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.numberPad)
-            }
-            
+            RepeatsPickerField(
+                title: L10n.EditSchedule.repeats.localized,
+                repeats: Binding(
+                    get: { day.trainingDetails?.repeats ?? 4 },
+                    set: { newValue in
+                        day.trainingDetails?.repeats = newValue
+                    }
+                )
+            )
+
             // 衝刺段設定
             VStack(alignment: .leading, spacing: 12) {
                 Text(L10n.EditSchedule.sprintSegment.localized)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.red)
-                
+
                 HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L10n.EditSchedule.distance.localized)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                        
-                        TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $sprintDistance)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.decimalPad)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L10n.EditSchedule.pace.localized)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                        
-                        TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $sprintPace)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
+                    IntervalDistancePickerField(
+                        title: L10n.EditSchedule.distance.localized,
+                        distanceKm: Binding(
+                            get: { day.trainingDetails?.work?.distanceKm ?? 0.4 },
+                            set: { newValue in
+                                ensureWorkSegment()
+                                day.trainingDetails?.work?.distanceKm = newValue
+                            }
+                        )
+                    )
+
+                    PacePickerField(
+                        title: L10n.EditSchedule.pace.localized,
+                        pace: Binding(
+                            get: { day.trainingDetails?.work?.pace ?? "" },
+                            set: { newValue in
+                                ensureWorkSegment()
+                                day.trainingDetails?.work?.pace = newValue.isEmpty ? nil : newValue
+                            }
+                        )
+                    )
                 }
             }
             .padding()
             .background(Color.red.opacity(0.1))
             .cornerRadius(8)
-            
+
             // 恢復段設定
             VStack(alignment: .leading, spacing: 12) {
                 Text(L10n.EditSchedule.recoverySegment.localized)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.blue)
-                
+
                 Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $isRestInPlace)
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
-                
+                    .onChange(of: isRestInPlace) { oldValue, newValue in
+                        updateRestInPlace(newValue)
+                    }
+
                 if !isRestInPlace {
                     HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.EditSchedule.distance.localized)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            
-                            TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $recoveryDistance)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.decimalPad)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.EditSchedule.pace.localized)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            
-                            TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $recoveryPace)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                        }
+                        IntervalDistancePickerField(
+                            title: L10n.EditSchedule.distance.localized,
+                            distanceKm: Binding(
+                                get: { day.trainingDetails?.recovery?.distanceKm ?? 0.2 },
+                                set: { newValue in
+                                    ensureRecoverySegment()
+                                    day.trainingDetails?.recovery?.distanceKm = newValue
+                                }
+                            )
+                        )
+
+                        PacePickerField(
+                            title: L10n.EditSchedule.pace.localized,
+                            pace: Binding(
+                                get: { day.trainingDetails?.recovery?.pace ?? "" },
+                                set: { newValue in
+                                    ensureRecoverySegment()
+                                    day.trainingDetails?.recovery?.pace = newValue.isEmpty ? nil : newValue
+                                }
+                            )
+                        )
                     }
                 }
             }
             .padding()
             .background(Color.blue.opacity(0.1))
             .cornerRadius(8)
-            
+
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(desc)
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -604,122 +740,72 @@ struct IntervalDetailEditor: View {
         .onAppear {
             loadIntervalData()
         }
-        .onChange(of: repeats) { oldValue, newValue in updateRepeats(newValue) }
-        .onChange(of: sprintDistance) { oldValue, newValue in updateSprintDistance(newValue) }
-        .onChange(of: sprintPace) { oldValue, newValue in updateSprintPace(newValue) }
-        .onChange(of: recoveryDistance) { oldValue, newValue in updateRecoveryDistance(newValue) }
-        .onChange(of: recoveryPace) { oldValue, newValue in updateRecoveryPace(newValue) }
-        .onChange(of: isRestInPlace) { oldValue, newValue in updateRestInPlace(newValue) }
     }
-    
+
     private func loadIntervalData() {
         guard let details = day.trainingDetails else { return }
 
-        if let reps = details.repeats {
-            repeats = String(reps)
-        }
-
-        if let work = details.work {
-            if let distance = work.distanceKm {
-                sprintDistance = String(format: "%.1f", distance)
-            }
-            if let pace = work.pace {
-                sprintPace = pace
-            } else {
-                // 自動填充建議配速（如果配速為空）
-                if let suggestedPace = getSuggestedPace() {
-                    sprintPace = suggestedPace
-                    updateSprintPace(suggestedPace)
-                }
-            }
-        }
-
+        // 檢查是否為原地休息
         if let recovery = details.recovery {
-            if let distance = recovery.distanceKm {
-                recoveryDistance = String(format: "%.1f", distance)
-                isRestInPlace = false
-            } else {
-                isRestInPlace = true
-            }
-            if let pace = recovery.pace {
-                recoveryPace = pace
+            isRestInPlace = recovery.distanceKm == nil && recovery.pace == nil
+        } else {
+            isRestInPlace = true
+        }
+
+        // 自動填充建議配速（如果配速為空）
+        if details.work?.pace == nil || details.work?.pace?.isEmpty == true {
+            if let suggestedPace = getSuggestedPace() {
+                applySprintPace(suggestedPace)
             }
         }
     }
-    
-    private func updateRepeats(_ value: String) {
-        guard let reps = Int(value) else { return }
-        day.trainingDetails?.repeats = reps
-    }
-    
-    private func updateSprintDistance(_ value: String) {
-        guard let distance = Double(value) else { return }
+
+    private func ensureWorkSegment() {
         if day.trainingDetails?.work == nil {
             day.trainingDetails?.work = MutableWorkoutSegment(
-                description: nil, distanceKm: distance, distanceM: nil,
+                description: nil, distanceKm: 0.4, distanceM: nil,
                 timeMinutes: nil, pace: nil, heartRateRange: nil
             )
-        } else {
-            day.trainingDetails?.work?.distanceKm = distance
         }
     }
-    
-    private func updateSprintPace(_ value: String) {
-        if day.trainingDetails?.work == nil {
-            day.trainingDetails?.work = MutableWorkoutSegment(
-                description: nil, distanceKm: nil, distanceM: nil,
-                timeMinutes: nil, pace: value.isEmpty ? nil : value, heartRateRange: nil
-            )
-        } else {
-            day.trainingDetails?.work?.pace = value.isEmpty ? nil : value
-        }
-    }
-    
-    private func updateRecoveryDistance(_ value: String) {
-        guard let distance = Double(value) else { return }
+
+    private func ensureRecoverySegment() {
         if day.trainingDetails?.recovery == nil {
             day.trainingDetails?.recovery = MutableWorkoutSegment(
-                description: nil, distanceKm: distance, distanceM: nil,
-                timeMinutes: nil, pace: nil, heartRateRange: nil
+                description: nil, distanceKm: 0.2, distanceM: nil,
+                timeMinutes: nil, pace: "6:00", heartRateRange: nil
             )
-        } else {
-            day.trainingDetails?.recovery?.distanceKm = distance
         }
     }
-    
-    private func updateRecoveryPace(_ value: String) {
-        if day.trainingDetails?.recovery == nil {
-            day.trainingDetails?.recovery = MutableWorkoutSegment(
-                description: nil, distanceKm: nil, distanceM: nil,
-                timeMinutes: nil, pace: value.isEmpty ? nil : value, heartRateRange: nil
-            )
-        } else {
-            day.trainingDetails?.recovery?.pace = value.isEmpty ? nil : value
-        }
+
+    private func applySprintPace(_ pace: String) {
+        ensureWorkSegment()
+        day.trainingDetails?.work?.pace = pace
     }
-    
+
     private func updateRestInPlace(_ isRest: Bool) {
         if isRest {
             // 原地休息：清除距離和配速
             day.trainingDetails?.recovery?.distanceKm = nil
             day.trainingDetails?.recovery?.pace = nil
-            recoveryDistance = ""
-            recoveryPace = ""
+        } else {
+            // 跑步恢復：設定預設值
+            ensureRecoverySegment()
+            if day.trainingDetails?.recovery?.distanceKm == nil {
+                day.trainingDetails?.recovery?.distanceKm = 0.2
+            }
+            if day.trainingDetails?.recovery?.pace == nil {
+                day.trainingDetails?.recovery?.pace = "6:00"
+            }
         }
     }
 
     /// 應用間歇訓練模板
     private func applyTemplate(_ template: IntervalTemplate) {
-        // 更新 UI 狀態
-        repeats = String(template.repeats)
-        sprintDistance = String(format: "%.1f", Double(template.distanceM) / 1000.0)
         isRestInPlace = true
-        recoveryDistance = ""
-        recoveryPace = ""
 
         // 獲取建議配速
         let suggestedPace = getSuggestedPace() ?? "4:30"
-        sprintPace = suggestedPace
 
         // 更新 day 資料
         day.trainingDetails?.repeats = template.repeats
@@ -760,89 +846,33 @@ struct CombinationDetailEditor: View {
     @Binding var day: MutableTrainingDay
     @ObservedObject var viewModel: TrainingPlanViewModel
 
-    @State private var segments: [EditableSegment] = []
-    
-    struct EditableSegment: Identifiable {
-        let id = UUID()
-        var description: String
-        var distance: String
-        var pace: String
-    }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(L10n.EditSchedule.combinationSettings.localized)
-                    .font(.headline)
-                    .foregroundColor(.orange)
-                
-                Spacer()
-                
-                Button(L10n.EditSchedule.addSegment.localized) {
-                    segments.append(EditableSegment(description: "", distance: "", pace: ""))
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-            
-            ForEach(segments.indices, id: \.self) { index in
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(String(format: L10n.EditSchedule.segment.localized, index + 1))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.orange)
-                        
-                        Spacer()
-                        
-                        if segments.count > 1 {
-                            Button(L10n.EditSchedule.delete.localized) {
-                                segments.remove(at: index)
-                                updateSegments()
+            Text(L10n.EditSchedule.combinationSettings.localized)
+                .font(.headline)
+                .foregroundColor(.orange)
+
+            if let segments = day.trainingDetails?.segments {
+                ForEach(segments.indices, id: \.self) { index in
+                    CombinationSegmentEditor(
+                        segmentIndex: index,
+                        segment: Binding(
+                            get: { day.trainingDetails?.segments?[index] ?? MutableProgressionSegment(distanceKm: nil, pace: nil, description: nil, heartRateRange: nil) },
+                            set: { newValue in
+                                day.trainingDetails?.segments?[index] = newValue
+                                updateTotalDistance()
                             }
-                            .foregroundColor(.red)
-                            .controlSize(.small)
-                        }
-                    }
-                    
-                    TextField(L10n.EditSchedule.segmentDescription.localized, text: $segments[index].description)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.EditSchedule.distance.localized)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            
-                            TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $segments[index].distance)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.decimalPad)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.EditSchedule.pace.localized)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            
-                            TextField(L10n.EditSchedule.pacePlaceholder.localized, text: $segments[index].pace)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                        }
-                    }
+                        )
+                    )
                 }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
-                .onChange(of: segments[index].description) { oldValue, newValue in updateSegments() }
-                .onChange(of: segments[index].distance) { oldValue, newValue in updateSegments() }
-                .onChange(of: segments[index].pace) { oldValue, newValue in updateSegments() }
             }
-            
+
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(desc)
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -855,57 +885,66 @@ struct CombinationDetailEditor: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
-        .onAppear {
-            loadSegments()
-        }
     }
-    
-    private func loadSegments() {
-        guard let details = day.trainingDetails,
-              let progressionSegments = details.segments else {
-            segments = [EditableSegment(description: "", distance: "", pace: "")]
-            return
-        }
-        
-        segments = progressionSegments.map { segment in
-            EditableSegment(
-                description: segment.description ?? "",
-                distance: segment.distanceKm != nil ? String(format: "%.1f", segment.distanceKm!) : "",
-                pace: segment.pace ?? ""
-            )
-        }
-        
-        if segments.isEmpty {
-            segments = [EditableSegment(description: "", distance: "", pace: "")]
-        }
-    }
-    
-    private func updateSegments() {
-        let mutableSegments = segments.map { editableSegment in
-            MutableProgressionSegment(
-                distanceKm: Double(editableSegment.distance),
-                pace: editableSegment.pace.isEmpty ? nil : editableSegment.pace,
-                description: editableSegment.description.isEmpty ? nil : editableSegment.description,
-                heartRateRange: nil
-            )
-        }
-        
-        if day.trainingDetails == nil {
-            // 如果沒有 trainingDetails，創建一個
-            day.trainingDetails = MutableTrainingDetails(
-                description: nil, distanceKm: nil, totalDistanceKm: nil,
-                timeMinutes: nil, pace: nil, work: nil, recovery: nil,
-                repeats: nil, heartRateRange: nil, segments: mutableSegments
-            )
-        } else {
-            day.trainingDetails?.segments = mutableSegments
-        }
-        
-        // 計算總距離
-        let totalDistance = segments.compactMap { Double($0.distance) }.reduce(0, +)
+
+    private func updateTotalDistance() {
+        guard let segments = day.trainingDetails?.segments else { return }
+        let totalDistance = segments.compactMap { $0.distanceKm }.reduce(0, +)
         if totalDistance > 0 {
             day.trainingDetails?.totalDistanceKm = totalDistance
         }
+    }
+}
+
+/// 組合訓練單一段落編輯器
+struct CombinationSegmentEditor: View {
+    let segmentIndex: Int
+    @Binding var segment: MutableProgressionSegment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(String(format: L10n.EditSchedule.segment.localized, segmentIndex + 1))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+
+                Spacer()
+
+                // 段落描述標籤（僅顯示，不可編輯）
+                if let desc = segment.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.15))
+                        .cornerRadius(6)
+                }
+            }
+
+            HStack(spacing: 16) {
+                DistancePickerField(
+                    title: L10n.EditSchedule.distance.localized,
+                    distance: Binding(
+                        get: { segment.distanceKm ?? 2.0 },
+                        set: { newValue in segment.distanceKm = newValue }
+                    )
+                )
+
+                PacePickerField(
+                    title: L10n.EditSchedule.pace.localized,
+                    pace: Binding(
+                        get: { segment.pace ?? "" },
+                        set: { newValue in segment.pace = newValue.isEmpty ? nil : newValue }
+                    ),
+                    referenceDistance: segment.distanceKm
+                )
+            }
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 
@@ -915,30 +954,30 @@ struct LongRunDetailEditor: View {
     @Binding var day: MutableTrainingDay
     @ObservedObject var viewModel: TrainingPlanViewModel
 
-    @State private var distance: String = ""
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.longRunSettings.localized)
                 .font(.headline)
                 .foregroundColor(.blue)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.EditSchedule.distance.localized)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.decimalPad)
-            }
-            
+
+            DistancePickerField(
+                title: L10n.EditSchedule.distance.localized,
+                distance: Binding(
+                    get: { day.trainingDetails?.distanceKm ?? 15.0 },
+                    set: { newValue in
+                        if day.trainingDetails != nil {
+                            day.trainingDetails?.distanceKm = newValue
+                        }
+                    }
+                )
+            )
+
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(desc)
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -951,21 +990,6 @@ struct LongRunDetailEditor: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
-        .onAppear {
-            if let distanceKm = day.trainingDetails?.distanceKm {
-                distance = String(format: "%.1f", distanceKm)
-            }
-        }
-        .onChange(of: distance) { oldValue, newValue in
-            updateDistance(newValue)
-        }
-    }
-    
-    private func updateDistance(_ distanceStr: String) {
-        guard let distanceValue = Double(distanceStr) else { return }
-        if day.trainingDetails != nil {
-            day.trainingDetails?.distanceKm = distanceValue
-        }
     }
 }
 
@@ -975,32 +999,32 @@ struct SimpleTrainingDetailEditor: View {
     @Binding var day: MutableTrainingDay
     @ObservedObject var viewModel: TrainingPlanViewModel
 
-    @State private var distance: String = ""
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.trainingSettings.localized)
                 .font(.headline)
                 .foregroundColor(.blue)
-            
+
             if day.type != .rest {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.distance.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    
-                    TextField(L10n.EditSchedule.distancePlaceholder.localized, text: $distance)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.decimalPad)
-                }
+                DistancePickerField(
+                    title: L10n.EditSchedule.distance.localized,
+                    distance: Binding(
+                        get: { day.trainingDetails?.distanceKm ?? 5.0 },
+                        set: { newValue in
+                            if day.trainingDetails != nil {
+                                day.trainingDetails?.distanceKm = newValue
+                            }
+                        }
+                    )
+                )
             }
-            
+
             if let details = day.trainingDetails, let desc = details.description {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.EditSchedule.description.localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(desc)
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -1013,22 +1037,5 @@ struct SimpleTrainingDetailEditor: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
-        .onAppear {
-            if let distanceKm = day.trainingDetails?.distanceKm {
-                distance = String(format: "%.1f", distanceKm)
-            }
-        }
-        .onChange(of: distance) { oldValue, newValue in
-            if day.type != .rest {
-                updateDistance(newValue)
-            }
-        }
-    }
-    
-    private func updateDistance(_ distanceStr: String) {
-        guard let distanceValue = Double(distanceStr) else { return }
-        if day.trainingDetails != nil {
-            day.trainingDetails?.distanceKm = distanceValue
-        }
     }
 }

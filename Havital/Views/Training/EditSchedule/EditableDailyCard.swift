@@ -513,9 +513,9 @@ struct IntervalSegmentEditView: View {
             updatedSegment.pace = nil
             updatedSegment.distanceKm = nil
         } else {
-            // 切換到跑步恢復：設定預設配速
+            // 切換到跑步恢復：設定預設配速和距離
             updatedSegment.pace = "6:00"
-            updatedSegment.distanceKm = nil // 恢復段通常只有配速，沒有距離
+            updatedSegment.distanceKm = 0.2 // 預設 200m 恢復跑
         }
         onEdit(updatedSegment)
     }
@@ -545,16 +545,16 @@ struct CombinationSegmentEditView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // 訓練類型選擇器
+            // 訓練類型標籤（僅顯示，不可編輯）
             if let description = segment.description {
-                EditableValueView(
-                    title: "",
-                    value: description,
-                    isEditable: isEditable,
-                    valueType: .trainingType
-                ) { newValue in
-                    updateTrainingType(newValue)
-                }
+                Text(description)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(6)
             }
 
             if let pace = segment.pace {
@@ -572,7 +572,8 @@ struct CombinationSegmentEditView: View {
                 EditableValueView(
                     title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
                     value: String(format: "%.1f", distance),
-                    isEditable: isEditable
+                    isEditable: isEditable,
+                    valueType: .distance
                 ) { newValue in
                     updateDistance(Double(newValue) ?? distance)
                 }
@@ -592,12 +593,6 @@ struct CombinationSegmentEditView: View {
     private func updateDistance(_ newDistance: Double) {
         var updatedSegment = segment
         updatedSegment.distanceKm = newDistance
-        onEdit(updatedSegment)
-    }
-
-    private func updateTrainingType(_ newType: String) {
-        var updatedSegment = segment
-        updatedSegment.description = newType
         onEdit(updatedSegment)
     }
 }

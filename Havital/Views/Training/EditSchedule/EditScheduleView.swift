@@ -498,10 +498,6 @@ struct SimplifiedDailyCard: View {
                         Button(L10n.EditSchedule.thresholdRun.localized) { updateTrainingType(.threshold) }
                         Button(L10n.EditSchedule.intervalTraining.localized) { updateTrainingType(.interval) }
                         Button(L10n.EditSchedule.combinationRun.localized) { updateTrainingType(.combination) }
-                    }
-
-                    // 長距離類
-                    Section(header: Text(NSLocalizedString("edit_schedule.category_long", comment: "長距離訓練"))) {
                         Button(L10n.EditSchedule.longDistanceRun.localized) { updateTrainingType(.longRun) }
                     }
 

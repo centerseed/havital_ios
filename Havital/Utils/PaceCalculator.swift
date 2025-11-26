@@ -183,6 +183,9 @@ struct PaceCalculator {
         case "interval", "intervals", "interval_run":
             return .interval
 
+        case "anaerobic", "anaerobic_run":
+            return .anaerobic
+
         case "longrun", "long_run":
             // 長距離跑通常使用馬拉松配速
             return .marathon
