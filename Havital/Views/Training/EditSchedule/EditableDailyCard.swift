@@ -410,14 +410,9 @@ struct IntervalSegmentEditView: View {
     let onEdit: (MutableWorkoutSegment) -> Void
 
     private let recoverySegmentTitle = NSLocalizedString("edit_schedule.recovery_segment", comment: "恢復段")
-    private let sprintSegmentTitle = NSLocalizedString("edit_schedule.sprint_segment", comment: "衝刺段")
 
     private var isRestSegment: Bool {
         return title == recoverySegmentTitle
-    }
-
-    private var isWorkSegment: Bool {
-        return title == sprintSegmentTitle
     }
 
     private var isStaticRest: Bool {
@@ -472,16 +467,12 @@ struct IntervalSegmentEditView: View {
                     if let distance = segment.distanceKm {
                         EditableValueView(
                             title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
-                            value: isWorkSegment ? formatIntervalDistance(distance) : String(format: "%.1f", distance),
+                            value: formatIntervalDistance(distance),
                             isEditable: isEditable,
-                            valueType: isWorkSegment ? .intervalDistance : .distance
+                            valueType: .intervalDistance
                         ) { newValue in
-                            if isWorkSegment {
-                                // 處理間歇距離格式 "400m"
-                                updateIntervalDistance(newValue)
-                            } else {
-                                updateDistance(Double(newValue) ?? distance)
-                            }
+                            // 處理間歇距離格式 "400m"
+                            updateIntervalDistance(newValue)
                         }
                     }
 
@@ -771,14 +762,27 @@ struct IntervalDistanceWheelPicker: View {
     @Binding var selectedDistanceKm: Double
     @Environment(\.dismiss) private var dismiss
 
-    // 間歇跑常見距離選項
+    // 間歇跑常見距離選項（公尺）
     private let distanceOptions: [(meters: Int, km: Double, display: String)] = [
+        (100, 0.1, "100m"),
         (200, 0.2, "200m"),
         (400, 0.4, "400m"),
         (600, 0.6, "600m"),
         (800, 0.8, "800m"),
         (1000, 1.0, "1000m"),
-        (1200, 1.2, "1200m")
+        (1200, 1.2, "1200m"),
+        (1600, 1.6, "1600m"),
+        (2000, 2.0, "2000m"),
+        (2400, 2.4, "2400m"),
+        (2800, 2.8, "2800m"),
+        (3000, 3.0, "3000m"),
+        (3200, 3.2, "3200m"),
+        (3600, 3.6, "3600m"),
+        (4000, 4.0, "4000m"),
+        (5000, 5.0, "5000m"),
+        (6000, 6.0, "6000m"),
+        (7000, 7.0, "7000m"),
+        (8000, 8.0, "8000m")
     ]
 
     @State private var selectedIndex: Int = 0
@@ -821,12 +825,15 @@ struct IntervalDistanceWheelPicker: View {
             }
         }
         .onAppear {
-            // 設定初始選擇
-            if let currentIndex = distanceOptions.firstIndex(where: { $0.km == selectedDistanceKm }) {
+            // 設定初始選擇 - 找最接近的距離
+            if let currentIndex = distanceOptions.firstIndex(where: { abs($0.km - selectedDistanceKm) < 0.01 }) {
                 selectedIndex = currentIndex
             } else {
-                // 預設為 400m (0.4km)
-                selectedIndex = 1
+                // 找最接近的距離
+                let closestIndex = distanceOptions.enumerated().min(by: {
+                    abs($0.element.km - selectedDistanceKm) < abs($1.element.km - selectedDistanceKm)
+                })?.offset ?? 2 // 預設為 400m
+                selectedIndex = closestIndex
             }
         }
     }
