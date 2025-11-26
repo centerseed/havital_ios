@@ -786,17 +786,16 @@ struct IntervalDetailEditor: View {
     private func updateRestInPlace(_ isRest: Bool) {
         if isRest {
             // 原地休息：清除距離和配速
-            day.trainingDetails?.recovery?.distanceKm = nil
-            day.trainingDetails?.recovery?.pace = nil
+            day.trainingDetails?.recovery = MutableWorkoutSegment(
+                description: nil, distanceKm: nil, distanceM: nil,
+                timeMinutes: nil, pace: nil, heartRateRange: nil
+            )
         } else {
-            // 跑步恢復：設定預設值
-            ensureRecoverySegment()
-            if day.trainingDetails?.recovery?.distanceKm == nil {
-                day.trainingDetails?.recovery?.distanceKm = 0.2
-            }
-            if day.trainingDetails?.recovery?.pace == nil {
-                day.trainingDetails?.recovery?.pace = "6:00"
-            }
+            // 跑步恢復：直接設定新的 segment 以確保值被正確設定
+            day.trainingDetails?.recovery = MutableWorkoutSegment(
+                description: nil, distanceKm: 0.2, distanceM: nil,
+                timeMinutes: nil, pace: "6:00", heartRateRange: nil
+            )
         }
     }
 
