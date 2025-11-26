@@ -397,12 +397,68 @@ struct IntervalDetailEditor: View {
     @State private var recoveryDistance: String = ""
     @State private var recoveryPace: String = ""
     @State private var isRestInPlace: Bool = false
+    @State private var selectedTemplateIndex: Int? = nil
+
+    // 常用間歇訓練模板
+    private struct IntervalTemplate: Identifiable {
+        let id = UUID()
+        let name: String
+        let repeats: Int
+        let distanceM: Int
+        let description: String
+    }
+
+    private let templates: [IntervalTemplate] = [
+        IntervalTemplate(name: "400m × 8", repeats: 8, distanceM: 400, description: NSLocalizedString("interval.template.400x8", comment: "適合提升速度耐力")),
+        IntervalTemplate(name: "400m × 10", repeats: 10, distanceM: 400, description: NSLocalizedString("interval.template.400x10", comment: "進階速度耐力訓練")),
+        IntervalTemplate(name: "800m × 5", repeats: 5, distanceM: 800, description: NSLocalizedString("interval.template.800x5", comment: "中距離間歇訓練")),
+        IntervalTemplate(name: "1000m × 4", repeats: 4, distanceM: 1000, description: NSLocalizedString("interval.template.1000x4", comment: "提升有氧閾值")),
+        IntervalTemplate(name: "200m × 12", repeats: 12, distanceM: 200, description: NSLocalizedString("interval.template.200x12", comment: "短距離速度訓練"))
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.intervalSettings.localized)
                 .font(.headline)
                 .foregroundColor(.orange)
+
+            // 快速模板選擇
+            VStack(alignment: .leading, spacing: 8) {
+                Text(NSLocalizedString("edit_schedule.quick_templates", comment: "快速選擇"))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(templates.indices, id: \.self) { index in
+                            Button {
+                                applyTemplate(templates[index])
+                                selectedTemplateIndex = index
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(templates[index].name)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    Text(templates[index].description)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(selectedTemplateIndex == index ? Color.orange.opacity(0.2) : Color(.tertiarySystemBackground))
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(selectedTemplateIndex == index ? Color.orange : Color.clear, lineWidth: 1.5)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+            }
 
             // 顯示建議配速提示和配速區間
             if let suggestedPace = getSuggestedPace() {
@@ -431,7 +487,7 @@ struct IntervalDetailEditor: View {
                     if let paceRange = getPaceRange() {
                         HStack(spacing: 4) {
                             Image(systemName: "gauge.medium")
-                                .font(.caption2)
+                                .font(.caption)
                                 .foregroundColor(.secondary)
 
                             Text(String(format: L10n.EditSchedule.intervalPaceRange.localized, paceRange.max, paceRange.min))
@@ -650,6 +706,43 @@ struct IntervalDetailEditor: View {
             recoveryDistance = ""
             recoveryPace = ""
         }
+    }
+
+    /// 應用間歇訓練模板
+    private func applyTemplate(_ template: IntervalTemplate) {
+        // 更新 UI 狀態
+        repeats = String(template.repeats)
+        sprintDistance = String(format: "%.1f", Double(template.distanceM) / 1000.0)
+        isRestInPlace = true
+        recoveryDistance = ""
+        recoveryPace = ""
+
+        // 獲取建議配速
+        let suggestedPace = getSuggestedPace() ?? "4:30"
+        sprintPace = suggestedPace
+
+        // 更新 day 資料
+        day.trainingDetails?.repeats = template.repeats
+        day.trainingDetails?.work = MutableWorkoutSegment(
+            description: nil,
+            distanceKm: Double(template.distanceM) / 1000.0,
+            distanceM: nil,
+            timeMinutes: nil,
+            pace: suggestedPace,
+            heartRateRange: nil
+        )
+        day.trainingDetails?.recovery = MutableWorkoutSegment(
+            description: nil,
+            distanceKm: nil,
+            distanceM: nil,
+            timeMinutes: nil,
+            pace: nil,
+            heartRateRange: nil
+        )
+
+        // 觸發震動回饋
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
     }
 
     private func getSuggestedPace() -> String? {

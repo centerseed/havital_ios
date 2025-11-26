@@ -281,11 +281,11 @@ struct EditableValueView: View {
     let valueType: EditValueType
     let onEdit: (String) -> Void
 
-    @State private var showingEditor = false
     @State private var showingPacePicker = false
+    @State private var showingDistancePicker = false
     @State private var showingIntervalDistancePicker = false
     @State private var showingTrainingTypePicker = false
-    @State private var editValue = ""
+    @State private var showingRepeatsPicker = false
 
     init(title: String, value: String, isEditable: Bool, valueType: EditValueType = .general, onEdit: @escaping (String) -> Void) {
         self.title = title
@@ -298,57 +298,59 @@ struct EditableValueView: View {
     var body: some View {
         Button(action: {
             if isEditable {
-                if valueType == .pace {
+                switch valueType {
+                case .pace:
                     showingPacePicker = true
-                } else if valueType == .intervalDistance {
+                case .intervalDistance:
                     showingIntervalDistancePicker = true
-                } else if valueType == .trainingType {
+                case .trainingType:
                     showingTrainingTypePicker = true
-                } else {
-                    editValue = cleanValueForEditing(value)
-                    showingEditor = true
+                case .distance:
+                    showingDistancePicker = true
+                case .repeats:
+                    showingRepeatsPicker = true
+                case .general:
+                    showingDistancePicker = true
                 }
             }
         }) {
             HStack(spacing: 4) {
                 if !title.isEmpty {
                     Text(title + ": ")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundColor(.secondary)
                 }
 
                 Text(value)
-                    .font(.caption2)
+                    .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(isEditable ? .blue : .secondary)
 
                 if isEditable {
-                    Image(systemName: "pencil")
-                        .font(.caption2)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10))
                         .foregroundColor(.blue)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.blue.opacity(isEditable ? 0.15 : 0.05))
-            .cornerRadius(12)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.blue.opacity(isEditable ? 0.12 : 0.05))
+            .cornerRadius(8)
         }
         .disabled(!isEditable)
-        .alert(localizedTitle, isPresented: $showingEditor) {
-            TextField(localizedTitle, text: $editValue)
-                .keyboardType(keyboardType)
-            Button(NSLocalizedString("edit_value.confirm", comment: "確定")) {
-                onEdit(editValue)
-            }
-            Button(NSLocalizedString("edit_value.cancel", comment: "取消"), role: .cancel) { }
-        } message: {
-            Text(localizedMessage)
-        }
         .sheet(isPresented: $showingPacePicker) {
             PaceWheelPicker(selectedPace: Binding(
                 get: { value },
                 set: { newValue in onEdit(newValue) }
             ))
+            .presentationDetents([.height(320)])
+        }
+        .sheet(isPresented: $showingDistancePicker) {
+            DistanceWheelPicker(selectedDistance: Binding(
+                get: { Double(value) ?? 5.0 },
+                set: { newValue in onEdit(String(format: "%.1f", newValue)) }
+            ))
+            .presentationDetents([.height(320)])
         }
         .sheet(isPresented: $showingIntervalDistancePicker) {
             IntervalDistanceWheelPicker(selectedDistanceKm: Binding(
@@ -368,83 +370,25 @@ struct EditableValueView: View {
                     onEdit("\(meters)m")
                 }
             ))
+            .presentationDetents([.height(320)])
         }
         .sheet(isPresented: $showingTrainingTypePicker) {
             CombinationTrainingTypeWheelPicker(selectedType: Binding(
                 get: { value },
                 set: { newValue in onEdit(newValue) }
             ))
+            .presentationDetents([.height(320)])
         }
-    }
-
-    private var localizedTitle: String {
-        switch valueType {
-        case .distance:
-            return NSLocalizedString("edit_value.distance_title", comment: "編輯距離")
-        case .intervalDistance:
-            return NSLocalizedString("edit_value.interval_distance_title", comment: "編輯間歇距離")
-        case .trainingType:
-            return NSLocalizedString("edit_value.training_type_title", comment: "編輯訓練類型")
-        case .pace:
-            return NSLocalizedString("edit_value.pace_title", comment: "編輯配速")
-        case .repeats:
-            return NSLocalizedString("edit_value.repeats_title", comment: "編輯重複次數")
-        case .general:
-            return title
-        }
-    }
-
-    private var localizedMessage: String {
-        switch valueType {
-        case .distance:
-            return NSLocalizedString("edit_value.distance_message", comment: "請輸入距離（公里）")
-        case .intervalDistance:
-            return NSLocalizedString("edit_value.interval_distance_message", comment: "請選擇間歇距離")
-        case .trainingType:
-            return NSLocalizedString("edit_value.training_type_message", comment: "請選擇訓練類型")
-        case .pace:
-            return NSLocalizedString("edit_value.pace_message", comment: "請輸入配速（例如：5:30）")
-        case .repeats:
-            return NSLocalizedString("edit_value.repeats_message", comment: "請輸入重複次數")
-        case .general:
-            return NSLocalizedString("edit_value.general_message", comment: "請輸入新的\(title)")
-        }
-    }
-
-    private var keyboardType: UIKeyboardType {
-        switch valueType {
-        case .distance:
-            return .decimalPad
-        case .intervalDistance:
-            return .default  // 不會被使用，因為使用 wheel picker
-        case .trainingType:
-            return .default  // 不會被使用，因為使用 wheel picker
-        case .pace:
-            return .numbersAndPunctuation
-        case .repeats:
-            return .numberPad
-        case .general:
-            return .default
-        }
-    }
-
-    private func cleanValueForEditing(_ value: String) -> String {
-        switch valueType {
-        case .distance:
-            // Since we no longer display "km" in the value, just trim whitespace
-            return value.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .intervalDistance:
-            // 不會被使用，因為使用 wheel picker
-            return value
-        case .trainingType:
-            // 不會被使用，因為使用 wheel picker
-            return value
-        case .repeats:
-            // Remove "×" and any whitespace, leave only the numeric value
-            return value.replacingOccurrences(of: "×", with: "")
-                       .trimmingCharacters(in: .whitespacesAndNewlines)
-        default:
-            return value
+        .sheet(isPresented: $showingRepeatsPicker) {
+            RepeatsWheelPicker(selectedRepeats: Binding(
+                get: {
+                    let cleanValue = value.replacingOccurrences(of: "×", with: "")
+                        .replacingOccurrences(of: " ", with: "")
+                    return Int(cleanValue) ?? 4
+                },
+                set: { newValue in onEdit("\(newValue) ×") }
+            ))
+            .presentationDetents([.height(320)])
         }
     }
 }
@@ -465,12 +409,15 @@ struct IntervalSegmentEditView: View {
     let color: Color
     let onEdit: (MutableWorkoutSegment) -> Void
 
+    private let recoverySegmentTitle = NSLocalizedString("edit_schedule.recovery_segment", comment: "恢復段")
+    private let sprintSegmentTitle = NSLocalizedString("edit_schedule.sprint_segment", comment: "衝刺段")
+
     private var isRestSegment: Bool {
-        return title == "恢復段"
+        return title == recoverySegmentTitle
     }
 
     private var isWorkSegment: Bool {
-        return title == "衝刺段"
+        return title == sprintSegmentTitle
     }
 
     private var isStaticRest: Bool {
@@ -481,7 +428,8 @@ struct IntervalSegmentEditView: View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption)
+                    .fontWeight(.medium)
                     .foregroundColor(.secondary)
 
                 // 原地休息切換開關（僅對恢復段顯示）
@@ -490,7 +438,7 @@ struct IntervalSegmentEditView: View {
 
                     HStack(spacing: 4) {
                         Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.caption)
                             .foregroundColor(.secondary)
 
                         Toggle("", isOn: Binding(
@@ -512,7 +460,7 @@ struct IntervalSegmentEditView: View {
                 HStack(spacing: 8) {
                     if let pace = segment.pace {
                         EditableValueView(
-                            title: "配速",
+                            title: NSLocalizedString("edit_schedule.pace", comment: "配速"),
                             value: pace,
                             isEditable: isEditable,
                             valueType: .pace
@@ -523,7 +471,7 @@ struct IntervalSegmentEditView: View {
 
                     if let distance = segment.distanceKm {
                         EditableValueView(
-                            title: "距離",
+                            title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
                             value: isWorkSegment ? formatIntervalDistance(distance) : String(format: "%.1f", distance),
                             isEditable: isEditable,
                             valueType: isWorkSegment ? .intervalDistance : .distance
@@ -543,9 +491,9 @@ struct IntervalSegmentEditView: View {
                 // 原地休息狀態顯示
                 HStack {
                     Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                        .font(.system(size: 11, weight: .medium))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(Color.gray.opacity(0.15))
                         .cornerRadius(8)
 
@@ -620,7 +568,7 @@ struct CombinationSegmentEditView: View {
 
             if let pace = segment.pace {
                 EditableValueView(
-                    title: "配速",
+                    title: NSLocalizedString("edit_schedule.pace", comment: "配速"),
                     value: pace,
                     isEditable: isEditable,
                     valueType: .pace
@@ -631,7 +579,7 @@ struct CombinationSegmentEditView: View {
 
             if let distance = segment.distanceKm {
                 EditableValueView(
-                    title: "距離",
+                    title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
                     value: String(format: "%.1f", distance),
                     isEditable: isEditable
                 ) { newValue in
@@ -697,6 +645,7 @@ class PaceMemoryManager: ObservableObject {
 
 struct PaceWheelPicker: View {
     @Binding var selectedPace: String
+    var referenceDistance: Double? = nil  // 可選的參考距離，用於計算預估時間
     @StateObject private var paceMemory = PaceMemoryManager.shared
     @Environment(\.dismiss) private var dismiss
 
@@ -713,40 +662,94 @@ struct PaceWheelPicker: View {
 
     @State private var selectedIndex: Int = 0
 
+    /// 將配速字串轉換為秒數
+    private func paceToSeconds(_ pace: String) -> Int {
+        let parts = pace.split(separator: ":")
+        guard parts.count == 2,
+              let minutes = Int(parts[0]),
+              let seconds = Int(parts[1]) else { return 300 }
+        return minutes * 60 + seconds
+    }
+
+    /// 計算預估完成時間
+    private func estimatedTime(for distance: Double, pace: String) -> String {
+        let paceSeconds = paceToSeconds(pace)
+        let totalSeconds = Int(Double(paceSeconds) * distance)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+
     var body: some View {
         NavigationView {
-            VStack {
-                Text("選擇配速")
+            VStack(spacing: 0) {
+                Text(NSLocalizedString("edit_schedule.select_pace", comment: "選擇配速"))
                     .font(.headline)
                     .padding()
 
-                Picker("配速", selection: $selectedIndex) {
+                Picker(NSLocalizedString("edit_schedule.pace", comment: "配速"), selection: $selectedIndex) {
                     ForEach(paceOptions.indices, id: \.self) { index in
-                        Text(paceOptions[index])
+                        Text(paceOptions[index] + " /km")
                             .tag(index)
                     }
                 }
                 .pickerStyle(WheelPickerStyle())
-                .frame(height: 200)
+                .frame(height: 180)
+
+                // 預估完成時間顯示
+                if let distance = referenceDistance, distance > 0 {
+                    VStack(spacing: 4) {
+                        Divider()
+                            .padding(.horizontal)
+
+                        HStack {
+                            Image(systemName: "clock")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(NSLocalizedString("edit_schedule.estimated_time", comment: "預估時間"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(estimatedTime(for: distance, pace: paceOptions[selectedIndex]))
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+
+                        Text(String(format: NSLocalizedString("edit_schedule.for_distance", comment: "%.1f 公里"), distance))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.bottom, 8)
+                }
 
                 Spacer()
             }
-            .navigationTitle("配速選擇")
+            .navigationTitle(NSLocalizedString("edit_schedule.pace_selection", comment: "配速選擇"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("確定") {
+                    Button(NSLocalizedString("edit_schedule.confirm", comment: "確定")) {
                         let newPace = paceOptions[selectedIndex]
                         selectedPace = newPace
                         paceMemory.savePace(newPace)
                         dismiss()
                     }
+                    .fontWeight(.semibold)
                 }
             }
         }
@@ -770,48 +773,50 @@ struct IntervalDistanceWheelPicker: View {
 
     // 間歇跑常見距離選項
     private let distanceOptions: [(meters: Int, km: Double, display: String)] = [
-        (200, 0.2, "200m (0.2km)"),
-        (400, 0.4, "400m (0.4km)"),
-        (600, 0.6, "600m (0.6km)"),
-        (800, 0.8, "800m (0.8km)"),
-        (1200, 1.2, "1200m (1.2km)")
+        (200, 0.2, "200m"),
+        (400, 0.4, "400m"),
+        (600, 0.6, "600m"),
+        (800, 0.8, "800m"),
+        (1000, 1.0, "1000m"),
+        (1200, 1.2, "1200m")
     ]
 
     @State private var selectedIndex: Int = 0
 
     var body: some View {
         NavigationView {
-            VStack {
-                Text("選擇間歇距離")
+            VStack(spacing: 0) {
+                Text(NSLocalizedString("edit_schedule.select_interval_distance", comment: "選擇間歇距離"))
                     .font(.headline)
                     .padding()
 
-                Picker("距離", selection: $selectedIndex) {
+                Picker(NSLocalizedString("edit_schedule.distance", comment: "距離"), selection: $selectedIndex) {
                     ForEach(distanceOptions.indices, id: \.self) { index in
                         Text(distanceOptions[index].display)
                             .tag(index)
                     }
                 }
                 .pickerStyle(WheelPickerStyle())
-                .frame(height: 200)
+                .frame(height: 180)
 
                 Spacer()
             }
-            .navigationTitle("間歇距離選擇")
+            .navigationTitle(NSLocalizedString("edit_schedule.interval_distance_selection", comment: "間歇距離選擇"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("確定") {
+                    Button(NSLocalizedString("edit_schedule.confirm", comment: "確定")) {
                         let newDistanceKm = distanceOptions[selectedIndex].km
                         selectedDistanceKm = newDistanceKm
                         dismiss()
                     }
+                    .fontWeight(.semibold)
                 }
             }
         }
@@ -847,11 +852,11 @@ struct CombinationTrainingTypeWheelPicker: View {
     var body: some View {
         NavigationView {
             VStack {
-                Text("選擇訓練類型")
+                Text(NSLocalizedString("edit_schedule.select_training_type", comment: "選擇訓練類型"))
                     .font(.headline)
                     .padding()
 
-                Picker("訓練類型", selection: $selectedIndex) {
+                Picker(NSLocalizedString("edit_schedule.training_type", comment: "訓練類型"), selection: $selectedIndex) {
                     ForEach(trainingTypes.indices, id: \.self) { index in
                         Text(trainingTypes[index])
                             .tag(index)
@@ -862,21 +867,22 @@ struct CombinationTrainingTypeWheelPicker: View {
 
                 Spacer()
             }
-            .navigationTitle("訓練類型選擇")
+            .navigationTitle(NSLocalizedString("edit_schedule.training_type_selection", comment: "訓練類型選擇"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("確定") {
+                    Button(NSLocalizedString("edit_schedule.confirm", comment: "確定")) {
                         let newType = trainingTypes[selectedIndex]
                         selectedType = newType
                         dismiss()
                     }
+                    .fontWeight(.semibold)
                 }
             }
         }
@@ -887,6 +893,135 @@ struct CombinationTrainingTypeWheelPicker: View {
             } else {
                 // 預設為輕鬆跑
                 selectedIndex = 0
+            }
+        }
+    }
+}
+
+// MARK: - Distance Wheel Picker
+
+struct DistanceWheelPicker: View {
+    @Binding var selectedDistance: Double
+    @Environment(\.dismiss) private var dismiss
+
+    // 距離選項：1.0 到 30.0 km，每隔 0.5 km
+    private let distanceOptions: [Double] = {
+        var options: [Double] = []
+        var distance = 1.0
+        while distance <= 30.0 {
+            options.append(distance)
+            distance += 0.5
+        }
+        return options
+    }()
+
+    @State private var selectedIndex: Int = 0
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Text(NSLocalizedString("edit_schedule.select_distance", comment: "選擇距離"))
+                    .font(.headline)
+                    .padding()
+
+                Picker(NSLocalizedString("edit_schedule.distance", comment: "距離"), selection: $selectedIndex) {
+                    ForEach(distanceOptions.indices, id: \.self) { index in
+                        Text(String(format: "%.1f km", distanceOptions[index]))
+                            .tag(index)
+                    }
+                }
+                .pickerStyle(WheelPickerStyle())
+                .frame(height: 180)
+
+                Spacer()
+            }
+            .navigationTitle(NSLocalizedString("edit_schedule.distance_selection", comment: "距離選擇"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("edit_schedule.confirm", comment: "確定")) {
+                        selectedDistance = distanceOptions[selectedIndex]
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .onAppear {
+            // 設定初始選擇
+            if let currentIndex = distanceOptions.firstIndex(where: { abs($0 - selectedDistance) < 0.01 }) {
+                selectedIndex = currentIndex
+            } else {
+                // 找到最接近的距離
+                let closestIndex = distanceOptions.enumerated().min(by: {
+                    abs($0.element - selectedDistance) < abs($1.element - selectedDistance)
+                })?.offset ?? 8 // 預設為 5.0 km
+                selectedIndex = closestIndex
+            }
+        }
+    }
+}
+
+// MARK: - Repeats Wheel Picker
+
+struct RepeatsWheelPicker: View {
+    @Binding var selectedRepeats: Int
+    @Environment(\.dismiss) private var dismiss
+
+    // 重複次數選項：1 到 20
+    private let repeatsOptions: [Int] = Array(1...20)
+
+    @State private var selectedIndex: Int = 0
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Text(NSLocalizedString("edit_schedule.select_repeats", comment: "選擇重複次數"))
+                    .font(.headline)
+                    .padding()
+
+                Picker(NSLocalizedString("edit_schedule.repeats", comment: "重複次數"), selection: $selectedIndex) {
+                    ForEach(repeatsOptions.indices, id: \.self) { index in
+                        Text("\(repeatsOptions[index]) ×")
+                            .tag(index)
+                    }
+                }
+                .pickerStyle(WheelPickerStyle())
+                .frame(height: 180)
+
+                Spacer()
+            }
+            .navigationTitle(NSLocalizedString("edit_schedule.repeats_selection", comment: "重複次數選擇"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("edit_schedule.confirm", comment: "確定")) {
+                        selectedRepeats = repeatsOptions[selectedIndex]
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .onAppear {
+            // 設定初始選擇
+            if let currentIndex = repeatsOptions.firstIndex(of: selectedRepeats) {
+                selectedIndex = currentIndex
+            } else {
+                // 預設為 4 次
+                selectedIndex = 3
             }
         }
     }

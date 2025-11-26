@@ -64,7 +64,17 @@ struct EditScheduleView: View {
                     }
 
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        HStack(spacing: 12) {
+                        HStack(spacing: 16) {
+                            // 排序按鈕
+                            Button {
+                                withAnimation(.spring(response: 0.3)) {
+                                    isReorderMode = true
+                                }
+                            } label: {
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .font(.body)
+                            }
+
                             // 配速表按鈕
                             if let vdot = viewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
                                 Button {
@@ -132,27 +142,7 @@ struct EditScheduleView: View {
     @ViewBuilder
     private func editModeView(editablePlan: MutableWeeklyPlan) -> some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
-                // 排序按鈕
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        isReorderMode = true
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.body)
-                        Text(NSLocalizedString("edit_schedule.reorder_days", comment: "調整課表順序"))
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(.blue)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
-                }
-                .padding(.horizontal)
-
+            LazyVStack(spacing: 12) {
                 // 訓練日卡片
                 ForEach(Array(editablePlan.days.enumerated()), id: \.element.id) { arrayIndex, day in
                     SimplifiedDailyCard(
@@ -386,81 +376,65 @@ struct SimplifiedDailyCard: View {
         }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 日期標題行
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(viewModel.weekdayName(for: day.dayIndexInt))
-                            .font(.headline)
-                            .foregroundColor(isEditable ? .primary : .secondary)
+    /// 取得主要指標顯示（距離或重複次數）
+    private var primaryMetric: String? {
+        guard let details = day.trainingDetails else { return nil }
+        if let distance = details.distanceKm ?? details.totalDistanceKm {
+            return String(format: "%.1f km", distance)
+        }
+        if let repeats = details.repeats, let work = details.work {
+            let distanceText = work.distanceKm.map { String(format: "%.0fm", $0 * 1000) } ?? ""
+            return "\(repeats) × \(distanceText)"
+        }
+        return nil
+    }
 
-                        if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
-                            Text(viewModel.formatShortDate(date))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 頂部區塊：日期 + 訓練類型
+            HStack(alignment: .center) {
+                // 左側：日期資訊
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(viewModel.weekdayName(for: day.dayIndexInt))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(isEditable ? .primary : .secondary)
+
+                    if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
+                        Text(viewModel.formatShortDate(date))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
+                }
+                .frame(minWidth: 60, alignment: .leading)
+
+                Spacer()
+
+                // 中間：主要指標（距離/重複次數）
+                if let metric = primaryMetric {
+                    Text(metric)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(getTypeColor())
                 }
 
                 Spacer()
 
-                // 訓練類型標籤（可點擊編輯）
-                if isEditable {
-                    Menu {
-                        Button(L10n.EditSchedule.easyRun.localized) { updateTrainingType(.easyRun) }
-                        Button(L10n.EditSchedule.tempoRun.localized) { updateTrainingType(.tempo) }
-                        Button(L10n.EditSchedule.intervalTraining.localized) { updateTrainingType(.interval) }
-                        Button(L10n.EditSchedule.combinationRun.localized) { updateTrainingType(.combination) }
-                        Button(L10n.EditSchedule.longDistanceRun.localized) { updateTrainingType(.longRun) }
-                        Button(L10n.EditSchedule.longEasyRun.localized) { updateTrainingType(.lsd) }
-                        Button(L10n.EditSchedule.recoveryRun.localized) { updateTrainingType(.recovery_run) }
-                        Button(L10n.EditSchedule.thresholdRun.localized) { updateTrainingType(.threshold) }
-                        Button(L10n.EditSchedule.rest.localized) { updateTrainingType(.rest) }
-                    } label: {
-                        HStack {
-                            Text(day.type.localizedName)
-                                .font(.subheadline)
-                                .foregroundColor(getTypeColor())
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                                .foregroundColor(getTypeColor())
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(getTypeColor().opacity(0.2))
-                        .cornerRadius(8)
-                    }
-                } else {
-                    Text(day.type.localizedName)
-                        .font(.subheadline)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .foregroundColor(.secondary)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                }
-
-                // 資訊圖示（僅在不可編輯時顯示）
-                if !isEditable {
-                    Button(action: {
-                        showingInfoAlert = true
-                    }) {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                }
+                // 右側：訓練類型標籤
+                trainingTypeLabel
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
-            Divider()
-                .background(isEditable ? Color.primary : Color.secondary)
-                .opacity(0.3)
+            // 分隔線
+            if day.isTrainingDay {
+                Rectangle()
+                    .fill(getTypeColor().opacity(0.2))
+                    .frame(height: 1)
+                    .padding(.horizontal, 12)
 
-            // 訓練詳情 (編輯時只顯示必要資訊)
-            VStack(alignment: .leading, spacing: 8) {
-                if day.isTrainingDay {
+                // 底部區塊：訓練詳情
+                VStack(alignment: .leading, spacing: 8) {
                     TrainingDetailsEditView(
                         day: day,
                         isEditable: isEditable,
@@ -469,19 +443,22 @@ struct SimplifiedDailyCard: View {
                         }
                     )
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
             }
         }
-        .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(isEditable
                       ? Color(.tertiarySystemBackground)
                       : Color(.secondarySystemBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isEditable ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
-                )
+                .shadow(color: isEditable ? getTypeColor().opacity(0.15) : .clear, radius: 4, x: 0, y: 2)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isEditable ? getTypeColor().opacity(0.3) : Color.clear, lineWidth: 1.5)
+        )
+        .contentShape(Rectangle())
         .onTapGesture {
             if isEditable {
                 showingEditSheet = true
@@ -498,6 +475,69 @@ struct SimplifiedDailyCard: View {
             Button(L10n.EditSchedule.confirm.localized, role: .cancel) { }
         } message: {
             Text(getEditStatusMessage())
+        }
+    }
+
+    // MARK: - Training Type Label with Categorized Menu
+
+    @ViewBuilder
+    private var trainingTypeLabel: some View {
+        HStack(spacing: 4) {
+            if isEditable {
+                Menu {
+                    // 輕鬆類
+                    Section(header: Text(NSLocalizedString("edit_schedule.category_easy", comment: "輕鬆訓練"))) {
+                        Button(L10n.EditSchedule.easyRun.localized) { updateTrainingType(.easyRun) }
+                        Button(L10n.EditSchedule.recoveryRun.localized) { updateTrainingType(.recovery_run) }
+                        Button(L10n.EditSchedule.longEasyRun.localized) { updateTrainingType(.lsd) }
+                    }
+
+                    // 強度類
+                    Section(header: Text(NSLocalizedString("edit_schedule.category_intensity", comment: "強度訓練"))) {
+                        Button(L10n.EditSchedule.tempoRun.localized) { updateTrainingType(.tempo) }
+                        Button(L10n.EditSchedule.thresholdRun.localized) { updateTrainingType(.threshold) }
+                        Button(L10n.EditSchedule.intervalTraining.localized) { updateTrainingType(.interval) }
+                        Button(L10n.EditSchedule.combinationRun.localized) { updateTrainingType(.combination) }
+                    }
+
+                    // 長距離類
+                    Section(header: Text(NSLocalizedString("edit_schedule.category_long", comment: "長距離訓練"))) {
+                        Button(L10n.EditSchedule.longDistanceRun.localized) { updateTrainingType(.longRun) }
+                    }
+
+                    // 休息
+                    Section {
+                        Button(L10n.EditSchedule.rest.localized) { updateTrainingType(.rest) }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(day.type.localizedName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(getTypeColor())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(getTypeColor().opacity(0.15))
+                    .cornerRadius(8)
+                }
+            } else {
+                HStack(spacing: 4) {
+                    Text(day.type.localizedName)
+                        .font(.subheadline)
+                    Button(action: { showingInfoAlert = true }) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 12))
+                    }
+                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.gray.opacity(0.15))
+                .cornerRadius(8)
+            }
         }
     }
 
