@@ -1665,6 +1665,27 @@
 "edit_schedule.pace_zone.interval.description" = "High-intensity interval training, short-distance sprints, improve speed and explosiveness";
 "edit_schedule.pace_zone.interval.benefit" = "Benefits: Improve VO2 max, enhance speed and explosiveness, improve running efficiency";
 
+// MARK: - Interval Training Templates
+"interval.template.400x8" = "Ideal for speed endurance";
+"interval.template.400x10" = "Advanced speed endurance";
+"interval.template.800x5" = "Mid-distance interval";
+"interval.template.1000x4" = "Aerobic threshold training";
+"interval.template.200x12" = "Short sprint training";
+
+// MARK: - Edit Schedule Picker Keys
+"edit_schedule.quick_templates" = "Quick Templates";
+"edit_schedule.estimated_time" = "Estimated Time";
+"edit_schedule.for_distance" = "%.1f km";
+"edit_schedule.interval_distance_selection" = "Interval Distance";
+"edit_schedule.training_type_selection" = "Training Type";
+"edit_schedule.distance_selection" = "Distance";
+"edit_schedule.repeats_selection" = "Repeats";
+"edit_schedule.select_distance" = "Select Distance";
+"edit_schedule.select_repeats" = "Select Repeats";
+"edit_schedule.category_easy" = "Easy Training";
+"edit_schedule.category_intensity" = "Intensity Training";
+"edit_schedule.category_long" = "Long Distance";
+
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "Edit Training";
 

@@ -1681,6 +1681,27 @@
 "edit_schedule.pace_zone.interval.description" = "高強度間歇訓練，短距離快速，提升速度與爆發力";
 "edit_schedule.pace_zone.interval.benefit" = "效益：提升最大攝氧量、增強速度與爆發力、改善跑步效率";
 
+// MARK: - Interval Training Templates
+"interval.template.400x8" = "適合提升速度耐力";
+"interval.template.400x10" = "進階速度耐力訓練";
+"interval.template.800x5" = "中距離間歇訓練";
+"interval.template.1000x4" = "提升有氧閾值";
+"interval.template.200x12" = "短距離速度訓練";
+
+// MARK: - Edit Schedule Picker Keys
+"edit_schedule.quick_templates" = "快速選擇";
+"edit_schedule.estimated_time" = "預估時間";
+"edit_schedule.for_distance" = "%.1f 公里";
+"edit_schedule.interval_distance_selection" = "間歇距離選擇";
+"edit_schedule.training_type_selection" = "訓練類型選擇";
+"edit_schedule.distance_selection" = "距離選擇";
+"edit_schedule.repeats_selection" = "重複次數選擇";
+"edit_schedule.select_distance" = "選擇距離";
+"edit_schedule.select_repeats" = "選擇重複次數";
+"edit_schedule.category_easy" = "輕鬆訓練";
+"edit_schedule.category_intensity" = "強度訓練";
+"edit_schedule.category_long" = "長距離訓練";
+
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "編輯訓練";
 

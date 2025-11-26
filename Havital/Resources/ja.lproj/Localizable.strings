@@ -1657,6 +1657,27 @@
 "edit_schedule.pace_zone.interval.description" = "短距離スプリントによる高強度インターバルトレーニングで、スピードと爆発力を向上させます";
 "edit_schedule.pace_zone.interval.benefit" = "最大酸素摂取量を向上させ、スピードと爆発力を強化し、ランニング効率を改善します";
 
+// MARK: - Interval Training Templates
+"interval.template.400x8" = "スピード持久力向上に最適";
+"interval.template.400x10" = "上級スピード持久力";
+"interval.template.800x5" = "中距離インターバル";
+"interval.template.1000x4" = "有酸素閾値トレーニング";
+"interval.template.200x12" = "短距離スピード";
+
+// MARK: - Edit Schedule Picker Keys
+"edit_schedule.quick_templates" = "クイック選択";
+"edit_schedule.estimated_time" = "予想タイム";
+"edit_schedule.for_distance" = "%.1f km";
+"edit_schedule.interval_distance_selection" = "インターバル距離";
+"edit_schedule.training_type_selection" = "トレーニングタイプ";
+"edit_schedule.distance_selection" = "距離選択";
+"edit_schedule.repeats_selection" = "回数選択";
+"edit_schedule.select_distance" = "距離を選択";
+"edit_schedule.select_repeats" = "回数を選択";
+"edit_schedule.category_easy" = "イージートレーニング";
+"edit_schedule.category_intensity" = "強度トレーニング";
+"edit_schedule.category_long" = "長距離";
+
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "トレーニング編集";
 
