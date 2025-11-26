@@ -1457,12 +1457,15 @@
 // MARK: - Edit Schedule
 "edit_schedule.cancel" = "Cancel";
 "edit_schedule.save" = "Save";
+"edit_schedule.done" = "Done";
 "edit_schedule.confirm" = "Confirm";
 "edit_schedule.apply" = "Apply";
 "edit_schedule.delete" = "Delete";
 "edit_schedule.close" = "Close";
 "edit_schedule.cannot_edit" = "Cannot Edit";
 "edit_schedule.addSegment" = "Add Segment";
+"edit_schedule.reorder_title" = "Reorder";
+"edit_schedule.reorder_days" = "Reorder Schedule";
 
 // Training Types
 "edit_schedule.easy_run" = "Easy Run";

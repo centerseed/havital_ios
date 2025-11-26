@@ -1452,12 +1452,15 @@
 // MARK: - Edit Schedule
 "edit_schedule.cancel" = "キャンセル";
 "edit_schedule.save" = "保存";
+"edit_schedule.done" = "完了";
 "edit_schedule.confirm" = "確定";
 "edit_schedule.apply" = "適用";
 "edit_schedule.delete" = "削除";
 "edit_schedule.close" = "閉じる";
 "edit_schedule.cannot_edit" = "編集できません";
 "edit_schedule.addSegment" = "セグメントを追加";
+"edit_schedule.reorder_title" = "順序を変更";
+"edit_schedule.reorder_days" = "スケジュールを並べ替え";
 
 // Training Types
 "edit_schedule.easy_run" = "イージーラン";

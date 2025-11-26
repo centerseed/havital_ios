@@ -1476,12 +1476,15 @@
 // MARK: - Edit Schedule
 "edit_schedule.cancel" = "取消";
 "edit_schedule.save" = "儲存";
+"edit_schedule.done" = "完成";
 "edit_schedule.confirm" = "確定";
 "edit_schedule.apply" = "套用";
 "edit_schedule.delete" = "刪除";
 "edit_schedule.close" = "關閉";
 "edit_schedule.cannot_edit" = "無法編輯";
 "edit_schedule.addSegment" = "新增區段";
+"edit_schedule.reorder_title" = "調整順序";
+"edit_schedule.reorder_days" = "調整課表順序";
 
 // Training Types
 "edit_schedule.easy_run" = "輕鬆跑";

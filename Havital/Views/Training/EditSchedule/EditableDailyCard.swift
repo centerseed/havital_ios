@@ -1,246 +1,12 @@
 import SwiftUI
 
-struct EditableDailyCard: View {
-    let day: MutableTrainingDay
-    let dayIndex: Int
-    let isEditable: Bool
-    let viewModel: TrainingPlanViewModel
-    let onEdit: (MutableTrainingDay) -> Void
-    let onDragStarted: (Int) -> Void
-    let onDropped: (Int, Int) -> Bool
-    
-    @State private var showingEditSheet = false
-    @State private var showingInfoAlert = false
-    
-    private func getTypeColor() -> Color {
-        switch day.type {
-        case .easyRun, .easy, .recovery_run, .yoga, .lsd:
-            return Color.green
-        case .interval, .tempo, .progression, .threshold, .combination:
-            return Color.orange
-        case .longRun, .hiking, .cycling:
-            return Color.blue
-        case .race:
-            return Color.red
-        case .rest:
-            return Color.gray
-        case .crossTraining, .strength:
-            return Color.purple
-        }
-    }
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // 拖曳圖示（左側）
-            if isEditable {
-                Image(systemName: "line.3.horizontal")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                    .frame(width: 20, height: 20)
-            }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                // 日期標題行
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 4) {
-                            Text(viewModel.weekdayName(for: day.dayIndexInt))
-                                .font(.headline)
-                                .foregroundColor(isEditable ? .primary : .secondary)
-                            
-                            if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
-                                Text(viewModel.formatShortDate(date))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // 訓練類型標籤（可點擊編輯）
-                    if isEditable {
-                        Menu {
-                            Button(L10n.EditSchedule.easyRun.localized) { updateTrainingType(.easyRun) }
-                            Button(L10n.EditSchedule.tempoRun.localized) { updateTrainingType(.tempo) }
-                            Button(L10n.EditSchedule.intervalTraining.localized) { updateTrainingType(.interval) }
-                            Button(L10n.EditSchedule.combinationRun.localized) { updateTrainingType(.combination) }
-                            Button(L10n.EditSchedule.longDistanceRun.localized) { updateTrainingType(.longRun) }
-                            Button(L10n.EditSchedule.longEasyRun.localized) { updateTrainingType(.lsd) }
-                            Button(L10n.EditSchedule.recoveryRun.localized) { updateTrainingType(.recovery_run) }
-                            Button(L10n.EditSchedule.thresholdRun.localized) { updateTrainingType(.threshold) }
-                            Button(L10n.EditSchedule.rest.localized) { updateTrainingType(.rest) }
-                        } label: {
-                            HStack {
-                                Text(day.type.localizedName)
-                                    .font(.subheadline)
-                                    .foregroundColor(getTypeColor())
-                                Image(systemName: "chevron.down")
-                                    .font(.caption)
-                                    .foregroundColor(getTypeColor())
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(getTypeColor().opacity(0.2))
-                            .cornerRadius(8)
-                        }
-                    } else {
-                        Text(day.type.localizedName)
-                            .font(.subheadline)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .foregroundColor(.secondary)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                    }
-                    
-                    // 資訊圖示（僅在不可編輯時顯示）
-                    if !isEditable {
-                        Button(action: {
-                            showingInfoAlert = true
-                        }) {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                        }
-                    }
-                }
-                
-                Divider()
-                    .background(isEditable ? Color.primary : Color.secondary)
-                    .opacity(0.3)
-                
-                // 訓練詳情 (編輯時只顯示必要資訊)
-                VStack(alignment: .leading, spacing: 8) {
-                    if day.isTrainingDay {
-                        TrainingDetailsEditView(
-                            day: day,
-                            isEditable: isEditable,
-                            onEdit: { updatedDay in
-                                onEdit(updatedDay)
-                            }
-                        )
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isEditable
-                      ? Color(.tertiarySystemBackground)
-                      : Color(.secondarySystemBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isEditable ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
-                )
-        )
-        .onTapGesture {
-            if isEditable {
-                showingEditSheet = true
-            }
-        }
-        .dragDropTrainingDay(
-            dayIndex: dayIndex,
-            day: day,
-            isEditable: isEditable,
-            onDragStarted: onDragStarted,
-            onDropped: onDropped
-        )
-        .sheet(isPresented: $showingEditSheet) {
-            TrainingEditSheet(
-                day: day,
-                onSave: onEdit,
-                viewModel: viewModel
-            )
-        }
-        .alert(L10n.EditSchedule.cannotEdit.localized, isPresented: $showingInfoAlert) {
-            Button(L10n.EditSchedule.confirm.localized, role: .cancel) { }
-        } message: {
-            Text(getEditStatusMessage())
-        }
-    }
-    
-    private func getEditStatusMessage() -> String {
-        return viewModel.getEditStatusMessage(for: dayIndex)
-    }
-    
-    private func updateTrainingType(_ newType: DayType) {
-        var updatedDay = day
-        updatedDay.trainingType = newType.rawValue
-
-        // 從 ViewModel 獲取當前 VDOT 並計算建議配速
-        let vdot = viewModel.currentVDOT ?? PaceCalculator.defaultVDOT
-
-        // 根據訓練類型重置訓練詳情，並使用 PaceCalculator 計算配速
-        switch newType {
-        case .rest:
-            updatedDay.trainingDetails = nil
-
-        case .easyRun, .recovery_run:
-            let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "6:00"
-            updatedDay.trainingDetails = MutableTrainingDetails(
-                distanceKm: 5.0,
-                pace: suggestedPace
-            )
-
-        case .tempo, .threshold:
-            let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
-            updatedDay.trainingDetails = MutableTrainingDetails(
-                distanceKm: 8.0,
-                pace: suggestedPace
-            )
-
-        case .interval:
-            let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:30"
-            let recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "6:00"
-            updatedDay.trainingDetails = MutableTrainingDetails(
-                work: MutableWorkoutSegment(distanceKm: 0.4, pace: intervalPace),
-                recovery: MutableWorkoutSegment(pace: recoveryPace),
-                repeats: 4
-            )
-
-        case .longRun:
-            let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
-            updatedDay.trainingDetails = MutableTrainingDetails(
-                distanceKm: 15.0,
-                pace: tempoPace
-            )
-
-        case .lsd:
-            let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
-            updatedDay.trainingDetails = MutableTrainingDetails(
-                distanceKm: 20.0,
-                pace: easyPace
-            )
-
-        case .combination:
-            let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
-            let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
-            updatedDay.trainingDetails = MutableTrainingDetails(
-                totalDistanceKm: 10.0,
-                segments: [
-                    MutableProgressionSegment(distanceKm: 3.0, pace: easyPace, description: "輕鬆跑"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑"),
-                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "輕鬆跑")
-                ]
-            )
-
-        default:
-            updatedDay.trainingDetails = MutableTrainingDetails(distanceKm: 6.0)
-        }
-
-        onEdit(updatedDay)
-    }
-}
-
 // MARK: - Training Details Edit View
 
 struct TrainingDetailsEditView: View {
     let day: MutableTrainingDay
     let isEditable: Bool
     let onEdit: (MutableTrainingDay) -> Void
-    
+
     var body: some View {
         if let details = day.trainingDetails {
             switch day.type {
@@ -266,7 +32,7 @@ struct EasyRunEditView: View {
     let details: MutableTrainingDetails
     let isEditable: Bool
     let onEdit: (MutableTrainingDay) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -280,12 +46,12 @@ struct EasyRunEditView: View {
                         updateDistance(Double(newValue) ?? distance)
                     }
                 }
-                
+
                 Spacer()
             }
         }
     }
-    
+
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
         updatedDay.trainingDetails?.distanceKm = newDistance
@@ -298,7 +64,7 @@ struct TempoRunEditView: View {
     let details: MutableTrainingDetails
     let isEditable: Bool
     let onEdit: (MutableTrainingDay) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -312,7 +78,7 @@ struct TempoRunEditView: View {
                         updatePace(newValue)
                     }
                 }
-                
+
                 if let distance = details.distanceKm {
                     EditableValueView(
                         title: "距離",
@@ -323,18 +89,18 @@ struct TempoRunEditView: View {
                         updateDistance(Double(newValue) ?? distance)
                     }
                 }
-                
+
                 Spacer()
             }
         }
     }
-    
+
     private func updatePace(_ newPace: String) {
         var updatedDay = day
         updatedDay.trainingDetails?.pace = newPace
         onEdit(updatedDay)
     }
-    
+
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
         updatedDay.trainingDetails?.distanceKm = newDistance
@@ -347,7 +113,7 @@ struct IntervalEditView: View {
     let details: MutableTrainingDetails
     let isEditable: Bool
     let onEdit: (MutableTrainingDay) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -355,9 +121,9 @@ struct IntervalEditView: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
-                
+
                 Spacer()
-                
+
                 if let repeats = details.repeats {
                     EditableValueView(
                         title: "重複",
@@ -369,10 +135,10 @@ struct IntervalEditView: View {
                     }
                 }
             }
-            
+
             Divider()
                 .background(Color.orange.opacity(0.3))
-            
+
             // 衝刺段
             if let work = details.work {
                 IntervalSegmentEditView(
@@ -384,7 +150,7 @@ struct IntervalEditView: View {
                     updateWorkSegment(updatedSegment)
                 }
             }
-            
+
             // 恢復段
             if let recovery = details.recovery {
                 IntervalSegmentEditView(
@@ -398,19 +164,19 @@ struct IntervalEditView: View {
             }
         }
     }
-    
+
     private func updateRepeats(_ newRepeats: Int) {
         var updatedDay = day
         updatedDay.trainingDetails?.repeats = newRepeats
         onEdit(updatedDay)
     }
-    
+
     private func updateWorkSegment(_ segment: MutableWorkoutSegment) {
         var updatedDay = day
         updatedDay.trainingDetails?.work = segment
         onEdit(updatedDay)
     }
-    
+
     private func updateRecoverySegment(_ segment: MutableWorkoutSegment) {
         var updatedDay = day
         updatedDay.trainingDetails?.recovery = segment
@@ -423,7 +189,7 @@ struct CombinationEditView: View {
     let details: MutableTrainingDetails
     let isEditable: Bool
     let onEdit: (MutableTrainingDay) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -431,9 +197,9 @@ struct CombinationEditView: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
-                
+
                 Spacer()
-                
+
                 if let total = details.totalDistanceKm {
                     Text(String(format: "%.1f", total))
                         .font(.subheadline)
@@ -445,10 +211,10 @@ struct CombinationEditView: View {
                         .cornerRadius(12)
                 }
             }
-            
+
             Divider()
                 .background(Color.orange.opacity(0.3))
-            
+
             if let segments = details.segments {
                 VStack(spacing: 4) {
                     ForEach(segments.indices, id: \.self) { index in
@@ -466,7 +232,7 @@ struct CombinationEditView: View {
             }
         }
     }
-    
+
     private func updateSegment(at index: Int, with segment: MutableProgressionSegment) {
         var updatedDay = day
         updatedDay.trainingDetails?.segments?[index] = segment
@@ -479,7 +245,7 @@ struct SimpleTrainingEditView: View {
     let details: MutableTrainingDetails
     let isEditable: Bool
     let onEdit: (MutableTrainingDay) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -493,12 +259,12 @@ struct SimpleTrainingEditView: View {
                         updateDistance(Double(newValue) ?? distance)
                     }
                 }
-                
+
                 Spacer()
             }
         }
     }
-    
+
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
         updatedDay.trainingDetails?.distanceKm = newDistance
@@ -514,13 +280,13 @@ struct EditableValueView: View {
     let isEditable: Bool
     let valueType: EditValueType
     let onEdit: (String) -> Void
-    
+
     @State private var showingEditor = false
     @State private var showingPacePicker = false
     @State private var showingIntervalDistancePicker = false
     @State private var showingTrainingTypePicker = false
     @State private var editValue = ""
-    
+
     init(title: String, value: String, isEditable: Bool, valueType: EditValueType = .general, onEdit: @escaping (String) -> Void) {
         self.title = title
         self.value = value
@@ -528,7 +294,7 @@ struct EditableValueView: View {
         self.valueType = valueType
         self.onEdit = onEdit
     }
-    
+
     var body: some View {
         Button(action: {
             if isEditable {
@@ -555,7 +321,7 @@ struct EditableValueView: View {
                     .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(isEditable ? .blue : .secondary)
-                
+
                 if isEditable {
                     Image(systemName: "pencil")
                         .font(.caption2)
@@ -610,7 +376,7 @@ struct EditableValueView: View {
             ))
         }
     }
-    
+
     private var localizedTitle: String {
         switch valueType {
         case .distance:
@@ -627,7 +393,7 @@ struct EditableValueView: View {
             return title
         }
     }
-    
+
     private var localizedMessage: String {
         switch valueType {
         case .distance:
@@ -644,7 +410,7 @@ struct EditableValueView: View {
             return NSLocalizedString("edit_value.general_message", comment: "請輸入新的\(title)")
         }
     }
-    
+
     private var keyboardType: UIKeyboardType {
         switch valueType {
         case .distance:
@@ -661,7 +427,7 @@ struct EditableValueView: View {
             return .default
         }
     }
-    
+
     private func cleanValueForEditing(_ value: String) -> String {
         switch valueType {
         case .distance:
@@ -710,7 +476,7 @@ struct IntervalSegmentEditView: View {
     private var isStaticRest: Bool {
         return segment.pace == nil && segment.distanceKm == nil
     }
-    
+
     var body: some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
@@ -788,13 +554,13 @@ struct IntervalSegmentEditView: View {
             }
         }
     }
-    
+
     private func updatePace(_ newPace: String) {
         var updatedSegment = segment
         updatedSegment.pace = newPace
         onEdit(updatedSegment)
     }
-    
+
     private func updateDistance(_ newDistance: Double) {
         var updatedSegment = segment
         updatedSegment.distanceKm = newDistance
@@ -837,7 +603,7 @@ struct CombinationSegmentEditView: View {
     let segment: MutableProgressionSegment
     let isEditable: Bool
     let onEdit: (MutableProgressionSegment) -> Void
-    
+
     var body: some View {
         HStack(spacing: 8) {
             // 訓練類型選擇器
@@ -851,7 +617,7 @@ struct CombinationSegmentEditView: View {
                     updateTrainingType(newValue)
                 }
             }
-            
+
             if let pace = segment.pace {
                 EditableValueView(
                     title: "配速",
@@ -862,7 +628,7 @@ struct CombinationSegmentEditView: View {
                     updatePace(newValue)
                 }
             }
-            
+
             if let distance = segment.distanceKm {
                 EditableValueView(
                     title: "距離",
@@ -872,18 +638,18 @@ struct CombinationSegmentEditView: View {
                     updateDistance(Double(newValue) ?? distance)
                 }
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 2)
     }
-    
+
     private func updatePace(_ newPace: String) {
         var updatedSegment = segment
         updatedSegment.pace = newPace
         onEdit(updatedSegment)
     }
-    
+
     private func updateDistance(_ newDistance: Double) {
         var updatedSegment = segment
         updatedSegment.distanceKm = newDistance
