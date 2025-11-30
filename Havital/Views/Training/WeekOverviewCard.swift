@@ -21,7 +21,7 @@ struct WeekOverviewCard: View {
                     .foregroundColor(.blue)
                     .font(.headline)
 
-                Text(NSLocalizedString("training_plan.weekly_volume_load_zh", comment: "週跑量和訓練強度"))
+                Text(NSLocalizedString("training_plan.weekly_volume_and_intensity", comment: "週跑量和訓練強度"))
                     .font(.headline)
                     .foregroundColor(.primary)
             }

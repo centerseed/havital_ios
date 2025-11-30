@@ -2117,7 +2117,7 @@ struct FitnessIndexChartView: View {
 
             // 圓點標記說明和CTL區間說明
             VStack(alignment: .leading, spacing: 4) {
-                Text("標記說明")
+                Text(L10n.MyAchievement.markerExplanation.localized)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
@@ -2128,7 +2128,7 @@ struct FitnessIndexChartView: View {
                         Circle()
                             .fill(Color.blue)
                             .frame(width: 12, height: 12)
-                        Text("有訓練")
+                        Text(L10n.MyAchievement.hasTraining.localized)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -2137,7 +2137,7 @@ struct FitnessIndexChartView: View {
                         Circle()
                             .stroke(Color.blue, lineWidth: 2)
                             .frame(width: 12, height: 12)
-                        Text("休息日")
+                        Text(L10n.MyAchievement.restDay.localized)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -2768,7 +2768,7 @@ struct TrainingLoadDetailExplanationView: View {
                             )
 
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("圓點標記說明")
+                                Text(L10n.MyAchievement.dotExplanation.localized)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
 
@@ -2776,7 +2776,7 @@ struct TrainingLoadDetailExplanationView: View {
                                     Circle()
                                         .fill(Color.blue)
                                         .frame(width: 12, height: 12)
-                                    Text("實心圓點：有訓練的日子")
+                                    Text(L10n.MyAchievement.solidDot.localized)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -2785,7 +2785,7 @@ struct TrainingLoadDetailExplanationView: View {
                                     Circle()
                                         .stroke(Color.blue, lineWidth: 2)
                                         .frame(width: 12, height: 12)
-                                    Text("空心圓點：當日無訓練")
+                                    Text(L10n.MyAchievement.hollowDot.localized)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }

@@ -145,6 +145,7 @@
 "training_plan_overview.training_method" = "訓練方法";
 "training_plan_overview.training_stages" = "訓練階段";
 "training_plan_overview.week_range" = "第%d-%d週";
+"training_plan_overview.week_progress" = "第 %d / %d 週";
 "training_plan_overview.generate_plan" = "產生第%d週訓練計劃";
 "training_plan_overview.error_title" = "錯誤";
 "training_plan_overview.error_confirm" = "確定";
@@ -996,6 +997,7 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "週總覽";
 "training_plan.weekly_volume_load" = "週跑量";
+"training_plan.weekly_volume_and_intensity" = "週跑量和訓練強度";
 "training_plan.week_target" = "本週目標";
 "training_plan.training_calendar" = "訓練日曆";
 "training_plan.monthly_total_distance" = "月總距離";
@@ -1126,8 +1128,8 @@
 "datasource.currently_active" = "目前使用的資料來源";
 "datasource.switch_to_this" = "切換到此資料來源";
 
-// MARK: - Training Plan View Override (Chinese specific)
-"training_plan.weekly_volume_load_zh" = "週跑量和訓練強度";
+// MARK: - Training Plan View Override (Chinese specific) - DEPRECATED, use standard keys
+// "training_plan.weekly_volume_load_zh" = "週跑量和訓練強度"; // Use training_plan.weekly_volume_and_intensity instead
 "progress.weekly_volume_zh" = "週跑量";
 "intensity.low_zh" = "低強度";
 "intensity.medium_zh" = "中強度";

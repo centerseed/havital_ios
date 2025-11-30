@@ -29,7 +29,7 @@ struct TrainingProgressCard: View {
 
                     Spacer()
 
-                    Text("第 \(plan.weekOfPlan) / \(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks) 週")
+                    Text(String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.weekOfPlan, viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks))
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -64,7 +64,7 @@ struct TrainingProgressCard: View {
 
                         Spacer()
 
-                        Text("第 \(currentStage.weekStart)-\(currentStage.weekEnd) 週")
+                        Text(String(format: NSLocalizedString("training_plan_overview.week_range", comment: ""), currentStage.weekStart, currentStage.weekEnd))
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }

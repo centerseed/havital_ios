@@ -145,6 +145,7 @@
 "training_plan_overview.training_method" = "トレーニング方法";
 "training_plan_overview.training_stages" = "トレーニング段階";
 "training_plan_overview.week_range" = "第%d-%d週";
+"training_plan_overview.week_progress" = "第%d週 / %d週";
 "training_plan_overview.generate_plan" = "第%d週トレーニング計画を作成";
 "training_plan_overview.error_title" = "エラー";
 "training_plan_overview.error_confirm" = "OK";
@@ -350,7 +351,7 @@
 "training.type.threshold" = "閾値ラン";
 "training.type.progression" = "プログレッションラン";
 "training.type.combination" = "コンビネーションラン";
-"training.type.rest" = "休息";
+"training.type.rest" = "レスト";
 "training.type.cross_training" = "クロストレーニング";
 "training.type.hiking" = "ハイキング";
 "training.type.strength" = "筋力トレーニング";
@@ -607,6 +608,7 @@
 "training.overview" = "トレーニング概要";
 "training.progress" = "トレーニング進捗";
 "training.modify_schedule" = "スケジュールを変更";
+"training.edit_schedule" = "スケジュールを編集";
 "training.cannot_load_overview" = "トレーニング計画概要を読み込めません";
 "training.cannot_load_plan" = "トレーニング計画を読み込めません";
 "training.week_schedule" = "週間スケジュール";
@@ -983,10 +985,10 @@
 "weekly_volume.load_failed" = "読み込み失敗：%@";
 "weekly_volume.load_cancelled" = "週間走行距離データの読み込みがキャンセルされました、エラーを無視";
 
-// MARK: - Intensity Distribution Strings  
-"intensity.low" = "低";
-"intensity.medium" = "中";
-"intensity.high" = "高";
+// MARK: - Intensity Distribution Strings
+"intensity.low" = "低強度";
+"intensity.medium" = "中強度";
+"intensity.high" = "高強度";
 "intensity.minutes" = "%d分";
 "intensity.minutes_progress" = "%d / %d分";
 "intensity.not_scheduled" = "スケジュールなし";
@@ -995,6 +997,7 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "週間概要";
 "training_plan.weekly_volume_load" = "週間走行距離";
+"training_plan.weekly_volume_and_intensity" = "週間走行距離と強度";
 "training_plan.week_target" = "今週の目標";
 "training_plan.training_calendar" = "トレーニングカレンダー";
 "training_plan.monthly_total_distance" = "月間総距離";
@@ -1104,9 +1107,9 @@
 "weekday.sun_short" = "日";
 
 // MARK: - Training Intensity Levels
-"intensity.low" = "低";
-"intensity.medium" = "中";
-"intensity.high" = "高";
+"intensity.low" = "低強度";
+"intensity.medium" = "中強度";
+"intensity.high" = "高強度";
 
 // MARK: - Weekly Progress Strings
 "progress.weekly_volume" = "走行距離";
@@ -1599,6 +1602,13 @@
 "edit_schedule.unknown" = "不明";
 
 // MARK: - My Achievement Additional
+"my_achievement.tsb_status" = "TSB 状態指標";
+"my_achievement.marker_explanation" = "マーカー説明";
+"my_achievement.has_training" = "トレーニング日";
+"my_achievement.rest_day" = "休息日";
+"my_achievement.dot_explanation" = "ドットマーカー説明";
+"my_achievement.solid_dot" = "実心ドット：トレーニング日";
+"my_achievement.hollow_dot" = "空心ドット：休息日";
 "my_achievement.updated" = " 更新";
 
 // MARK: - Training Readiness Metric Labels
@@ -1641,6 +1651,21 @@
 "training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定します";
 "training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い場合に低下します";
 
+// MARK: - Training Readiness Metrics Explanation
+"training_readiness.training_metrics" = "トレーニング指標";
+"training_readiness.metrics_explanation" = "トレーニング指標の説明";
+"training_readiness.metrics_subtitle" = "各指標の意味を理解し、スコアを向上させる方法を学びましょう";
+"training_readiness.quick_tips" = "クイックヒント";
+"training_readiness.done" = "完了";
+"training_readiness.what_it_means" = "この指標が意味すること";
+"training_readiness.how_to_improve" = "スコアを向上させる方法";
+"training_readiness.when_it_decreases" = "スコアが低下する時";
+
+"training_readiness.tips.tip1" = "週間トレーニングには：イージーラン3-4回 + スピードワーク1回 + ロングラン1-2回を含めましょう";
+"training_readiness.tips.tip2" = "トレーニングの頻度を維持することは、時々の高強度トレーニングよりも重要です";
+"training_readiness.tips.tip3" = "スコアの傾向に注目し、日々の変動に気を取られないようにしましょう";
+"training_readiness.tips.tip4" = "トレーニング負荷スコアが低い場合は、回復時間を設ける必要があります";
+
 // MARK: - Edit Schedule Pace Zones
 "edit_schedule.pace_zone.recovery.description" = "回復日用のリラックスしたジョギングで、身体の回復を促進します";
 "edit_schedule.pace_zone.recovery.benefit" = "筋肉の回復を促進し、疲労の蓄積を軽減します";
@@ -1680,6 +1705,20 @@
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "トレーニング編集";
+
+// MARK: - Miscellaneous
+"misc.loading" = "読み込み中...";
+"misc.retry" = "再試行";
+"misc.back" = "戻る";
+"misc.back_to_this_week" = "今週に戻る";
+"misc.segment" = "第%d段";
+"misc.times" = "× %d";
+"misc.no_enough_data" = "十分なトレーニングデータがありません";
+"misc.recent_three_months_performance" = "過去3ヶ月のパフォーマンス";
+"misc.training_day" = "トレーニング日";
+"misc.main_content" = "メインコンテンツ";
+"misc.diag_hrv_issue" = "HRV 問題の診断";
+"misc.strava_account_bound" = "Strava アカウント接続済み";
 
 // MARK: - Empty State
 "empty_state.no_data_title" = "%@データなし";

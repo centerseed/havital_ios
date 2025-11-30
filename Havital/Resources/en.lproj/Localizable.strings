@@ -145,6 +145,7 @@
 "training_plan_overview.training_method" = "Training Method";
 "training_plan_overview.training_stages" = "Training Stages";
 "training_plan_overview.week_range" = "Week %d-%d";
+"training_plan_overview.week_progress" = "Week %d / %d";
 "training_plan_overview.generate_plan" = "Generate Week %d Training Plan";
 "training_plan_overview.error_title" = "Error";
 "training_plan_overview.error_confirm" = "OK";
@@ -607,6 +608,7 @@
 "training.overview" = "Training Overview";
 "training.progress" = "Training Progress";
 "training.modify_schedule" = "Modify Schedule";
+"training.edit_schedule" = "Edit Schedule";
 "training.cannot_load_overview" = "Unable to load training plan overview";
 "training.cannot_load_plan" = "Unable to load training plan";
 "training.week_schedule" = "Week Schedule";
@@ -995,6 +997,7 @@
 // MARK: - Training Plan View Strings
 "training_plan.week_overview" = "Week Overview";
 "training_plan.weekly_volume_load" = "Weekly Volume";
+"training_plan.weekly_volume_and_intensity" = "Weekly Volume & Intensity";
 "training_plan.week_target" = "This Week's Target";
 "training_plan.training_calendar" = "Training Calendar";
 "training_plan.monthly_total_distance" = "Monthly Total";
@@ -1592,6 +1595,20 @@
 "misc.unsaved_changes" = "Unsaved Changes";
 "misc.unsaved_changes_message" = "You have unsaved changes. Do you want to save them before leaving?";
 
+// MARK: - Miscellaneous
+"misc.loading" = "Loading...";
+"misc.retry" = "Retry";
+"misc.back" = "Back";
+"misc.back_to_this_week" = "Back to This Week";
+"misc.segment" = "Segment %d";
+"misc.times" = "× %d";
+"misc.no_enough_data" = "Insufficient training data";
+"misc.recent_three_months_performance" = "Recent 3 Months Performance";
+"misc.training_day" = "Training Day";
+"misc.main_content" = "Main Content";
+"misc.diag_hrv_issue" = "Diagnose HRV Issue";
+"misc.strava_account_bound" = "Strava Account Bound";
+
 // MARK: - Edit Schedule Additional
 "edit_schedule.save_failed" = "Save Failed";
 "edit_schedule.rest_in_place" = "Rest in Place";
@@ -1608,6 +1625,13 @@
 
 // MARK: - My Achievement Additional
 "my_achievement.updated" = " Updated";
+"my_achievement.tsb_status" = "TSB Status Indicator";
+"my_achievement.marker_explanation" = "Marker Explanation";
+"my_achievement.has_training" = "Training Day";
+"my_achievement.rest_day" = "Rest Day";
+"my_achievement.dot_explanation" = "Dot Marker Explanation";
+"my_achievement.solid_dot" = "Solid dot: Training day";
+"my_achievement.hollow_dot" = "Hollow dot: No training";
 
 // MARK: - Training Readiness Metric Labels
 "training_readiness.speed_label" = "Speed";
@@ -1648,6 +1672,21 @@
 "training_readiness.load.how_to_improve_2" = "If load is excessive, consider recovery week";
 "training_readiness.load.how_to_improve_3" = "Schedule recovery after high-intensity training";
 "training_readiness.load.when_decreases" = "Continuous high training volume with poor recovery";
+
+// MARK: - Training Readiness Metrics Explanation
+"training_readiness.training_metrics" = "Training Metrics";
+"training_readiness.metrics_explanation" = "Training Metrics Explained";
+"training_readiness.metrics_subtitle" = "Understand what each metric means and learn how to improve your scores";
+"training_readiness.quick_tips" = "Quick Tips";
+"training_readiness.done" = "Done";
+"training_readiness.what_it_means" = "What This Metric Means";
+"training_readiness.how_to_improve" = "How to Improve Your Score";
+"training_readiness.when_it_decreases" = "When the Score Decreases";
+
+"training_readiness.tips.tip1" = "Weekly training should include: 3-4 easy runs + 1 speed workout + 1-2 long runs";
+"training_readiness.tips.tip2" = "Consistency is more important than occasional high-intensity training";
+"training_readiness.tips.tip3" = "Focus on score trends, don't worry about daily fluctuations";
+"training_readiness.tips.tip4" = "If training load score is low, schedule recovery time";
 
 // MARK: - Edit Schedule Pace Zones
 "edit_schedule.pace_zone.recovery.description" = "For recovery days, easy jogging to promote physical recovery";
