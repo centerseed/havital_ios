@@ -60,8 +60,8 @@ class BackfillService {
     /// 觸發 Strava 資料回填
     /// - Parameters:
     ///   - days: 回填天數，預設 14 天
-    /// - Returns: 回填 ID，用於查詢狀態
-    func triggerStravaBackfill(days: Int = defaultBackfillDays) async throws -> String {
+    /// - Returns: 回填 ID，用於查詢狀態，若遇到 429 則返回 nil
+    func triggerStravaBackfill(days: Int = defaultBackfillDays) async throws -> String? {
         let startDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -70,31 +70,68 @@ class BackfillService {
         let request = BackfillRequest(startDate: startDateString, days: days)
         let bodyData = try JSONEncoder().encode(request)
 
-        let response: BackfillTriggerResponse = try await makeBackgroundAPICall(
-            BackfillTriggerResponse.self,
-            path: "/strava/backfill",
-            method: .POST,
-            body: bodyData,
-            operationName: "Strava Backfill 觸發"
-        )
+        do {
+            let response: BackfillTriggerResponse = try await makeBackgroundAPICall(
+                BackfillTriggerResponse.self,
+                path: "/strava/backfill",
+                method: .POST,
+                body: bodyData,
+                operationName: "Strava Backfill 觸發"
+            )
 
-        Logger.firebase(
-            "Strava Backfill 觸發成功",
-            level: .info,
-            labels: [
-                "module": "BackfillService",
-                "action": "trigger_strava_backfill",
-                "cloud_logging": "true"
-            ],
-            jsonPayload: [
-                "backfill_id": response.data.backfillId,
-                "status": response.data.status,
-                "days": days,
-                "start_date": startDateString
-            ]
-        )
+            Logger.firebase(
+                "Strava Backfill 觸發成功",
+                level: .info,
+                labels: [
+                    "module": "BackfillService",
+                    "action": "trigger_strava_backfill",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "backfill_id": response.data.backfillId,
+                    "status": response.data.status,
+                    "days": days,
+                    "start_date": startDateString
+                ]
+            )
 
-        return response.data.backfillId
+            return response.data.backfillId
+
+        } catch let error as HTTPError {
+            // 429 錯誤表示已經有一個 backfill 正在進行，這不算錯誤
+            if case .httpError(let statusCode, _) = error, statusCode == 429 {
+                Logger.firebase(
+                    "Strava Backfill 已在進行中 (429)",
+                    level: .info,
+                    labels: [
+                        "module": "BackfillService",
+                        "action": "trigger_strava_backfill",
+                        "cloud_logging": "true"
+                    ],
+                    jsonPayload: [
+                        "status": "rate_limited",
+                        "days": days,
+                        "message": "Strava backfill already in progress, skipping"
+                    ]
+                )
+                return nil
+            }
+            // 記錄其他 HTTP 錯誤
+            Logger.firebase(
+                "Strava Backfill 觸發 HTTP 錯誤",
+                level: .warn,
+                labels: [
+                    "module": "BackfillService",
+                    "action": "trigger_strava_backfill",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "days": days,
+                    "error": error.localizedDescription
+                ]
+            )
+            throw error
+        }
     }
 
     /// 查詢 Strava 回填狀態
@@ -192,6 +229,20 @@ class BackfillService {
                 )
                 return nil
             }
+            // 記錄其他 HTTP 錯誤
+            Logger.firebase(
+                "Garmin Backfill 觸發 HTTP 錯誤",
+                level: .warn,
+                labels: [
+                    "module": "BackfillService",
+                    "action": "trigger_garmin_backfill",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "days": actualDays,
+                    "error": error.localizedDescription
+                ]
+            )
             throw error
         }
     }
@@ -241,25 +292,26 @@ class BackfillService {
             do {
                 switch provider {
                 case .strava:
-                    let backfillId = try await self.triggerStravaBackfill(days: days)
+                    if let backfillId = try await self.triggerStravaBackfill(days: days) {
+                        Logger.firebase(
+                            "Onboarding Strava Backfill 已觸發",
+                            level: .info,
+                            labels: [
+                                "module": "BackfillService",
+                                "action": "onboarding_strava_backfill",
+                                "cloud_logging": "true"
+                            ],
+                            jsonPayload: [
+                                "backfill_id": backfillId,
+                                "days": days,
+                                "trigger_source": "onboarding"
+                            ]
+                        )
 
-                    Logger.firebase(
-                        "Onboarding Strava Backfill 已觸發",
-                        level: .info,
-                        labels: [
-                            "module": "BackfillService",
-                            "action": "onboarding_strava_backfill",
-                            "cloud_logging": "true"
-                        ],
-                        jsonPayload: [
-                            "backfill_id": backfillId,
-                            "days": days,
-                            "trigger_source": "onboarding"
-                        ]
-                    )
-
-                    // 保存 backfill_id 供後續狀態檢查
-                    self.saveBackfillId(backfillId, for: .strava)
+                        // 保存 backfill_id 供後續狀態檢查
+                        self.saveBackfillId(backfillId, for: .strava)
+                    }
+                    // 如果 backfillId 為 nil，表示遇到 429，已在 triggerStravaBackfill 中記錄日誌
 
                 case .garmin:
                     if let backfillId = try await self.triggerGarminBackfill(days: days) {
