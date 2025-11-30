@@ -130,9 +130,12 @@ actor FirebaseLoggingService {
             userId: userId
         )
         
-        // 只上傳指定類型的錯誤到後端
-        // 使用 labels 中的 "cloud_logging" 標記來決定是否上傳
-        if level == .error && labels["cloud_logging"] == "true" {
+        // 決定是否上傳到 Cloud Logging：
+        // 1. 標記 cloud_logging: true 的日誌（如 backfill）→ 所有級別都上傳
+        // 2. 其他日誌 → 只上傳 error 和 critical 級別
+        let shouldUpload = labels["cloud_logging"] == "true" || level == .error || level == .critical
+
+        if shouldUpload {
             do {
                 try await sendLogToCloudLogging(logEntry)
             } catch {
