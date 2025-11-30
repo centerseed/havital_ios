@@ -389,6 +389,9 @@ class GarminManager: NSObject, ObservableObject {
                     do {
                         try await UserService.shared.updateDataSource(DataSourceType.garmin.rawValue)
                         print("數據源設定已同步到後端: Garmin")
+
+                        // 🔄 觸發 Onboarding Backfill（背景執行，不影響用戶體驗）
+                        BackfillService.shared.triggerOnboardingBackfill(provider: .garmin)
                     } catch {
                         print("同步Garmin數據源設定到後端失敗: \(error.localizedDescription)")
                     }

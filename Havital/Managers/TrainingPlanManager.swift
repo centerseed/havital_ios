@@ -408,6 +408,13 @@ class TrainingPlanManager: ObservableObject, DataManageable {
 
             Logger.debug("軌道 B: 訓練概覽背景更新完成")
 
+            // 🔄 檢查 Onboarding Backfill 結果（背景執行）
+            // 在 overview 載入完成後檢查 backfill 狀態，記錄到 cloud logging
+            let currentDataSource = UserPreferenceManager.shared.dataSourcePreference
+            if currentDataSource == .strava || currentDataSource == .garmin {
+                BackfillService.shared.checkAndLogBackfillResult(provider: currentDataSource)
+            }
+
         } catch {
             // 背景更新失敗不影響已顯示的緩存內容
             Logger.debug("軌道 B: 訓練概覽背景更新失敗，保持現有緩存: \(error.localizedDescription)")

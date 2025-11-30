@@ -424,6 +424,9 @@ class StravaManager: NSObject, ObservableObject {
                     "action": "handleCallback",
                     "sync_status": "success"
                 ])
+
+                // 🔄 觸發 Onboarding Backfill（背景執行，不影響用戶體驗）
+                BackfillService.shared.triggerOnboardingBackfill(provider: .strava)
             } catch {
                 print("❌ 同步 Strava 數據源設定到後端失敗: \(error.localizedDescription)")
 
