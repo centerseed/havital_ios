@@ -34,9 +34,9 @@ final class StravaService {
     }
 }
 
-// MARK: - BackfillService Implementation
+// MARK: - BackfillServiceProtocol Implementation
 
-extension StravaService: BackfillService {
+extension StravaService: BackfillServiceProtocol {
     /// 觸發 Strava Backfill
     func triggerBackfill(startDate: String, days: Int) async throws -> BackfillResponse {
         let body: [String: Any] = [

@@ -34,9 +34,9 @@ final class GarminService {
     }
 }
 
-// MARK: - BackfillService Implementation
+// MARK: - BackfillServiceProtocol Implementation
 
-extension GarminService: BackfillService {
+extension GarminService: BackfillServiceProtocol {
     /// 觸發 Garmin Backfill
     func triggerBackfill(startDate: String, days: Int) async throws -> BackfillResponse {
         let body: [String: Any] = [

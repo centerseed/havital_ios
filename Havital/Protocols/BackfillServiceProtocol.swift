@@ -1,8 +1,8 @@
-// Havital/Protocols/BackfillService.swift
+// Havital/Protocols/BackfillServiceProtocol.swift
 import Foundation
 
 /// Backfill 服務協議（Garmin 和 Strava 共用）
-protocol BackfillService {
+protocol BackfillServiceProtocol {
     /// 觸發 Backfill
     /// - Parameters:
     ///   - startDate: 開始日期（YYYY-MM-DD 格式）
