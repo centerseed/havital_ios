@@ -137,9 +137,9 @@ class BackfillService {
     /// 查詢 Strava 回填狀態
     /// - Parameter backfillId: 回填 ID
     /// - Returns: 回填狀態回應
-    func getStravaBackfillStatus(backfillId: String) async throws -> BackfillStatusResponse {
-        let response: BackfillStatusResponse = try await makeBackgroundAPICall(
-            BackfillStatusResponse.self,
+    func getStravaBackfillStatus(backfillId: String) async throws -> StravaBackfillStatusResponse {
+        let response: StravaBackfillStatusResponse = try await makeBackgroundAPICall(
+            StravaBackfillStatusResponse.self,
             path: "/strava/backfill/\(backfillId)",
             method: .GET,
             operationName: "Strava Backfill 狀態查詢"
@@ -502,20 +502,20 @@ struct BackfillTriggerData: Codable {
     }
 }
 
-// MARK: - Strava Backfill Status Response
+// MARK: - Strava Backfill Status Response (Internal - 用於 BackfillService 內部)
 
-struct BackfillStatusResponse: Codable {
+struct StravaBackfillStatusResponse: Codable {
     let success: Bool
-    let data: BackfillStatusData
+    let data: StravaBackfillStatusData
 }
 
-struct BackfillStatusData: Codable {
+struct StravaBackfillStatusData: Codable {
     let backfillId: String
     let status: String  // processing, completed, failed
     let provider: String
-    let timeRange: BackfillTimeRange?
-    let progress: BackfillProgress?
-    let timestamps: BackfillTimestamps?
+    let timeRange: StravaBackfillTimeRange?
+    let progress: StravaBackfillProgress?
+    let timestamps: StravaBackfillTimestamps?
     let completionReason: String?
     let error: String?
 
@@ -531,7 +531,7 @@ struct BackfillStatusData: Codable {
     }
 }
 
-struct BackfillTimeRange: Codable {
+struct StravaBackfillTimeRange: Codable {
     let startDate: String
     let endDate: String
     let days: Int
@@ -543,7 +543,7 @@ struct BackfillTimeRange: Codable {
     }
 }
 
-struct BackfillProgress: Codable {
+struct StravaBackfillProgress: Codable {
     let totalActivities: Int?
     let processedActivities: Int?
     let storedActivities: Int?
@@ -555,7 +555,7 @@ struct BackfillProgress: Codable {
     }
 }
 
-struct BackfillTimestamps: Codable {
+struct StravaBackfillTimestamps: Codable {
     let triggeredAt: String?
     let completedAt: String?
 
