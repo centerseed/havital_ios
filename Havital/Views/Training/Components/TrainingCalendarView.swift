@@ -19,8 +19,24 @@ struct TrainingCalendarView: View {
         return formatter.string(from: selectedMonth)
     }
 
+    /// 只計算跑步類型的月總里程
     private var totalMonthDistance: Double {
-        workoutsByDate.values.reduce(0) { $0 + $1.totalDistance }
+        let calendar = Calendar.current
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth)),
+              let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
+            return 0
+        }
+
+        // 從 UnifiedWorkoutManager 獲取該月的跑步記錄
+        let runningWorkouts = unifiedWorkoutManager.workouts.filter { workout in
+            let workoutDate = workout.startDate
+            let isInMonth = workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
+            let isRunning = workout.activityType == "running"
+            return isInMonth && isRunning
+        }
+
+        // 只計算跑步的總距離（轉換為公里）
+        return runningWorkouts.reduce(0.0) { $0 + (($1.distance ?? 0) / 1000.0) }
     }
 
     private var averagePace: String {
@@ -34,7 +50,7 @@ struct TrainingCalendarView: View {
         let runningWorkouts = unifiedWorkoutManager.workouts.filter { workout in
             let workoutDate = workout.startDate
             let isInMonth = workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
-            let isRunning = workout.activityType.lowercased().contains("run")
+            let isRunning = workout.activityType == "running"
             return isInMonth && isRunning
         }
 
@@ -216,10 +232,13 @@ struct TrainingCalendarView: View {
         // ✅ 從 UnifiedWorkoutManager 緩存讀取，不調用 API
         let allWorkouts = unifiedWorkoutManager.workouts
 
-        // 過濾當月的訓練記錄
+        // 過濾當月的訓練記錄（排除 rest 類型）
         let monthWorkouts = allWorkouts.filter { workout in
             let workoutDate = workout.startDate
-            return workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
+            let isInMonth = workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
+            // 排除 "rest" 類型，這不是實際的運動記錄
+            let isNotRest = workout.activityType.lowercased() != "rest"
+            return isInMonth && isNotRest
         }
 
         // 按日期分組並計算總距離和主要運動類型
@@ -327,7 +346,7 @@ struct DayCell: View {
             return .mint
         case "cycling", "cycle", "bike":
             return .blue
-        case "strength", "weight", "gym":
+        case "strength", "weight", "gym", "strength_training":
             return .purple
         case "swimming", "swim":
             return .cyan
@@ -335,8 +354,17 @@ struct DayCell: View {
             return .pink
         case "hiking", "hike":
             return .orange
+        case "walking", "walk":
+            return .green
+        case "rowing", "row":
+            return .teal
+        case "elliptical":
+            return .indigo
+        case "rest":
+            return .gray
         default:
-            return .mint
+            // 未知類型使用灰色，避免誤認為跑步
+            return .gray
         }
     }
 
@@ -349,7 +377,7 @@ struct DayCell: View {
             return "figure.run"
         case "cycling", "cycle", "bike":
             return "figure.outdoor.cycle"
-        case "strength", "weight", "gym":
+        case "strength", "weight", "gym", "strength_training":
             return "dumbbell.fill"
         case "swimming", "swim":
             return "figure.pool.swim"
@@ -357,8 +385,17 @@ struct DayCell: View {
             return "figure.mind.and.body"
         case "hiking", "hike":
             return "figure.hiking"
+        case "walking", "walk":
+            return "figure.walk"
+        case "rowing", "row":
+            return "figure.rower"
+        case "elliptical":
+            return "figure.elliptical"
+        case "rest":
+            return "bed.double.fill"
         default:
-            return "figure.run"
+            // 未知類型使用通用圖標，避免誤認為跑步
+            return "figure.mixed.cardio"
         }
     }
 
@@ -379,12 +416,15 @@ struct DayCell: View {
                 .foregroundColor(isToday ? .blue : .primary)
 
             if let info = workoutInfo {
-                Text(String(format: "%.1f", info.totalDistance))
-                    .font(.system(size: 12, weight: .bold))  // 增大字體
-                    .foregroundColor(workoutColor)
+                // 只有在距離 > 0 時才顯示距離數值
+                if info.totalDistance > 0 {
+                    Text(String(format: "%.1f", info.totalDistance))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(workoutColor)
+                }
 
                 Image(systemName: workoutIcon)
-                    .font(.system(size: 11))  // 增大圖標
+                    .font(.system(size: 11))
                     .foregroundColor(workoutColor.opacity(0.8))
 
                 // 如果有多個訓練，顯示數量
