@@ -116,6 +116,10 @@ struct EditScheduleView: View {
     }
 
     // MARK: - Reorder Mode View (List + onMove)
+    // 重排模式：用戶拖拽改變訓練順序
+    // - 數組位置代表「星期幾」（位置0=周一，位置1=周二...）
+    // - 拖拽後，訓練內容移動到新的星期
+    // - dayIndex 會根據新的數組位置重新分配
 
     @ViewBuilder
     private func reorderModeView(editablePlan: Binding<MutableWeeklyPlan>) -> some View {
@@ -123,7 +127,7 @@ struct EditScheduleView: View {
             ForEach(Array(editablePlan.wrappedValue.days.enumerated()), id: \.element.id) { arrayIndex, day in
                 ReorderableRowView(
                     day: day,
-                    arrayIndex: arrayIndex,
+                    arrayIndex: arrayIndex,  // 數組位置決定顯示的星期
                     viewModel: viewModel
                 )
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -138,16 +142,17 @@ struct EditScheduleView: View {
     }
 
     // MARK: - Edit Mode View (Cards)
+    // 編輯模式：顯示當前的訓練安排
+    // - 按 dayIndex 排序確保按日期順序顯示
+    // - 使用 day.dayIndexInt 顯示正確的星期
 
     @ViewBuilder
     private func editModeView(editablePlan: MutableWeeklyPlan) -> some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                // 訓練日卡片
-                ForEach(Array(editablePlan.days.enumerated()), id: \.element.id) { arrayIndex, day in
+                ForEach(editablePlan.days.sorted { $0.dayIndexInt < $1.dayIndexInt }) { day in
                     SimplifiedDailyCard(
                         day: day,
-                        dayIndex: arrayIndex,
                         isEditable: canEditDay(day.dayIndexInt),
                         viewModel: viewModel,
                         onEdit: updateDay
@@ -208,10 +213,13 @@ struct EditScheduleView: View {
     }
 
     private func moveDay(from source: IndexSet, to destination: Int, in editablePlan: Binding<MutableWeeklyPlan>) {
-        // 使用 SwiftUI 原生的 move 方法
+        // 使用 SwiftUI 原生的 move 方法移動數組元素
         editablePlan.wrappedValue.days.move(fromOffsets: source, toOffset: destination)
 
-        // 重新分配 dayIndex (1-7) 根據新的順序
+        // 重新分配 dayIndex (1-7) 根據新的數組順序
+        // 數組位置 0 -> dayIndex "1" (周一)
+        // 數組位置 1 -> dayIndex "2" (周二)
+        // ...
         reassignDayIndices(in: editablePlan)
 
         hasUnsavedChanges = true
@@ -282,10 +290,13 @@ struct EditScheduleView: View {
 }
 
 // MARK: - Reorderable Row View (for List + onMove)
+// 重排模式中的行視圖
+// - arrayIndex: 數組位置，決定顯示的星期（位置0=周一，位置1=周二...）
+// - day: 訓練內容
 
 struct ReorderableRowView: View {
     let day: MutableTrainingDay
-    let arrayIndex: Int  // 使用陣列索引來顯示星期幾
+    let arrayIndex: Int  // 數組位置決定顯示的星期
     let viewModel: TrainingPlanViewModel
 
     private func getTypeColor() -> Color {
@@ -307,7 +318,7 @@ struct ReorderableRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // 日期資訊 - 使用 arrayIndex + 1 作為 dayIndex
+            // 日期資訊 - 使用 arrayIndex + 1 顯示星期（數組位置決定星期幾）
             VStack(alignment: .leading, spacing: 2) {
                 Text(viewModel.weekdayName(for: arrayIndex + 1))
                     .font(.headline)
@@ -354,7 +365,6 @@ struct ReorderableRowView: View {
 
 struct SimplifiedDailyCard: View {
     let day: MutableTrainingDay
-    let dayIndex: Int
     let isEditable: Bool
     let viewModel: TrainingPlanViewModel
     let onEdit: (MutableTrainingDay) -> Void
@@ -541,7 +551,7 @@ struct SimplifiedDailyCard: View {
     }
 
     private func getEditStatusMessage() -> String {
-        return viewModel.getEditStatusMessage(for: dayIndex)
+        return viewModel.getEditStatusMessage(for: day.dayIndexInt)
     }
 
     private func updateTrainingType(_ newType: DayType) {
