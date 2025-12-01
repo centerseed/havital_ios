@@ -532,6 +532,8 @@ struct SimplifiedDailyCard: View {
                     .background(getTypeColor().opacity(0.15))
                     .cornerRadius(8)
                 }
+                // 阻止點擊事件傳遞到下層的 onTapGesture
+                .onTapGesture { }
             } else {
                 HStack(spacing: 4) {
                     Text(day.type.localizedName)
