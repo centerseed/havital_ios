@@ -110,8 +110,8 @@ struct DailyTrainingListView: View {
                 DailyTrainingCard(viewModel: viewModel, day: todayTraining, isToday: true)
             }
             
-            // 顯示其他日的訓練
-            ForEach(plan.days.filter { !viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) }) { day in
+            // 顯示其他日的訓練（按 dayIndex 排序確保日期順序正確）
+            ForEach(plan.days.filter { !viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) }.sorted { $0.dayIndexInt < $1.dayIndexInt }) { day in
                 DailyTrainingCard(viewModel: viewModel, day: day, isToday: false)
             }
         }

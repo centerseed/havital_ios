@@ -20,9 +20,9 @@ struct WeekTimelineView: View {
             }
             .padding(.horizontal, 4)
 
-            // 時間軸列表
+            // 時間軸列表（按 dayIndex 排序確保日期順序正確）
             VStack(spacing: 12) {
-                ForEach(plan.days) { day in
+                ForEach(plan.days.sorted { $0.dayIndexInt < $1.dayIndexInt }) { day in
                     TimelineItemView(
                         viewModel: viewModel,
                         day: day,
@@ -66,9 +66,20 @@ struct TimelineItemView: View {
         // 在 body 內部計算這些值
         let isToday = viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: planWeek)
         let workouts = viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
-        let isCompleted = day.type == .rest || !workouts.isEmpty  // 休息日自動標記為已完成
-        // 簡單判斷：如果不是今天且沒有訓練記錄，認為是未來或過去
-        let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
+
+        // 正確判斷是否為過去的日期：使用 getDateForDay 取得實際日期並與今天比較
+        let isPast: Bool = {
+            guard let dayDate = viewModel.getDateForDay(dayIndex: day.dayIndexInt) else {
+                return false
+            }
+            let today = Calendar.current.startOfDay(for: Date())
+            let targetDay = Calendar.current.startOfDay(for: dayDate)
+            return targetDay < today
+        }()
+
+        // 休息日只有在當天或已過去時才標記為已完成，未來的休息日不標記
+        let isCompletedRest = day.type == .rest && (isToday || isPast)
+        let isCompleted = isCompletedRest || !workouts.isEmpty
 
         HStack(alignment: .top, spacing: 12) {
             // 左側時間軸狀態點（只有圓點，連接線在外層背景繪製）
