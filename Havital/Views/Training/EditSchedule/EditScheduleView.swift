@@ -162,7 +162,10 @@ struct EditScheduleView: View {
 
     private func setupEditableWeeklyPlan() {
         guard let weeklyPlan = viewModel.weeklyPlan else { return }
-        editableWeeklyPlan = MutableWeeklyPlan(from: weeklyPlan)
+        var mutablePlan = MutableWeeklyPlan(from: weeklyPlan)
+        // 初始化時按 dayIndex 排序，確保顯示順序正確
+        mutablePlan.days.sort { $0.dayIndexInt < $1.dayIndexInt }
+        editableWeeklyPlan = mutablePlan
     }
 
     private func canEditDay(_ dayIndex: Int) -> Bool {
