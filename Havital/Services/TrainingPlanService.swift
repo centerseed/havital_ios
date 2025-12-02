@@ -189,7 +189,9 @@ final class TrainingPlanService {
     /// 修改週訓練計劃
     func modifyWeeklyPlan(planId: String, updatedPlan: WeeklyPlan) async throws -> WeeklyPlan {
         let requestBody = WeeklyPlanModifyRequest(updatedPlan: updatedPlan)
-        let bodyData = try JSONEncoder().encode(requestBody)
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let bodyData = try encoder.encode(requestBody)
 
         return try await makeAPICall(
             WeeklyPlan.self,

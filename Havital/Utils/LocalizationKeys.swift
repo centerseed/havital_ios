@@ -1078,6 +1078,7 @@ extension L10n {
         static let close = "edit_schedule.close" // "關閉"
         static let cannotEdit = "edit_schedule.cannot_edit" // "無法編輯"
         static let addSegment = "edit_schedule.add_segment" // "新增區段"
+        static let totalDistance = "edit_schedule.total_distance" // "總距離"
 
         // Training Types
         static let easyRun = "edit_schedule.easy_run" // "輕鬆跑"

@@ -37,6 +37,10 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     // 使用 Published 確保 UI 能即時更新
     @Published private(set) var _currentWeekIntensity: TrainingIntensityManager.IntensityMinutes = .zero
     @Published var isLoadingIntensity = false
+
+    // EditScheduleView 相關
+    @Published var isEditingLoaded = false
+    @Published var editingDays: [MutableTrainingDay] = []
     private let intensityManager = TrainingIntensityManager.shared
     
     // 使用計算屬性確保每次讀取都得到最新的值
@@ -96,7 +100,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     @Published var isUpdatingAdjustments = false
     @Published var pendingTargetWeek: Int?
     @Published var pendingSummaryId: String?
-    
+
+    // 編輯課表相關 - 編輯狀態由 EditScheduleView 管理
+
     // 網路錯誤處理
     @Published var networkError: NetworkError?
     @Published var showNetworkErrorAlert = false
@@ -2167,22 +2173,42 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     /// 更新週課表 (儲存編輯後的課表)
+    @MainActor
     func updateWeeklyPlan(_ editablePlan: MutableWeeklyPlan) async {
-        // TODO: 實現儲存邏輯
-        // 這裡需要將 MutableWeeklyPlan 轉換回 WeeklyPlan 格式
-        // 然後調用 API 儲存
-        
-        Logger.debug("準備儲存編輯後的週課表")
-        
-        // 轉換並儲存 (暫時先記錄，待實現)
-        do {
-            // let updatedPlan = editablePlan.toWeeklyPlan()
-            // let savedPlan = try await TrainingPlanService.shared.updateWeeklyPlan(updatedPlan)
-            // await updateWeeklyPlanUI(plan: savedPlan, status: .ready(savedPlan))
-            Logger.debug("課表儲存成功")
-        } catch {
-            Logger.error("儲存課表失敗: \(error)")
-            // TODO: 處理儲存錯誤
+        await executeTask(id: TaskID("update_weekly_plan_\(editablePlan.weekOfPlan)")) { [weak self] in
+            guard let self = self else { return }
+
+            do {
+                Logger.debug("準備儲存編輯後的週課表: week=\(editablePlan.weekOfPlan)")
+
+                // 1. 轉換為 WeeklyPlan
+                let updatedPlan = editablePlan.toWeeklyPlan()
+
+                // 2. 呼叫 API 儲存
+                let savedPlan = try await TrainingPlanService.shared.modifyWeeklyPlan(
+                    planId: updatedPlan.id,
+                    updatedPlan: updatedPlan
+                )
+
+                // 3. 更新 UI 和緩存
+                await self.updateWeeklyPlanUI(plan: savedPlan, status: .ready(savedPlan))
+
+                Logger.debug("課表儲存成功: ID=\(savedPlan.id)")
+            } catch {
+                // 處理取消錯誤
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    Logger.debug("儲存任務被取消，忽略錯誤")
+                    return
+                }
+
+                Logger.error("儲存課表失敗: \(error.localizedDescription)")
+
+                // 顯示錯誤 Toast（不跳 ErrorView）
+                await MainActor.run {
+                    self.showNetworkErrorToast = true
+                }
+            }
         }
     }
 

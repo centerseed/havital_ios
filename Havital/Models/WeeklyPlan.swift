@@ -224,7 +224,8 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 }
             case .interval:
                 var items: [WeeklyTrainingItem] = []
-                if let work = details.work, let recovery = details.recovery, let repeats = details.repeats {
+                // work 和 repeats 是必須的，recovery 可選（nil 表示原地休息）
+                if let work = details.work, let repeats = details.repeats {
                     let workItem = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.interval.localized,
                         runDetails: work.description ?? "",
@@ -232,12 +233,13 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         goals: TrainingGoals(pace: work.pace, distanceKm: work.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(workItem)
-                    
+
+                    // recovery 為 nil 時表示原地休息，建立一個空的恢復段
                     let recoveryItem = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.recovery.localized,
-                        runDetails: recovery.description ?? "",
+                        runDetails: details.recovery?.description ?? "",
                         durationMinutes: nil,
-                        goals: TrainingGoals(pace: recovery.pace, distanceKm: recovery.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
+                        goals: TrainingGoals(pace: details.recovery?.pace, distanceKm: details.recovery?.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(recoveryItem)
                     return items

@@ -54,7 +54,10 @@ struct EasyRunEditView: View {
 
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
-        updatedDay.trainingDetails?.distanceKm = newDistance
+        if var details = updatedDay.trainingDetails {
+            details.distanceKm = newDistance
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -97,13 +100,19 @@ struct TempoRunEditView: View {
 
     private func updatePace(_ newPace: String) {
         var updatedDay = day
-        updatedDay.trainingDetails?.pace = newPace
+        if var details = updatedDay.trainingDetails {
+            details.pace = newPace
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
-        updatedDay.trainingDetails?.distanceKm = newDistance
+        if var details = updatedDay.trainingDetails {
+            details.distanceKm = newDistance
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -161,25 +170,49 @@ struct IntervalEditView: View {
                 ) { updatedSegment in
                     updateRecoverySegment(updatedSegment)
                 }
+            } else {
+                // recovery 為 nil 時顯示原地休息
+                HStack(spacing: 8) {
+                    Text("恢復段")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.15))
+                        .cornerRadius(8)
+                }
             }
         }
     }
 
     private func updateRepeats(_ newRepeats: Int) {
         var updatedDay = day
-        updatedDay.trainingDetails?.repeats = newRepeats
+        if var details = updatedDay.trainingDetails {
+            details.repeats = newRepeats
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 
     private func updateWorkSegment(_ segment: MutableWorkoutSegment) {
         var updatedDay = day
-        updatedDay.trainingDetails?.work = segment
+        if var details = updatedDay.trainingDetails {
+            details.work = segment
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 
     private func updateRecoverySegment(_ segment: MutableWorkoutSegment) {
         var updatedDay = day
-        updatedDay.trainingDetails?.recovery = segment
+        if var details = updatedDay.trainingDetails {
+            details.recovery = segment
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -192,39 +225,17 @@ struct CombinationEditView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(day.type.localizedName)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.orange)
-
-                Spacer()
-
-                if let total = details.totalDistanceKm {
-                    Text(String(format: "%.1f", total))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.15))
-                        .cornerRadius(12)
-                }
-            }
-
-            Divider()
-                .background(Color.orange.opacity(0.3))
-
-            if let segments = details.segments {
-                VStack(spacing: 4) {
-                    ForEach(segments.indices, id: \.self) { index in
-                        if index < segments.count {
-                            CombinationSegmentEditView(
-                                title: "區段\(index + 1)",
-                                segment: segments[index],
-                                isEditable: isEditable
-                            ) { updatedSegment in
-                                updateSegment(at: index, with: updatedSegment)
+            // 顯示分段摘要（簡潔版，詳細編輯用右側按鈕）
+            if let segments = details.segments, !segments.isEmpty {
+                // 水平滾動顯示所有分段
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(segments.indices, id: \.self) { index in
+                            if let segment = segments[safe: index] {
+                                CombinationSegmentSummary(
+                                    segmentIndex: index + 1,
+                                    segment: segment
+                                )
                             }
                         }
                     }
@@ -232,11 +243,47 @@ struct CombinationEditView: View {
             }
         }
     }
+}
 
-    private func updateSegment(at index: Int, with segment: MutableProgressionSegment) {
-        var updatedDay = day
-        updatedDay.trainingDetails?.segments?[index] = segment
-        onEdit(updatedDay)
+/// 組合訓練分段摘要視圖（只讀）
+struct CombinationSegmentSummary: View {
+    let segmentIndex: Int
+    let segment: MutableProgressionSegment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // 分段描述或編號
+            if let desc = segment.description, !desc.isEmpty {
+                Text(desc)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            // 距離和配速
+            HStack(spacing: 4) {
+                if let distance = segment.distanceKm {
+                    Text(String(format: "%.1fkm", distance))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                if let pace = segment.pace {
+                    Text("@\(pace)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(6)
+    }
+}
+
+// 安全的數組索引存取
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }
 
@@ -267,7 +314,10 @@ struct SimpleTrainingEditView: View {
 
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
-        updatedDay.trainingDetails?.distanceKm = newDistance
+        if var details = updatedDay.trainingDetails {
+            details.distanceKm = newDistance
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -337,6 +387,7 @@ struct EditableValueView: View {
             .background(Color.blue.opacity(isEditable ? 0.12 : 0.05))
             .cornerRadius(8)
         }
+        .buttonStyle(.plain)  // 確保在 List 中能正確響應點擊
         .disabled(!isEditable)
         .sheet(isPresented: $showingPacePicker) {
             PaceWheelPicker(selectedPace: Binding(
@@ -537,66 +588,6 @@ struct IntervalSegmentEditView: View {
     }
 }
 
-struct CombinationSegmentEditView: View {
-    let title: String
-    let segment: MutableProgressionSegment
-    let isEditable: Bool
-    let onEdit: (MutableProgressionSegment) -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            // 訓練類型標籤（僅顯示，不可編輯）
-            if let description = segment.description {
-                Text(description)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(6)
-            }
-
-            if let pace = segment.pace {
-                EditableValueView(
-                    title: NSLocalizedString("edit_schedule.pace", comment: "配速"),
-                    value: pace,
-                    isEditable: isEditable,
-                    valueType: .pace
-                ) { newValue in
-                    updatePace(newValue)
-                }
-            }
-
-            if let distance = segment.distanceKm {
-                EditableValueView(
-                    title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
-                    value: String(format: "%.1f", distance),
-                    isEditable: isEditable,
-                    valueType: .distance
-                ) { newValue in
-                    updateDistance(Double(newValue) ?? distance)
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 2)
-    }
-
-    private func updatePace(_ newPace: String) {
-        var updatedSegment = segment
-        updatedSegment.pace = newPace
-        onEdit(updatedSegment)
-    }
-
-    private func updateDistance(_ newDistance: Double) {
-        var updatedSegment = segment
-        updatedSegment.distanceKm = newDistance
-        onEdit(updatedSegment)
-    }
-}
-
 // MARK: - Training Edit Sheet
 
 struct TrainingEditSheet: View {
@@ -604,8 +595,28 @@ struct TrainingEditSheet: View {
     let onSave: (MutableTrainingDay) -> Void
     let viewModel: TrainingPlanViewModel
 
+    // iOS 18 修復：把 @State 放在這裡，避免 TrainingDetailEditor 重複 init 時重置
+    @State private var editedDay: MutableTrainingDay
+
+    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, viewModel: TrainingPlanViewModel) {
+        self.day = day
+        self.onSave = onSave
+        self.viewModel = viewModel
+        self._editedDay = State(initialValue: day)
+        print("🔍 [TrainingEditSheet] init - repeats = \(day.trainingDetails?.repeats ?? -1)")
+    }
+
     var body: some View {
-        TrainingDetailEditor(day: day, onSave: onSave, viewModel: viewModel)
+        let _ = print("🔍 [TrainingEditSheet] body - @State editedDay.repeats = \(editedDay.trainingDetails?.repeats ?? -1)")
+        // iOS 18 修復：使用 TrainingEditSheetV2
+        TrainingEditSheetV2(
+            day: editedDay,
+            onSave: { updatedDay in
+                print("🔍 [TrainingEditSheet] onSave 回調 - repeats = \(updatedDay.trainingDetails?.repeats ?? -1)")
+                onSave(updatedDay)
+            },
+            viewModel: viewModel
+        )
     }
 }
 

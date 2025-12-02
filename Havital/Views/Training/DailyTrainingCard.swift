@@ -225,13 +225,6 @@ struct SegmentedTrainingView: View {
     let segments: [ProgressionSegment]
     let total: Double
 
-    // 檢查分段是否應該隱藏配速（基於分段描述）
-    private func shouldHidePaceForSegment(_ segment: ProgressionSegment) -> Bool {
-        guard let description = segment.description else { return false }
-        let desc = description.lowercased()
-        return desc.contains("輕鬆") || desc.contains("恢復") || desc.contains("easy") || desc.contains("recovery")
-    }
-
     // 創建單個段落行視圖
     private func segmentRowView(segment: ProgressionSegment, index: Int) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -247,8 +240,8 @@ struct SegmentedTrainingView: View {
                     .background(Color.orange.opacity(0.15))
                     .cornerRadius(6)
 
-                // 配速（根據分段類型條件顯示）
-                if let pace = segment.pace, !shouldHidePaceForSegment(segment) {
+                // 配速（分段訓練中總是顯示配速）
+                if let pace = segment.pace {
                     HStack(spacing: 4) {
                         Image(systemName: "speedometer")
                             .font(.caption2)

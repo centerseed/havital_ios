@@ -1461,7 +1461,11 @@
 "edit_schedule.delete" = "削除";
 "edit_schedule.close" = "閉じる";
 "edit_schedule.cannot_edit" = "編集できません";
-"edit_schedule.addSegment" = "セグメントを追加";
+"edit_schedule.add_segment" = "セグメントを追加";
+"edit_schedule.total_distance" = "合計距離";
+"edit_schedule.edit_training" = "トレーニングを編集";
+"edit_schedule.rest_in_place" = "その場で休息";
+"edit_schedule.save_failed" = "保存に失敗しました";
 "edit_schedule.reorder_title" = "順序を変更";
 "edit_schedule.reorder_days" = "スケジュールを並べ替え";
 
@@ -1509,6 +1513,10 @@
 "edit_schedule.interval_distance_selection" = "インターバル距離選択";
 "edit_schedule.select_training_type" = "トレーニングタイプを選択";
 "edit_schedule.training_type_selection" = "トレーニングタイプ選択";
+"edit_schedule.select_distance" = "距離を選択";
+"edit_schedule.distance_selection" = "距離選択";
+"edit_schedule.select_repeats" = "繰り返し回数を選択";
+"edit_schedule.repeats_selection" = "繰り返し回数選択";
 
 // Pace Table
 "edit_schedule.pace_table_description" = "ランニング能力に基づいて計算されたトレーニングペースの推奨。各ゾーンは最速 - 最遅ペース範囲を表示";
@@ -1746,3 +1754,4 @@
 "share_card.format" = "フォーマット";
 "share_card.edit_title" = "タイトルを編集";
 "share_card.edit_ai_review" = "AI評価を編集";
+"edit_schedule.distance_meters" = "距離(m)";

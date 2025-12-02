@@ -1466,7 +1466,11 @@
 "edit_schedule.delete" = "Delete";
 "edit_schedule.close" = "Close";
 "edit_schedule.cannot_edit" = "Cannot Edit";
-"edit_schedule.addSegment" = "Add Segment";
+"edit_schedule.add_segment" = "Add Segment";
+"edit_schedule.total_distance" = "Total Distance";
+"edit_schedule.edit_training" = "Edit Training";
+"edit_schedule.rest_in_place" = "Rest in Place";
+"edit_schedule.save_failed" = "Save Failed";
 "edit_schedule.reorder_title" = "Reorder";
 "edit_schedule.reorder_days" = "Reorder Schedule";
 
@@ -1514,6 +1518,10 @@
 "edit_schedule.interval_distance_selection" = "Interval Distance Selection";
 "edit_schedule.select_training_type" = "Select Training Type";
 "edit_schedule.training_type_selection" = "Training Type Selection";
+"edit_schedule.select_distance" = "Select Distance";
+"edit_schedule.distance_selection" = "Distance Selection";
+"edit_schedule.select_repeats" = "Select Repeats";
+"edit_schedule.repeats_selection" = "Repeats Selection";
 
 // Pace Table
 "edit_schedule.pace_table_description" = "Training pace recommendations calculated based on your running ability. Each zone shows the fastest - slowest pace range";
@@ -1749,3 +1757,4 @@
 "empty_state.vdot_data_desc" = "No VDOT data yet. Please complete a running workout first";
 "empty_state.workout_data_desc" = "No workout data recorded yet";
 "empty_state.health_data_desc" = "Unable to retrieve health data";
+"edit_schedule.distance_meters" = "Distance(m)";
