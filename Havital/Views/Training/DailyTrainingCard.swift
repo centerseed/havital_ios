@@ -227,7 +227,10 @@ struct SegmentedTrainingView: View {
 
     // 創建單個段落行視圖
     private func segmentRowView(segment: ProgressionSegment, index: Int) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        // 調試日誌：打印每個分段的配速信息
+        let _ = Logger.debug("SegmentedTrainingView - 第\(index + 1)段: pace=\(segment.pace ?? "nil"), description=\(segment.description ?? "nil"), distance=\(segment.distanceKm?.description ?? "nil")km")
+
+        return VStack(alignment: .leading, spacing: 4) {
             // 第一行：段落標籤、配速、心率、距離
             HStack(spacing: 8) {
                 // 段落標籤
@@ -254,6 +257,21 @@ struct SegmentedTrainingView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(Color.blue.opacity(0.15))
+                    .cornerRadius(6)
+                } else {
+                    // 如果 pace 為 nil，顯示"輕鬆跑"標籤
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.walk")
+                            .font(.caption2)
+                            .foregroundColor(.mint)
+                        Text("輕鬆跑")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.mint)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.mint.opacity(0.15))
                     .cornerRadius(6)
                 }
 
@@ -483,16 +501,40 @@ struct IntervalSegmentRow: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.orange)
             }
-            
-            // 如果是恢復段且沒有配速和距離，顯示"原地休息"
-            if title == NSLocalizedString("training_plan.recovery_segment", comment: "Recovery Segment") && item.goals.pace == nil && item.goals.distanceKm == nil {
-                Text(NSLocalizedString("training_plan.rest_in_place", comment: "Rest in place"))
-                    .font(.system(size: 11, weight: .medium))
+
+            // 如果是恢復段且有時間，只顯示時間（原地休息）
+            let isRecoverySegment = title == NSLocalizedString("training_plan.recovery_segment", comment: "Recovery Segment")
+            let hasTime = item.durationMinutes != nil
+
+            if isRecoverySegment && hasTime {
+                // 原地休息：只顯示時間
+                HStack(spacing: 4) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                    Text(NSLocalizedString("training_plan.rest_in_place", comment: "Rest in place"))
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.gray.opacity(0.15))
+                .cornerRadius(8)
+
+                if let duration = item.durationMinutes {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                        Text("\(duration) 分鐘")
+                            .font(.system(size: 11, weight: .medium))
+                    }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Color.gray.opacity(0.15))
+                    .background(Color.blue.opacity(0.15))
                     .cornerRadius(8)
+                }
             } else {
+                // 主動恢復或衝刺段：顯示配速和距離
                 if let pace = item.goals.pace {
                     Text(pace)
                         .font(.system(size: 11, weight: .medium))
@@ -501,7 +543,7 @@ struct IntervalSegmentRow: View {
                         .background(Color.orange.opacity(0.15))
                         .cornerRadius(8)
                 }
-                
+
                 if let distance = item.goals.distanceKm {
                     Text(String(format: "%.1fkm", distance))
                         .font(.system(size: 11, weight: .medium))

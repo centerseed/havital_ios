@@ -226,20 +226,45 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 var items: [WeeklyTrainingItem] = []
                 // work 和 repeats 是必須的，recovery 可選（nil 表示原地休息）
                 if let work = details.work, let repeats = details.repeats {
+                    // 優先使用 distanceKm，如果為 nil 則使用 distanceM 轉換
+                    let workDistance: Double? = {
+                        if let km = work.distanceKm {
+                            return km
+                        } else if let m = work.distanceM {
+                            return m / 1000.0  // 米轉公里
+                        }
+                        return nil
+                    }()
+
                     let workItem = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.interval.localized,
                         runDetails: work.description ?? "",
                         durationMinutes: nil,
-                        goals: TrainingGoals(pace: work.pace, distanceKm: work.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
+                        goals: TrainingGoals(pace: work.pace, distanceKm: workDistance, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(workItem)
 
                     // recovery 為 nil 時表示原地休息，建立一個空的恢復段
+                    let recoveryTimeMinutes = details.recovery?.timeMinutes.map { Int($0) }
+                    let recoveryPace = details.recovery?.pace
+
+                    // 優先使用 distanceKm，如果為 nil 則使用 distanceM 轉換
+                    let recoveryDistance: Double? = {
+                        if let km = details.recovery?.distanceKm {
+                            return km
+                        } else if let m = details.recovery?.distanceM {
+                            return m / 1000.0  // 米轉公里
+                        }
+                        return nil
+                    }()
+
+                    Logger.debug("[原地休息] WeeklyPlan trainingItems - recovery: timeMinutes=\(details.recovery?.timeMinutes?.description ?? "nil"), distanceKm=\(details.recovery?.distanceKm?.description ?? "nil"), distanceM=\(details.recovery?.distanceM?.description ?? "nil"), finalDistance=\(recoveryDistance?.description ?? "nil"), pace=\(recoveryPace ?? "nil")")
+
                     let recoveryItem = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.recovery.localized,
                         runDetails: details.recovery?.description ?? "",
-                        durationMinutes: nil,
-                        goals: TrainingGoals(pace: details.recovery?.pace, distanceKm: details.recovery?.distanceKm, heartRateRange: nil, heartRate: nil, times: repeats)
+                        durationMinutes: recoveryTimeMinutes,
+                        goals: TrainingGoals(pace: recoveryPace, distanceKm: recoveryDistance, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(recoveryItem)
                     return items
@@ -370,6 +395,22 @@ struct TrainingDetails: Codable, Equatable {
         case heartRateRange = "heart_rate_range"
         case segments
     }
+
+    /// 自定義編碼器 - 確保 nil 值被編碼為 null
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(description, forKey: .description)
+        try container.encode(distanceKm, forKey: .distanceKm)
+        try container.encode(totalDistanceKm, forKey: .totalDistanceKm)
+        try container.encode(timeMinutes, forKey: .timeMinutes)
+        try container.encode(pace, forKey: .pace)
+        try container.encode(work, forKey: .work)
+        try container.encode(recovery, forKey: .recovery)
+        try container.encode(repeats, forKey: .repeats)
+        try container.encode(heartRateRange, forKey: .heartRateRange)
+        try container.encode(segments, forKey: .segments)
+    }
 }
 
 struct WorkoutSegment: Codable, Equatable {
@@ -379,7 +420,7 @@ struct WorkoutSegment: Codable, Equatable {
     let timeMinutes: Double? // 添加時間欄位
     let pace: String?
     let heartRateRange: HeartRateRange?  // 添加心率區間欄位
-    
+
     enum CodingKeys: String, CodingKey {
         case description
         case distanceKm = "distance_km"
@@ -387,6 +428,22 @@ struct WorkoutSegment: Codable, Equatable {
         case timeMinutes = "time_minutes"
         case pace
         case heartRateRange = "heart_rate_range"
+    }
+
+    /// 自定義編碼器 - 確保 nil 值被編碼為 null（而非省略）
+    /// 這對於原地休息很重要：需要明確告訴後端刪除 pace 和 distanceKm
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        // 明確編碼所有欄位，包括 nil 值
+        try container.encode(description, forKey: .description)
+        try container.encode(distanceKm, forKey: .distanceKm)
+        try container.encode(distanceM, forKey: .distanceM)
+        try container.encode(timeMinutes, forKey: .timeMinutes)
+        try container.encode(pace, forKey: .pace)
+        try container.encode(heartRateRange, forKey: .heartRateRange)
+
+        print("🟣🟣🟣 [原地休息] WorkoutSegment encode: pace=\(pace ?? "nil"), distanceKm=\(distanceKm?.description ?? "nil"), timeMinutes=\(timeMinutes?.description ?? "nil")")
     }
 }
 

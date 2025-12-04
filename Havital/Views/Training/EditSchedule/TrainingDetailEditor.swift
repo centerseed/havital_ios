@@ -19,6 +19,7 @@ final class TrainingDayEditState: ObservableObject {
     @Published var workDistance: Double
     @Published var recoveryPace: String
     @Published var recoveryDistance: Double
+    @Published var recoveryTimeMinutes: Int  // 原地休息的時間（分鐘）
     @Published var isRestInPlace: Bool
 
     // 組合跑欄位
@@ -28,6 +29,8 @@ final class TrainingDayEditState: ObservableObject {
     @Published var description: String?
 
     init(from day: MutableTrainingDay) {
+        print("🔴🔴🔴 [原地休息] TrainingDayEditState init 開始")
+
         self.dayIndex = day.dayIndex
         self.dayTarget = day.dayTarget
         self.trainingType = day.trainingType
@@ -43,9 +46,22 @@ final class TrainingDayEditState: ObservableObject {
         self.repeats = details?.repeats ?? 4
         self.workPace = details?.work?.pace ?? ""
         self.workDistance = details?.work?.distanceKm ?? 0.4
-        self.recoveryPace = details?.recovery?.pace ?? "6:00"
-        self.recoveryDistance = details?.recovery?.distanceKm ?? 0.2
-        self.isRestInPlace = details?.recovery == nil
+
+        // 判斷是否為原地休息：有 timeMinutes 但沒有 distanceKm（或為 0）
+        let recovery = details?.recovery
+        let hasTimeMinutes = recovery?.timeMinutes != nil && recovery!.timeMinutes! > 0
+        let hasDistance = recovery?.distanceKm != nil && recovery!.distanceKm! > 0
+        let isRest = hasTimeMinutes && !hasDistance
+        self.isRestInPlace = isRest
+
+        // 調試日誌
+        print("🔴🔴🔴 [原地休息] TrainingDayEditState init - recovery: timeMinutes=\(recovery?.timeMinutes?.description ?? "nil"), distanceKm=\(recovery?.distanceKm?.description ?? "nil"), pace=\(recovery?.pace ?? "nil"), isRestInPlace=\(isRest)")
+        Logger.debug("[原地休息] TrainingDayEditState init - recovery: timeMinutes=\(recovery?.timeMinutes?.description ?? "nil"), distanceKm=\(recovery?.distanceKm?.description ?? "nil"), pace=\(recovery?.pace ?? "nil"), isRestInPlace=\(isRest)")
+
+        // 恢復段參數
+        self.recoveryPace = recovery?.pace ?? "6:00"
+        self.recoveryDistance = recovery?.distanceKm ?? 0.2
+        self.recoveryTimeMinutes = Int(recovery?.timeMinutes ?? 2)
 
         // 組合跑欄位
         if let segs = details?.segments {
@@ -94,10 +110,34 @@ final class TrainingDayEditState: ObservableObject {
                 distanceKm: workDistance,
                 pace: workPace.isEmpty ? nil : workPace
             )
-            let recovery: MutableWorkoutSegment? = isRestInPlace ? nil : MutableWorkoutSegment(
-                distanceKm: recoveryDistance,
-                pace: recoveryPace.isEmpty ? nil : recoveryPace
-            )
+
+            // 原地休息：只設置 timeMinutes 和 description，distanceKm 和 pace 為 nil
+            // 主動恢復：設置 distanceKm 和 pace
+            let recovery: MutableWorkoutSegment
+            if isRestInPlace {
+                print("🟢🟢🟢 [原地休息] 保存間歇跑 - 原地休息: timeMinutes=\(recoveryTimeMinutes)")
+                recovery = MutableWorkoutSegment(
+                    description: "原地休息\(recoveryTimeMinutes)分鐘",
+                    distanceKm: nil,
+                    distanceM: nil,
+                    timeMinutes: Double(recoveryTimeMinutes),
+                    pace: nil,
+                    heartRateRange: nil
+                )
+                Logger.debug("[原地休息] 保存間歇跑: timeMinutes=\(recoveryTimeMinutes), distanceKm=nil, pace=nil")
+            } else {
+                print("🔵🔵🔵 [原地休息] 保存間歇跑 - 主動恢復: distanceKm=\(recoveryDistance), pace=\(recoveryPace)")
+                recovery = MutableWorkoutSegment(
+                    description: nil,
+                    distanceKm: recoveryDistance,
+                    distanceM: nil,
+                    timeMinutes: nil,
+                    pace: recoveryPace.isEmpty ? nil : recoveryPace,
+                    heartRateRange: nil
+                )
+                Logger.debug("[原地休息] 保存間歇跑 - 主動恢復: distanceKm=\(recoveryDistance), pace=\(recoveryPace)")
+            }
+
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
                 work: work,
@@ -443,7 +483,11 @@ struct IntervalEditorV2: View {
 
                 Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $editState.isRestInPlace)
 
-                if !editState.isRestInPlace {
+                if editState.isRestInPlace {
+                    // 原地休息：顯示時間選擇器
+                    RestTimePickerFieldV2(title: "休息時間", timeMinutes: $editState.recoveryTimeMinutes)
+                } else {
+                    // 主動恢復：顯示配速和距離
                     HStack(spacing: 16) {
                         PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.recoveryPace, referenceDistance: editState.recoveryDistance)
                         IntervalDistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distanceKm: $editState.recoveryDistance)
@@ -808,6 +852,74 @@ struct IntervalDistancePickerFieldV2: View {
             .sheet(isPresented: $showingPicker) {
                 IntervalDistanceWheelPicker(selectedDistanceKm: $distanceKm)
                     .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
+struct RestTimePickerFieldV2: View {
+    let title: String
+    @Binding var timeMinutes: Int
+    @State private var showingPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text("\(timeMinutes) 分鐘")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                RestTimeWheelPicker(selectedTimeMinutes: $timeMinutes)
+                    .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
+struct RestTimeWheelPicker: View {
+    @Binding var selectedTimeMinutes: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Picker("休息時間", selection: $selectedTimeMinutes) {
+                    ForEach(1...10, id: \.self) { minutes in
+                        Text("\(minutes) 分鐘").tag(minutes)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 200)
+            }
+            .navigationTitle("選擇休息時間")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
             }
         }
     }

@@ -193,6 +193,19 @@ final class TrainingPlanService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         let bodyData = try encoder.encode(requestBody)
 
+        // 調試：打印實際發送的 JSON（僅針對間歇跑）
+        if let jsonString = String(data: bodyData, encoding: .utf8) {
+            // 只在 JSON 包含 "recovery" 時打印，避免過多日誌
+            if jsonString.contains("\"recovery\"") {
+                print("🟠🟠🟠 [原地休息] 發送的 JSON:")
+                // 截取 recovery 部分
+                if let recoveryRange = jsonString.range(of: "\"recovery\":\\{[^}]*\\}", options: .regularExpression) {
+                    let recoveryJSON = String(jsonString[recoveryRange])
+                    print("  \(recoveryJSON)")
+                }
+            }
+        }
+
         return try await makeAPICall(
             WeeklyPlan.self,
             path: "/plan/race_run/weekly/\(planId)/modify",
