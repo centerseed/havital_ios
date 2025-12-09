@@ -563,8 +563,8 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             )
 
         } catch {
-            let nsError = error as NSError
-            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+            // 任務取消是正常行為，不需要報錯或上傳到 Cloud Logging
+            if error.isCancellationError {
                 Logger.debug("上傳任務被取消，忽略錯誤")
                 return
             }
@@ -664,13 +664,14 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             )
 
         } catch {
-            print("📤 [performUploadRecentData] ❌ 上傳失敗: \(error.localizedDescription)")
-
-            let nsError = error as NSError
-            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+            // 任務取消是正常行為，不需要報錯或上傳到 Cloud Logging
+            if error.isCancellationError {
                 Logger.debug("上傳任務被取消，忽略錯誤")
                 return
             }
+
+            // 真正的錯誤才需要處理和記錄
+            print("📤 [performUploadRecentData] ❌ 上傳失敗: \(error.localizedDescription)")
 
             await MainActor.run {
                 self.uploadStatus = HealthDataUploadStatus(
@@ -802,6 +803,12 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             return healthRecords
 
         } catch {
+            // 任務取消是正常行為，不記錄錯誤
+            if error.isCancellationError {
+                Logger.debug("收集健康數據任務被取消，忽略錯誤")
+                return []
+            }
+
             Logger.firebase(
                 "收集健康數據失敗: \(error.localizedDescription)",
                 level: .error,
@@ -923,6 +930,12 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             return records
             
         } catch {
+            // 任務取消是正常行為，不記錄錯誤
+            if error.isCancellationError {
+                Logger.debug("獲取本地 HealthKit 數據任務被取消，忽略錯誤")
+                return []
+            }
+
             Logger.firebase(
                 "獲取本地 HealthKit 數據失敗: \(error.localizedDescription)",
                 level: .error,

@@ -107,6 +107,12 @@ class AppStateManager: ObservableObject {
             ])
 
         } catch {
+            // 任務取消是正常行為，不記錄錯誤
+            if error.isCancellationError {
+                Logger.debug("App 初始化任務被取消，忽略錯誤")
+                return
+            }
+
             print("❌ AppStateManager: 初始化失敗 - \(error.localizedDescription)")
             currentState = .error(error.localizedDescription)
 
@@ -223,13 +229,19 @@ class AppStateManager: ObservableObject {
             print("   - UserManager.currentUser 已設置: \(UserManager.shared.currentUser != nil)")
             
         } catch {
+            // 任務取消是正常行為，不記錄錯誤
+            if error.isCancellationError {
+                Logger.debug("載入用戶資料任務被取消，忽略錯誤")
+                return
+            }
+
             print("❌ AppStateManager: 載入用戶資料失敗 - \(error.localizedDescription)")
             print("   使用本地設定作為備用")
-            
+
             // 使用本地設定作為備用
             userDataSource = UserPreferenceManager.shared.dataSourcePreference
             subscriptionStatus = .free
-            
+
             Logger.firebase("用戶資料載入失敗，使用本地設定", level: .error, labels: [
                 "module": "AppStateManager",
                 "action": "load_user_data_fallback"

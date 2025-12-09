@@ -29,8 +29,6 @@ final class TrainingDayEditState: ObservableObject {
     @Published var description: String?
 
     init(from day: MutableTrainingDay) {
-        print("🔴🔴🔴 [原地休息] TrainingDayEditState init 開始")
-
         self.dayIndex = day.dayIndex
         self.dayTarget = day.dayTarget
         self.trainingType = day.trainingType
@@ -53,10 +51,6 @@ final class TrainingDayEditState: ObservableObject {
         let hasDistance = recovery?.distanceKm != nil && recovery!.distanceKm! > 0
         let isRest = hasTimeMinutes && !hasDistance
         self.isRestInPlace = isRest
-
-        // 調試日誌
-        print("🔴🔴🔴 [原地休息] TrainingDayEditState init - recovery: timeMinutes=\(recovery?.timeMinutes?.description ?? "nil"), distanceKm=\(recovery?.distanceKm?.description ?? "nil"), pace=\(recovery?.pace ?? "nil"), isRestInPlace=\(isRest)")
-        Logger.debug("[原地休息] TrainingDayEditState init - recovery: timeMinutes=\(recovery?.timeMinutes?.description ?? "nil"), distanceKm=\(recovery?.distanceKm?.description ?? "nil"), pace=\(recovery?.pace ?? "nil"), isRestInPlace=\(isRest)")
 
         // 恢復段參數
         self.recoveryPace = recovery?.pace ?? "6:00"
@@ -115,7 +109,6 @@ final class TrainingDayEditState: ObservableObject {
             // 主動恢復：設置 distanceKm 和 pace
             let recovery: MutableWorkoutSegment
             if isRestInPlace {
-                print("🟢🟢🟢 [原地休息] 保存間歇跑 - 原地休息: timeMinutes=\(recoveryTimeMinutes)")
                 recovery = MutableWorkoutSegment(
                     description: "原地休息\(recoveryTimeMinutes)分鐘",
                     distanceKm: nil,
@@ -124,9 +117,7 @@ final class TrainingDayEditState: ObservableObject {
                     pace: nil,
                     heartRateRange: nil
                 )
-                Logger.debug("[原地休息] 保存間歇跑: timeMinutes=\(recoveryTimeMinutes), distanceKm=nil, pace=nil")
             } else {
-                print("🔵🔵🔵 [原地休息] 保存間歇跑 - 主動恢復: distanceKm=\(recoveryDistance), pace=\(recoveryPace)")
                 recovery = MutableWorkoutSegment(
                     description: nil,
                     distanceKm: recoveryDistance,

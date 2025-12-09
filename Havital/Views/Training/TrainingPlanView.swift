@@ -2,33 +2,6 @@ import SwiftUI
 import HealthKit
 import Combine
 
-// 新的子視圖
-struct WeekPlanContentView: View {
-    @ObservedObject var viewModel: TrainingPlanViewModel
-    let plan: WeeklyPlan
-    let currentTrainingWeek: Int
-    
-    var body: some View {
-        let _ = plan.weekOfPlan  // 移除未使用的變數
-        let current = currentTrainingWeek
-        VStack {
-            if viewModel.isFinalWeek {
-                FinalWeekPromptView(viewModel: viewModel)
-            } else if viewModel.isNewWeekPromptNeeded {
-                NewWeekPromptView(viewModel: viewModel, currentTrainingWeek: current)
-            } else {
-                // 已有課表：不論過去或當前週，顯示概覽與每日清單
-                WeekOverviewCard(viewModel: viewModel, plan: plan)
-                DailyTrainingListView(viewModel: viewModel, plan: plan)
-            }
-        }
-        .onAppear {
-            // 除錯 log
-            Logger.info("current: \(currentTrainingWeek), selected: \(viewModel.selectedWeek), planWeek: \(plan.weekOfPlan), noWeeklyPlanAvailable: \(viewModel.noWeeklyPlanAvailable)")
-        }
-    }
-}
-
 // 拆分新週提示視圖
 struct NewWeekPromptView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
@@ -79,42 +52,6 @@ struct NewWeekPromptView: View {
         .frame(maxWidth: .infinity)
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
-    }
-}
-
-// 拆分每日訓練列表視圖
-struct DailyTrainingListView: View {
-    @ObservedObject var viewModel: TrainingPlanViewModel
-    let plan: WeeklyPlan
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // 標題區域（已移除獨立的設計原因按鈕，用戶可通過 WeekOverviewCard 的「本週目標」查看）
-            HStack(alignment: .center) {
-                Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
-                    .font(.headline)
-                    .foregroundColor(.primary)
-
-                Spacer()
-
-                if viewModel.isLoadingWorkouts {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                }
-            }
-            .padding(.top, 16)
-            .padding(.horizontal, 4)
-            
-            // 顯示今天的訓練
-            if let todayTraining = plan.days.first(where: { viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) }) {
-                DailyTrainingCard(viewModel: viewModel, day: todayTraining, isToday: true)
-            }
-            
-            // 顯示其他日的訓練（按 dayIndex 排序確保日期順序正確）
-            ForEach(plan.days.filter { !viewModel.isToday(dayIndex: $0.dayIndexInt, planWeek: plan.weekOfPlan) }.sorted { $0.dayIndexInt < $1.dayIndexInt }) { day in
-                DailyTrainingCard(viewModel: viewModel, day: day, isToday: false)
-            }
-        }
     }
 }
 

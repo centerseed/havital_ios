@@ -143,6 +143,12 @@ struct TimezoneSettingsView: View {
             Logger.firebase("時區已更新: \(selectedTimezone)", level: .info)
 
         } catch {
+            // 任務取消是正常行為，不記錄錯誤
+            if error.isCancellationError {
+                Logger.debug("時區更新任務被取消，忽略錯誤")
+                return
+            }
+
             await MainActor.run {
                 isLoading = false
                 errorMessage = error.localizedDescription

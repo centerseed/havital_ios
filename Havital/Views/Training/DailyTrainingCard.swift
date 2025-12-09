@@ -227,10 +227,7 @@ struct SegmentedTrainingView: View {
 
     // 創建單個段落行視圖
     private func segmentRowView(segment: ProgressionSegment, index: Int) -> some View {
-        // 調試日誌：打印每個分段的配速信息
-        let _ = Logger.debug("SegmentedTrainingView - 第\(index + 1)段: pace=\(segment.pace ?? "nil"), description=\(segment.description ?? "nil"), distance=\(segment.distanceKm?.description ?? "nil")km")
-
-        return VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4) {
             // 第一行：段落標籤、配速、心率、距離
             HStack(spacing: 8) {
                 // 段落標籤

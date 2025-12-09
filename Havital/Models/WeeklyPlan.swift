@@ -258,8 +258,6 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         return nil
                     }()
 
-                    Logger.debug("[原地休息] WeeklyPlan trainingItems - recovery: timeMinutes=\(details.recovery?.timeMinutes?.description ?? "nil"), distanceKm=\(details.recovery?.distanceKm?.description ?? "nil"), distanceM=\(details.recovery?.distanceM?.description ?? "nil"), finalDistance=\(recoveryDistance?.description ?? "nil"), pace=\(recoveryPace ?? "nil")")
-
                     let recoveryItem = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.recovery.localized,
                         runDetails: details.recovery?.description ?? "",
@@ -442,8 +440,6 @@ struct WorkoutSegment: Codable, Equatable {
         try container.encode(timeMinutes, forKey: .timeMinutes)
         try container.encode(pace, forKey: .pace)
         try container.encode(heartRateRange, forKey: .heartRateRange)
-
-        print("🟣🟣🟣 [原地休息] WorkoutSegment encode: pace=\(pace ?? "nil"), distanceKm=\(distanceKm?.description ?? "nil"), timeMinutes=\(timeMinutes?.description ?? "nil")")
     }
 }
 

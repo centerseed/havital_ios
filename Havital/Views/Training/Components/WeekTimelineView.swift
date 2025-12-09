@@ -285,6 +285,22 @@ struct TimelineItemView: View {
                                                             .padding(.vertical, 3)
                                                             .background(Color.gray.opacity(0.15))
                                                             .cornerRadius(4)
+
+                                                        // 顯示原地休息的時間
+                                                        if let duration = recoveryItem.durationMinutes {
+                                                            HStack(spacing: 2) {
+                                                                Image(systemName: "clock.fill")
+                                                                    .font(.system(size: 8))
+                                                                    .foregroundColor(.white)
+                                                                Text("\(duration) 分鐘")
+                                                                    .font(.system(size: 10, weight: .medium))
+                                                                    .foregroundColor(.white)
+                                                            }
+                                                            .padding(.horizontal, 5)
+                                                            .padding(.vertical, 3)
+                                                            .background(Color.blue)
+                                                            .cornerRadius(4)
+                                                        }
                                                     } else {
                                                         if let pace = recoveryItem.goals.pace {
                                                             HStack(spacing: 2) {
@@ -336,8 +352,8 @@ struct TimelineItemView: View {
                                                 .background(Color.orange)
                                                 .cornerRadius(4)
 
-                                            // 配速（根據訓練類型決定是否顯示）
-                                            if let pace = segment.pace, !shouldHidePace {
+                                            // 配速（組合跑/漸速跑永遠顯示配速）
+                                            if let pace = segment.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
                                                         .font(.system(size: 8))

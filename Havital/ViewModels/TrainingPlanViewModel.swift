@@ -1681,38 +1681,39 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     }
     
     private func performLoadCurrentWeekIntensity() async {
-        Logger.debug("載入本週訓練強度...")
+        let logPrefix = "[INTENSITY_DEBUG]"
+        print("\(logPrefix) ========== 開始載入本週訓練強度 ==========")
         await MainActor.run {
             isLoadingIntensity = true
         }
-        
+
         defer {
             Task { @MainActor in
                 isLoadingIntensity = false
             }
         }
-        
+
         do {
             let (weekStart, weekEnd) = getCurrentWeekDates()
-            Logger.debug("計算 \(formatDate(weekStart)) 開始的週訓練強度...")
-            
+            print("\(logPrefix) 週範圍: \(formatDate(weekStart)) ~ \(formatDate(weekEnd))")
+
             // 從 UnifiedWorkoutManager 獲取該週的運動記錄
             let weekWorkouts = unifiedWorkoutManager.getWorkoutsInDateRange(
                 startDate: weekStart,
                 endDate: weekEnd
             )
-            
+
             // 過濾掉瑜伽、普拉提和重量訓練等非有氧運動
             let aerobicWorkouts = weekWorkouts.filter { workout in
                 shouldIncludeInTrainingLoad(activityType: workout.activityType)
             }
-            
-            Logger.debug("該週總運動: \(weekWorkouts.count) 筆，有氧運動: \(aerobicWorkouts.count) 筆")
-            
+
+            print("\(logPrefix) 該週總運動: \(weekWorkouts.count) 筆，有氧運動: \(aerobicWorkouts.count) 筆")
+
             // 直接使用 API 提供的 intensity_minutes 數據
             let intensity = aggregateIntensityFromV2Workouts(aerobicWorkouts)
-            
-            Logger.debug("訓練強度聚合完成 - 低: \(intensity.low), 中: \(intensity.medium), 高: \(intensity.high)")
+
+            print("\(logPrefix) 訓練強度聚合完成 - 低: \(intensity.low), 中: \(intensity.medium), 高: \(intensity.high)")
             
             // 確保在主線程上更新 UI
             await MainActor.run {
@@ -1749,20 +1750,21 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
     
     // 聚合 V2 API 提供的 intensity_minutes 數據
     private func aggregateIntensityFromV2Workouts(_ workouts: [WorkoutV2]) -> TrainingIntensityManager.IntensityMinutes {
+        let logPrefix = "[INTENSITY_DEBUG]"
         var totalLow: Double = 0
         var totalMedium: Double = 0
         var totalHigh: Double = 0
 
-        Logger.debug("開始計算訓練強度，總共有 \(workouts.count) 筆運動記錄")
+        print("\(logPrefix) 開始計算訓練強度，總共有 \(workouts.count) 筆運動記錄")
 
         for workout in workouts {
-            Logger.debug("處理運動: \(workout.id), 類型: \(workout.activityType)")
+            print("\(logPrefix) 處理運動: \(workout.id), 類型: \(workout.activityType), 開始時間: \(workout.startTimeUtc ?? "nil")")
 
             // 檢查是否有 intensity_minutes 數據
             var foundIntensityData = false
 
             if let advancedMetrics = workout.advancedMetrics {
-                Logger.debug("AdvancedMetrics 存在，類型: \(type(of: advancedMetrics))")
+                print("\(logPrefix) [\(workout.id)] advancedMetrics 存在")
 
                 // 嘗試處理 APIIntensityMinutes (AdvancedMetrics 類型)
                 if let intensityMinutes = advancedMetrics.intensityMinutes {
@@ -1775,37 +1777,34 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                     totalHigh += high
                     foundIntensityData = true
 
-                    Logger.debug("運動 \(workout.id) - API格式 - 低強度: \(low), 中強度: \(medium), 高強度: \(high)")
+                    print("\(logPrefix) [\(workout.id)] ✅ intensityMinutes 有值 - low: \(low), medium: \(medium), high: \(high)")
+                } else {
+                    print("\(logPrefix) [\(workout.id)] ⚠️ intensityMinutes 為 nil")
                 }
+            } else {
+                print("\(logPrefix) [\(workout.id)] ⚠️ advancedMetrics 為 nil")
             }
 
             // 如果沒有找到數據，進行更詳細的調試
             if !foundIntensityData {
-                Logger.debug("未找到強度數據，進行詳細檢查...")
-
-                // 詳細調試 advancedMetrics 的結構
-                if let advancedMetrics = workout.advancedMetrics {
-                    debugAdvancedMetricsStructure(advancedMetrics, workoutId: workout.id)
-                } else {
-                    Logger.debug("運動 \(workout.id) - 完全沒有 AdvancedMetrics")
-                }
+                print("\(logPrefix) [\(workout.id)] 未找到強度數據，使用備選方案")
 
                 // 作為備選方案，嘗試從運動持續時間估算低強度分鐘數
                 // 這確保至少有一些訓練負荷數據而不是顯示"資料不足"
                 let fallbackLowIntensity = Double(workout.durationSeconds) / 60.0
                 if fallbackLowIntensity > 0 {
                     totalLow += fallbackLowIntensity
-                    Logger.debug("運動 \(workout.id) - 使用備選估算: 低強度 \(fallbackLowIntensity) 分鐘")
+                    print("\(logPrefix) [\(workout.id)] 使用 duration 備選估算: 低強度 \(fallbackLowIntensity) 分鐘")
                 }
             }
         }
 
-        Logger.debug("計算完成 - 總低強度: \(totalLow), 總中強度: \(totalMedium), 總高強度: \(totalHigh)")
+        print("\(logPrefix) ========== 計算結果 ==========")
+        print("\(logPrefix) 總低強度: \(totalLow), 總中強度: \(totalMedium), 總高強度: \(totalHigh)")
 
         // 如果沒有從 API 獲得任何強度數據，記錄這個問題
-        if totalLow == 0 && totalMedium == 0 && totalHigh == 0 && !workouts.isEmpty {
-            Logger.debug("⚠️ 警告: 所有運動都沒有強度數據，這可能導致訓練負荷顯示為'資料不足'")
-            Logger.debug("建議檢查 API 回應中是否包含 intensity_minutes 欄位")
+        if totalMedium == 0 && !workouts.isEmpty {
+            print("\(logPrefix) ⚠️ 警告: 中強度為 0，請檢查 API 回應中的 intensity_minutes.medium 欄位")
         }
 
         return TrainingIntensityManager.IntensityMinutes(

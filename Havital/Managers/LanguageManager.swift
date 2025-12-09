@@ -92,6 +92,11 @@ class LanguageManager: ObservableObject {
                     try await self.updateLanguagePreference(self.currentLanguage.apiCode)
                     Logger.firebase("Language synced with backend: \(self.currentLanguage.apiCode)", level: .info)
                 } catch {
+                    // 任務取消是正常行為，不記錄錯誤
+                    if error.isCancellationError {
+                        Logger.debug("語言同步任務被取消，忽略錯誤")
+                        return
+                    }
                     Logger.firebase("Failed to sync language with backend: \(error.localizedDescription)", level: .error)
                 }
             }

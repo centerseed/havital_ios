@@ -213,6 +213,12 @@ class StravaManager: NSObject, ObservableObject {
             }
 
             } catch {
+                // 任務取消是正常行為，不記錄錯誤
+                if error.isCancellationError {
+                    Logger.debug("檢查 Strava 連線狀態任務被取消，忽略錯誤")
+                    return
+                }
+
                 Logger.firebase("檢查 Strava 連線狀態失敗: \(error.localizedDescription)", level: .error, labels: [
                     "module": "StravaManager",
                     "action": "checkConnectionStatus"

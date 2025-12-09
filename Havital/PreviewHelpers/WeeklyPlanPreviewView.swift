@@ -46,13 +46,12 @@ struct WeeklyPlanPreviewView: View {
                     .disabled(weeklyPlans.count <= 1)
                 }
                 .padding()
-                
-                // 顯示 DailyTrainingListView
-                DailyTrainingListView(
+
+                // 顯示 WeekTimelineView
+                WeekTimelineView(
                     viewModel: viewModel,
                     plan: weeklyPlans[selectedIndex]
                 )
-                .frame(maxHeight: .infinity)
             } else {
                 Text("沒有找到測試資料")
                     .foregroundColor(.secondary)
