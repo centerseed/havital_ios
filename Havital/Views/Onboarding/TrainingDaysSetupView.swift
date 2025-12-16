@@ -14,7 +14,7 @@ class TrainingDaysViewModel: ObservableObject {
     @Published var navigateToPreview = false // 導航到預覽頁面
     @Published var navigateToTrainingOverview = false // 導航到最終訓練總覽頁面
 
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     private let authService = AuthenticationService.shared
 
     let recommendedMinTrainingDays = 2 // 最小建議訓練天數

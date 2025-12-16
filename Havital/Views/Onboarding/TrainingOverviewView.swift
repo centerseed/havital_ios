@@ -76,13 +76,14 @@ class TrainingOverviewViewModel: ObservableObject {
             print("[TrainingOverviewViewModel] 已設置 hasCompletedOnboarding = true")
 
             await MainActor.run {
+                // ⚠️ 先關閉 fullScreenCover (LoadingAnimationView)
                 self.isGeneratingPlan = false
-                // 設置完成標誌，讓 AuthenticationService 觸發導航
-                AuthenticationService.shared.hasCompletedOnboarding = true
-                print("[TrainingOverviewViewModel] Onboarding 完成")
 
-                // 關閉畫面（如果在 sheet 中會關閉 sheet，在 NavigationView 中會返回）
-                dismiss()
+                // ⚠️ 設置完成標誌，讓 ContentView 自動切換到主畫面
+                // ContentView 會監聽這個變化並自動從 OnboardingIntroView 切換到 mainAppContent
+                // 不需要手動 dismiss，因為整個 OnboardingIntroView 會被 SwiftUI 替換掉
+                AuthenticationService.shared.hasCompletedOnboarding = true
+                print("[TrainingOverviewViewModel] ✅ Onboarding 完成，ContentView 將自動切換到主畫面")
             }
         } catch {
             await MainActor.run {

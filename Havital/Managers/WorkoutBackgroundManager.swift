@@ -72,7 +72,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     // 設置觀察者來監聽新的健身記錄 - 修正版
     func setupWorkoutObserver() async {
         // 檢查當前數據來源設定
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         print("當前數據來源設定: \(dataSourcePreference.displayName)")
         
         // 只有 Apple Health 用戶才需要啟動 HealthKit 觀察者
@@ -161,7 +161,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     // 檢查並上傳待處理的健身記錄 - 加強版檢查
     func checkAndUploadPendingWorkouts() async {
         // 🚨 關鍵修復：加強數據源檢查，避免競態條件
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         
         // 嚴格檢查：只有明確設定為 Apple Health 且用戶已完成 onboarding 才上傳
         guard dataSourcePreference == .appleHealth else {

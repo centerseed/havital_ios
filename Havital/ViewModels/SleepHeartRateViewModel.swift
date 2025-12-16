@@ -95,7 +95,7 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
             error = nil
         }
         
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         
         do {
             let now = Date()

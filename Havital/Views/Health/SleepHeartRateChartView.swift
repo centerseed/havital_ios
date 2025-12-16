@@ -7,7 +7,7 @@ import Charts
 struct SleepHeartRateChartView: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @StateObject private var viewModel: SleepHeartRateViewModel
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
 
     init() {
         _viewModel = StateObject(wrappedValue: SleepHeartRateViewModel())

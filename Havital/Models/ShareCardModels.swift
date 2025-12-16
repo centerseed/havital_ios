@@ -67,6 +67,9 @@ struct WorkoutShareCardData {
     // 文字疊加層
     var textOverlays: [TextOverlay] = []  // 用戶添加的自由文字
 
+    // 緩存的照片平均顏色（優化性能，避免重複計算）
+    var cachedPhotoAverageColor: UIColor?
+
     // MARK: - 文案內容 (優先使用 API,回退到本地生成)
 
     /// 成就主語句（優先順序：自訂 > API > 本地生成）
@@ -132,7 +135,7 @@ struct WorkoutShareCardData {
         case "interval":
             localizedType = "間歇訓練"
         case "fartlek":
-            localizedType = "法特萊克訓練"
+            localizedType = "法特雷克訓練"
         case "hill_training":
             localizedType = "爬坡訓練"
         case "race":

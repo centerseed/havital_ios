@@ -851,8 +851,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
     }
     
     func fetchMaxHeartRate() async -> Double {
-        // 從 UserPreferenceManager 獲取用戶年齡
-        let age = UserPreferenceManager.shared.age ?? 30
+        // 從 UserPreferencesManager 獲取用戶年齡
+        let age = UserPreferencesManager.shared.age ?? 30
         // 使用 220 - age 公式計算最大心率
         return Double(220 - age)
     }

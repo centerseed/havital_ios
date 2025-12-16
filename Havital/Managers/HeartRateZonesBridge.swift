@@ -6,7 +6,7 @@ class HeartRateZonesBridge {
     static let shared = HeartRateZonesBridge()
     
     private let zonesManager = HeartRateZonesManager.shared
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     private var cancellables = Set<AnyCancellable>()
     
     private init() {}

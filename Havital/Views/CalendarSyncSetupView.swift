@@ -11,7 +11,7 @@ struct CalendarSyncSetupView: View {
 
     // ✅ 獲取用戶設定的時區
     private var userTimeZone: TimeZone {
-        if let timezoneId = UserPreferenceManager.shared.timezonePreference,
+        if let timezoneId = UserPreferencesManager.shared.timezonePreference,
            let timezone = TimeZone(identifier: timezoneId) {
             return timezone
         }

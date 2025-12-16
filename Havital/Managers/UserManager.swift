@@ -215,6 +215,9 @@ class UserManager: ObservableObject, DataManageable {
     }
     
     private func performRefreshUserProfile() async throws {
+        // 獲取舊數據用於比對 Personal Best 更新
+        let oldPersonalBestV2 = currentUser?.personalBestV2
+
         // 強制從 API 獲取
         let user = try await withCheckedThrowingContinuation { continuation in
             service.getUserProfile()
@@ -230,7 +233,13 @@ class UserManager: ObservableObject, DataManageable {
                 )
                 .store(in: &self.cancellables)
         }
-        
+
+        // 檢測 Personal Best 更新 (提取 "race_run" 數據)
+        await detectPersonalBestUpdates(
+            oldData: oldPersonalBestV2?["race_run"],
+            newData: user.personalBestV2?["race_run"]
+        )
+
         await MainActor.run {
             self.updateUserData(user)
         }
@@ -491,7 +500,7 @@ extension UserManager {
     
     /// 獲取當前數據源
     var currentDataSource: DataSourceType {
-        return UserPreferenceManager.shared.dataSourcePreference
+        return UserPreferencesManager.shared.dataSourcePreference
     }
 
     // MARK: - App Rating Management
@@ -547,5 +556,93 @@ extension User {
         if let dataSource = dataSource { dict["data_source"] = dataSource }
         
         return dict
+    }
+}
+
+// MARK: - Personal Best v2 Management
+extension UserManager {
+
+    /// 檢測 Personal Best 更新
+    private func detectPersonalBestUpdates(
+        oldData: [String: [PersonalBestRecordV2]]?,
+        newData: [String: [PersonalBestRecordV2]]?
+    ) async {
+        // 檢查是否為初次載入（舊數據全空）
+        let isFirstLoad = oldData == nil || oldData?.isEmpty == true
+        if isFirstLoad {
+            Logger.debug("首次載入 PB 數據，跳過慶祝動畫")
+            return
+        }
+
+        guard let newData = newData else { return }
+        var updates: [PersonalBestUpdate] = []
+
+        // 比對每個距離的最佳成績
+        for (distance, newRecords) in newData {
+            guard let newBest = newRecords.first else { continue }
+
+            if let oldRecords = oldData?[distance],
+               let oldBest = oldRecords.first {
+                // 比較完賽時間（越小越好）
+                if newBest.completeTime < oldBest.completeTime {
+                    let improvement = oldBest.completeTime - newBest.completeTime
+                    updates.append(PersonalBestUpdate(
+                        distance: distance,
+                        oldTime: oldBest.completeTime,
+                        newTime: newBest.completeTime,
+                        improvementSeconds: improvement,
+                        workoutDate: newBest.workoutDate,
+                        detectedAt: Date()
+                    ))
+
+                    Logger.firebase(
+                        "檢測到 PB 更新",
+                        level: .info,
+                        labels: ["module": "UserManager", "action": "detect_pb_update"],
+                        jsonPayload: [
+                            "distance": distance,
+                            "improvement_seconds": improvement
+                        ]
+                    )
+                }
+            }
+        }
+
+        // 如果有多筆更新，選擇距離最長的
+        if let bestUpdate = updates.max(by: { $0.distancePriority < $1.distancePriority }) {
+            await savePersonalBestUpdate(bestUpdate)
+        }
+    }
+
+    /// 保存更新到本地緩存
+    private func savePersonalBestUpdate(_ update: PersonalBestUpdate) async {
+        var cache = PersonalBestCelebrationStorage.load()
+        cache.lastDetectedUpdate = update
+        cache.hasShownCelebration = false
+        cache.lastCheckTimestamp = Date()
+        PersonalBestCelebrationStorage.save(cache)
+
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .personalBestDidUpdate,
+                object: update
+            )
+        }
+    }
+
+    /// 標記慶祝動畫已顯示
+    func markCelebrationAsShown() {
+        var cache = PersonalBestCelebrationStorage.load()
+        cache.hasShownCelebration = true
+        PersonalBestCelebrationStorage.save(cache)
+        Logger.debug("慶祝動畫已標記為已顯示")
+    }
+
+    /// 獲取待顯示的慶祝更新
+    func getPendingCelebrationUpdate() -> PersonalBestUpdate? {
+        let cache = PersonalBestCelebrationStorage.load()
+        return (!cache.hasShownCelebration && cache.lastDetectedUpdate != nil)
+            ? cache.lastDetectedUpdate
+            : nil
     }
 }

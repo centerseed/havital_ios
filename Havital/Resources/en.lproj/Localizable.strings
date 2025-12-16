@@ -23,6 +23,9 @@
 "common.confirm" = "Confirm";
 "common.loading" = "Loading...";
 "common.retry" = "Retry";
+"common.time" = "Time";
+"common.pace" = "Pace";
+"common.date" = "Date";
 "common.refresh" = "Refresh";
 "common.settings" = "Settings";
 "common.logout" = "Log Out";
@@ -358,6 +361,18 @@
 "training.type.yoga" = "Yoga";
 "training.type.cycling" = "Cycling";
 "training.type.rest_day" = "Rest Day";
+// New Interval Training Types
+"training.type.strides" = "Strides";
+"training.type.hill_repeats" = "Hill Repeats";
+"training.type.cruise_intervals" = "Cruise Intervals";
+"training.type.short_interval" = "Short Intervals";
+"training.type.long_interval" = "Long Intervals";
+"training.type.norwegian_4x4" = "Norwegian 4x4";
+"training.type.yasso_800" = "Yasso 800s";
+// New Combination Training Types (fartlek already exists)
+"training.type.fast_finish" = "Fast Finish Run";
+// New Race Pace Training
+"training.type.race_pace" = "Race Pace Run";
 
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "Maintain a comfortable effort pace";
@@ -1089,6 +1104,70 @@
 "training_type_info.rest.logic" = "Without training load, your body undergoes deep repair. Muscle protein synthesis increases, fatigue toxins clear out, and hormonal and immune systems rebalance—this is the process of 'getting stronger through rest.'";
 "training_type_info.rest.role" = "Schedule 1–2 complete rest days each week, typically after hard training. Adequate rest days prevent overtraining and maintain long-term performance and health.";
 
+// MARK: - New Interval Training Type Info
+"training_type_info.strides.title" = "Strides";
+"training_type_info.strides.how_to_run" = "Short bursts (80-100 meters) of gradual acceleration. Start easy, build to near-sprint, then slow down. Stay relaxed, focus on good running form.";
+"training_type_info.strides.why_run" = "Strides improve running economy and neuromuscular coordination. They help your legs get used to faster turnover and make a great warm-up before races.";
+"training_type_info.strides.logic" = "A neuromuscular drill that uses short high-speed bursts to improve muscle fiber recruitment and leg coordination. The short distance and full recovery prevent significant fatigue.";
+"training_type_info.strides.role" = "Usually done after easy runs or as a warm-up before hard sessions. Do them 2-3 times per week, 4-8 reps each time.";
+
+"training_type_info.hill_repeats.title" = "Hill Repeats";
+"training_type_info.hill_repeats.how_to_run" = "Find a 5-10% grade hill. Run up at a steady but challenging pace, then jog or walk down to recover. Focus on driving with your legs and leaning forward.";
+"training_type_info.hill_repeats.why_run" = "Hill running is 'weight training in disguise.' It builds leg strength, improves running form, and reduces injury risk compared to flat sprinting.";
+"training_type_info.hill_repeats.logic" = "Running uphill requires greater muscular output, effectively training glutes, quads, and calves. Less joint impact than flat sprints but greater muscle load.";
+"training_type_info.hill_repeats.role" = "Usually scheduled in base or strength-building phases, once per week. An important transition between aerobic base and high-intensity intervals.";
+
+"training_type_info.cruise_intervals.title" = "Cruise Intervals";
+"training_type_info.cruise_intervals.how_to_run" = "Run at threshold pace (the fastest pace you can hold for 20-30 minutes) with short recovery jogs (1-2 minutes) between intervals.";
+"training_type_info.cruise_intervals.why_run" = "Cruise intervals let you accumulate more volume at threshold intensity. The short recoveries allow you to spend more time at this critical intensity zone.";
+"training_type_info.cruise_intervals.logic" = "A variation of threshold training that keeps your body near lactate threshold for extended periods. The interval structure allows higher total volume while maintaining good form.";
+"training_type_info.cruise_intervals.role" = "Usually used in race preparation phases as an advanced version of threshold runs. Key training for improving half and full marathon performance.";
+
+// MARK: - New Combination Training Type Info
+"training_type_info.fartlek.title" = "Fartlek";
+"training_type_info.fartlek.how_to_run" = "'Fartlek' is Swedish for 'speed play.' Vary your pace spontaneously during the run—sprint to the next lamppost, slow down at the park entrance. No fixed structure, just follow your feeling.";
+"training_type_info.fartlek.why_run" = "Fartlek makes training fun while teaching your body to adapt to pace changes. It's a great way to break monotony and simulate race-day pace variations.";
+"training_type_info.fartlek.logic" = "An unstructured mixed-intensity workout that stimulates both aerobic and anaerobic systems. The free-form approach reduces mental fatigue while delivering training benefits.";
+"training_type_info.fartlek.role" = "Can replace structured interval training or serve as an easy variable-pace run during recovery weeks. Suitable for any training phase, especially when you need a mental break.";
+
+"training_type_info.fast_finish.title" = "Fast Finish Long Run";
+"training_type_info.fast_finish.how_to_run" = "Run the first 70% at easy pace, then gradually accelerate to tempo pace or faster for the final 30%. You should feel challenged but able to finish strong.";
+"training_type_info.fast_finish.why_run" = "Fast finish runs train you to maintain or increase pace when tired—the exact challenge of late-race miles. They teach your body to 'push harder when fatigued.'";
+"training_type_info.fast_finish.logic" = "Running at higher intensity when glycogen is depleted and muscles are tired improves fat metabolism and fatigue tolerance. Also trains form and focus maintenance.";
+"training_type_info.fast_finish.role" = "Usually done during race preparation phase weekend long runs. Key training for simulating late-race conditions and building confidence.";
+
+// MARK: - New Race Pace Training Info
+"training_type_info.race_pace.title" = "Race Pace Run";
+"training_type_info.race_pace.how_to_run" = "Run at your target race pace. Focus on maintaining steady rhythm, getting familiar with breathing, cadence, and body feel at this speed.";
+"training_type_info.race_pace.why_run" = "Race pace runs help your body and brain memorize the target speed. On race day, you'll naturally hit this pace without constantly checking your watch.";
+"training_type_info.race_pace.logic" = "By repeatedly practicing target pace, you build neuromuscular memory and pace awareness. It also helps evaluate if your current fitness can achieve your goal.";
+"training_type_info.race_pace.role" = "Usually scheduled starting 4-8 weeks before race day, with distances increasing over time. One of the most important race-specific workouts.";
+
+// MARK: - New VO2max Improvement Training Info
+"training_type_info.norwegian_4x4.title" = "Norwegian 4x4";
+"training_type_info.norwegian_4x4.how_to_run" = "Perform 4 intervals of 4 minutes at high intensity (92% max heart rate), with 3 minutes of easy running recovery between each. Maintain a steady VO₂max pace—you should feel \"very hard but able to complete all intervals.\"";
+"training_type_info.norwegian_4x4.why_run" = "Norwegian 4x4 is the most efficient method for improving maximum oxygen uptake (VO₂max). Scientific research shows this protocol can boost aerobic capacity by approximately 7% in a short timeframe—a key workout before racing.";
+"training_type_info.norwegian_4x4.logic" = "Performed at VO₂max intensity (92% max heart rate, 95-100% VO₂max), it stimulates both aerobic and anaerobic systems to their limits. The 4-minute duration is long enough to fully challenge your heart and lungs, while 3 minutes of recovery allows you to complete all intervals. This design accumulates significant training load at peak intensity.";
+"training_type_info.norwegian_4x4.role" = "Typically used during build or race-prep phases, limited to once per week maximum. Pair with easy runs and ensure adequate recovery. Not suitable for consecutive weeks—needs to be balanced with recovery weeks.";
+
+"training_type_info.short_interval.title" = "Short Interval";
+"training_type_info.short_interval.how_to_run" = "Perform 6-10 repetitions of short distances (400-600 meters) at high intensity, with 1-2 minutes of easy running recovery between each. Sprint hard and let your breathing rise significantly.";
+"training_type_info.short_interval.why_run" = "Short intervals train speed and explosive power. The shorter distances allow you to maintain maximum effort, while adequate recovery helps you complete all repetitions. Especially beneficial for 5K race preparation.";
+"training_type_info.short_interval.logic" = "Part of high-intensity interval training (HIIT), it stimulates VO₂max and neuromuscular response. Short distances are particularly effective for developing top speed and running cadence, while also training the body's acceleration ability.";
+"training_type_info.short_interval.role" = "Typically used during base speed development or 5K race-prep phases. Maximum once per week, combined with easy runs and rest days. Consecutive weeks increase injury risk.";
+
+"training_type_info.long_interval.title" = "Long Interval";
+"training_type_info.long_interval.how_to_run" = "Perform 4-6 repetitions of longer distances (1200-2000 meters) at high intensity, with 2-3 minutes of easy running recovery between each. Pace should be slightly slower than short intervals but still maintain high intensity.";
+"training_type_info.long_interval.why_run" = "Long intervals bridge short intervals and continuous running. They stimulate VO₂max while maintaining high pace for longer durations, making them particularly suited for half-marathon and 10K race preparation.";
+"training_type_info.long_interval.logic" = "A form of high-intensity interval training with slightly lower intensity than short intervals. The longer sustained efforts help the body adapt to maintaining high pace when fatigued, while building lactate tolerance.";
+"training_type_info.long_interval.role" = "Typically used during advanced speed development or 10K/half-marathon prep phases. Maximum once per week, usually after short interval work. Requires adequate recovery.";
+
+"training_type_info.yasso_800.title" = "Yasso 800s";
+"training_type_info.yasso_800.how_to_run" = "Perform 8-10 repetitions of 800 meters at high intensity, with 2-3 minutes of easy jogging recovery between each (approximately equal to the time your 800m takes). For example, if you run 800m in 3 minutes, recover for about 3 minutes.";
+"training_type_info.yasso_800.why_run" = "Yasso 800s have a unique ability to directly predict marathon performance. According to renowned coach Bart Yasso's theory, the time you run (in minutes and seconds) for 800m correlates to your predicted marathon finish time (in hours and minutes).";
+"training_type_info.yasso_800.logic" = "The 800-meter distance perfectly balances speed and endurance. The interval design stimulates VO₂max and lactate buffering capacity. Equal recovery develops your ability to maintain pace while partially fatigued—true marathon-specific training.";
+"training_type_info.yasso_800.role" = "Especially valuable during marathon preparation, performed once per week. The most predictive workout in marathon training. Also commonly used during other distance race preparation phases to build speed.";
+
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "Monday";
 "weekday.tuesday" = "Tuesday";
@@ -1492,6 +1571,11 @@
 "edit_schedule.combination_settings" = "Combination Run Settings";
 "edit_schedule.long_run_settings" = "Long Run Settings";
 "edit_schedule.training_settings" = "Training Settings";
+"edit_schedule.norwegian_4x4_settings" = "Norwegian 4x4 Training";
+"edit_schedule.norwegian_4x4_description" = "4 sets of 4-minute high-intensity intervals (92% VO2max), 3-minute rest between sets. Focus on improving VO2max.";
+"edit_schedule.yasso_800_settings" = "Yasso 800 Training";
+"edit_schedule.yasso_800_description" = "800m repeat training for marathon time prediction and VO2max improvement. Target time relates to your marathon goal.";
+"edit_schedule.rest_time" = "Rest Time";
 
 "edit_schedule.suggested_pace" = "Suggested Pace: %@";
 "edit_schedule.sprint_suggested_pace" = "Sprint Suggested Pace: %@";
@@ -1507,6 +1591,9 @@
 
 "edit_schedule.repeats" = "Repeats";
 "edit_schedule.repeats_placeholder" = "e.g., 6";
+"edit_schedule.time" = "Time";
+"edit_schedule.select_time" = "Select Time";
+"edit_schedule.time_selection" = "Time Selection";
 "edit_schedule.sprint_segment" = "Sprint Segment";
 "edit_schedule.recovery_segment" = "Recovery Segment";
 "edit_schedule.segment" = "Segment %d";
@@ -1732,6 +1819,7 @@
 "edit_schedule.category_easy" = "Easy Training";
 "edit_schedule.category_intensity" = "Intensity Training";
 "edit_schedule.category_long" = "Long Distance";
+"edit_schedule.category_other" = "Other";
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "Edit Training";
@@ -1758,3 +1846,27 @@
 "empty_state.workout_data_desc" = "No workout data recorded yet";
 "empty_state.health_data_desc" = "Unable to retrieve health data";
 "edit_schedule.distance_meters" = "Distance(m)";
+
+// MARK: - Distance Labels
+"distance.mile" = "1.6 km";
+"distance.3k" = "3 km";
+"distance.5k" = "5 km";
+"distance.10k" = "10 km";
+"distance.half_marathon" = "Half Marathon";
+"distance.half_marathon_short" = "Half";
+"distance.full_marathon" = "Full Marathon";
+"distance.full_marathon_short" = "Full";
+
+// MARK: - My Achievement - Personal Best
+"my_achievement.personal_best.title" = "Personal Best";
+"my_achievement.personal_best.explanation" = "Displays your best finish times and pace at different distances";
+"my_achievement.personal_best.no_data" = "No Personal Best records yet\nComplete your first workout to see results";
+"my_achievement.personal_best.first_place" = "1st Place";
+"my_achievement.personal_best.second_place" = "2nd Place";
+"my_achievement.personal_best.third_place" = "3rd Place";
+"my_achievement.personal_best.detail_explanation" = "Shows your best performances at this distance, including finish time, pace, and workout date.";
+"my_achievement.personal_best.top_records" = "Top Records";
+
+// MARK: - My Achievement - Celebration
+"my_achievement.celebration.new_record" = "New Record!";
+"my_achievement.celebration.improved" = "Improved by";

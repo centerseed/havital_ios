@@ -272,7 +272,7 @@ struct HavitalApp: App {
         }
         
         // 🚨 關鍵修復：只有 Apple Health 用戶才設置觀察者
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         if dataSourcePreference == .appleHealth {
             print("設置健身記錄觀察者（Apple Health 用戶）...")
             await WorkoutBackgroundManager.shared.setupWorkoutObserver()
@@ -294,7 +294,7 @@ struct HavitalApp: App {
         }
         
         // 再次確認數據來源（WorkoutBackgroundManager 內部也會檢查）
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         guard dataSourcePreference == .appleHealth else {
             print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據檢查")
             return
@@ -333,7 +333,7 @@ struct HavitalApp: App {
                     }
 
                     // 確認當前數據來源是 Apple Health
-                    let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+                    let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
                     guard dataSourcePreference == .appleHealth else {
                         print("背景任務 - 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 同步")
                         (task as? BGProcessingTask)?.setTaskCompleted(success: true)
@@ -407,14 +407,14 @@ struct HavitalApp: App {
             return
         }
 
-        let userPreferenceManager = UserPreferenceManager.shared
+        let userPreferenceManager = UserPreferencesManager.shared
 
         // 檢查是否需要初始化時區
         if userPreferenceManager.needsTimezoneInitialization() {
             print("⏰ 開始自動偵測並初始化時區")
 
             // 獲取裝置時區
-            let deviceTimezone = UserPreferenceManager.getDeviceTimezone()
+            let deviceTimezone = UserPreferencesManager.getDeviceTimezone()
             print("⏰ 偵測到裝置時區: \(deviceTimezone)")
 
             // 更新本地偏好
@@ -446,7 +446,7 @@ struct HavitalApp: App {
 
 func scheduleBackgroundWorkoutSync() {
     // 只有 Apple Health 用戶才需要背景同步任務
-    let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+    let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
     guard dataSourcePreference == .appleHealth else {
         print("數據來源為 \(dataSourcePreference.displayName)，跳過背景同步任務排程")
         return

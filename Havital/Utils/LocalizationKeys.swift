@@ -22,6 +22,9 @@ enum L10n {
         static let confirm = "common.confirm"
         static let loading = "common.loading"
         static let retry = "common.retry"
+        static let time = "common.time"
+        static let pace = "common.pace"
+        static let date = "common.date"
         static let refresh = "common.refresh"
         static let settings = "common.settings"
         static let logout = "common.logout"
@@ -551,6 +554,18 @@ enum GaitAnalysisChart {
             static let yoga = "training.type.yoga"
             static let cycling = "training.type.cycling"
             static let restDay = "training.type.rest_day"
+            // 新增間歇訓練類型
+            static let strides = "training.type.strides"
+            static let hillRepeats = "training.type.hill_repeats"
+            static let cruiseIntervals = "training.type.cruise_intervals"
+            static let shortInterval = "training.type.short_interval"
+            static let longInterval = "training.type.long_interval"
+            static let norwegian4x4 = "training.type.norwegian_4x4"
+            static let yasso800 = "training.type.yasso_800"
+            // 新增組合訓練類型
+            static let fastFinish = "training.type.fast_finish"
+            // 新增比賽配速訓練
+            static let racePace = "training.type.race_pace"
         }
         
         // Heart Rate Zones
@@ -1098,6 +1113,12 @@ extension L10n {
         static let combinationSettings = "edit_schedule.combination_settings" // "組合跑設定"
         static let longRunSettings = "edit_schedule.long_run_settings" // "長距離跑設定"
         static let trainingSettings = "edit_schedule.training_settings" // "訓練設定"
+        static let norwegian4x4Settings = "edit_schedule.norwegian_4x4_settings" // "挪威4x4訓練設定"
+        static let norwegian4x4Description = "edit_schedule.norwegian_4x4_description" // "4組4分鐘高強度間歇（92% VO2max），組間休息3分鐘"
+        static let yasso800Settings = "edit_schedule.yasso_800_settings" // "亞索800訓練設定"
+        static let yasso800Description = "edit_schedule.yasso_800_description" // "800公尺重複跑，用於預測馬拉松成績並提升VO2max"
+        static let time = "edit_schedule.time" // "時間"
+        static let restTime = "edit_schedule.rest_time" // "休息時間"
 
         static let suggestedPace = "edit_schedule.suggested_pace" // "建議配速: %@"
         static let sprintSuggestedPace = "edit_schedule.sprint_suggested_pace" // "衝刺段建議配速: %@"
@@ -1280,6 +1301,23 @@ extension L10n {
         static let reminder4 = "my_achievement.reminder4" // "• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴"
         static let complete = "my_achievement.complete" // "完成"
         static let updated = "my_achievement.updated" // " 更新"
+
+        // Personal Best v2
+        enum PersonalBest {
+            static let title = "my_achievement.personal_best.title"  // "個人最佳成績"
+            static let explanation = "my_achievement.personal_best.explanation"  // "顯示你在不同距離的最佳完賽時間和配速"
+            static let noData = "my_achievement.personal_best.no_data"  // "暫無個人最佳成績\n完成第一次訓練後即可查看"
+            static let firstPlace = "my_achievement.personal_best.first_place"  // "第一名"
+            static let secondPlace = "my_achievement.personal_best.second_place"  // "第二名"
+            static let thirdPlace = "my_achievement.personal_best.third_place"  // "第三名"
+            static let detailExplanation = "my_achievement.personal_best.detail_explanation"  // 詳細說明
+            static let topRecords = "my_achievement.personal_best.top_records"  // 歷史最佳
+        }
+
+        enum Celebration {
+            static let newRecord = "my_achievement.celebration.new_record"  // "新紀錄！"
+            static let improved = "my_achievement.celebration.improved"  // "進步了"
+        }
     }
 
     // MARK: - Debug Tools (Optional - Low Priority)
@@ -1368,5 +1406,17 @@ extension L10n {
         static let vdotDataDesc = "empty_state.vdot_data_desc" // "暫無跑力數據，請先完成跑步訓練"
         static let workoutDataDesc = "empty_state.workout_data_desc" // "尚未記錄任何運動數據"
         static let healthDataDesc = "empty_state.health_data_desc" // "無法獲取健康數據"
+    }
+
+    // MARK: - Distance Labels
+    enum Distance {
+        static let mile = "distance.mile"                   // "1.6 公里"
+        static let threeK = "distance.3k"                   // "3 公里"
+        static let fiveK = "distance.5k"                    // "5 公里"
+        static let tenK = "distance.10k"                    // "10 公里"
+        static let halfMarathon = "distance.half_marathon"  // "半程馬拉松"
+        static let halfMarathonShort = "distance.half_marathon_short"  // "半馬"
+        static let fullMarathon = "distance.full_marathon"  // "全程馬拉松"
+        static let fullMarathonShort = "distance.full_marathon_short"  // "全馬"
     }
 }

@@ -192,18 +192,21 @@ struct TimelineItemView: View {
                         // 課表區域
                         VStack(alignment: .leading, spacing: 8) {
                             // 訓練目標 - 優先顯示 description，否則顯示 dayTarget
-                            if let desc = day.trainingDetails?.description, !desc.isEmpty {
-                                Text(desc)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            } else {
-                                Text(day.dayTarget)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            // 挪威4x4 和亞索800 有專屬詳細顯示，不需要重複顯示說明文字
+                            if day.type != .norwegian4x4 && day.type != .yasso800 {
+                                if let desc = day.trainingDetails?.description, !desc.isEmpty {
+                                    Text(desc)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                } else {
+                                    Text(day.dayTarget)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
 
                             // 顯示間歇訓練的 trainingItems 詳情
@@ -331,6 +334,376 @@ struct TimelineItemView: View {
                                                     Spacer()
                                                 }
                                             }
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            } else if day.type == .norwegian4x4, let details = day.trainingDetails {
+                                // 🇳🇴 挪威4x4 專屬顯示
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("🇳🇴 挪威4x4")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let repeats = details.repeats {
+                                            Text("\(repeats) 組")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+
+                                    // 工作段
+                                    if let work = details.work {
+                                        HStack(spacing: 6) {
+                                            Text("衝刺")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.orange)
+                                                .cornerRadius(4)
+
+                                            if let timeMinutes = work.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            if let pace = work.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 恢復段
+                                    if let recovery = details.recovery {
+                                        // 判斷是否為原地休息：沒有配速且沒有距離
+                                        let isRestInPlaceN4x4 = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
+
+                                        HStack(spacing: 6) {
+                                            Text(isRestInPlaceN4x4 ? "原地休息" : "恢復跑")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(isRestInPlaceN4x4 ? Color.gray : Color.mint)
+                                                .cornerRadius(4)
+
+                                            if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            if let pace = recovery.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            } else if day.type == .yasso800, let details = day.trainingDetails {
+                                // 亞索800 專屬顯示
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("亞索800")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let repeats = details.repeats {
+                                            Text("\(repeats) 組")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+
+                                    // 工作段（800m）
+                                    if let work = details.work {
+                                        HStack(spacing: 6) {
+                                            Text("衝刺")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.orange)
+                                                .cornerRadius(4)
+
+                                            // 顯示距離
+                                            if let distanceKm = work.distanceKm {
+                                                Text("\(Int(distanceKm * 1000))m")
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            }
+
+                                            if let pace = work.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 恢復段
+                                    if let recovery = details.recovery {
+                                        // 判斷是否為原地休息：沒有配速且沒有距離
+                                        let isRestInPlaceY800 = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
+
+                                        HStack(spacing: 6) {
+                                            Text(isRestInPlaceY800 ? "原地休息" : "恢復跑")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(isRestInPlaceY800 ? Color.gray : Color.mint)
+                                                .cornerRadius(4)
+
+                                            // 顯示時間
+                                            if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            // 顯示配速
+                                            if let pace = recovery.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            } else if [DayType.interval, .cruiseIntervals, .shortInterval, .longInterval, .hillRepeats, .strides].contains(day.type),
+                                      let details = day.trainingDetails,
+                                      details.work != nil {
+                                // 通用間歇訓練顯示（有 work/recovery 段）
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(day.type.localizedName)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let repeats = details.repeats {
+                                            Text("\(repeats) 組")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+
+                                    // 工作段
+                                    if let work = details.work {
+                                        HStack(spacing: 6) {
+                                            Text("衝刺")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.orange)
+                                                .cornerRadius(4)
+
+                                            // 距離（優先顯示）
+                                            if let distanceKm = work.distanceKm {
+                                                Text(String(format: "%.0fm", distanceKm * 1000))
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let distanceM = work.distanceM {
+                                                Text(String(format: "%.0fm", distanceM))
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let timeMinutes = work.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            // 配速
+                                            if let pace = work.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 恢復段
+                                    if let recovery = details.recovery {
+                                        // 判斷是否為原地休息：沒有配速且沒有距離
+                                        let isRestInPlace = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
+
+                                        HStack(spacing: 6) {
+                                            // 根據恢復類型顯示不同標籤
+                                            Text(isRestInPlace ? "原地休息" : "恢復跑")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(isRestInPlace ? Color.gray : Color.mint)
+                                                .cornerRadius(4)
+
+                                            // 距離或時間
+                                            if let distanceKm = recovery.distanceKm {
+                                                Text(String(format: "%.0fm", distanceKm * 1000))
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let distanceM = recovery.distanceM {
+                                                Text(String(format: "%.0fm", distanceM))
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            // 配速（只有非原地休息才顯示）
+                                            if let pace = recovery.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
                                         }
                                     }
                                 }
@@ -638,15 +1011,15 @@ struct TimelineItemView: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .mint
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return .orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
-        case .race:
+        case .race, .racePace:
             return .red
         case .rest:
             return .gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek:
             return .purple
         }
     }

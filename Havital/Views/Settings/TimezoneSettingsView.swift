@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TimezoneSettingsView: View {
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedTimezone: String
@@ -11,7 +11,7 @@ struct TimezoneSettingsView: View {
     @State private var showWarningAlert = false
 
     init() {
-        let currentTimezone = UserPreferenceManager.shared.timezonePreference ?? UserPreferenceManager.getDeviceTimezone()
+        let currentTimezone = UserPreferencesManager.shared.timezonePreference ?? UserPreferencesManager.getDeviceTimezone()
         _selectedTimezone = State(initialValue: currentTimezone)
     }
 
@@ -20,7 +20,7 @@ struct TimezoneSettingsView: View {
             List {
                 // Current Timezone Section
                 Section(header: Text(L10n.Timezone.current.localized)) {
-                    Text(UserPreferenceManager.getTimezoneDisplayName(for: selectedTimezone))
+                    Text(UserPreferencesManager.getTimezoneDisplayName(for: selectedTimezone))
                         .font(.headline)
                         .foregroundColor(.primary)
                 }
@@ -88,7 +88,7 @@ struct TimezoneSettingsView: View {
         .alert(L10n.Timezone.changeConfirm.localized, isPresented: $showWarningAlert) {
             Button(L10n.Common.cancel.localized, role: .cancel) {
                 // Reset selection
-                selectedTimezone = userPreferenceManager.timezonePreference ?? UserPreferenceManager.getDeviceTimezone()
+                selectedTimezone = userPreferenceManager.timezonePreference ?? UserPreferencesManager.getDeviceTimezone()
             }
             Button(L10n.Common.confirm.localized) {
                 Task {

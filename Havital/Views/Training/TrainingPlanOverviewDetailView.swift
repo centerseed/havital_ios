@@ -54,88 +54,11 @@ struct TrainingPlanOverviewDetailView: View {
 
                 // 📄 Tab 內容
                 TabView(selection: $selectedTab) {
-                    // Tab 0: 賽事資訊
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            // 🎯 目標賽事
-                            if let target = targetManager.mainTarget {
-                                TargetRaceCard(target: target, onEditTap: {
-                                    showEditSheet = true
-                                })
-                            }
+                    raceInfoTab
+                        .tag(0)
 
-                            // 🏁 支援賽事
-                            SupportingRacesCard(
-                                supportingTargets: sortedSupportingTargets,
-                                onAddTap: {
-                                    showAddSupportingSheet = true
-                                },
-                                onEditTap: { target in
-                                    selectedSupportingTarget = target
-                                    showEditSupportingSheet = true
-                                }
-                            )
-                        }
-                        .padding(.vertical)
-                        .padding(.horizontal)
-                        .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
-                    }
-                    .tag(0)
-
-                    // Tab 1: 訓練總覽
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            // 📊 目標評估（默認收起）
-                            CollapsibleOverviewCard(
-                                title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"),
-                                systemImage: "target",
-                                isExpanded: $isGoalEvalExpanded,
-                                summary: String(overview.targetEvaluate.prefix(50)) + "..."
-                            ) {
-                                Text(overview.targetEvaluate)
-                                    .font(.body)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            // ✨ 訓練重點（默認收起）
-                            CollapsibleOverviewCard(
-                                title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"),
-                                systemImage: "sparkles",
-                                isExpanded: $isHighlightExpanded,
-                                summary: String(overview.trainingHighlight.prefix(50)) + "..."
-                            ) {
-                                Text(overview.trainingHighlight)
-                                    .font(.body)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            // 📈 訓練階段（默認展開）
-                            CollapsibleOverviewCard(
-                                title: NSLocalizedString("training.training_stages", comment: "Training Stages"),
-                                systemImage: "chart.bar.fill",
-                                isExpanded: $isStagesExpanded,
-                                summary: String(format: NSLocalizedString("training.stages_summary", comment: "%d stages, %d weeks total"),
-                                              overview.trainingStageDescription.count,
-                                              overview.totalWeeks)
-                            ) {
-                                VStack(spacing: 12) {
-                                    ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
-                                        let stage = overview.trainingStageDescription[index]
-                                        TrainingStageCard(stage: stage, index: index)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.vertical)
-                        .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
-                    }
-                    .tag(1)
+                    trainingOverviewTab
+                        .tag(1)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
@@ -166,7 +89,7 @@ struct TrainingPlanOverviewDetailView: View {
                 Task {
                     await targetManager.loadTargets()
                     Logger.debug("TrainingPlanOverviewDetailView: 已透過 TargetManager 載入賽事資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: onAppear_loadTargets")
             }
             .sheet(isPresented: $showEditSheet, onDismiss: {
                 // 編輯視圖關閉後的處理邏輯會在通知中處理
@@ -181,7 +104,7 @@ struct TrainingPlanOverviewDetailView: View {
                 Task {
                     await targetManager.forceRefresh()
                     Logger.debug("編輯支援賽事後已刷新資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: editSupportingSheet_onDismiss")
             }) {
                 if let target = selectedSupportingTarget {
                     EditSupportingTargetView(target: target)
@@ -192,7 +115,7 @@ struct TrainingPlanOverviewDetailView: View {
                 Task {
                     await targetManager.forceRefresh()
                     Logger.debug("添加支援賽事後已刷新資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: addSupportingSheet_onDismiss")
             }) {
                 AddSupportingTargetView()
             }
@@ -205,7 +128,7 @@ struct TrainingPlanOverviewDetailView: View {
                     // 🆕 使用 TargetManager 重新載入賽事資料以顯示最新名稱
                     Task {
                         await targetManager.forceRefresh()
-                    }
+                    }.tracked(from: "TrainingPlanOverviewDetailView: targetUpdated_notification")
 
                     // 只有在有重要變更時才更新訓練計劃概覽
                     if hasSignificantChange {
@@ -221,7 +144,7 @@ struct TrainingPlanOverviewDetailView: View {
                 Task {
                     await targetManager.forceRefresh()
                     Logger.debug("支援賽事更新後已刷新資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: supportingTargetUpdated_notification")
             }
 
 
@@ -282,6 +205,91 @@ struct TrainingPlanOverviewDetailView: View {
                 .animation(.easeInOut, value: showUpdateStatus)
                 .zIndex(100)
             }
+        }
+    }
+
+    // MARK: - Sub Views
+
+    private var raceInfoTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 🎯 目標賽事
+                if let target = targetManager.mainTarget {
+                    TargetRaceCard(target: target, onEditTap: {
+                        showEditSheet = true
+                    })
+                }
+
+                // 🏁 支援賽事
+                SupportingRacesCard(
+                    supportingTargets: sortedSupportingTargets,
+                    onAddTap: {
+                        showAddSupportingSheet = true
+                    },
+                    onEditTap: { target in
+                        selectedSupportingTarget = target
+                        showEditSupportingSheet = true
+                    }
+                )
+            }
+            .padding(.vertical)
+            .padding(.horizontal)
+            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
+        }
+    }
+
+    private var trainingOverviewTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 📊 目標評估（默認收起）
+                CollapsibleOverviewCard(
+                    title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"),
+                    systemImage: "target",
+                    isExpanded: $isGoalEvalExpanded,
+                    summary: String(overview.targetEvaluate.prefix(50)) + "..."
+                ) {
+                    Text(overview.targetEvaluate)
+                        .font(.body)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // ✨ 訓練重點（默認收起）
+                CollapsibleOverviewCard(
+                    title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"),
+                    systemImage: "sparkles",
+                    isExpanded: $isHighlightExpanded,
+                    summary: String(overview.trainingHighlight.prefix(50)) + "..."
+                ) {
+                    Text(overview.trainingHighlight)
+                        .font(.body)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // 📈 訓練階段（默認展開）
+                CollapsibleOverviewCard(
+                    title: NSLocalizedString("training.training_stages", comment: "Training Stages"),
+                    systemImage: "chart.bar.fill",
+                    isExpanded: $isStagesExpanded,
+                    summary: String(format: NSLocalizedString("training.stages_summary", comment: "%d stages, %d weeks total"),
+                                  overview.trainingStageDescription.count,
+                                  overview.totalWeeks)
+                ) {
+                    VStack(spacing: 12) {
+                        ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
+                            let stage = overview.trainingStageDescription[index]
+                            TrainingStageCard(stage: stage, index: index)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical)
+            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
         }
     }
 

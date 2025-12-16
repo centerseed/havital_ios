@@ -17,7 +17,8 @@ struct WorkoutShareCardView: View {
                     photo: photo,
                     size: size,
                     scale: data.photoScale,
-                    offset: data.photoOffset
+                    offset: data.photoOffset,
+                    cachedAverageColor: data.cachedPhotoAverageColor
                 )
                 .frame(width: size.width, height: size.height)
             } else {
@@ -142,9 +143,10 @@ struct BackgroundPhotoLayer: View {
     let size: ShareCardSize
     var scale: CGFloat = 1.0
     var offset: CGSize = .zero
+    var cachedAverageColor: UIColor? = nil  // 緩存的平均顏色，避免重複計算
 
     var body: some View {
-        Color(photo.averageColor ?? .black)
+        Color(cachedAverageColor ?? photo.averageColor ?? .black)
             .overlay(
                 Image(uiImage: photo)
                     .resizable()

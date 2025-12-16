@@ -135,7 +135,7 @@ struct TrainingPlanView: View {
     @State private var showEditSchedule = false
     @State private var showHeartRateSetup = false
     @State private var showHeartRateSetupFullScreen = false
-    @ObservedObject private var userPreferenceManager = UserPreferenceManager.shared
+    @ObservedObject private var userPreferenceManager = UserPreferencesManager.shared
     
     
     var body: some View {

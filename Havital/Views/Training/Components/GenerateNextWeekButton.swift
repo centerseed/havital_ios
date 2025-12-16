@@ -59,7 +59,7 @@ struct GenerateNextWeekButton: View {
                     Logger.debug("✅ [GenerateNextWeekButton] 用戶確認產生課表")
                     Task {
                         await viewModel.generateNextWeekPlan(nextWeekInfo: nextWeekInfo)
-                    }
+                    }.tracked(from: "GenerateNextWeekButton: generateNextWeekPlan")
                 }
             } message: {
                 Text(NSLocalizedString("training.confirm_training_completed_message", comment: "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。"))
@@ -80,7 +80,7 @@ struct ReturnToCurrentWeekButton: View {
         Button {
             Task {
                 await viewModel.fetchWeekPlan(week: viewModel.currentWeek)
-            }
+            }.tracked(from: "ReturnToCurrentWeekButton: fetchWeekPlan")
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.left.circle.fill")

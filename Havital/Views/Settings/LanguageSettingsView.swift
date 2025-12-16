@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LanguageSettingsView: View {
     @StateObject private var languageManager = LanguageManager.shared
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedLanguage: SupportedLanguage
@@ -16,7 +16,7 @@ struct LanguageSettingsView: View {
     init() {
         _selectedLanguage = State(initialValue: LanguageManager.shared.currentLanguage)
         // Note: Unit preference initialization removed until backend supports imperial units
-        // _selectedUnit = State(initialValue: UserPreferenceManager.shared.unitPreference)
+        // _selectedUnit = State(initialValue: UserPreferencesManager.shared.unitPreference)
     }
     
     var body: some View {

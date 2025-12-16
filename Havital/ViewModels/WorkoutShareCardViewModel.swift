@@ -62,14 +62,18 @@ class WorkoutShareCardViewModel: ObservableObject, TaskManageable {
                 // 配色方案
                 let colorScheme = photoAnalysis?.suggestedColorScheme ?? .default
 
+                // 計算並緩存照片平均顏色（僅計算一次，優化性能）
+                let cachedAverageColor = userPhoto?.averageColor
+
                 // 構建分享卡數據
-                let data = WorkoutShareCardData(
+                var data = WorkoutShareCardData(
                     workout: workout,
                     workoutDetail: workoutDetail,
                     userPhoto: userPhoto,
                     layoutMode: layout,
                     colorScheme: colorScheme
                 )
+                data.cachedPhotoAverageColor = cachedAverageColor
 
                 await MainActor.run {
                     self.cardData = data

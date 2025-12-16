@@ -3,7 +3,9 @@ import Combine
 import SwiftUI
 
 @MainActor
-class RegisterEmailViewModel: ObservableObject {
+class RegisterEmailViewModel: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+
     @Published var email = ""
     @Published var password = ""
     @Published var isLoading = false
@@ -21,5 +23,9 @@ class RegisterEmailViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    deinit {
+        cancelAllTasks()
     }
 }

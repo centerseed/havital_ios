@@ -40,7 +40,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     /// 初始化統一工作流程
     func initialize() async {
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         
         Logger.firebase(
             "UnifiedWorkoutManager 初始化",
@@ -192,7 +192,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 ],
                 jsonPayload: [
                     "workouts_count": fetchedWorkouts.count,
-                    "data_source": UserPreferenceManager.shared.dataSourcePreference.rawValue
+                    "data_source": UserPreferencesManager.shared.dataSourcePreference.rawValue
                 ]
             )
             
@@ -408,7 +408,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 "action": "switch_data_source"
             ],
             jsonPayload: [
-                "from": UserPreferenceManager.shared.dataSourcePreference.rawValue,
+                "from": UserPreferencesManager.shared.dataSourcePreference.rawValue,
                 "to": newDataSource.rawValue
             ]
         )
@@ -420,7 +420,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         await clearAllLocalData()
         
         // 更新偏好設定
-        UserPreferenceManager.shared.dataSourcePreference = newDataSource
+        UserPreferencesManager.shared.dataSourcePreference = newDataSource
         
         // 初始化新的工作流程
         await initialize()
@@ -492,7 +492,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         print("設置 Apple Health 工作流程")
         
         // 再次確認當前數據來源（防止競態條件）
-        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
+        guard UserPreferencesManager.shared.dataSourcePreference == .appleHealth else {
             print("數據來源已切換，取消 Apple Health 工作流程設置")
             return
         }
@@ -564,7 +564,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     private func handleNewAppleHealthWorkout() async {
         // 確認當前數據來源是 Apple Health
-        let currentDataSource = UserPreferenceManager.shared.dataSourcePreference
+        let currentDataSource = UserPreferencesManager.shared.dataSourcePreference
         print("🚨 [觀察者調試] Apple Health 觀察者被觸發")
         print("🚨 [觀察者調試] 當前數據源設置: \(currentDataSource.rawValue)")
         
@@ -599,7 +599,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         print("檢查待上傳的 Apple Health 運動記錄")
         
         // 確認當前數據來源是 Apple Health
-        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
+        guard UserPreferencesManager.shared.dataSourcePreference == .appleHealth else {
             print("數據來源不是 Apple Health，跳過運動記錄上傳")
             return
         }
@@ -623,7 +623,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
     
     private func uploadAppleHealthWorkoutToV2API(_ workout: HKWorkout) async {
         // 添加調試：檢查當前數據源設置
-        let currentDataSource = UserPreferenceManager.shared.dataSourcePreference
+        let currentDataSource = UserPreferencesManager.shared.dataSourcePreference
         print("🚨 [上傳調試] 嘗試上傳 Apple Health workout")
         print("🚨 [上傳調試] 當前數據源設置: \(currentDataSource.rawValue)")
         print("🚨 [上傳調試] Workout ID: \(workout.uuid.uuidString)")
@@ -767,7 +767,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 "workout_details": workoutDetails,
                 "error_details": errorDetails,
                 "timestamp": Date().timeIntervalSince1970,
-                "user_data_source": UserPreferenceManager.shared.dataSourcePreference.rawValue
+                "user_data_source": UserPreferencesManager.shared.dataSourcePreference.rawValue
             ]
         )
         

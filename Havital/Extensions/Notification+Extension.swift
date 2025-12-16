@@ -26,7 +26,10 @@ extension Notification.Name {
     
     /// 用戶數據更新
     static let userDataDidUpdate = Notification.Name("userDataDidUpdate")
-    
+
+    /// Personal Best 更新通知
+    static let personalBestDidUpdate = Notification.Name("personalBestDidUpdate")
+
     /// 運動記錄更新 (already exists, keeping for reference)
     static let workoutsDidUpdate = Notification.Name("workoutsDidUpdate")
     

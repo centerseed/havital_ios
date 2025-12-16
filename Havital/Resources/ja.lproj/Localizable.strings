@@ -23,6 +23,9 @@
 "common.confirm" = "確認";
 "common.loading" = "読み込み中...";
 "common.retry" = "再試行";
+"common.time" = "時間";
+"common.pace" = "ペース";
+"common.date" = "日付";
 "common.refresh" = "更新";
 "common.settings" = "設定";
 "common.logout" = "ログアウト";
@@ -358,6 +361,18 @@
 "training.type.yoga" = "ヨガ";
 "training.type.cycling" = "サイクリング";
 "training.type.rest_day" = "休息日";
+// 新しいインターバルトレーニングタイプ
+"training.type.strides" = "ストライド";
+"training.type.hill_repeats" = "坂道リピート";
+"training.type.cruise_intervals" = "クルーズインターバル";
+"training.type.short_interval" = "ショートインターバル";
+"training.type.long_interval" = "ロングインターバル";
+"training.type.norwegian_4x4" = "ノルウェー4x4";
+"training.type.yasso_800" = "ヤッソ800";
+// 新しいコンビネーショントレーニングタイプ（fartlek は既存）
+"training.type.fast_finish" = "ファストフィニッシュラン";
+// 新しいレースペーストレーニング
+"training.type.race_pace" = "レースペース走";
 
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "快適なペースでトレーニング";
@@ -1089,6 +1104,70 @@
 "training_type_info.rest.logic" = "トレーニング負荷がない場合、体は深い修復を行います。筋肉タンパク質合成が増加し、疲労毒素が消失し、ホルモンと免疫系のバランスが再調整される——これが「休息を通じて強くなる」プロセスです。";
 "training_type_info.rest.role" = "毎週1～2日の完全休息日をスケジュールします。通常、ハードトレーニング後に配置します。十分な休息日は過度なトレーニングを防ぎ、長期的なパフォーマンスと健康を維持します。";
 
+// MARK: - 新しいインターバルトレーニングタイプ情報
+"training_type_info.strides.title" = "ストライド";
+"training_type_info.strides.how_to_run" = "短距離（約80-100メートル）の加速走。イージーペースから始め、徐々にスプリント近くまで加速し、減速して止まります。リラックスして、良いフォームに集中。";
+"training_type_info.strides.why_run" = "ストライドはランニングエコノミーと神経筋協調性を向上させます。脚がより速い回転に慣れ、レース前のウォームアップにも最適。";
+"training_type_info.strides.logic" = "神経筋トレーニングで、短時間の高速度刺激により筋繊維の動員効率と脚の協調性を改善。距離が短く完全回復するため、著しい疲労は生じません。";
+"training_type_info.strides.role" = "通常、イージーラン後または高強度トレーニング前のウォームアップとして。週2-3回、各4-8本実施。";
+
+"training_type_info.hill_repeats.title" = "坂道リピート";
+"training_type_info.hill_repeats.how_to_run" = "5-10%の勾配の坂道を見つけ、安定したがチャレンジングなペースで駆け上がり、ジョグまたは歩いて下坂で回復。脚の推進力と体の前傾に集中。";
+"training_type_info.hill_repeats.why_run" = "坂道ランは「偽装されたウェイトトレーニング」。脚の筋力を強化し、フォームを改善し、平地スプリントより怪我のリスクを低減。";
+"training_type_info.hill_repeats.logic" = "上り坂はより大きな筋力出力が必要で、大臀筋、大腿四頭筋、ふくらはぎを効果的にトレーニング。平地スプリントより関節への衝撃は少なく、筋肉負荷は大きい。";
+"training_type_info.hill_repeats.role" = "通常、ベース期または筋力発達期に週1回配置。有酸素基礎と高強度インターバルをつなぐ重要な移行トレーニング。";
+
+"training_type_info.cruise_intervals.title" = "クルーズインターバル";
+"training_type_info.cruise_intervals.how_to_run" = "閾値ペース（20-30分維持できる最速ペース）でインターバルを行い、各組間に短い回復（1-2分のジョグ）。";
+"training_type_info.cruise_intervals.why_run" = "クルーズインターバルは閾値強度でより多くのボリュームを蓄積できます。短い回復により、この重要な強度ゾーンでより長い時間を過ごせます。";
+"training_type_info.cruise_intervals.logic" = "閾値トレーニングの変形で、乳酸閾値付近に長時間体を置きます。インターバル構造により、良いフォームを維持しながらより高い総ボリュームが可能。";
+"training_type_info.cruise_intervals.role" = "通常、レース準備期に閾値走の上級版として使用。ハーフマラソン・フルマラソンのパフォーマンス向上に重要。";
+
+// MARK: - 新しいコンビネーショントレーニングタイプ情報
+"training_type_info.fartlek.title" = "ファルトレク";
+"training_type_info.fartlek.how_to_run" = "「ファルトレク」はスウェーデン語で「速度遊び」。走りながら自由にペースを変える—次の街灯までスプリント、公園の入口でスローダウン。固定構造なし、感覚で走る。";
+"training_type_info.fartlek.why_run" = "ファルトレクはトレーニングを楽しくしながら、ペース変化への適応を訓練。単調さを打破し、レース時のペース変動をシミュレート。";
+"training_type_info.fartlek.logic" = "非構造化の混合強度トレーニングで、有酸素・無酸素システムの両方を刺激。自由な形式は精神的疲労を減らし、楽しみながらトレーニング効果を得られます。";
+"training_type_info.fartlek.role" = "構造化インターバルの代替、または回復週の軽い変速走として。どのトレーニング段階にも適合、特に気分転換が必要な時に。";
+
+"training_type_info.fast_finish.title" = "ファストフィニッシュ走";
+"training_type_info.fast_finish.how_to_run" = "最初の70%はイージーペース、最後の30%でテンポペースまたはそれ以上に加速。終了時にはチャレンジを感じながらも完走できるべき。";
+"training_type_info.fast_finish.why_run" = "ファストフィニッシュランは疲労時にペースを維持・加速する訓練—まさにレース後半の挑戦。「疲れても加速する」感覚を体に覚えさせます。";
+"training_type_info.fast_finish.logic" = "グリコーゲン枯渇、筋肉疲労状態での高強度走により、脂肪代謝能力と疲労耐性を向上。フォームと集中力の維持も訓練。";
+"training_type_info.fast_finish.role" = "通常、レース準備期の週末ロングランで実施。レース後半をシミュレートする重要なトレーニングで、自信構築に有効。";
+
+// MARK: - 新しいレースペーストレーニング情報
+"training_type_info.race_pace.title" = "レースペース走";
+"training_type_info.race_pace.how_to_run" = "目標レースペースで走る。安定したリズムの維持に集中し、このスピードでの呼吸、ケイデンス、体の感覚に慣れる。";
+"training_type_info.race_pace.why_run" = "レースペース走は体と脳に目標速度を記憶させます。レース当日、時計を見なくても自然にこのペースで走れるようになります。";
+"training_type_info.race_pace.logic" = "目標ペースを繰り返し練習することで、神経筋記憶とペース知覚能力を構築。現在のフィットネスで目標達成可能かの評価にも役立ちます。";
+"training_type_info.race_pace.role" = "通常、レース4-8週前から配置し、距離は徐々に増加。最も重要なレース特化トレーニングの一つ。";
+
+// MARK: - 新しいVO2max向上トレーニング情報
+"training_type_info.norwegian_4x4.title" = "ノルウェー4×4";
+"training_type_info.norwegian_4x4.how_to_run" = "4分間の高強度走を4セット行い（92% 最大心拍数）、各セット間に3分間のイージーラン回復を挟む。VO₂max ペースを安定して維持します。「非常に大変だけれど全セット完走できる」という感覚が目安です。";
+"training_type_info.norwegian_4x4.why_run" = "ノルウェー4×4はVO₂maxを向上させる最も効率的なトレーニング方法です。科学的研究では、このプロトコルが短期間で有酸素能力を約7%向上させることが示されており、レース前の重要なワークアウトです。";
+"training_type_info.norwegian_4x4.logic" = "VO₂max強度（92% 最大心拍数、95-100% VO₂max）で実施し、有酸素系と無酸素系の両方を最高レベルまで刺激します。4分間は心肺に十分な負荷をかけるのに長く、3分間の回復により全セット完了できます。この設計により最大強度でのトレーニング量が大きく蓄積されます。";
+"training_type_info.norwegian_4x4.role" = "通常、ビルドアップ期またはレース準備期に使用し、最大週1回に制限。イージーランと組み合わせ、十分な回復を確保してください。連続した週の実施には不向きで、回復週とのバランスが必要です。";
+
+"training_type_info.short_interval.title" = "短間隔走";
+"training_type_info.short_interval.how_to_run" = "短距離（400-600m）の高強度走を6-10本実施し、各本間に1-2分のイージーラン回復を挟む。全力でスプリントし、呼吸をしっかり上げます。";
+"training_type_info.short_interval.why_run" = "短間隔走はスピードと爆発力を鍛えます。短距離により全力を維持でき、十分な回復時間によって全本完走を支援。特に5Kレース準備に有効です。";
+"training_type_info.short_interval.logic" = "高強度間隔トレーニング(HIIT)の一種で、VO₂maxと神経筋反応を刺激します。短距離は最高速度と走行ケイデンス向上に特に効果的であり、加速能力も鍛えられます。";
+"training_type_info.short_interval.role" = "通常、基礎スピード開発期または5K準備期に使用。最大週1回、イージーランと休息日と組み合わせます。連続実施は受傷リスク増加につながります。";
+
+"training_type_info.long_interval.title" = "長間隔走";
+"training_type_info.long_interval.how_to_run" = "より長い距離（1200-2000m）の高強度走を4-6本実施し、各本間に2-3分のイージーラン回復を挟む。短間隔走より若干遅いペースですが、高強度を維持します。";
+"training_type_info.long_interval.why_run" = "長間隔走は短間隔走と持続走の橋渡し。VO₂maxを刺激しながら長時間高ペース維持でき、ハーフマラソンと10Kレース準備に特に適しています。";
+"training_type_info.long_interval.logic" = "短間隔走より強度がやや低い高強度間隔トレーニング。より長い継続努力により、疲労下での高ペース維持に体を適応させ、乳酸耐性も向上させます。";
+"training_type_info.long_interval.role" = "通常、上級スピード開発期またはハーフマラソン/10K準備期に使用。最大週1回、通常は短間隔走後に実施。十分な回復が必要です。";
+
+"training_type_info.yasso_800.title" = "ヤッソ800";
+"training_type_info.yasso_800.how_to_run" = "800mの高強度走を8-10本実施し、各本間に2-3分のジョギング回復を挟みます（800mの所要時間に相当）。例えば800mを3分で走れば、回復も約3分です。";
+"training_type_info.yasso_800.why_run" = "ヤッソ800はマラソンパフォーマンスを直接予測する独特の能力を持っています。米国の有名コーチ、Bart Yasso の理論によれば、800mで出せる時間（分秒）がマラソン予想完走時間（時間分）に対応しています。";
+"training_type_info.yasso_800.logic" = "800m距離はスピードと耐久力を完璧にバランスさせます。間隔設計はVO₂maxと乳酸緩衝能力を刺激。等時回復により疲労しながらペース維持能力を開発し、真のマラソン特化トレーニングです。";
+"training_type_info.yasso_800.role" = "マラソン準備期に特に有用で、週1回実施。マラソン練習の中で最も予測的なワークアウト。他の距離レース準備期でのスピード向上にも一般的に使用されます。";
+
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "月曜日";
 "weekday.tuesday" = "火曜日";
@@ -1487,6 +1566,11 @@
 "edit_schedule.combination_settings" = "コンビネーションラン設定";
 "edit_schedule.long_run_settings" = "ロングラン設定";
 "edit_schedule.training_settings" = "トレーニング設定";
+"edit_schedule.norwegian_4x4_settings" = "ノルウェー4x4トレーニング";
+"edit_schedule.norwegian_4x4_description" = "4分間の高強度インターバル4セット（92% VO2max）、セット間3分休憩。VO2max向上に特化。";
+"edit_schedule.yasso_800_settings" = "ヤッソ800トレーニング";
+"edit_schedule.yasso_800_description" = "800mリピートトレーニング。マラソンタイム予測とVO2max向上に効果的。目標タイムはマラソン目標と連動。";
+"edit_schedule.rest_time" = "休憩時間";
 
 "edit_schedule.suggested_pace" = "推奨ペース: %@";
 "edit_schedule.sprint_suggested_pace" = "スプリント推奨ペース: %@";
@@ -1502,6 +1586,9 @@
 
 "edit_schedule.repeats" = "繰り返し回数";
 "edit_schedule.repeats_placeholder" = "例: 6";
+"edit_schedule.time" = "時間";
+"edit_schedule.select_time" = "時間を選択";
+"edit_schedule.time_selection" = "時間選択";
 "edit_schedule.sprint_segment" = "スプリントセグメント";
 "edit_schedule.recovery_segment" = "リカバリーセグメント";
 "edit_schedule.segment" = "セグメント %d";
@@ -1710,6 +1797,7 @@
 "edit_schedule.category_easy" = "イージートレーニング";
 "edit_schedule.category_intensity" = "強度トレーニング";
 "edit_schedule.category_long" = "長距離";
+"edit_schedule.category_other" = "その他";
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "トレーニング編集";
@@ -1755,3 +1843,27 @@
 "share_card.edit_title" = "タイトルを編集";
 "share_card.edit_ai_review" = "AI評価を編集";
 "edit_schedule.distance_meters" = "距離(m)";
+
+// MARK: - Distance Labels
+"distance.mile" = "1.6 キロ";
+"distance.3k" = "3 キロ";
+"distance.5k" = "5 キロ";
+"distance.10k" = "10 キロ";
+"distance.half_marathon" = "ハーフマラソン";
+"distance.half_marathon_short" = "ハーフ";
+"distance.full_marathon" = "フルマラソン";
+"distance.full_marathon_short" = "フル";
+
+// MARK: - My Achievement - Personal Best
+"my_achievement.personal_best.title" = "パーソナルベスト";
+"my_achievement.personal_best.explanation" = "各距離のベストタイムとペースを表示";
+"my_achievement.personal_best.no_data" = "パーソナルベスト記録なし\n最初のトレーニングを完了すると表示されます";
+"my_achievement.personal_best.first_place" = "1位";
+"my_achievement.personal_best.second_place" = "2位";
+"my_achievement.personal_best.third_place" = "3位";
+"my_achievement.personal_best.detail_explanation" = "この距離の歴代ベスト記録、完走タイム、ペース、トレーニング日を表示しています。";
+"my_achievement.personal_best.top_records" = "歴代ベスト記録";
+
+// MARK: - My Achievement - Celebration
+"my_achievement.celebration.new_record" = "新記録！";
+"my_achievement.celebration.improved" = "改善";

@@ -162,7 +162,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     source: String = "apple_health",
                                     device: String? = nil) async throws -> UploadResult {
         // 選擇檢查：確保當前資料來源是 Apple Health
-        guard UserPreferenceManager.shared.dataSourcePreference == .appleHealth else {
+        guard UserPreferencesManager.shared.dataSourcePreference == .appleHealth else {
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
         

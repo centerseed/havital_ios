@@ -17,9 +17,11 @@ final class TrainingDayEditState: ObservableObject {
     @Published var repeats: Int
     @Published var workPace: String
     @Published var workDistance: Double
+    @Published var workTimeMinutes: Double  // 時間制間歇的工作段時間（分鐘）- 用於挪威4x4等
+    @Published var isTimeBased: Bool  // 是否為時間制間歇（vs 距離制）
     @Published var recoveryPace: String
     @Published var recoveryDistance: Double
-    @Published var recoveryTimeMinutes: Int  // 原地休息的時間（分鐘）
+    @Published var recoveryTimeMinutes: Double  // 原地休息的時間（分鐘，支援 0.5 增量）
     @Published var isRestInPlace: Bool
 
     // 組合跑欄位
@@ -44,6 +46,11 @@ final class TrainingDayEditState: ObservableObject {
         self.repeats = details?.repeats ?? 4
         self.workPace = details?.work?.pace ?? ""
         self.workDistance = details?.work?.distanceKm ?? 0.4
+        self.workTimeMinutes = details?.work?.timeMinutes ?? 4.0
+        // 判斷是否為時間制間歇：有 timeMinutes 且 distanceKm 為空或 0
+        let workHasTime = details?.work?.timeMinutes != nil && details!.work!.timeMinutes! > 0
+        let workHasDistance = details?.work?.distanceKm != nil && details!.work!.distanceKm! > 0
+        self.isTimeBased = workHasTime && !workHasDistance
 
         // 判斷是否為原地休息：有 timeMinutes 但沒有 distanceKm（或為 0）
         let recovery = details?.recovery
@@ -55,7 +62,7 @@ final class TrainingDayEditState: ObservableObject {
         // 恢復段參數
         self.recoveryPace = recovery?.pace ?? "6:00"
         self.recoveryDistance = recovery?.distanceKm ?? 0.2
-        self.recoveryTimeMinutes = Int(recovery?.timeMinutes ?? 2)
+        self.recoveryTimeMinutes = recovery?.timeMinutes ?? 2.0
 
         // 組合跑欄位
         if let segs = details?.segments {
@@ -92,17 +99,23 @@ final class TrainingDayEditState: ObservableObject {
                 pace: pace.isEmpty ? nil : pace
             )
 
-        case .tempo, .threshold, .longRun:
+        case .tempo, .threshold, .longRun, .racePace:
+            // 節奏/閾值/長跑/比賽配速跑
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
                 distanceKm: distance,
                 pace: pace.isEmpty ? nil : pace
             )
 
-        case .interval:
+        // 間歇訓練類型（包含新增的大步跑、山坡重複跑、巡航間歇）
+        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
             let work = MutableWorkoutSegment(
+                description: nil,
                 distanceKm: workDistance,
-                pace: workPace.isEmpty ? nil : workPace
+                distanceM: workDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                timeMinutes: nil,
+                pace: workPace.isEmpty ? nil : workPace,
+                heartRateRange: nil
             )
 
             // 原地休息：只設置 timeMinutes 和 description，distanceKm 和 pace 為 nil
@@ -110,10 +123,10 @@ final class TrainingDayEditState: ObservableObject {
             let recovery: MutableWorkoutSegment
             if isRestInPlace {
                 recovery = MutableWorkoutSegment(
-                    description: "原地休息\(recoveryTimeMinutes)分鐘",
+                    description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
                     distanceKm: nil,
                     distanceM: nil,
-                    timeMinutes: Double(recoveryTimeMinutes),
+                    timeMinutes: recoveryTimeMinutes,
                     pace: nil,
                     heartRateRange: nil
                 )
@@ -121,12 +134,12 @@ final class TrainingDayEditState: ObservableObject {
                 recovery = MutableWorkoutSegment(
                     description: nil,
                     distanceKm: recoveryDistance,
-                    distanceM: nil,
+                    distanceM: recoveryDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
                     timeMinutes: nil,
                     pace: recoveryPace.isEmpty ? nil : recoveryPace,
                     heartRateRange: nil
                 )
-                Logger.debug("[原地休息] 保存間歇跑 - 主動恢復: distanceKm=\(recoveryDistance), pace=\(recoveryPace)")
+                Logger.debug("[原地休息] 保存間歇跑 - 主動恢復: distanceKm=\(recoveryDistance), distanceM=\(recoveryDistance * 1000), pace=\(recoveryPace)")
             }
 
             result.trainingDetails = MutableTrainingDetails(
@@ -136,7 +149,77 @@ final class TrainingDayEditState: ObservableObject {
                 repeats: repeats
             )
 
-        case .combination, .progression:
+        // 時間制間歇訓練：挪威4x4、亞索800
+        case .norwegian4x4, .yasso800:
+            // 時間制間歇：使用 timeMinutes 而非 distanceKm
+            let work: MutableWorkoutSegment
+            if isTimeBased {
+                work = MutableWorkoutSegment(
+                    description: type == .norwegian4x4 ? "高強度跑（92% VO2max）" : "亞索800",
+                    distanceKm: nil,
+                    distanceM: nil,
+                    timeMinutes: workTimeMinutes,
+                    pace: workPace.isEmpty ? nil : workPace,
+                    heartRateRange: nil
+                )
+            } else {
+                work = MutableWorkoutSegment(
+                    description: nil,
+                    distanceKm: workDistance,
+                    distanceM: workDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                    timeMinutes: nil,
+                    pace: workPace.isEmpty ? nil : workPace,
+                    heartRateRange: nil
+                )
+            }
+
+            // 原地休息：只設置 timeMinutes 和 description，distanceKm 和 pace 為 nil
+            // 恢復跑：挪威4x4 使用 timeMinutes + pace，亞索800 使用 distanceKm + pace
+            let recovery: MutableWorkoutSegment
+            if isRestInPlace {
+                recovery = MutableWorkoutSegment(
+                    description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
+                    distanceKm: nil,
+                    distanceM: nil,
+                    timeMinutes: recoveryTimeMinutes,
+                    pace: nil,
+                    heartRateRange: nil
+                )
+            } else if type == .norwegian4x4 {
+                // 挪威4x4：時間制恢復跑
+                let recoveryDistanceM = calculateDistanceMeters(pace: recoveryPace, timeMinutes: recoveryTimeMinutes)
+                let recoveryDistanceKm = recoveryDistanceM.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
+                recovery = MutableWorkoutSegment(
+                    description: "恢復跑\(formatRecoveryTime(recoveryTimeMinutes))",
+                    distanceKm: recoveryDistanceKm,
+                    distanceM: recoveryDistanceM,
+                    timeMinutes: recoveryTimeMinutes,
+                    pace: recoveryPace.isEmpty ? nil : recoveryPace,
+                    heartRateRange: nil
+                )
+                Logger.debug("[恢復跑] 保存挪威4x4 - 恢復跑: timeMinutes=\(recoveryTimeMinutes), distanceKm=\(recoveryDistanceKm ?? 0), distanceM=\(recoveryDistanceM ?? 0), pace=\(recoveryPace)")
+            } else {
+                // 亞索800 等：距離制恢復跑
+                recovery = MutableWorkoutSegment(
+                    description: nil,
+                    distanceKm: recoveryDistance,
+                    distanceM: recoveryDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                    timeMinutes: nil,
+                    pace: recoveryPace.isEmpty ? nil : recoveryPace,
+                    heartRateRange: nil
+                )
+                Logger.debug("[恢復跑] 保存亞索800 - 恢復跑: distanceKm=\(recoveryDistance), distanceM=\(recoveryDistance * 1000), pace=\(recoveryPace)")
+            }
+
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                work: work,
+                recovery: recovery,
+                repeats: repeats
+            )
+
+        // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
+        case .combination, .progression, .fartlek, .fastFinish:
             let mutableSegments = segments.map { seg in
                 MutableProgressionSegment(
                     distanceKm: seg.distance,
@@ -167,6 +250,49 @@ final class TrainingDayEditState: ObservableObject {
     func removeSegment(at index: Int) {
         guard segments.count > 1, index < segments.count else { return }
         segments.remove(at: index)
+    }
+
+    // MARK: - Helper Functions
+
+    /// 根據配速和時間計算距離（公尺），四捨五入到指定單位
+    private func calculateDistanceMeters(pace: String, timeMinutes: Double, roundTo: Double = 100.0) -> Double? {
+        guard let distanceKm = calculateDistanceFromPace(pace: pace, timeMinutes: timeMinutes) else {
+            return nil
+        }
+        let meters = distanceKm * 1000.0
+        return round(meters / roundTo) * roundTo
+    }
+
+    /// 根據配速和時間計算距離（公里）
+    private func calculateDistanceFromPace(pace: String, timeMinutes: Double) -> Double? {
+        // 解析配速格式 "mm:ss"
+        let components = pace.split(separator: ":")
+        guard components.count == 2,
+              let minutes = Double(components[0]),
+              let seconds = Double(components[1]) else {
+            return nil
+        }
+
+        let paceInMinutes = minutes + seconds / 60.0
+        guard paceInMinutes > 0 else { return nil }
+
+        // 距離 = 時間 / 配速
+        return timeMinutes / paceInMinutes
+    }
+
+    /// 格式化恢復時間顯示（支援30秒增量）
+    /// - Parameter minutes: 時間（分鐘，例如 2.5 表示 2 分 30 秒）
+    /// - Returns: 格式化字串，例如 "2分30秒" 或 "3分鐘"
+    func formatRecoveryTime(_ minutes: Double) -> String {
+        let totalSeconds = Int(minutes * 60)
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+
+        if secs == 0 {
+            return "\(mins)分鐘"
+        } else {
+            return "\(mins)分\(secs)秒"
+        }
     }
 }
 
@@ -277,11 +403,20 @@ struct TrainingEditSheetV2: View {
         switch editState.type {
         case .easyRun, .easy, .recovery_run, .lsd:
             EasyRunEditorV2(editState: editState, viewModel: viewModel)
-        case .tempo, .threshold:
+        case .tempo, .threshold, .racePace:
+            // 節奏/閾值/比賽配速跑 - 需要配速和距離
             TempoEditorV2(editState: editState, viewModel: viewModel)
-        case .interval:
+        case .norwegian4x4:
+            // 挪威4x4 專屬編輯器
+            Norwegian4x4EditorV2(editState: editState, viewModel: viewModel)
+        case .yasso800:
+            // 亞索800 專屬編輯器
+            Yasso800EditorV2(editState: editState, viewModel: viewModel)
+        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+            // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇）
             IntervalEditorV2(editState: editState, viewModel: viewModel)
-        case .combination, .progression:
+        case .combination, .progression, .fartlek, .fastFinish:
+            // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
             CombinationEditorV2(editState: editState, viewModel: viewModel)
         case .longRun:
             LongRunEditorV2(editState: editState, viewModel: viewModel)
@@ -294,12 +429,19 @@ struct TrainingEditSheetV2: View {
         switch editState.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination,
+             .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+            // 間歇/強度訓練類型
             return .orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
+            // 長跑類型（包含快結尾長跑）
             return .blue
-        case .race:
+        case .race, .racePace:
+            // 比賽/比賽配速訓練
             return .red
+        case .fartlek:
+            // 法特雷克 - 較自由的變速跑
+            return .purple
         case .rest:
             return .gray
         case .crossTraining, .strength:
@@ -515,6 +657,308 @@ struct IntervalEditorV2: View {
         }
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+}
+
+// MARK: - 挪威4x4 專屬編輯器
+
+struct Norwegian4x4EditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 標題：挪威4x4訓練設定（不是通用的「間歇訓練設定」）
+            HStack {
+                Text("🇳🇴")
+                    .font(.title2)
+                Text(L10n.EditSchedule.norwegian4x4Settings.localized)
+                    .font(.headline)
+                    .foregroundColor(.orange)
+            }
+
+            // 訓練說明
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.EditSchedule.norwegian4x4Description.localized)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+
+            // 建議配速（使用 92% VO2max）
+            if let vdot = viewModel.currentVDOT {
+                let suggestedPace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: nil,
+                    onApply: { editState.workPace = suggestedPace }
+                )
+            }
+
+            // 重複次數（固定為 4 組，但可調整）
+            RepeatsPickerFieldV2(title: L10n.EditSchedule.repeats.localized, repeats: $editState.repeats)
+
+            // 工作段（時間制：4 分鐘）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.red).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.sprintSegment.localized)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+
+                HStack(spacing: 16) {
+                    PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.workPace, referenceDistance: nil)
+                    WorkTimePickerFieldV2(title: L10n.EditSchedule.time.localized, timeMinutes: $editState.workTimeMinutes)
+                }
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+
+            // 恢復段（恢復跑 3 分鐘，60-70% 最大心率）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.recoverySegment.localized)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("恢復跑")
+                        .font(.caption)
+                        .foregroundColor(.mint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.mint.opacity(0.2))
+                        .cornerRadius(4)
+                }
+
+                HStack(spacing: 16) {
+                    // 恢復跑時間
+                    RestTimePickerFieldV2(title: L10n.EditSchedule.time.localized, timeMinutes: $editState.recoveryTimeMinutes)
+                    // 恢復跑配速
+                    PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.recoveryPace, referenceDistance: nil)
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            // 初始化挪威4x4預設值
+            editState.isTimeBased = true
+            editState.isRestInPlace = false  // 挪威4x4 使用恢復跑，不是原地休息
+            if editState.repeats == 0 || editState.repeats == 4 {
+                editState.repeats = 4
+            }
+            if editState.workTimeMinutes == 0 {
+                editState.workTimeMinutes = 4.0
+            }
+            if editState.recoveryTimeMinutes == 0 {
+                editState.recoveryTimeMinutes = 3.0
+            }
+            // 設置 92% VO2max 配速
+            if editState.workPace.isEmpty, let vdot = viewModel.currentVDOT {
+                editState.workPace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
+            }
+            // 設置恢復跑配速
+            if editState.recoveryPace.isEmpty, let vdot = viewModel.currentVDOT {
+                editState.recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "7:00"
+            }
+        }
+    }
+}
+
+// MARK: - 亞索800 專屬編輯器
+
+struct Yasso800EditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var viewModel: TrainingPlanViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 標題：亞索800訓練設定
+            Text(L10n.EditSchedule.yasso800Settings.localized)
+                .font(.headline)
+                .foregroundColor(.orange)
+
+            // 訓練說明
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.EditSchedule.yasso800Description.localized)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+
+            // 建議配速（間歇配速）
+            if let suggestedPace = viewModel.getSuggestedPace(for: "interval") {
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: viewModel.getPaceRange(for: "interval"),
+                    onApply: { editState.workPace = suggestedPace }
+                )
+            }
+
+            // 重複次數（通常 10 組）
+            RepeatsPickerFieldV2(title: L10n.EditSchedule.repeats.localized, repeats: $editState.repeats)
+
+            // 工作段（固定 800m）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.red).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.sprintSegment.localized)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("800m")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(4)
+                }
+
+                PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.workPace, referenceDistance: 0.8)
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+
+            // 恢復段（400m 慢跑或原地休息）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.recoverySegment.localized)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+
+                Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $editState.isRestInPlace)
+
+                if editState.isRestInPlace {
+                    RestTimePickerFieldV2(title: L10n.EditSchedule.restTime.localized, timeMinutes: $editState.recoveryTimeMinutes)
+                } else {
+                    HStack {
+                        Text("400m 慢跑恢復")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            // 初始化亞索800預設值
+            editState.isTimeBased = false
+            editState.workDistance = 0.8  // 800m
+            if editState.repeats == 0 {
+                editState.repeats = 10
+            }
+            if editState.recoveryDistance == 0 {
+                editState.recoveryDistance = 0.4  // 400m
+            }
+            if editState.recoveryTimeMinutes == 0 {
+                editState.recoveryTimeMinutes = 3.0
+            }
+            // 設置間歇配速
+            if editState.workPace.isEmpty, let suggested = viewModel.getSuggestedPace(for: "interval") {
+                editState.workPace = suggested
+            }
+        }
+    }
+}
+
+// MARK: - 工作段時間選擇器（用於時間制間歇）
+
+struct WorkTimePickerFieldV2: View {
+    let title: String
+    @Binding var timeMinutes: Double
+    @State private var showingPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text(String(format: "%.0f 分鐘", timeMinutes))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                WorkTimeWheelPicker(selectedTimeMinutes: $timeMinutes)
+                    .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
+struct WorkTimeWheelPicker: View {
+    @Binding var selectedTimeMinutes: Double
+    @Environment(\.dismiss) private var dismiss
+
+    private let timeOptions: [Double] = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20]
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Picker("工作時間", selection: $selectedTimeMinutes) {
+                    ForEach(timeOptions, id: \.self) { minutes in
+                        Text("\(Int(minutes)) 分鐘").tag(minutes)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 200)
+            }
+            .navigationTitle("選擇工作時間")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
     }
 }
 
@@ -850,7 +1294,7 @@ struct IntervalDistancePickerFieldV2: View {
 
 struct RestTimePickerFieldV2: View {
     let title: String
-    @Binding var timeMinutes: Int
+    @Binding var timeMinutes: Double
     @State private var showingPicker = false
 
     var body: some View {
@@ -863,7 +1307,7 @@ struct RestTimePickerFieldV2: View {
                 showingPicker = true
             } label: {
                 HStack {
-                    Text("\(timeMinutes) 分鐘")
+                    Text(formatTime(timeMinutes))
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
@@ -885,18 +1329,34 @@ struct RestTimePickerFieldV2: View {
             }
         }
     }
+
+    /// 格式化時間顯示（支援30秒增量）
+    private func formatTime(_ minutes: Double) -> String {
+        let totalSeconds = Int(minutes * 60)
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+
+        if secs == 0 {
+            return "\(mins) 分鐘"
+        } else {
+            return "\(mins) 分 \(secs) 秒"
+        }
+    }
 }
 
 struct RestTimeWheelPicker: View {
-    @Binding var selectedTimeMinutes: Int
+    @Binding var selectedTimeMinutes: Double
     @Environment(\.dismiss) private var dismiss
+
+    // 可選時間：0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0
+    private let timeOptions: [Double] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 Picker("休息時間", selection: $selectedTimeMinutes) {
-                    ForEach(1...10, id: \.self) { minutes in
-                        Text("\(minutes) 分鐘").tag(minutes)
+                    ForEach(timeOptions, id: \.self) { minutes in
+                        Text(formatTime(minutes)).tag(minutes)
                     }
                 }
                 .pickerStyle(.wheel)
@@ -912,6 +1372,19 @@ struct RestTimeWheelPicker: View {
                     .fontWeight(.semibold)
                 }
             }
+        }
+    }
+
+    /// 格式化時間顯示（支援30秒增量）
+    private func formatTime(_ minutes: Double) -> String {
+        let totalSeconds = Int(minutes * 60)
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+
+        if secs == 0 {
+            return "\(mins) 分鐘"
+        } else {
+            return "\(mins) 分 \(secs) 秒"
         }
     }
 }

@@ -41,6 +41,23 @@ struct TrainingTypeMenu: View {
                 }
             }
 
+            Section("長距離訓練") {
+                ForEach(longDistanceTypes, id: \.rawValue) { type in
+                    Button {
+                        selectedType = type.rawValue
+                        onChanged()
+                    } label: {
+                        Label {
+                            Text(type.localizedName)
+                        } icon: {
+                            if type.rawValue == selectedType {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+
             Section("其他") {
                 ForEach(otherTypes, id: \.rawValue) { type in
                     Button {
@@ -78,7 +95,18 @@ struct TrainingTypeMenu: View {
         DayType(rawValue: selectedType) ?? .rest
     }
 
-    private let easyTypes: [DayType] = [.easyRun, .easy, .recovery_run, .lsd]
-    private let intensityTypes: [DayType] = [.tempo, .threshold, .interval, .progression, .combination, .longRun]
-    private let otherTypes: [DayType] = [.rest, .crossTraining, .strength, .yoga, .hiking, .cycling]
+    private let easyTypes: [DayType] = [.easyRun, .easy, .recovery_run]
+    private let intensityTypes: [DayType] = [
+        .tempo, .threshold, .interval,
+        // 新增間歇訓練類型
+        .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800,
+        // 新增組合訓練類型（法特雷克）
+        .fartlek,
+        // 新增比賽配速訓練
+        .racePace, .combination
+    ]
+    private let longDistanceTypes: [DayType] = [
+        .lsd, .longRun, .progression, .fastFinish
+    ]
+    private let otherTypes: [DayType] = [.rest]
 }

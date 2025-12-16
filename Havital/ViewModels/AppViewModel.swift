@@ -1,9 +1,11 @@
 import SwiftUI
 
-class AppViewModel: ObservableObject {
+class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+
     @Published var showHealthKitAlert = false
     @Published var healthKitAlertMessage = ""
-    
+
     // 新增 Garmin 數據源不一致相關的狀態
     @Published var showGarminMismatchAlert = false
     @Published var isHandlingGarminMismatch = false
@@ -50,6 +52,7 @@ class AppViewModel: ObservableObject {
     }
     
     deinit {
+        cancelAllTasks()
         NotificationCenter.default.removeObserver(self)
     }
     

@@ -1,7 +1,9 @@
 import Foundation
 
 @MainActor
-class VerifyEmailViewModel: ObservableObject {
+class VerifyEmailViewModel: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+
     @Published var code = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -18,5 +20,9 @@ class VerifyEmailViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    deinit {
+        cancelAllTasks()
     }
 }

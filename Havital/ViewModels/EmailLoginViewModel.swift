@@ -2,7 +2,9 @@ import Foundation
 import FirebaseAuth
 
 @MainActor
-class EmailLoginViewModel: ObservableObject {
+class EmailLoginViewModel: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+
     @Published var email = ""
     @Published var password = ""
     @Published var isLoading = false
@@ -42,5 +44,9 @@ class EmailLoginViewModel: ObservableObject {
         } catch {
             resendSuccessMessage = error.localizedDescription
         }
+    }
+
+    deinit {
+        cancelAllTasks()
     }
 }

@@ -30,8 +30,8 @@ class TrainingIntensityManager {
         let defaultRestingHR = 60
         
         // 使用預設值或使用者設定的值，並確保數值合理
-        var maxHRInt = UserPreferenceManager.shared.maxHeartRate ?? defaultMaxHR
-        var restingHRInt = UserPreferenceManager.shared.restingHeartRate ?? defaultRestingHR
+        var maxHRInt = UserPreferencesManager.shared.maxHeartRate ?? defaultMaxHR
+        var restingHRInt = UserPreferencesManager.shared.restingHeartRate ?? defaultRestingHR
         
         // 驗證心率值是否合理，如果無效則使用預設值
         if !(maxHRInt > 0 && restingHRInt > 0 && maxHRInt > restingHRInt) {
@@ -270,13 +270,13 @@ class TrainingIntensityManager {
                 end: weekEndDate
             )
             
-            // 從 UserPreferenceManager 獲取使用者的最大心率和靜息心率
-            let userPrefs = UserPreferenceManager.shared
+            // 從 UserPreferencesManager 獲取使用者的最大心率和靜息心率
+            let userPrefs = UserPreferencesManager.shared
             
-            // 對 UserPreferenceManager 中的值進行更詳細的檢查
+            // 對 UserPreferencesManager 中的值進行更詳細的檢查
             print("用戶偏好管理器心率設定狀態: ")
-            print("- maxHeartRate: \(String(describing: UserPreferenceManager.shared.maxHeartRate))")
-            print("- restingHeartRate: \(String(describing: UserPreferenceManager.shared.restingHeartRate))")
+            print("- maxHeartRate: \(String(describing: UserPreferencesManager.shared.maxHeartRate))")
+            print("- restingHeartRate: \(String(describing: UserPreferencesManager.shared.restingHeartRate))")
             print("- 從 UserDefaults 直接讀取 max_heart_rate: \(UserDefaults.standard.object(forKey: "max_heart_rate") ?? "nil")")
             print("- 從 UserDefaults 直接讀取 resting_heart_rate: \(UserDefaults.standard.object(forKey: "resting_heart_rate") ?? "nil")")
             // 直接呼叫修改後的 calculateIntensity，它會自行處理心率數據

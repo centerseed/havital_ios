@@ -4,7 +4,7 @@ import SwiftUI
 /// 用于在用户进入主画面时，提醒尚未设置心率数据的用户进行设置
 struct HeartRateSetupAlertView: View {
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var userPreferenceManager = UserPreferenceManager.shared
+    @ObservedObject private var userPreferenceManager = UserPreferencesManager.shared
 
     /// 当用户点击「立即设定」时的回调
     var onSetupNow: () -> Void

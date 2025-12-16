@@ -161,9 +161,9 @@ class StravaManager: NSObject, ObservableObject {
                     self.objectWillChange.send()
 
                     // 如果 Strava 連線正常但本地偏好設定不是 Strava，恢復偏好設定
-                    if UserPreferenceManager.shared.dataSourcePreference != .strava {
+                    if UserPreferencesManager.shared.dataSourcePreference != .strava {
                         print("🔄 恢復 Strava 資料來源偏好設定")
-                        UserPreferenceManager.shared.dataSourcePreference = .strava
+                        UserPreferencesManager.shared.dataSourcePreference = .strava
                         print("✅ 本地 Strava 資料來源設置已恢復")
                         shouldRestoreDataSource = true
                     }
@@ -421,7 +421,7 @@ class StravaManager: NSObject, ObservableObject {
 
                 // 只有後端確認成功後，才更新本地數據源設置
                 await MainActor.run {
-                    UserPreferenceManager.shared.dataSourcePreference = .strava
+                    UserPreferencesManager.shared.dataSourcePreference = .strava
                     print("✅ 本地數據源設置已更新為 Strava")
                 }
 

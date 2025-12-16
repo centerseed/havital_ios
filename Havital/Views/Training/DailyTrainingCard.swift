@@ -20,15 +20,15 @@ struct DayHeaderView: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.mint
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return Color.orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return Color.blue
-        case .race:
+        case .race, .racePace:
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek:
             return Color.purple
         }
     }
@@ -633,15 +633,15 @@ struct DailyTrainingCard: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.mint
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return Color.orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return Color.blue
-        case .race:
+        case .race, .racePace:
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek:
             return Color.purple
         }
     }

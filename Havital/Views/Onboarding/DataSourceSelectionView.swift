@@ -5,7 +5,7 @@ struct DataSourceSelectionView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     
     @State private var selectedDataSource: DataSourceType?

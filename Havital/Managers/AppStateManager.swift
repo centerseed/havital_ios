@@ -146,7 +146,7 @@ class AppStateManager: ObservableObject {
         
         // 更新數據源
         userDataSource = newDataSource
-        UserPreferenceManager.shared.dataSourcePreference = newDataSource
+        UserPreferencesManager.shared.dataSourcePreference = newDataSource
         
         // 重新設置服務
         currentState = .settingUpServices
@@ -206,9 +206,9 @@ class AppStateManager: ObservableObject {
             userService = UserService.shared
             
             print("📥 AppStateManager: 從後端 User API 獲取用戶資料...")
-            
+
             // 🚨 正確的流程：從後端 User API 獲取用戶的實際數據源設定
-            let user = try await userService!.getUserProfile().async()
+            let user = try await userService!.getUserProfileAsync()
             
             print("📥 AppStateManager: 成功獲取用戶資料")
             print("   - 後端數據源: \(user.dataSource ?? "未設定")")
@@ -220,7 +220,7 @@ class AppStateManager: ObservableObject {
             await UserManager.shared.updateCurrentUser(user)
 
             // 使用同步後的數據源設定
-            userDataSource = UserPreferenceManager.shared.dataSourcePreference
+            userDataSource = UserPreferencesManager.shared.dataSourcePreference
             subscriptionStatus = .free // 暫時設為免費版，未來可從 user.data 中獲取
 
             print("✅ AppStateManager: 用戶資料同步完成")
@@ -239,7 +239,7 @@ class AppStateManager: ObservableObject {
             print("   使用本地設定作為備用")
 
             // 使用本地設定作為備用
-            userDataSource = UserPreferenceManager.shared.dataSourcePreference
+            userDataSource = UserPreferencesManager.shared.dataSourcePreference
             subscriptionStatus = .free
 
             Logger.firebase("用戶資料載入失敗，使用本地設定", level: .error, labels: [

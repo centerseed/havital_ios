@@ -16,6 +16,7 @@ struct User: Codable {
     let weekOfTraining: Int?
     let currentWeekDistance: Int?
     let personalBest: [String: [RaceBest]]?
+    let personalBestV2: [String: [String: [PersonalBestRecordV2]]]?  // { "race_run": { "5": [...], "10": [...] } }
     let dataSource: String?
 
     // App 評分相關欄位
@@ -72,6 +73,7 @@ struct User: Codable {
         }
         
         personalBest = try container.decodeIfPresent([String: [RaceBest]].self, forKey: .personalBest)
+        personalBestV2 = try container.decodeIfPresent([String: [String: [PersonalBestRecordV2]]].self, forKey: .personalBestV2)
         dataSource = try container.decodeIfPresent(String.self, forKey: .dataSource)
 
         // 處理 App 評分相關欄位
@@ -93,6 +95,7 @@ struct User: Codable {
         case updatedAt = "updated_at"
         case weekOfTraining = "week_of_training"
         case personalBest = "personal_best"
+        case personalBestV2 = "personal_best_v2"
         case currentWeekDistance = "current_week_distance"
         case dataSource = "data_source"
         case ratingPromptCount = "rating_prompt_count"

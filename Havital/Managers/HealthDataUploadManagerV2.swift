@@ -102,7 +102,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     let service: HealthDataService
     private let cacheManager: HealthDataCacheManager
     private let healthKitManager = HealthKitManager()
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     
     // MARK: - Configuration
     private let maxRetries = 3
@@ -157,7 +157,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     @discardableResult
     func refreshData() async -> Bool {
         // ✅ 強制刷新所有已載入的範圍
-        let loadedDays = Array(healthDataCollections.keys)
+        // ⚠️ 必須在 MainActor 上訪問 @Published 屬性
+        let loadedDays = await MainActor.run {
+            Array(self.healthDataCollections.keys)
+        }
 
         if loadedDays.isEmpty {
             // 沒有已載入的範圍，載入默認 14 天
@@ -173,20 +176,21 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     }
     
     func clearAllData() async {
+        // ⚠️ 必須在 MainActor 上修改 @Published 屬性
         await MainActor.run {
-            healthDataCollections = [:]
-            uploadStatus = .idle
-            observedDataTypes = []
-            backgroundSyncEnabled = false
-            lastSyncTime = nil
-            syncError = nil
+            self.healthDataCollections = [:]
+            self.uploadStatus = .idle
+            self.observedDataTypes = []
+            self.backgroundSyncEnabled = false
+            self.lastSyncTime = nil
+            self.syncError = nil
         }
-        
+
         // 停止所有觀察者
         stopHealthKitObservers()
-        
+
         cacheManager.clearCache()
-        
+
         Logger.firebase(
             "健康數據已清除",
             level: .info,
@@ -875,13 +879,15 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             print("📊 [getLocalHealthData] 從 HealthKit 獲取到 \(hrv.count) 筆 HRV 原始數據")
 
             // 將 HRV 數據按日期分組並轉換為 HealthRecord
+            // 使用 TimeInterval 作為 key 確保線程安全（避免 Date 對象作為 Dictionary key）
             let groupedHRV = Dictionary(grouping: hrv) { record in
-                Calendar.current.startOfDay(for: record.0)
+                Calendar.current.startOfDay(for: record.0).timeIntervalSince1970
             }
 
             print("📊 [getLocalHealthData] 分組後有 \(groupedHRV.count) 天的數據")
 
-            for (date, values) in groupedHRV {
+            for (timeInterval, values) in groupedHRV {
+                let date = Date(timeIntervalSince1970: timeInterval)
                 let avgHRV = values.map { $0.1 }.reduce(0, +) / Double(values.count)
                 let dateString = dateFormatter.string(from: date)
 
@@ -948,23 +954,33 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     // MARK: - State Management
     
     private func loadCachedState() {
-        // 載入上傳狀態
-        loadUploadStatus()
-        
-        // 載入快取的健康數據集合
-        for days in supportedDaysRanges {
-            if let collection = cacheManager.loadHealthDataCollection(for: days) {
-                healthDataCollections[days] = collection
+        // ⚠️ 必須在 MainActor 上修改 @Published 屬性
+        Task { @MainActor in
+            // 載入上傳狀態
+            self.uploadStatus = self.cacheManager.loadUploadStatus() ?? .idle
+
+            // 載入快取的健康數據集合
+            for days in self.supportedDaysRanges {
+                if let collection = self.cacheManager.loadHealthDataCollection(for: days) {
+                    self.healthDataCollections[days] = collection
+                }
             }
         }
     }
-    
+
     private func loadUploadStatus() {
-        uploadStatus = cacheManager.loadUploadStatus() ?? .idle
+        // ⚠️ 必須在 MainActor 上修改 @Published 屬性
+        Task { @MainActor in
+            self.uploadStatus = self.cacheManager.loadUploadStatus() ?? .idle
+        }
     }
     
     private func saveUploadStatus() {
-        cacheManager.saveUploadStatus(uploadStatus)
+        // ⚠️ 必須在 MainActor 上讀取 @Published 屬性
+        Task { @MainActor in
+            let status = self.uploadStatus
+            self.cacheManager.saveUploadStatus(status)
+        }
     }
     
     // MARK: - Public Interface
@@ -978,12 +994,21 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             return await self.performGetHealthData(days: days)
         }
 
-        return result ?? healthDataCollections[days]?.records ?? []
+        // ⚠️ 必須在 MainActor 上訪問 @Published 屬性
+        let fallback = await MainActor.run {
+            self.healthDataCollections[days]?.records ?? []
+        }
+        return result ?? fallback
     }
 
     /// 執行實際的健康數據獲取邏輯
     private func performGetHealthData(days: Int) async -> [HealthRecord] {
-        if let collection = healthDataCollections[days] {
+        // ⚠️ 必須在 MainActor 上訪問 @Published 屬性
+        let cachedCollection = await MainActor.run {
+            self.healthDataCollections[days]
+        }
+
+        if let collection = cachedCollection {
             print("📊 [getHealthData] ✅ 從內存緩存返回 \(collection.records.count) 筆記錄")
             let hrvCount = collection.records.filter { $0.hrvLastNightAvg != nil }.count
             print("📊 [getHealthData] 內存緩存中 HRV 記錄數: \(hrvCount)")
@@ -1000,14 +1025,18 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             // ⚠️ 如果快取中沒有 HRV 數據，且是 Apple Health 用戶，強制刷新
             if hrvCount == 0 && userPreferenceManager.dataSourcePreference == .appleHealth {
                 print("📊 [getHealthData] ⚠️ 快取中無 HRV 數據，強制刷新")
-                healthDataCollections.removeValue(forKey: days)
+                await MainActor.run {
+                    self.healthDataCollections.removeValue(forKey: days)
+                }
                 // ✅ 使用 executeTask 防止重複調用
                 await executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
                     try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
                         try await self.loadHealthDataForRange(days: days)
                     }
                 }
-                let refreshedResult = healthDataCollections[days]?.records ?? []
+                let refreshedResult = await MainActor.run {
+                    self.healthDataCollections[days]?.records ?? []
+                }
                 let refreshedHrvCount = refreshedResult.filter { $0.hrvLastNightAvg != nil }.count
                 print("📊 [getHealthData] 刷新後返回 \(refreshedResult.count) 筆記錄，HRV 記錄數: \(refreshedHrvCount)")
                 return refreshedResult
@@ -1037,7 +1066,9 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                 try await self.loadHealthDataForRange(days: days)
             }
         }
-        let result = healthDataCollections[days]?.records ?? []
+        let result = await MainActor.run {
+            self.healthDataCollections[days]?.records ?? []
+        }
         print("📊 [getHealthData] 載入後返回 \(result.count) 筆記錄")
         return result
     }
@@ -1045,7 +1076,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     /// 強制刷新健康數據（清除快取）
     func forceRefreshHealthData(days: Int = 7) async {
         print("📊 [getHealthData] 強制刷新，天數: \(days)")
-        healthDataCollections.removeValue(forKey: days)
+        // ⚠️ 必須在 MainActor 上修改 @Published 屬性
+        await MainActor.run {
+            self.healthDataCollections.removeValue(forKey: days)
+        }
         cacheManager.clearCache()
         print("📊 [getHealthData] 強制刷新：loadHealthDataForRange")
         // ✅ 使用 executeTask 防止重複調用

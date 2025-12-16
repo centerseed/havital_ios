@@ -18,7 +18,7 @@ struct HeartRateZoneInfoView: View {
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
 
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     private let mode: HeartRateViewMode
 
     // MARK: - Initializers

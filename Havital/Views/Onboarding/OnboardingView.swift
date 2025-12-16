@@ -75,6 +75,9 @@ class OnboardingViewModel: ObservableObject {
             try await UserService.shared.createTarget(target)
             print("✅ 新目標創建成功: \(target.name)")
 
+            // ⚠️ TEMPORARILY DISABLED: 自動刪除舊賽事功能已暫時停用
+            // TODO: 後端應該處理主要賽事的唯一性，前端不應該手動刪除
+            /*
             // 如果是重新設定目標模式，創建成功後再刪除舊的主要目標
             if AuthenticationService.shared.isReonboardingMode {
                 print("🔄 重新設定目標模式：開始刪除舊的主要目標")
@@ -98,6 +101,7 @@ class OnboardingViewModel: ObservableObject {
                     // 刪除失敗不影響整體流程，因為新目標已經創建成功
                 }
             }
+            */
 
             print(NSLocalizedString("onboarding.target_created", comment: "Training goal created"))
             isLoading = false

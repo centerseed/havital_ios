@@ -100,6 +100,114 @@ struct TrainingTypeInfo {
                 role: NSLocalizedString("training_type_info.rest.role", comment: "每週安排 1–2 個完整休息日，通常在高強度訓練後。充分的休息日能避免過度訓練，維持長期表現與健康。")
             )
 
+        // MARK: - 新增間歇訓練類型
+
+        case .strides:
+            return TrainingTypeInfo(
+                icon: "🏃‍♂️",
+                title: NSLocalizedString("training_type_info.strides.title", comment: "大步跑 Strides"),
+                howToRun: NSLocalizedString("training_type_info.strides.how_to_run", comment: "短距離（約 80-100 公尺）的漸加速跑。從輕鬆跑開始，逐漸加速到接近衝刺，然後減速停下。保持放鬆、專注在良好的跑步姿勢。"),
+                whyRun: NSLocalizedString("training_type_info.strides.why_run", comment: "大步跑能提升跑步經濟性與神經肌肉協調。它讓你的腿習慣較快的轉換頻率，也是比賽前熱身的好選擇。"),
+                logic: NSLocalizedString("training_type_info.strides.logic", comment: "屬於神經肌肉訓練，透過短時間的高速度刺激，改善肌肉纖維的徵召效率與腿部協調。因為距離短、恢復完全，不會造成顯著疲勞。"),
+                role: NSLocalizedString("training_type_info.strides.role", comment: "通常安排在輕鬆跑結束後，或作為高強度訓練前的熱身。每週進行 2-3 次，每次 4-8 組。")
+            )
+
+        case .hillRepeats:
+            return TrainingTypeInfo(
+                icon: "⛰️",
+                title: NSLocalizedString("training_type_info.hill_repeats.title", comment: "山坡重複跑 Hill Repeats"),
+                howToRun: NSLocalizedString("training_type_info.hill_repeats.how_to_run", comment: "找一個約 5-10% 坡度的上坡，以穩定但有挑戰的速度向上衝刺，然後慢跑或步行下坡恢復。專注在腿部發力與身體前傾。"),
+                whyRun: NSLocalizedString("training_type_info.hill_repeats.why_run", comment: "上坡跑是「偽裝的重量訓練」。它能強化腿部肌力、改善跑步姿勢，同時降低因高速度帶來的衝擊傷害風險。"),
+                logic: NSLocalizedString("training_type_info.hill_repeats.logic", comment: "上坡時需要更大的肌力輸出，能有效訓練臀肌、股四頭肌與小腿肌群。相比平地衝刺，關節衝擊較小但肌肉負荷更大。"),
+                role: NSLocalizedString("training_type_info.hill_repeats.role", comment: "通常安排在基礎期或力量發展期，每週 1 次。是銜接有氧基礎與高強度間歇的重要過渡訓練。")
+            )
+
+        case .cruiseIntervals:
+            return TrainingTypeInfo(
+                icon: "🚢",
+                title: NSLocalizedString("training_type_info.cruise_intervals.title", comment: "巡航間歇 Cruise Intervals"),
+                howToRun: NSLocalizedString("training_type_info.cruise_intervals.how_to_run", comment: "以閾值配速（約能維持 20-30 分鐘的最快速度）進行間歇，每組之間有短暫恢復（約 1-2 分鐘慢跑）。"),
+                whyRun: NSLocalizedString("training_type_info.cruise_intervals.why_run", comment: "巡航間歇讓你在閾值強度下累積更多訓練量。透過短暫恢復，你能比連續跑更長時間地維持在這個關鍵強度區間。"),
+                logic: NSLocalizedString("training_type_info.cruise_intervals.logic", comment: "屬於閾值訓練的變化形式，讓身體長時間處於乳酸閾值附近。間歇的設計讓你能承受更高的總訓練量，同時維持良好的跑姿。"),
+                role: NSLocalizedString("training_type_info.cruise_intervals.role", comment: "通常在比賽準備期使用，作為閾值跑的進階版本。是提升半馬與馬拉松成績的重要訓練。")
+            )
+
+        // MARK: - 新增組合訓練類型
+
+        case .fartlek:
+            return TrainingTypeInfo(
+                icon: "🎲",
+                title: NSLocalizedString("training_type_info.fartlek.title", comment: "法特雷克 Fartlek"),
+                howToRun: NSLocalizedString("training_type_info.fartlek.how_to_run", comment: "「法特雷克」是瑞典語「速度遊戲」。在跑步中隨興變速——看到下個路燈就衝刺、到公園入口再放慢。沒有固定結構，跟著感覺跑。"),
+                whyRun: NSLocalizedString("training_type_info.fartlek.why_run", comment: "法特雷克讓訓練變得有趣，同時訓練身體適應不同速度的切換。它是打破單調訓練的好方法，也能模擬比賽中的配速變化。"),
+                logic: NSLocalizedString("training_type_info.fartlek.logic", comment: "屬於非結構化的混合強度訓練，同時刺激有氧與無氧系統。自由的形式能減少心理疲勞，讓跑者在享受中獲得訓練效果。"),
+                role: NSLocalizedString("training_type_info.fartlek.role", comment: "可以替代結構化的間歇訓練，或作為恢復週的輕鬆變速跑。適合任何訓練階段，特別是需要調劑心情的時候。")
+            )
+
+        case .fastFinish:
+            return TrainingTypeInfo(
+                icon: "🚀",
+                title: NSLocalizedString("training_type_info.fast_finish.title", comment: "快結尾長跑 Fast Finish Long Run"),
+                howToRun: NSLocalizedString("training_type_info.fast_finish.how_to_run", comment: "前 70% 以輕鬆配速進行，最後 30% 逐漸加速到節奏跑或更快的配速。結束時應該覺得有挑戰但能完成。"),
+                whyRun: NSLocalizedString("training_type_info.fast_finish.why_run", comment: "快結尾長跑訓練你在疲勞時維持或加快配速——這正是比賽後半段的挑戰。它讓身體習慣「累了還要加速」的感覺。"),
+                logic: NSLocalizedString("training_type_info.fast_finish.logic", comment: "在肝醣耗竭、肌肉疲勞的狀態下進行較高強度跑步，能提升脂肪代謝能力與疲勞耐受度。也訓練維持跑姿與專注力。"),
+                role: NSLocalizedString("training_type_info.fast_finish.role", comment: "通常在比賽準備期的週末長跑使用。是模擬比賽後半段的重要訓練，能建立比賽信心。")
+            )
+
+        // MARK: - 新增比賽配速訓練
+
+        case .racePace:
+            return TrainingTypeInfo(
+                icon: "🏁",
+                title: NSLocalizedString("training_type_info.race_pace.title", comment: "比賽配速跑 Race Pace Run"),
+                howToRun: NSLocalizedString("training_type_info.race_pace.how_to_run", comment: "以你的目標比賽配速進行訓練。專注在維持穩定的節奏，熟悉這個速度下的呼吸、步頻與身體感覺。"),
+                whyRun: NSLocalizedString("training_type_info.race_pace.why_run", comment: "比賽配速跑讓你的身體與大腦記住目標速度。比賽當天你會更自然地跑出這個配速，而不需要一直盯著手錶。"),
+                logic: NSLocalizedString("training_type_info.race_pace.logic", comment: "透過重複練習目標配速，建立神經肌肉記憶與配速感知能力。也讓你評估當前體能是否能達成目標，適時調整訓練計畫。"),
+                role: NSLocalizedString("training_type_info.race_pace.role", comment: "通常在比賽前 4-8 週開始安排，距離從短到長逐漸增加。是賽前最重要的專項訓練之一。")
+            )
+
+        // MARK: - 新增VO2max提升訓練類型
+
+        case .norwegian4x4:
+            return TrainingTypeInfo(
+                icon: "🇳🇴",
+                title: NSLocalizedString("training_type_info.norwegian_4x4.title", comment: "挪威4x4 Norwegian 4x4"),
+                howToRun: NSLocalizedString("training_type_info.norwegian_4x4.how_to_run", comment: "進行4組4分鐘的高強度跑，每組之間休息3分鐘。保持穩定的乳酸閾值配速，不要衝太快——應該覺得「努力，但能撐完所有組」。"),
+                whyRun: NSLocalizedString("training_type_info.norwegian_4x4.why_run", comment: "挪威4x4是提升最大攝氧量（VO₂max）最有效率的訓練。科學研究顯示，這種方法能在短時間內提升心肺功能約7%，是賽前強化的關鍵課。"),
+                logic: NSLocalizedString("training_type_info.norwegian_4x4.logic", comment: "以乳酸閾值強度（88% VO₂max）進行，刺激有氧系統與無氧能力。4分鐘足夠長以挑戰心肺，3分鐘恢復讓你能完成所有組。這個設計讓身體在高強度下累積更多訓練量。"),
+                role: NSLocalizedString("training_type_info.norwegian_4x4.role", comment: "通常在建強期或比賽準備期使用，每週最多1次。前後搭配輕鬆跑，並確保充分恢復。不適合連續多週進行，需要配合恢復週調整。")
+            )
+
+        case .shortInterval:
+            return TrainingTypeInfo(
+                icon: "⚡",
+                title: NSLocalizedString("training_type_info.short_interval.title", comment: "短間歇 Short Interval"),
+                howToRun: NSLocalizedString("training_type_info.short_interval.how_to_run", comment: "進行 6-10 組短距離（400-600 公尺）的高強度衝刺，每組之間以輕鬆速度恢復約 1-2 分鐘。盡力衝刺，讓呼吸充分提升。"),
+                whyRun: NSLocalizedString("training_type_info.short_interval.why_run", comment: "短間歇訓練速度與爆發力。較短的距離讓你能維持全力，同時完整恢復時間幫助你撐完所有組。特別適合5K賽事準備。"),
+                logic: NSLocalizedString("training_type_info.short_interval.logic", comment: "屬於高強度間歇訓練，刺激VO₂max與神經肌肉反應。短距離特別有效於提升最大速度與踏頻，同時也訓練身體快速加速的能力。"),
+                role: NSLocalizedString("training_type_info.short_interval.role", comment: "通常在基礎速度訓練期或5K賽事準備期使用。每週最多1次，搭配恢復跑與輕鬆日。連續進行會增加受傷風險。")
+            )
+
+        case .longInterval:
+            return TrainingTypeInfo(
+                icon: "🔥",
+                title: NSLocalizedString("training_type_info.long_interval.title", comment: "長間歇 Long Interval"),
+                howToRun: NSLocalizedString("training_type_info.long_interval.how_to_run", comment: "進行 4-6 組較長距離（1200-2000 公尺）的高強度跑，每組之間以輕鬆速度恢復 2-3 分鐘。配速應該比短間歇稍慢，但仍維持高強度。"),
+                whyRun: NSLocalizedString("training_type_info.long_interval.why_run", comment: "長間歇是連結短間歇與持續跑的橋樑。它既能刺激VO₂max，又能在相對長時間內維持高配速，特別適合半馬與10K賽事準備。"),
+                logic: NSLocalizedString("training_type_info.long_interval.logic", comment: "屬於高強度間歇訓練，但強度略低於短間歇。較長的持續時間讓身體適應在疲勞中維持高配速，也訓練乳酸耐受度。"),
+                role: NSLocalizedString("training_type_info.long_interval.role", comment: "通常在進階速度訓練期或10K/半馬準備期使用。每週最多1次，通常在短間歇之後進行。需要充分恢復。")
+            )
+
+        case .yasso800:
+            return TrainingTypeInfo(
+                icon: "⚙️",
+                title: NSLocalizedString("training_type_info.yasso_800.title", comment: "亞索800 Yasso 800s"),
+                howToRun: NSLocalizedString("training_type_info.yasso_800.how_to_run", comment: "進行 8-10 組 800 公尺的高強度跑，每組之間以慢跑恢復 2-3 分鐘（約等於完成 800m 所需的時間）。例如若你 800m 跑 3 分鐘，恢復也約 3 分鐘。"),
+                whyRun: NSLocalizedString("training_type_info.yasso_800.why_run", comment: "亞索800的特殊之處在於它能直接預測馬拉松成績。根據美國著名教練 Bart Yasso 的理論，你能在 800m 跑出的時間（分鐘秒數），對應你的預測馬拉松完賽時間（小時分鐘）。"),
+                logic: NSLocalizedString("training_type_info.yasso_800.logic", comment: "800公尺的距離完美平衡速度與耐力。間歇設計刺激VO₂max與乳酸緩衝能力。等時恢復讓身體學會在部分疲勞下維持配速，是馬拉松特異性訓練。"),
+                role: NSLocalizedString("training_type_info.yasso_800.role", comment: "特別適合馬拉松準備期，每週進行 1 次。是馬拉松訓練中最具預測性的課程。也常在其他距離賽事準備期使用以提升速度。")
+            )
+
         default:
             return nil
         }

@@ -9,7 +9,7 @@ struct HRRHeartRateZoneEditorView: View {
     @State private var alertMessage = ""
     @State private var isLoading = false
     
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     
     var body: some View {
         NavigationView {

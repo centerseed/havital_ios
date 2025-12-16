@@ -230,15 +230,15 @@ struct TodayTrainingContent: View {
         switch type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return .orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
-        case .race:
+        case .race, .racePace:
             return .red
         case .rest:
             return .gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek:
             return .purple
         }
     }

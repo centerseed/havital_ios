@@ -3,13 +3,15 @@ import Combine
 import FirebaseAuth
 
 @MainActor
-class UserProfileViewModel: ObservableObject {
+class UserProfileViewModel: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+
     @Published var isLoading = false
     @Published var error: Error?
     @Published var userData: User?
     @Published var heartRateZones: [HeartRateZonesManager.HeartRateZone] = []
     @Published var isLoadingZones = true
-    
+
     private var cancellables = Set<AnyCancellable>()
     
     func fetchUserProfile() {
@@ -72,6 +74,10 @@ class UserProfileViewModel: ObservableObject {
         case 5: return .red
         default: return .gray
         }
+    }
+
+    deinit {
+        cancelAllTasks()
     }
 }
 

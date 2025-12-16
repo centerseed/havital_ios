@@ -265,6 +265,12 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 cacheWeeklySummaries(self.weeklySummaries)
             }
         } catch {
+            // 檢查是否為取消錯誤
+            if error.isCancellationError {
+                Logger.debug("Fetch weekly summaries task cancelled, ignoring error")
+                return
+            }
+
             Logger.error("Failed to fetch weekly summaries: \(error.localizedDescription)")
             await MainActor.run {
                 // 如果獲取失敗但有緩存，使用緩存數據
@@ -301,21 +307,27 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 Logger.debug("📊 [WeeklySummaries] 已更新UI列表，共 \(self.weeklySummaries.count) 週")
             }
         } catch {
+            // 檢查是否為取消錯誤
+            if error.isCancellationError {
+                Logger.debug("Force update weekly summaries task cancelled, ignoring error")
+                return
+            }
+
             Logger.error("Failed to force update weekly summaries: \(error.localizedDescription)")
         }
     }
     
     // 在產生新課表後調用
     func onNewPlanGenerated() {
-        Task {
-            await forceUpdateWeeklySummaries()
+        Task { [weak self] in
+            await self?.forceUpdateWeeklySummaries()
         }
     }
-    
+
     // 在產生週回顧後調用
     func onWeeklySummaryGenerated() {
-        Task {
-            await forceUpdateWeeklySummaries()
+        Task { [weak self] in
+            await self?.forceUpdateWeeklySummaries()
         }
     }
     
@@ -324,9 +336,9 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
         Logger.debug("TrainingPlanViewModel: 開始簡化的初始化")
 
         // 非同步初始化 - 使用單一統一的初始化方法
-        Task {
-            await TrackedTask("TrainingPlanViewModel: init") {
-                await self.performUnifiedInitialization()
+        Task { [weak self] in
+            try? await TrackedTask("TrainingPlanViewModel: init") {
+                await self?.performUnifiedInitialization()
             }.value
         }
     }

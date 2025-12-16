@@ -222,7 +222,8 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     )
                     return [item]
                 }
-            case .interval:
+            // 間歇訓練類型（包含新增的大步跑、山坡重複跑、巡航間歇、短間歇、長間歇、挪威4x4、亞索800）
+            case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
                 var items: [WeeklyTrainingItem] = []
                 // work 和 repeats 是必須的，recovery 可選（nil 表示原地休息）
                 if let work = details.work, let repeats = details.repeats {
@@ -236,8 +237,22 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         return nil
                     }()
 
+                    // 根據類型獲取本地化名稱
+                    let intervalTypeName: String = {
+                        switch type {
+                        case .strides: return L10n.Training.TrainingType.strides.localized
+                        case .hillRepeats: return L10n.Training.TrainingType.hillRepeats.localized
+                        case .cruiseIntervals: return L10n.Training.TrainingType.cruiseIntervals.localized
+                        case .shortInterval: return L10n.Training.TrainingType.shortInterval.localized
+                        case .longInterval: return L10n.Training.TrainingType.longInterval.localized
+                        case .norwegian4x4: return L10n.Training.TrainingType.norwegian4x4.localized
+                        case .yasso800: return L10n.Training.TrainingType.yasso800.localized
+                        default: return L10n.Training.TrainingType.interval.localized
+                        }
+                    }()
+
                     let workItem = WeeklyTrainingItem(
-                        name: L10n.Training.TrainingType.interval.localized,
+                        name: intervalTypeName,
                         runDetails: work.description ?? "",
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: work.pace, distanceKm: workDistance, heartRateRange: nil, heartRate: nil, times: repeats)
@@ -267,11 +282,20 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     items.append(recoveryItem)
                     return items
                 }
-            case .tempo, .threshold:
+            // 節奏/閾值類型（包含新增的比賽配速跑）
+            case .tempo, .threshold, .racePace:
                 if let distance = details.distanceKm {
                     let description = details.description ?? ""
+                    let typeName: String = {
+                        switch type {
+                        case .tempo: return L10n.Training.TrainingType.tempo.localized
+                        case .threshold: return L10n.Training.TrainingType.threshold.localized
+                        case .racePace: return L10n.Training.TrainingType.racePace.localized
+                        default: return L10n.Training.TrainingType.tempo.localized
+                        }
+                    }()
                     let item = WeeklyTrainingItem(
-                        name: type == .tempo ? L10n.Training.TrainingType.tempo.localized : L10n.Training.TrainingType.threshold.localized,
+                        name: typeName,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(
@@ -295,11 +319,19 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     )
                     return [item]
                 }
-            case .combination:
+            // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
+            case .combination, .fartlek, .fastFinish:
                 if let _ = details.segments, let totalDistance = details.totalDistanceKm {
                     let description = details.description ?? ""
+                    let typeName: String = {
+                        switch type {
+                        case .fartlek: return L10n.Training.TrainingType.fartlek.localized
+                        case .fastFinish: return L10n.Training.TrainingType.fastFinish.localized
+                        default: return L10n.Training.TrainingType.combination.localized
+                        }
+                    }()
                     let item = WeeklyTrainingItem(
-                        name: L10n.Training.TrainingType.combination.localized,
+                        name: typeName,
                         runDetails: description,
                         durationMinutes: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
@@ -476,6 +508,21 @@ enum DayType: String, Codable {
     case cycling = "cycling"
     case combination = "combination"
 
+    // 新增間歇訓練類型
+    case strides = "strides"                    // 大步跑
+    case hillRepeats = "hill_repeats"           // 山坡重複跑
+    case cruiseIntervals = "cruise_intervals"   // 巡航間歇
+    case shortInterval = "short_interval"       // 短間歇
+    case longInterval = "long_interval"         // 長間歇
+    case norwegian4x4 = "norwegian_4x4"         // 挪威4x4訓練
+    case yasso800 = "yasso_800"                 // 亞索800
+
+    // 新增組合訓練類型
+    case fartlek = "fartlek"                    // 法特雷克
+    case fastFinish = "fast_finish"             // 快結尾長跑
+
+    // 新增比賽配速訓練
+    case racePace = "race_pace"                 // 比賽配速跑
 }
 
 struct WeeklyTrainingItem: Identifiable {

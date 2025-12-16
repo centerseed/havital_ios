@@ -410,7 +410,7 @@ class TrainingPlanManager: ObservableObject, DataManageable {
 
             // 🔄 檢查 Onboarding Backfill 結果（背景執行）
             // 在 overview 載入完成後檢查 backfill 狀態，記錄到 cloud logging
-            let currentDataSource = UserPreferenceManager.shared.dataSourcePreference
+            let currentDataSource = UserPreferencesManager.shared.dataSourcePreference
             if currentDataSource == .strava || currentDataSource == .garmin {
                 BackfillService.shared.checkAndLogBackfillResult(provider: currentDataSource)
             }

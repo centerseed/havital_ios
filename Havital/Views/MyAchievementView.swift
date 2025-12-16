@@ -99,14 +99,19 @@ struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
     @ObservedObject private var trainingReadinessManager = TrainingReadinessManager.shared
+    @ObservedObject private var userManager = UserManager.shared
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
     @State private var refreshRotation: Double = 0
 
+    // Personal Best v2 慶祝動畫相關
+    @State private var showCelebration = false
+    @State private var celebrationUpdate: PersonalBestUpdate?
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     // 格式化更新時間
@@ -174,6 +179,11 @@ struct MyAchievementView: View {
                     .cardStyle()
                     .padding(.horizontal)
 
+                    // Personal Best v2 Card - 個人最佳成績
+                    PersonalBestCardView(
+                        personalBestData: userManager.currentUser?.personalBestV2?["race_run"]
+                    )
+
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
                     TrainingLoadChartSection()
                         .environmentObject(healthKitManager)
@@ -208,6 +218,25 @@ struct MyAchievementView: View {
                 // Load training readiness data when view appears
                 TrackedTask("MyAchievementView: loadData") {
                     await trainingReadinessManager.loadData()
+                }
+
+                // Check for pending Personal Best celebration
+                checkForCelebration()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .personalBestDidUpdate)) { notification in
+                if let update = notification.object as? PersonalBestUpdate {
+                    celebrationUpdate = update
+                    showCelebration = true
+                }
+            }
+            .overlay {
+                if showCelebration, let update = celebrationUpdate {
+                    PersonalBestCelebrationView(update: update) {
+                        showCelebration = false
+                        userManager.markCelebrationAsShown()
+                    }
+                    .transition(.opacity)
+                    .zIndex(999)
                 }
             }
             .toolbar {
@@ -293,6 +322,20 @@ struct MyAchievementView: View {
             }
         }
     }
+
+    // MARK: - Personal Best Celebration
+
+    /// 檢查是否有待顯示的慶祝動畫
+    private func checkForCelebration() {
+        if let pendingUpdate = userManager.getPendingCelebrationUpdate() {
+            celebrationUpdate = pendingUpdate
+
+            // 延遲顯示，避免與頁面載入動畫衝突
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showCelebration = true
+            }
+        }
+    }
 }
 
 // MARK: - Chart Tab Enums
@@ -333,7 +376,7 @@ struct CombinedHeartRateChartSection: View {
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     var body: some View {
@@ -360,7 +403,7 @@ struct CombinedHeartRateChartSection: View {
                         } else {
                             // Garmin Attribution for main chart data
                             ConditionalGarminAttributionView(
-                                dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                                dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                                 deviceModel: nil,
                                 displayStyle: .titleLevel
                             )
@@ -452,7 +495,7 @@ struct RestingHeartRateChartSection: View {
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     var body: some View {
@@ -804,7 +847,7 @@ struct SharedHealthDataChartView: View {
                         Spacer()
                         
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -1294,7 +1337,7 @@ struct TrainingLoadChartSection: View {
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     var body: some View {
@@ -1397,7 +1440,7 @@ struct TrainingLoadChartView: View {
                     // Title for empty state
                     HStack {
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -1934,7 +1977,7 @@ struct FitnessIndexChartView: View {
                 VStack {
                     HStack {
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -2344,7 +2387,7 @@ struct TSBChartView: View {
                 VStack {
                     HStack {
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )

@@ -121,7 +121,7 @@ struct TrainingPlanOverviewView: View {
                     }
                 }) {
                     HStack {
-                        Text(L10n.TrainingPlanOverview.generatePlan.localized(with: UserPreferenceManager.shared.weekOfTraining ?? 1))
+                        Text(L10n.TrainingPlanOverview.generatePlan.localized(with: UserPreferencesManager.shared.weekOfTraining ?? 1))
                             .fontWeight(.semibold)
                         if isGeneratingPlan {
                             ProgressView()

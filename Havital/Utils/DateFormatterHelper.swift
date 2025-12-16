@@ -26,7 +26,7 @@ struct DateFormatterHelper {
 
         // ✅ 統一使用用戶設定的時區
         if useUserTimezone {
-            if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+            if let userTimezone = UserPreferencesManager.shared.timezonePreference {
                 formatter.timeZone = TimeZone(identifier: userTimezone)
             } else {
                 // 如果用戶未設定時區，使用設備當前時區
@@ -71,7 +71,7 @@ struct DateFormatterHelper {
         formatter.timeStyle = .none
         formatter.locale = locale
 
-        if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference {
             formatter.timeZone = TimeZone(identifier: userTimezone)
         } else {
             formatter.timeZone = TimeZone.current
@@ -140,7 +140,7 @@ struct DateFormatterHelper {
 
         // 今天
         var calendar = Calendar.current
-        if let userTimezone = UserPreferenceManager.shared.timezonePreference,
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
            let tz = TimeZone(identifier: userTimezone) {
             calendar.timeZone = tz
         }
@@ -158,7 +158,7 @@ struct DateFormatterHelper {
         if interval < 7 * 24 * 3600 {
             let weekdayFormatter = DateFormatter()
             weekdayFormatter.dateFormat = "EEEE HH:mm"
-            if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+            if let userTimezone = UserPreferencesManager.shared.timezonePreference {
                 weekdayFormatter.timeZone = TimeZone(identifier: userTimezone)
             }
             return weekdayFormatter.string(from: date)
@@ -173,7 +173,7 @@ struct DateFormatterHelper {
     /// 獲取當前使用的時區資訊（用於調試）
     /// - Returns: 時區資訊字串
     static func getCurrentTimezoneInfo() -> String {
-        if let userTimezone = UserPreferenceManager.shared.timezonePreference,
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
            let tz = TimeZone(identifier: userTimezone) {
             return "\(userTimezone) (GMT\(tz.secondsFromGMT() / 3600))"
         } else {

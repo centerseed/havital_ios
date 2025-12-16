@@ -151,9 +151,9 @@ class GarminManager: NSObject, ObservableObject {
                         self.objectWillChange.send()
                         
                         // 如果 Garmin 連線正常但本地偏好設定不是 Garmin，恢復偏好設定
-                        if UserPreferenceManager.shared.dataSourcePreference != .garmin {
+                        if UserPreferencesManager.shared.dataSourcePreference != .garmin {
                             print("🔄 恢復 Garmin 資料來源偏好設定")
-                            UserPreferenceManager.shared.dataSourcePreference = .garmin
+                            UserPreferencesManager.shared.dataSourcePreference = .garmin
                             
                             // 同步到後端
                             Task {
@@ -388,7 +388,7 @@ class GarminManager: NSObject, ObservableObject {
                 ])
                 
                 // 連接成功後自動切換到Garmin數據源
-                UserPreferenceManager.shared.dataSourcePreference = .garmin
+                UserPreferencesManager.shared.dataSourcePreference = .garmin
                 
                 // 同步到後端
                 Task {

@@ -417,6 +417,28 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             ]
         )
 
+        // ⚠️ CRITICAL FIX: 如果前端已經設置為 true，不要被後端的 nil 覆蓋
+        // 這可能是因為後端還沒來得及更新 activeWeeklyPlanId
+        // 只允許從 false → true，或 true → true，不允許 true → false（除非明確重置）
+        let shouldUpdate = completed || !hasCompletedOnboarding
+
+        if !shouldUpdate {
+            print("⚠️ 前端已標記 onboarding 完成，但後端 activeWeeklyPlanId 為空。保持前端狀態，不覆蓋。")
+            Logger.firebase(
+                "保持前端 onboarding 狀態",
+                level: .warn,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "skip_onboarding_status_update"
+                ],
+                jsonPayload: [
+                    "reason": "frontend_already_completed",
+                    "backend_active_weekly_plan_id": user.activeWeeklyPlanId ?? "null"
+                ]
+            )
+            return
+        }
+
         // 在主線程更新狀態並儲存到 UserDefaults
         Task { @MainActor in
             print("🔄 更新 onboarding 狀態: \(completed)")
@@ -606,9 +628,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         
         // 使用 CacheEventBus 統一清除所有快取
         CacheEventBus.shared.invalidateCache(for: .userLogout)
-        
+
         // 清除非快取相關的本地存儲
-        UserPreferenceManager.shared.clearUserData()
+        await UserPreferencesManager.shared.clearAllData()
         WorkoutV2Service.shared.clearWorkoutSummaryCache()
         WorkoutUploadTracker.shared.clearUploadedWorkouts()
         SyncNotificationManager.shared.reset()
@@ -652,7 +674,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             // 4. 清除本地與訓練計畫相關的緩存，確保重新 Onboarding 時是乾淨的狀態
             CacheEventBus.shared.invalidateCache(for: .dataChanged(.trainingPlan))
             // VDOTStorage.shared.clearVDOTData() // VDOT 可能基於賽事目標，看是否需要清除
-            // UserPreferenceManager.shared.clearTrainingPreferences() // 清除用戶訓練偏好，讓他們重新設定
+            // UserPreferencesManager.shared.clearTrainingPreferences() // 清除用戶訓練偏好，讓他們重新設定
             
             print("AuthenticationService: 開始重新 Onboarding 流程。 hasCompletedOnboarding: \(self.hasCompletedOnboarding), isReonboardingMode: \(self.isReonboardingMode)")
         }
@@ -702,7 +724,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         }
         
         // 如果用戶偏好設定為 Garmin，檢查後端的 Garmin 連接狀態
-        if UserPreferenceManager.shared.dataSourcePreference == .garmin {
+        if UserPreferencesManager.shared.dataSourcePreference == .garmin {
             print("🔍 用戶偏好為 Garmin，檢查連接狀態...")
             await GarminManager.shared.checkConnectionStatus()
             
@@ -719,7 +741,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 }
             }
         } else {
-            print("🔍 用戶偏好不是 Garmin (\(UserPreferenceManager.shared.dataSourcePreference.displayName))，跳過 Garmin 狀態檢查")
+            print("🔍 用戶偏好不是 Garmin (\(UserPreferencesManager.shared.dataSourcePreference.displayName))，跳過 Garmin 狀態檢查")
         }
     }
 
@@ -733,7 +755,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         print("🔍 用戶資料載入完成後檢查 Strava 連線狀態")
 
         // 如果用戶偏好設定為 Strava，檢查後端的 Strava 連接狀態
-        if UserPreferenceManager.shared.dataSourcePreference == .strava {
+        if UserPreferencesManager.shared.dataSourcePreference == .strava {
             print("🔍 用戶偏好為 Strava，檢查連接狀態...")
             await StravaManager.shared.checkConnectionStatus()
 
@@ -764,7 +786,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         let backendDataSource = user.dataSource
 
         print("  - 後端 data_source: \(backendDataSource ?? "nil")")
-        print("  - 本地偏好: \(UserPreferenceManager.shared.dataSourcePreference.rawValue)")
+        print("  - 本地偏好: \(UserPreferencesManager.shared.dataSourcePreference.rawValue)")
 
         // 如果後端沒有設定數據源，發送通知提示用戶綁定
         if backendDataSource == nil || backendDataSource == "unbound" {
@@ -781,7 +803,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                 "module": "AuthenticationService",
                 "action": "checkDataSourceBinding",
                 "backend_data_source": backendDataSource ?? "nil",
-                "local_preference": UserPreferenceManager.shared.dataSourcePreference.rawValue
+                "local_preference": UserPreferencesManager.shared.dataSourcePreference.rawValue
             ])
         } else {
             print("✅ 數據源已綁定: \(backendDataSource!)")
@@ -789,10 +811,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             // 如果後端有設定但本地沒有，同步到本地
             if let dataSourceString = backendDataSource,
                let dataSourceType = DataSourceType(rawValue: dataSourceString),
-               UserPreferenceManager.shared.dataSourcePreference != dataSourceType {
+               UserPreferencesManager.shared.dataSourcePreference != dataSourceType {
 
                 print("🔄 後端數據源與本地不一致，同步到本地: \(dataSourceType.displayName)")
-                UserPreferenceManager.shared.dataSourcePreference = dataSourceType
+                UserPreferencesManager.shared.dataSourcePreference = dataSourceType
             }
         }
     }

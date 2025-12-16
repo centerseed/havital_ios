@@ -195,7 +195,7 @@ struct WeeklyVolumeChartView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"
         // 使用用户设置的时区，如果未设置则使用设备当前时区
-        if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference {
             formatter.timeZone = TimeZone(identifier: userTimezone)
         } else {
             formatter.timeZone = TimeZone.current

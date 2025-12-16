@@ -4,7 +4,7 @@ import FirebaseAuth
 
 class UserService {
     static let shared = UserService()
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     
     // MARK: - New Architecture Dependencies
     private let httpClient: HTTPClient
@@ -79,6 +79,12 @@ class UserService {
         print("數據源設定已同步到後端: \(dataSource)")
     }
     
+    /// 獲取用戶資料（Async/Await 版本）
+    func getUserProfileAsync() async throws -> User {
+        return try await makeAPICall(User.self, path: "/user")
+    }
+
+    /// 獲取用戶資料（Combine Publisher 版本）
     func getUserProfile() -> AnyPublisher<User, Error> {
         return Future<User, Error> { [weak self] promise in
             Task {

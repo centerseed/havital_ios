@@ -5,7 +5,7 @@ import Combine
 class HeartRateZonesManager {
     static let shared = HeartRateZonesManager()
     
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let userPreferenceManager = UserPreferencesManager.shared
     
     // 心率區間定義 (百分比)
     struct ZonePercentages {
@@ -41,7 +41,7 @@ class HeartRateZonesManager {
     
     private init() {}
     
-    /// 計算心率區間並儲存到 UserPreferenceManager
+    /// 計算心率區間並儲存到 UserPreferencesManager
     func calculateAndSaveHeartRateZones(maxHR: Int, restingHR: Int) {
         let zones = calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
         saveHeartRateZones(zones: zones)
@@ -219,7 +219,7 @@ class HeartRateZonesManager {
                 
                 print("從用戶資料同步心率區間 - 最大心率: \(maxHR), 靜息心率: \(restingHR)")
                 
-                // 保存到 UserPreferenceManager
+                // 保存到 UserPreferencesManager
                 userPreferenceManager.maxHeartRate = maxHR
                 userPreferenceManager.restingHeartRate = restingHR
                 

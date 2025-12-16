@@ -8,6 +8,30 @@
 
 import Foundation
 
+// MARK: - 數據來源類型定義
+/// 定義 App 的數據來源類型
+enum DataSourceType: String, CaseIterable, Identifiable {
+    case unbound = "unbound"
+    case appleHealth = "apple_health"
+    case garmin = "garmin"
+    case strava = "strava"
+
+    var id: String { self.rawValue }
+
+    var displayName: String {
+        switch self {
+        case .unbound:
+            return L10n.DataSource.notConnected.localized
+        case .appleHealth:
+            return L10n.DataSource.appleHealth.localized
+        case .garmin:
+            return "Garmin"
+        case .strava:
+            return "Strava"
+        }
+    }
+}
+
 /// 用戶偏好設定 API 服務
 final class UserPreferencesService {
     static let shared = UserPreferencesService()
@@ -91,16 +115,114 @@ final class UserPreferencesService {
 
 /// 用戶偏好設定模型
 struct UserPreferences: Codable {
-    let language: String
-    let timezone: String
-    let supportedLanguages: [String]
-    let languageNames: [String: String]
+    // API 返回的字段
+    var language: String
+    var timezone: String
+    var supportedLanguages: [String]
+    var languageNames: [String: String]
+
+    // 本地管理的字段（不從 API 獲取，僅本地存儲）
+    var dataSourcePreference: DataSourceType?
+    var email: String?
+    var name: String?
+    var age: Int?
+    var maxHeartRate: Int?
+    var restingHeartRate: Int?
+    var doNotShowHeartRatePrompt: Bool?
+    var heartRatePromptNextRemindDate: Date?
+    var heartRateZones: Data?
+    var currentPace: String?
+    var currentDistance: String?
+    var preferWeekDays: [String]?
+    var preferWeekDaysLongRun: [String]?
+    var weekOfTraining: Int?
+    var photoURL: String?
 
     enum CodingKeys: String, CodingKey {
         case language
         case timezone
         case supportedLanguages = "supported_languages"
         case languageNames = "language_names"
+        // 本地字段不參與 API 編解碼
+    }
+
+    // MARK: - Custom Decoding (from API)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        language = try container.decode(String.self, forKey: .language)
+        timezone = try container.decode(String.self, forKey: .timezone)
+        supportedLanguages = try container.decode([String].self, forKey: .supportedLanguages)
+        languageNames = try container.decode([String: String].self, forKey: .languageNames)
+
+        // 本地字段初始化為 nil，由 UserPreferencesManager 從緩存載入
+        dataSourcePreference = nil
+        email = nil
+        name = nil
+        age = nil
+        maxHeartRate = nil
+        restingHeartRate = nil
+        doNotShowHeartRatePrompt = nil
+        heartRatePromptNextRemindDate = nil
+        heartRateZones = nil
+        currentPace = nil
+        currentDistance = nil
+        preferWeekDays = nil
+        preferWeekDaysLongRun = nil
+        weekOfTraining = nil
+        photoURL = nil
+    }
+
+    // MARK: - Custom Encoding (for API - only encode API fields)
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(language, forKey: .language)
+        try container.encode(timezone, forKey: .timezone)
+        try container.encode(supportedLanguages, forKey: .supportedLanguages)
+        try container.encode(languageNames, forKey: .languageNames)
+        // 本地字段不編碼到 API
+    }
+
+    // MARK: - Manual Initializer (for local creation)
+    init(
+        language: String,
+        timezone: String,
+        supportedLanguages: [String] = [],
+        languageNames: [String: String] = [:],
+        dataSourcePreference: DataSourceType? = nil,
+        email: String? = nil,
+        name: String? = nil,
+        age: Int? = nil,
+        maxHeartRate: Int? = nil,
+        restingHeartRate: Int? = nil,
+        doNotShowHeartRatePrompt: Bool? = nil,
+        heartRatePromptNextRemindDate: Date? = nil,
+        heartRateZones: Data? = nil,
+        currentPace: String? = nil,
+        currentDistance: String? = nil,
+        preferWeekDays: [String]? = nil,
+        preferWeekDaysLongRun: [String]? = nil,
+        weekOfTraining: Int? = nil,
+        photoURL: String? = nil
+    ) {
+        self.language = language
+        self.timezone = timezone
+        self.supportedLanguages = supportedLanguages
+        self.languageNames = languageNames
+        self.dataSourcePreference = dataSourcePreference
+        self.email = email
+        self.name = name
+        self.age = age
+        self.maxHeartRate = maxHeartRate
+        self.restingHeartRate = restingHeartRate
+        self.doNotShowHeartRatePrompt = doNotShowHeartRatePrompt
+        self.heartRatePromptNextRemindDate = heartRatePromptNextRemindDate
+        self.heartRateZones = heartRateZones
+        self.currentPace = currentPace
+        self.currentDistance = currentDistance
+        self.preferWeekDays = preferWeekDays
+        self.preferWeekDaysLongRun = preferWeekDaysLongRun
+        self.weekOfTraining = weekOfTraining
+        self.photoURL = photoURL
     }
 }
 

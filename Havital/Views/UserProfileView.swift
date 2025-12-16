@@ -6,7 +6,7 @@ struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     @Environment(\.dismiss) private var dismiss
@@ -353,7 +353,7 @@ struct UserProfileView: View {
                     Text(NSLocalizedString("settings.timezone", comment: "Timezone"))
                     Spacer()
                     if let timezone = userPreferenceManager.timezonePreference {
-                        Text(UserPreferenceManager.getTimezoneDisplayName(for: timezone))
+                        Text(UserPreferencesManager.getTimezoneDisplayName(for: timezone))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

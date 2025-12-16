@@ -112,7 +112,7 @@ struct WorkoutDetailViewV2: View {
                 }
 
                 // 數據來源和設備信息卡片（移到最底下）
-                sourceInfoCard
+                sourceInfoCardWithAlerts
 
                 // 刪除運動記錄卡片
                 deleteWorkoutCard
@@ -296,7 +296,7 @@ struct WorkoutDetailViewV2: View {
                     // 重新載入詳細資料
                     Task {
                         await viewModel.refreshWorkoutDetail()
-                    }
+                    }.tracked(from: "WorkoutDetailViewV2: reuploadWorkout_refreshAfterSuccess")
                     
                 case .insufficientHeartRate(let count):
                     // 心率數據不足，顯示警告
@@ -327,7 +327,7 @@ struct WorkoutDetailViewV2: View {
                 reuploadErrorMessage = NSLocalizedString("workout.upload_success_insufficient_hr", comment: "Workout uploaded (insufficient heart rate data)")
                 Task {
                     await viewModel.refreshWorkoutDetail()
-                }
+                }.tracked(from: "WorkoutDetailViewV2: forceReupload_refreshAfterSuccess")
             } else {
                 reuploadErrorMessage = NSLocalizedString("workout.reupload_failed", comment: "Re-upload failed, please try again later.")
             }
@@ -335,105 +335,123 @@ struct WorkoutDetailViewV2: View {
     }
     
     // MARK: - 數據來源信息卡片
-    
+
     private var sourceInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(NSLocalizedString("profile.data_sources", comment: "Data Sources"))
                 .font(.headline)
                 .fontWeight(.semibold)
-            
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(NSLocalizedString("workout.provider", comment: "Provider"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Show Strava attribution if data source is Strava (badge only, no device name)
-                        ConditionalStravaAttributionView(
-                            dataProvider: viewModel.workout.provider,
-                            displayStyle: .compact
-                        )
 
-                        // Show Garmin attribution if device is Garmin (badge only, no device name)
-                        if let deviceManufacturer = viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
-                           deviceManufacturer.lowercased() == "garmin" {
-                            GarminAttributionView(
-                                deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
-                                displayStyle: .compact
-                            )
-                        }
+            providerInfoRow
 
-                        // Fallback: show provider name if neither Strava nor Garmin
-                        if viewModel.workout.provider.lowercased() != "strava" &&
-                           viewModel.workout.provider.lowercased() != "garmin" &&
-                           viewModel.workoutDetail?.deviceInfo?.deviceManufacturer?.lowercased() != "garmin" {
-                            Text(viewModel.workout.provider)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                    }
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(NSLocalizedString("workout.activity_type", comment: "Activity Type"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(viewModel.workout.activityType.workoutTypeDisplayName())
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
-            }
-            
             // 只有 Apple Health 資料來源才顯示重新上傳按鈕
             if isAppleHealthSource {
                 Divider()
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(NSLocalizedString("workout.resync_data", comment: "Resync Data"))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(NSLocalizedString("workout.force_reupload_description", comment: "Force re-upload this workout record, including retry fetching heart rate data"))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        showReuploadAlert = true
-                    }) {
-                        if isReuploadingWorkout {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .frame(width: 60, height: 28)
-                        } else {
-                            Label(L10n.WorkoutDetail.reupload.localized, systemImage: "arrow.triangle.2.circlepath")
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(6)
-                        }
-                    }
-                    .disabled(isReuploadingWorkout)
-                }
+                reuploadSection
             }
         }
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+    }
+
+    private var providerInfoRow: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("workout.provider", comment: "Provider"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                providerBadges
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(NSLocalizedString("workout.activity_type", comment: "Activity Type"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(viewModel.workout.activityType.workoutTypeDisplayName())
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var providerBadges: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Show Strava attribution if data source is Strava (badge only, no device name)
+            ConditionalStravaAttributionView(
+                dataProvider: viewModel.workout.provider,
+                displayStyle: .compact
+            )
+
+            // Show Garmin attribution if device is Garmin (badge only, no device name)
+            if let deviceManufacturer = viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
+               deviceManufacturer.lowercased() == "garmin" {
+                GarminAttributionView(
+                    deviceModel: nil,  // 不傳遞 deviceModel，只顯示 badge
+                    displayStyle: .compact
+                )
+            }
+
+            // Fallback: show provider name if neither Strava nor Garmin
+            if viewModel.workout.provider.lowercased() != "strava" &&
+               viewModel.workout.provider.lowercased() != "garmin" &&
+               viewModel.workoutDetail?.deviceInfo?.deviceManufacturer?.lowercased() != "garmin" {
+                Text(viewModel.workout.provider)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+        }
+    }
+
+    private var reuploadSection: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("workout.resync_data", comment: "Resync Data"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(NSLocalizedString("workout.force_reupload_description", comment: "Force re-upload this workout record, including retry fetching heart rate data"))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            Button(action: {
+                showReuploadAlert = true
+            }) {
+                if isReuploadingWorkout {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .frame(width: 60, height: 28)
+                } else {
+                    Label(L10n.WorkoutDetail.reupload.localized, systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                }
+            }
+            .disabled(isReuploadingWorkout)
+        }
+    }
+
+    // MARK: - Alert Modifiers (attached to sourceInfoCard)
+
+    private var sourceInfoCardWithAlerts: some View {
+        sourceInfoCard
         .alert(L10n.WorkoutDetail.reuploadAlert.localized, isPresented: $showReuploadAlert) {
             Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) { }
             Button(L10n.WorkoutDetail.confirmUpload.localized, role: .destructive) {
                 Task {
                     await reuploadWorkout()
-                }
+                }.tracked(from: "WorkoutDetailViewV2: reuploadAlert_confirm")
             }
         } message: {
             Text(L10n.WorkoutDetail.reuploadMessage.localized)
@@ -454,7 +472,7 @@ struct WorkoutDetailViewV2: View {
             Button(L10n.WorkoutDetail.stillUpload.localized, role: .destructive) {
                 Task {
                     await forceReuploadWithInsufficientHeartRate()
-                }
+                }.tracked(from: "WorkoutDetailViewV2: insufficientHeartRateAlert_forceUpload")
             }
         } message: {
             Text(String(format: L10n.WorkoutDetail.insufficientHeartRateMessage.localized, heartRateCount))
@@ -515,7 +533,7 @@ struct WorkoutDetailViewV2: View {
             Button(NSLocalizedString(L10n.WorkoutDetail.deleteWorkout, comment: "Delete"), role: .destructive) {
                 Task {
                     await deleteWorkout()
-                }
+                }.tracked(from: "WorkoutDetailViewV2: deleteConfirmation")
             }
             Button(NSLocalizedString(L10n.WorkoutDetail.cancel, comment: "Cancel"), role: .cancel) {}
         } message: {

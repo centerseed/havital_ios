@@ -6,14 +6,42 @@ struct WeekSelectorSheet: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoadingWeeklySummaries {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(viewModel.weeklySummaries, id: \.weekIndex) { item in
+            contentView
+                .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            isPresented = false
+                        } label: {
+                            HStack {
+                                Image(systemName: "xmark")
+                                Text(L10n.WeekSelector.close.localized)
+                            }
+                            .foregroundColor(.blue)
+                        }
+                    }
+                }
+        }
+        .task {
+            await viewModel.fetchWeeklySummaries()
+        }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if viewModel.isLoadingWeeklySummaries {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            listView
+        }
+    }
+
+    private var listView: some View {
+        List(viewModel.weeklySummaries, id: \.weekIndex) { item in
                         HStack {
                             // 左側：週次與完成率
                             Text(L10n.WeekSelector.weekNumber.localized(with: item.weekIndex))
@@ -45,7 +73,7 @@ struct WeekSelectorSheet: View {
                             HStack(spacing: 8) {
                                 if item.weekSummary != nil {
                                     Button {
-                                        Task { await viewModel.fetchWeeklySummary(weekNumber: item.weekIndex) }
+                                        Task { await viewModel.fetchWeeklySummary(weekNumber: item.weekIndex) }.tracked(from: "WeekSelectorSheet: fetchWeeklySummary")
                                         isPresented = false
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
@@ -71,7 +99,7 @@ struct WeekSelectorSheet: View {
                                             viewModel.selectedWeek = item.weekIndex
                                             await viewModel.fetchWeekPlan(week: item.weekIndex)
                                             isPresented = false
-                                        }
+                                        }.tracked(from: "WeekSelectorSheet: fetchWeekPlan")
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "calendar")
@@ -105,27 +133,6 @@ struct WeekSelectorSheet: View {
                     }
                     .listStyle(PlainListStyle())
                     .padding(.horizontal, 6)
-                }
-            }
-            .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        isPresented = false
-                    } label: {
-                        HStack {
-                            Image(systemName: "xmark")
-                            Text(L10n.WeekSelector.close.localized)
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-            }
-        }
-        .task {
-            await viewModel.fetchWeeklySummaries()
-        }
     }
 }
 
