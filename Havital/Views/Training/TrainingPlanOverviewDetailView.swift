@@ -476,7 +476,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於提升耐力基礎和適應性，以及建立穩定的訓練習慣。以較低強度的有氧訓練為主，逐步增加每週里程。",
                     trainingFocus: "耐力訓練",
                     weekStart: 1,
-                    weekEnd: 4
+                    weekEnd: 4,
+                    targetPace: "6:30-7:00/km"
                 ),
                 TrainingStage(
                     stageName: "強度發展期",
@@ -484,7 +485,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於提升速度與節奏感，通過各種間歇訓練，提升心肺功能和乳酸閾值。",
                     trainingFocus: "速度和節奏訓練",
                     weekStart: 5,
-                    weekEnd: 8
+                    weekEnd: 8,
+                    targetPace: "5:50-6:10/km"
                 ),
                 TrainingStage(
                     stageName: "比賽準備期",
@@ -492,7 +494,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於模擬比賽條件，熟悉比賽配速，以及精神和身體狀態的調整優化。",
                     trainingFocus: "配速穩定性與耐力",
                     weekStart: 9,
-                    weekEnd: 14
+                    weekEnd: 14,
+                    targetPace: "5:25-5:40/km"
                 ),
                 TrainingStage(
                     stageName: "賽前調整期",
@@ -500,7 +503,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於保持狀態，同時降低訓練量，讓身體充分恢復以應對比賽。",
                     trainingFocus: "保持狀態與恢復",
                     weekStart: 15,
-                    weekEnd: 16
+                    weekEnd: 16,
+                    targetPace: "6:00-6:30/km"
                 )
             ], createdAt: ""
         ))

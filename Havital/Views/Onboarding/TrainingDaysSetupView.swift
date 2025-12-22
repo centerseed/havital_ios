@@ -9,6 +9,7 @@ class TrainingDaysViewModel: ObservableObject {
     @Published var error: String?
     @Published var trainingPlanOverview: TrainingPlanOverview?
     @Published var weeklyPlan: WeeklyPlan? // 儲存產生的週計畫 (目前似乎未直接在 UI 使用)
+    @Published var isLoadingUserData = false // 加載用戶數據中
 
     // 導航狀態
     @Published var navigateToPreview = false // 導航到預覽頁面
@@ -24,6 +25,44 @@ class TrainingDaysViewModel: ObservableObject {
 
     init(isBeginner: Bool = false) {
         self.isBeginner = isBeginner
+    }
+
+    /// 從用戶當前設置中加載訓練日偏好
+    func loadUserTrainingDayPreferences() async {
+        isLoadingUserData = true
+        do {
+            let user = try await UserService.shared.getUserProfileAsync()
+
+            // 從用戶數據中提取訓練日
+            if let weekdayPreferences = user.preferWeekDays, !weekdayPreferences.isEmpty {
+                await MainActor.run {
+                    self.selectedWeekdays = Set(weekdayPreferences)
+                    print("[TrainingDaysViewModel] 成功加載訓練日: \(weekdayPreferences)")
+                }
+            }
+
+            // 從用戶數據中提取長跑日
+            if let longrunDayPreferences = user.preferWeekDaysLongrun,
+               let longrunDay = longrunDayPreferences.first {
+                await MainActor.run {
+                    self.selectedLongRunDay = longrunDay
+                    print("[TrainingDaysViewModel] 成功加載長跑日: \(longrunDay)")
+                }
+            } else if !self.selectedWeekdays.isEmpty {
+                // 如果沒有長跑日但有訓練日，預設週六或第一個訓練日
+                await MainActor.run {
+                    if self.selectedWeekdays.contains(6) {
+                        self.selectedLongRunDay = 6
+                    } else if let first = self.selectedWeekdays.sorted().first {
+                        self.selectedLongRunDay = first
+                    }
+                }
+            }
+        } catch {
+            print("[TrainingDaysViewModel] 加載用戶訓練日偏好失敗: \(error.localizedDescription)")
+            // 失敗時使用預設值，不顯示錯誤
+        }
+        isLoadingUserData = false
     }
 
     var canSavePreferences: Bool {
@@ -88,7 +127,8 @@ class TrainingDaysViewModel: ObservableObject {
                 self.userPreferenceManager.preferWeekDaysLongRun = [self.getWeekdayNameStatic(self.selectedLongRunDay)]
 
                 // 導航到預覽頁面
-                self.navigateToPreview = true
+                OnboardingCoordinator.shared.trainingPlanOverview = overview
+                OnboardingCoordinator.shared.navigate(to: .trainingOverview)
 
             } catch {
                 self.error = error.localizedDescription
@@ -117,7 +157,8 @@ class TrainingDaysViewModel: ObservableObject {
 
 struct TrainingDaysSetupView: View {
     @StateObject private var viewModel: TrainingDaysViewModel
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var authService = AuthenticationService.shared
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     init(isBeginner: Bool = false) {
         _viewModel = StateObject(wrappedValue: TrainingDaysViewModel(isBeginner: isBeginner))
@@ -244,13 +285,6 @@ struct TrainingDaysSetupView: View {
             } // Form End
             .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(NSLocalizedString("common.back", comment: "Back")) {
-                        dismiss()
-                    }
-                }
-            }
         } // ScrollViewReader End
         .fullScreenCover(isPresented: $viewModel.isLoading) {
             LoadingAnimationView(messages: [
@@ -259,29 +293,21 @@ struct TrainingDaysSetupView: View {
                 NSLocalizedString("onboarding.generating_overview", comment: "Generating Overview")
             ], totalDuration: previewLoadingDuration)
         }
-        .background(
-            Group {
-                // 導航到預覽頁面
-                NavigationLink(
-                    destination: TrainingOverviewView(mode: .preview, trainingOverview: viewModel.trainingPlanOverview, isBeginner: viewModel.isBeginner)
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $viewModel.navigateToPreview
-                ) {
-                    EmptyView()
-                }
-
-                // 導航到最終訓練總覽頁面
-                NavigationLink(
-                    destination: TrainingOverviewView(mode: .final)
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $viewModel.navigateToTrainingOverview
-                ) {
-                    EmptyView()
-                }
+        .background(EmptyView())
+        .task {
+            // 在視圖出現時加載用戶已有的訓練日設置
+            await viewModel.loadUserTrainingDayPreferences()
+        }
+        .onChange(of: authService.hasCompletedOnboarding) { oldValue, newValue in
+            // 當 onboarding 完成時，自動關閉 NavigationLink
+            if newValue {
+                viewModel.navigateToPreview = false
+                viewModel.navigateToTrainingOverview = false
+                print("[TrainingDaysSetupView] 偵測到 onboarding 完成，關閉 NavigationLink")
             }
-        )
+        }
     }
-    
+
     private func getWeekdayName(_ weekday: Int) -> String {
         switch weekday {
         case 1: return NSLocalizedString("onboarding.monday", comment: "Monday")

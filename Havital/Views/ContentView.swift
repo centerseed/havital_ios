@@ -44,9 +44,10 @@ struct ContentView: View {
             }
             // 如果用戶未完成引導，顯示引導畫面
             else if !authService.hasCompletedOnboarding && !authService.isReonboardingMode {
-                // 首次使用，顯示完整 onboarding 流程
-                OnboardingIntroView()
+                // 首次使用，顯示完整 onboarding 流程（使用新的統一容器）
+                OnboardingContainerView(isReonboarding: false)
                     .environmentObject(authService)
+                    .environmentObject(FeatureFlagManager.shared)
                     .onAppear {
                         Logger.firebase(
                             "顯示 Onboarding 畫面",
@@ -86,29 +87,27 @@ struct ContentView: View {
                         get: { authService.isReonboardingMode },
                         set: { newValue in
                             if !newValue {
-                                // 當 sheet 關閉時，重置 reonboarding 模式並恢復 onboarding 狀態
+                                // 當 sheet 關閉時，確保模式已關閉並重置狀態
                                 authService.isReonboardingMode = false
-                                authService.hasCompletedOnboarding = true
-                                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                                OnboardingCoordinator.shared.reset()
                             }
                         }
                     )) {
-                        NavigationView {
-                            PersonalBestView(targetDistance: 0)
-                                .environmentObject(authService)
-                        }
-                        .navigationViewStyle(StackNavigationViewStyle())
-                        .onAppear {
-                            Logger.firebase(
-                                "顯示重新設定目標畫面 (Sheet) - 從最佳成績開始",
-                                level: .info,
-                                labels: [
-                                    "module": "ContentView",
-                                    "action": "show_reonboarding_sheet",
-                                    "user_id": authService.user?.uid ?? "unknown"
-                                ]
-                            )
-                        }
+                        // Re-onboarding 使用 OnboardingContainerView，從 personalBest 步驟開始
+                        OnboardingContainerView(isReonboarding: true)
+                            .environmentObject(authService)
+                            .environmentObject(FeatureFlagManager.shared)
+                            .onAppear {
+                                Logger.firebase(
+                                    "顯示重新設定目標畫面 (Sheet) - 從最佳成績開始",
+                                    level: .info,
+                                    labels: [
+                                        "module": "ContentView",
+                                        "action": "show_reonboarding_sheet",
+                                        "user_id": authService.user?.uid ?? "unknown"
+                                    ]
+                                )
+                            }
                     }
             }
         }

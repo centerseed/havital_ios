@@ -7,6 +7,7 @@ class WeeklyDistanceViewModel: ObservableObject {
     @Published var error: String?
     @Published var navigateToGoalTypeSelection = false  // 導航到目標類型選擇
     @Published var navigateToRaceSetup = false  // 導航到賽事設定
+    @Published var isLoadingWorkouts = false  // 載入訓練紀錄中
 
     let targetDistance: Double?
     // 調整預設週跑量的上限
@@ -24,6 +25,49 @@ class WeeklyDistanceViewModel: ObservableObject {
         } else {
             self.weeklyDistance = 10.0 // 沒有目標時預設為10公里
         }
+    }
+
+    /// 計算用戶過去四週的週跑量（取倒數第三週往前最多四週）
+    /// 根據 WeeklySummary API 計算預設週跑量
+    func loadHistoricalWeeklyDistance() async {
+        isLoadingWorkouts = true
+
+        do {
+            // 從後端取得過去 8 週的週跑量統計資料
+            let weeklySummaries = try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
+
+            print("[WeeklyDistanceViewModel] 載入 \(weeklySummaries.count) 週的摘要資料")
+
+            if !weeklySummaries.isEmpty {
+                // 取倒數第三週往前最多四週（最後一週、倒數第二週、倒數第三週往前的兩週）
+                // 如果少於 4 週資料，就用所有可用資料
+                let recentWeeks = weeklySummaries.suffix(4)  // 取最後 4 週
+
+                // 計算這些週的平均跑量
+                let distances = recentWeeks.compactMap { $0.distanceKm }.filter { $0 > 0 }
+
+                if !distances.isEmpty {
+                    let averageWeeklyDistance = distances.reduce(0, +) / Double(distances.count)
+
+                    print("[WeeklyDistanceViewModel] 過去週資料: \(recentWeeks.map { "\($0.weekIndex): \($0.distanceKm ?? 0)km" }.joined(separator: ", "))")
+                    print("[WeeklyDistanceViewModel] 平均週跑量: \(String(format: "%.1f", averageWeeklyDistance))km")
+
+                    await MainActor.run {
+                        // 取平均值但不超過上限，預設最低 5km
+                        self.weeklyDistance = min(max(averageWeeklyDistance, 5.0), self.defaultMaxWeeklyDistanceCap)
+                    }
+                } else {
+                    print("[WeeklyDistanceViewModel] 無有效的週跑量資料，使用預設值")
+                }
+            } else {
+                print("[WeeklyDistanceViewModel] 無週摘要資料，使用預設值")
+            }
+        } catch {
+            print("[WeeklyDistanceViewModel] 載入週摘要失敗: \(error.localizedDescription)")
+            // 失敗時保持預設值，不顯示錯誤
+        }
+
+        isLoadingWorkouts = false
     }
     
     func saveWeeklyDistance() async {
@@ -49,7 +93,7 @@ class WeeklyDistanceViewModel: ObservableObject {
         isLoading = false
     }
 
-    func skipSetup() async {
+    func skipSetup() async -> Bool {
         isLoading = true
         error = nil
 
@@ -65,11 +109,13 @@ class WeeklyDistanceViewModel: ObservableObject {
 
             // 判斷導航邏輯
             navigateToNextStep(weeklyDistance: skippedWeeklyDistance)
+            isLoading = false
+            return true
         } catch {
             self.error = error.localizedDescription
+            isLoading = false
+            return false
         }
-
-        isLoading = false
     }
 
     /// 判斷下一步導航目標
@@ -92,7 +138,7 @@ class WeeklyDistanceViewModel: ObservableObject {
 
 struct WeeklyDistanceSetupView: View {
     @StateObject private var viewModel: WeeklyDistanceViewModel
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     init(targetDistance: Double? = nil) {
         _viewModel = StateObject(wrappedValue: WeeklyDistanceViewModel(targetDistance: targetDistance))
@@ -165,18 +211,17 @@ struct WeeklyDistanceSetupView: View {
         .navigationTitle(NSLocalizedString("onboarding.weekly_distance_title", comment: "Weekly Distance Title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) { // 修改為明確的返回按鈕
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("onboarding.back", comment: "Back"))
-                }
-            }
-            
             ToolbarItemGroup(placement: .navigationBarTrailing) { // 將略過和下一步放在一起
                 Button(NSLocalizedString("onboarding.skip", comment: "Skip")) {
                     Task {
-                        await viewModel.skipSetup()
+                        if await viewModel.skipSetup() {
+                            // Re-onboarding 跳過 GoalType，直接到 RaceSetup
+                            if coordinator.isReonboarding {
+                                coordinator.navigate(to: .raceSetup)
+                            } else {
+                                coordinator.navigate(to: .goalType)
+                            }
+                        }
                     }
                 }
                 .disabled(viewModel.isLoading) // 略過按鈕在加載時也禁用
@@ -188,6 +233,12 @@ struct WeeklyDistanceSetupView: View {
                     Button(action: {
                         Task {
                             await viewModel.saveWeeklyDistance()
+                            // Re-onboarding 跳過 GoalType，直接到 RaceSetup
+                            if coordinator.isReonboarding {
+                                coordinator.navigate(to: .raceSetup)
+                            } else {
+                                coordinator.navigate(to: .goalType)
+                            }
                         }
                     }) {
                         Text(NSLocalizedString("onboarding.next_step", comment: "Next Step"))
@@ -197,25 +248,13 @@ struct WeeklyDistanceSetupView: View {
             }
         }
         // .disabled(viewModel.isLoading) // Form 層級的 disabled 可以移除，因為按鈕已單獨處理
-        .background(
-            Group {
-                // 導航到目標類型選擇頁面（新手）
-                NavigationLink(
-                    destination: GoalTypeSelectionView().navigationBarBackButtonHidden(true),
-                    isActive: $viewModel.navigateToGoalTypeSelection
-                ) {
-                    EmptyView()
-                }
-
-                // 導航到賽事設定頁面（有經驗的跑者）
-                NavigationLink(
-                    destination: OnboardingView().navigationBarBackButtonHidden(true),
-                    isActive: $viewModel.navigateToRaceSetup
-                ) {
-                    EmptyView()
-                }
+        .background(EmptyView())
+        .onAppear {
+            // 載入歷史訓練紀錄以計算預設週跑量
+            Task {
+                await viewModel.loadHistoricalWeeklyDistance()
             }
-        )
+        }
     }
 }
 

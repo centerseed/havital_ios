@@ -17,8 +17,10 @@ struct HeartRateZoneInfoView: View {
     @State private var alertMessage = ""
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
+    @State private var navigateToBackfillPrompt = false
 
     private let userPreferenceManager = UserPreferencesManager.shared
+    private let backfillCoordinator = OnboardingBackfillCoordinator.shared
     private let mode: HeartRateViewMode
 
     // MARK: - Initializers
@@ -41,31 +43,30 @@ struct HeartRateZoneInfoView: View {
         return nil
     }
 
+    @ObservedObject private var onboardingCoordinator = OnboardingCoordinator.shared
+
     var body: some View {
-        NavigationView {
-            contentView
-                .navigationTitle(navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    toolbarContent
-                }
-                .toolbar {
-                    if isOnboardingMode {
-                        ToolbarItem(placement: .bottomBar) {
-                            skipButton
-                        }
+        contentView
+            .navigationTitle(navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                toolbarContent
+            }
+            .toolbar {
+                if isOnboardingMode {
+                    ToolbarItem(placement: .bottomBar) {
+                        skipButton
                     }
                 }
-                .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
-                    Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
-                } message: {
-                    Text(alertMessage)
-                }
-                .task {
-                    await loadZoneData()
-                }
-                .background(navigationLinkView)
-        }
+            }
+            .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
+                Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
+            .task {
+                await loadZoneData()
+            }
     }
 
     // MARK: - View Components
@@ -312,14 +313,6 @@ struct HeartRateZoneInfoView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         if isOnboardingMode {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("common.back", comment: "Back"))
-                }
-            }
-
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     Task { await saveHeartRateZones() }
@@ -347,25 +340,11 @@ struct HeartRateZoneInfoView: View {
     @ViewBuilder
     private var skipButton: some View {
         Button(action: {
-            navigateToPersonalBest = true
+            onboardingCoordinator.navigate(to: .personalBest)
         }) {
             Text(NSLocalizedString("onboarding.skip_heart_rate", comment: "Skip (Use Default Values)"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var navigationLinkView: some View {
-        if isOnboardingMode, let distance = targetDistance {
-            NavigationLink(
-                destination: PersonalBestView(targetDistance: distance)
-                    .navigationBarBackButtonHidden(true),
-                isActive: $navigateToPersonalBest
-            ) {
-                EmptyView()
-            }
-            .hidden()
         }
     }
 
@@ -432,16 +411,12 @@ struct HeartRateZoneInfoView: View {
 
             try await UserService.shared.updateUserData(userData)
 
-            await MainActor.run {
-                isSaving = false
-                if isOnboardingMode {
-                    navigateToPersonalBest = true
-                } else {
-                    isEditing = false
-                }
-            }
-
-            if !isOnboardingMode {
+            isSaving = false
+            if isOnboardingMode {
+                // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
+                await onboardingCoordinator.navigateFromHeartRateZone()
+            } else {
+                isEditing = false
                 await loadZoneData()
             }
 

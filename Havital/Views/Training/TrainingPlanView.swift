@@ -622,8 +622,8 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("Refreshing training records and weekly volume")
         TrackedTask("TrainingPlanView: refreshWorkouts") {
-            // 🔄 檢查 plan status（同步訓練計畫狀態）
-            await viewModel.loadPlanStatus()
+            // 🔄 檢查 plan status（同步訓練計畫狀態，跳過 8 小時快取）
+            await viewModel.loadPlanStatus(skipCache: true)
 
             // 使用統一的刷新方法（內部已調用 loadWeeklyPlan(skipCache: true)）
             await viewModel.refreshWeeklyPlan()

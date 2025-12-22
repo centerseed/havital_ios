@@ -729,6 +729,7 @@
 "onboarding.start_setup" = "Start Setup";
 "onboarding.your_running_goal" = "Your Running Goal";
 "onboarding.goal_description" = "If you don't have a specific race, you can set a challenge goal for yourself, such as 'Complete first 5K' or 'Improve 10K speed'.";
+"onboarding.or_select_existing_target" = "Previously set target races";
 "onboarding.goal_name_placeholder" = "Goal name (e.g., Taipei Marathon or My 5K Challenge)";
 "onboarding.goal_date" = "Goal Date";
 "onboarding.weeks_until_race" = "Weeks until race: %d";
@@ -797,6 +798,21 @@
 "onboarding.skip_personal_best" = "Skip Personal Best";
 "onboarding.skip_personal_best_message" = "No problem! Paceriz will adjust training intensity based on your training progress.";
 "onboarding.personal_best_title_nav" = "Personal Best";
+ 
+// MARK: - Backfill Prompt
+"onboarding.backfill_prompt.title" = "Sync recent training data?";
+"onboarding.backfill_prompt.subtitle" = "Get your last 14 days from %@";
+"onboarding.backfill_prompt.what_is_backfill" = "What is data sync?";
+"onboarding.backfill_prompt.backfill_description" = "We'll sync your last 14 days of running records to help Vita create a more accurate training plan for you.";
+"onboarding.backfill_prompt.why_it_helps" = "Why it helps?";
+"onboarding.backfill_prompt.benefit1_title" = "Better training suggestions";
+"onboarding.backfill_prompt.benefit1_description" = "Personalized plan based on your history.";
+"onboarding.backfill_prompt.benefit2_title" = "Complete progress tracking";
+"onboarding.backfill_prompt.benefit2_description" = "View your full training journey and growth.";
+"onboarding.backfill_prompt.benefit3_title" = "Accurate fitness assessment";
+"onboarding.backfill_prompt.benefit3_description" = "Analyze your running status and avoid overtraining.";
+"onboarding.backfill_prompt.confirm_button" = "Yes, Get My Data";
+"onboarding.backfill_prompt.skip_button" = "Skip for Now";
 "onboarding.next" = "Next";
 
 // MARK: - Training Days Setup
@@ -988,6 +1004,10 @@
 "sync.garmin_sync_failed" = "Garmin sync failed: %@";
 "sync.processing_garmin_progress" = "Processing Garmin data...\nProgress: %d/%d (%d%%)";
 "sync.processing_garmin_initializing" = "Processing Garmin data...\nInitializing processing...";
+"sync.preparing_strava" = "Preparing Strava sync...";
+"sync.strava_triggered" = "Strava sync triggered...";
+"sync.processing_strava_progress" = "Processing Strava data, synced %d records...";
+"sync.strava_sync_failed" = "Strava sync failed: %@";
 
 // MARK: - Weekly Volume & Intensity Strings
 "weekly_volume.trend" = "Weekly Volume Trend";

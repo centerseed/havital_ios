@@ -6,8 +6,9 @@ struct DataSourceSelectionView: View {
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var userPreferenceManager = UserPreferencesManager.shared
+    @ObservedObject private var authService = AuthenticationService.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
-    
+
     @State private var selectedDataSource: DataSourceType?
     @State private var isProcessing = false
     @State private var showError = false
@@ -139,6 +140,13 @@ struct DataSourceSelectionView: View {
         }
         .onAppear {
             // 等待用戶選擇數據源
+        }
+        .onChange(of: authService.hasCompletedOnboarding) { oldValue, newValue in
+            // 當 onboarding 完成時，關閉 NavigationLink
+            if newValue {
+                navigateToNextStep = false
+                print("[DataSourceSelectionView] 偵測到 onboarding 完成，關閉 NavigationLink")
+            }
         }
     }
     

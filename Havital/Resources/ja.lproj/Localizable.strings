@@ -729,6 +729,7 @@
 "onboarding.start_setup" = "セットアップ開始";
 "onboarding.your_running_goal" = "あなたのランニング目標";
 "onboarding.goal_description" = "特定のレースがない場合は、「初回5K完走」や「10Kスピード向上」などの挑戦目標を設定できます。";
+"onboarding.or_select_existing_target" = "以前に設定した目標レース";
 "onboarding.goal_name_placeholder" = "目標名（例：台北マラソンまたはマイ5Kチャレンジ）";
 "onboarding.goal_date" = "目標日";
 "onboarding.weeks_until_race" = "レースまでの週数：%d";
@@ -797,6 +798,21 @@
 "onboarding.skip_personal_best" = "個人ベストをスキップ";
 "onboarding.skip_personal_best_message" = "問題ありません！Pacerizはトレーニングの進捗に基づいて強度を調整します。";
 "onboarding.personal_best_title_nav" = "個人ベスト";
+ 
+// MARK: - Backfill Prompt
+"onboarding.backfill_prompt.title" = "最近のトレーニングデータを同期しますか？";
+"onboarding.backfill_prompt.subtitle" = "%@ から過去 14 日間のデータを取得します";
+"onboarding.backfill_prompt.what_is_backfill" = "データ同期とは？";
+"onboarding.backfill_prompt.backfill_description" = "過去 14 日間のランニング記録を同期し、Vita がより正確なトレーニング計画を作成できるようにします。";
+"onboarding.backfill_prompt.why_it_helps" = "なぜこれが重要なのですか？";
+"onboarding.backfill_prompt.benefit1_title" = "より適切なトレーニング提案";
+"onboarding.backfill_prompt.benefit1_description" = "あなたの履歴に基づいた個別の計画を作成します。";
+"onboarding.backfill_prompt.benefit2_title" = "完全な進捗追跡";
+"onboarding.backfill_prompt.benefit2_description" = "あなたの全トレーニングの道のりと成長を確認できます。";
+"onboarding.backfill_prompt.benefit3_title" = "正確なフィットネス評価";
+"onboarding.backfill_prompt.benefit3_description" = "ランニング状態を分析し、過度なトレーニングを防ぎます。";
+"onboarding.backfill_prompt.confirm_button" = "はい、データを取得します";
+"onboarding.backfill_prompt.skip_button" = "今はスキップ";
 "onboarding.next" = "次へ";
 
 // MARK: - Training Days Setup
@@ -988,6 +1004,10 @@
 "sync.garmin_sync_failed" = "Garmin同期に失敗：%@";
 "sync.processing_garmin_progress" = "Garminデータを処理中...\n進捗：%d/%d（%d%%）";
 "sync.processing_garmin_initializing" = "Garminデータを処理中...\n処理を初期化中...";
+"sync.preparing_strava" = "Stravaとの同期を準備中...";
+"sync.strava_triggered" = "Stravaとの同期を開始しました...";
+"sync.processing_strava_progress" = "Stravaデータを処理中、%d件의 記録を同期しました...";
+"sync.strava_sync_failed" = "Stravaとの同期に失敗しました: %@";
 
 // MARK: - Weekly Volume & Intensity Strings
 "weekly_volume.trend" = "週間走行距離トレンド";

@@ -729,6 +729,7 @@
 "onboarding.start_setup" = "開始設定";
 "onboarding.your_running_goal" = "你的跑步目標";
 "onboarding.goal_description" = "如果沒有特定的賽事，可以設定挑戰目標，例如「完成人生第一個5K」或「提升10K速度」。";
+"onboarding.or_select_existing_target" = "先前設定的目標賽事";
 "onboarding.goal_name_placeholder" = "目標名稱 (例如：台北馬拉松 或 我的5K挑戰)";
 "onboarding.goal_date" = "目標日期";
 "onboarding.weeks_until_race" = "距離賽事週數：%d";
@@ -797,6 +798,21 @@
 "onboarding.skip_personal_best" = "跳過個人最佳成績";
 "onboarding.skip_personal_best_message" = "沒問題！Paceriz 會根據您的訓練狀況調整課表強度";
 "onboarding.personal_best_title_nav" = "個人最佳成績";
+ 
+// MARK: - Backfill Prompt
+"onboarding.backfill_prompt.title" = "同步近期的訓練資料？";
+"onboarding.backfill_prompt.subtitle" = "從 %@ 取得您過去 14 天的資料";
+"onboarding.backfill_prompt.what_is_backfill" = "什麼是資料同步？";
+"onboarding.backfill_prompt.backfill_description" = "我們會同步您過去 14 天的跑步紀錄，幫助 Vita 為您規劃更精準的訓練計畫。";
+"onboarding.backfill_prompt.why_it_helps" = "為什麼這很重要？";
+"onboarding.backfill_prompt.benefit1_title" = "更精準的訓練建議";
+"onboarding.backfill_prompt.benefit1_description" = "根據您的歷史紀錄，為您量身打造專屬課表。";
+"onboarding.backfill_prompt.benefit2_title" = "完整的進度追蹤";
+"onboarding.backfill_prompt.benefit2_description" = "查看您完整的訓練歷程與成長。";
+"onboarding.backfill_prompt.benefit3_title" = "準確的體能評估";
+"onboarding.backfill_prompt.benefit3_description" = "分析您的跑步狀態，避免過度訓練。";
+"onboarding.backfill_prompt.confirm_button" = "是的，取得我的資料";
+"onboarding.backfill_prompt.skip_button" = "暫時跳過";
 "onboarding.next" = "下一步";
 
 // MARK: - Training Days Setup
@@ -988,6 +1004,10 @@
 "sync.garmin_sync_failed" = "Garmin 同步失敗：%@";
 "sync.processing_garmin_progress" = "處理 Garmin 資料中...\n進度：%d/%d (%d%%)";
 "sync.processing_garmin_initializing" = "處理 Garmin 資料中...\n初始化處理中...";
+"sync.preparing_strava" = "正在準備同步 Strava 資料...";
+"sync.strava_triggered" = "已觸發 Strava 資料同步...";
+"sync.processing_strava_progress" = "正在處理 Strava 數據，已同步 %d 筆紀錄...";
+"sync.strava_sync_failed" = "Strava 資料同步失敗: %@";
 
 // MARK: - Weekly Volume & Intensity Strings
 "weekly_volume.trend" = "週跑量趨勢";

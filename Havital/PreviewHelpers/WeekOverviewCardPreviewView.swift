@@ -91,7 +91,8 @@ struct WeekOverviewCardPreviewView: View {
                                     stageDescription: "建立有氧基礎",
                                     trainingFocus: "有氧耐力",
                                     weekStart: 1,
-                                    weekEnd: 4
+                                    weekEnd: 4,
+                                    targetPace: "6:30-7:00/km"
                                 ),
                                 TrainingStage(
                                     stageName: "進階期",
@@ -99,7 +100,8 @@ struct WeekOverviewCardPreviewView: View {
                                     stageDescription: "提升速度與肌力",
                                     trainingFocus: "間歇訓練",
                                     weekStart: 5,
-                                    weekEnd: 8
+                                    weekEnd: 8,
+                                    targetPace: "5:50-6:10/km"
                                 ),
                                 TrainingStage(
                                     stageName: "比賽期",
@@ -107,7 +109,8 @@ struct WeekOverviewCardPreviewView: View {
                                     stageDescription: "調整與準備比賽",
                                     trainingFocus: "比賽配速",
                                     weekStart: 9,
-                                    weekEnd: 12
+                                    weekEnd: 12,
+                                    targetPace: "5:25-5:40/km"
                                 )
                             ],
                             createdAt: dateFormatter.string(from: twoWeeksAgo)

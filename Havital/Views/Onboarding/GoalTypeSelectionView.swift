@@ -51,7 +51,7 @@ class GoalTypeSelectionViewModel: ObservableObject {
 // MARK: - View
 struct GoalTypeSelectionView: View {
     @StateObject private var viewModel = GoalTypeSelectionViewModel()
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -130,37 +130,10 @@ struct GoalTypeSelectionView: View {
             }
             .background(Color(.systemGroupedBackground))
 
-            // 導航到賽事設定頁面（使用現有的 OnboardingView）
-            NavigationLink(
-                destination: OnboardingView()
-                    .navigationBarBackButtonHidden(true),
-                isActive: $viewModel.navigateToRaceSetup
-            ) {
-                EmptyView()
-            }
-            .hidden()
-
-            // 導航到訓練日數選擇頁面（新手 5km）
-            NavigationLink(
-                destination: TrainingDaysSetupView(isBeginner: true)
-                    .navigationBarBackButtonHidden(true),
-                isActive: $viewModel.navigateToTrainingDays
-            ) {
-                EmptyView()
-            }
-            .hidden()
+            Spacer()
         }
         .navigationTitle(NSLocalizedString("onboarding.goal_type_nav_title", comment: "訓練目標"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("common.back", comment: "返回"))
-                }
-            }
-        }
     }
 
     // MARK: - Private Methods
@@ -170,13 +143,15 @@ struct GoalTypeSelectionView: View {
         switch goalType {
         case .specificRace:
             // 導航到詳細賽事設定頁面
-            viewModel.navigateToRaceSetup = true
+            coordinator.isBeginner = false
+            coordinator.navigate(to: .raceSetup)
 
         case .beginner5k:
             // 創建新手 5km 目標，然後導航到訓練日數選擇
             Task {
                 if await viewModel.createBeginner5kGoal() {
-                    viewModel.navigateToTrainingDays = true
+                    coordinator.isBeginner = true
+                    coordinator.navigate(to: .trainingDays)
                 }
             }
         }

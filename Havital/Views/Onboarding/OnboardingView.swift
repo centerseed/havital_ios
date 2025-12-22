@@ -15,7 +15,12 @@ class OnboardingViewModel: ObservableObject {
     // 起始階段選擇相關狀態
     @Published var selectedStartStage: TrainingStagePhase? = nil
     @Published var shouldShowStageSelection: Bool = false
-    
+
+    // 未來目標選擇相關狀態
+    @Published var availableTargets: [Target] = [] // 從 API 載入的未來目標列表
+    @Published var selectedTargetKey: String? // 選擇的目標 ID
+    @Published var isLoadingTargets = false // 載入目標中
+
     var availableDistances: [String: String] {
         [
             "5": NSLocalizedString("distance.5k", comment: "5K"),
@@ -52,28 +57,67 @@ class OnboardingViewModel: ObservableObject {
         return String(format: "%d:%02d", paceMinutes, paceRemainingSeconds)
     }
     
+    /// 檢查選擇的目標是否被修改
+    private func hasSelectedTargetBeenModified() -> Bool {
+        guard let selectedTargetId = selectedTargetKey else { return false }
+
+        // 在 availableTargets 中找到選擇的目標
+        guard let selectedTarget = availableTargets.first(where: { $0.id == selectedTargetId }) else {
+            return false
+        }
+
+        // 比較是否有改動
+        let nameChanged = raceName != selectedTarget.name
+        let distanceChanged = Int(Double(selectedDistance) ?? 42.195) != selectedTarget.distanceKm
+        let timeChanged = (targetHours * 3600 + targetMinutes * 60) != selectedTarget.targetTime
+        let dateChanged = Int(raceDate.timeIntervalSince1970) != selectedTarget.raceDate
+
+        return nameChanged || distanceChanged || timeChanged || dateChanged
+    }
+
     @MainActor
     func createTarget() async -> Bool { // 返回 Bool 表示是否成功
         isLoading = true
         error = nil
 
         do {
-            // 先創建新的主要目標
-            let target = Target(
-                id: UUID().uuidString,
-                type: "race_run", // 或許可以考慮增加 "personal_goal" 類型
-                name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName, // 如果名稱為空，給一個預設值
-                distanceKm: Int(Double(selectedDistance) ?? 42.195),
-                targetTime: targetHours * 3600 + targetMinutes * 60,
-                targetPace: targetPace,
-                raceDate: Int(raceDate.timeIntervalSince1970),
-                isMainRace: true,
-                trainingWeeks: trainingWeeks
-                // timezone 會自動使用預設的 "Asia/Taipei"
-            )
+            // 如果選擇了先前的目標且有改動，則更新；否則創建新目標
+            if let selectedTargetId = selectedTargetKey, hasSelectedTargetBeenModified() {
+                // 更新已選擇的目標
+                let updatedTarget = Target(
+                    id: selectedTargetId,
+                    type: "race_run",
+                    name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
+                    distanceKm: Int(Double(selectedDistance) ?? 42.195),
+                    targetTime: targetHours * 3600 + targetMinutes * 60,
+                    targetPace: targetPace,
+                    raceDate: Int(raceDate.timeIntervalSince1970),
+                    isMainRace: true,
+                    trainingWeeks: trainingWeeks
+                )
 
-            try await UserService.shared.createTarget(target)
-            print("✅ 新目標創建成功: \(target.name)")
+                try await TargetService.shared.updateTarget(id: selectedTargetId, target: updatedTarget)
+                print("✅ 目標已更新: \(updatedTarget.name)")
+            } else if selectedTargetKey == nil {
+                // 創建新的主要目標
+                let target = Target(
+                    id: UUID().uuidString,
+                    type: "race_run",
+                    name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
+                    distanceKm: Int(Double(selectedDistance) ?? 42.195),
+                    targetTime: targetHours * 3600 + targetMinutes * 60,
+                    targetPace: targetPace,
+                    raceDate: Int(raceDate.timeIntervalSince1970),
+                    isMainRace: true,
+                    trainingWeeks: trainingWeeks
+                )
+
+                try await UserService.shared.createTarget(target)
+                print("✅ 新目標創建成功: \(target.name)")
+            } else {
+                // 選擇了目標但沒有改動，直接跳過
+                print("✅ 使用先前的目標賽事，不需要創建或更新")
+            }
 
             // ⚠️ TEMPORARILY DISABLED: 自動刪除舊賽事功能已暫時停用
             // TODO: 後端應該處理主要賽事的唯一性，前端不應該手動刪除
@@ -112,14 +156,71 @@ class OnboardingViewModel: ObservableObject {
             return false
         }
     }
+
+    /// 從後端載入用戶的所有未來目標（只載入主要賽事 isMainRace=true）
+    func loadAvailableTargets() async {
+        isLoadingTargets = true
+
+        do {
+            let allTargets = try await TargetService.shared.getTargets()
+
+            // 篩選出日期在未來且為主要賽事的目標
+            let now = Date()
+            let futureMainTargets = allTargets.filter { target in
+                let targetDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+                return targetDate > now && target.isMainRace
+            }
+
+            await MainActor.run {
+                self.availableTargets = futureMainTargets
+                print("[OnboardingViewModel] 成功載入 \(futureMainTargets.count) 個未來主要目標")
+            }
+        } catch {
+            print("[OnboardingViewModel] 載入目標失敗: \(error.localizedDescription)")
+            // 不顯示錯誤，因為新用戶可能沒有目標
+        }
+
+        isLoadingTargets = false
+    }
+
+    /// 將整數距離轉換為精確的距離字符串（用於匹配 availableDistances 字典鍵）
+    private func normalizeDistanceForPicker(_ distanceKm: Int) -> String {
+        switch distanceKm {
+        case 5:
+            return "5"
+        case 10:
+            return "10"
+        case 21:
+            return "21.0975"  // 半馬
+        case 42:
+            return "42.195"   // 全馬
+        default:
+            return String(distanceKm)
+        }
+    }
+
+    /// 當用戶選擇已有的目標時
+    func selectTarget(_ target: Target) {
+        selectedTargetKey = target.id
+        raceName = target.name
+
+        // 將目標資料填入表單
+        raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+        selectedDistance = normalizeDistanceForPicker(target.distanceKm)
+
+        // 從目標時間計算小時和分鐘
+        let totalSeconds = target.targetTime
+        targetHours = totalSeconds / 3600
+        targetMinutes = (totalSeconds % 3600) / 60
+
+        print("[OnboardingViewModel] 選擇已有目標: \(target.name), 距離: \(target.distanceKm)km -> \(selectedDistance)")
+    }
 }
 
 struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
-    @Environment(\.dismiss) private var dismiss
-    @State private var showHeartRateSetup = false
-    @State private var showPersonalBest = false
-    @State private var showStageSelection = false
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
+
     @State private var showTimeWarning = false
     // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
 
@@ -127,9 +228,47 @@ struct OnboardingView: View {
         VStack {
             Form {
                 Section(header: Text(NSLocalizedString("onboarding.your_running_goal", comment: "Your Running Goal")), footer: Text(NSLocalizedString("onboarding.goal_description", comment: "Goal description"))) {
+                    // 如果有已存的未來目標，顯示快速選擇列表
+                    if !viewModel.availableTargets.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(NSLocalizedString("onboarding.or_select_existing_target", comment: "或選擇已設定的未來賽事"))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(viewModel.availableTargets.sorted { a, b in
+                                        Date(timeIntervalSince1970: TimeInterval(a.raceDate)) < Date(timeIntervalSince1970: TimeInterval(b.raceDate))
+                                    }, id: \.id) { target in
+                                        Button(action: {
+                                            viewModel.selectTarget(target)
+                                        }) {
+                                            VStack(spacing: 4) {
+                                                Text(target.name)
+                                                    .font(.caption)
+                                                    .fontWeight(.semibold)
+                                                    .lineLimit(1)
+                                                Text("\(target.distanceKm)km")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(8)
+                                            .background(viewModel.selectedTargetKey == target.id ? Color.accentColor : Color(.systemGray5))
+                                            .foregroundColor(viewModel.selectedTargetKey == target.id ? .white : .primary)
+                                            .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+
                     TextField(NSLocalizedString("onboarding.target_race_example", comment: "Target race example"), text: $viewModel.raceName)
                         .textContentType(.name)
-                    
+
                     DatePicker(NSLocalizedString("onboarding.goal_date", comment: "Goal Date"),
                               selection: $viewModel.raceDate,
                               in: Date()...,
@@ -213,34 +352,7 @@ struct OnboardingView: View {
             }
             .background(Color(.systemGroupedBackground))
             
-            // 導航到訓練日數設定頁面（新流程：赛事设定完成后）
-            NavigationLink(destination: TrainingDaysSetupView()
-                .navigationBarBackButtonHidden(true),
-                           isActive: $showHeartRateSetup) {
-                EmptyView()
-            }
-
-            // 導航到起始階段選擇頁面（時間緊張時）
-            NavigationLink(destination: StartStageSelectionView(
-                weeksRemaining: viewModel.trainingWeeks,
-                targetDistanceKm: Double(viewModel.selectedDistance) ?? 42.195,
-                onStageSelected: { stage in
-                    viewModel.selectedStartStage = stage
-                    // 保存到 UserDefaults 供後續使用
-                    if let stage = stage {
-                        print("[OnboardingView] 💾 Saving selectedStartStage to UserDefaults: \(stage.apiIdentifier)")
-                        UserDefaults.standard.set(stage.apiIdentifier, forKey: "selectedStartStage")
-                    } else {
-                        print("[OnboardingView] 🗑️ Removing selectedStartStage from UserDefaults")
-                        UserDefaults.standard.removeObject(forKey: "selectedStartStage")
-                    }
-                    showStageSelection = false
-                    showHeartRateSetup = true // 選擇完階段後導航到訓練日數設定
-                }
-            ).navigationBarBackButtonHidden(true),
-               isActive: $showStageSelection) {
-                EmptyView()
-            }
+            Spacer()
         }
         .navigationTitle(NSLocalizedString("onboarding.set_training_goal", comment: "Set Training Goal"))
         .navigationBarTitleDisplayMode(.inline)
@@ -254,12 +366,6 @@ struct OnboardingView: View {
                                   comment: "距離賽事不足 2 週，可能無法達到預期的訓練效果。建議選擇更晚的賽事日期。"))
         }
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(NSLocalizedString("onboarding.back", comment: "Back")) {
-                    dismiss()
-                }
-            }
-            
             // 右上角「下一步」按鈕
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
@@ -278,32 +384,36 @@ struct OnboardingView: View {
                 .disabled(viewModel.isLoading)
             }
         }
+        .onAppear {
+            // 載入用戶已設定的未來目標
+            Task {
+                await viewModel.loadAvailableTargets()
+            }
+        }
     }
 
     // MARK: - 導航邏輯處理
     /// 根據訓練週數判斷導航目標
     private func handleNavigationAfterTargetCreation() {
-        let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(
-            for: Double(viewModel.selectedDistance) ?? 42.195
-        )
+        let targetDistance = Double(viewModel.selectedDistance) ?? 42.195
+        let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(for: targetDistance)
         let trainingWeeks = viewModel.trainingWeeks
 
         print("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks)")
 
         if trainingWeeks < 2 {
             // 時間過短（<2週），顯示警告
-            print("[OnboardingView] ⚠️ Too short, showing warning")
             showTimeWarning = true
         } else if trainingWeeks >= standardWeeks {
-            // 時間充足，直接進入心率設定步驟
-            print("[OnboardingView] ✅ Enough time, skipping stage selection (using default base stage)")
-            viewModel.selectedStartStage = nil // 使用預設（從基礎期開始）
-            UserDefaults.standard.removeObject(forKey: "selectedStartStage") // 清除舊值
-            showHeartRateSetup = true
+            // 時間充足，直接進入訓練日數設定
+            coordinator.selectedStartStage = nil
+            UserDefaults.standard.removeObject(forKey: "selectedStartStage")
+            coordinator.navigate(to: .trainingDays)
         } else {
-            // 時間緊張（2-12週），進入階段選擇頁面
-            print("[OnboardingView] 🎯 Time constraint detected, showing stage selection")
-            showStageSelection = true
+            // 時間緊張，導航到階段選擇
+            coordinator.weeksRemaining = trainingWeeks
+            coordinator.targetDistance = targetDistance
+            coordinator.navigate(to: .startStage)
         }
     }
 

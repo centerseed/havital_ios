@@ -658,25 +658,19 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
 
     func startReonboarding() {
         Task { @MainActor in
-            // 1. 標記 Onboarding 未完成
-            self.hasCompletedOnboarding = false
-            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-            
-            // 2. 進入重新 Onboarding 模式
+            // IMPORTANT: Do NOT set hasCompletedOnboarding to false.
+            // That flag controls the root view in ContentView.
+            // We only want to show the re-onboarding sheet.
             self.isReonboardingMode = true
-            
-            // 3. 清除可能影響重新 Onboarding 的舊狀態 (例如：activeWeeklyPlanId)
-            // 這部分可能需要與後端協調，或在 Onboarding 流程中處理
-            // 例如，在 UserService 中增加一個 clearActivePlanId 的方法，然後在這裡呼叫
-            // await UserService.shared.clearActivePlanId()
-            // 或者，更簡單的方式是讓後續的 Onboarding 流程覆蓋舊資料
-            
-            // 4. 清除本地與訓練計畫相關的緩存，確保重新 Onboarding 時是乾淨的狀態
-            CacheEventBus.shared.invalidateCache(for: .dataChanged(.trainingPlan))
-            // VDOTStorage.shared.clearVDOTData() // VDOT 可能基於賽事目標，看是否需要清除
-            // UserPreferencesManager.shared.clearTrainingPreferences() // 清除用戶訓練偏好，讓他們重新設定
-            
-            print("AuthenticationService: 開始重新 Onboarding 流程。 hasCompletedOnboarding: \(self.hasCompletedOnboarding), isReonboardingMode: \(self.isReonboardingMode)")
+            OnboardingCoordinator.shared.isReonboarding = true
+            print("AuthenticationService: 啟動重新 Onboarding 模式")
+        }
+    }
+
+    func cancelReonboarding() {
+        Task { @MainActor in
+            self.isReonboardingMode = false
+            print("AuthenticationService: 取消重新 Onboarding 模式")
         }
     }
 

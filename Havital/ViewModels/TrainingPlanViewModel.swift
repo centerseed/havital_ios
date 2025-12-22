@@ -477,6 +477,10 @@ class TrainingPlanViewModel: ObservableObject, TaskManageable {
                 }
             }
 
+            // 🆕 關鍵新增：更新數據後，立即處理狀態轉換逻辑
+            // 這會更新 planStatus 變量，確保 UI 根據最新狀態渲染（例如從 .completed 轉向 .ready 或 .noPlan）
+            await handlePlanStatusAction()
+
         } catch {
             let nsError = error as NSError
             if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {

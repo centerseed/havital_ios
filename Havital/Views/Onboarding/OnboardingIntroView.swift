@@ -3,6 +3,7 @@ import SwiftUI
 
 struct OnboardingIntroView: View {
     @State private var navigateToNextStep = false
+    @ObservedObject private var authService = AuthenticationService.shared
 
     var body: some View {
         NavigationView { // 這個 NavigationView 將是 onboarding 流程的起點
@@ -98,6 +99,13 @@ struct OnboardingIntroView: View {
             .navigationBarTitle("", displayMode: .inline)
         }
         .navigationViewStyle(StackNavigationViewStyle()) // 確保是堆疊式導航
+        .onChange(of: authService.hasCompletedOnboarding) { oldValue, newValue in
+            // 當 onboarding 完成時，關閉 NavigationLink 確保整個流程被清理
+            if newValue {
+                navigateToNextStep = false
+                print("[OnboardingIntroView] 偵測到 onboarding 完成，關閉 NavigationLink")
+            }
+        }
     }
 
     // 輔助視圖：創建統一風格的特色項目行

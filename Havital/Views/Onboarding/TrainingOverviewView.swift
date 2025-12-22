@@ -32,6 +32,8 @@ class TrainingOverviewViewModel: ObservableObject {
         // 如果是 preview 模式且已經有 overview，則不需要載入
         if mode == .preview && trainingOverview != nil {
             print("[TrainingOverviewViewModel] Preview 模式，使用傳入的 overview")
+            // 從既有的 overview 獲取目標配速
+            await loadTargetPaceFromMainRace()
             return
         }
 
@@ -42,18 +44,37 @@ class TrainingOverviewViewModel: ObservableObject {
             // 獲取訓練總覽
             let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
 
-            // TODO: 獲取目標配速和賽事日期（從 Target 或其他來源）
-            // 暫時使用模擬數據
-
             await MainActor.run {
                 self.trainingOverview = overview
                 self.isLoading = false
             }
+
+            // 獲取目標配速和賽事日期（從 Target 或其他來源）
+            await loadTargetPaceFromMainRace()
         } catch {
             await MainActor.run {
                 self.error = error.localizedDescription
                 self.isLoading = false
             }
+        }
+    }
+
+    private func loadTargetPaceFromMainRace() async {
+        guard let overview = trainingOverview, !overview.mainRaceId.isEmpty else {
+            print("[TrainingOverviewViewModel] 無效的 mainRaceId，使用預設配速")
+            return
+        }
+
+        do {
+            let mainRace = try await TargetService.shared.getTarget(id: overview.mainRaceId)
+
+            await MainActor.run {
+                self.targetPace = mainRace.targetPace
+                print("[TrainingOverviewViewModel] 成功載入目標配速: \(mainRace.targetPace)")
+            }
+        } catch {
+            print("[TrainingOverviewViewModel] 載入目標配速失敗: \(error.localizedDescription)，使用預設配速")
+            // 載入失敗時保持預設的 "6:00" 配速
         }
     }
 
@@ -71,19 +92,20 @@ class TrainingOverviewViewModel: ObservableObject {
                 print("[TrainingOverviewViewModel] Final 模式，第一週計劃已生成，直接完成 onboarding")
             }
 
-            // 標記 onboarding 完成
-            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-            print("[TrainingOverviewViewModel] 已設置 hasCompletedOnboarding = true")
-
+            // ⚠️ 先關閉 fullScreenCover (LoadingAnimationView)
             await MainActor.run {
-                // ⚠️ 先關閉 fullScreenCover (LoadingAnimationView)
                 self.isGeneratingPlan = false
+            }
 
-                // ⚠️ 設置完成標誌，讓 ContentView 自動切換到主畫面
-                // ContentView 會監聽這個變化並自動從 OnboardingIntroView 切換到 mainAppContent
-                // 不需要手動 dismiss，因為整個 OnboardingIntroView 會被 SwiftUI 替換掉
+            // ⚠️ 短暫延遲確保 fullScreenCover 關閉
+            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 秒
+
+            // ⚠️ 標記 onboarding 完成，讓 ContentView 自動切換到主畫面
+            // 必須同時設置 UserDefaults 和 AuthenticationService
+            await MainActor.run {
+                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                 AuthenticationService.shared.hasCompletedOnboarding = true
-                print("[TrainingOverviewViewModel] ✅ Onboarding 完成，ContentView 將自動切換到主畫面")
+                print("[TrainingOverviewViewModel] ✅ Onboarding 完成，hasCompletedOnboarding = true，ContentView 將自動切換到主畫面")
             }
         } catch {
             await MainActor.run {
@@ -97,6 +119,7 @@ class TrainingOverviewViewModel: ObservableObject {
 // MARK: - View
 struct TrainingOverviewView: View {
     @StateObject private var viewModel: TrainingOverviewViewModel
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @Environment(\.dismiss) private var dismiss
 
     init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
@@ -136,31 +159,22 @@ struct TrainingOverviewView: View {
         }
         .navigationTitle(NSLocalizedString("onboarding.training_overview_title", comment: "Training Overview"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("common.back", comment: "Back"))
-                }
-            }
-        }
         .task {
             await viewModel.loadTrainingOverview()
         }
-        .fullScreenCover(isPresented: $viewModel.isGeneratingPlan) {
+        .fullScreenCover(isPresented: $coordinator.isCompleting) {
             LoadingAnimationView(messages: [
                 NSLocalizedString("onboarding.analyzing_preferences", comment: "正在分析您的訓練偏好"),
                 NSLocalizedString("onboarding.calculating_intensity", comment: "計算最佳訓練強度中"),
                 NSLocalizedString("onboarding.almost_ready", comment: "就要完成了！正在為您準備專屬課表")
             ], totalDuration: 20)
         }
-        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: .constant(viewModel.error != nil)) {
+        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: .constant(coordinator.error != nil)) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {
-                viewModel.error = nil
+                coordinator.error = nil
             }
         } message: {
-            if let error = viewModel.error {
+            if let error = coordinator.error {
                 Text(error)
             }
         }
@@ -245,7 +259,7 @@ struct TrainingOverviewView: View {
             ForEach(Array(overview.trainingStageDescription.enumerated()), id: \.offset) { index, stage in
                 stageCard(
                     stage,
-                    targetPace: viewModel.targetPace,
+                    targetPace: stage.targetPace ?? viewModel.targetPace,  // 使用階段配速，或回退到全局配速
                     stageIndex: index,
                     isLast: index == overview.trainingStageDescription.count - 1,
                     nextStageColor: index < overview.trainingStageDescription.count - 1 ? stageColor(for: index) : nil
@@ -300,7 +314,7 @@ struct TrainingOverviewView: View {
                 }
 
                 // Target Pace（彩色加粗）
-                Text("\(targetPace) /km")
+                Text(targetPace)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(stageColor(for: stageIndex))
@@ -371,7 +385,9 @@ struct TrainingOverviewView: View {
 
             Button(action: {
                 Task {
-                    await viewModel.completeOnboarding(dismiss: dismiss)
+                    // 使用 coordinator 來完成 onboarding 流程
+                    // 這會自動設置 hasCompletedOnboarding 並清理導航路徑
+                    await coordinator.completeOnboarding()
                 }
             }) {
                 Text(viewModel.mode == .preview ?
@@ -384,7 +400,7 @@ struct TrainingOverviewView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
-            .disabled(viewModel.isGeneratingPlan || viewModel.trainingOverview == nil)
+            .disabled(coordinator.isCompleting || viewModel.trainingOverview == nil)
             .padding(.horizontal)
             .padding(.bottom, 20)
             .background(Color(.systemBackground))
@@ -437,7 +453,8 @@ struct TrainingOverviewView_Previews: PreviewProvider {
                     stageDescription: "建立跑步基礎，提升心肺功能",
                     trainingFocus: "間歇跑、節奏跑、速度耐力提升",
                     weekStart: 1,
-                    weekEnd: 4
+                    weekEnd: 4,
+                    targetPace: "5:40-6:00/km"
                 ),
                 TrainingStage(
                     stageName: "比賽配速適應",
@@ -445,7 +462,8 @@ struct TrainingOverviewView_Previews: PreviewProvider {
                     stageDescription: "熟悉目標配速，建立比賽節奏感",
                     trainingFocus: "目標配速跑、長間歇、比賽策略模擬",
                     weekStart: 5,
-                    weekEnd: 8
+                    weekEnd: 8,
+                    targetPace: "5:25-5:40/km"
                 ),
                 TrainingStage(
                     stageName: "賽前減量與恢復",
@@ -453,7 +471,8 @@ struct TrainingOverviewView_Previews: PreviewProvider {
                     stageDescription: "降低訓練量，讓身體充分恢復",
                     trainingFocus: "輕量跑、短距離配速刺激、充分休息",
                     weekStart: 9,
-                    weekEnd: 12
+                    weekEnd: 12,
+                    targetPace: "6:00-6:30/km"
                 )
             ],
             createdAt: "2025-01-15T10:30:00Z"

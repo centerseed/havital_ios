@@ -11,16 +11,15 @@ import SwiftUI
 struct StartStageSelectionView: View {
     let weeksRemaining: Int
     let targetDistanceKm: Double
-    let onStageSelected: (TrainingStagePhase?) -> Void
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     @State private var selectedStage: TrainingStagePhase?
     @State private var recommendation: StartStageRecommendation
     @Environment(\.dismiss) private var dismiss
 
-    init(weeksRemaining: Int, targetDistanceKm: Double, onStageSelected: @escaping (TrainingStagePhase?) -> Void) {
+    init(weeksRemaining: Int, targetDistanceKm: Double) {
         self.weeksRemaining = weeksRemaining
         self.targetDistanceKm = targetDistanceKm
-        self.onStageSelected = onStageSelected
 
         // 初始化推薦結果
         let rec = TrainingPlanCalculator.recommendStartStage(
@@ -50,20 +49,23 @@ struct StartStageSelectionView: View {
                             .foregroundColor(.secondary)
 
                         // 訓練習慣提醒（重要）
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(.blue)
-                                .font(.system(size: 14))
+                        // 只在有基礎期選項時顯示（即有足夠週數時）
+                        if hasBaseStageOption {
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.system(size: 14))
 
-                            Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
                     }
                     .padding(.vertical, 8)
                 }
@@ -137,7 +139,13 @@ struct StartStageSelectionView: View {
             // 底部繼續按鈕
             VStack {
                 Button(action: {
-                    onStageSelected(selectedStage)
+                    coordinator.selectedStartStage = selectedStage?.apiIdentifier
+                    if let stage = selectedStage {
+                        UserDefaults.standard.set(stage.apiIdentifier, forKey: "selectedStartStage")
+                    } else {
+                        UserDefaults.standard.removeObject(forKey: "selectedStartStage")
+                    }
+                    coordinator.navigate(to: .trainingDays)
                 }) {
                     Text(NSLocalizedString("start_stage.continue", comment: "繼續"))
                         .fontWeight(.semibold)
@@ -154,13 +162,12 @@ struct StartStageSelectionView: View {
         }
         .navigationTitle(NSLocalizedString("start_stage.title", comment: "訓練計劃起始階段"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(NSLocalizedString("onboarding.back", comment: "返回")) {
-                    dismiss()
-                }
-            }
-        }
+    }
+
+    /// 判斷是否有基礎期選項可用（用於條件顯示提醒訊息）
+    private var hasBaseStageOption: Bool {
+        // 基礎期選項只在有足夠週數時提供（≥6週）
+        return recommendation.alternatives.contains { $0.stage == .base }
     }
 }
 
@@ -372,10 +379,7 @@ struct StartStageSelectionView_Previews: PreviewProvider {
         NavigationView {
             StartStageSelectionView(
                 weeksRemaining: 8,
-                targetDistanceKm: 21.1,
-                onStageSelected: { stage in
-                    print("Selected stage: \(stage?.displayName ?? "nil")")
-                }
+                targetDistanceKm: 21.1
             )
         }
     }
