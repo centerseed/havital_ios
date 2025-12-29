@@ -134,13 +134,13 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
             // 檢查是否被取消
             try Task.checkCancellation()
             
-            // 優先從緩存載入（永久緩存）
+            // ✅ Track A: 優先從緩存載入（立即顯示）
             if let cachedWorkouts = cacheManager.getCachedWorkoutList(), !cachedWorkouts.isEmpty {
                 await MainActor.run {
                     self.workouts = cachedWorkouts.sorted { $0.endDate > $1.endDate }
                     self.isLoading = false
                 }
-                print("從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
+                print("✅ Track A: 從永久緩存載入了 \(cachedWorkouts.count) 筆運動記錄")
 
                 // 標記初始載入完成（即使是從緩存載入的）
                 self.hasInitialLoadCompleted = true
@@ -148,13 +148,13 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 // 發送運動數據更新通知（首次載入緩存數據）
                 NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "initial_cache"])
 
-                // ✅ 優化：移除背景自動更新，僅依賴關鍵觸發點
-                // 保留的觸發點：
-                // 1. App 啟動（initialize + loadWorkouts）
-                // 2. App 回前台（onAppBecameActive → refreshWorkouts）
-                // 3. 下拉刷新（用戶主動觸發）
-                // 4. 新訓練同步（Apple Health Observer）
-                // 5. 數據源切換（switchDataSource）
+                // ✅ Track B: 背景更新最新數據（非阻塞）
+                // 使用 Task.detached 確保不阻塞當前任務，獨立執行背景更新
+                Task.detached { [weak self] in
+                    await self?.executeTask(id: TaskID("background_refresh_workouts"), cooldownSeconds: 300) {
+                        await self?.refreshWorkoutsInBackground()
+                    }
+                }
 
                 return
             }
@@ -340,10 +340,10 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
         do {
             print("背景更新：從 API 獲取最新運動記錄...")
             let fetchedWorkouts = try await workoutV2Service.fetchRecentWorkouts(limit: 50) // 增加到50筆確保覆蓋足夠的歷史資料
-            
+
             // 合併到緩存
             let mergedCount = cacheManager.mergeWorkoutsToCache(fetchedWorkouts)
-            
+
             if mergedCount > 0 {
                 // 有新數據，更新 UI
                 if let updatedWorkouts = cacheManager.getCachedWorkoutList() {
@@ -352,7 +352,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                         self.lastSyncTime = Date()
                     }
                     print("背景更新完成：新增 \(mergedCount) 筆記錄")
-                    
+
                     // 背景更新發現新數據，發送通知
                     NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "background_update"])
                 }
@@ -365,7 +365,7 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 // cacheManager.updateCacheTimestamp() // 暫時註釋，需要檢查方法是否存在
                 print("背景更新完成：沒有新數據")
             }
-            
+
             Logger.firebase(
                 "背景更新運動記錄完成",
                 level: .info,
@@ -378,14 +378,14 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                     "total_workouts": self.workouts.count
                 ]
             )
-            
+
         } catch {
             // 檢查是否為取消錯誤（App 進入背景或任務取消）
             if error is CancellationError || (error as NSError).code == NSURLErrorCancelled {
                 print("[UnifiedWorkoutManager] 背景更新被取消（App 進入背景或任務取消）")
                 return  // 直接返回，不記錄為錯誤
             }
-            
+
             print("背景更新失敗: \(error.localizedDescription)")
             Logger.firebase(
                 "背景更新運動記錄失敗: \(error.localizedDescription)",
@@ -393,6 +393,63 @@ class UnifiedWorkoutManager: ObservableObject, TaskManageable {
                 labels: [
                     "module": "UnifiedWorkoutManager",
                     "action": "background_update"
+                ]
+            )
+        }
+    }
+
+    /// Track B: 背景刷新最新數據（用於 performLoadWorkouts 的雙軌緩存）
+    /// ✅ 不阻塞 UI，靜默更新緩存和數據
+    /// ✅ cooldown 300 秒，避免過於頻繁的背景更新
+    private func refreshWorkoutsInBackground() async {
+        do {
+            print("✅ Track B: 背景刷新開始，從 API 獲取最新數據...")
+            let fetchedWorkouts = try await APICallTracker.$currentSource.withValue("UnifiedWorkoutManager: refreshWorkoutsInBackground") {
+                try await workoutV2Service.fetchRecentWorkouts(limit: 50)
+            }
+
+            // 檢查是否被取消
+            try Task.checkCancellation()
+
+            // 更新緩存
+            cacheManager.cacheWorkoutList(fetchedWorkouts)
+
+            // 靜默更新 UI（不顯示 loading）
+            await MainActor.run {
+                self.workouts = fetchedWorkouts.sorted { $0.endDate > $1.endDate }
+                self.lastSyncTime = Date()
+            }
+
+            // 發送靜默更新通知
+            NotificationCenter.default.post(name: .workoutsDidUpdate, object: ["reason": "background_refresh"])
+
+            print("✅ Track B: 背景刷新完成，更新了 \(fetchedWorkouts.count) 筆記錄")
+
+            Logger.firebase(
+                "Track B 背景刷新成功",
+                level: .info,
+                labels: [
+                    "module": "UnifiedWorkoutManager",
+                    "action": "track_b_background_refresh"
+                ],
+                jsonPayload: [
+                    "workouts_count": fetchedWorkouts.count
+                ]
+            )
+
+        } catch is CancellationError {
+            print("✅ Track B: 背景刷新被取消")
+        } catch {
+            // 背景刷新失敗不影響用戶體驗（已經顯示了緩存數據）
+            // 僅記錄日誌，不更新 UI 錯誤狀態
+            print("✅ Track B: 背景刷新失敗（保持緩存數據）: \(error.localizedDescription)")
+
+            Logger.firebase(
+                "Track B 背景刷新失敗",
+                level: .debug, // 使用 debug 級別，不是嚴重錯誤
+                labels: [
+                    "module": "UnifiedWorkoutManager",
+                    "action": "track_b_background_refresh_failed"
                 ]
             )
         }

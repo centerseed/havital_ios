@@ -615,6 +615,7 @@ enum GaitAnalysisChart {
         static let dynamicVdot = "workout.detail.dynamic_vdot"
         static let trainingLoad = "workout.detail.training_load"
         static let movementEfficiency = "workout.detail.movement_efficiency"
+        static let effortScore = "workout.effort_score"  // iOS 18+ Effort Score
         
         // Heart Rate Zones
         static let recoveryZone = "workout.detail.recovery_zone"

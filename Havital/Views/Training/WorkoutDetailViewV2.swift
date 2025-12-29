@@ -663,11 +663,18 @@ struct WorkoutDetailViewV2: View {
                 if let dynamicVdot = viewModel.workout.advancedMetrics?.dynamicVdot {
                     DataItem(title: L10n.WorkoutDetail.dynamicVdot.localized, value: String(format: "%.1f", dynamicVdot), icon: "chart.line.uptrend.xyaxis")
                 }
-                
+
                 if let tss = viewModel.workout.advancedMetrics?.tss {
                     DataItem(title: L10n.WorkoutDetail.trainingLoad.localized, value: String(format: "%.1f", tss), icon: "heart.circle")
                 }
-                
+
+                // Effort Score (RPE) - iOS 18+ Apple Watch
+                if #available(iOS 18.0, *) {
+                    if let rpe = viewModel.workout.advancedMetrics?.rpe {
+                        DataItem(title: L10n.WorkoutDetail.effortScore.localized, value: String(format: "%.1f/10", rpe), icon: "gauge.with.dots.needle.bottom.50percent")
+                    }
+                }
+
                 if let avgVerticalRatio = viewModel.workout.advancedMetrics?.avgVerticalRatioPercent {
                     DataItem(title: L10n.WorkoutDetail.movementEfficiency.localized, value: String(format: "%.1f%%", avgVerticalRatio), icon: "arrow.up.and.down.circle")
                 }

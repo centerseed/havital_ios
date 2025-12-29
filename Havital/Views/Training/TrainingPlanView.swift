@@ -622,16 +622,17 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("Refreshing training records and weekly volume")
         TrackedTask("TrainingPlanView: refreshWorkouts") {
-            // 🔄 檢查 plan status（同步訓練計畫狀態，跳過 8 小時快取）
-            await viewModel.loadPlanStatus(skipCache: true)
+            // ✅ 使用統一的刷新方法（isManualRefresh: true 會觸發完整刷新流程）
+            // refreshWeeklyPlan(isManualRefresh: true) 內部已經執行：
+            // 1. loadPlanStatus(skipCache: true) - 同步訓練計畫狀態
+            // 2. loadWeeklyPlan(skipCache: true) - 載入週計畫
+            // 3. unifiedWorkoutManager.refreshWorkouts() - 刷新運動數據
+            // 4. loadCurrentWeekData() - 載入當週距離和強度（純內存計算）
+            await viewModel.refreshWeeklyPlan(isManualRefresh: true)
 
-            // 使用統一的刷新方法（內部已調用 loadWeeklyPlan(skipCache: true)）
-            await viewModel.refreshWeeklyPlan()
-
-            // ✅ 已移除重複的 loadWeeklyPlan() 調用
-            // refreshWeeklyPlan() 內部已經執行 loadWeeklyPlan(skipCache: true)
-
-            await viewModel.loadCurrentWeekDistance()
+            // ✅ 載入當週運動記錄（用於 UI 顯示每日分組數據）
+            // 注意：此函數內部會調用 loadCurrentWeekData()，但由於 executeTask 的防重複機制
+            // 和 smartUpdateWeekData 的 3 秒 cooldown，不會重複執行
             await viewModel.loadWorkoutsForCurrentWeek()
         }
     }

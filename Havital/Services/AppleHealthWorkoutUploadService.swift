@@ -262,15 +262,27 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let weatherCondition = healthKitManager.fetchWeatherCondition(for: workout)
         let humidity = healthKitManager.fetchHumidity(for: workout)
 
-        // 如果有任何環境數據，則創建 metadata
+        // 🎯 獲取 Effort Score (iOS 18+)
+        var effortScore: Double? = nil
+        if #available(iOS 18.0, *) {
+            effortScore = try? await healthKitManager.fetchEffortScore(for: workout)
+            if let rpe = effortScore {
+                print("🎯 [Upload] Effort Score: \(String(format: "%.1f", rpe)) (0-10 scale)")
+            } else {
+                print("🎯 [Upload] No Effort Score available for this workout")
+            }
+        }
+
+        // 如果有任何環境數據或 Effort Score，則創建 metadata
         var workoutMetadata: WorkoutMetadata? = nil
-        if temperature != nil || weatherCondition != nil || humidity != nil {
+        if temperature != nil || weatherCondition != nil || humidity != nil || effortScore != nil {
             workoutMetadata = WorkoutMetadata(
                 temperatureCelsius: temperature,
                 weatherCondition: weatherCondition,
-                humidityPercent: humidity
+                humidityPercent: humidity,
+                effortScore: effortScore
             )
-            print("🌡️ [Upload] 環境數據 - 溫度: \(temperature.map { String(format: "%.1f°C", $0) } ?? "N/A"), 天氣: \(weatherCondition ?? "N/A"), 濕度: \(humidity.map { String(format: "%.1f%%", $0) } ?? "N/A")")
+            print("🌡️ [Upload] 環境數據 - 溫度: \(temperature.map { String(format: "%.1f°C", $0) } ?? "N/A"), 天氣: \(weatherCondition ?? "N/A"), 濕度: \(humidity.map { String(format: "%.1f%%", $0) } ?? "N/A"), Effort Score: \(effortScore.map { String(format: "%.1f", $0) } ?? "N/A")")
         }
 
         try await postWorkoutDetails(workout: workout,
@@ -1397,11 +1409,13 @@ struct WorkoutMetadata: Codable {
     let temperatureCelsius: Double?       // 攝氏溫度
     let weatherCondition: String?          // 天氣狀況（數字或字串）
     let humidityPercent: Double?          // 濕度百分比
+    let effortScore: Double?               // Effort Score (iOS 18+, 0-10 scale)
 
     enum CodingKeys: String, CodingKey {
         case temperatureCelsius = "temperature_celsius"
         case weatherCondition = "weather_condition"
         case humidityPercent = "humidity_percent"
+        case effortScore = "rpe"  // 映射到後端的 'rpe' 欄位
     }
 }
 

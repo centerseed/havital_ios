@@ -298,15 +298,25 @@ struct PersonalBestView: View {
         }
         .navigationTitle(NSLocalizedString("onboarding.personal_best_title_nav", comment: "Personal Best"))
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
-            // 只有在 re-onboarding 根視圖時顯示關閉按鈕
-            if coordinator.isReonboarding && coordinator.navigationPath.isEmpty {
-                ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if coordinator.isReonboarding && coordinator.navigationPath.isEmpty {
+                    // Re-onboarding 根視圖：顯示關閉按鈕
                     Button {
-                        // 關閉 sheet 並重置狀態
                         AuthenticationService.shared.cancelReonboarding()
                     } label: {
                         Image(systemName: "xmark")
+                    }
+                } else if !coordinator.navigationPath.isEmpty {
+                    // 有導航路徑時：顯示返回按鈕
+                    Button {
+                        coordinator.goBack()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text(NSLocalizedString("common.back", comment: "Back"))
+                        }
                     }
                 }
             }

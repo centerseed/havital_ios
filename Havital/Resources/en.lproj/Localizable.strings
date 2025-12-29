@@ -1890,3 +1890,6 @@
 // MARK: - My Achievement - Celebration
 "my_achievement.celebration.new_record" = "New Record!";
 "my_achievement.celebration.improved" = "Improved by";
+
+// MARK: - Workout - Effort Score (iOS 18+)
+"workout.effort_score" = "Effort Score";

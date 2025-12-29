@@ -1,6 +1,7 @@
 import Foundation
 import HealthKit
 import BackgroundTasks
+import UIKit
 
 // MARK: - 健康數據類型
 enum HealthDataType: String, CaseIterable, Codable {
@@ -703,6 +704,36 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
 
     /// 從 HealthKit 收集健康數據並格式化為上傳格式（只收集未上傳的日期，最多7天）
     private func collectHealthDataForUpload(days: Int) async -> [[String: Any]] {
+        // ✅ 檢查 1: 設備是否解鎖（受保護數據是否可訪問）
+        let isProtectedDataAvailable = await MainActor.run {
+            UIApplication.shared.isProtectedDataAvailable
+        }
+
+        guard isProtectedDataAvailable else {
+            Logger.debug("設備被鎖定或受保護數據不可訪問，稍後自動重試")
+            print("🔒 [collectHealthDataForUpload] 設備被鎖定，健康數據不可訪問")
+            return []  // 靜默處理，這是正常情況（後台任務時設備通常是鎖定的）
+        }
+
+        // ✅ 檢查 2: HealthKit 授權狀態
+        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
+              let rhrType = HKObjectType.quantityType(forIdentifier: .restingHeartRate) else {
+            Logger.error("HealthKit 數據類型不可用")
+            print("❌ [collectHealthDataForUpload] HealthKit 數據類型不可用")
+            return []
+        }
+
+        let hrvStatus = healthKitManager.healthStore.authorizationStatus(for: hrvType)
+        let rhrStatus = healthKitManager.healthStore.authorizationStatus(for: rhrType)
+
+        print("🔐 [collectHealthDataForUpload] HRV 授權狀態: \(hrvStatus.rawValue), 靜息心率授權狀態: \(rhrStatus.rawValue)")
+
+        // 如果權限未確定，記錄日志但不阻止（可能是首次使用）
+        if hrvStatus == .notDetermined || rhrStatus == .notDetermined {
+            Logger.info("HealthKit 權限未確定，需要用戶授權")
+            print("⚠️ [collectHealthDataForUpload] HealthKit 權限未確定")
+        }
+
         let endDate = Date()
         let startDate = Calendar.current.date(byAdding: .day, value: -min(days, 7), to: endDate) ?? endDate
 
@@ -807,17 +838,37 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             return healthRecords
 
         } catch {
-            // 任務取消是正常行為，不記錄錯誤
+            // ✅ 錯誤分類處理
+            let nsError = error as NSError
+
+            // 1. 任務取消是正常行為，不記錄錯誤
             if error.isCancellationError {
                 Logger.debug("收集健康數據任務被取消，忽略錯誤")
+                print("🔄 [collectHealthDataForUpload] 任務被取消")
                 return []
             }
 
+            // 2. 設備鎖定或受保護數據不可訪問 - 靜默處理（這是正常情況）
+            if nsError.domain == "com.apple.healthkit" &&
+               error.localizedDescription.contains("Protected health data is inaccessible") {
+                Logger.debug("設備鎖定或健康數據不可訪問，稍後自動重試")
+                print("🔒 [collectHealthDataForUpload] 健康數據不可訪問（設備可能被鎖定）")
+                return []  // 不記錄為錯誤
+            }
+
+            // 3. 真正的錯誤才記錄到 Firebase
             Logger.firebase(
                 "收集健康數據失敗: \(error.localizedDescription)",
                 level: .error,
-                labels: ["module": "HealthDataUploadManagerV2", "action": "collect_health_data"]
+                labels: ["module": "HealthDataUploadManagerV2", "action": "collect_health_data"],
+                jsonPayload: [
+                    "error_domain": nsError.domain,
+                    "error_code": nsError.code,
+                    "error_description": error.localizedDescription
+                ]
             )
+
+            print("❌ [collectHealthDataForUpload] 收集健康數據失敗: \(error.localizedDescription)")
 
             // 返回空數組
             return []

@@ -1,18 +1,26 @@
 import Foundation
 
-final class TrainingPlanService {
+final class TrainingPlanService: DeduplicatedAPIService {
     static let shared = TrainingPlanService()
-    
+
     // MARK: - New Architecture Dependencies
     private let httpClient: HTTPClient
     private let parser: APIParser
-    
+
     private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
                  parser: APIParser = DefaultAPIParser.shared) {
         self.httpClient = httpClient
         self.parser = parser
     }
-    
+
+    // MARK: - Request Deduplication (Protocol Implementation)
+
+    var activeRequests: [String: Task<Any, Error>] = [:]
+    lazy var requestQueue = DispatchQueue(label: "com.havital.training-plan-service.requests", attributes: .concurrent)
+
+    // 注意：請求去重邏輯現已由 DeduplicatedAPIService protocol 提供
+    // makeDeduplicatedAPICall 和 generateRequestKey 方法來自 protocol extension
+
     // MARK: - Unified API Call Method
     
     /// 統一的 API 調用方法
@@ -84,12 +92,26 @@ final class TrainingPlanService {
     // MARK: - Modifications APIs
     /// 取得修改描述
     func getModificationsDescription() async throws -> String {
-        return try await makeAPICall(String.self, path: "/plan/modifications/description")
+        return try await makeDeduplicatedAPICall(
+            String.self,
+            path: "/plan/modifications/description",
+            method: .GET,
+            body: nil
+        ) {
+            try await self.makeAPICall(String.self, path: "/plan/modifications/description")
+        }
     }
-    
+
     /// 取得所有修改項目
     func getModifications() async throws -> [Modification] {
-        return try await makeAPICall([Modification].self, path: "/plan/modifications")
+        return try await makeDeduplicatedAPICall(
+            [Modification].self,
+            path: "/plan/modifications",
+            method: .GET,
+            body: nil
+        ) {
+            try await self.makeAPICall([Modification].self, path: "/plan/modifications")
+        }
     }
     
     /// 新增單筆修改
@@ -113,7 +135,14 @@ final class TrainingPlanService {
     }
     
     func getTrainingPlanOverview() async throws -> TrainingPlanOverview {
-        return try await makeAPICall(TrainingPlanOverview.self, path: "/plan/race_run/overview")
+        return try await makeDeduplicatedAPICall(
+            TrainingPlanOverview.self,
+            path: "/plan/race_run/overview",
+            method: .GET,
+            body: nil
+        ) {
+            try await self.makeAPICall(TrainingPlanOverview.self, path: "/plan/race_run/overview")
+        }
     }
 
     // MARK: - Plan Status API
@@ -121,7 +150,14 @@ final class TrainingPlanService {
     /// 獲取訓練計畫狀態（新 API）
     /// - Returns: 包含當前週數、下一步操作、下週資訊等的完整狀態
     func getPlanStatus() async throws -> PlanStatusResponse {
-        return try await makeAPICall(PlanStatusResponse.self, path: "/plan/race_run/status")
+        return try await makeDeduplicatedAPICall(
+            PlanStatusResponse.self,
+            path: "/plan/race_run/status",
+            method: .GET,
+            body: nil
+        ) {
+            try await self.makeAPICall(PlanStatusResponse.self, path: "/plan/race_run/status")
+        }
     }
 
     /*
@@ -138,7 +174,14 @@ final class TrainingPlanService {
     
     func getWeeklyPlanById(planId: String) async throws -> WeeklyPlan {
         do {
-            return try await makeAPICall(WeeklyPlan.self, path: "/plan/race_run/weekly/\(planId)")
+            return try await makeDeduplicatedAPICall(
+                WeeklyPlan.self,
+                path: "/plan/race_run/weekly/\(planId)",
+                method: .GET,
+                body: nil
+            ) {
+                try await self.makeAPICall(WeeklyPlan.self, path: "/plan/race_run/weekly/\(planId)")
+            }
         } catch let httpError as HTTPError {
             // 檢查是否為 HTTP 404 錯誤（資源不存在）
             if case .notFound(_) = httpError {

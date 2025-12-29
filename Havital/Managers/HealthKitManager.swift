@@ -18,9 +18,9 @@ class HealthKitManager: ObservableObject, TaskManageable {
             print("HealthKit 不可用")
             throw HealthError.notAvailable
         }
-        
+
         // 定義需要讀取的數據類型
-        let typesToRead: Set<HKObjectType> = [
+        var typesToRead: Set<HKObjectType> = [
             HKObjectType.workoutType(),
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
@@ -35,6 +35,18 @@ class HealthKitManager: ObservableObject, TaskManageable {
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKObjectType.quantityType(forIdentifier: .vo2Max)!
         ]
+
+        // iOS 18+ 新增：Effort Score 類型
+        if #available(iOS 18.0, *) {
+            if let workoutEffortScore = HKObjectType.quantityType(forIdentifier: .workoutEffortScore) {
+                typesToRead.insert(workoutEffortScore)
+                print("✅ [Authorization] 添加 workoutEffortScore 授權")
+            }
+            if let estimatedEffortScore = HKObjectType.quantityType(forIdentifier: .estimatedWorkoutEffortScore) {
+                typesToRead.insert(estimatedEffortScore)
+                print("✅ [Authorization] 添加 estimatedWorkoutEffortScore 授權")
+            }
+        }
         
         // 定義需要寫入的數據類型
         let typesToShare: Set<HKSampleType> = [
@@ -1531,17 +1543,29 @@ class HealthKitManager: ObservableObject, TaskManageable {
     /// 從 Workout metadata 提取環境溫度
     /// Apple Watch Series 8+ (watchOS 9+) 支援記錄環境溫度
     func fetchEnvironmentTemperature(for workout: HKWorkout) -> Double? {
+        // 檢查 metadata 是否存在
         guard let metadata = workout.metadata else {
+            print("🌡️ [Temperature] ❌ workout.metadata 為 nil - 沒有任何 metadata")
+            print("🌡️ [Temperature] Workout Info: type=\(workout.workoutActivityType.rawValue), start=\(workout.startDate), duration=\(workout.duration)s")
             return nil
+        }
+
+        // 列出所有 metadata keys 以便調試
+        print("🌡️ [Temperature] ✅ Metadata 存在，包含 \(metadata.count) 個 keys:")
+        for (key, value) in metadata {
+            print("  - \(key): \(type(of: value)) = \(value)")
         }
 
         // 檢查 metadata 中的溫度資訊
         // HKMetadataKeyWeatherTemperature 是 iOS 15+ 的官方 key
         if #available(iOS 15.0, *) {
+            print("🌡️ [Temperature] 檢查官方 key: HKMetadataKeyWeatherTemperature")
             if let tempQuantity = metadata[HKMetadataKeyWeatherTemperature] as? HKQuantity {
                 let tempCelsius = tempQuantity.doubleValue(for: .degreeCelsius())
-                print("🌡️ [Temperature] 從 metadata 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
+                print("🌡️ [Temperature] ✅ 從 metadata 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
                 return tempCelsius
+            } else {
+                print("🌡️ [Temperature] ❌ HKMetadataKeyWeatherTemperature 不存在或類型不正確")
             }
         }
 
@@ -1554,30 +1578,38 @@ class HealthKitManager: ObservableObject, TaskManageable {
             "weather_temperature"
         ]
 
+        print("🌡️ [Temperature] 嘗試備用 keys: \(possibleTempKeys)")
         for key in possibleTempKeys {
             if let tempValue = metadata[key] as? Double {
-                print("🌡️ [Temperature] 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempValue))°C")
+                print("🌡️ [Temperature] ✅ 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempValue))°C")
                 return tempValue
             } else if let tempQuantity = metadata[key] as? HKQuantity {
                 let tempCelsius = tempQuantity.doubleValue(for: .degreeCelsius())
-                print("🌡️ [Temperature] 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
+                print("🌡️ [Temperature] ✅ 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
                 return tempCelsius
             }
         }
 
-        print("🌡️ [Temperature] workout metadata 中沒有溫度資訊")
+        print("🌡️ [Temperature] ❌ 所有溫度 keys 都不存在 - workout metadata 中沒有溫度資訊")
         return nil
     }
 
     /// 從 Workout metadata 提取天氣狀況
     func fetchWeatherCondition(for workout: HKWorkout) -> String? {
         guard let metadata = workout.metadata else {
+            print("☁️ [Weather] ❌ workout.metadata 為 nil")
             return nil
         }
 
+        print("☁️ [Weather] ✅ Metadata 存在")
+
         if #available(iOS 15.0, *) {
+            print("☁️ [Weather] 檢查官方 key: HKMetadataKeyWeatherCondition")
             if let condition = metadata[HKMetadataKeyWeatherCondition] as? Int {
+                print("☁️ [Weather] ✅ 找到天氣狀況: \(condition)")
                 return String(condition)
+            } else {
+                print("☁️ [Weather] ❌ HKMetadataKeyWeatherCondition 不存在")
             }
         }
 
@@ -1588,30 +1620,40 @@ class HealthKitManager: ObservableObject, TaskManageable {
             "WeatherCondition"
         ]
 
+        print("☁️ [Weather] 嘗試備用 keys: \(possibleWeatherKeys)")
         for key in possibleWeatherKeys {
             if let condition = metadata[key] {
                 if let intCondition = condition as? Int {
+                    print("☁️ [Weather] ✅ 從 '\(key)' 獲取天氣: \(intCondition)")
                     return String(intCondition)
                 } else if let stringCondition = condition as? String {
+                    print("☁️ [Weather] ✅ 從 '\(key)' 獲取天氣: \(stringCondition)")
                     return stringCondition
                 }
             }
         }
 
+        print("☁️ [Weather] ❌ 沒有找到天氣狀況資訊")
         return nil
     }
 
     /// 從 Workout metadata 提取濕度
     func fetchHumidity(for workout: HKWorkout) -> Double? {
         guard let metadata = workout.metadata else {
+            print("💧 [Humidity] ❌ workout.metadata 為 nil")
             return nil
         }
 
+        print("💧 [Humidity] ✅ Metadata 存在")
+
         if #available(iOS 15.0, *) {
+            print("💧 [Humidity] 檢查官方 key: HKMetadataKeyWeatherHumidity")
             if let humidityQuantity = metadata[HKMetadataKeyWeatherHumidity] as? HKQuantity {
                 let humidity = humidityQuantity.doubleValue(for: .percent())
-                print("💧 [Humidity] 從 metadata 獲取濕度: \(String(format: "%.1f", humidity))%%")
+                print("💧 [Humidity] ✅ 從 metadata 獲取濕度: \(String(format: "%.1f", humidity))%%")
                 return humidity
+            } else {
+                print("💧 [Humidity] ❌ HKMetadataKeyWeatherHumidity 不存在或類型不正確")
             }
         }
 
@@ -1623,18 +1665,19 @@ class HealthKitManager: ObservableObject, TaskManageable {
             "weather_humidity"
         ]
 
+        print("💧 [Humidity] 嘗試備用 keys: \(possibleHumidityKeys)")
         for key in possibleHumidityKeys {
             if let humidityValue = metadata[key] as? Double {
-                print("💧 [Humidity] 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidityValue))%%")
+                print("💧 [Humidity] ✅ 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidityValue))%%")
                 return humidityValue
             } else if let humidityQuantity = metadata[key] as? HKQuantity {
                 let humidity = humidityQuantity.doubleValue(for: .percent())
-                print("💧 [Humidity] 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidity))%%")
+                print("💧 [Humidity] ✅ 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidity))%%")
                 return humidity
             }
         }
 
-        print("💧 [Humidity] workout metadata 中沒有濕度資訊")
+        print("💧 [Humidity] ❌ 所有濕度 keys 都不存在 - workout metadata 中沒有濕度資訊")
         return nil
     }
 
@@ -1650,12 +1693,93 @@ class HealthKitManager: ObservableObject, TaskManageable {
         guard let caloriesType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) else {
             throw HealthError.notAvailable
         }
-        
+
         return try await fetchQuantitySamples(
             sampleType: caloriesType,
             workout: workout,
             unit: HKUnit.kilocalorie()
         )
+    }
+
+    // MARK: - Effort Score (iOS 18+)
+
+    /// 獲取 Workout 的 Effort Score（自覺強度評量）
+    /// 優先級：手動輸入 > 自動估算 > nil
+    /// - Parameter workout: HKWorkout 對象
+    /// - Returns: Effort Score (0-10 scale) 或 nil
+    @available(iOS 18.0, *)
+    func fetchEffortScore(for workout: HKWorkout) async throws -> Double? {
+        print("🎯 [EffortScore] 開始獲取 Effort Score for workout: \(workout.workoutActivityType.name)")
+
+        // Priority 1: Manual effort score (user-entered, more accurate)
+        if let manualScore = try? await fetchEffortScoreOfType(.workoutEffortScore, for: workout) {
+            print("🎯 [EffortScore] ✅ 手動 Effort Score: \(String(format: "%.1f", manualScore))")
+            return manualScore
+        }
+
+        // Priority 2: Estimated effort score (system-calculated)
+        if let estimatedScore = try? await fetchEffortScoreOfType(.estimatedWorkoutEffortScore, for: workout) {
+            print("🎯 [EffortScore] ✅ 估計 Effort Score: \(String(format: "%.1f", estimatedScore))")
+            return estimatedScore
+        }
+
+        print("🎯 [EffortScore] ⚠️ 沒有找到 Effort Score 資訊")
+        return nil
+    }
+
+    /// 獲取特定類型的 Effort Score
+    /// - Parameters:
+    ///   - identifier: Effort Score 類型 (.workoutEffortScore 或 .estimatedWorkoutEffortScore)
+    ///   - workout: HKWorkout 對象
+    /// - Returns: Effort Score 值或 nil
+    @available(iOS 18.0, *)
+    private func fetchEffortScoreOfType(_ identifier: HKQuantityTypeIdentifier, for workout: HKWorkout) async throws -> Double? {
+        guard let effortType = HKObjectType.quantityType(forIdentifier: identifier) else {
+            print("🎯 [EffortScore] ❌ 無法獲取 quantity type: \(identifier)")
+            return nil
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(
+                withStart: workout.startDate,
+                end: workout.endDate,
+                options: .strictEndDate
+            )
+
+            let query = HKSampleQuery(
+                sampleType: effortType,
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, error in
+                if let error = error {
+                    // 檢查是否為取消錯誤（遵循 CLAUDE.md 的任務取消處理原則）
+                    let nsError = error as NSError
+                    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                        print("🎯 [EffortScore] ℹ️ Effort Score 查詢被取消，忽略錯誤")
+                        continuation.resume(returning: nil)
+                        return
+                    }
+
+                    print("🎯 [EffortScore] ❌ Query error: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let sample = samples?.first as? HKQuantitySample else {
+                    print("🎯 [EffortScore] ℹ️ 沒有找到 \(identifier) 樣本")
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Effort score is on 0-10 scale, use .count() unit
+                let value = sample.quantity.doubleValue(for: .count())
+                print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
+                continuation.resume(returning: value)
+            }
+
+            self.healthStore.execute(query)
+        }
     }
 }
 

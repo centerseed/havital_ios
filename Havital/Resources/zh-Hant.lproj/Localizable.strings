@@ -1905,3 +1905,6 @@
 // MARK: - My Achievement - Celebration
 "my_achievement.celebration.new_record" = "新紀錄！";
 "my_achievement.celebration.improved" = "進步了";
+
+// MARK: - Workout - Effort Score (iOS 18+)
+"workout.effort_score" = "體感強度";

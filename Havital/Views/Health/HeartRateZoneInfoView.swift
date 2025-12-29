@@ -49,15 +49,24 @@ struct HeartRateZoneInfoView: View {
         contentView
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(isOnboardingMode)
             .toolbar {
-                toolbarContent
-            }
-            .toolbar {
+                // Onboarding 模式：顯示自訂返回按鈕
                 if isOnboardingMode {
-                    ToolbarItem(placement: .bottomBar) {
-                        skipButton
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            onboardingCoordinator.goBack()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                Text(NSLocalizedString("common.back", comment: "Back"))
+                            }
+                        }
                     }
                 }
+            }
+            .toolbar {
+                toolbarContent
             }
             .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
                 Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
@@ -314,16 +323,27 @@ struct HeartRateZoneInfoView: View {
     private var toolbarContent: some ToolbarContent {
         if isOnboardingMode {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    Task { await saveHeartRateZones() }
-                }) {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text(NSLocalizedString("onboarding.next", comment: "Next"))
+                HStack(spacing: 16) {
+                    // 略過按鈕
+                    Button(action: {
+                        onboardingCoordinator.navigate(to: .personalBest)
+                    }) {
+                        Text(NSLocalizedString("onboarding.skip", comment: "Skip"))
+                            .foregroundColor(.secondary)
                     }
+
+                    // 下一步按鈕
+                    Button(action: {
+                        Task { await saveHeartRateZones() }
+                    }) {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text(NSLocalizedString("onboarding.next", comment: "Next"))
+                        }
+                    }
+                    .disabled(isSaving)
                 }
-                .disabled(isSaving)
             }
         } else {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -334,17 +354,6 @@ struct HeartRateZoneInfoView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var skipButton: some View {
-        Button(action: {
-            onboardingCoordinator.navigate(to: .personalBest)
-        }) {
-            Text(NSLocalizedString("onboarding.skip_heart_rate", comment: "Skip (Use Default Values)"))
-                .font(.subheadline)
-                .foregroundColor(.secondary)
         }
     }
 

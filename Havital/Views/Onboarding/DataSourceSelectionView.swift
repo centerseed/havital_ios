@@ -6,113 +6,99 @@ struct DataSourceSelectionView: View {
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var userPreferenceManager = UserPreferencesManager.shared
-    @ObservedObject private var authService = AuthenticationService.shared
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
 
     @State private var selectedDataSource: DataSourceType?
     @State private var isProcessing = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToNextStep = false
     @State private var showGarminAlreadyBoundAlert = false
     @State private var showStravaAlreadyBoundAlert = false
-    
+
     var body: some View {
-        NavigationView {
-            ZStack {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // 標題區塊
-                        VStack(spacing: 16) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 80, height: 80)
-                                .foregroundColor(.accentColor)
-                            
-                            Text(L10n.Onboarding.chooseDataSource.localized)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .multilineTextAlignment(.center)
-                            
-                            Text(L10n.Onboarding.selectPlatformDescription.localized)
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.top, 20)
-                        
-                        // 數據源選項
-                        VStack(spacing: 16) {
-                            // Apple Health 選項
-                            dataSourceCard(
-                                type: .appleHealth,
-                                icon: "heart.fill",
-                                title: "Apple Health",
-                                subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
-                                description: L10n.Onboarding.appleHealthDescription.localized
-                            )
+        ScrollView {
+            VStack(spacing: 24) {
+                // 標題區塊
+                VStack(spacing: 16) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .foregroundColor(.accentColor)
 
-                            // Garmin 選項（總是顯示）
-                            dataSourceCard(
-                                type: .garmin,
-                                icon: "clock.arrow.circlepath",
-                                title: "Garmin Connect™",
-                                subtitle: L10n.Onboarding.garminSubtitle.localized,
-                                description: L10n.Onboarding.garminDescription.localized
-                            )
+                    Text(L10n.Onboarding.chooseDataSource.localized)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .multilineTextAlignment(.center)
 
-                            // Strava 選項
-                            dataSourceCard(
-                                type: .strava,
-                                icon: "figure.run",
-                                title: "Strava",
-                                subtitle: L10n.Onboarding.stravaSubtitle.localized,
-                                description: L10n.Onboarding.stravaDescription.localized
-                            )
+                    Text(L10n.Onboarding.selectPlatformDescription.localized)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 20)
+
+                // 數據源選項
+                VStack(spacing: 16) {
+                    // Apple Health 選項
+                    dataSourceCard(
+                        type: .appleHealth,
+                        icon: "heart.fill",
+                        title: "Apple Health",
+                        subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
+                        description: L10n.Onboarding.appleHealthDescription.localized
+                    )
+
+                    // Garmin 選項（總是顯示）
+                    dataSourceCard(
+                        type: .garmin,
+                        icon: "clock.arrow.circlepath",
+                        title: "Garmin Connect™",
+                        subtitle: L10n.Onboarding.garminSubtitle.localized,
+                        description: L10n.Onboarding.garminDescription.localized
+                    )
+
+                    // Strava 選項
+                    dataSourceCard(
+                        type: .strava,
+                        icon: "figure.run",
+                        title: "Strava",
+                        subtitle: L10n.Onboarding.stravaSubtitle.localized,
+                        description: L10n.Onboarding.stravaDescription.localized
+                    )
+                }
+                .padding(.horizontal)
+
+                Spacer()
+
+                // 繼續按鈕
+                Button(action: {
+                    handleDataSourceSelection()
+                }) {
+                    HStack {
+                        if isProcessing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
                         }
-                        .padding(.horizontal)
-                        
-                        Spacer()
-                        
-                        // 繼續按鈕
-                        Button(action: {
-                            handleDataSourceSelection()
-                        }) {
-                            HStack {
-                                if isProcessing {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .scaleEffect(0.8)
-                                }
-                                Text(isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized)
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
-                            .cornerRadius(10)
-                        }
-                        .disabled(selectedDataSource == nil || isProcessing)
-                        .padding(.horizontal, 40)
-                        .padding(.bottom, 30)
+                        Text(isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized)
+                            .font(.headline)
+                            .foregroundColor(.white)
                     }
+                    .frame(maxWidth: .infinity)
                     .padding()
+                    .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
+                    .cornerRadius(10)
                 }
-                
-                // 隱藏的 NavigationLink - 導航到心率設定
-                NavigationLink(
-                    destination: HeartRateZoneInfoView(mode: .onboarding(targetDistance: 0))
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $navigateToNextStep
-                ) {
-                    EmptyView()
-                }
+                .disabled(selectedDataSource == nil || isProcessing)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 30)
             }
-            .navigationBarHidden(true)
+            .padding()
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(true)
         .alert(L10n.Onboarding.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
             Button(L10n.Onboarding.iUnderstand.localized, role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
@@ -137,16 +123,6 @@ struct DataSourceSelectionView: View {
             Button(L10n.Onboarding.confirm.localized, role: .cancel) {}
         } message: {
             Text(errorMessage)
-        }
-        .onAppear {
-            // 等待用戶選擇數據源
-        }
-        .onChange(of: authService.hasCompletedOnboarding) { oldValue, newValue in
-            // 當 onboarding 完成時，關閉 NavigationLink
-            if newValue {
-                navigateToNextStep = false
-                print("[DataSourceSelectionView] 偵測到 onboarding 完成，關閉 NavigationLink")
-            }
         }
     }
     
@@ -239,7 +215,7 @@ struct DataSourceSelectionView: View {
                 
                 await MainActor.run {
                     isProcessing = false
-                    navigateToNextStep = true
+                    coordinator.navigate(to: .heartRateZone)
                 }
                 
             } catch {
