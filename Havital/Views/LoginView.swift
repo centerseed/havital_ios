@@ -92,6 +92,46 @@ struct LoginView: View {
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, 48) // 增加底部間距，讓按鈕不會太靠近底部
+
+                Spacer()
+
+                // Demo Mode 按鈕 (放在最下方)
+                VStack(spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 32)
+                        .padding(.bottom, 8)
+
+                    Button {
+                        Task {
+                            await authService.demoLogin()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.title2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("查看示範 / Demo Mode")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                Text("For Apple Review")
+                                    .font(.caption)
+                                    .opacity(0.7)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.blue, lineWidth: 1)
+                        )
+                    }
+                    .disabled(authService.isLoading)
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 24)
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
