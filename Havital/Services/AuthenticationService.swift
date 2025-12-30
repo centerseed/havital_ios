@@ -16,11 +16,14 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     @Published var loginError: Error?
     @Published var hasCompletedOnboarding = false
     @Published var isReonboardingMode = false // 新增：標識是否處於重新 Onboarding 模式
-    
+
+    // Demo 模式的 token（直接使用後端返回的 ID token）
+    private var demoIdToken: String?
+
     static let shared = AuthenticationService()
     private var cancellables = Set<AnyCancellable>()
     private var currentNonce: String?
-    
+
     // TaskManageable 協議實作 (Actor-based)
     let taskRegistry = TaskRegistry()
     
@@ -41,7 +44,11 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
             self.user = user
-            self.isAuthenticated = user != nil
+
+            // 🎯 如果是 Demo 模式，不要被 Firebase auth state 覆蓋
+            if self.demoIdToken == nil {
+                self.isAuthenticated = user != nil
+            }
 
             Logger.firebase(
                 "認證狀態變更",
@@ -86,15 +93,20 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
                     }
                 }
             } else {
-                Logger.firebase(
-                    "用戶未認證 - 清除用戶資料",
-                    level: .info,
-                    labels: [
-                        "module": "AuthenticationService",
-                        "action": "clear_user_data"
-                    ]
-                )
-                self.appUser = nil
+                // 🎯 如果是 Demo 模式，不要清除用戶資料
+                if self.demoIdToken == nil {
+                    Logger.firebase(
+                        "用戶未認證 - 清除用戶資料",
+                        level: .info,
+                        labels: [
+                            "module": "AuthenticationService",
+                            "action": "clear_user_data"
+                        ]
+                    )
+                    self.appUser = nil
+                } else {
+                    print("🎯 [Demo] Firebase 無 session，但保持 Demo 用戶資料")
+                }
             }
         }
         
@@ -331,7 +343,139 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             await self.performAppleSignIn()
         }
     }
-    
+
+    @MainActor // Ensure UI updates are on the main thread
+    func demoLogin() async {
+        await executeTask(id: TaskID("demo_login")) {
+            await self.performDemoLogin()
+        }
+    }
+
+    private func performDemoLogin() async {
+        await MainActor.run {
+            isLoading = true
+            loginError = nil
+        }
+
+        do {
+            // 步驟 1: 呼叫 Demo 登入 API
+            print("🔵 [Demo Login] 步驟 1: 呼叫 /login/demo API")
+            let response = try await EmailAuthService.shared.demoLogin()
+
+            guard response.success else {
+                print("❌ [Demo Login] API 返回 success=false")
+                throw AuthError.unknown
+            }
+
+            print("✅ [Demo Login] API 調用成功")
+            print("✅ [Demo Login] UID=\(response.data.user.uid)")
+            print("✅ [Demo Login] Email=\(response.data.user.email)")
+            print("✅ [Demo Login] idToken長度=\(response.data.idToken.count)")
+
+            // 步驟 2: 直接使用後端返回的 ID token（不需要 signInWithCustomToken）
+            print("🔵 [Demo Login] 步驟 2: 儲存 Demo ID token")
+            self.demoIdToken = response.data.idToken
+
+            // 設置用戶ID追蹤
+            setUserIDForAnalytics(response.data.user.uid)
+
+            Logger.firebase(
+                "Demo 登入成功",
+                level: .info,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "demo_login_success",
+                    "user_id": response.data.user.uid
+                ]
+            )
+
+            // 步驟 3: 獲取用戶資料（使用 demo token）
+            print("🔵 [Demo Login] 步驟 3: 獲取用戶資料")
+            let user = try await makeAPICall(User.self, path: "/user")
+
+            print("✅ [Demo Login] 用戶資料獲取成功")
+            print("✅ [Demo Login] 用戶名稱=\(user.displayName ?? "無")")
+            print("🔍 [Demo Login] 🚨 Active Plan=\(user.activeWeeklyPlanId ?? "無") 🚨")
+            print("✅ [Demo Login] Email=\(user.email ?? "無")")
+
+            // 🎯 關鍵修復：Demo 模式強制跳過 onboarding
+            print("🔵 [Demo Login] Demo 模式 - 強制設置 hasCompletedOnboarding=true")
+            print("🔍 [Demo Login] 用戶 activeWeeklyPlanId: \(user.activeWeeklyPlanId ?? "無")")
+
+            await MainActor.run {
+                print("🔍 [Demo Login] 進入 MainActor.run，開始更新狀態...")
+                print("🔍 [Demo Login] 更新前: isAuthenticated=\(self.isAuthenticated), hasCompletedOnboarding=\(self.hasCompletedOnboarding)")
+
+                self.appUser = user
+                print("🔍 [Demo Login] ✅ appUser 已設置")
+
+                // ⚠️ Demo 模式：強制設置為 true，跳過 onboarding
+                self.hasCompletedOnboarding = true
+                print("🔍 [Demo Login] ✅ hasCompletedOnboarding=true 已設置（Demo 模式強制）")
+
+                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                print("🔍 [Demo Login] ✅ UserDefaults 已更新")
+
+                // 🎯 最後才設置為已認證（確保 hasCompletedOnboarding 已更新）
+                self.isAuthenticated = true
+                print("🔍 [Demo Login] ✅ isAuthenticated=true 已設置")
+
+                self.isLoading = false
+                print("🔍 [Demo Login] ✅ isLoading=false 已設置")
+
+                print("🔍 [Demo Login] 更新後: isAuthenticated=\(self.isAuthenticated), hasCompletedOnboarding=\(self.hasCompletedOnboarding)")
+                print("🔍 [Demo Login] 🚨 最終檢查: appUser=\(self.appUser != nil), isReonboardingMode=\(self.isReonboardingMode) 🚨")
+            }
+
+            UserService.shared.syncUserPreferences(with: user)
+
+            print("✅ [Demo Login] 登入流程完成")
+            print("🔍 [Demo Login] 🚨 最終狀態: isAuthenticated=\(self.isAuthenticated), hasCompletedOnboarding=\(self.hasCompletedOnboarding) 🚨")
+
+        } catch let error as AuthError {
+            print("❌ [Demo Login] 失敗 (AuthError): \(error)")
+            await MainActor.run {
+                isLoading = false
+                loginError = error
+            }
+
+            Logger.firebase(
+                "Demo 登入失敗 (AuthError)",
+                level: .error,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "demo_login_failed"
+                ],
+                jsonPayload: [
+                    "error_type": "AuthError",
+                    "error": error.localizedDescription
+                ]
+            )
+        } catch {
+            print("❌ [Demo Login] 失敗: \(error)")
+            print("   錯誤類型: \(type(of: error))")
+            print("   錯誤描述: \(error.localizedDescription)")
+
+            await MainActor.run {
+                isLoading = false
+                loginError = error
+            }
+
+            Logger.firebase(
+                "Demo 登入失敗",
+                level: .error,
+                labels: [
+                    "module": "AuthenticationService",
+                    "action": "demo_login_failed"
+                ],
+                jsonPayload: [
+                    "error_type": String(describing: type(of: error)),
+                    "error": error.localizedDescription
+                ]
+            )
+        }
+    }
+
     private func performAppleSignIn() async {
         await MainActor.run {
             isLoading = true
@@ -609,6 +753,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
             await GarminManager.shared.disconnect(remote: false)
         }
         
+        // ⚠️ 重要: 先設置 isAuthenticated = false,避免顯示 onboarding
+        isAuthenticated = false
+
         try Auth.auth().signOut()
         try GIDSignIn.sharedInstance.signOut()
 
@@ -619,6 +766,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
         appUser = nil
         hasCompletedOnboarding = false
         isReonboardingMode = false
+        demoIdToken = nil // 清除 Demo token
+
+        print("🔄 已清除所有認證狀態（包括 Demo token）")
         
         // 清除所有 UserDefaults
         if let bundleID = Bundle.main.bundleIdentifier {
@@ -676,6 +826,12 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
 
 
     func getIdToken() async throws -> String {
+        // 優先使用 Demo token（如果存在）
+        if let demoToken = demoIdToken {
+            return demoToken
+        }
+
+        // 否則使用 Firebase token
         guard let user = Auth.auth().currentUser else {
             throw AuthError.notAuthenticated
         }

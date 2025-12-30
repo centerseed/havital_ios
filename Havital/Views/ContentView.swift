@@ -7,6 +7,8 @@ struct ContentView: View {
     @ObservedObject private var appStateManager = AppStateManager.shared
 
     var body: some View {
+        let _ = print("📱 [ContentView] body 重新評估 - isAuth=\(authService.isAuthenticated), hasOnboarding=\(authService.hasCompletedOnboarding), isReOnboarding=\(authService.isReonboardingMode), loading=\(appStateManager.shouldShowLoadingScreen)")
+
         Group {
             // 如果 App 正在初始化，顯示載入畫面
             if appStateManager.shouldShowLoadingScreen {

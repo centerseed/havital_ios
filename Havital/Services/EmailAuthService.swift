@@ -50,4 +50,11 @@ actor EmailAuthService {
                                                  method: "POST",
                                                  body: bodyData)
     }
+
+    /// Demo 登入
+    func demoLogin() async throws -> DemoLoginResponse {
+        return try await APIClient.shared.request(DemoLoginResponse.self,
+                                                  path: "/login/demo",
+                                                  method: "POST")
+    }
 }

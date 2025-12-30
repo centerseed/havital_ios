@@ -51,7 +51,7 @@ actor APIClient {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Bearer Token: include for all except login, verify, resend
-        if !(path.hasPrefix("/login/email") || path.hasPrefix("/verify/email") || path.hasPrefix("/resend/email") || path.hasPrefix("/register/email")) {
+        if !(path.hasPrefix("/login/") || path.hasPrefix("/verify/") || path.hasPrefix("/resend/") || path.hasPrefix("/register/")) {
             let token = try await AuthenticationService.shared.getIdToken()
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
