@@ -1,0 +1,200 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -project Havital.xcodeproj -scheme Havital -destination "platform=iOS Simulator,name=iPhone 17 Pro" -configuration Debug -enableCodeCoverage YES -parallel-testing-enabled NO "-skip-testing:HavitalTests/TrainingPlanRepositoryIntegrationTests" "-skip-testing:HavitalTests/TrainingPlanUseCaseIntegrationTests" "-skip-testing:HavitalTests/TrainingPlanFlowIntegrationTests"
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  GTMAppAuth: https://github.com/google/GTMAppAuth.git @ 4.1.1
+  GoogleAdsOnDeviceConversion: https://github.com/googleads/google-ads-on-device-conversion-ios-sdk @ 2.3.0
+  GoogleAppMeasurement: https://github.com/google/GoogleAppMeasurement.git @ 11.15.0
+  nanopb: https://github.com/firebase/nanopb.git @ 2.30910.0
+  gRPC: https://github.com/google/grpc-binary.git @ 1.69.1
+  Firebase: https://github.com/firebase/firebase-ios-sdk @ 11.15.0
+  AppCheck: https://github.com/google/app-check.git @ 11.2.0
+  GoogleDataTransport: https://github.com/google/GoogleDataTransport.git @ 10.1.0
+  Promises: https://github.com/google/promises.git @ 2.4.0
+  AppAuth: https://github.com/openid/AppAuth-iOS.git @ 1.7.6
+  GoogleSignIn: https://github.com/google/GoogleSignIn-iOS.git @ 8.0.0
+  SwiftProtobuf: https://github.com/apple/swift-protobuf.git @ 1.33.3
+  generative-ai-swift: https://github.com/google/generative-ai-swift @ 0.5.6
+  GTMSessionFetcher: https://github.com/google/gtm-session-fetcher.git @ 3.5.0
+  InteropForGoogle: https://github.com/google/interop-ios-for-google-sdks.git @ 101.0.0
+  GoogleUtilities: https://github.com/google/GoogleUtilities.git @ 8.1.0
+  leveldb: https://github.com/firebase/leveldb.git @ 1.22.5
+  abseil: https://github.com/google/abseil-cpp-binary.git @ 1.2024072200.0
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (117 targets)
+    Target 'HavitalUITests' in project 'Havital'
+        ➜ Explicit dependency on target 'Havital' in project 'Havital'
+    Target 'HavitalTests' in project 'Havital'
+        ➜ Explicit dependency on target 'Havital' in project 'Havital'
+        ➜ Explicit dependency on target 'GoogleGenerativeAI' in project 'generative-ai-swift'
+    Target 'Havital' in project 'Havital'
+        ➜ Explicit dependency on target 'FirebaseMessaging' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseAnalytics' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseAppCheck' in project 'Firebase'
+        ➜ Explicit dependency on target 'GoogleGenerativeAI' in project 'generative-ai-swift'
+        ➜ Explicit dependency on target 'FirebaseStorage' in project 'Firebase'
+        ➜ Explicit dependency on target 'GoogleSignIn' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'FirebaseAuth' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfig' in project 'Firebase'
+        ➜ Explicit dependency on target 'GoogleSignInSwift' in project 'GoogleSignIn'
+    Target 'GoogleSignInSwift' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'GoogleSignInSwift' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'GoogleSignIn_GoogleSignInSwift' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'GoogleSignIn' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'AppAuth' in project 'AppAuth'
+        ➜ Explicit dependency on target 'AppCheckCore' in project 'AppCheck'
+        ➜ Explicit dependency on target 'GTMAppAuth' in project 'GTMAppAuth'
+        ➜ Explicit dependency on target 'GTMSessionFetcherCore' in project 'GTMSessionFetcher'
+    Target 'GoogleSignInSwift' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'GoogleSignIn_GoogleSignInSwift' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'GoogleSignIn' in project 'GoogleSignIn'
+        ➜ Explicit dependency on target 'AppAuth' in project 'AppAuth'
+        ➜ Explicit dependency on target 'AppCheckCore' in project 'AppCheck'
+        ➜ Explicit dependency on target 'GTMAppAuth' in project 'GTMAppAuth'
+        ➜ Explicit dependency on target 'GTMSessionFetcherCore' in project 'GTMSessionFetcher'
+    Target 'GoogleSignIn_GoogleSignInSwift' in project 'GoogleSignIn' (no dependencies)
+    Target 'FirebaseRemoteConfig' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfig' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase_FirebaseRemoteConfig' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseABTesting' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseInstallations' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfigInterop' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfigInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseSharedSwift' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'FBLPromises' in project 'Promises'
+        ➜ Explicit dependency on target 'GULUserDefaults' in project 'GoogleUtilities'
+    Target 'FirebaseRemoteConfig' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase_FirebaseRemoteConfig' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseABTesting' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseInstallations' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfigInterop' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfigInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseSharedSwift' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'FBLPromises' in project 'Promises'
+        ➜ Explicit dependency on target 'GULUserDefaults' in project 'GoogleUtilities'
+    Target 'FirebaseRemoteConfigInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseABTesting' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseInstallations' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseRemoteConfigInterop' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'FBLPromises' in project 'Promises'
+        ➜ Explicit dependency on target 'GULUserDefaults' in project 'GoogleUtilities'
+    Target 'FirebaseRemoteConfigInterop' in project 'Firebase' (no dependencies)
+    Target 'FirebaseABTesting' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase_FirebaseABTesting' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+    Target 'Firebase_FirebaseABTesting' in project 'Firebase' (no dependencies)
+    Target 'Firebase_FirebaseRemoteConfig' in project 'Firebase' (no dependencies)
+    Target 'FirebaseFirestore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestoreTarget' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestoreInternalWrapper' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseAppCheckInterop' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreExtension' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseSharedSwift' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestore' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'abseil' in project 'abseil'
+        ➜ Explicit dependency on target 'gRPC-C++' in project 'gRPC'
+        ➜ Explicit dependency on target 'nanopb' in project 'nanopb'
+        ➜ Explicit dependency on target 'leveldb' in project 'leveldb'
+    Target 'FirebaseFirestoreTarget' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestoreInternalWrapper' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseAppCheckInterop' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreExtension' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseSharedSwift' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestore' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'abseil' in project 'abseil'
+        ➜ Explicit dependency on target 'gRPC-C++' in project 'gRPC'
+        ➜ Explicit dependency on target 'nanopb' in project 'nanopb'
+        ➜ Explicit dependency on target 'leveldb' in project 'leveldb'
+    Target 'FirebaseFirestore' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase_FirebaseFirestore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseFirestoreInternalWrapper' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseAppCheckInterop' in project 'Firebase'
+        ➜ Explicit dependency on target 'Firebase' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreInternal' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCore' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseCoreExtension' in project 'Firebase'
+        ➜ Explicit dependency on target 'FirebaseSharedSwift' in project 'Firebase'
+        ➜ Explicit dependency on target 'GULNSData' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULEnvironment' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'GULLogger' in project 'GoogleUtilities'
+        ➜ Explicit dependency on target 'abseil' in project 'abseil'
+        ➜ Explicit dependency on target 'gRPC-C++' in project 'gRPC'
+        ➜ Explicit dependency on target 'nanopb' in project 'nanopb'
+        ➜ Explicit dependency on target 'leveldb' in project 'leveldb'
+    Target 'leveldb' in project 'leveldb'
+        ➜ Explicit dependency on target 'leveldb' in project 'leveldb'
+        ➜ Explicit dependency on target 'leveldb_leveldb' in project 'leveldb'
+    Target 'leveldb' in project 'leveldb'
+        ➜ Explicit dependency on target 'leveldb_leveldb' in project 'leveldb'
+    Target 'leveldb_leveldb' in project 'leveldb' (no dependencies)
+    Target 'gRPC-C++' in project 'gRPC'
+        ➜ Explicit dependency on target 'grpcppWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'gRPC_grpcppWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'grpcWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'opensslWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'abseil' in project 'abseil'
+    Target 'grpcppWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'gRPC_grpcppWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'grpcWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'opensslWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'abseil' in project 'abseil'
+    Target 'opensslWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'gRPC_opensslWrapper' in project 'gRPC'
+    Target 'gRPC_opensslWrapper' in project 'gRPC' (no dependencies)
+    Target 'grpcWrapper' in project 'gRPC'
+        ➜ Explicit dependency on target 'gRPC_grpcWrapper' in project 'gRPC'
+    Target 'gRPC_grpcWrapper' in project 'gRPC' (no dependencies)
+    Target 'gRPC_grpcppWrapper' in project 'gRPC' (no dependencies)
+    Target 'abseil' in project 'abseil'

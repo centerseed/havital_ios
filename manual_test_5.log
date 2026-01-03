@@ -1,0 +1,120 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -project Havital.xcodeproj -scheme Havital -destination "platform=iOS Simulator,name=iPhone 17 Pro" -configuration Debug -enableCodeCoverage YES -parallel-testing-enabled NO "-only-testing:HavitalTests/WeeklySummaryViewModelTests"
+
+Resolve Package Graph
+
+Fetching from https://github.com/google/GoogleAppMeasurement.git (cached)
+
+Fetching from https://github.com/google/gtm-session-fetcher.git (cached)
+
+Fetching from https://github.com/google/GoogleUtilities.git (cached)
+
+Fetching from https://github.com/google/app-check.git (cached)
+
+Fetching from https://github.com/google/promises.git (cached)
+
+Fetching from https://github.com/google/generative-ai-swift (cached)
+
+Fetching from https://github.com/google/GoogleDataTransport.git (cached)
+
+Fetching from https://github.com/google/GTMAppAuth.git (cached)
+
+Fetching from https://github.com/google/GoogleSignIn-iOS.git (cached)
+
+Fetching from https://github.com/google/grpc-binary.git (cached)
+
+Fetching from https://github.com/google/abseil-cpp-binary.git (cached)
+
+Fetching from https://github.com/google/interop-ios-for-google-sdks.git (cached)
+
+Fetching from https://github.com/apple/swift-protobuf.git (cached)
+
+Fetching from https://github.com/googleads/google-ads-on-device-conversion-ios-sdk (cached)
+
+Fetching from https://github.com/openid/AppAuth-iOS.git (cached)
+
+Fetching from https://github.com/firebase/nanopb.git (cached)
+
+Fetching from https://github.com/firebase/leveldb.git (cached)
+
+Fetching from https://github.com/firebase/firebase-ios-sdk (cached)
+
+Creating working copy of package ‘GoogleUtilities’
+
+Creating working copy of package ‘promises’
+
+Creating working copy of package ‘app-check’
+
+Creating working copy of package ‘generative-ai-swift’
+
+Creating working copy of package ‘GoogleSignIn-iOS’
+
+Creating working copy of package ‘GoogleAppMeasurement’
+
+Creating working copy of package ‘abseil-cpp-binary’
+
+Creating working copy of package ‘gtm-session-fetcher’
+
+Checking out 2.4.0 of package ‘promises’
+
+Checking out 11.2.0 of package ‘app-check’
+
+Checking out 8.1.0 of package ‘GoogleUtilities’
+
+Checking out 1.2024072200.0 of package ‘abseil-cpp-binary’
+
+Checking out 11.15.0 of package ‘GoogleAppMeasurement’
+
+Checking out 3.5.0 of package ‘gtm-session-fetcher’
+
+Checking out 0.5.6 of package ‘generative-ai-swift’
+
+Checking out 8.0.0 of package ‘GoogleSignIn-iOS’
+
+Creating working copy of package ‘GoogleDataTransport’
+
+Creating working copy of package ‘interop-ios-for-google-sdks’
+
+Creating working copy of package ‘grpc-binary’
+
+Creating working copy of package ‘GTMAppAuth’
+
+Checking out 10.1.0 of package ‘GoogleDataTransport’
+
+Checking out 101.0.0 of package ‘interop-ios-for-google-sdks’
+
+Creating working copy of package ‘swift-protobuf’
+
+Checking out 4.1.1 of package ‘GTMAppAuth’
+
+Creating working copy of package ‘google-ads-on-device-conversion-ios-sdk’
+
+Checking out 1.69.1 of package ‘grpc-binary’
+
+Creating working copy of package ‘firebase-ios-sdk’
+
+Creating working copy of package ‘AppAuth-iOS’
+
+Checking out 1.33.3 of package ‘swift-protobuf’
+Couldn’t update repository submodules:
+    fatal: Unable to read current working directory: No such file or directory
+Checking out 2.3.0 of package ‘google-ads-on-device-conversion-ios-sdk’
+
+Creating working copy of package ‘leveldb’
+
+Checking out 1.7.6 of package ‘AppAuth-iOS’
+
+Checking out 1.22.5 of package ‘leveldb’
+
+Checking out 11.15.0 of package ‘firebase-ios-sdk’
+
+Creating working copy of package ‘nanopb’
+
+Checking out 2.30910.0 of package ‘nanopb’
+
+fatalError
+2026-01-02 23:26:48.037 xcodebuild[5728:804022] Writing error result bundle to /var/folders/yw/0fw5n4hs4r75vjh6qy18lm0w0000gp/T/ResultBundle_2026-02-01_23-26-0048.xcresult
+xcodebuild: error: Could not resolve package dependencies:
+  fatalError
+  Couldn’t update repository submodules:
+

@@ -1,0 +1,5 @@
+2026-01-01 14:12:28.516 xcodebuild[35653:32928361] Writing error result bundle to /var/folders/yw/0fw5n4hs4r75vjh6qy18lm0w0000gp/T/ResultBundle_2026-01-01_14-12-0028.xcresult
+xcodebuild: error: Could not resolve package dependencies:
+  file not found at path: /Users/wubaizong/Library/Developer/Xcode/DerivedData/Havital-fjanoysqqdrmuxabogctbxaororp/SourcePackages/artifacts/firebase-ios-sdk/FirebaseFirestoreInternal/FirebaseFirestoreInternal.zip
+  fatalError
+

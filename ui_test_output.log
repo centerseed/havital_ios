@@ -1,0 +1,28 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -project Havital.xcodeproj -scheme Havital -destination "platform=iOS Simulator,name=iPhone 17 Pro" "-only-testing:HavitalUITests/ManagerCacheTests"
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  nanopb: https://github.com/firebase/nanopb.git @ 2.30910.0
+  SwiftProtobuf: https://github.com/apple/swift-protobuf.git @ 1.32.0
+  generative-ai-swift: https://github.com/google/generative-ai-swift @ 0.5.6
+  abseil: https://github.com/google/abseil-cpp-binary.git @ 1.2024072200.0
+  GTMAppAuth: https://github.com/google/GTMAppAuth.git @ 4.1.1
+  GoogleAppMeasurement: https://github.com/google/GoogleAppMeasurement.git @ 11.15.0
+  GoogleAdsOnDeviceConversion: https://github.com/googleads/google-ads-on-device-conversion-ios-sdk @ 2.3.0
+  leveldb: https://github.com/firebase/leveldb.git @ 1.22.5
+  Promises: https://github.com/google/promises.git @ 2.4.0
+  Firebase: https://github.com/firebase/firebase-ios-sdk @ 11.15.0
+  AppAuth: https://github.com/openid/AppAuth-iOS.git @ 1.7.6
+  GoogleDataTransport: https://github.com/google/GoogleDataTransport.git @ 10.1.0
+  gRPC: https://github.com/google/grpc-binary.git @ 1.69.1
+  AppCheck: https://github.com/google/app-check.git @ 11.2.0
+  GoogleUtilities: https://github.com/google/GoogleUtilities.git @ 8.1.0
+  GTMSessionFetcher: https://github.com/google/gtm-session-fetcher.git @ 3.5.0
+  InteropForGoogle: https://github.com/google/interop-ios-for-google-sdks.git @ 101.0.0
+  GoogleSignIn: https://github.com/google/GoogleSignIn-iOS.git @ 8.0.0
+
+2026-01-01 12:26:43.238 xcodebuild[36069:32631500] Writing error result bundle to /var/folders/yw/0fw5n4hs4r75vjh6qy18lm0w0000gp/T/ResultBundle_2026-01-01_12-26-0043.xcresult
+xcodebuild: error: Failed to build project Havital with scheme Havital.: Could not find test host for HavitalTests: TEST_HOST evaluates to "/Users/wubaizong/Library/Developer/Xcode/DerivedData/Havital-fjanoysqqdrmuxabogctbxaororp/Build/Products/Debug-iphonesimulator/Paceriz.app/Paceriz"
