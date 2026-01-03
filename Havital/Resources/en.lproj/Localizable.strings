@@ -600,6 +600,7 @@
 "date.fri" = "Fri";
 "date.sat" = "Sat";
 "date.sun" = "Sun";
+"date.minutes_ago" = "%d minutes ago";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "Unsaved Changes";

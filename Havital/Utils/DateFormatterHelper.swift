@@ -113,6 +113,34 @@ struct DateFormatterHelper {
         ).date(from: dateString)
     }
 
+    // MARK: - Bundle Helper
+    private static var bundle: Bundle {
+        class BundleFinder {}
+        
+        // Potential candidates
+        let candidates = [
+            Bundle(for: BundleFinder.self),
+            Bundle.main
+        ] + Bundle.allBundles
+        
+        for bundle in candidates {
+            // Exclude specific localization bundles (e.g., .../ja.lproj)
+            if bundle.bundlePath.hasSuffix(".lproj") {
+                continue
+            }
+            
+            // Verify this bundle contains the English localization
+            if bundle.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: "en") != nil {
+                return bundle
+            }
+        }
+        
+        return Bundle.main
+    }
+    
+    // Removed hasLocalizableStrings as it's no longer used directly in the loop above
+
+
     // MARK: - 相對時間格式化
 
     /// 格式化為相對時間（例如："剛剛"、"5分鐘前"、"昨天"）
@@ -129,14 +157,15 @@ struct DateFormatterHelper {
 
         // 1分鐘內
         if interval < 60 {
-            return NSLocalizedString("date.just_now", comment: "剛剛")
+            return NSLocalizedString("date.just_now", bundle: bundle, comment: "剛剛")
         }
 
         // 1小時內
         if interval < 3600 {
             let minutes = Int(interval / 60)
-            return String(format: NSLocalizedString("date.minutes_ago", comment: "%d分鐘前"), minutes)
+            return String(format: NSLocalizedString("date.minutes_ago", bundle: bundle, comment: "%d分鐘前"), minutes)
         }
+
 
         // 今天
         var calendar = Calendar.current
@@ -146,12 +175,12 @@ struct DateFormatterHelper {
         }
 
         if calendar.isDateInToday(date) {
-            return String(format: NSLocalizedString("date.today_at", comment: "今天 %@"), formatTime(date))
+            return String(format: NSLocalizedString("date.today_at", bundle: bundle, comment: "今天 %@"), formatTime(date))
         }
 
         // 昨天
         if calendar.isDateInYesterday(date) {
-            return String(format: NSLocalizedString("date.yesterday_at", comment: "昨天 %@"), formatTime(date))
+            return String(format: NSLocalizedString("date.yesterday_at", bundle: bundle, comment: "昨天 %@"), formatTime(date))
         }
 
         // 本週
@@ -166,6 +195,51 @@ struct DateFormatterHelper {
 
         // 其他情況顯示完整日期時間
         return formatDateTime(date)
+    }
+
+    // MARK: - 訓練計劃相關工具
+
+    /// 獲取星期名稱
+    /// - Parameter dayIndex: 日期索引 (1-7，1=週一)
+    /// - Returns: 星期名稱，例如："週一"
+    static func weekdayName(for dayIndex: Int) -> String {
+        let weekdays = [
+            NSLocalizedString("weekday.monday", comment: "週一"),
+            NSLocalizedString("weekday.tuesday", comment: "週二"),
+            NSLocalizedString("weekday.wednesday", comment: "週三"),
+            NSLocalizedString("weekday.thursday", comment: "週四"),
+            NSLocalizedString("weekday.friday", comment: "週五"),
+            NSLocalizedString("weekday.saturday", comment: "週六"),
+            NSLocalizedString("weekday.sunday", comment: "週日")
+        ]
+        let index = dayIndex - 1
+        return (index >= 0 && index < weekdays.count) ? weekdays[index] : ""
+    }
+
+    /// 檢查日期是否為今天
+    /// - Parameter date: 要檢查的日期
+    /// - Returns: 是否為今天
+    static func isToday(_ date: Date) -> Bool {
+        var calendar = Calendar.current
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
+           let tz = TimeZone(identifier: userTimezone) {
+            calendar.timeZone = tz
+        }
+        return calendar.isDateInToday(date)
+    }
+
+    /// 獲取指定日期索引對應的日期
+    /// - Parameters:
+    ///   - startDate: 起始日期
+    ///   - dayIndex: 日期索引 (1 = 第一天)
+    /// - Returns: 對應的日期，失敗返回 nil
+    static func getDateForDay(startDate: Date, dayIndex: Int) -> Date? {
+        var calendar = Calendar.current
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
+           let tz = TimeZone(identifier: userTimezone) {
+            calendar.timeZone = tz
+        }
+        return calendar.date(byAdding: .day, value: dayIndex - 1, to: startDate)
     }
 
     // MARK: - 調試工具

@@ -99,6 +99,26 @@ struct MutableTrainingDay: Identifiable, Equatable {
                lhs.trainingType == rhs.trainingType &&
                lhs.trainingDetails == rhs.trainingDetails
     }
+    
+    /// 創建空白訓練日
+    static func createEmpty(dayIndex: Int) -> MutableTrainingDay {
+        return MutableTrainingDay(
+            dayIndex: String(dayIndex),
+            dayTarget: "",
+            trainingType: "rest",
+            trainingDetails: nil
+        )
+    }
+    
+    /// 自定義初始化
+    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?) {
+        self.dayIndex = dayIndex
+        self.dayTarget = dayTarget
+        self.trainingType = trainingType
+        self.tips = nil
+        self.reason = nil
+        self.trainingDetails = trainingDetails
+    }
 }
 
 /// 可編輯的訓練詳情模型

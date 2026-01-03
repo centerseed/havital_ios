@@ -179,8 +179,7 @@ struct TrainingPlanView: View {
             }
         }
         .task {
-            // 初始化已在 TrainingPlanViewModel.init() 中自動執行
-            // 不需要手動調用 loadAllInitialData
+            await viewModel.initialize()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // Only refresh if app initialization is complete (avoid duplicate refresh during app launch)
@@ -221,9 +220,17 @@ struct TrainingPlanView: View {
             }
         }
         .sheet(isPresented: $showEditSchedule) {
-            EditScheduleView(viewModel: viewModel)
+            if let weeklyPlan = viewModel.weeklyPlan,
+               let weekStartDate = viewModel.getWeekStartDate() {
+                EditScheduleView(
+                    editViewModel: EditScheduleViewModel(weeklyPlan: weeklyPlan, startDate: weekStartDate),
+                    viewModel: viewModel
+                )
+            } else {
+                Text("No weekly plan available")
+            }
         }
-        .sheet(isPresented: $viewModel.showAdjustmentConfirmation) {
+        .sheet(isPresented: viewModel.showAdjustmentConfirmation) {
             AdjustmentConfirmationView(
                 initialItems: viewModel.pendingAdjustments, // 可以是空陣列
                 summaryId: viewModel.pendingSummaryId ?? "unknown", // 提供預設值
@@ -238,7 +245,7 @@ struct TrainingPlanView: View {
             )
         }
         // 🆕 全局週回顧顯示（統一處理所有週回顧顯示邏輯）
-        .sheet(isPresented: $viewModel.showWeeklySummary) {
+        .sheet(isPresented: viewModel.showWeeklySummary) {
             if let summary = viewModel.weeklySummary {
                 NavigationView {
                     // ✅ 檢查訓練是否完成，決定是否顯示「產生下週課表」按鈕
@@ -247,18 +254,19 @@ struct TrainingPlanView: View {
 
                     WeeklySummaryView(
                         summary: summary,
-                        weekNumber: viewModel.lastFetchedWeekNumber,
-                        isVisible: $viewModel.showWeeklySummary,
+                        weekNumber: viewModel.currentWeek,
+                        isVisible: viewModel.showWeeklySummary,
                         // ⚠️ 訓練完成時不傳回調，不顯示「產生下週課表」按鈕
                         onGenerateNextWeek: isTrainingCompleted ? nil : {
                             // 產生下週課表的回調
                             TrackedTask("TrainingPlanView: generateNextWeek") {
                                 // 先保存目標週數（避免被 clearWeeklySummary 清除）
                                 let hasPendingWeek = viewModel.pendingTargetWeek != nil
-                                let targetWeekToProduce = viewModel.pendingTargetWeek ?? viewModel.currentWeek
+                                // ⚠️ 如果 pendingTargetWeek 為 nil，表示是標準流程，應該產生 currentWeek + 1
+                                let targetWeekToProduce = viewModel.pendingTargetWeek ?? (viewModel.currentWeek + 1)
 
                                 // 關閉週回顧
-                                viewModel.showWeeklySummary = false
+                                viewModel.showWeeklySummary.wrappedValue = false
 
                                 // 根據流程選擇對應方法
                                 if hasPendingWeek {
@@ -273,7 +281,7 @@ struct TrainingPlanView: View {
                         // 🆕 訓練完成時傳遞「設定新目標」回調
                         onSetNewGoal: isTrainingCompleted ? {
                             viewModel.clearWeeklySummary()
-                            viewModel.showWeeklySummary = false
+                            viewModel.showWeeklySummary.wrappedValue = false
                             AuthenticationService.shared.startReonboarding()
                         } : nil
                     )
@@ -305,11 +313,11 @@ struct TrainingPlanView: View {
         )
         // 🆕 成功 Toast（產生課表成功）
         .overlay(alignment: .top) {
-            if viewModel.showSuccessToast {
-                SuccessToast(message: viewModel.successMessage, isPresented: $viewModel.showSuccessToast)
+            if viewModel.showSuccessToast.wrappedValue {
+                SuccessToast(message: viewModel.successMessage, isPresented: viewModel.showSuccessToast)
                     .padding(.top, 16)
                     .transition(.move(edge: .top).combined(with: .opacity))
-                    .animation(.spring(), value: viewModel.showSuccessToast)
+                    .animation(.spring(), value: viewModel.showSuccessToast.wrappedValue)
                     .onAppear {
                         // 3秒後自動消失
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

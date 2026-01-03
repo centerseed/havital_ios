@@ -5,7 +5,8 @@ import SwiftUI
 struct OnboardingContainerView: View {
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @ObservedObject private var authService = AuthenticationService.shared
-    
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
+
     // 從外部傳入模式，確保初始化時就能決定正確的根視圖，避免 Race Condition
     let isReonboarding: Bool
 
@@ -53,7 +54,7 @@ struct OnboardingContainerView: View {
             HeartRateZoneInfoView(mode: .onboarding(targetDistance: coordinator.targetDistance))
         case .backfillPrompt:
             BackfillPromptContentView(
-                dataSource: UserPreferencesManager.shared.dataSourcePreference,
+                dataSource: viewModel.currentDataSource,
                 targetDistance: coordinator.targetDistance
             )
         case .personalBest:
@@ -79,7 +80,7 @@ struct OnboardingContainerView: View {
             )
         case .dataSync:
             DataSyncView(
-                dataSource: UserPreferencesManager.shared.dataSourcePreference,
+                dataSource: viewModel.currentDataSource,
                 mode: .onboarding,
                 onboardingTargetDistance: coordinator.targetDistance
             )

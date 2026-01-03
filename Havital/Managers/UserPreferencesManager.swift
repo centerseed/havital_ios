@@ -5,12 +5,18 @@
 //  用戶偏好管理器
 //  實現雙軌緩存策略，統一管理用戶偏好設置（語言、時區）
 //
+//  ⚠️ DEPRECATED - 此檔案已被 Clean Architecture 重構取代
+//  請使用: Features/UserProfile/Presentation/ViewModels/UserProfileFeatureViewModel.swift
+//  遷移指南: Docs/refactor/REFACTOR-002-Feature-Plans.md (Feature 2: UserProfile)
+//  預計刪除日期: Views 遷移完成後
 
 import Foundation
 import Combine
 
 /// 用戶偏好管理器
 /// 遵循 DataManageable 協議，整合統一緩存系統
+/// - Warning: 此類別已被廢棄，請改用 `UserProfileFeatureViewModel`
+@available(*, deprecated, message: "Use UserProfileFeatureViewModel from Features/UserProfile instead")
 class UserPreferencesManager: ObservableObject, DataManageable {
 
     // MARK: - Type Definitions
@@ -725,3 +731,7 @@ private class UserPreferencesCacheManager: BaseCacheManagerTemplate<UserPreferen
 private struct UserPreferencesCacheData: Codable {
     let preferences: UserPreferences
 }
+
+// MARK: - Compatibility
+/// 為舊代碼提供兼容性支持
+typealias UserPreferenceManager = UserPreferencesManager

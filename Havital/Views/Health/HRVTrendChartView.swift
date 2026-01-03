@@ -3,8 +3,7 @@ import Charts
 
 struct HRVTrendChartView: View {
     @StateObject private var viewModel: HRVChartViewModel
-    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
-    
+
     init() {
         _viewModel = StateObject(wrappedValue: HRVChartViewModel(healthKitManager: HealthKitManager()))
     }

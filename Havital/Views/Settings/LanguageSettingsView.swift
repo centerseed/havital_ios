@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LanguageSettingsView: View {
     @StateObject private var languageManager = LanguageManager.shared
-    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedLanguage: SupportedLanguage

@@ -18,7 +18,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable {
     @Published var isReonboardingMode = false // 新增：標識是否處於重新 Onboarding 模式
 
     // Demo 模式的 token（直接使用後端返回的 ID token）
-    private var demoIdToken: String?
+    var demoIdToken: String?
 
     static let shared = AuthenticationService()
     private var cancellables = Set<AnyCancellable>()

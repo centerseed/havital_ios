@@ -3,10 +3,9 @@ import FirebaseAuth
 import HealthKit
 
 struct UserProfileView: View {
-    @StateObject private var viewModel = UserProfileViewModel()
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     @Environment(\.dismiss) private var dismiss
@@ -352,7 +351,7 @@ struct UserProfileView: View {
                     Image(systemName: "clock")
                     Text(NSLocalizedString("settings.timezone", comment: "Timezone"))
                     Spacer()
-                    if let timezone = userPreferenceManager.timezonePreference {
+                    if let timezone = viewModel.timezonePreference {
                         Text(UserPreferencesManager.getTimezoneDisplayName(for: timezone))
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -607,7 +606,7 @@ struct UserProfileView: View {
         Section(header: Text(NSLocalizedString("profile.data_sources", comment: "Data Sources"))) {
             VStack(spacing: 12) {
                 // 當沒有選擇數據源時顯示提示
-                if userPreferenceManager.dataSourcePreference == .unbound {
+                if viewModel.currentDataSource == .unbound {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
@@ -675,7 +674,7 @@ struct UserProfileView: View {
             }
         } message: {
             if let pendingType = pendingDataSourceType {
-                let currentDataSource = userPreferenceManager.dataSourcePreference
+                let currentDataSource = viewModel.currentDataSource
 
                 switch (currentDataSource, pendingType) {
                 case (.unbound, .garmin):
@@ -712,11 +711,11 @@ struct UserProfileView: View {
         title: String,
         subtitle: String
     ) -> some View {
-        let isCurrentSource = userPreferenceManager.dataSourcePreference == type
+        let isCurrentSource = viewModel.currentDataSource == type
         let isGarminConnecting = type == .garmin && garminManager.isConnecting
         let isStravaConnecting = type == .strava && stravaManager.isConnecting
         let isConnecting = isGarminConnecting || isStravaConnecting
-        let isUnbound = userPreferenceManager.dataSourcePreference == .unbound
+        let isUnbound = viewModel.currentDataSource == .unbound
         
         Button(action: {
             // 防止重複觸發
@@ -839,7 +838,7 @@ struct UserProfileView: View {
             switch newDataSource {
             case .unbound:
                 // 切換到尚未綁定狀態
-                userPreferenceManager.dataSourcePreference = .unbound
+                viewModel.currentDataSource = .unbound
                 
                 // 同步到後端
                 do {
@@ -899,7 +898,7 @@ struct UserProfileView: View {
                     // 即使權限請求失敗，也繼續切換數據源
                 }
                 
-                userPreferenceManager.dataSourcePreference = .appleHealth
+                viewModel.currentDataSource = .appleHealth
 
                 // 同步到後端
                 print("🔄 開始同步數據源到後端: \(newDataSource.rawValue)")
@@ -944,7 +943,7 @@ struct UserProfileView: View {
                     }
                 }
 
-                if userPreferenceManager.dataSourcePreference == .appleHealth {
+                if viewModel.currentDataSource == .appleHealth {
                     // 如果當前是Apple Health，無需特殊斷開，直接切換即可
                     print("從Apple Health切換到Garmin")
                 }
@@ -992,7 +991,7 @@ struct UserProfileView: View {
                     }
                 }
 
-                if userPreferenceManager.dataSourcePreference == .appleHealth {
+                if viewModel.currentDataSource == .appleHealth {
                     // 如果當前是Apple Health，無需特殊斷開，直接切換即可
                     print("從Apple Health切換到Strava")
                 }

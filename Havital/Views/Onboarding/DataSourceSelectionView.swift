@@ -5,7 +5,7 @@ struct DataSourceSelectionView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
 
@@ -239,7 +239,7 @@ struct DataSourceSelectionView: View {
         try await healthKitManager.requestAuthorization()
         
         // 設置數據源偏好
-        userPreferenceManager.dataSourcePreference = .appleHealth
+        viewModel.currentDataSource = .appleHealth
         
         // 同步到後端
         try await UserService.shared.updateDataSource(DataSourceType.appleHealth.rawValue)
@@ -259,7 +259,7 @@ struct DataSourceSelectionView: View {
         ])
 
         // 設置數據源偏好為 Garmin（僅本地設定，不同步到後端）
-        userPreferenceManager.dataSourcePreference = .garmin
+        viewModel.currentDataSource = .garmin
 
         // 開始 Garmin OAuth 流程（不等待完成）
         await garminManager.startConnection()
@@ -282,7 +282,7 @@ struct DataSourceSelectionView: View {
         ])
 
         // 設置數據源偏好為 Strava（僅本地設定，不同步到後端）
-        userPreferenceManager.dataSourcePreference = .strava
+        viewModel.currentDataSource = .strava
 
         // 開始 Strava OAuth 流程（不等待完成）
         await stravaManager.startConnection()

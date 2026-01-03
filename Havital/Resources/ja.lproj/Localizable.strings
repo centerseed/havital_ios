@@ -1890,3 +1890,4 @@
 
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "努力スコア";
+"date.minutes_ago" = "%d分前";

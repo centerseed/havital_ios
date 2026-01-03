@@ -6,18 +6,49 @@ struct WeekOverviewCardPreviewView: View {
     let fileNames: [String]
     @State private var selectedIndex = 0
     
-    // 建立一個 Preview 專用的 ViewModel
+    // 建立一個 Preview 專用的 ViewModel（使用便利初始化器）
     class PreviewViewModel: TrainingPlanViewModel {
-        override init() {
-            super.init()
+        override init(
+            repository: TrainingPlanRepository,
+            loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
+            aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
+            weeklyPlanVM: WeeklyPlanViewModel? = nil,
+            summaryVM: WeeklySummaryViewModel? = nil
+        ) {
+            super.init(
+                repository: repository,
+                loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
+                aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
+                weeklyPlanVM: weeklyPlanVM,
+                summaryVM: summaryVM
+            )
+        }
+
+        convenience init() {
+            let container = DependencyContainer.shared
+            if !container.isRegistered(TrainingPlanRepository.self) {
+                container.registerTrainingPlanModule()
+            }
+            if !container.isRegistered(WorkoutRepository.self) {
+                container.registerWorkoutModule()
+            }
+            let repository: TrainingPlanRepository = container.resolve()
+            let loadUseCase = container.makeLoadWeeklyWorkoutsUseCase()
+            let aggregateUseCase = container.makeAggregateWorkoutMetricsUseCase()
+            self.init(
+                repository: repository,
+                loadWeeklyWorkoutsUseCase: loadUseCase,
+                aggregateWorkoutMetricsUseCase: aggregateUseCase
+            )
+
             // 設定一些預覽用的數據
             currentWeekDistance = 25.5
-            
+
             // 設定週摘要預覽數據
             let dateFormatter = ISO8601DateFormatter()
             let today = Date()
             let calendar = Calendar.current
-            
+
             weeklySummaries = [
                 WeeklySummaryItem(
                     weekIndex: 1,
@@ -71,13 +102,15 @@ struct WeekOverviewCardPreviewView: View {
                     // 使用 Preview 專用的 ViewModel
                     let viewModel = {
                         let vm = PreviewViewModel()
-                        vm.weeklyPlan = weeklyPlans[selectedIndex]
+                        // 設置週計畫狀態
+                        vm.weeklyPlanVM.state = .loaded(weeklyPlans[selectedIndex])
+                        
                         // 設定訓練計劃概覽（用於計算當前週數）
                         let dateFormatter = ISO8601DateFormatter()
                         let today = Date()
                         let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: today) ?? today
                         
-                        vm.trainingOverview = TrainingPlanOverview(
+                        let overview = TrainingPlanOverview(
                             id: "preview_overview",
                             mainRaceId: "race_123",
                             targetEvaluate: "完成半程馬拉松",
@@ -115,6 +148,7 @@ struct WeekOverviewCardPreviewView: View {
                             ],
                             createdAt: dateFormatter.string(from: twoWeeksAgo)
                         )
+                        vm.weeklyPlanVM.overviewState = .loaded(overview)
                         return vm
                     }()
                     

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Paceriz
+@testable import paceriz_dev
 
 class WeeklyPlanDecodingTests: XCTestCase {
     // 將測試 JSON 放在 Fixtures 資料夾

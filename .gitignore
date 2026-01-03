@@ -23,3 +23,8 @@ DerivedData
 Havital/Resources/key.plist
 Havital/Resources/GoogleService-Info.plist
 Havital/Resources/APIKeys.plist
+
+# Swift Package Manager
+.swiftpm/
+SourcePackages/
+Package.resolved

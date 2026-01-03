@@ -49,7 +49,8 @@ struct TrainingProgressView: View {
     // 當前訓練進度卡片
     private var currentTrainingStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let plan = viewModel.weeklyPlan, let currentWeek = viewModel.calculateCurrentTrainingWeek() {
+            if let plan = viewModel.weeklyPlan {
+                let currentWeek = viewModel.calculateCurrentTrainingWeek()
                 HStack {
                     Text(NSLocalizedString("training.current_progress", comment: "Current Progress"))
                         .font(.headline)
@@ -148,8 +149,8 @@ struct TrainingProgressView: View {
             Text(NSLocalizedString("training.training_stages", comment: "Training Stages"))
                 .font(.headline)
             
-            if let overview = viewModel.trainingOverview,
-               let currentWeek = viewModel.calculateCurrentTrainingWeek() {
+            if let overview = viewModel.trainingOverview {
+                let currentWeek = viewModel.calculateCurrentTrainingWeek()
                 ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
                     let stage = overview.trainingStageDescription[index]
                     let isCurrentStage = currentWeek >= stage.weekStart && currentWeek <= (stage.weekEnd ?? stage.weekStart)
@@ -318,7 +319,6 @@ struct TrainingProgressView: View {
                     if hasWeekPlan {
                         Button {
                             Task {
-                                viewModel.selectedWeek = weekNumber
                                 await viewModel.fetchWeekPlan(week: weekNumber)
                                 dismiss() // 關閉當前視圖以顯示課表
                             }
@@ -381,7 +381,7 @@ struct TrainingProgressView: View {
                                 .cornerRadius(8)
                             }
                             .buttonStyle(PlainButtonStyle())
-                        } else if viewModel.showWeeklySummary && viewModel.weeklySummary != nil {
+                        } else if viewModel.showWeeklySummary.wrappedValue && viewModel.weeklySummary != nil {
                             // 已有週回顧時顯示產生課表按鈕
                             Button {
                                 Task {
@@ -455,10 +455,11 @@ struct TrainingProgressView: View {
 
     // 自動展開當前週期對應的階段
     private func expandCurrentStage() {
-        guard let overview = viewModel.trainingOverview,
-              let currentWeek = viewModel.calculateCurrentTrainingWeek() else {
+        guard let overview = viewModel.trainingOverview else {
             return
         }
+        let currentWeek = viewModel.calculateCurrentTrainingWeek()
+
 
         // 找到當前週期對應的階段 index
         for (index, stage) in overview.trainingStageDescription.enumerated() {

@@ -85,7 +85,7 @@ struct WorkoutSummaryRow: View {
                             Image(systemName: "speedometer")
                                 .font(.system(size: 10))
                                 .foregroundColor(.green)
-                            Text("\(viewModel.formatPace(paceInSeconds))")
+                            Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
@@ -190,7 +190,7 @@ struct CollapsedWorkoutSummary: View {
                                 Image(systemName: "speedometer")
                                     .font(.system(size: 10))
                                     .foregroundColor(.green)
-                                Text("\(viewModel.formatPace(paceInSeconds))")
+                                Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
@@ -316,7 +316,7 @@ struct WorkoutV2SummaryRow: View {
                             Image(systemName: "speedometer")
                                 .font(.system(size: 10))
                                 .foregroundColor(.green)
-                            Text("\(viewModel.formatPace(paceInSeconds))")
+                            Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
@@ -395,7 +395,7 @@ struct CollapsedWorkoutV2Summary: View {
                                 Image(systemName: "speedometer")
                                     .font(.system(size: 10))
                                     .foregroundColor(.green)
-                                Text("\(viewModel.formatPace(paceInSeconds))")
+                                Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }

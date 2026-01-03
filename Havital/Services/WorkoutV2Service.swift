@@ -38,7 +38,7 @@ class WorkoutV2Service: DeduplicatedAPIService {
     private let parser: any APIParser
 
     // MARK: - Request Deduplication (Protocol Requirements)
-    var activeRequests: [String: Task<Any, Error>] = [:]
+    var activeRequests: [String: Any] = [:]
     lazy var requestQueue = DispatchQueue(label: "com.havital.workout-service.requests", attributes: .concurrent)
     
     private init(httpClient: any HTTPClient = DefaultHTTPClient.shared,

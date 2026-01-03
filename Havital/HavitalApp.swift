@@ -79,71 +79,75 @@ struct HavitalApp: App {
     
     var body: some Scene {
         WindowGroup {
-            Group {
-                if let featureFlagManager = featureFlagManager {
-                    ContentView() // 使用 ContentView 作為根視圖
-                        .environmentObject(authService)       // 注入 AuthenticationService
-                        .environmentObject(healthKitManager)  // 注入 HealthKitManager
-                        .environmentObject(appViewModel)      // 注入 AppViewModel
-                        .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
-                        .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
-                        .onAppear {
-                            // App 啟動時使用新的狀態管理進行序列化初始化
-                            Task {
-                                print("🚀 HavitalApp: 開始序列化初始化流程")
+            if isRunningTests {
+                Text("Running Tests...")
+            } else {
+                Group {
+                    if let featureFlagManager = featureFlagManager {
+                        ContentView() // 使用 ContentView 作為根視圖
+                            .environmentObject(authService)       // 注入 AuthenticationService
+                            .environmentObject(healthKitManager)  // 注入 HealthKitManager
+                            .environmentObject(appViewModel)      // 注入 AppViewModel
+                            .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
+                            .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
+                            .onAppear {
+                                // App 啟動時使用新的狀態管理進行序列化初始化
+                                Task {
+                                    print("🚀 HavitalApp: 開始序列化初始化流程")
 
-                                // Step 1: App 核心初始化（用戶狀態優先）
-                                await appViewModel.initializeApp()
+                                    // Step 1: App 核心初始化（用戶狀態優先）
+                                    await appViewModel.initializeApp()
 
-                                // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
-                                await setupPermissionsBasedOnUserState()
+                                    // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
+                                    await setupPermissionsBasedOnUserState()
 
-                                // Step 3: 檢查並初始化時區設定（僅限已認證用戶）
-                                await checkAndInitializeTimezone()
+                                    // Step 3: 檢查並初始化時區設定（僅限已認證用戶）
+                                    await checkAndInitializeTimezone()
 
-                                print("✅ HavitalApp: 初始化流程完成")
-                            }
-                            
-                            // 監聽語言變更通知
-                            NotificationCenter.default.addObserver(
-                                forName: NSNotification.Name("AppShouldRefreshForLanguageChange"),
-                                object: nil,
-                                queue: .main
-                            ) { _ in
-                                print("🌍 收到語言變更通知，刷新 UI")
-                                shouldRefreshForLanguage.toggle() // Trigger UI refresh
-                            }
-                        }
-                } else {
-                    // Firebase 和 FeatureFlagManager 初始化中
-                    ProgressView("初始化中...")
-                        .onAppear {
-                            // 在 Firebase 初始化完成後創建 FeatureFlagManager
-                            if FirebaseApp.app() != nil {
-                                print("🎛️ 創建 FeatureFlagManager")
-                                featureFlagManager = FeatureFlagManager.shared
+                                    print("✅ HavitalApp: 初始化流程完成")
+                                }
                                 
-                                // 延遲調試檢查和手動刷新
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                    #if DEBUG
-                                    print("🔍 DEBUG: 3 秒後檢查 Feature Flag 狀態")
-                                    FeatureFlagManager.shared.debugPrintAllFlags()
-                                    
-                                    // 手動刷新 Remote Config
-                                    print("🔄 DEBUG: 手動刷新 Remote Config")
-                                    Task {
-                                        await FeatureFlagManager.shared.refreshConfig()
-                                        print("🔍 DEBUG: 刷新後再次檢查狀態")
-                                        FeatureFlagManager.shared.debugPrintAllFlags()
-                                    }
-                                    #endif
+                                // 監聽語言變更通知
+                                NotificationCenter.default.addObserver(
+                                    forName: NSNotification.Name("AppShouldRefreshForLanguageChange"),
+                                    object: nil,
+                                    queue: .main
+                                ) { _ in
+                                    print("🌍 收到語言變更通知，刷新 UI")
+                                    shouldRefreshForLanguage.toggle() // Trigger UI refresh
                                 }
                             }
-                        }
+                    } else {
+                        // Firebase 和 FeatureFlagManager 初始化中
+                        ProgressView("初始化中...")
+                            .onAppear {
+                                // 在 Firebase 初始化完成後創建 FeatureFlagManager
+                                if FirebaseApp.app() != nil {
+                                    print("🎛️ 創建 FeatureFlagManager")
+                                    featureFlagManager = FeatureFlagManager.shared
+                                    
+                                    // 延遲調試檢查和手動刷新
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                        #if DEBUG
+                                        print("🔍 DEBUG: 3 秒後檢查 Feature Flag 狀態")
+                                        FeatureFlagManager.shared.debugPrintAllFlags()
+                                        
+                                        // 手動刷新 Remote Config
+                                        print("🔄 DEBUG: 手動刷新 Remote Config")
+                                        Task {
+                                            await FeatureFlagManager.shared.refreshConfig()
+                                            print("🔍 DEBUG: 刷新後再次檢查狀態")
+                                            FeatureFlagManager.shared.debugPrintAllFlags()
+                                        }
+                                        #endif
+                                    }
+                                }
+                            }
+                    }
                 }
-            }
-            .onOpenURL { url in
-                handleDeepLink(url: url)
+                .onOpenURL { url in
+                    handleDeepLink(url: url)
+                }
             }
         }
         // 添加應用程式生命週期事件處理
@@ -161,6 +165,11 @@ struct HavitalApp: App {
                 }
             }
         }
+    }
+    
+    // 判斷是否正在運行測試
+    private var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
     }
     
     /// 基於已確定用戶狀態的權限設置

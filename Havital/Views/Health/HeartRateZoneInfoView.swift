@@ -8,6 +8,7 @@ enum HeartRateViewMode {
 
 struct HeartRateZoneInfoView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: Int = 190
     @State private var restingHeartRate: Int = 60
     @State private var zones: [HeartRateZonesManager.HeartRateZone] = []
@@ -19,7 +20,6 @@ struct HeartRateZoneInfoView: View {
     @State private var navigateToPersonalBest = false
     @State private var navigateToBackfillPrompt = false
 
-    private let userPreferenceManager = UserPreferencesManager.shared
     private let backfillCoordinator = OnboardingBackfillCoordinator.shared
     private let mode: HeartRateViewMode
 
@@ -376,13 +376,13 @@ struct HeartRateZoneInfoView: View {
     }
 
     private func loadCurrentValues() {
-        if let maxHR = userPreferenceManager.maxHeartRate {
+        if let maxHR = viewModel.maxHeartRate {
             maxHeartRate = maxHR
         } else {
             maxHeartRate = 190
         }
 
-        if let restingHR = userPreferenceManager.restingHeartRate {
+        if let restingHR = viewModel.restingHeartRate {
             restingHeartRate = restingHR
         } else {
             restingHeartRate = 60
@@ -410,7 +410,7 @@ struct HeartRateZoneInfoView: View {
 
         isSaving = true
 
-        userPreferenceManager.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
+        viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
 
         do {
             let userData = [

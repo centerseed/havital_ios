@@ -15,7 +15,7 @@ final class TrainingPlanService: DeduplicatedAPIService {
 
     // MARK: - Request Deduplication (Protocol Implementation)
 
-    var activeRequests: [String: Task<Any, Error>] = [:]
+    var activeRequests: [String: Any] = [:]
     lazy var requestQueue = DispatchQueue(label: "com.havital.training-plan-service.requests", attributes: .concurrent)
 
     // 注意：請求去重邏輯現已由 DeduplicatedAPIService protocol 提供

@@ -3,6 +3,11 @@ import SwiftUI
 import FirebaseAuth
 import Combine
 
+// ⚠️ DEPRECATED - 此檔案已被 Clean Architecture 重構取代
+// 請使用: Features/UserProfile/Presentation/ViewModels/UserProfileFeatureViewModel.swift
+// 遷移指南: Docs/refactor/REFACTOR-002-Feature-Plans.md (Feature 2: UserProfile)
+// 預計刪除日期: Views 遷移完成後
+
 // MARK: - 用戶數據類型
 enum UserDataUpdateType {
     case profile(User)
@@ -37,6 +42,8 @@ struct UserStatistics: Codable {
 
 // MARK: - 統一用戶管理器
 /// 遵循 DataManageable 協議，提供標準化的用戶數據管理
+/// - Warning: 此類別已被廢棄，請改用 `UserProfileFeatureViewModel`
+@available(*, deprecated, message: "Use UserProfileFeatureViewModel from Features/UserProfile instead")
 class UserManager: ObservableObject, DataManageable {
     
     // MARK: - Type Definitions

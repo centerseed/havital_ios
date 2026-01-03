@@ -4,7 +4,7 @@ import SwiftUI
 /// 用于在用户进入主画面时，提醒尚未设置心率数据的用户进行设置
 struct HeartRateSetupAlertView: View {
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var userPreferenceManager = UserPreferencesManager.shared
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
 
     /// 当用户点击「立即设定」时的回调
     var onSetupNow: () -> Void
@@ -99,13 +99,13 @@ struct HeartRateSetupAlertView: View {
     private func remindMeTomorrow() {
         // 记录当前时间戳，24小时后再提醒
         let tomorrow = Date().addingTimeInterval(24 * 60 * 60)
-        userPreferenceManager.heartRatePromptNextRemindDate = tomorrow
+        viewModel.heartRatePromptNextRemindDate = tomorrow
         Logger.debug("Heart rate prompt: User chose 'Remind Me Tomorrow', next remind date: \(tomorrow)")
     }
 
     /// 永不提醒
     private func neverRemind() {
-        userPreferenceManager.doNotShowHeartRatePrompt = true
+        viewModel.doNotShowHeartRatePrompt = true
         Logger.debug("Heart rate prompt: User chose 'Never Remind'")
     }
 }

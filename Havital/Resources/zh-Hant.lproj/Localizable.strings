@@ -600,6 +600,7 @@
 "date.fri" = "五";
 "date.sat" = "六";
 "date.sun" = "日";
+"date.minutes_ago" = "%d分鐘前";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "有未儲存的變更";

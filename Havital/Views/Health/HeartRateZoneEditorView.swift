@@ -3,13 +3,12 @@ import SwiftUI
 /// 簡化的心率區間編輯視圖，使用心率儲備計算法
 struct HRRHeartRateZoneEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: String = ""
     @State private var restingHeartRate: String = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    
-    private let userPreferenceManager = UserPreferencesManager.shared
     
     var body: some View {
         NavigationView {
@@ -50,7 +49,7 @@ struct HRRHeartRateZoneEditorView: View {
                         }
                     }
                     .onAppear {
-                        if let maxHR = userPreferenceManager.maxHeartRate, maxHR > 0 {
+                        if let maxHR = viewModel.maxHeartRate, maxHR > 0 {
                             maxHeartRate = "\(maxHR)"
                         } else {
                             maxHeartRate = "190"
@@ -87,7 +86,7 @@ struct HRRHeartRateZoneEditorView: View {
                         }
                     }
                     .onAppear {
-                        if let restingHR = userPreferenceManager.restingHeartRate, restingHR > 0 {
+                        if let restingHR = viewModel.restingHeartRate, restingHR > 0 {
                             restingHeartRate = "\(restingHR)"
                         } else {
                             restingHeartRate = "60"
@@ -175,7 +174,7 @@ struct HRRHeartRateZoneEditorView: View {
         isLoading = true
         
         // 更新本地數據
-        userPreferenceManager.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
+        viewModel.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
         
         // 發送到後端 API
         Task {

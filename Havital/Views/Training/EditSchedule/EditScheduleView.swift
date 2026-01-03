@@ -2,16 +2,18 @@ import SwiftUI
 import Foundation
 
 struct EditScheduleView: View {
+    @ObservedObject var editViewModel: EditScheduleViewModel
     @ObservedObject var viewModel: TrainingPlanViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingUnsavedChangesAlert = false
     @State private var hasUnsavedChanges = false
     @State private var showingPaceTable = false
+    // @State private var calculatedPaces: [PaceCalculator.PaceZone: String] = [:] // Removed, use viewModel.calculatedPaces or empty
 
     var body: some View {
         NavigationView {
             Group {
-                if viewModel.isEditingLoaded {
+                if editViewModel.isEditingLoaded {
                     // 編輯模式：支持拖拽的 List
                     editModeView()
                 } else {
@@ -36,7 +38,7 @@ struct EditScheduleView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         // 配速表按鈕
-                        if let vdot = viewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
+                        if let vdot = editViewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
                             Button {
                                 showingPaceTable = true
                             } label: {
@@ -56,7 +58,7 @@ struct EditScheduleView: View {
                 }
             }
             .sheet(isPresented: $showingPaceTable) {
-                if let vdot = viewModel.currentVDOT {
+                if let vdot = editViewModel.currentVDOT {
                     PaceTableView(vdot: vdot, calculatedPaces: viewModel.calculatedPaces)
                 }
             }
@@ -75,8 +77,8 @@ struct EditScheduleView: View {
     }
 
     private func cleanupAndDismiss() {
-        viewModel.isEditingLoaded = false
-        viewModel.editingDays = []
+        editViewModel.isEditingLoaded = false
+        editViewModel.editingDays = []
         dismiss()
     }
 
@@ -90,10 +92,11 @@ struct EditScheduleView: View {
     @ViewBuilder
     private func editModeView() -> some View {
         List {
-            ForEach($viewModel.editingDays) { $day in
+            ForEach($editViewModel.editingDays) { $day in
                 SimplifiedDailyCard(
                     day: $day,
                     isEditable: true,
+                    editViewModel: editViewModel,
                     viewModel: viewModel,
                     arrayIndex: nil,
                     onDataChanged: {
@@ -104,9 +107,9 @@ struct EditScheduleView: View {
                 .listRowBackground(Color.clear)
             }
             .onMove { source, destination in
-                viewModel.editingDays.move(fromOffsets: source, toOffset: destination)
-                for i in viewModel.editingDays.indices {
-                    viewModel.editingDays[i].dayIndex = "\(i + 1)"
+                editViewModel.editingDays.move(fromOffsets: source, toOffset: destination)
+                for i in editViewModel.editingDays.indices {
+                    editViewModel.editingDays[i].dayIndex = "\(i + 1)"
                 }
                 hasUnsavedChanges = true
             }
@@ -118,43 +121,22 @@ struct EditScheduleView: View {
     // MARK: - Private Methods
 
     private func setupEditableWeeklyPlan() {
-        guard let weeklyPlan = viewModel.weeklyPlan else { return }
-        // 直接存到 ViewModel 中，確保不會因 View 重建而丟失
-        viewModel.editingDays = weeklyPlan.days.map { MutableTrainingDay(from: $0) }
-        viewModel.editingDays.sort(by: { $0.dayIndexInt < $1.dayIndexInt })
-        viewModel.isEditingLoaded = true
+        // 使用 EditScheduleViewModel 的 initializeEditing 方法
+        editViewModel.initializeEditing()
     }
 
     private func canEditDay(_ dayIndex: Int) -> Bool {
-        guard let dayDate = viewModel.getDateForDay(dayIndex: dayIndex) else { return false }
+        guard let dayDate = editViewModel.getDateForDay(dayIndex: dayIndex) else { return false }
         let today = Calendar.current.startOfDay(for: Date())
 
-        // TODO: 先設定為true，之後再設定為false
         return true
-
-        // 只有今天以後的日期才能編輯
-        guard dayDate >= today else {
-            return false
-        }
-
-        // 檢查當天是否為比賽，比賽日不能編輯
-        if dayIndex < viewModel.editingDays.count {
-            let dayType = viewModel.editingDays[dayIndex].type
-            if dayType == .race {
-                return false
-            }
-        }
-
-        // 檢查是否已有訓練記錄
-        let hasWorkouts = !(viewModel.workoutsByDayV2[dayIndex]?.isEmpty ?? true)
-        return !hasWorkouts
     }
 
     private func saveChanges() async {
-        guard let originalPlan = viewModel.weeklyPlan else { return }
+        let originalPlan = editViewModel.weeklyPlan
 
         do {
-            let trainingDays = viewModel.editingDays.map { mutableDay in
+            let trainingDays = editViewModel.editingDays.map { mutableDay in
                 TrainingDay(
                     dayIndex: mutableDay.dayIndex,
                     dayTarget: mutableDay.dayTarget,
@@ -177,16 +159,15 @@ struct EditScheduleView: View {
                 intensityTotalMinutes: originalPlan.intensityTotalMinutes
             )
 
-            let updatedPlanFromAPI = try await TrainingPlanService.shared.modifyWeeklyPlan(
+            _ = try await TrainingPlanService.shared.modifyWeeklyPlan(
                 planId: originalPlan.id,
                 updatedPlan: updatedPlan
             )
 
             await MainActor.run {
                 // 清理編輯狀態
-                viewModel.isEditingLoaded = false
-                viewModel.editingDays = []
-                viewModel.updateWeeklyPlanFromEdit(updatedPlanFromAPI)
+                editViewModel.isEditingLoaded = false
+                editViewModel.editingDays = []
                 dismiss()
             }
 
@@ -215,12 +196,15 @@ struct EditScheduleView: View {
 struct SimplifiedDailyCard: View {
     @Binding var day: MutableTrainingDay
     let isEditable: Bool
+    let editViewModel: EditScheduleViewModel
     let viewModel: TrainingPlanViewModel
     var arrayIndex: Int? = nil
     var onDataChanged: (() -> Void)? = nil
 
     @State private var showingEditSheet = false
     @State private var showingInfoAlert = false
+    @State private var showingDistancePicker = false
+    @State private var showingPacePicker = false
 
     private var displayDayIndex: Int {
         if let index = arrayIndex {
@@ -312,52 +296,46 @@ struct SimplifiedDailyCard: View {
         return ""
     }
 
-    @State private var showingDistancePicker = false
-    @State private var showingPacePicker = false
+    private var headerView: some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(editViewModel.weekdayName(for: "\(displayDayIndex)"))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 頂部行：日期 + 訓練類型 + 編輯按鈕
-            HStack(alignment: .center, spacing: 10) {
-                // 日期
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(viewModel.weekdayName(for: displayDayIndex))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-
-                    if let date = viewModel.getDateForDay(dayIndex: displayDayIndex) {
-                        Text(viewModel.formatShortDate(date))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .frame(width: 50, alignment: .leading)
-
-                // 訓練類型
-                trainingTypeMenu
-
-                Spacer()
-
-                // 編輯按鈕（複雜訓練或需要詳細設定時顯示）
-                if day.isTrainingDay {
-                    Button {
-                        showingEditSheet = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.blue)
-                            .padding(8)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
+                if let date = editViewModel.getDateForDay(dayIndex: displayDayIndex) {
+                    Text(editViewModel.formatShortDate(date))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .frame(width: 50, alignment: .leading)
 
-            // 底部：訓練詳情
+            trainingTypeMenu
+
+            Spacer()
+
+            if day.isTrainingDay {
+                Button {
+                    showingEditSheet = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.blue)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private var detailsView: some View {
+        Group {
             if day.isTrainingDay {
                 Rectangle()
                     .fill(getTypeColor().opacity(0.3))
@@ -365,126 +343,73 @@ struct SimplifiedDailyCard: View {
                     .padding(.horizontal, 12)
 
                 if isComplexTraining {
-                    // 複雜訓練：顯示摘要文字
                     Text(complexTrainingSummary)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                 } else {
-                    // 簡單訓練：可直接編輯的配速/距離
-                    HStack(spacing: 12) {
-                        // 配速（如果有）
-                        if day.trainingDetails?.pace != nil {
-                            Button {
-                                showingPacePicker = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text("配速:")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text(day.trainingDetails?.pace ?? "")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.blue)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(.blue)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(6)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        // 距離
-                        if let distance = day.trainingDetails?.distanceKm ?? day.trainingDetails?.totalDistanceKm {
-                            Button {
-                                showingDistancePicker = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text("距離:")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text(String(format: "%.1f km", distance))
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.blue)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(.blue)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(6)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    simpleTrainingControls
                 }
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(getTypeColor().opacity(0.4), lineWidth: 1.5)
-        )
-        .sheet(isPresented: $showingEditSheet) {
-            TrainingEditSheetV2(
-                day: day,
-                onSave: { updatedDay in
-                    day = updatedDay
-                    onDataChanged?()
-                },
-                viewModel: viewModel
-            )
-        }
-        .sheet(isPresented: $showingDistancePicker) {
-            DistanceWheelPicker(selectedDistance: Binding(
-                get: { day.trainingDetails?.distanceKm ?? 5.0 },
-                set: { newValue in
-                    if var details = day.trainingDetails {
-                        details.distanceKm = newValue
-                        day.trainingDetails = details
-                        onDataChanged?()
-                    }
-                }
-            ))
-            .presentationDetents([.height(320)])
-        }
-        .sheet(isPresented: $showingPacePicker) {
-            PaceWheelPicker(
-                selectedPace: Binding(
-                    get: { day.trainingDetails?.pace ?? "5:00" },
-                    set: { newValue in
-                        if var details = day.trainingDetails {
-                            details.pace = newValue
-                            day.trainingDetails = details
-                            onDataChanged?()
-                        }
-                    }
-                ),
-                referenceDistance: day.trainingDetails?.distanceKm
-            )
-            .presentationDetents([.height(380)])
-        }
-        .alert(L10n.EditSchedule.cannotEdit.localized, isPresented: $showingInfoAlert) {
-            Button(L10n.EditSchedule.confirm.localized, role: .cancel) { }
-        } message: {
-            Text(getEditStatusMessage())
-        }
     }
 
+    private var simpleTrainingControls: some View {
+        HStack(spacing: 12) {
+            if day.trainingDetails?.pace != nil {
+                Button {
+                    showingPacePicker = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("配速:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(day.trainingDetails?.pace ?? "")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8))
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let distance = day.trainingDetails?.distanceKm ?? day.trainingDetails?.totalDistanceKm {
+                Button {
+                    showingDistancePicker = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("距離:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.1f km", distance))
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8))
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+    
     // MARK: - Training Type Menu
 
     @ViewBuilder
@@ -562,13 +487,72 @@ struct SimplifiedDailyCard: View {
         }
     }
 
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            headerView
+            detailsView
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(getTypeColor().opacity(0.4), lineWidth: 1.5)
+        )
+        .sheet(isPresented: $showingEditSheet) {
+            TrainingEditSheetV2(
+                day: day,
+                onSave: { updatedDay in
+                    day = updatedDay
+                    onDataChanged?()
+                },
+                viewModel: viewModel
+            )
+        }
+        .sheet(isPresented: $showingDistancePicker) {
+            DistanceWheelPicker(selectedDistance: Binding(
+                get: { day.trainingDetails?.distanceKm ?? 5.0 },
+                set: { newValue in
+                    if var details = day.trainingDetails {
+                        details.distanceKm = newValue
+                        day.trainingDetails = details
+                        onDataChanged?()
+                    }
+                }
+            ))
+            .presentationDetents([.height(320)])
+        }
+        .sheet(isPresented: $showingPacePicker) {
+            PaceWheelPicker(
+                selectedPace: Binding(
+                    get: { day.trainingDetails?.pace ?? "5:00" },
+                    set: { newValue in
+                        if var details = day.trainingDetails {
+                            details.pace = newValue
+                            day.trainingDetails = details
+                            onDataChanged?()
+                        }
+                    }
+                ),
+                referenceDistance: day.trainingDetails?.distanceKm
+            )
+            .presentationDetents([.height(380)])
+        }
+        .alert(L10n.EditSchedule.cannotEdit.localized, isPresented: $showingInfoAlert) {
+            Button(L10n.EditSchedule.confirm.localized, role: .cancel) { }
+        } message: {
+            Text(getEditStatusMessage())
+        }
+    }
+    
     private func getEditStatusMessage() -> String {
-        return viewModel.getEditStatusMessage(for: displayDayIndex)
+        return editViewModel.getEditStatusMessage(for: displayDayIndex)
     }
 
     private func updateTrainingType(_ newType: DayType) {
         day.trainingType = newType.rawValue
-        let vdot = viewModel.currentVDOT ?? PaceCalculator.defaultVDOT
+        let vdot = editViewModel.currentVDOT ?? PaceCalculator.defaultVDOT
 
         switch newType {
         case .rest:

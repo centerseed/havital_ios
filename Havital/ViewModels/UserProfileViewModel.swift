@@ -2,6 +2,13 @@ import SwiftUI
 import Combine
 import FirebaseAuth
 
+// ⚠️ DEPRECATED - 此檔案已被 Clean Architecture 重構取代
+// 請使用: Features/UserProfile/Presentation/ViewModels/UserProfileFeatureViewModel.swift
+// 遷移指南: Docs/refactor/REFACTOR-002-Feature-Plans.md (Feature 2: UserProfile)
+// 預計刪除日期: Views 遷移完成後
+
+/// - Warning: 此類別已被廢棄，請改用 `UserProfileFeatureViewModel`
+@available(*, deprecated, message: "Use UserProfileFeatureViewModel from Features/UserProfile instead")
 @MainActor
 class UserProfileViewModel: ObservableObject, @preconcurrency TaskManageable {
     let taskRegistry = TaskRegistry()
