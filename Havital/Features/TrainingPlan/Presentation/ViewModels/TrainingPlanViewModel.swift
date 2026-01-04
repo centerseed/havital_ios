@@ -513,6 +513,38 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 產生下週課表（使用 NextWeekInfo）
     func generateNextWeekPlan(nextWeekInfo: NextWeekInfo) async {
+        // ✅ 檢查是否需要先產生當前週回顧
+        if nextWeekInfo.requiresCurrentWeekSummary {
+            // 計算當前週數（下週週數 - 1）
+            let currentWeek = nextWeekInfo.weekNumber - 1
+
+            Logger.debug("[TrainingPlanVM] 需要先產生第 \(currentWeek) 週的週回顧")
+
+            // 設置待產生的下週週數（必須在 createWeeklySummary 之前設置）
+            summaryVM.pendingTargetWeek = nextWeekInfo.weekNumber
+
+            // 產生當前週回顧
+            await summaryVM.createWeeklySummary(weekNumber: currentWeek)
+
+            // 週回顧創建後：
+            // - 如果有調整項目 → 顯示調整確認 sheet → 確認後自動調用 confirmAdjustments → 產生下週課表
+            // - 如果無調整項目 → 直接顯示週回顧 sheet，但週回顧已經產生完成，可以直接產生下週課表
+
+            // ✅ 檢查是否有調整項目需要確認
+            if !summaryVM.pendingAdjustments.isEmpty {
+                Logger.debug("[TrainingPlanVM] 有 \(summaryVM.pendingAdjustments.count) 個調整項目，等待用戶確認")
+                // 有調整項目，等待用戶確認後會自動產生下週課表
+                return
+            } else {
+                Logger.debug("[TrainingPlanVM] 無調整項目，週回顧已完成，繼續產生第 \(nextWeekInfo.weekNumber) 週課表")
+                // 無調整項目，直接產生下週課表
+                await generateNextWeekPlan(targetWeek: nextWeekInfo.weekNumber)
+                return
+            }
+        }
+
+        // ✅ 無需週回顧，直接產生下週課表
+        Logger.debug("[TrainingPlanVM] 本週回顧已完成，直接產生第 \(nextWeekInfo.weekNumber) 週課表")
         await generateNextWeekPlan(targetWeek: nextWeekInfo.weekNumber)
     }
 
