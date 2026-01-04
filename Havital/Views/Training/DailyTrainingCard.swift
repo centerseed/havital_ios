@@ -231,7 +231,7 @@ struct SegmentedTrainingView: View {
             // 第一行：段落標籤、配速、心率、距離
             HStack(spacing: 8) {
                 // 段落標籤
-                Text("第\(index + 1)段")
+                Text(String(format: NSLocalizedString("dailytrainingcard.text_0", comment: ""), index + 1))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.orange)
@@ -261,7 +261,7 @@ struct SegmentedTrainingView: View {
                         Image(systemName: "figure.walk")
                             .font(.caption2)
                             .foregroundColor(.mint)
-                        Text("輕鬆跑")
+                        Text(NSLocalizedString("dailytrainingcard.text_1", comment: ""))
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.mint)
@@ -522,7 +522,7 @@ struct IntervalSegmentRow: View {
                         Image(systemName: "clock.fill")
                             .font(.caption2)
                             .foregroundColor(.blue)
-                        Text("\(duration) 分鐘")
+                        Text(String(format: NSLocalizedString("dailytrainingcard.text_3", comment: ""), "\(duration)"))
                             .font(.system(size: 11, weight: .medium))
                     }
                     .padding(.horizontal, 6)

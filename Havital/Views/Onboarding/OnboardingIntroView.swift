@@ -2,14 +2,11 @@
 import SwiftUI
 
 struct OnboardingIntroView: View {
-    @State private var navigateToNextStep = false
-    @ObservedObject private var authService = AuthenticationService.shared
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     var body: some View {
-        NavigationView { // 這個 NavigationView 將是 onboarding 流程的起點
-            ZStack {
-                // 內容區
-                ScrollView {
+        // 移除 NavigationView - 由 OnboardingContainerView 的 NavigationStack 管理
+        ScrollView {
                     VStack(spacing: 20) {
                         Spacer()
                         
@@ -70,7 +67,7 @@ struct OnboardingIntroView: View {
                         
                         // 開始設定按鈕
                         Button(action: {
-                            navigateToNextStep = true
+                            coordinator.navigate(to: .dataSource)
                         }) {
                             Text(NSLocalizedString("onboarding.start_setup", comment: "Start Setup"))
                                 .font(.headline)
@@ -86,26 +83,8 @@ struct OnboardingIntroView: View {
                     }
                     .padding()
                 }
-                // 隱藏的 NavigationLink
-                NavigationLink(
-                    destination: DataSourceSelectionView()
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $navigateToNextStep
-                ) {
-                    EmptyView()
-                }
-            }
-            .navigationBarHidden(true) // 隱藏此頁的導航欄，因為它是流程的起點
-            .navigationBarTitle("", displayMode: .inline)
-        }
-        .navigationViewStyle(StackNavigationViewStyle()) // 確保是堆疊式導航
-        .onChange(of: authService.hasCompletedOnboarding) { oldValue, newValue in
-            // 當 onboarding 完成時，關閉 NavigationLink 確保整個流程被清理
-            if newValue {
-                navigateToNextStep = false
-                print("[OnboardingIntroView] 偵測到 onboarding 完成，關閉 NavigationLink")
-            }
-        }
+        .navigationBarHidden(true)
+        .navigationBarTitle("", displayMode: .inline)
     }
 
     // 輔助視圖：創建統一風格的特色項目行

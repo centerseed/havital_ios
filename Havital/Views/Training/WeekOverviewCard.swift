@@ -65,7 +65,7 @@ struct WeekOverviewCard: View {
                                 .lineLimit(1)
                         }
 
-                        Text("km")
+                        Text(L10n.Unit.km.localized)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }

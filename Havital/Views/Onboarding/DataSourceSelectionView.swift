@@ -6,20 +6,19 @@ struct DataSourceSelectionView: View {
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var userPreferenceManager = UserPreferencesManager.shared
-    @ObservedObject private var authService = AuthenticationService.shared
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
 
     @State private var selectedDataSource: DataSourceType?
     @State private var isProcessing = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToNextStep = false
     @State private var showGarminAlreadyBoundAlert = false
     @State private var showStravaAlreadyBoundAlert = false
-    
+
     var body: some View {
-        NavigationView {
-            ZStack {
+        // 移除 NavigationView - 由 OnboardingContainerView 的 NavigationStack 管理
+        ZStack {
                 ScrollView {
                     VStack(spacing: 24) {
                         // 標題區塊
@@ -100,19 +99,10 @@ struct DataSourceSelectionView: View {
                     }
                     .padding()
                 }
-                
-                // 隱藏的 NavigationLink - 導航到心率設定
-                NavigationLink(
-                    destination: HeartRateZoneInfoView(mode: .onboarding(targetDistance: 0))
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $navigateToNextStep
-                ) {
-                    EmptyView()
-                }
             }
-            .navigationBarHidden(true)
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .navigationBarHidden(true)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .alert(L10n.Onboarding.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
             Button(L10n.Onboarding.iUnderstand.localized, role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
@@ -137,16 +127,6 @@ struct DataSourceSelectionView: View {
             Button(L10n.Onboarding.confirm.localized, role: .cancel) {}
         } message: {
             Text(errorMessage)
-        }
-        .onAppear {
-            // 等待用戶選擇數據源
-        }
-        .onChange(of: authService.hasCompletedOnboarding) { oldValue, newValue in
-            // 當 onboarding 完成時，關閉 NavigationLink
-            if newValue {
-                navigateToNextStep = false
-                print("[DataSourceSelectionView] 偵測到 onboarding 完成，關閉 NavigationLink")
-            }
         }
     }
     
@@ -239,7 +219,7 @@ struct DataSourceSelectionView: View {
                 
                 await MainActor.run {
                     isProcessing = false
-                    navigateToNextStep = true
+                    coordinator.navigate(to: .heartRateZone)
                 }
                 
             } catch {

@@ -75,13 +75,13 @@ struct EditTargetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(L10n.Common.cancel.localized) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("儲存") {
+                    Button(L10n.Common.save.localized) {
                         Task {
                             if let hasSignificantChange = await targetModel.updateTarget() {
                                 // 無論是否有重要變更，都發送通知並關閉視圖

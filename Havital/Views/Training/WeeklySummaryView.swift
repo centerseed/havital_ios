@@ -156,12 +156,12 @@ struct WeeklySummaryView: View {
                     .foregroundColor(.red)
                 
                 HStack {
-                    Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
+                    Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) \(L10n.Unit.bpm.localized)")
                         .font(.caption)
                     
                     Spacer()
                     
-                    Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
+                    Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) \(L10n.Unit.bpm.localized)")
                         .font(.caption)
                 }
                 
@@ -180,7 +180,7 @@ struct WeeklySummaryView: View {
                     .foregroundColor(.green)
                 
                 HStack {
-                    Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) /km")
+                    Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) \(L10n.SupportingRacesCard.paceUnit.localized)")
                         .font(.caption)
                     
                     Spacer()
@@ -204,7 +204,7 @@ struct WeeklySummaryView: View {
                     .foregroundColor(.blue)
                 
                 HStack {
-                    Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
+                    Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) \(L10n.Unit.km.localized)")
                         .font(.caption)
                     
                     Spacer()

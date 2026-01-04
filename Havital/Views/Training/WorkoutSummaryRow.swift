@@ -73,7 +73,7 @@ struct WorkoutSummaryRow: View {
                             Image(systemName: "ruler")
                                 .font(.system(size: 10))
                                 .foregroundColor(.blue)
-                            Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
+                            Text("\(viewModel.formatDistance(distance/1000, unit: L10n.Unit.km.localized))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }

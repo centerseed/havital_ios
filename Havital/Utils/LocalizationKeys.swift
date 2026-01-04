@@ -446,9 +446,26 @@ enum GaitAnalysisChart {
         static let connect = "datasource.connect"
         static let syncNow = "datasource.sync_now"
         static let lastSync = "datasource.last_sync"
-        static let syncSuccess = "datasource.sync_success"
         static let syncFailed = "datasource.sync_failed"
         static let syncing = "datasource.syncing"
+    }
+
+
+
+    // MARK: - Workout
+    enum Workout {
+        static let details = "workout.details" // "訓練詳情"
+        static let shareCard = "workout.share_card" // "分享訓練成果"
+        static let shareScreenshot = "workout.share_screenshot" // "分享截圖"
+        static let startTime = "workout.start_time" // "開始時間"
+        static let reuploadSuccess = "workout.reupload_success" // "訓練已成功重新上傳！"
+        static let uploadSuccessInsufficientHr = "workout.upload_success_insufficient_hr" // "訓練已上傳但心率資料不足。"
+        static let reuploadError = "workout.reupload_error" // "重新上傳時發生錯誤："
+        static let reuploadFailed = "workout.reupload_failed" // "重新上傳失敗，請稍後再試。"
+        static let provider = "workout.provider" // "來源"
+        static let activityType = "workout.activity_type" // "活動類型"
+        static let resyncData = "workout.resync_data" // "重新同步資料"
+        static let forceReuploadDescription = "workout.force_reupload_description" // "強制重新上傳這筆訓練紀錄，包含重新嘗試抓取心率資料"
     }
     
     // MARK: - Training Plan
@@ -471,6 +488,21 @@ enum GaitAnalysisChart {
         static let skipped = "training.skipped"
         static let editVolume = "training.edit_volume"
         static let editDays = "training.edit_days"
+        
+        static let progress = "training.progress" // "訓練進度"
+        static let currentProgress = "training.current_progress" // "目前進度"
+        static let currentWeekOfTotal = "training.current_week_of_total" // "第 %d 週 / 總共 %d 週"
+        static let currentStage = "training.current_stage" // "目前階段：%@"
+        static let weekRange = "training.week_range" // "第 %d-%d 週"
+        static let cannotGetProgress = "training.cannot_get_progress" // "無法取得目前訓練進度"
+        static let targetRace = "training.target_race" // "目標賽事"
+        static let raceAssessment = "training.race_assessment" // "賽事評估"
+        static let trainingStages = "training.training_stages" // "訓練階段"
+        static let cannotGetStages = "training.cannot_get_stages" // "無法取得訓練階段資訊"
+        static let weekNumber = "training.week_number" // "第 %d 週"
+        static let getWeeklyReview = "training.get_weekly_review" // "取得週回顧"
+        static let paceZone = "training.pace_zone" // "配速區間"
+        static let heartRateZone = "training.heart_rate_zone" // "心率區間"
         
         // Loading Animation Messages
         enum LoadingAnimation {
@@ -530,7 +562,6 @@ enum GaitAnalysisChart {
         static let collapse = "training.collapse"
         static let distance = "training.distance"
         static let pace = "training.pace"
-        static let heartRateZone = "training.heart_rate_zone"
         static let trainingType = "training.training_type"
         
         enum TrainingType {
@@ -673,6 +704,8 @@ enum GaitAnalysisChart {
         static let distance = "record.distance"
         static let duration = "record.duration"
         static let pace = "record.pace"
+        static let avgHeartRate = "record.avg_heart_rate"
+        static let maxHeartRate = "record.max_heart_rate"
         static let heartRate = "record.heart_rate"
         static let calories = "record.calories"
         static let elevation = "record.elevation"
@@ -951,6 +984,47 @@ enum GaitAnalysisChart {
         static let deleteWorkoutConfirm = "alert.delete_workout_confirm"
         static let disconnectSource = "alert.disconnect_source"
         static let disconnectConfirm = "alert.disconnect_confirm"
+    }
+
+    // MARK: - Data Sync
+    enum Sync {
+        static let title = "sync.title" // "數據同步"
+        static let syncData = "sync.sync_data" // "同步 %@ 數據"
+        static let syncingRecords = "sync.syncing_records" // "正在同步您的運動記錄..."
+        static let complete = "sync.complete" // "同步完成"
+        static let errorRecordsFailed = "sync.error_records_failed" // "有 %d 條記錄同步失敗"
+        static let failed = "sync.failed" // "同步失敗"
+        static let skip = "sync.skip" // "跳過"
+        static let retry = "sync.retry" // "重試"
+        static let timeoutWarningTitle = "sync.timeout_warning_title" // "同步時間比預期長"
+        static let timeoutWarningMessage = "sync.timeout_warning_message" // "您可以選擇跳過並繼續，同步將在後台完成。"
+        
+        // Progress Steps
+        static let checkingHealthAuth = "sync.checking_health_auth" // "正在檢查 Apple Health 授權..."
+        static let getting30DayRecords = "sync.getting_30_day_records" // "正在獲取近 30 天的運動記錄..."
+        static let noHealthRecords = "sync.no_health_records" // "在近 30 天內未找到 Apple Health 運動記錄..."
+        static let uploadingRecords = "sync.uploading_records" // "正在將 %d 條運動記錄上傳到雲端..."
+        static let uploadingRecordProgress = "sync.uploading_record_progress" // "正在上傳運動記錄 (%d/%d)..."
+        static let allRecordsFailed = "sync.all_records_failed" // "所有運動記錄上傳失敗: %@"
+        static let reloadData = "sync.reload_data" // "正在重新載入運動數據..."
+        static let appleHealthFailed = "sync.apple_health_failed" // "Apple Health 同步失敗: %@"
+        
+        static let checkingGarminStatus = "sync.checking_garmin_status" // "正在檢查 Garmin 處理狀態..."
+        static let garminProcessingDetected = "sync.garmin_processing_detected" // "檢測到 Garmin 數據正在處理中..."
+        static let garminProcessingContinue = "sync.garmin_processing_continue" // "檢測到 Garmin 正在處理，直接進入輪詢模式"
+        static let startGarminHistorical = "sync.start_garmin_historical" // "開始處理 Garmin 歷史數據..."
+        static let processingGarminData = "sync.processing_garmin_data" // "正在處理 Garmin 數據 (預計 %@)..."
+        static let garminHistoricalSuccess = "sync.garmin_historical_success" // "成功觸發新的 Garmin 歷史數據處理"
+        static let processingInProgress = "sync.processing_in_progress" // "檢測到處理正在進行中...\n正在連接到處理程序"
+        static let cannotConnectGarmin = "sync.cannot_connect_garmin" // "無法連接到進行中的 Garmin 處理: %@"
+        static let garminSyncFailed = "sync.garmin_sync_failed" // "Garmin 同步失敗: %@"
+        static let processingGarminProgress = "sync.processing_garmin_progress" // "正在處理 Garmin 數據...\n進度: %d/%d (%d%%)"
+        static let processingGarminInitializing = "sync.processing_garmin_initializing" // "正在處理 Garmin 數據...\n正在初始化..."
+        
+        static let preparingStrava = "sync.preparing_strava" // "正在準備 Strava 同步..."
+        static let stravaTriggered = "sync.strava_triggered" // "已觸發 Strava 同步..."
+        static let processingStravaProgress = "sync.processing_strava_progress" // "正在處理 Strava 數據，已同步 %d 條記錄..."
+        static let stravaSyncFailed = "sync.strava_sync_failed" // "Strava 同步失敗: %@"
     }
 }
 

@@ -110,10 +110,10 @@ struct LoginView: View {
                             Image(systemName: "play.circle.fill")
                                 .font(.title2)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("查看示範 / Demo Mode")
+                                Text(NSLocalizedString("login.demo_mode", comment: ""))
                                     .font(.title3)
                                     .fontWeight(.semibold)
-                                Text("For Apple Review")
+                                Text(NSLocalizedString("login.for_apple_review", comment: ""))
                                     .font(.caption)
                                     .opacity(0.7)
                             }
