@@ -9,16 +9,16 @@ struct DebugFailedWorkoutsView: View {
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("失敗統計"), footer: Text("顯示失敗的運動上傳記錄")) {
+                Section(header: Text(NSLocalizedString("debugfailedworkouts.text_0", comment: "")), footer: Text(NSLocalizedString("debugfailedworkouts.text_1", comment: ""))) {
                     HStack {
-                        Text("總失敗")
+                        Text(NSLocalizedString("debugfailedworkouts.text_2", comment: ""))
                         Spacer()
                         Text("\(failureStats.totalFailed)")
                             .fontWeight(.semibold)
                     }
 
                     HStack {
-                        Text("永久失敗 (達最大重試)")
+                        Text(NSLocalizedString("debugfailedworkouts.text_3", comment: ""))
                         Spacer()
                         Text("\(failureStats.permanentlyFailed)")
                             .fontWeight(.semibold)
@@ -26,9 +26,9 @@ struct DebugFailedWorkoutsView: View {
                     }
                 }
 
-                Section(header: Text("按日期搜尋")) {
+                Section(header: Text(NSLocalizedString("debugfailedworkouts.text_4", comment: ""))) {
                     DatePicker(
-                        "選擇日期",
+                        NSLocalizedString("debugfailedworkouts.text_4", comment: ""),
                         selection: $selectedDate,
                         displayedComponents: .date
                     )
@@ -39,19 +39,19 @@ struct DebugFailedWorkoutsView: View {
                     }) {
                         HStack {
                             Image(systemName: "magnifyingglass")
-                            Text("搜尋此日期的失敗記錄")
+                            Text(NSLocalizedString("debugfailedworkouts.text_5", comment: ""))
                         }
                     }
                 }
 
-                Section(header: Text("全部記錄")) {
+                Section(header: Text(NSLocalizedString("debugfailedworkouts.text_6", comment: ""))) {
                     Button(action: {
                         WorkoutUploadTracker.shared.debugPrintAllFailedWorkouts()
                         refreshTrigger += 1
                     }) {
                         HStack {
                             Image(systemName: "list.bullet.rectangle")
-                            Text("打印所有失敗記錄")
+                            Text(NSLocalizedString("debugfailedworkouts.text_7", comment: ""))
                         }
                     }
 
@@ -61,13 +61,13 @@ struct DebugFailedWorkoutsView: View {
                     }, label: {
                         HStack {
                             Image(systemName: "trash")
-                            Text("清除所有失敗記錄")
+                            Text(NSLocalizedString("debugfailedworkouts.text_8", comment: ""))
                         }
                         .foregroundColor(.red)
                     })
                 }
 
-                Section(header: Text("其他功能")) {
+                Section(header: Text(NSLocalizedString("debugfailedworkouts.text_9", comment: ""))) {
                     Button(action: {
                         let dateFormatter = DateFormatter()
                         dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -76,16 +76,16 @@ struct DebugFailedWorkoutsView: View {
                     }) {
                         HStack {
                             Image(systemName: "doc.on.doc")
-                            Text("複製日期格式")
+                            Text(NSLocalizedString("debugfailedworkouts.text_10", comment: ""))
                         }
                     }
                 }
             }
-            .navigationTitle("調試 - 失敗運動")
+            .navigationTitle(NSLocalizedString("debugfailedworkouts.text_12", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button(NSLocalizedString("common.done", comment: "")) {
                         dismiss()
                     }
                 }

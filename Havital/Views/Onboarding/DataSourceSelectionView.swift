@@ -5,7 +5,11 @@ struct DataSourceSelectionView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
+<<<<<<< HEAD
     @StateObject private var viewModel = UserProfileFeatureViewModel()
+=======
+    @StateObject private var userPreferenceManager = UserPreferencesManager.shared
+>>>>>>> dev
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
 
@@ -17,6 +21,7 @@ struct DataSourceSelectionView: View {
     @State private var showStravaAlreadyBoundAlert = false
 
     var body: some View {
+<<<<<<< HEAD
         ScrollView {
             VStack(spacing: 24) {
                 // 標題區塊
@@ -26,6 +31,42 @@ struct DataSourceSelectionView: View {
                         .scaledToFit()
                         .frame(width: 80, height: 80)
                         .foregroundColor(.accentColor)
+=======
+        // 移除 NavigationView - 由 OnboardingContainerView 的 NavigationStack 管理
+        ZStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 標題區塊
+                        VStack(spacing: 16) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.accentColor)
+                            
+                            Text(L10n.Onboarding.chooseDataSource.localized)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                            
+                            Text(L10n.Onboarding.selectPlatformDescription.localized)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, 20)
+                        
+                        // 數據源選項
+                        VStack(spacing: 16) {
+                            // Apple Health 選項
+                            dataSourceCard(
+                                type: .appleHealth,
+                                icon: "heart.fill",
+                                title: "Apple Health",
+                                subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
+                                description: L10n.Onboarding.appleHealthDescription.localized
+                            )
+>>>>>>> dev
 
                     Text(L10n.Onboarding.chooseDataSource.localized)
                         .font(.title2)
@@ -91,6 +132,7 @@ struct DataSourceSelectionView: View {
                     .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
                     .cornerRadius(10)
                 }
+<<<<<<< HEAD
                 .disabled(selectedDataSource == nil || isProcessing)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 30)
@@ -99,6 +141,12 @@ struct DataSourceSelectionView: View {
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(true)
+=======
+            }
+        .navigationBarHidden(true)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+>>>>>>> dev
         .alert(L10n.Onboarding.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
             Button(L10n.Onboarding.iUnderstand.localized, role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil

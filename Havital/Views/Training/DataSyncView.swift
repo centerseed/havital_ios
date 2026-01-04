@@ -44,11 +44,11 @@ struct DataSyncView: View {
                         .foregroundColor(dataSource == .appleHealth ? .red : .blue)
 
                     VStack(spacing: 8) {
-                        Text(String(format: NSLocalizedString("sync.sync_data", comment: "Sync data"), dataSource.displayName))
+                        Text(L10n.Sync.syncData.localized(with: dataSource.displayName))
                             .font(.title2)
                             .fontWeight(.bold)
 
-                        Text(NSLocalizedString("sync.syncing_records", comment: "Syncing your workout records..."))
+                        Text(L10n.Sync.syncingRecords.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -117,7 +117,7 @@ struct DataSyncView: View {
                 bottomButtons
             }
             .padding(24)
-            .navigationTitle(NSLocalizedString("sync.title", comment: "Data Sync"))
+            .navigationTitle(L10n.Sync.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(viewModel.isProcessing)
             .onAppear {
@@ -143,13 +143,13 @@ struct DataSyncView: View {
                 .foregroundColor(.green)
             
             VStack(spacing: 8) {
-                Text(NSLocalizedString("sync.complete", comment: "Sync Complete"))
+                Text(L10n.Sync.complete.localized)
                     .font(.title3)
                     .fontWeight(.semibold)
                 
                 if let results = viewModel.syncResults {
                     if results.errorCount > 0 {
-                        Text(String(format: NSLocalizedString("sync.error_records_failed", comment: "Error records failed"), results.errorCount))
+                        Text(L10n.Sync.errorRecordsFailed.localized(with: results.errorCount))
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
@@ -166,7 +166,7 @@ struct DataSyncView: View {
                 .foregroundColor(.red)
             
             VStack(spacing: 8) {
-                Text(NSLocalizedString("sync.failed", comment: "Sync Failed"))
+                Text(L10n.Sync.failed.localized)
                     .font(.title3)
                     .fontWeight(.semibold)
                 
@@ -185,7 +185,7 @@ struct DataSyncView: View {
         VStack(spacing: 12) {
             if viewModel.isProcessing {
                 // 處理中：顯示取消/跳過按鈕
-                Button(mode == .onboarding ? NSLocalizedString("sync.skip", comment: "Skip") : NSLocalizedString("common.cancel", comment: "Cancel")) {
+                Button(mode == .onboarding ? L10n.Sync.skip.localized : L10n.Common.cancel.localized) {
                     viewModel.cancelSync()
                     handleCompletion()
                 }
@@ -193,7 +193,7 @@ struct DataSyncView: View {
                 .disabled(viewModel.isProcessing && !viewModel.canCancel)
             } else if viewModel.isCompleted {
                 // 完成：根據模式決定行為
-                Button(NSLocalizedString("common.done", comment: "Done")) {
+                Button(L10n.Common.done.localized) {
                     handleCompletion()
                 }
                 .buttonStyle(.borderedProminent)
@@ -202,14 +202,14 @@ struct DataSyncView: View {
             } else if viewModel.hasError {
                 // 錯誤：提供重試和跳過選項
                 VStack(spacing: 8) {
-                    Button(NSLocalizedString("sync.retry", comment: "Retry")) {
+                    Button(L10n.Sync.retry.localized) {
                         startSync()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
 
-                    Button(NSLocalizedString("sync.skip", comment: "Skip")) {
+                    Button(L10n.Sync.skip.localized) {
                         handleCompletion()
                     }
                     .buttonStyle(.bordered)
@@ -228,11 +228,11 @@ struct DataSyncView: View {
                 .foregroundColor(.orange)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(NSLocalizedString("sync.timeout_warning_title", comment: "Taking longer than expected"))
+                Text(L10n.Sync.timeoutWarningTitle.localized)
                     .font(.subheadline)
                     .fontWeight(.semibold)
 
-                Text(NSLocalizedString("sync.timeout_warning_message", comment: "You can skip and continue, the sync will finish in the background."))
+                Text(L10n.Sync.timeoutWarningMessage.localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -388,14 +388,14 @@ class DataSyncViewModel: ObservableObject {
         do {
             // 步驟1: 檢查 HealthKit 授權
             await MainActor.run {
-                self.currentStep = NSLocalizedString("sync.checking_health_auth", comment: "Checking Apple Health authorization...")
+                self.currentStep = L10n.Sync.checkingHealthAuth.localized
             }
             
             try await healthKitManager.requestAuthorization()
             
             // 步驟2: 獲取近30天的運動記錄
             await MainActor.run {
-                self.currentStep = NSLocalizedString("sync.getting_30_day_records", comment: "Getting workout records from the last 30 days...")
+                self.currentStep = L10n.Sync.getting30DayRecords.localized
             }
             
             let endDate = Date()
@@ -407,14 +407,14 @@ class DataSyncViewModel: ObservableObject {
                 await MainActor.run {
                     self.hasError = true
                     self.isProcessing = false
-                    self.syncError = NSLocalizedString("sync.no_health_records", comment: "No Apple Health workout records found in the last 30 days...")
+                    self.syncError = L10n.Sync.noHealthRecords.localized
                 }
                 return
             }
             
             // 步驟3: 上傳運動記錄
             await MainActor.run {
-                self.currentStep = String(format: NSLocalizedString("sync.uploading_records", comment: "Uploading workout records to cloud..."), workouts.count)
+                self.currentStep = L10n.Sync.uploadingRecords.localized(with: workouts.count)
             }
             
             var processedCount = 0
@@ -425,7 +425,7 @@ class DataSyncViewModel: ObservableObject {
                 do {
                     // 更新進度
                     await MainActor.run {
-                        self.currentStep = String(format: NSLocalizedString("sync.uploading_record_progress", comment: "Uploading workout record progress..."), index + 1, workouts.count)
+                        self.currentStep = L10n.Sync.uploadingRecordProgress.localized(with: index + 1, workouts.count)
                     }
                     
                     try await workoutV2Service.uploadWorkout(workout)
@@ -442,14 +442,14 @@ class DataSyncViewModel: ObservableObject {
                 await MainActor.run {
                     self.hasError = true
                     self.isProcessing = false
-                    self.syncError = String(format: NSLocalizedString("sync.all_records_failed", comment: "All workout records failed to upload..."), lastError?.localizedDescription ?? "Unknown error")
+                    self.syncError = L10n.Sync.allRecordsFailed.localized(with: lastError?.localizedDescription ?? "Unknown error")
                 }
                 return
             }
             
             // 步驟4: 重新載入數據
             await MainActor.run {
-                self.currentStep = NSLocalizedString("sync.reload_data", comment: "Reloading workout data...")
+                self.currentStep = L10n.Sync.reloadData.localized
             }
             
             await unifiedWorkoutManager.refreshWorkouts()
@@ -469,7 +469,7 @@ class DataSyncViewModel: ObservableObject {
             await MainActor.run {
                 self.hasError = true
                 self.isProcessing = false
-                self.syncError = String(format: NSLocalizedString("sync.apple_health_failed", comment: "Apple Health sync failed"), error.localizedDescription)
+                self.syncError = L10n.Sync.appleHealthFailed.localized(with: error.localizedDescription)
             }
         }
     }
@@ -478,7 +478,7 @@ class DataSyncViewModel: ObservableObject {
         do {
             // 步驟1: 先檢查是否已經有處理在進行中
             await MainActor.run {
-                self.currentStep = NSLocalizedString("sync.checking_garmin_status", comment: "Checking Garmin processing status...")
+                self.currentStep = L10n.Sync.checkingGarminStatus.localized
             }
             
             let initialStatusResponse = try await workoutV2Service.getGarminProcessingStatus()
@@ -486,12 +486,12 @@ class DataSyncViewModel: ObservableObject {
             // 如果已經在處理中，直接進入輪詢模式
             if initialStatusResponse.data.processingStatus.inProgress {
                 await MainActor.run {
-                    self.currentStep = NSLocalizedString("sync.garmin_processing_detected", comment: "Detected Garmin data is being processed...")
+                    self.currentStep = L10n.Sync.garminProcessingDetected.localized
                     self.canCancel = false
                 }
                 
                 Logger.firebase(
-                    NSLocalizedString("sync.garmin_processing_continue", comment: "Detected Garmin processing in progress, entering polling mode directly"),
+                    L10n.Sync.garminProcessingContinue.localized,
                     level: .info,
                     labels: ["module": "DataSyncView", "action": "sync_garmin_ongoing"]
                 )
@@ -502,18 +502,18 @@ class DataSyncViewModel: ObservableObject {
             } else {
                 // 沒有處理在進行中，觸發新的歷史數據處理
                 await MainActor.run {
-                    self.currentStep = NSLocalizedString("sync.start_garmin_historical", comment: "Starting Garmin historical data processing...")
+                    self.currentStep = L10n.Sync.startGarminHistorical.localized
                 }
                 
                 let historicalResponse = try await workoutV2Service.triggerGarminHistoricalDataProcessing(daysBack: 14)
                 
                 await MainActor.run {
-                    self.currentStep = String(format: NSLocalizedString("sync.processing_garmin_data", comment: "Processing Garmin data..."), historicalResponse.data.estimatedDuration)
+                    self.currentStep = L10n.Sync.processingGarminData.localized(with: historicalResponse.data.estimatedDuration)
                     self.canCancel = false
                 }
                 
                 Logger.firebase(
-                    NSLocalizedString("sync.garmin_historical_success", comment: "Successfully triggered new Garmin historical data processing"),
+                    L10n.Sync.garminHistoricalSuccess.localized,
                     level: .info,
                     labels: ["module": "DataSyncView", "action": "sync_garmin_triggered"],
                     jsonPayload: ["estimated_duration": historicalResponse.data.estimatedDuration]
@@ -527,7 +527,7 @@ class DataSyncViewModel: ObservableObject {
             await MainActor.run {
                 self.isProcessing = false
                 self.hasError = true
-                self.syncError = NSLocalizedString("common.cancel", comment: "Cancelled")
+                self.syncError = L10n.Common.cancel.localized
             }
         } catch {
             // 特別處理 429 錯誤（處理正在進行中）
@@ -541,7 +541,7 @@ class DataSyncViewModel: ObservableObject {
                 // 嘗試直接進入輪詢模式
                 do {
                     await MainActor.run {
-                        self.currentStep = NSLocalizedString("sync.processing_in_progress", comment: "Detected processing in progress...")
+                        self.currentStep = L10n.Sync.processingInProgress.localized
                         self.canCancel = false
                     }
                     
@@ -550,14 +550,14 @@ class DataSyncViewModel: ObservableObject {
                     await MainActor.run {
                         self.hasError = true
                         self.isProcessing = false
-                        self.syncError = String(format: NSLocalizedString("sync.cannot_connect_garmin", comment: "Unable to connect to ongoing Garmin processing"), error.localizedDescription)
+                        self.syncError = L10n.Sync.cannotConnectGarmin.localized(with: error.localizedDescription)
                     }
                 }
             } else {
                 await MainActor.run {
                     self.hasError = true
                     self.isProcessing = false
-                    self.syncError = String(format: NSLocalizedString("sync.garmin_sync_failed", comment: "Garmin sync failed"), error.localizedDescription)
+                    self.syncError = L10n.Sync.garminSyncFailed.localized(with: error.localizedDescription)
                 }
             }
         }
@@ -601,9 +601,9 @@ class DataSyncViewModel: ObservableObject {
                 
                 // 更新進度顯示文字
                 if self.totalCount > 0 {
-                    self.currentStep = String(format: NSLocalizedString("sync.processing_garmin_progress", comment: "Processing Garmin data with progress"), self.processedCount, self.totalCount, Int(self.progressPercentage))
+                    self.currentStep = L10n.Sync.processingGarminProgress.localized(with: self.processedCount, self.totalCount, Int(self.progressPercentage))
                 } else {
-                    self.currentStep = NSLocalizedString("sync.processing_garmin_initializing", comment: "Processing Garmin data initializing")
+                    self.currentStep = L10n.Sync.processingGarminInitializing.localized
                 }
             }
             
@@ -627,7 +627,7 @@ class DataSyncViewModel: ObservableObject {
         
         // 步驟3: 重新載入數據
         await MainActor.run {
-            self.currentStep = NSLocalizedString("sync.reload_data", comment: "Reloading workout data...")
+            self.currentStep = L10n.Sync.reloadData.localized
         }
         
         await unifiedWorkoutManager.refreshWorkouts()
@@ -648,7 +648,7 @@ class DataSyncViewModel: ObservableObject {
         do {
             // 步驟1: 準備開始同步
             await MainActor.run {
-                self.currentStep = NSLocalizedString("sync.preparing_strava", comment: "Preparing Strava sync...")
+                self.currentStep = L10n.Sync.preparingStrava.localized
             }
             
             Logger.firebase(
@@ -666,7 +666,7 @@ class DataSyncViewModel: ObservableObject {
             let response = try await StravaService.shared.triggerBackfill(startDate: startDateString, days: 14)
             
             await MainActor.run {
-                self.currentStep = NSLocalizedString("sync.strava_triggered", comment: "Strava sync triggered...")
+                self.currentStep = L10n.Sync.stravaTriggered.localized
                 self.canCancel = false
             }
             
@@ -677,13 +677,13 @@ class DataSyncViewModel: ObservableObject {
             await MainActor.run {
                 self.isProcessing = false
                 self.hasError = true
-                self.syncError = NSLocalizedString("common.cancel", comment: "Cancelled")
+                self.syncError = L10n.Common.cancel.localized
             }
         } catch {
             await MainActor.run {
                 self.hasError = true
                 self.isProcessing = false
-                self.syncError = String(format: NSLocalizedString("sync.strava_sync_failed", comment: "Strava sync failed"), error.localizedDescription)
+                self.syncError = L10n.Sync.stravaSyncFailed.localized(with: error.localizedDescription)
             }
         }
     }
@@ -708,7 +708,7 @@ class DataSyncViewModel: ObservableObject {
             await MainActor.run {
                 self.processedCount = statusResponse.progress.newWorkouts
                 // Strava API 目前可能不提供精確總數，我們用 newWorkouts 作為參考
-                self.currentStep = String(format: NSLocalizedString("sync.processing_strava_progress", comment: "Processing Strava data..."), self.processedCount)
+                self.currentStep = L10n.Sync.processingStravaProgress.localized(with: self.processedCount)
             }
             
             if statusResponse.status == "completed" || statusResponse.status == "failed" {
@@ -723,7 +723,7 @@ class DataSyncViewModel: ObservableObject {
         
         // 步驟4: 重新載入數據
         await MainActor.run {
-            self.currentStep = NSLocalizedString("sync.reload_data", comment: "Reloading workout data...")
+            self.currentStep = L10n.Sync.reloadData.localized
         }
         
         await unifiedWorkoutManager.refreshWorkouts()

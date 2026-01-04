@@ -358,6 +358,7 @@ struct HeartRateZoneInfoView: View {
     }
 
     // MARK: - Private Functions
+    @MainActor
     private func loadZoneData() async {
         isLoading = true
 
@@ -389,6 +390,7 @@ struct HeartRateZoneInfoView: View {
         }
     }
 
+    @MainActor
     private func saveHeartRateZones() async {
         if maxHeartRate <= restingHeartRate {
             alertMessage = NSLocalizedString("hr_zone.max_greater_than_resting", comment: "Max greater than resting")
@@ -421,20 +423,19 @@ struct HeartRateZoneInfoView: View {
             try await UserService.shared.updateUserData(userData)
 
             isSaving = false
+
             if isOnboardingMode {
                 // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
-                await onboardingCoordinator.navigateFromHeartRateZone()
+                onboardingCoordinator.navigate(to: .personalBest)
             } else {
                 isEditing = false
                 await loadZoneData()
             }
 
         } catch {
-            await MainActor.run {
-                isSaving = false
-                alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
-                showingAlert = true
-            }
+            isSaving = false
+            alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
+            showingAlert = true
         }
     }
 

@@ -31,8 +31,8 @@ struct WorkoutDetailViewV2: View {
         
         var title: String {
             switch self {
-            case .heartRate: return NSLocalizedString("training.heart_rate_zone", comment: "HR Zone")
-            case .pace: return NSLocalizedString("training.pace_zone", comment: "Pace Zone")
+            case .heartRate: return L10n.Training.heartRateZone.localized
+            case .pace: return L10n.Training.paceZone.localized
             }
         }
     }
@@ -123,11 +123,11 @@ struct WorkoutDetailViewV2: View {
         .refreshable {
             await viewModel.refreshWorkoutDetail()
         }
-        .navigationTitle(NSLocalizedString("workout.details", comment: "Workout Details"))
+        .navigationTitle(L10n.Workout.details.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button(NSLocalizedString("common.close", comment: "Close")) {
+                Button(L10n.Common.close.localized) {
                     dismiss()
                 }
             }
@@ -139,7 +139,7 @@ struct WorkoutDetailViewV2: View {
                     Button {
                         showShareCardSheet = true
                     } label: {
-                        Label(NSLocalizedString("workout.share_card", comment: "Share Workout Card"),
+                        Label(L10n.Workout.shareCard.localized,
                               systemImage: "photo.on.rectangle.angled")
                     }
 
@@ -147,7 +147,7 @@ struct WorkoutDetailViewV2: View {
                     Button {
                         shareWorkout()
                     } label: {
-                        Label(NSLocalizedString("workout.share_screenshot", comment: "Share Screenshot"),
+                        Label(L10n.Workout.shareScreenshot.localized,
                               systemImage: "camera.viewfinder")
                     }
                     .disabled(isGeneratingScreenshot)
@@ -212,25 +212,25 @@ struct WorkoutDetailViewV2: View {
             
             // 運動數據網格
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                DataItem(title: NSLocalizedString("record.distance", comment: "Distance"), value: viewModel.distance ?? "-", icon: "location")
-                DataItem(title: NSLocalizedString("record.duration", comment: "Duration"), value: viewModel.duration, icon: "clock")
-                DataItem(title: NSLocalizedString("record.calories", comment: "Calories"), value: viewModel.calories ?? "-", icon: "flame")
+                DataItem(title: L10n.Record.distance.localized, value: viewModel.distance ?? "-", icon: "location")
+                DataItem(title: L10n.Record.duration.localized, value: viewModel.duration, icon: "clock")
+                DataItem(title: L10n.Record.calories.localized, value: viewModel.calories ?? "-", icon: "flame")
                 
                 if let pace = viewModel.pace {
-                    DataItem(title: NSLocalizedString("record.pace", comment: "Pace"), value: pace, icon: "speedometer")
+                    DataItem(title: L10n.Record.pace.localized, value: pace, icon: "speedometer")
                 }
                 
                 if let avgHR = viewModel.averageHeartRate {
-                    DataItem(title: NSLocalizedString("record.avg_heart_rate", comment: "Average Heart Rate"), value: avgHR, icon: "heart")
+                    DataItem(title: L10n.Record.avgHeartRate.localized, value: avgHR, icon: "heart")
                 }
                 
                 if let maxHR = viewModel.maxHeartRate {
-                    DataItem(title: NSLocalizedString("record.max_heart_rate", comment: "Max Heart Rate"), value: maxHR, icon: "heart.fill")
+                    DataItem(title: L10n.Record.maxHeartRate.localized, value: maxHR, icon: "heart.fill")
                 }
             }
             
             // 日期時間
-            Text(NSLocalizedString("workout.start_time", comment: "Start Time") + ": \(formatDate(viewModel.workout.startDate))")
+            Text(L10n.Workout.startTime.localized + ": \(formatDate(viewModel.workout.startDate))")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -292,7 +292,7 @@ struct WorkoutDetailViewV2: View {
                 
                 switch result {
                 case .success(let hasHeartRate):
-                    reuploadErrorMessage = hasHeartRate ? NSLocalizedString("workout.reupload_success", comment: "Workout successfully re-uploaded!") : NSLocalizedString("workout.upload_success_insufficient_hr", comment: "Workout uploaded but insufficient heart rate data.")
+                    reuploadErrorMessage = hasHeartRate ? L10n.Workout.reuploadSuccess.localized : L10n.Workout.uploadSuccessInsufficientHr.localized
                     // 重新載入詳細資料
                     Task {
                         await viewModel.refreshWorkoutDetail()
@@ -310,7 +310,7 @@ struct WorkoutDetailViewV2: View {
         } catch {
             await MainActor.run {
                 isReuploadingWorkout = false
-                reuploadErrorMessage = NSLocalizedString("workout.reupload_error", comment: "Error occurred during re-upload:") + " \(error.localizedDescription)"
+                reuploadErrorMessage = L10n.Workout.reuploadError.localized + " \(error.localizedDescription)"
             }
         }
     }
@@ -324,12 +324,12 @@ struct WorkoutDetailViewV2: View {
         await MainActor.run {
             isReuploadingWorkout = false
             if result {
-                reuploadErrorMessage = NSLocalizedString("workout.upload_success_insufficient_hr", comment: "Workout uploaded (insufficient heart rate data)")
+                reuploadErrorMessage = L10n.Workout.uploadSuccessInsufficientHr.localized
                 Task {
                     await viewModel.refreshWorkoutDetail()
                 }.tracked(from: "WorkoutDetailViewV2: forceReupload_refreshAfterSuccess")
             } else {
-                reuploadErrorMessage = NSLocalizedString("workout.reupload_failed", comment: "Re-upload failed, please try again later.")
+                reuploadErrorMessage = L10n.Workout.reuploadFailed.localized
             }
         }
     }
@@ -338,7 +338,7 @@ struct WorkoutDetailViewV2: View {
 
     private var sourceInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(NSLocalizedString("profile.data_sources", comment: "Data Sources"))
+            Text(L10n.Profile.dataSources.localized)
                 .font(.headline)
                 .fontWeight(.semibold)
 
@@ -359,7 +359,7 @@ struct WorkoutDetailViewV2: View {
     private var providerInfoRow: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(NSLocalizedString("workout.provider", comment: "Provider"))
+                Text(L10n.Workout.provider.localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 providerBadges
@@ -368,7 +368,7 @@ struct WorkoutDetailViewV2: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(NSLocalizedString("workout.activity_type", comment: "Activity Type"))
+                Text(L10n.Workout.activityType.localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Text(viewModel.workout.activityType.workoutTypeDisplayName())
@@ -410,10 +410,10 @@ struct WorkoutDetailViewV2: View {
     private var reuploadSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(NSLocalizedString("workout.resync_data", comment: "Resync Data"))
+                Text(L10n.Workout.resyncData.localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text(NSLocalizedString("workout.force_reupload_description", comment: "Force re-upload this workout record, including retry fetching heart rate data"))
+                Text(L10n.Workout.forceReuploadDescription.localized)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
@@ -483,11 +483,11 @@ struct WorkoutDetailViewV2: View {
 
     private var deleteWorkoutCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(NSLocalizedString(L10n.Common.delete, comment: "Delete"))
+            Text(L10n.Common.delete.localized)
                 .font(.headline)
                 .fontWeight(.semibold)
 
-            Text(NSLocalizedString(L10n.WorkoutDetail.deleteConfirmMessage, comment: "Deleting this workout will permanently remove it. This action cannot be undone."))
+            Text(L10n.WorkoutDetail.deleteConfirmMessage.localized)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -498,7 +498,7 @@ struct WorkoutDetailViewV2: View {
                     HStack {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text(NSLocalizedString("common.loading", comment: "Deleting..."))
+                        Text(L10n.Common.loading.localized)
                             .font(.subheadline)
                     }
                     .frame(maxWidth: .infinity)
@@ -509,7 +509,7 @@ struct WorkoutDetailViewV2: View {
                 } else {
                     HStack {
                         Image(systemName: "trash")
-                        Text(NSLocalizedString(L10n.WorkoutDetail.deleteWorkout, comment: "Delete Workout"))
+                        Text(L10n.WorkoutDetail.deleteWorkout.localized)
                             .fontWeight(.medium)
                     }
                     .frame(maxWidth: .infinity)
@@ -526,24 +526,24 @@ struct WorkoutDetailViewV2: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .confirmationDialog(
-            NSLocalizedString(L10n.WorkoutDetail.deleteConfirmTitle, comment: "Delete Workout"),
+            L10n.WorkoutDetail.deleteConfirmTitle.localized,
             isPresented: $showDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button(NSLocalizedString(L10n.WorkoutDetail.deleteWorkout, comment: "Delete"), role: .destructive) {
+            Button(L10n.WorkoutDetail.deleteWorkout.localized, role: .destructive) {
                 Task {
                     await deleteWorkout()
                 }.tracked(from: "WorkoutDetailViewV2: deleteConfirmation")
             }
-            Button(NSLocalizedString(L10n.WorkoutDetail.cancel, comment: "Cancel"), role: .cancel) {}
+            Button(L10n.WorkoutDetail.cancel.localized, role: .cancel) {}
         } message: {
-            Text(NSLocalizedString(L10n.WorkoutDetail.deleteConfirmMessage, comment: "Deleting this workout will permanently remove it. This action cannot be undone."))
+            Text(L10n.WorkoutDetail.deleteConfirmMessage.localized)
         }
         .alert(
-            NSLocalizedString(L10n.WorkoutDetail.deleteFailed, comment: "Delete Failed"),
+            L10n.WorkoutDetail.deleteFailed.localized,
             isPresented: $showDeleteResult
         ) {
-            Button(NSLocalizedString(L10n.WorkoutDetail.confirm, comment: "OK")) {
+            Button(L10n.WorkoutDetail.confirm.localized) {
                 deleteResultMessage = nil
             }
         } message: {
@@ -567,7 +567,7 @@ struct WorkoutDetailViewV2: View {
                 dismiss()
             } else {
                 // 刪除失敗，顯示錯誤提示
-                deleteResultMessage = NSLocalizedString(L10n.WorkoutDetail.deleteFailed, comment: "Failed to delete workout. Please try again.")
+                deleteResultMessage = L10n.WorkoutDetail.deleteFailed.localized
                 showDeleteResult = true
             }
         }
@@ -729,7 +729,9 @@ struct WorkoutDetailViewV2: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .sheet(isPresented: $showHRZoneInfo) {
-            HeartRateZoneInfoView()
+            NavigationStack {
+                HeartRateZoneInfoView()
+            }
         }
     }
 
@@ -809,7 +811,9 @@ struct WorkoutDetailViewV2: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .sheet(isPresented: $showHRZoneInfo) {
-            HeartRateZoneInfoView()
+            NavigationStack {
+                HeartRateZoneInfoView()
+            }
         }
     }
 

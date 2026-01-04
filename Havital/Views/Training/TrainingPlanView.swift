@@ -148,7 +148,13 @@ struct TrainingPlanView: View {
                             .opacity(viewModel.planStatus == .loading ? 0.3 : 1.0)
                         
                         if viewModel.planStatus == .loading {
-                            ProgressView(NSLocalizedString("training.loading_plan", comment: "Loading training plan..."))
+                            HStack(alignment: .center, spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text(L10n.Common.loading.localized)
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                            }
                                 .foregroundColor(.gray)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(Color(UIColor.systemBackground).opacity(0.8))
@@ -270,6 +276,7 @@ struct TrainingPlanView: View {
 
                                 // 根據流程選擇對應方法
                                 if hasPendingWeek {
+                                     Text(L10n.Common.retry.localized) // This line seems misplaced, assuming it was meant to replace a comment or string.
                                     // next_week_info 流程：產生指定週數
                                     await viewModel.confirmAdjustmentsAndGenerateNextWeek(targetWeek: targetWeekToProduce)
                                 } else {
@@ -287,7 +294,7 @@ struct TrainingPlanView: View {
                     )
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("關閉") {
+                            Button(L10n.Common.close.localized) {
                                 viewModel.clearWeeklySummary()
                             }
                         }
@@ -367,8 +374,9 @@ struct TrainingPlanView: View {
             .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showHeartRateSetupFullScreen) {
-            // HeartRateZoneInfoView 內部已有 NavigationView，不需要再包裝
-            HeartRateZoneInfoView(mode: .profile)
+            NavigationStack {
+                HeartRateZoneInfoView(mode: .profile)
+            }
         }
     }
     
@@ -611,8 +619,8 @@ struct TrainingPlanView: View {
         // ⚠️ 修正邏輯：只要有一個沒設置就提醒（使用 OR 而不是 AND）
         if !hasMaxHeartRate || !hasRestingHeartRate {
             let missingItems = [
-                !hasMaxHeartRate ? "最大心率" : nil,
-                !hasRestingHeartRate ? "靜息心率" : nil
+                !hasMaxHeartRate ? L10n.Profile.maxHR.localized : nil,
+                !hasRestingHeartRate ? L10n.Profile.restingHR.localized : nil
             ].compactMap { $0 }
 
             Logger.debug("[HeartRatePrompt] ✅ 缺少心率數據：\(missingItems.joined(separator: "、"))，3秒後顯示提醒")

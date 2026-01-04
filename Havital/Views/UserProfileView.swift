@@ -77,7 +77,9 @@ struct UserProfileView: View {
             }.value
         }
         .sheet(isPresented: $showZoneEditor) {
-            HeartRateZoneInfoView()
+            NavigationStack {
+                HeartRateZoneInfoView()
+            }
         }
         // 新增週跑量編輯器
         .sheet(isPresented: $showWeeklyDistanceEditor) {
@@ -438,7 +440,7 @@ struct UserProfileView: View {
     #if DEBUG
     @ViewBuilder
     private var developerSection: some View {
-        Section(header: Text("🧪 開發者測試")) {
+        Section(header: Text(NSLocalizedString("userprofile.text_0", comment: ""))) {
             // 重新開始完整 Onboarding 流程
             Button {
                 // 清除 onboarding 完成標記
@@ -452,7 +454,7 @@ struct UserProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise.circle")
-                    Text("重新開始完整 Onboarding")
+                    Text(NSLocalizedString("userprofile.onboarding", comment: ""))
                 }
             }
             .foregroundColor(.purple)
