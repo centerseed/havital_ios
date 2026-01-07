@@ -46,17 +46,69 @@ final class TrainingPlanRepositoryIntegrationTests: IntegrationTestBase {
     }
     
     // MARK: - Helper Methods
-    
+
+    /// 確保主要比賽存在（創建訓練計畫的前提條件）
+    private func ensureMainRaceExists() async throws {
+        print("🔍 Checking if main race exists...")
+
+        let targetRepository: TargetRepository = getRepository()
+        let targets = try await targetRepository.getTargets()
+
+        // 檢查是否有主要比賽
+        if targets.contains(where: { $0.isMainRace }) {
+            print("ℹ️ Found existing main race")
+            return
+        }
+
+        print("ℹ️ No main race found, creating one for test...")
+
+        // 創建一個測試用的主要比賽
+        // 日期設為 12 週後（Unix timestamp）
+        let raceDate = Int(Date().addingTimeInterval(12 * 7 * 24 * 60 * 60).timeIntervalSince1970)
+
+        let testMainRace = Target(
+            id: "",  // 由後端生成
+            type: "race_run",
+            name: "Integration Test Marathon",
+            distanceKm: 42,  // 全馬
+            targetTime: 14400,  // 4 小時 (秒)
+            targetPace: "5:41",
+            raceDate: raceDate,
+            isMainRace: true,
+            trainingWeeks: 12,
+            timezone: "Asia/Taipei"
+        )
+
+        _ = try await targetRepository.createTarget(testMainRace)
+        print("✅ Created test main race")
+    }
+
     private func ensureTrainingPlanExists() async throws {
          print("🔍 Checking if training plan exists...")
+
+         // 首先確保主要比賽存在
+         try await ensureMainRaceExists()
+
+         // 確保 Overview 存在
+         var overview: TrainingPlanOverview
          do {
-             _ = try await repository.getOverview()
-             print("ℹ️ Found existing training plan")
+             overview = try await repository.getOverview()
+             print("ℹ️ Found existing training plan: \(overview.id)")
          } catch {
              print("ℹ️ No existing plan (or error), creating new one...")
-             // 創建一個新的計畫用於測試
-             _ = try await repository.createOverview(startFromStage: nil, isBeginner: true)
-             print("✅ Created new training plan for test")
+             overview = try await repository.createOverview(startFromStage: nil, isBeginner: true)
+             print("✅ Created new training plan: \(overview.id)")
+         }
+
+         // 確保 Week 1 計劃存在
+         let planId = "\(overview.id)_1"
+         do {
+             _ = try await repository.getWeeklyPlan(planId: planId)
+             print("ℹ️ Found existing weekly plan: \(planId)")
+         } catch {
+             print("ℹ️ No week 1 plan found, creating one...")
+             let newPlan = try await repository.createWeeklyPlan(week: 1, startFromStage: nil, isBeginner: true)
+             print("✅ Created weekly plan: \(newPlan.id)")
          }
     }
 

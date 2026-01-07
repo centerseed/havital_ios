@@ -32,7 +32,18 @@ struct NewWeekPromptView: View {
                 // 顯示取得回顧按鈕（週回顧會以 sheet 形式彈出）
                 Button(action: {
                     TrackedTask("TrainingPlanView: createWeeklySummary") {
-                        await viewModel.createWeeklySummary()
+                        // ✅ 根據 status API，產生上週（currentWeek - 1）的週回顧
+                        let weekNumber = currentTrainingWeek - 1
+
+                        // 🔍 [DEBUG] Entry point logging
+                        Logger.debug("========================================")
+                        Logger.debug("[TrainingPlanView] 🔵 產生本週回顧按鈕被點擊")
+                        Logger.debug("[TrainingPlanView] currentTrainingWeek: \(currentTrainingWeek)")
+                        Logger.debug("[TrainingPlanView] 計算的 weekNumber: \(weekNumber)")
+                        Logger.debug("[TrainingPlanView] → 調用 createWeeklySummary(weekNumber: \(weekNumber))")
+                        Logger.debug("========================================")
+
+                        await viewModel.createWeeklySummary(weekNumber: weekNumber)
                         // 週回顧會自動以 sheet 形式顯示（由全局 sheet 處理）
                     }
                 }) {
@@ -58,6 +69,8 @@ struct NewWeekPromptView: View {
 // 結束週回顧並重設 Onboarding 的視圖
 struct FinalWeekPromptView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
 
     var body: some View {
         VStack(spacing: 20) {
@@ -95,7 +108,8 @@ struct FinalWeekPromptView: View {
                 Button(action: {
                     TrackedTask("TrainingPlanView: setNewGoal") {
                         viewModel.clearWeeklySummary()
-                        AuthenticationService.shared.startReonboarding()
+                        // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+                        authViewModel.startReonboarding()
                     }
                 }) {
                     HStack {
@@ -120,6 +134,8 @@ struct FinalWeekPromptView: View {
 
 struct TrainingPlanView: View {
     @StateObject private var viewModel = TrainingPlanViewModel()
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @State private var showUserProfile = false
     @State private var showTrainingOverview = false
     @State private var showDebugView = false
@@ -266,30 +282,39 @@ struct TrainingPlanView: View {
                         onGenerateNextWeek: isTrainingCompleted ? nil : {
                             // 產生下週課表的回調
                             TrackedTask("TrainingPlanView: generateNextWeek") {
-                                // 先保存目標週數（避免被 clearWeeklySummary 清除）
+                                // 🔍 [DEBUG] Entry point logging
+                                Logger.debug("========================================")
+                                Logger.debug("[TrainingPlanView] 🚀 產生下週課表按鈕被點擊")
+
+                                // ✅ Clean Architecture: 業務邏輯由 ViewModel 處理
+                                let targetWeekToProduce = viewModel.determineNextPlanWeek()
                                 let hasPendingWeek = viewModel.pendingTargetWeek != nil
-                                // ⚠️ 如果 pendingTargetWeek 為 nil，表示是標準流程，應該產生 currentWeek + 1
-                                let targetWeekToProduce = viewModel.pendingTargetWeek ?? (viewModel.currentWeek + 1)
+
+                                Logger.debug("[TrainingPlanView] hasPendingWeek: \(hasPendingWeek)")
+                                Logger.debug("[TrainingPlanView] targetWeekToProduce: \(targetWeekToProduce)")
 
                                 // 關閉週回顧
                                 viewModel.showWeeklySummary.wrappedValue = false
 
                                 // 根據流程選擇對應方法
                                 if hasPendingWeek {
-                                     Text(L10n.Common.retry.localized) // This line seems misplaced, assuming it was meant to replace a comment or string.
+                                    Logger.debug("[TrainingPlanView] → 調用 confirmAdjustmentsAndGenerateNextWeek(targetWeek: \(targetWeekToProduce))")
                                     // next_week_info 流程：產生指定週數
                                     await viewModel.confirmAdjustmentsAndGenerateNextWeek(targetWeek: targetWeekToProduce)
                                 } else {
-                                    // 一般流程：產生當前週+1
+                                    Logger.debug("[TrainingPlanView] → 調用 generateNextWeekPlan(targetWeek: \(targetWeekToProduce))")
+                                    // 一般流程：根據當前狀態產生正確的週數
                                     await viewModel.generateNextWeekPlan(targetWeek: targetWeekToProduce)
                                 }
+                                Logger.debug("========================================")
                             }
                         },
                         // 🆕 訓練完成時傳遞「設定新目標」回調
                         onSetNewGoal: isTrainingCompleted ? {
                             viewModel.clearWeeklySummary()
                             viewModel.showWeeklySummary.wrappedValue = false
-                            AuthenticationService.shared.startReonboarding()
+                            // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+                            authViewModel.startReonboarding()
                         } : nil
                     )
                     .toolbar {
@@ -428,6 +453,29 @@ struct TrainingPlanView: View {
             }
 
             // 🆕 產生下週課表按鈕（週六日顯示）
+            // 🔍 [DEBUG] 記錄按鈕顯示條件
+            let _ = {
+                Logger.debug("========================================")
+                Logger.debug("[TrainingPlanView] 🔍 GenerateNextWeekButton 顯示條件檢查:")
+                Logger.debug("  nextWeekInfo 存在: \(viewModel.nextWeekInfo != nil)")
+                if let info = viewModel.nextWeekInfo {
+                    Logger.debug("  nextWeekInfo.canGenerate: \(info.canGenerate)")
+                    Logger.debug("  nextWeekInfo.hasPlan: \(info.hasPlan)")
+                    Logger.debug("  nextWeekInfo.weekNumber: \(info.weekNumber)")
+                    Logger.debug("  nextWeekInfo.requiresCurrentWeekSummary: \(info.requiresCurrentWeekSummary)")
+                }
+                Logger.debug("  selectedWeek: \(viewModel.selectedWeek)")
+                Logger.debug("  currentWeek: \(viewModel.currentWeek)")
+                Logger.debug("  selectedWeek == currentWeek: \(viewModel.selectedWeek == viewModel.currentWeek)")
+
+                let shouldShow = viewModel.nextWeekInfo != nil &&
+                                 viewModel.nextWeekInfo!.canGenerate &&
+                                 !viewModel.nextWeekInfo!.hasPlan &&
+                                 viewModel.selectedWeek == viewModel.currentWeek
+                Logger.debug("  🎯 按鈕應該顯示: \(shouldShow)")
+                Logger.debug("========================================")
+            }()
+
             if let nextWeekInfo = viewModel.nextWeekInfo,
                nextWeekInfo.canGenerate,
                !nextWeekInfo.hasPlan,

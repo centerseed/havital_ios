@@ -54,7 +54,8 @@ final class MockHTTPClient: HTTPClient {
     /// Configure a successful JSON response for a path
     func setJSONResponse<T: Encodable>(for path: String, method: HTTPMethod = .GET, response: T) throws {
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+        // Remove keyEncodingStrategy to match production DefaultAPIParser behavior
+        // encoder.keyEncodingStrategy = .convertToSnakeCase
         let data = try encoder.encode(response)
         setResponse(for: path, method: method, data: data)
     }

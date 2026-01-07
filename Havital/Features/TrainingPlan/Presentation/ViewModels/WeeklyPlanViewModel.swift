@@ -48,6 +48,7 @@ final class WeeklyPlanViewModel: ObservableObject {
 
     init(repository: TrainingPlanRepository) {
         self.repository = repository
+        setupEventSubscriptions()
     }
 
     /// 便利初始化器（使用 DI Container）
@@ -57,6 +58,43 @@ final class WeeklyPlanViewModel: ObservableObject {
             DependencyContainer.shared.registerTrainingPlanModule()
         }
         self.init(repository: DependencyContainer.shared.resolve())
+    }
+
+    // MARK: - Event Subscriptions
+
+    /// 設定事件訂閱
+    private func setupEventSubscriptions() {
+        // ✅ Clean Architecture: 訂閱用戶登出事件
+        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[WeeklyPlanVM] 收到 userLogout 事件，清除緩存")
+
+            // 清除 Repository 緩存
+            await self.repository.clearCache()
+
+            // 重置狀態
+            await MainActor.run {
+                self.state = .loading
+                self.overviewState = .loading
+                self.selectedWeek = 1
+                self.currentWeek = 1
+            }
+
+            Logger.debug("[WeeklyPlanVM] ✅ 用戶登出後狀態已重置")
+        }
+
+        // ✅ Clean Architecture: 訂閱訓練計畫修改事件
+        CacheEventBus.shared.subscribe(for: "trainingPlanModified") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[WeeklyPlanVM] 收到 trainingPlanModified 事件，刷新週計畫")
+
+            // 強制刷新當前週計畫
+            await self.refreshWeeklyPlan()
+
+            Logger.debug("[WeeklyPlanVM] ✅ 週計畫已刷新")
+        }
     }
 
     // MARK: - Public Methods

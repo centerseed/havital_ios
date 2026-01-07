@@ -2,7 +2,10 @@ import SwiftUI
 
 @MainActor
 class OnboardingViewModel: ObservableObject {
-    // ... (ViewModel 內容保持不變) ...
+    // MARK: - Dependencies (Clean Architecture)
+    private let targetRepository: TargetRepository
+
+    // MARK: - Published Properties
     @Published var raceName = ""
     @Published var raceDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()  // 預設為一個月後
     @Published var selectedDistance = "42.195" // 預設全馬
@@ -28,6 +31,12 @@ class OnboardingViewModel: ObservableObject {
             "21.0975": NSLocalizedString("distance.half_marathon", comment: "Half Marathon"),
             "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
         ]
+    }
+
+    // MARK: - Initialization
+
+    init(targetRepository: TargetRepository = DependencyContainer.shared.resolve()) {
+        self.targetRepository = targetRepository
     }
     
     /// 使用「週邊界」演算法計算訓練週數（與後端一致）
@@ -96,7 +105,7 @@ class OnboardingViewModel: ObservableObject {
                     trainingWeeks: trainingWeeks
                 )
 
-                try await TargetService.shared.updateTarget(id: selectedTargetId, target: updatedTarget)
+                _ = try await targetRepository.updateTarget(id: selectedTargetId, target: updatedTarget)
                 print("✅ 目標已更新: \(updatedTarget.name)")
             } else if selectedTargetKey == nil {
                 // 創建新的主要目標
@@ -112,7 +121,7 @@ class OnboardingViewModel: ObservableObject {
                     trainingWeeks: trainingWeeks
                 )
 
-                try await UserService.shared.createTarget(target)
+                _ = try await targetRepository.createTarget(target)
                 print("✅ 新目標創建成功: \(target.name)")
             } else {
                 // 選擇了目標但沒有改動，直接跳過
@@ -162,7 +171,7 @@ class OnboardingViewModel: ObservableObject {
         isLoadingTargets = true
 
         do {
-            let allTargets = try await TargetService.shared.getTargets()
+            let allTargets = try await targetRepository.getTargets()
 
             // 篩選出日期在未來且為主要賽事的目標
             let now = Date()

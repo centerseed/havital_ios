@@ -119,13 +119,44 @@ final class DependencyContainer {
     }
 
     /// 註冊 User 模組依賴
+    /// 調用 UserProfile 模組的完整註冊流程
     func registerUserDependencies() {
-        // 將在 User 模組實作後添加
+        // 調用 UserProfileRepositoryImpl 擴展中定義的註冊方法
+        // 包含 DataSources, Repositories, UseCases 的註冊
+        registerUserProfileModule()
+
+        // NOTE: ViewModel 不在此註冊工廠，因為 @MainActor 隔離要求
+        // Views 應直接使用 @StateObject private var viewModel = UserProfileFeatureViewModel()
+        // UserProfileFeatureViewModel 的 convenience init 會自動從 DI 解析所有依賴
+
+        Logger.debug("[DI] User module dependencies registered")
+    }
+
+    /// 註冊 Target 模組依賴
+    /// 調用 Target 模組的完整註冊流程
+    func registerTargetDependencies() {
+        // 調用 TargetRepositoryImpl 擴展中定義的註冊方法
+        registerTargetModule()
+
+        // NOTE: ViewModel 不在此註冊工廠，因為 @MainActor 隔離要求
+        // Views 應直接使用 @StateObject private var viewModel = TargetFeatureViewModel()
+        // TargetFeatureViewModel 的 convenience init 會自動從 DI 解析所有依賴
+
+        Logger.debug("[DI] Target module dependencies registered")
     }
 
     /// 註冊 Auth 模組依賴
+    /// 調用 Authentication 模組的完整註冊流程
     func registerAuthDependencies() {
-        // 將在 Auth 模組實作後添加
+        // 調用 AuthRepositoryImpl 擴展中定義的註冊方法
+        // 包含 DataSources, Cache, Repositories 的註冊
+        registerAuthenticationModule()
+
+        // NOTE: ViewModel 不在此註冊工廠，因為 @MainActor 隔離要求
+        // Views 應直接使用 @StateObject private var viewModel = LoginViewModel()
+        // LoginViewModel 和 AuthCoordinatorViewModel 的 convenience init 會自動從 DI 解析所有依賴
+
+        Logger.debug("[DI] Authentication module dependencies registered")
     }
 
     // MARK: - Testing Support

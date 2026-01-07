@@ -4,6 +4,8 @@ import HealthKit
 
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileFeatureViewModel()
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
@@ -145,7 +147,8 @@ struct UserProfileView: View {
             titleVisibility: .visible
         ) {
             Button(NSLocalizedString("common.confirm", comment: "Confirm"), role: .destructive) {
-                AuthenticationService.shared.startReonboarding() // 改為呼叫新的方法
+                // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+                authViewModel.startReonboarding()
             }
             Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
         } message: {
@@ -394,7 +397,7 @@ struct UserProfileView: View {
             Button(role: .destructive) {
                 Task {
                     do {
-                        try await AuthenticationService.shared.signOut()
+                        try await viewModel.signOut()
                         dismiss()
                     } catch {
                         print("登出失敗: \(error)")
@@ -445,10 +448,11 @@ struct UserProfileView: View {
             Button {
                 // 清除 onboarding 完成標記
                 UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-                AuthenticationService.shared.hasCompletedOnboarding = false
+                // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+                authViewModel.hasCompletedOnboarding = false
 
                 // 清除可能存在的重新 onboarding 標記
-                AuthenticationService.shared.isReonboardingMode = false
+                authViewModel.isReonboardingMode = false
 
                 print("✅ 已清除 onboarding 完成標記，應用將返回 OnboardingIntroView")
             } label: {
@@ -844,7 +848,7 @@ struct UserProfileView: View {
                 
                 // 同步到後端
                 do {
-                    try await UserService.shared.updateDataSource(newDataSource.rawValue)
+                    try await viewModel.updateAndSyncDataSource(newDataSource)
                     print("數據源設定已同步到後端: \(newDataSource.displayName)")
                 } catch {
                     print("同步數據源設定到後端失敗: \(error.localizedDescription)")
@@ -905,7 +909,7 @@ struct UserProfileView: View {
                 // 同步到後端
                 print("🔄 開始同步數據源到後端: \(newDataSource.rawValue)")
                 do {
-                    try await UserService.shared.updateDataSource(newDataSource.rawValue)
+                    try await viewModel.updateAndSyncDataSource(newDataSource)
                     print("✅ 數據源設定已同步到後端: \(newDataSource.displayName)")
 
                     Logger.firebase("切換到Apple Health成功", level: .info, labels: [

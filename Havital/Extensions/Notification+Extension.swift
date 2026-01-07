@@ -18,6 +18,9 @@ extension Notification.Name {
     /// 訓練計劃數據更新
     static let trainingPlanDidUpdate = Notification.Name("trainingPlanDidUpdate")
     
+    /// 訓練計劃概覽更新
+    static let trainingOverviewUpdated = Notification.Name("TrainingOverviewUpdated")
+    
     /// HRV 數據更新
     static let hrvDataDidUpdate = Notification.Name("hrvDataDidUpdate")
     

@@ -3,6 +3,17 @@ import FirebaseMessaging
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
+    // MARK: - Clean Architecture Dependencies
+    private let userProfileRepository: UserProfileRepository
+    private let authSessionRepository: AuthSessionRepository
+
+    override init() {
+        // 初始化 Repository (在 super.init() 之前)
+        self.userProfileRepository = DependencyContainer.shared.resolve()
+        self.authSessionRepository = DependencyContainer.shared.resolve()
+        super.init()
+    }
+
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // 設定 Firebase Messaging 代理
@@ -38,16 +49,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     
     private func syncFCMTokenToBackend(_ fcmToken: String) {
         print("🔍 DEBUG: 嘗試上傳 FCM token: \(fcmToken.prefix(20))...")
-        print("🔍 DEBUG: 用戶認證狀態: \(AuthenticationService.shared.isAuthenticated)")
 
-        guard AuthenticationService.shared.isAuthenticated else {
+        // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
+        let isAuthenticated = authSessionRepository.isAuthenticated()
+        print("🔍 DEBUG: 用戶認證狀態: \(isAuthenticated)")
+
+        guard isAuthenticated else {
             print("使用者尚未登入，暫不上傳 FCM token")
             return
         }
         Task {
             await TrackedTask("AppDelegate: syncFCMTokenToBackend") {
                 do {
-                    try await UserService.shared.updateUserData(["fcm_token": fcmToken])
+                    // Clean Architecture: AppDelegate → Repository
+                    try await self.userProfileRepository.updateUserProfile(["fcm_token": fcmToken])
                     print("✅ FCM token 已成功上傳到後端: \(fcmToken.prefix(20))...")
                 } catch {
                     print("❌ 上傳 FCM token 失敗: \(error.localizedDescription)")

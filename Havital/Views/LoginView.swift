@@ -2,8 +2,9 @@ import SwiftUI
 import FirebaseAuth
 
 struct LoginView: View {
-    // 不再使用 AppStorage 來儲存 onboarding 狀態
-    @StateObject private var authService = AuthenticationService.shared
+    // Clean Architecture: Transition - Keep using AuthenticationService but from environment
+    // TODO: Migrate to LoginViewModel in future refactor (requires Apple Sign In UI handling)
+    @EnvironmentObject private var authService: AuthenticationService
     @State private var showError = false
     @State private var errorMessage = ""
     @Environment(\.colorScheme) var colorScheme
@@ -12,7 +13,7 @@ struct LoginView: View {
         NavigationView {
             VStack(spacing: 60) {
                 Spacer()
-                
+
                 // Title and Subtitle
                 VStack(spacing: 16) {
                     Image("paceriz_light")
@@ -28,10 +29,10 @@ struct LoginView: View {
                         .multilineTextAlignment(.center)
                 }
 
-               
-                
+
+
                 Spacer()
-                
+
                 // Login Buttons
                 VStack(spacing: 16) {
                     Button {
@@ -61,7 +62,7 @@ struct LoginView: View {
                             }
                         }
                     )
-                    
+
                     Button {
                         Task {
                             await authService.signInWithApple()
@@ -129,6 +130,7 @@ struct LoginView: View {
                         )
                     }
                     .disabled(authService.isLoading)
+                    .accessibilityIdentifier("Login_DemoButton")
                     .padding(.horizontal, 32)
                     .padding(.bottom, 24)
                 }

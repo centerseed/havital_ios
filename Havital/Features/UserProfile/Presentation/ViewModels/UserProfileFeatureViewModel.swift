@@ -17,7 +17,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     @Published var preferencesState: ViewState<UserPreferences> = .loading
 
     /// Heart rate zones
-    @Published var heartRateZones: [HeartRateZonesManager.HeartRateZone] = []
+    @Published var heartRateZones: [HeartRateZone] = []
 
     /// User targets
     @Published var targets: [Target] = []
@@ -67,9 +67,23 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         preferencesRepository.timezonePreference
     }
 
-    /// Update data source preference
+    /// Update data source preference (local only)
     func updateDataSource(_ dataSource: DataSourceType) async {
         await preferencesRepository.updateDataSource(dataSource)
+    }
+
+    /// Update data source and sync to backend
+    /// Use this for onboarding and settings where backend sync is required
+    func updateAndSyncDataSource(_ dataSource: DataSourceType) async throws {
+        Logger.debug("[UserProfileVM] Updating and syncing data source: \(dataSource.displayName)")
+
+        // 1. Update local preferences
+        await preferencesRepository.updateDataSource(dataSource)
+
+        // 2. Sync to backend
+        try await userRepository.updateDataSource(dataSource.rawValue)
+
+        Logger.debug("[UserProfileVM] Data source synced successfully")
     }
 
     /// Update timezone preference
@@ -490,9 +504,12 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     // MARK: - Helper Methods
 
     private func checkAuthenticationStatus() {
-        if let user = Auth.auth().currentUser {
+        // Use injected authService instead of direct Auth.auth() dependence
+        // This supports Demo Login mode where Auth.auth().currentUser might be nil but authService.isAuthenticated is true
+        if authService.isAuthenticated {
             isAuthenticated = true
-            currentUserId = user.uid
+            // Prefer Firebase UID, fallback to AppUser email (for Demo mode)
+            currentUserId = Auth.auth().currentUser?.uid ?? authService.appUser?.email
         } else {
             isAuthenticated = false
             currentUserId = nil

@@ -11,7 +11,7 @@ struct HeartRateZoneInfoView: View {
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: Int = 190
     @State private var restingHeartRate: Int = 60
-    @State private var zones: [HeartRateZonesManager.HeartRateZone] = []
+    @State private var zones: [HeartRateZone] = []
     @State private var isLoading = true
     @State private var isEditing = false
     @State private var showingAlert = false
@@ -283,7 +283,7 @@ struct HeartRateZoneInfoView: View {
     }
 
     @ViewBuilder
-    private func zoneDetailRow(zone: HeartRateZonesManager.HeartRateZone) -> some View {
+    private func zoneDetailRow(zone: HeartRateZone) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
@@ -366,7 +366,8 @@ struct HeartRateZoneInfoView: View {
         loadCurrentValues()
 
         if !isOnboardingMode {
-            zones = HeartRateZonesManager.shared.getHeartRateZones()
+            // Use HeartRateZone entity directly instead of deprecated HeartRateZonesManager
+            zones = HeartRateZone.calculateZones(maxHR: maxHeartRate, restingHR: restingHeartRate)
         }
 
         if isOnboardingMode {
@@ -420,7 +421,7 @@ struct HeartRateZoneInfoView: View {
                 "relaxing_hr": restingHeartRate
             ] as [String : Any]
 
-            try await UserService.shared.updateUserData(userData)
+            _ = await viewModel.updateUserProfile(userData)
 
             isSaving = false
 

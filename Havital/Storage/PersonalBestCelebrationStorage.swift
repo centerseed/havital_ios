@@ -35,4 +35,22 @@ class PersonalBestCelebrationStorage {
         UserDefaults.standard.removeObject(forKey: storageKey)
         Logger.debug("Personal Best 慶祝緩存已清除")
     }
+
+    // MARK: - Convenience Methods
+
+    /// 標記慶祝動畫已顯示
+    static func markCelebrationAsShown() {
+        var cache = load()
+        cache.hasShownCelebration = true
+        save(cache)
+        Logger.debug("慶祝動畫已標記為已顯示")
+    }
+
+    /// 獲取待顯示的慶祝更新
+    static func getPendingCelebrationUpdate() -> PersonalBestUpdate? {
+        let cache = load()
+        return (!cache.hasShownCelebration && cache.lastDetectedUpdate != nil)
+            ? cache.lastDetectedUpdate
+            : nil
+    }
 }

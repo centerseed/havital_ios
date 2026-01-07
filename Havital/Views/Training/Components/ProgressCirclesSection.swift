@@ -102,18 +102,18 @@ struct ProgressWithIntensitySection: View {
             plan: mockPlan,
             overview: nil,
             currentWeekDistance: 25.5,
-            formatDistance: { String(format: "%.1f km", $0) },
+            formatDistance: { String(format: "%.0f km", $0) },
             showWeekSelector: .constant(false),
             showTrainingProgress: .constant(false)
         )
         .padding()
-        
+
         ProgressWithIntensitySection(
             plan: mockPlan,
             planIntensity: mockIntensity,
             actualIntensity: TrainingIntensityManager.IntensityMinutes(low: 90, medium: 30, high: 10),
             currentWeekDistance: 25.5,
-            formatDistance: { String(format: "%.1f km", $0) },
+            formatDistance: { String(format: "%.0f km", $0) },
             showTrainingProgress: .constant(false)
         )
         .padding()

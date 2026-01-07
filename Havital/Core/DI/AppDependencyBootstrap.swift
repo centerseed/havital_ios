@@ -1,0 +1,118 @@
+import Foundation
+
+// MARK: - App Dependency Bootstrap
+/// 集中管理所有模組的 DI 註冊
+/// 確保依賴以正確的順序初始化
+struct AppDependencyBootstrap {
+
+    // MARK: - Bootstrap All Modules
+
+    /// 註冊所有模組依賴
+    /// 呼叫順序: Core → Domain → Feature
+    static func registerAllModules() {
+        Logger.debug("[Bootstrap] 開始註冊所有模組依賴")
+
+        // Step 1: Core Layer (已在 DependencyContainer.init() 自動註冊)
+        // - HTTPClient
+        // - APIParser
+
+        // Step 2: Feature Modules (按依賴順序註冊)
+        registerFeatureModules()
+
+        Logger.debug("[Bootstrap] ✅ 所有模組依賴註冊完成")
+    }
+
+    // MARK: - Feature Modules Registration
+
+    /// 註冊所有功能模組
+    private static func registerFeatureModules() {
+        // 1. Authentication 模組 (核心，無外部依賴)
+        registerAuthenticationModule()
+
+        // 2. Workout 模組 (基礎數據，無外部依賴)
+        registerWorkoutModule()
+
+        // 3. UserProfile 模組 (依賴 Workout)
+        registerUserProfileModule()
+
+        // 4. Target 模組 (獨立模組)
+        registerTargetModule()
+
+        // 5. TrainingPlan 模組 (依賴 Workout, Target)
+        registerTrainingPlanModule()
+    }
+
+    // MARK: - Individual Module Registration
+
+    /// 註冊 Authentication 模組
+    /// 包含: AuthRepository, AuthSessionRepository, OnboardingRepository, DataSources, Cache
+    private static func registerAuthenticationModule() {
+        guard !DependencyContainer.shared.isRegistered(AuthRepository.self) else {
+            Logger.debug("[Bootstrap] Authentication module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerAuthDependencies()
+        Logger.debug("[Bootstrap] ✅ Authentication module registered")
+    }
+
+    /// 註冊 Workout 模組
+    /// 包含: WorkoutRepository, WorkoutLocalDataSource, WorkoutRemoteDataSource
+    private static func registerWorkoutModule() {
+        guard !DependencyContainer.shared.isRegistered(WorkoutRepository.self) else {
+            Logger.debug("[Bootstrap] Workout module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerWorkoutModule()
+        Logger.debug("[Bootstrap] ✅ Workout module registered")
+    }
+
+    /// 註冊 UserProfile 模組
+    /// 包含: UserProfileRepository, DataSources, UseCases
+    private static func registerUserProfileModule() {
+        guard !DependencyContainer.shared.isRegistered(UserProfileRepository.self) else {
+            Logger.debug("[Bootstrap] UserProfile module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerUserProfileModule()
+        Logger.debug("[Bootstrap] ✅ UserProfile module registered")
+    }
+
+    /// 註冊 Target 模組
+    /// 包含: TargetRepository, DataSources, UseCases
+    private static func registerTargetModule() {
+        guard !DependencyContainer.shared.isRegistered(TargetRepository.self) else {
+            Logger.debug("[Bootstrap] Target module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerTargetModule()
+        Logger.debug("[Bootstrap] ✅ Target module registered")
+    }
+
+    /// 註冊 TrainingPlan 模組
+    /// 包含: TrainingPlanRepository, DataSources, UseCases
+    private static func registerTrainingPlanModule() {
+        guard !DependencyContainer.shared.isRegistered(TrainingPlanRepository.self) else {
+            Logger.debug("[Bootstrap] TrainingPlan module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerTrainingPlanModule()
+        Logger.debug("[Bootstrap] ✅ TrainingPlan module registered")
+    }
+
+    // MARK: - Testing Support
+
+    /// 重置所有依賴並重新註冊（僅用於測試）
+    static func resetForTesting() {
+        Logger.debug("[Bootstrap] Resetting DI container for testing")
+
+        DependencyContainer.shared.reset()
+        registerAllModules()
+
+        Logger.debug("[Bootstrap] ✅ DI container reset complete")
+    }
+}

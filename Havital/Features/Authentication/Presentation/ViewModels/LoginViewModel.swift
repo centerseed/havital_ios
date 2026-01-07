@@ -1,0 +1,191 @@
+import Foundation
+
+// MARK: - Login ViewModel
+/// Manages login UI state and authentication operations
+/// Responsible for:
+/// - Managing login UI states (loading, success, error)
+/// - Calling AuthRepository to execute login logic
+/// - Publishing authentication events (Repository does NOT publish)
+/// - Handling user-friendly error messages
+@MainActor
+final class LoginViewModel: ObservableObject {
+
+    // MARK: - Published Properties
+
+    /// Unified login state using ViewState pattern
+    @Published var state: ViewState<AuthUser> = .empty
+
+    /// Google Sign-In loading state
+    @Published var isGoogleSignInLoading: Bool = false
+
+    /// Apple Sign-In loading state
+    @Published var isAppleSignInLoading: Bool = false
+
+    // MARK: - Dependencies
+
+    private let authRepository: AuthRepository
+
+    // MARK: - Initialization
+
+    /// Main initializer with dependency injection
+    /// - Parameter authRepository: Authentication repository protocol
+    init(authRepository: AuthRepository) {
+        self.authRepository = authRepository
+        Logger.debug("[LoginViewModel] Initialized")
+    }
+
+    /// Convenience initializer using DependencyContainer
+    convenience init() {
+        let container = DependencyContainer.shared
+        let authRepo: AuthRepository = container.resolve()
+        self.init(authRepository: authRepo)
+    }
+
+    // MARK: - Sign-In Operations
+
+    /// Sign in with Google account
+    /// Executes 7-step authentication flow via AuthRepository
+    /// Publishes authentication event on success
+    func signInWithGoogle() async {
+        isGoogleSignInLoading = true
+        state = .loading
+
+        Logger.debug("[LoginViewModel] Starting Google Sign-In")
+
+        do {
+            // Step 1-7: Execute authentication flow via Repository
+            let authUser = try await authRepository.signInWithGoogle()
+
+            // Update UI state
+            state = .loaded(authUser)
+            isGoogleSignInLoading = false
+
+            Logger.debug("[LoginViewModel] Google Sign-In succeeded: \(authUser.uid)")
+
+            // ✅ Publish authentication event (ViewModel responsibility)
+            publishAuthenticationEvent(user: authUser)
+
+        } catch let error as AuthenticationError {
+            // Handle authentication errors
+            state = .error(error.toDomainError())
+            isGoogleSignInLoading = false
+
+            Logger.error("[LoginViewModel] Google Sign-In failed: \(error.localizedDescription)")
+
+        } catch {
+            // Handle unexpected errors
+            state = .error(error.toDomainError())
+            isGoogleSignInLoading = false
+
+            Logger.error("[LoginViewModel] Google Sign-In unexpected error: \(error.localizedDescription)")
+        }
+    }
+
+    /// Sign in with Apple ID
+    /// Executes 7-step authentication flow via AuthRepository
+    /// Publishes authentication event on success
+    /// - Parameter credential: Apple authentication credential (Domain abstraction)
+    func signInWithApple(credential: AppleAuthCredential) async {
+        isAppleSignInLoading = true
+        state = .loading
+
+        Logger.debug("[LoginViewModel] Starting Apple Sign-In")
+
+        do {
+            // Step 1-7: Execute authentication flow via Repository
+            let authUser = try await authRepository.signInWithApple(credential: credential)
+
+            // Update UI state
+            state = .loaded(authUser)
+            isAppleSignInLoading = false
+
+            Logger.debug("[LoginViewModel] Apple Sign-In succeeded: \(authUser.uid)")
+
+            // ✅ Publish authentication event (ViewModel responsibility)
+            publishAuthenticationEvent(user: authUser)
+
+        } catch let error as AuthenticationError {
+            // Handle authentication errors
+            state = .error(error.toDomainError())
+            isAppleSignInLoading = false
+
+            Logger.error("[LoginViewModel] Apple Sign-In failed: \(error.localizedDescription)")
+
+        } catch {
+            // Handle unexpected errors
+            state = .error(error.toDomainError())
+            isAppleSignInLoading = false
+
+            Logger.error("[LoginViewModel] Apple Sign-In unexpected error: \(error.localizedDescription)")
+        }
+    }
+
+    /// Demo login for development and testing
+    /// Simplified flow without real authentication
+    func demoLogin() async {
+        state = .loading
+
+        Logger.debug("[LoginViewModel] Starting Demo Login")
+
+        do {
+            let authUser = try await authRepository.demoLogin()
+
+            state = .loaded(authUser)
+
+            Logger.debug("[LoginViewModel] Demo Login succeeded: \(authUser.uid)")
+
+            // ✅ Publish authentication event
+            publishAuthenticationEvent(user: authUser)
+
+        } catch let error as AuthenticationError {
+            state = .error(error.toDomainError())
+
+            Logger.error("[LoginViewModel] Demo Login failed: \(error.localizedDescription)")
+
+        } catch {
+            state = .error(error.toDomainError())
+
+            Logger.error("[LoginViewModel] Demo Login unexpected error: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Event Publishing
+
+    /// Publish authentication success event
+    /// ✅ CORRECT: ViewModel publishes events (Repository does NOT)
+    /// - Parameter user: Authenticated user
+    private func publishAuthenticationEvent(user: AuthUser) {
+        Logger.debug("[LoginViewModel] Publishing user authentication event")
+
+        // Publish user data change event
+        CacheEventBus.shared.publish(.dataChanged(.user))
+
+        Logger.debug("[LoginViewModel] Authentication event published for user: \(user.uid)")
+    }
+
+    // MARK: - Error Handling Helpers
+
+    /// Get user-friendly error message from ViewState
+    /// - Returns: Localized error message or nil
+    func getErrorMessage() -> String? {
+        if case .error(let domainError) = state {
+            return domainError.localizedDescription
+        }
+        return nil
+    }
+
+    /// Check if currently in error state
+    var hasError: Bool {
+        state.hasError
+    }
+
+    /// Check if currently loading
+    var isLoading: Bool {
+        state.isLoading
+    }
+
+    /// Get authenticated user if available
+    var authenticatedUser: AuthUser? {
+        state.data
+    }
+}

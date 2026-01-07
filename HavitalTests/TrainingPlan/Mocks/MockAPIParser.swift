@@ -31,7 +31,8 @@ final class MockAPIParser: APIParser {
         }
 
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        // Remove keyDecodingStrategy to match production DefaultAPIParser behavior
+        // decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self, from: data)
     }
 

@@ -4,7 +4,8 @@ import SwiftUI
 /// 使用 NavigationStack 管理整個 onboarding 流程的導航
 struct OnboardingContainerView: View {
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
-    @ObservedObject private var authService = AuthenticationService.shared
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @StateObject private var viewModel = UserProfileFeatureViewModel()
 
     // 從外部傳入模式，確保初始化時就能決定正確的根視圖，避免 Race Condition

@@ -112,7 +112,10 @@ class EditTargetViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     private let targetId: String
-    
+
+    // MARK: - Dependencies (Clean Architecture)
+    private let targetRepository: TargetRepository
+
     // 儲存原始值用於變更檢測
     private let originalDistance: String
     private let originalTargetTime: Int
@@ -157,8 +160,12 @@ class EditTargetViewModel: ObservableObject {
         return String(format: "%d:%02d", paceMinutes, paceRemainingSeconds)
     }
     
-    init(target: Target) {
+    init(
+        target: Target,
+        targetRepository: TargetRepository = DependencyContainer.shared.resolve()
+    ) {
         self.targetId = target.id
+        self.targetRepository = targetRepository
 
         // 先初始化原始值
         self.originalTargetTime = target.targetTime
@@ -209,8 +216,8 @@ class EditTargetViewModel: ObservableObject {
                 timezone: originalTimezone  // 🔧 保持原始時區設定
             )
             
-            // 更新目標賽事
-            _ = try await TargetService.shared.updateTarget(id: targetId, target: target)
+            // 更新目標賽事 (using TargetRepository)
+            _ = try await targetRepository.updateTarget(id: targetId, target: target)
             
             // 檢查是否有重要變更（距離、完賽時間或訓練週數）
             let currentTargetTime = targetHours * 3600 + targetMinutes * 60

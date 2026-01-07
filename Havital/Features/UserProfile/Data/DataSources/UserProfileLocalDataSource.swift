@@ -122,51 +122,26 @@ final class UserProfileLocalDataSource {
     // MARK: - Heart Rate Zones Cache
 
     /// Get cached heart rate zones
-    func getHeartRateZones() -> [HeartRateZonesManager.HeartRateZone]? {
+    func getHeartRateZones() -> [HeartRateZone]? {
         guard let data = defaults.data(forKey: Keys.heartRateZones) else {
             return nil
         }
 
         do {
-            // Decode zone data (stored as array of dictionaries)
-            let zonesData = try decoder.decode([[String: Any]].self, from: data)
-            return zonesData.compactMap { dict -> HeartRateZonesManager.HeartRateZone? in
-                guard let zone = dict["zone"] as? Int,
-                      let name = dict["name"] as? String,
-                      let minHR = dict["minHR"] as? Double,
-                      let maxHR = dict["maxHR"] as? Double,
-                      let description = dict["description"] as? String else {
-                    return nil
-                }
-                return HeartRateZonesManager.HeartRateZone(
-                    zone: zone,
-                    name: name,
-                    range: minHR...maxHR,
-                    description: description,
-                    benefit: dict["benefit"] as? String ?? ""
-                )
-            }
+            // HeartRateZone is Codable, decode directly
+            return try decoder.decode([HeartRateZone].self, from: data)
         } catch {
-            Logger.debug("[UserProfileLocalDS] Failed to decode HR zones, returning nil")
+            Logger.debug("[UserProfileLocalDS] Failed to decode HR zones, clearing cache")
+            clearHeartRateZones()
             return nil
         }
     }
 
     /// Save heart rate zones to cache
-    func saveHeartRateZones(_ zones: [HeartRateZonesManager.HeartRateZone]) {
-        let zonesData = zones.map { zone -> [String: Any] in
-            [
-                "zone": zone.zone,
-                "name": zone.name,
-                "minHR": zone.range.lowerBound,
-                "maxHR": zone.range.upperBound,
-                "description": zone.description,
-                "benefit": zone.benefit
-            ]
-        }
-
+    func saveHeartRateZones(_ zones: [HeartRateZone]) {
         do {
-            let data = try JSONSerialization.data(withJSONObject: zonesData)
+            // HeartRateZone is Codable, encode directly
+            let data = try encoder.encode(zones)
             defaults.set(data, forKey: Keys.heartRateZones)
             defaults.set(Date(), forKey: Keys.heartRateZones + Keys.timestampSuffix)
             Logger.debug("[UserProfileLocalDS] Heart rate zones saved to cache")
@@ -215,18 +190,5 @@ final class UserProfileLocalDataSource {
             size += data.count
         }
         return size
-    }
-}
-
-// MARK: - Helper Extension for JSONDecoder
-private extension JSONDecoder {
-    func decode(_ type: [[String: Any]].Type, from data: Data) throws -> [[String: Any]] {
-        guard let array = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            throw DecodingError.typeMismatch(
-                [[String: Any]].self,
-                DecodingError.Context(codingPath: [], debugDescription: "Expected array of dictionaries")
-            )
-        }
-        return array
     }
 }

@@ -77,6 +77,7 @@ struct OnboardingIntroView: View {
                                 .background(Color.accentColor)
                                 .cornerRadius(10)
                         }
+                        .accessibilityIdentifier("OnboardingStartButton")
                         .padding(.horizontal, 40)
                         .padding(.bottom, 30)
                         .padding(.top, 10)

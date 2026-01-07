@@ -812,6 +812,7 @@ class TrainingPlanMapper {
 
 - ✅ 網路通訊 (HTTPClient)
 - ✅ 緩存基礎建設 (UnifiedCacheManager)
+- ✅ 事件通訊 (CacheEventBus)
 - ✅ 依賴注入 (DI Container)
 - ✅ 工具函式與擴展
 
@@ -825,6 +826,8 @@ core/
 ├── cache/
 │   ├── UnifiedCacheManager.swift
 │   └── MultiKeyCacheManager.swift
+├── events/
+│   └── CacheEventBus.swift
 ├── di/
 │   └── DependencyContainer.swift
 └── utils/
@@ -840,6 +843,298 @@ core/
 - MultiKeyCacheManager (多鍵緩存)
 - APISourceTracking (API 追蹤)
 - TaskManageable (任務管理)
+
+### 事件通訊系統 (CacheEventBus)
+
+#### 設計目的
+
+CacheEventBus 作為核心事件通訊抽象層，提供符合 Clean Architecture 原則的應用程式級事件訂閱/發布機制。
+
+#### 核心原則
+
+**1. 依賴反轉原則 (Dependency Inversion Principle)**
+
+- 各層依賴於抽象的事件協議，而非具體的通知系統實作
+- 避免直接使用 `NotificationCenter.default` 造成的全域耦合
+- 透過協議定義事件類型，使事件系統可測試且可替換
+
+**2. 層間解耦通訊**
+
+- 允許跨層事件傳遞，同時保持層級邊界清晰
+- 發布者無需了解訂閱者的具體實作
+- 訂閱者透過抽象事件類型接收通知，而非直接依賴發布者
+
+**3. 雙軌緩存策略整合**
+
+雙軌緩存在不同場景下需要不同的行為：
+
+**正常使用場景**:
+- Track A: 立即返回緩存數據（快速顯示）
+- Track B: 背景刷新 API 數據（保持新鮮）
+
+**特殊事件場景**（如 Onboarding 完成）:
+- 需要清除所有緩存
+- 強制從 API 重新載入數據
+- 確保顯示的是最新狀態
+
+CacheEventBus 使各層能夠訂閱並響應這類需要特殊處理的事件：
+
+**事件流程範例**:
+```
+Onboarding 完成
+    ↓ 發布事件
+CacheEventBus.publish(.onboardingCompleted)
+    ↓ 訂閱者響應
+TrainingPlanViewModel.clearAllCache()
+    ↓ 清除緩存
+Repository.clearCache()
+    ↓ 強制刷新
+Repository.forceRefreshFromAPI()
+    ↓ 更新 UI
+ViewModel.state = .loaded(newData)
+```
+
+#### 架構優勢
+
+**1. 一致性設計**
+
+- 複用現有的 CacheEvent 枚舉架構
+- 與現有的 `userLogout`、`trainingPlanUpdated` 等事件保持統一風格
+- 避免引入新的抽象層（如 AppEventBus）造成概念分裂
+
+**2. 零額外複雜度**
+
+- 不需要創建新的事件系統基礎設施
+- 擴展現有枚舉即可支援新事件類型
+- 維護成本低，學習曲線平緩
+
+**3. 可測試性**
+
+- Mock CacheEventBus 驗證事件發布行為
+- 單元測試可模擬事件觸發，驗證訂閱者響應邏輯
+- 與 NotificationCenter 相比，提供更明確的事件類型檢查
+
+#### 使用模式
+
+**事件類型定義**:
+
+透過擴展 `CacheEvent` 枚舉定義應用程式級事件：
+- `.userLogout`: 用戶登出，清除所有用戶相關緩存
+- `.trainingPlanUpdated`: 訓練計畫更新，刷新相關視圖
+- `.onboardingCompleted`: Onboarding 完成，重新載入初始數據
+
+**訂閱事件**:
+
+ViewModel 或 Manager 層訂閱事件並執行相應業務邏輯：
+- 緩存清除
+- 數據強制刷新
+- UI 狀態更新
+
+**發布事件**:
+
+在適當的業務節點發布事件：
+- 用戶操作完成（Onboarding、登出）
+- 數據變更通知（訓練計畫生成、修改）
+- 系統狀態變化（背景進入前景）
+
+#### 設計權衡
+
+**為何選擇擴展 CacheEventBus 而非創建 AppEventBus？**
+
+| 考量點 | CacheEventBus 擴展 | 新建 AppEventBus |
+|--------|-------------------|------------------|
+| 實作成本 | 零（擴展現有枚舉） | 高（需建立新基礎設施） |
+| 一致性 | 高（與現有事件風格統一） | 低（引入新概念） |
+| 維護複雜度 | 低（單一事件系統） | 高（需維護兩套系統） |
+| 概念清晰度 | 高（事件集中管理） | 低（職責分散） |
+| 測試難易度 | 簡單（單一 Mock 對象） | 複雜（需 Mock 多個系統） |
+
+**權衡結論**: CacheEventBus 名稱雖然源於緩存管理，但其抽象本質已是應用程式級事件系統。擴展它是最務實且符合架構一致性的選擇。
+
+#### 與 Clean Architecture 的契合
+
+- **Presentation Layer**: 訂閱事件更新 UI 狀態（如 Onboarding 完成後重新載入數據）
+- **Domain Layer**: Repository 響應事件清除緩存或觸發業務流程
+- **Data Layer**: LocalDataSource 響應事件清除本地儲存
+- **Core Layer**: CacheEventBus 提供抽象事件機制，各層依賴此抽象
+
+透過事件系統，各層在保持依賴方向正確（外層→內層）的同時，實現必要的反向通知機制（內層事件→外層響應）。
+
+#### 發布者與訂閱者位置原則
+
+**核心設計規則**:
+
+1. **誰負責操作誰發布**: 執行業務操作的層級負責發布相應事件
+2. **誰需要響應誰訂閱**: 需要更新狀態的組件訂閱相關事件
+3. **Repository 是被動的**: Repository 層**永遠不發布事件**，也**不訂閱事件**
+
+##### 訂閱者位置規範
+
+**主要位置: Presentation Layer (ViewModels)**
+
+```swift
+// ✅ CORRECT - ViewModel 訂閱事件更新 UI 狀態
+class TrainingPlanViewModel: ObservableObject {
+    init(repository: TrainingPlanRepository) {
+        CacheEventBus.shared.subscribe(for: "onboardingCompleted") { [weak self] in
+            await self?.repository.clearCache()
+            await self?.initialize()
+        }
+    }
+}
+```
+
+**次要位置: Domain/Data Layer (Managers/Services)**
+
+```swift
+// ✅ CORRECT - Manager 訂閱事件執行業務邏輯
+class WorkoutSyncManager {
+    init() {
+        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+            await self?.stopAllSyncTasks()
+            await self?.clearLocalData()
+        }
+    }
+}
+```
+
+**絕對禁止: Repository/DataSource**
+
+```swift
+// ❌ FORBIDDEN - Repository 不應訂閱事件
+class TrainingPlanRepositoryImpl: TrainingPlanRepository {
+    init() {
+        // ❌ 違反被動原則
+        CacheEventBus.shared.subscribe(for: "onboardingCompleted") { ... }
+    }
+}
+```
+
+##### 發布者位置規範
+
+**允許位置 1: Presentation Layer (Coordinators/ViewModels)**
+
+```swift
+// ✅ CORRECT - Coordinator 在完成流程後發布事件
+class OnboardingCoordinator {
+    func completeOnboarding() async {
+        // 完成業務操作
+        let _ = try await TrainingPlanService.shared.createWeeklyPlan(...)
+
+        // 發布完成事件
+        CacheEventBus.shared.publish(.onboardingCompleted)
+    }
+}
+```
+
+**允許位置 2: Domain/Data Layer (Services/Managers)**
+
+```swift
+// ✅ CORRECT - Service 在同步完成後發布事件
+class WorkoutSyncService {
+    func syncWorkouts() async throws {
+        let workouts = try await uploadWorkouts()
+
+        // 發布數據變更事件
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+    }
+}
+```
+
+**絕對禁止: Repository/DataSource**
+
+```swift
+// ❌ FORBIDDEN - Repository 不應發布事件
+class TrainingPlanRepositoryImpl: TrainingPlanRepository {
+    func createOverview() async throws -> TrainingPlanOverview {
+        let overview = try await remoteDataSource.createOverview()
+
+        // ❌ Repository 應該是被動的，不主動發布事件
+        CacheEventBus.shared.publish(.trainingPlanUpdated)
+
+        return overview
+    }
+}
+
+// ✅ CORRECT - 改由上層 Service 發布
+class TrainingPlanService {
+    func createOverview() async throws -> TrainingPlanOverview {
+        let overview = try await repository.createOverview()
+
+        // ✅ Service 負責協調業務流程，適合發布事件
+        CacheEventBus.shared.publish(.trainingPlanUpdated)
+
+        return overview
+    }
+}
+```
+
+##### Repository 被動原則說明
+
+**為何 Repository 不應發布/訂閱事件？**
+
+1. **職責單一**: Repository 只負責數據存取協調，不應參與應用程式級事件流
+2. **可測試性**: Repository 作為純數據層，測試時不應依賴事件系統
+3. **依賴方向**: Repository 屬於 Data Layer，不應依賴更高層的業務邏輯決策
+4. **可替換性**: Repository 應該可以輕鬆替換實作，而不影響事件系統
+
+**正確的職責分工**:
+
+| 組件 | 職責 | 是否發布事件 | 是否訂閱事件 |
+|------|------|------------|------------|
+| **Repository** | 數據存取協調 | ❌ 否 | ❌ 否 |
+| **Service/Manager** | 業務流程協調 | ✅ 是 | ✅ 是 (可選) |
+| **ViewModel** | UI 狀態管理 | ✅ 是 (可選) | ✅ 是 |
+| **Coordinator** | 流程協調 | ✅ 是 | ❌ 否 (通常) |
+
+##### 實際場景範例
+
+**場景 1: Onboarding 完成**
+
+```
+OnboardingCoordinator.completeOnboarding()
+    ↓ 發布事件
+CacheEventBus.publish(.onboardingCompleted)
+    ↓ 訂閱者響應
+TrainingPlanViewModel.clearCache() + initialize()
+    ↓ 調用 Repository (被動)
+Repository.clearCache() → LocalDataSource.clearAll()
+```
+
+**場景 2: Workout 同步完成**
+
+```
+WorkoutSyncService.syncWorkouts()
+    ↓ 發布事件
+CacheEventBus.publish(.dataChanged(.workouts))
+    ↓ 訂閱者響應
+WorkoutViewModel.refreshData()
+    ↓ 調用 Repository (被動)
+Repository.getWorkouts() → RemoteDataSource + LocalDataSource
+```
+
+**場景 3: 用戶登出**
+
+```
+AuthenticationService.logout()
+    ↓ 發布事件
+CacheEventBus.publish(.userLogout)
+    ↓ 訂閱者響應 (多個)
+├─ TrainingPlanViewModel.clearAllData()
+├─ WorkoutViewModel.clearAllData()
+└─ WorkoutSyncManager.stopAllTasks()
+    ↓ 各自調用 Repository (被動)
+Repository.clearCache() → LocalDataSource.clearAll()
+```
+
+##### 設計原則總結
+
+| 原則 | 說明 | 反例 |
+|------|------|------|
+| **Repository 被動原則** | Repository 不發布事件，不訂閱事件 | Repository 訂閱 Onboarding 事件自動清除緩存 |
+| **事件發布上移** | 由 Service/Manager 或 Coordinator 發布事件 | Repository 在數據更新後發布事件 |
+| **訂閱者集中於上層** | ViewModel/Manager 訂閱事件協調業務流程 | Repository 訂閱事件觸發數據操作 |
+| **避免循環依賴** | 事件流向單向（發布→訂閱），不可反向 | ViewModel 發布事件 → Repository 訂閱 → 調用 ViewModel |
 
 ---
 

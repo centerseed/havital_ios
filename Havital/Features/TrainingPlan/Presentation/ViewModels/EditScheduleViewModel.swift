@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - EditSchedule ViewModel
 /// 負責訓練課表編輯的 UI 狀態管理
 @MainActor
-final class EditScheduleViewModel: ObservableObject {
+final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     // MARK: - Published State
 
@@ -20,17 +20,52 @@ final class EditScheduleViewModel: ObservableObject {
     /// 展開的日期索引
     @Published var expandedDayIndices: Set<Int> = []
 
+    /// 保存進行中狀態
+    @Published var isSaving: Bool = false
+
+    /// 保存錯誤
+    @Published var saveError: DomainError?
+
+    /// 保存成功訊息
+    @Published var saveSuccessMessage: String?
+
     // MARK: - Dependencies
 
     let weeklyPlan: WeeklyPlan  // 改為 public 讓 View 可以訪問
     private let startDate: Date
+    private let repository: TrainingPlanRepository
+
+    // MARK: - TaskManageable
+    nonisolated let taskRegistry = TaskRegistry()
 
     // MARK: - Initialization
 
-    init(weeklyPlan: WeeklyPlan, startDate: Date = Date()) {
+    init(
+        weeklyPlan: WeeklyPlan,
+        startDate: Date = Date(),
+        repository: TrainingPlanRepository
+    ) {
         self.weeklyPlan = weeklyPlan
         self.startDate = startDate
+        self.repository = repository
         loadVDOT()
+    }
+
+    /// 便利初始化器（使用 DI Container）
+    convenience init(weeklyPlan: WeeklyPlan, startDate: Date = Date()) {
+        // 確保 TrainingPlan 模組已註冊
+        if !DependencyContainer.shared.isRegistered(TrainingPlanRepository.self) {
+            DependencyContainer.shared.registerTrainingPlanModule()
+        }
+        self.init(
+            weeklyPlan: weeklyPlan,
+            startDate: startDate,
+            repository: DependencyContainer.shared.resolve()
+        )
+    }
+
+    deinit {
+        cancelAllTasks()
     }
 
     // MARK: - Public Methods
@@ -128,8 +163,156 @@ final class EditScheduleViewModel: ObservableObject {
 
     /// 保存編輯
     func saveEdits() async throws {
-        // TODO: 實作保存邏輯，調用 Repository
         Logger.debug("[EditScheduleVM] Saving edits for \(editingDays.count) days")
+
+        await executeTask(id: TaskID("save_edits_\(weeklyPlan.id)")) { [weak self] in
+            guard let self = self else { return }
+
+            // 1. 清除上次的狀態
+            await MainActor.run {
+                self.isSaving = true
+                self.saveError = nil
+                self.saveSuccessMessage = nil
+            }
+
+            do {
+                // 2. 驗證計畫
+                try await MainActor.run {
+                    try self.validatePlan()
+                }
+
+                // 3. 構建更新後的 WeeklyPlan
+                let updatedPlan = try await MainActor.run {
+                    try self.buildUpdatedPlan()
+                }
+
+                // 4. 調用 Repository 保存
+                let savedPlan = try await self.repository.modifyWeeklyPlan(
+                    planId: self.weeklyPlan.id,
+                    updatedPlan: updatedPlan
+                )
+
+                // 5. 更新 UI 狀態
+                await MainActor.run {
+                    self.isSaving = false
+                    self.saveSuccessMessage = NSLocalizedString(
+                        "edit_schedule.save_success",
+                        value: "訓練計畫已成功保存",
+                        comment: "Save success message"
+                    )
+                }
+
+                // 6. 發布事件通知其他模組
+                CacheEventBus.shared.publish(.dataChanged(.trainingPlan))
+
+                Logger.debug("[EditScheduleVM] Successfully saved plan: \(savedPlan.id)")
+
+            } catch let error as DomainError {
+                // 處理領域錯誤
+                await MainActor.run {
+                    self.isSaving = false
+                    self.saveError = error
+                }
+                Logger.error("[EditScheduleVM] Save failed: \(error.localizedDescription ?? "Unknown error")")
+                throw error
+
+            } catch {
+                // 處理其他錯誤
+                let domainError = error.toDomainError()
+
+                // 取消錯誤不更新 UI
+                if case .cancellation = domainError {
+                    Logger.debug("[EditScheduleVM] Task cancelled, ignoring")
+                    await MainActor.run { self.isSaving = false }
+                    return
+                }
+
+                await MainActor.run {
+                    self.isSaving = false
+                    self.saveError = domainError
+                }
+                Logger.error("[EditScheduleVM] Unexpected error: \(error.localizedDescription)")
+                throw domainError
+            }
+        }
+    }
+
+    // MARK: - Private Helper Methods
+
+    /// 驗證訓練計畫
+    private func validatePlan() throws {
+        // 檢查是否有編輯數據
+        guard !editingDays.isEmpty else {
+            throw DomainError.validationFailure(
+                NSLocalizedString(
+                    "edit_schedule.error.empty_plan",
+                    value: "訓練計畫不能為空",
+                    comment: "Empty plan error"
+                )
+            )
+        }
+
+        // 檢查每個訓練日的合法性
+        for (index, day) in editingDays.enumerated() {
+            // 驗證 dayIndex 範圍
+            guard let dayIndex = Int(day.dayIndex), dayIndex >= 1 && dayIndex <= 7 else {
+                throw DomainError.validationFailure(
+                    NSLocalizedString(
+                        "edit_schedule.error.invalid_day_index",
+                        value: "第 \(index + 1) 天的日期索引無效",
+                        comment: "Invalid day index error"
+                    )
+                )
+            }
+
+            // 驗證訓練類型不為空
+            if !day.trainingType.isEmpty && day.trainingType.trimmingCharacters(in: .whitespaces).isEmpty {
+                throw DomainError.validationFailure(
+                    NSLocalizedString(
+                        "edit_schedule.error.invalid_training_type",
+                        value: "第 \(index + 1) 天的訓練類型無效",
+                        comment: "Invalid training type error"
+                    )
+                )
+            }
+        }
+
+        Logger.debug("[EditScheduleVM] Validation passed for \(editingDays.count) days")
+    }
+
+    /// 構建更新後的 WeeklyPlan
+    private func buildUpdatedPlan() throws -> WeeklyPlan {
+        // 將 MutableTrainingDay 轉換回 TrainingDay
+        let updatedDays = editingDays.map { mutableDay in
+            mutableDay.toTrainingDay()
+        }
+
+        // 創建新的 WeeklyPlan（保留原有的 metadata）
+        let updatedPlan = WeeklyPlan(
+            id: weeklyPlan.id,
+            purpose: weeklyPlan.purpose,
+            weekOfPlan: weeklyPlan.weekOfPlan,
+            totalWeeks: weeklyPlan.totalWeeks,
+            totalDistance: calculateTotalDistance(from: updatedDays),
+            totalDistanceReason: weeklyPlan.totalDistanceReason,
+            designReason: weeklyPlan.designReason,
+            days: updatedDays,
+            intensityTotalMinutes: weeklyPlan.intensityTotalMinutes
+        )
+
+        Logger.debug("[EditScheduleVM] Built updated plan with \(updatedDays.count) days")
+        return updatedPlan
+    }
+
+    /// 計算總距離
+    private func calculateTotalDistance(from days: [TrainingDay]) -> Double {
+        return days.reduce(0.0) { total, day in
+            // 提取距離：優先使用 totalDistanceKm（用於分段訓練），其次使用 distanceKm
+            let dayDistance = day.trainingDetails?.totalDistanceKm ??
+                            day.trainingDetails?.distanceKm ??
+                            0.0
+            return total + dayDistance
+        }
     }
 }
 

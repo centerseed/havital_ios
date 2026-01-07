@@ -1,5 +1,16 @@
 import Foundation
 
+// MARK: - Request DTOs
+
+/// Request body for modifying a weekly plan
+struct WeeklyPlanModifyRequest: Encodable {
+    let updatedPlan: WeeklyPlan
+
+    enum CodingKeys: String, CodingKey {
+        case updatedPlan = "updated_plan"
+    }
+}
+
 // MARK: - TrainingPlan Remote DataSource
 /// 負責與後端 API 通信，獲取訓練計畫數據
 /// Data Layer - 只處理 HTTP 請求和響應

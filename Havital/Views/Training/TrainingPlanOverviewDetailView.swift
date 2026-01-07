@@ -5,8 +5,9 @@ struct TrainingPlanOverviewDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    // 🆕 使用 TargetManager（雙軌緩存架構）
-    @StateObject private var targetManager = TargetManager.shared
+    // 🆕 使用 Clean Architecture ViewModels
+    @StateObject private var targetViewModel = TargetFeatureViewModel()
+    @StateObject private var trainingPlanViewModel = TrainingPlanViewModel()
 
     @State private var showEditSheet = false
     @State private var showEditSupportingSheet = false
@@ -34,7 +35,7 @@ struct TrainingPlanOverviewDetailView: View {
 
     // 給支援賽事排序 - 按照日期由近到遠（最快要比的在上面）
     private var sortedSupportingTargets: [Target] {
-        return targetManager.supportingTargets.sorted { $0.raceDate < $1.raceDate }
+        return targetViewModel.supportingTargets.sorted { $0.raceDate < $1.raceDate }
     }
 
     var body: some View {
@@ -85,24 +86,24 @@ struct TrainingPlanOverviewDetailView: View {
             }
             .presentationDetents([.large])
             .onAppear {
-                // 🆕 使用 TargetManager 的雙軌緩存載入
+                // 🆕 使用 TargetFeatureViewModel 的雙軌緩存載入
                 Task {
-                    await targetManager.loadTargets()
-                    Logger.debug("TrainingPlanOverviewDetailView: 已透過 TargetManager 載入賽事資料")
+                    await targetViewModel.loadTargets()
+                    Logger.debug("TrainingPlanOverviewDetailView: 已透過 TargetFeatureViewModel 載入賽事資料")
                 }.tracked(from: "TrainingPlanOverviewDetailView: onAppear_loadTargets")
             }
             .sheet(isPresented: $showEditSheet, onDismiss: {
                 // 編輯視圖關閉後的處理邏輯會在通知中處理
                 // 這裡不需要做任何事情，避免重複處理
             }) {
-                if let target = targetManager.mainTarget {
+                if let target = targetViewModel.mainTarget {
                     EditTargetView(target: target)
                 }
             }
             .sheet(isPresented: $showEditSupportingSheet, onDismiss: {
-                // 🆕 編輯支援賽事關閉後使用 TargetManager 強制刷新
+                // 🆕 編輯支援賽事關閉後使用 TargetFeatureViewModel 強制刷新
                 Task {
-                    await targetManager.forceRefresh()
+                    await targetViewModel.forceRefresh()
                     Logger.debug("編輯支援賽事後已刷新資料")
                 }.tracked(from: "TrainingPlanOverviewDetailView: editSupportingSheet_onDismiss")
             }) {
@@ -111,9 +112,9 @@ struct TrainingPlanOverviewDetailView: View {
                 }
             }
             .sheet(isPresented: $showAddSupportingSheet, onDismiss: {
-                // 🆕 添加支援賽事關閉後使用 TargetManager 強制刷新
+                // 🆕 添加支援賽事關閉後使用 TargetFeatureViewModel 強制刷新
                 Task {
-                    await targetManager.forceRefresh()
+                    await targetViewModel.forceRefresh()
                     Logger.debug("添加支援賽事後已刷新資料")
                 }.tracked(from: "TrainingPlanOverviewDetailView: addSupportingSheet_onDismiss")
             }) {
@@ -125,9 +126,9 @@ struct TrainingPlanOverviewDetailView: View {
                    let hasSignificantChange = userInfo["hasSignificantChange"] as? Bool {
                     Logger.debug("接收到賽事編輯通知，重要變更: \(hasSignificantChange)")
 
-                    // 🆕 使用 TargetManager 重新載入賽事資料以顯示最新名稱
+                    // 🆕 使用 TargetFeatureViewModel 重新載入賽事資料以顯示最新名稱
                     Task {
-                        await targetManager.forceRefresh()
+                        await targetViewModel.forceRefresh()
                     }.tracked(from: "TrainingPlanOverviewDetailView: targetUpdated_notification")
 
                     // 只有在有重要變更時才更新訓練計劃概覽
@@ -140,9 +141,9 @@ struct TrainingPlanOverviewDetailView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
-                // 🆕 當支援賽事更新時，使用 TargetManager 重新載入
+                // 🆕 當支援賽事更新時，使用 TargetFeatureViewModel 重新載入
                 Task {
-                    await targetManager.forceRefresh()
+                    await targetViewModel.forceRefresh()
                     Logger.debug("支援賽事更新後已刷新資料")
                 }.tracked(from: "TrainingPlanOverviewDetailView: supportingTargetUpdated_notification")
             }
@@ -214,7 +215,7 @@ struct TrainingPlanOverviewDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // 🎯 目標賽事
-                if let target = targetManager.mainTarget {
+                if let target = targetViewModel.mainTarget {
                     TargetRaceCard(target: target, onEditTap: {
                         showEditSheet = true
                     })
@@ -296,6 +297,7 @@ struct TrainingPlanOverviewDetailView: View {
     // ❌ 已移除 loadTargetRace() - 現在使用 TargetManager.loadTargets()
     // ❌ 已移除 loadSupportingTargets() - 現在使用 TargetManager.loadTargets()
 
+    // 🆕 使用 Clean Architecture 更新訓練計畫概覽
     private func updateTrainingPlanOverview() {
         // 顯示更新中狀態
         isUpdatingOverview = true
@@ -303,11 +305,8 @@ struct TrainingPlanOverviewDetailView: View {
 
         Task {
             do {
-                // 更新訓練計劃概覽
-                let updatedOverview = try await TrainingPlanService.shared.updateTrainingPlanOverview(overviewId: overview.id)
-
-                // 保存更新後的概覽到本地存儲
-                TrainingPlanStorage.saveTrainingPlanOverview(updatedOverview)
+                // 🆕 透過 TrainingPlanViewModel 調用 Repository（Clean Architecture）
+                let updatedOverview = try await trainingPlanViewModel.updateOverview(overviewId: overview.id)
 
                 await MainActor.run {
                     self.overview = updatedOverview
@@ -317,12 +316,6 @@ struct TrainingPlanOverviewDetailView: View {
                     self.isUpdateSuccessful = true
                     self.hasTargetSaved = false  // 在更新完成後重置狀態
 
-                    // 發送通知通知主畫面重新載入
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("TrainingOverviewUpdated"),
-                        object: updatedOverview
-                    )
-
                     // 5秒後自動隱藏成功提示
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         if self.isUpdateSuccessful {
@@ -330,6 +323,8 @@ struct TrainingPlanOverviewDetailView: View {
                         }
                     }
                 }
+
+                Logger.debug("TrainingPlanOverviewDetailView: 已透過 Clean Architecture 更新訓練計畫概覽")
             } catch {
                 await MainActor.run {
                     self.isUpdatingOverview = false
@@ -337,9 +332,9 @@ struct TrainingPlanOverviewDetailView: View {
                     self.updateStatusMessage = String(format: NSLocalizedString("training.update_failed", comment: "Failed to update training plan: %@"), error.localizedDescription)
                     self.isUpdateSuccessful = false
                 }
-                print("更新訓練計劃概覽失敗: \(error)")
+                Logger.error("更新訓練計劃概覽失敗: \(error)")
             }
-        }
+        }.tracked(from: "TrainingPlanOverviewDetailView: updateTrainingPlanOverview")
     }
 
     // ❌ 已移除 fetchAndSyncTargets() - 現在使用 TargetManager.forceRefresh()

@@ -3,6 +3,8 @@ import SwiftUI
 struct LanguageSettingsView: View {
     @StateObject private var languageManager = LanguageManager.shared
     @StateObject private var viewModel = UserProfileFeatureViewModel()
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedLanguage: SupportedLanguage
@@ -178,7 +180,8 @@ struct LanguageSettingsView: View {
         
         // Add authentication token if available
         do {
-            let token = try await AuthenticationService.shared.getIdToken()
+            // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+            let token = try await authViewModel.getIdToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         } catch {
             Logger.firebase("Failed to get auth token: \(error.localizedDescription)", level: .warn)

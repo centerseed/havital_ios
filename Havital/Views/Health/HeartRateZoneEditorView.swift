@@ -98,7 +98,8 @@ struct HRRHeartRateZoneEditorView: View {
                 if let maxHR = Int(maxHeartRate), let restingHR = Int(restingHeartRate),
                     maxHR > restingHR, maxHR > 0, restingHR > 0 {
                     Section(header: Text(NSLocalizedString("hr_zone.preview", comment: "Heart Rate Zone Preview"))) {
-                        let zones = HeartRateZonesManager.shared.calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+                        // Use HeartRateZone entity directly instead of deprecated HeartRateZonesManager
+                        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
                         
                         ForEach(zones, id: \.zone) { zone in
                             HStack {
@@ -176,24 +177,21 @@ struct HRRHeartRateZoneEditorView: View {
         // 更新本地數據
         viewModel.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
         
-        // 發送到後端 API
+        // 發送到後端 API (using ViewModel → Repository)
         Task {
-            do {
-                let userData = [
-                    "max_hr": maxHR,
-                    "relaxing_hr": restingHR
-                ] as [String : Any]
-                
-                try await UserService.shared.updateUserData(userData)
-                
-                await MainActor.run {
-                    isLoading = false
+            let userData = [
+                "max_hr": maxHR,
+                "relaxing_hr": restingHR
+            ] as [String : Any]
+
+            let success = await viewModel.updateUserProfile(userData)
+
+            await MainActor.run {
+                isLoading = false
+                if success {
                     dismiss()
-                }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
+                } else {
+                    alertMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "Failed to save heart rate zones")
                     showingAlert = true
                 }
             }

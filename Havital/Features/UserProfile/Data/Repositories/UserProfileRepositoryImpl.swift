@@ -8,20 +8,17 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     // MARK: - Dependencies
     private let remoteDataSource: UserProfileRemoteDataSource
     private let localDataSource: UserProfileLocalDataSource
-    private let heartRateZonesManager: HeartRateZonesManager
-    private let targetService: TargetService
+    private let targetRemoteDataSource: TargetRemoteDataSource
 
     // MARK: - Initialization
     init(
         remoteDataSource: UserProfileRemoteDataSource = UserProfileRemoteDataSource(),
         localDataSource: UserProfileLocalDataSource = UserProfileLocalDataSource(),
-        heartRateZonesManager: HeartRateZonesManager = .shared,
-        targetService: TargetService = .shared
+        targetRemoteDataSource: TargetRemoteDataSource = TargetRemoteDataSource()
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
-        self.heartRateZonesManager = heartRateZonesManager
-        self.targetService = targetService
+        self.targetRemoteDataSource = targetRemoteDataSource
     }
 
     // MARK: - User Profile
@@ -84,7 +81,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
 
     // MARK: - Heart Rate Zones
 
-    func getHeartRateZones() async throws -> [HeartRateZonesManager.HeartRateZone] {
+    func getHeartRateZones() async throws -> [HeartRateZone] {
         Logger.debug("[UserProfileRepo] Getting heart rate zones")
 
         // First check local cache
@@ -101,8 +98,8 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
             throw UserProfileError.invalidHeartRate(message: "Missing heart rate data in profile")
         }
 
-        // Calculate zones using HRR formula
-        let zones = calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+        // Calculate zones using HRR formula (using new HeartRateZone entity)
+        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
 
         // Cache the zones
         localDataSource.saveHeartRateZones(zones)
@@ -110,7 +107,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         return zones
     }
 
-    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZonesManager.HeartRateZone] {
+    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZone] {
         Logger.debug("[UserProfileRepo] Updating HR zones (max: \(maxHR), resting: \(restingHR))")
 
         // Update user profile with new HR values
@@ -120,12 +117,9 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         ]
         _ = try await updateUserProfile(updates)
 
-        // Calculate and cache new zones
-        let zones = calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+        // Calculate and cache new zones using new HeartRateZone entity
+        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
         localDataSource.saveHeartRateZones(zones)
-
-        // Also update HeartRateZonesManager for backward compatibility
-        heartRateZonesManager.calculateAndSaveHeartRateZones(maxHR: maxHR, restingHR: restingHR)
 
         return zones
     }
@@ -139,12 +133,9 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
             return
         }
 
-        // Calculate and cache zones
-        let zones = calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+        // Calculate and cache zones using new HeartRateZone entity
+        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
         localDataSource.saveHeartRateZones(zones)
-
-        // Update HeartRateZonesManager for backward compatibility
-        heartRateZonesManager.calculateAndSaveHeartRateZones(maxHR: maxHR, restingHR: restingHR)
     }
 
     // MARK: - Targets
@@ -153,14 +144,14 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         Logger.debug("[UserProfileRepo] Getting targets")
 
         // For targets, we always fetch fresh data (frequently changing)
-        let targets = try await targetService.getTargets()
+        let targets = try await targetRemoteDataSource.getTargets()
         return targets
     }
 
     func createTarget(_ target: Target) async throws {
         Logger.debug("[UserProfileRepo] Creating target: \(target.name)")
 
-        try await remoteDataSource.createTarget(target)
+        _ = try await targetRemoteDataSource.createTarget(target)
     }
 
     // MARK: - Statistics
@@ -179,6 +170,20 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     }
 
     // MARK: - Personal Best
+
+    func updatePersonalBest(distanceKm: Double, completeTime: Int) async throws {
+        Logger.debug("[UserProfileRepo] Updating personal best: \(distanceKm)km in \(completeTime)s")
+
+        let performanceData: [String: Any] = [
+            "distance_km": distanceKm,
+            "complete_time": completeTime
+        ]
+
+        try await remoteDataSource.updatePersonalBest(performanceData)
+
+        // Invalidate cache to get fresh data
+        localDataSource.clearUserProfile()
+    }
 
     func detectPersonalBestUpdates(
         oldData: [String: [PersonalBestRecordV2]]?,
@@ -274,56 +279,6 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         } catch {
             Logger.debug("[UserProfileRepo] Background refresh failed (non-critical): \(error.localizedDescription)")
         }
-    }
-
-    private func calculateHeartRateZones(maxHR: Int, restingHR: Int) -> [HeartRateZonesManager.HeartRateZone] {
-        // Using Heart Rate Reserve (HRR) formula
-        // Target HR = ((MaxHR - RestingHR) × Intensity%) + RestingHR
-        let hrr = Double(maxHR - restingHR)
-
-        return [
-            HeartRateZonesManager.HeartRateZone(
-                zone: 1,
-                name: NSLocalizedString("hr_zone.easy", comment: "Easy"),
-                range: calculateZoneRange(hrr: hrr, resting: restingHR, low: 0.59, high: 0.74),
-                description: NSLocalizedString("hr_zone.easy.description", comment: "Recovery and warmup"),
-                benefit: NSLocalizedString("hr_zone.easy.benefit", comment: "Active recovery")
-            ),
-            HeartRateZonesManager.HeartRateZone(
-                zone: 2,
-                name: NSLocalizedString("hr_zone.aerobic", comment: "Aerobic"),
-                range: calculateZoneRange(hrr: hrr, resting: restingHR, low: 0.74, high: 0.84),
-                description: NSLocalizedString("hr_zone.aerobic.description", comment: "Endurance base"),
-                benefit: NSLocalizedString("hr_zone.aerobic.benefit", comment: "Improve aerobic capacity")
-            ),
-            HeartRateZonesManager.HeartRateZone(
-                zone: 3,
-                name: NSLocalizedString("hr_zone.threshold", comment: "Threshold"),
-                range: calculateZoneRange(hrr: hrr, resting: restingHR, low: 0.84, high: 0.88),
-                description: NSLocalizedString("hr_zone.threshold.description", comment: "Tempo pace"),
-                benefit: NSLocalizedString("hr_zone.threshold.benefit", comment: "Increase lactate threshold")
-            ),
-            HeartRateZonesManager.HeartRateZone(
-                zone: 4,
-                name: NSLocalizedString("hr_zone.vo2max", comment: "VO2Max"),
-                range: calculateZoneRange(hrr: hrr, resting: restingHR, low: 0.88, high: 0.95),
-                description: NSLocalizedString("hr_zone.vo2max.description", comment: "Interval training"),
-                benefit: NSLocalizedString("hr_zone.vo2max.benefit", comment: "Improve VO2Max")
-            ),
-            HeartRateZonesManager.HeartRateZone(
-                zone: 5,
-                name: NSLocalizedString("hr_zone.max", comment: "Maximum"),
-                range: calculateZoneRange(hrr: hrr, resting: restingHR, low: 0.95, high: 1.0),
-                description: NSLocalizedString("hr_zone.max.description", comment: "Speed work"),
-                benefit: NSLocalizedString("hr_zone.max.benefit", comment: "Maximum effort")
-            )
-        ]
-    }
-
-    private func calculateZoneRange(hrr: Double, resting: Int, low: Double, high: Double) -> ClosedRange<Double> {
-        let lowHR = hrr * low + Double(resting)
-        let highHR = hrr * high + Double(resting)
-        return lowHR...highHR
     }
 
     private func savePersonalBestUpdate(_ update: PersonalBestUpdate) {

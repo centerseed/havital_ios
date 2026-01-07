@@ -5,7 +5,7 @@ import SwiftUI
 /// 負責週回顧的生成、顯示和調整確認流程
 /// 職責：週回顧 CRUD、調整項目管理
 @MainActor
-final class WeeklySummaryViewModel: ObservableObject {
+final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     // MARK: - Published State
 
@@ -60,6 +60,7 @@ final class WeeklySummaryViewModel: ObservableObject {
 
     init(repository: TrainingPlanRepository) {
         self.repository = repository
+        setupEventSubscriptions()
     }
 
     /// 便利初始化器（使用 DI Container）
@@ -68,6 +69,40 @@ final class WeeklySummaryViewModel: ObservableObject {
             DependencyContainer.shared.registerTrainingPlanModule()
         }
         self.init(repository: DependencyContainer.shared.resolve())
+    }
+
+    deinit {
+        cancelAllTasks()
+    }
+
+    // MARK: - Event Subscriptions
+
+    /// 設定事件訂閱
+    private func setupEventSubscriptions() {
+        // ✅ Clean Architecture: 訂閱用戶登出事件
+        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[WeeklySummaryVM] 收到 userLogout 事件，清除緩存")
+
+            // 清除 Repository 緩存
+            await self.repository.clearCache()
+
+            // 重置狀態
+            await MainActor.run {
+                self.summaryState = .empty
+                self.summariesState = .empty
+                self.isGenerating = false
+                self.showSummarySheet = false
+                self.showAdjustmentConfirmation = false
+                self.pendingAdjustments = []
+                self.pendingSummaryId = nil
+                self.pendingTargetWeek = nil
+                self.summaryError = nil
+            }
+
+            Logger.debug("[WeeklySummaryVM] ✅ 用戶登出後狀態已重置")
+        }
     }
 
     // MARK: - Public Methods - Summary CRUD

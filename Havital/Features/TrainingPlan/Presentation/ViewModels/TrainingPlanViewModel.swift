@@ -61,7 +61,7 @@ class TrainingPlanViewModel: ObservableObject {
     private var hasInitialized: Bool = false
 
     func formatDistance(_ distance: Double, unit: String? = nil) -> String {
-        return String(format: "%.1f", distance)
+        return String(format: "%.0f", distance)
     }
 
     /// 獲取指定週計畫（Legacy Proxy）
@@ -331,6 +331,76 @@ class TrainingPlanViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // ✅ Clean Architecture: 訂閱 Onboarding 完成事件
+        // 當用戶完成 Onboarding 時，清除所有緩存並強制重新載入數據
+        CacheEventBus.shared.subscribe(for: "onboardingCompleted") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[TrainingPlanVM] 收到 onboardingCompleted 事件，重新載入所有數據")
+
+            // 清除 Repository 緩存
+            await self.repository.clearCache()
+
+            // 重新載入所有數據
+            await self.initialize()
+
+            Logger.debug("[TrainingPlanVM] ✅ Onboarding 完成後數據重新載入完成")
+        }
+
+        // ✅ Clean Architecture: 訂閱用戶登出事件
+        // 當用戶登出時，清除所有緩存並重置狀態
+        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[TrainingPlanVM] 收到 userLogout 事件，清除所有緩存")
+
+            // 清除 Repository 緩存
+            await self.repository.clearCache()
+
+            // 重置 UI 狀態
+            await MainActor.run {
+                self.planStatus = .loading
+                self.planStatusResponse = nil
+                self.workoutsByDayV2 = [:]
+                self.currentWeekDistance = 0.0
+                self.hasInitialized = false
+            }
+
+            Logger.debug("[TrainingPlanVM] ✅ 用戶登出後緩存已清除")
+        }
+
+        // ✅ Clean Architecture: 訂閱訓練計畫修改事件
+        // 當訓練計畫被修改時（例如從 EditScheduleView），刷新週計畫
+        CacheEventBus.shared.subscribe(for: "trainingPlanModified") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[TrainingPlanVM] 收到 trainingPlanModified 事件，刷新週計畫")
+
+            // 強制刷新當前週計畫
+            await self.weeklyPlanVM.refreshWeeklyPlan()
+
+            // 重新載入本週的 workouts（可能受計畫修改影響）
+            await self.loadWorkoutsForCurrentWeek()
+
+            Logger.debug("[TrainingPlanVM] ✅ 訓練計畫刷新完成")
+        }
+
+        // ✅ Clean Architecture: 訂閱目標更新事件
+        // 當用戶修改訓練目標時，可能影響 VDOT 和配速建議
+        CacheEventBus.shared.subscribe(for: "targetUpdated") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[TrainingPlanVM] 收到 targetUpdated 事件，刷新訓練概覽")
+
+            // 刷新訓練概覽（可能包含新的目標信息）
+            await self.weeklyPlanVM.loadOverview()
+
+            // 重新載入計畫狀態
+            await self.loadPlanStatus()
+
+            Logger.debug("[TrainingPlanVM] ✅ 目標更新後數據已刷新")
+        }
+
         // 監聽歷史週回顧列表狀態，更新 legacy properties
         summaryVM.$summariesState
             .receive(on: DispatchQueue.main)
@@ -434,7 +504,26 @@ class TrainingPlanViewModel: ObservableObject {
                 trainingPlanName = overview.trainingPlanName
             }
 
-            Logger.debug("[TrainingPlanVM] Plan status loaded: week \(status.currentWeek)/\(status.totalWeeks)")
+            // 🔍 [DEBUG] 詳細的 status API 回應日誌
+            Logger.debug("========================================")
+            Logger.debug("[TrainingPlanVM] 📊 Plan Status API 回應:")
+            Logger.debug("  current_week: \(status.currentWeek)")
+            Logger.debug("  total_weeks: \(status.totalWeeks)")
+            Logger.debug("  next_action: \(status.nextAction)")
+            Logger.debug("  can_generate_next_week: \(status.canGenerateNextWeek)")
+            Logger.debug("  current_week_plan_id: \(status.currentWeekPlanId ?? "null")")
+            Logger.debug("  previous_week_summary_id: \(status.previousWeekSummaryId ?? "null")")
+            if let nextWeekInfo = status.nextWeekInfo {
+                Logger.debug("  next_week_info:")
+                Logger.debug("    - week_number: \(nextWeekInfo.weekNumber)")
+                Logger.debug("    - has_plan: \(nextWeekInfo.hasPlan)")
+                Logger.debug("    - can_generate: \(nextWeekInfo.canGenerate)")
+                Logger.debug("    - requires_current_week_summary: \(nextWeekInfo.requiresCurrentWeekSummary)")
+                Logger.debug("    - next_action: \(nextWeekInfo.nextAction)")
+            } else {
+                Logger.debug("  next_week_info: null")
+            }
+            Logger.debug("========================================")
         } catch {
             Logger.error("[TrainingPlanVM] Failed to load plan status: \(error.localizedDescription)")
             networkError = error
@@ -477,7 +566,43 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 產生下週課表
     func generateNextWeekPlan(targetWeek: Int) async {
-        Logger.debug("[TrainingPlanVM] Generating next week plan: \(targetWeek)")
+        // 🔍 [DEBUG] Enhanced entry point logging
+        Logger.debug("========================================")
+        Logger.debug("[TrainingPlanVM] 🎯 generateNextWeekPlan(targetWeek: \(targetWeek)) 被調用")
+        Logger.debug("[TrainingPlanVM] currentWeek: \(currentWeek)")
+        Logger.debug("[TrainingPlanVM] selectedWeek: \(selectedWeek)")
+        Logger.debug("========================================")
+
+        // ✅ 檢查是否需要先產生當前週回顧（根據 targetWeek 推算）
+        // 如果要產生第7週課表，需要先檢查第6週週回顧是否存在
+        let requiredSummaryWeek = targetWeek - 1
+
+        // 嘗試獲取上週週回顧，如果不存在則先產生
+        Logger.debug("[TrainingPlanVM] 檢查是否需要先產生第 \(requiredSummaryWeek) 週的週回顧")
+
+        do {
+            // ✅ 通過 Repository 檢查週回顧是否存在（符合 Clean Arch）
+            _ = try await repository.getWeeklySummary(weekNumber: requiredSummaryWeek)
+            Logger.debug("[TrainingPlanVM] 第 \(requiredSummaryWeek) 週週回顧已存在，直接產生課表")
+        } catch {
+            // 週回顧不存在，需要先產生
+            Logger.debug("[TrainingPlanVM] 第 \(requiredSummaryWeek) 週週回顧不存在，先產生週回顧")
+
+            // 設置待產生的目標週數
+            summaryVM.pendingTargetWeek = targetWeek
+
+            // 產生週回顧
+            await summaryVM.createWeeklySummary(weekNumber: requiredSummaryWeek)
+
+            // 檢查是否有調整項目需要確認
+            if !summaryVM.pendingAdjustments.isEmpty {
+                Logger.debug("[TrainingPlanVM] 有 \(summaryVM.pendingAdjustments.count) 個調整項目，等待用戶確認後再產生課表")
+                isLoadingAnimation = false
+                return
+            }
+
+            Logger.debug("[TrainingPlanVM] 週回顧已完成，無調整項目，繼續產生課表")
+        }
 
         isLoadingAnimation = true
 
@@ -548,10 +673,53 @@ class TrainingPlanViewModel: ObservableObject {
         await generateNextWeekPlan(targetWeek: nextWeekInfo.weekNumber)
     }
 
+    // MARK: - Business Logic Methods
+
+    /// 決定下一個要產生的週數
+    /// 根據當前狀態智能判斷應該產生哪一週的課表
+    /// - Returns: 目標週數
+    func determineNextPlanWeek() -> Int {
+        Logger.debug("========================================")
+        Logger.debug("[TrainingPlanVM] 🧮 計算目標週數（Business Logic）")
+        Logger.debug("[TrainingPlanVM] currentWeek: \(currentWeek)")
+        Logger.debug("[TrainingPlanVM] pendingTargetWeek: \(summaryVM.pendingTargetWeek?.description ?? "nil")")
+        Logger.debug("[TrainingPlanVM] current_week_plan_id: \(planStatusResponse?.currentWeekPlanId ?? "null")")
+
+        let targetWeek: Int
+
+        // 1. 如果有 pendingTargetWeek，使用它（來自 GenerateNextWeekButton 流程）
+        if let pendingWeek = summaryVM.pendingTargetWeek {
+            targetWeek = pendingWeek
+            Logger.debug("[TrainingPlanVM] ✅ 決策邏輯 1: 使用 pendingTargetWeek = \(pendingWeek)")
+        }
+        // 2. 如果當前週課表不存在，產生當前週
+        else if planStatusResponse?.currentWeekPlanId == nil {
+            targetWeek = currentWeek
+            Logger.debug("[TrainingPlanVM] ✅ 決策邏輯 2: 當前週課表不存在，產生當前週 = \(currentWeek)")
+        }
+        // 3. 當前週課表存在，產生下一週
+        else {
+            targetWeek = currentWeek + 1
+            Logger.debug("[TrainingPlanVM] ✅ 決策邏輯 3: 當前週課表存在，產生下一週 = \(currentWeek + 1)")
+        }
+
+        Logger.debug("[TrainingPlanVM] 🎯 最終決定：targetWeek = \(targetWeek)")
+        Logger.debug("========================================")
+
+        return targetWeek
+    }
+
     // MARK: - Weekly Summary Actions
 
     /// 創建週回顧
     func createWeeklySummary(weekNumber: Int? = nil) async {
+        // 🔍 [DEBUG] Entry point logging
+        Logger.debug("========================================")
+        Logger.debug("[TrainingPlanVM] 📝 createWeeklySummary(weekNumber: \(weekNumber?.description ?? "nil")) 被調用")
+        Logger.debug("[TrainingPlanVM] currentWeek: \(currentWeek)")
+        Logger.debug("[TrainingPlanVM] → 轉發到 summaryVM.createWeeklySummary")
+        Logger.debug("========================================")
+
         await summaryVM.createWeeklySummary(weekNumber: weekNumber)
     }
 
@@ -562,7 +730,19 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 清除週回顧
     func clearWeeklySummary() {
+        // 🔍 [DEBUG] 週回顧關閉日誌
+        Logger.debug("========================================")
+        Logger.debug("[TrainingPlanVM] 🔴 週回顧彈窗被關閉")
+        Logger.debug("[TrainingPlanVM] 清除 summaryVM 狀態並刷新 plan status")
+        Logger.debug("========================================")
+
         summaryVM.clearSummary()
+
+        // ✅ 刷新計畫狀態，因為產生週回顧後 nextAction 可能已改變
+        Task {
+            await loadPlanStatus(skipCache: true)
+            Logger.debug("[TrainingPlanVM] ✅ Plan status 已刷新（關閉週回顧後）")
+        }
     }
 
     /// 獲取指定週回顧（Legacy Proxy）
@@ -590,6 +770,12 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 確認調整並產生下週課表（同時執行）
     func confirmAdjustmentsAndGenerateNextWeek(targetWeek: Int) async {
+        // 🔍 [DEBUG] Entry point logging
+        Logger.debug("========================================")
+        Logger.debug("[TrainingPlanVM] 🔄 confirmAdjustmentsAndGenerateNextWeek(targetWeek: \(targetWeek)) 被調用")
+        Logger.debug("[TrainingPlanVM] pendingAdjustments count: \(summaryVM.pendingAdjustments.count)")
+        Logger.debug("========================================")
+
         // ✅ 先確認調整（如果有的話）
         if !summaryVM.pendingAdjustments.isEmpty {
             Logger.debug("[TrainingPlanVM] Confirming \(summaryVM.pendingAdjustments.count) adjustments before generating next week")
@@ -722,6 +908,29 @@ class TrainingPlanViewModel: ObservableObject {
     /// 載入週計畫（代理到 weeklyPlanVM）
     func loadWeeklyPlan() async {
         await weeklyPlanVM.loadWeeklyPlan()
+    }
+
+    /// 更新訓練計畫概覽（當賽事目標變更時調用）
+    /// - Parameter overviewId: 概覽 ID
+    /// - Returns: 更新後的訓練計畫概覽
+    func updateOverview(overviewId: String) async throws -> TrainingPlanOverview {
+        Logger.debug("[TrainingPlanVM] Updating overview: \(overviewId)")
+
+        let updatedOverview = try await repository.updateOverview(overviewId: overviewId)
+
+        // 更新本地狀態
+        await weeklyPlanVM.loadOverview()
+
+        // ✅ Clean Architecture: 發布事件讓其他模組知道 Overview 已更新
+        CacheEventBus.shared.publish(.dataChanged(.trainingPlan))
+
+        // 兼容性通知：同步發送 NotificationCenter 通知 (供舊組件及測試監聽)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .trainingOverviewUpdated, object: updatedOverview)
+        }
+
+        Logger.debug("[TrainingPlanVM] ✅ Overview updated successfully")
+        return updatedOverview
     }
 
     /// 重試網路請求

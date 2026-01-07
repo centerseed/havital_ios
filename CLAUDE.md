@@ -16,6 +16,269 @@ Paceriz is a fitness tracking application supporting Apple Health and Garmin Con
 
 ## Core Architecture Principles
 
+### 0.1. Clean Architecture 設計原則 (最高設計原則)
+
+本專案採用 **Clean Architecture** 四層架構設計，確保代碼的可維護性、可測試性和可擴展性。
+
+#### 四層架構概覽
+
+```
+Presentation Layer (外層)
+    ↓ 依賴
+Domain Layer (業務核心)
+    ↓ 依賴
+Data Layer (數據實作)
+    ↓ 依賴
+Core Layer (基礎設施)
+```
+
+**核心原則**: 依賴方向永遠向內（外層 → 內層），內層不知道外層的存在。
+
+#### 各層職責與組件
+
+**Presentation Layer (呈現層)**
+- **職責**: UI 渲染、用戶交互、狀態綁定
+- **組件**: Views (SwiftUI), ViewModels (@Published state), ViewState enums
+- **禁止**: 業務邏輯、直接 API 調用、直接數據庫訪問
+- **原則**: View 只顯示數據，ViewModel 只管理 UI 狀態
+
+**Domain Layer (領域層)**
+- **職責**: 業務實體定義、業務規則、數據訪問介面定義
+- **組件**: Entities (業務模型), Repository Protocols (介面定義), UseCases (可選)
+- **禁止**: 依賴外層 (Presentation)、依賴實作細節 (Data Layer)
+- **原則**: 定義"做什麼"，不定義"怎麼做"
+
+**Data Layer (數據層)**
+- **職責**: Repository 實作、API 調用、緩存管理、DTO ↔ Entity 轉換
+- **組件**: RepositoryImpl, RemoteDataSource, LocalDataSource, DTOs, Mappers
+- **禁止**: 業務邏輯、UI 狀態管理
+- **原則**: 實現雙軌緩存策略，協調遠端與本地數據源
+
+**Core Layer (核心層)**
+- **職責**: 網路通訊、緩存基礎設施、事件系統、依賴注入、工具函式
+- **組件**: HTTPClient, UnifiedCacheManager, CacheEventBus, DependencyContainer, Logger
+- **禁止**: 業務邏輯、UI 相關代碼
+- **原則**: 提供抽象基礎設施，供上層使用
+
+#### 關鍵設計模式
+
+**1. Repository Pattern (倉庫模式)**
+
+- Domain Layer 定義 Repository **Protocol** (介面)
+- Data Layer 實作 Repository **Implementation** (具體實現)
+- ViewModel 依賴 Protocol，不依賴具體實作
+- 符合依賴反轉原則 (Dependency Inversion Principle)
+
+**流程**:
+```
+ViewModel → Repository Protocol (Domain) → RepositoryImpl (Data) → RemoteDataSource/LocalDataSource
+```
+
+**2. ViewState Enum Pattern (統一狀態管理)**
+
+- 使用泛型 `ViewState<T>` 枚舉統一管理 UI 狀態
+- 取代多個散亂的 `@Published` 屬性
+- 狀態類型: `.loading`, `.loaded(data)`, `.error(error)`, `.empty`
+- 確保 UI 狀態明確且易於測試
+
+**3. Dual-Track Caching Strategy (雙軌緩存策略)**
+
+雙軌緩存根據場景採用不同策略：
+
+**正常載入場景**:
+- Track A: 立即返回本地緩存（快速顯示）
+- Track B: 背景刷新 API 數據（保持新鮮）
+- 用戶立即看到內容，數據在背景更新
+
+**特殊刷新場景**（如 Onboarding 完成、用戶登出）:
+- 清除所有緩存
+- 強制從 API 重新載入
+- 確保顯示最新狀態
+
+**實現位置**: Data Layer 的 RepositoryImpl 負責協調兩個 Track
+
+**4. CacheEventBus (事件通訊系統)**
+
+**目的**: 提供符合 Clean Architecture 的應用程式級事件訂閱/發布機制
+
+**核心價值**:
+- 避免直接使用 `NotificationCenter.default`（違反依賴反轉原則）
+- 各層依賴抽象事件協議，而非具體通知系統
+- 支援雙軌緩存的特殊場景處理（如 Onboarding 完成需清除緩存）
+
+**事件類型範例**:
+- `.userLogout`: 清除所有用戶緩存
+- `.trainingPlanUpdated`: 刷新訓練計畫視圖
+- `.onboardingCompleted`: 重新載入初始數據
+
+**事件流程**:
+```
+事件發布 → CacheEventBus.publish(.eventType)
+    ↓
+訂閱者響應 → ViewModel/Manager 執行業務邏輯
+    ↓
+緩存清除 → Repository.clearCache()
+    ↓
+強制刷新 → Repository.forceRefreshFromAPI()
+    ↓
+UI 更新 → ViewModel.state = .loaded(newData)
+```
+
+**發布者與訂閱者位置原則**:
+
+核心設計規則:
+1. **誰負責操作誰發布**: 執行業務操作的層級負責發布相應事件
+2. **誰需要響應誰訂閱**: 需要更新狀態的組件訂閱相關事件
+3. **Repository 是被動的**: Repository 層永遠不發布事件，也不訂閱事件
+
+訂閱者位置:
+- ✅ **主要**: Presentation Layer (ViewModels) - 訂閱事件更新 UI 狀態
+- ✅ **次要**: Domain/Data Layer (Managers/Services) - 訂閱事件執行業務邏輯
+- ❌ **禁止**: Repository/DataSource - 違反被動原則
+
+發布者位置:
+- ✅ **允許**: Presentation Layer (Coordinators/ViewModels) - 完成流程後發布事件
+- ✅ **允許**: Domain/Data Layer (Services/Managers) - 業務操作完成後發布事件
+- ❌ **禁止**: Repository/DataSource - Repository 應該是被動的
+
+Repository 被動原則:
+- Repository 只負責數據存取協調，不參與應用程式級事件流
+- Repository 不應依賴事件系統，保持可測試性和可替換性
+- 事件發布應由上層 Service/Manager/Coordinator 負責
+
+實際場景範例:
+```
+✅ CORRECT: OnboardingCoordinator 發布 → TrainingPlanViewModel 訂閱 → Repository 被調用 (被動)
+❌ WRONG: Repository 訂閱事件並自動清除緩存 (違反被動原則)
+```
+
+**5. Dependency Injection (依賴注入)**
+
+**原則**: 使用 DependencyContainer 統一管理依賴
+
+**注入層級**:
+- Core Layer: HTTPClient, Logger (Singleton)
+- Data Layer: DataSource, Mapper, RepositoryImpl (Singleton)
+- Presentation Layer: ViewModel (Factory，每次創建新實例)
+
+**ViewModel 使用方式**:
+- View 透過 DI Container 解析 ViewModel
+- ViewModel 依賴 Repository Protocol (不依賴具體實作)
+- 所有依賴透過建構子注入
+
+#### 數據流向
+
+**標準數據流**:
+```
+User Interaction (View)
+    ↓
+ViewModel.method() (Presentation)
+    ↓
+Repository.getData() (Domain Protocol)
+    ↓
+RepositoryImpl.getData() (Data Implementation)
+    ├─ Track A: LocalDataSource.load() → 立即返回緩存
+    └─ Track B: RemoteDataSource.fetch() → 背景刷新
+        ↓
+    HTTPClient.request() (Core)
+        ↓
+    API Response → DTO
+        ↓
+    Mapper.toEntity(dto) → Entity
+        ↓
+    ViewModel.state = .loaded(entity)
+        ↓
+    View Re-render
+```
+
+**事件驅動流**:
+```
+Business Event (e.g., Onboarding完成)
+    ↓
+CacheEventBus.publish(.onboardingCompleted)
+    ↓
+ViewModel subscribes → clearCache() + forceRefresh()
+    ↓
+Repository.clearAllCache()
+    ↓
+Repository.forceRefreshFromAPI()
+    ↓
+ViewModel.state = .loaded(freshData)
+    ↓
+View Re-render
+```
+
+#### DTO vs Entity 區別
+
+**DTO (Data Transfer Object)**:
+- 定義在 Data Layer
+- 與 API JSON 結構一一對應
+- 使用 snake_case 命名 (與後端一致)
+- 包含 `CodingKeys` 進行鍵名轉換
+- 可包含後端的冗餘或技術性欄位
+
+**Entity (Domain Model)**:
+- 定義在 Domain Layer
+- 純粹的業務模型
+- 使用 camelCase 命名 (Swift 慣例)
+- 包含業務邏輯方法
+- 只包含業務需要的欄位
+
+**Mapper (轉換器)**:
+- 定義在 Data Layer
+- 負責 DTO ↔ Entity 雙向轉換
+- 處理數據類型轉換 (如 Unix timestamp → Date)
+- 處理預設值填充
+
+#### 錯誤處理策略
+
+**Domain Layer 定義錯誤類型**:
+- `DomainError` 枚舉定義所有業務級錯誤
+- 提供用戶友好的錯誤訊息 (LocalizedError)
+- 明確的錯誤分類: `.networkFailure`, `.serverFailure`, `.cacheFailure`, `.authFailure`, `.validationFailure`
+
+**Error 轉換流程**:
+```
+API Error (URLError, HTTPError)
+    ↓
+Data Layer catches
+    ↓
+Convert to DomainError
+    ↓
+Throw to ViewModel
+    ↓
+ViewModel.state = .error(domainError)
+    ↓
+View displays ErrorView
+```
+
+#### Clean Architecture 核心優勢
+
+1. **可測試性**: 每層可獨立測試，Mock Repository Protocol 即可測試 ViewModel
+2. **可維護性**: 職責清晰，修改一層不影響其他層
+3. **可擴展性**: 新增功能遵循相同模式，代碼結構一致
+4. **技術無關性**: Domain Layer 不依賴具體技術實作 (SwiftUI, URLSession 等)
+5. **業務邏輯集中**: 所有業務規則集中在 Domain Layer，易於理解和修改
+
+#### 實作檢查清單
+
+開發新功能時，確保遵循以下原則：
+
+- [ ] ViewModel 只依賴 Repository Protocol，不依賴具體實作
+- [ ] View 不包含業務邏輯，只負責渲染和用戶輸入
+- [ ] Repository Protocol 定義在 Domain Layer
+- [ ] RepositoryImpl 實作在 Data Layer，實現雙軌緩存
+- [ ] DTO 定義在 Data Layer，Entity 定義在 Domain Layer
+- [ ] 使用 Mapper 進行 DTO ↔ Entity 轉換
+- [ ] 錯誤處理統一轉換為 DomainError
+- [ ] ViewState enum 管理 UI 狀態
+- [ ] 特殊事件使用 CacheEventBus 通知
+- [ ] 所有依賴透過 DependencyContainer 注入
+
+**詳細設計文檔**: 參見 `Docs/01-architecture/ARCH-002-Clean-Architecture-Design.md`
+
+---
+
 ### 0. Verify Before Assuming (CRITICAL - 最優先原則)
 
 **When debugging UI display issues, ALWAYS follow this systematic approach:**

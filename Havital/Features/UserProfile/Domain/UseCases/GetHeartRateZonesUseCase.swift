@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - GetHeartRateZonesUseCase
 /// Use case for fetching calculated heart rate zones
+/// Domain Layer - Coordinates repository calls for heart rate zone data
 struct GetHeartRateZonesUseCase {
 
     // MARK: - Dependencies
@@ -14,7 +15,7 @@ struct GetHeartRateZonesUseCase {
 
     // MARK: - Output
     struct Output {
-        let zones: [HeartRateZonesManager.HeartRateZone]
+        let zones: [HeartRateZone]
         let maxHR: Int
         let restingHR: Int
     }

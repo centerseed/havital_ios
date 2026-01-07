@@ -1000,6 +1000,16 @@ struct ZoneDistribution: Codable {
         case _anaerobic = "anaerobic"
         case _easy = "easy"
     }
+
+    // Manual init for mapping
+    init(marathon: Double? = nil, threshold: Double? = nil, recovery: Double? = nil, interval: Double? = nil, anaerobic: Double? = nil, easy: Double? = nil) {
+        self._marathon = marathon.map { SafeDouble(value: $0) }
+        self._threshold = threshold.map { SafeDouble(value: $0) }
+        self._recovery = recovery.map { SafeDouble(value: $0) }
+        self._interval = interval.map { SafeDouble(value: $0) }
+        self._anaerobic = anaerobic.map { SafeDouble(value: $0) }
+        self._easy = easy.map { SafeDouble(value: $0) }
+    }
 }
 
 struct APIIntensityMinutes: Codable {
@@ -1016,6 +1026,13 @@ struct APIIntensityMinutes: Codable {
         case _low = "low"
         case _medium = "medium"
         case _high = "high"
+    }
+
+    // Manual init for mapping
+    init(low: Double? = nil, medium: Double? = nil, high: Double? = nil) {
+        self._low = low.map { SafeDouble(value: $0) }
+        self._medium = medium.map { SafeDouble(value: $0) }
+        self._high = high.map { SafeDouble(value: $0) }
     }
 }
 

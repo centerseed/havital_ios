@@ -1,4 +1,3 @@
-
 {
   "target_evaluate": "string", // 對目標的評估與分析
   "total_weeks": "number", // 總訓練週數

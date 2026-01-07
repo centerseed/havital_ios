@@ -99,7 +99,6 @@ struct MyAchievementView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
     @ObservedObject private var trainingReadinessManager = TrainingReadinessManager.shared
-    @ObservedObject private var userManager = UserManager.shared
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
@@ -108,6 +107,11 @@ struct MyAchievementView: View {
     // Personal Best v2 慶祝動畫相關
     @State private var showCelebration = false
     @State private var celebrationUpdate: PersonalBestUpdate?
+
+    // 從快取讀取當前用戶資料（Clean Architecture）
+    private var cachedUser: User? {
+        UserProfileLocalDataSource().getUserProfile()
+    }
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
@@ -181,7 +185,7 @@ struct MyAchievementView: View {
 
                     // Personal Best v2 Card - 個人最佳成績
                     PersonalBestCardView(
-                        personalBestData: userManager.currentUser?.personalBestV2?["race_run"]
+                        personalBestData: cachedUser?.personalBestV2?["race_run"]
                     )
 
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
@@ -233,7 +237,7 @@ struct MyAchievementView: View {
                 if showCelebration, let update = celebrationUpdate {
                     PersonalBestCelebrationView(update: update) {
                         showCelebration = false
-                        userManager.markCelebrationAsShown()
+                        PersonalBestCelebrationStorage.markCelebrationAsShown()
                     }
                     .transition(.opacity)
                     .zIndex(999)
@@ -327,7 +331,7 @@ struct MyAchievementView: View {
 
     /// 檢查是否有待顯示的慶祝動畫
     private func checkForCelebration() {
-        if let pendingUpdate = userManager.getPendingCelebrationUpdate() {
+        if let pendingUpdate = PersonalBestCelebrationStorage.getPendingCelebrationUpdate() {
             celebrationUpdate = pendingUpdate
 
             // 延遲顯示，避免與頁面載入動畫衝突

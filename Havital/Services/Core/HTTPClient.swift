@@ -39,6 +39,12 @@ enum HTTPMethod: String {
 /// 預設的 HTTP 客戶端實現
 actor DefaultHTTPClient: HTTPClient {
     static let shared = DefaultHTTPClient()
+
+    // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
+    private var authSessionRepository: AuthSessionRepository {
+        DependencyContainer.shared.resolve()
+    }
+
     private init() {}
     
     func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
@@ -87,7 +93,7 @@ actor DefaultHTTPClient: HTTPClient {
 
                 // 強制刷新 token
                 do {
-                    _ = try await AuthenticationService.shared.getIdToken()
+                    _ = try await authSessionRepository.refreshIdToken()
 
                     // 用新 token 重建請求
                     let retryRequest = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
@@ -202,7 +208,7 @@ actor DefaultHTTPClient: HTTPClient {
         
         // 添加認證 token（除了登入相關端點，且沒有自定義 Authorization）
         if !isAuthenticationEndpoint(path: path) && customHeaders?["Authorization"] == nil {
-            let token = try await AuthenticationService.shared.getIdToken()
+            let token = try await authSessionRepository.getIdToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         

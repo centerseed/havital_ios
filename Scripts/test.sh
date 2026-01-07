@@ -8,6 +8,7 @@
 # Types:
 #   unit        Run only unit tests (skips integration tests)
 #   integration Run only integration tests
+#   ui          Run only UI tests
 #   all         Run all tests (default)
 # 
 # Options:
@@ -23,7 +24,12 @@
 
 # set -e
 
+
 # Default configurations
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 SCHEME="Havital"
 PROJECT="Havital.xcodeproj"
 TEST_TARGET="HavitalTests"
@@ -34,6 +40,7 @@ INTEGRATION_TESTS=(
     "TrainingPlanUseCaseIntegrationTests"
     "TrainingPlanFlowIntegrationTests"
     "TrainingPlanViewModelIntegrationTests"
+    "TargetToOverviewIntegrationTests"
 )
 
 # Colors
@@ -81,7 +88,7 @@ FILTER=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        unit|integration|all)
+        unit|integration|ui|all)
             TYPE="$1"
             shift
             ;;
@@ -166,6 +173,7 @@ if [ -n "$FILTER" ]; then
 # Apply Type Logic
 elif [ "$TYPE" == "unit" ]; then
     echo "🧪 Mode: Unit Tests (Skipping Integration)"
+    TEST_CMD+=("-skip-testing:HavitalUITests")
     for test in "${INTEGRATION_TESTS[@]}"; do
         TEST_CMD+=("-skip-testing:$TEST_TARGET/$test")
     done
@@ -175,6 +183,10 @@ elif [ "$TYPE" == "integration" ]; then
     for test in "${INTEGRATION_TESTS[@]}"; do
         TEST_CMD+=("-only-testing:$TEST_TARGET/$test")
     done
+
+elif [ "$TYPE" == "ui" ]; then
+    echo "📱 Mode: UI Tests Only"
+    TEST_CMD+=("-only-testing:HavitalUITests")
 
 else # all
     echo "🌎 Mode: All Tests"

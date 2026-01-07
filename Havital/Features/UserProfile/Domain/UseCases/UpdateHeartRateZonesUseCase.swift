@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - UpdateHeartRateZonesUseCase
 /// Use case for updating heart rate parameters and recalculating zones
+/// Domain Layer - Validates input and coordinates repository update
 struct UpdateHeartRateZonesUseCase {
 
     // MARK: - Dependencies
@@ -25,7 +26,7 @@ struct UpdateHeartRateZonesUseCase {
 
     // MARK: - Output
     struct Output {
-        let zones: [HeartRateZonesManager.HeartRateZone]
+        let zones: [HeartRateZone]
     }
 
     // MARK: - Execute

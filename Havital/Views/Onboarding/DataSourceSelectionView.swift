@@ -92,6 +92,7 @@ struct DataSourceSelectionView: View {
                         .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
                         .cornerRadius(10)
                     }
+                    .accessibilityIdentifier("OnboardingContinueButton")
                     .disabled(selectedDataSource == nil || isProcessing)
                     .padding(.horizontal, 40)
                     .padding(.bottom, 30)
@@ -194,6 +195,7 @@ struct DataSourceSelectionView: View {
                     )
             )
         }
+        .accessibilityIdentifier("DataSourceOption_\(type)")
         .buttonStyle(PlainButtonStyle())
     }
     
@@ -237,16 +239,13 @@ struct DataSourceSelectionView: View {
             "action": "appleHealthSelection",
             "step": "start"
         ])
-        
+
         // 請求 HealthKit 權限
         try await healthKitManager.requestAuthorization()
-        
-        // 設置數據源偏好
-        viewModel.currentDataSource = .appleHealth
-        
-        // 同步到後端
-        try await UserService.shared.updateDataSource(DataSourceType.appleHealth.rawValue)
-        
+
+        // ✅ Clean Architecture: 使用 ViewModel 更新並同步數據源
+        try await viewModel.updateAndSyncDataSource(.appleHealth)
+
         Logger.firebase("Apple Health 權限請求成功", level: .info, labels: [
             "module": "DataSourceSelectionView",
             "action": "appleHealthSelection",
@@ -261,8 +260,9 @@ struct DataSourceSelectionView: View {
             "step": "start"
         ])
 
-        // 設置數據源偏好為 Garmin（僅本地設定，不同步到後端）
-        viewModel.currentDataSource = .garmin
+        // ✅ Clean Architecture: 設置數據源偏好為 Garmin（僅本地設定）
+        // OAuth 流程完成後會自動同步到後端
+        await viewModel.updateDataSource(.garmin)
 
         // 開始 Garmin OAuth 流程（不等待完成）
         await garminManager.startConnection()
@@ -276,7 +276,7 @@ struct DataSourceSelectionView: View {
         // 不等待 OAuth 完成，直接繼續到下一步
         // OAuth 流程會在後台進行，用戶可以稍後在設置中完成連接
     }
-    
+
     private func handleStravaSelection() async {
         Logger.firebase("開始 Strava OAuth 流程", level: .info, labels: [
             "module": "DataSourceSelectionView",
@@ -284,8 +284,9 @@ struct DataSourceSelectionView: View {
             "step": "start"
         ])
 
-        // 設置數據源偏好為 Strava（僅本地設定，不同步到後端）
-        viewModel.currentDataSource = .strava
+        // ✅ Clean Architecture: 設置數據源偏好為 Strava（僅本地設定）
+        // OAuth 流程完成後會自動同步到後端
+        await viewModel.updateDataSource(.strava)
 
         // 開始 Strava OAuth 流程（不等待完成）
         await stravaManager.startConnection()

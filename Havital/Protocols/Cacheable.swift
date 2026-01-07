@@ -26,6 +26,7 @@ enum CacheInvalidationReason {
     case dataChanged(DataType)
     case manualClear
     case expired
+    case onboardingCompleted  // Onboarding 完成，需清除舊緩存並強制刷新
 }
 
 // MARK: - 資料類型

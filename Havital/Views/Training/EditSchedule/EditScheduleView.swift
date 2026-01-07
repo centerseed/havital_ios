@@ -133,36 +133,9 @@ struct EditScheduleView: View {
     }
 
     private func saveChanges() async {
-        let originalPlan = editViewModel.weeklyPlan
-
         do {
-            let trainingDays = editViewModel.editingDays.map { mutableDay in
-                TrainingDay(
-                    dayIndex: mutableDay.dayIndex,
-                    dayTarget: mutableDay.dayTarget,
-                    reason: mutableDay.reason,
-                    tips: mutableDay.tips,
-                    trainingType: mutableDay.trainingType,
-                    trainingDetails: mutableDay.trainingDetails?.toTrainingDetails()
-                )
-            }
-
-            let updatedPlan = WeeklyPlan(
-                id: originalPlan.id,
-                purpose: originalPlan.purpose,
-                weekOfPlan: originalPlan.weekOfPlan,
-                totalWeeks: originalPlan.totalWeeks,
-                totalDistance: originalPlan.totalDistance,
-                totalDistanceReason: originalPlan.totalDistanceReason,
-                designReason: originalPlan.designReason,
-                days: trainingDays,
-                intensityTotalMinutes: originalPlan.intensityTotalMinutes
-            )
-
-            _ = try await TrainingPlanService.shared.modifyWeeklyPlan(
-                planId: originalPlan.id,
-                updatedPlan: updatedPlan
-            )
+            // Use ViewModel's saveEdits method (uses TrainingPlanRepository internally)
+            try await editViewModel.saveEdits()
 
             await MainActor.run {
                 // 清理編輯狀態
@@ -176,12 +149,6 @@ struct EditScheduleView: View {
                 showError("\(L10n.EditSchedule.saveFailed.localized)：\(error.localizedDescription)")
             }
         }
-    }
-
-    private func showIntensityWarning(_ warning: IntensityWarning) {
-        // 顯示強度警告的彈窗或通知
-        // 可以根據需要實現具體的 UI
-        print("強度警告: \(warning.messages.joined(separator: ", "))")
     }
 
     private func showError(_ message: String) {

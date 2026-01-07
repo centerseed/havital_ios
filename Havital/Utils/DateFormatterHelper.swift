@@ -116,22 +116,14 @@ struct DateFormatterHelper {
     // MARK: - Bundle Helper
     private static var bundle: Bundle {
         class BundleFinder {}
+        let candidates = [Bundle(for: BundleFinder.self), Bundle.main]
         
-        // Potential candidates
-        let candidates = [
-            Bundle(for: BundleFinder.self),
-            Bundle.main
-        ] + Bundle.allBundles
-        
-        for bundle in candidates {
-            // Exclude specific localization bundles (e.g., .../ja.lproj)
-            if bundle.bundlePath.hasSuffix(".lproj") {
-                continue
+        for candidate in candidates {
+            if candidate.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: "en") != nil {
+                return candidate
             }
-            
-            // Verify this bundle contains the English localization
-            if bundle.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: "en") != nil {
-                return bundle
+            if candidate.path(forResource: "Localizable", ofType: "strings") != nil {
+                return candidate
             }
         }
         

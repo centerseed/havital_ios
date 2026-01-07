@@ -35,14 +35,14 @@ protocol UserProfileRepository {
 
     /// Get calculated heart rate zones based on user's maxHR and restingHR
     /// - Returns: Array of 5 heart rate zones
-    func getHeartRateZones() async throws -> [HeartRateZonesManager.HeartRateZone]
+    func getHeartRateZones() async throws -> [HeartRateZone]
 
     /// Update heart rate parameters and recalculate zones
     /// - Parameters:
     ///   - maxHR: Maximum heart rate
     ///   - restingHR: Resting heart rate
     /// - Returns: Recalculated zones
-    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZonesManager.HeartRateZone]
+    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZone]
 
     /// Sync heart rate data from User model to local storage
     /// - Parameter user: User model containing HR data
@@ -65,6 +65,12 @@ protocol UserProfileRepository {
     func calculateStatistics() async -> UserStatistics?
 
     // MARK: - Personal Best
+
+    /// Update personal best data
+    /// - Parameters:
+    ///   - distanceKm: Distance in kilometers
+    ///   - completeTime: Completion time in seconds
+    func updatePersonalBest(distanceKm: Double, completeTime: Int) async throws
 
     /// Detect and track personal best updates
     /// - Parameters:
