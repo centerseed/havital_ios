@@ -1,9 +1,24 @@
 import Foundation
 
+// MARK: - TargetLocalDataSource Protocol
+protocol TargetLocalDataSourceProtocol {
+    func getTargets() -> [Target]
+    func getTarget(id: String) -> Target?
+    func getMainTarget() -> Target?
+    func getSupportingTargets() -> [Target]
+    func saveTargets(_ targets: [Target])
+    func saveTarget(_ target: Target)
+    func removeTarget(id: String)
+    func isExpired() -> Bool
+    func hasTargets() -> Bool
+    func clearAll()
+    func getCacheSize() -> Int
+}
+
 // MARK: - TargetLocalDataSource
 /// Handles local caching of target data
 /// Data Layer - Pure cache management, no business logic
-final class TargetLocalDataSource {
+final class TargetLocalDataSource: TargetLocalDataSourceProtocol {
 
     // MARK: - Constants
     private enum Keys {

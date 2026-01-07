@@ -1,9 +1,18 @@
 import Foundation
 
+// MARK: - TargetRemoteDataSource Protocol
+protocol TargetRemoteDataSourceProtocol {
+    func getTargets() async throws -> [Target]
+    func getTarget(id: String) async throws -> Target
+    func createTarget(_ target: Target) async throws -> Target
+    func updateTarget(id: String, target: Target) async throws -> Target
+    func deleteTarget(id: String) async throws
+}
+
 // MARK: - TargetRemoteDataSource
 /// Handles remote API calls for target data
 /// Data Layer - Direct HTTP calls following Clean Architecture
-final class TargetRemoteDataSource {
+final class TargetRemoteDataSource: TargetRemoteDataSourceProtocol {
 
     // MARK: - Dependencies
     private let httpClient: HTTPClient

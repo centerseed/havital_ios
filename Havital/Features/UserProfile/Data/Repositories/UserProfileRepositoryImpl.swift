@@ -6,15 +6,15 @@ import Foundation
 final class UserProfileRepositoryImpl: UserProfileRepository {
 
     // MARK: - Dependencies
-    private let remoteDataSource: UserProfileRemoteDataSource
-    private let localDataSource: UserProfileLocalDataSource
-    private let targetRemoteDataSource: TargetRemoteDataSource
+    private let remoteDataSource: UserProfileRemoteDataSourceProtocol
+    private let localDataSource: UserProfileLocalDataSourceProtocol
+    private let targetRemoteDataSource: TargetRemoteDataSourceProtocol
 
     // MARK: - Initialization
     init(
-        remoteDataSource: UserProfileRemoteDataSource = UserProfileRemoteDataSource(),
-        localDataSource: UserProfileLocalDataSource = UserProfileLocalDataSource(),
-        targetRemoteDataSource: TargetRemoteDataSource = TargetRemoteDataSource()
+        remoteDataSource: UserProfileRemoteDataSourceProtocol = UserProfileRemoteDataSource(),
+        localDataSource: UserProfileLocalDataSourceProtocol = UserProfileLocalDataSource(),
+        targetRemoteDataSource: TargetRemoteDataSourceProtocol = TargetRemoteDataSource()
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
@@ -305,30 +305,34 @@ extension DependencyContainer {
             httpClient: resolve(),
             parser: resolve()
         )
-        register(userRemoteDS, for: UserProfileRemoteDataSource.self)
+        register(userRemoteDS, forProtocol: UserProfileRemoteDataSourceProtocol.self)
 
         let userLocalDS = UserProfileLocalDataSource()
-        register(userLocalDS, for: UserProfileLocalDataSource.self)
+        register(userLocalDS, forProtocol: UserProfileLocalDataSourceProtocol.self)
 
         let prefsRemoteDS = UserPreferencesRemoteDataSource(
             httpClient: resolve(),
             parser: resolve()
         )
-        register(prefsRemoteDS, for: UserPreferencesRemoteDataSource.self)
+        register(prefsRemoteDS, forProtocol: UserPreferencesRemoteDataSourceProtocol.self)
 
         let prefsLocalDS = UserPreferencesLocalDataSource()
-        register(prefsLocalDS, for: UserPreferencesLocalDataSource.self)
+        register(prefsLocalDS, forProtocol: UserPreferencesLocalDataSourceProtocol.self)
+
+        let targetRemoteDS = TargetRemoteDataSource()
+        register(targetRemoteDS, forProtocol: TargetRemoteDataSourceProtocol.self)
 
         // Repositories
         let userRepo = UserProfileRepositoryImpl(
-            remoteDataSource: resolve(),
-            localDataSource: resolve()
+            remoteDataSource: resolve() as UserProfileRemoteDataSourceProtocol,
+            localDataSource: resolve() as UserProfileLocalDataSourceProtocol,
+            targetRemoteDataSource: resolve() as TargetRemoteDataSourceProtocol
         )
         register(userRepo as UserProfileRepository, forProtocol: UserProfileRepository.self)
 
         let prefsRepo = UserPreferencesRepositoryImpl(
-            remoteDataSource: resolve(),
-            localDataSource: resolve()
+            remoteDataSource: resolve() as UserPreferencesRemoteDataSourceProtocol,
+            localDataSource: resolve() as UserPreferencesLocalDataSourceProtocol
         )
         register(prefsRepo as UserPreferencesRepository, forProtocol: UserPreferencesRepository.self)
 

@@ -19,6 +19,7 @@ final class MockTrainingPlanRepository: TrainingPlanRepository {
     var weeklySummaryToReturn: WeeklyTrainingSummary?
     var weeklySummariesListToReturn: [WeeklySummaryItem] = []
     var adjustmentItemsToReturn: [AdjustmentItem] = []
+    var createOverviewResult: Result<TrainingPlanOverview, Error>?
     var errorToThrow: Error?
 
     // MARK: - Call Tracking
@@ -35,6 +36,7 @@ final class MockTrainingPlanRepository: TrainingPlanRepository {
 
     private(set) var getPlanStatusCallCount = 0
     private(set) var refreshPlanStatusCallCount = 0
+    private(set) var createOverviewCallCount = 0
 
     private(set) var createWeeklySummaryCallCount = 0
     private(set) var createWeeklySummaryLastParams: (weekNumber: Int?, forceUpdate: Bool)?
@@ -129,6 +131,17 @@ final class MockTrainingPlanRepository: TrainingPlanRepository {
     }
 
     func createOverview(startFromStage: String?, isBeginner: Bool) async throws -> TrainingPlanOverview {
+        createOverviewCallCount += 1
+        
+        if let result = createOverviewResult {
+            switch result {
+            case .success(let overview):
+                return overview
+            case .failure(let error):
+                throw error
+            }
+        }
+        
         if let error = errorToThrow {
             throw error
         }

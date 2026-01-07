@@ -6,14 +6,14 @@ import Foundation
 final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
 
     // MARK: - Dependencies
-    private let remoteDataSource: UserPreferencesRemoteDataSource
-    private let localDataSource: UserPreferencesLocalDataSource
+    private let remoteDataSource: UserPreferencesRemoteDataSourceProtocol
+    private let localDataSource: UserPreferencesLocalDataSourceProtocol
     private let heartRateZonesManager: HeartRateZonesManager
 
     // MARK: - Initialization
     init(
-        remoteDataSource: UserPreferencesRemoteDataSource = UserPreferencesRemoteDataSource(),
-        localDataSource: UserPreferencesLocalDataSource = UserPreferencesLocalDataSource(),
+        remoteDataSource: UserPreferencesRemoteDataSourceProtocol = UserPreferencesRemoteDataSource(),
+        localDataSource: UserPreferencesLocalDataSourceProtocol = UserPreferencesLocalDataSource(),
         heartRateZonesManager: HeartRateZonesManager = .shared
     ) {
         self.remoteDataSource = remoteDataSource

@@ -1,9 +1,30 @@
 import Foundation
 
+// MARK: - UserProfileLocalDataSource Protocol
+protocol UserProfileLocalDataSourceProtocol {
+    func getUserProfile() -> User?
+    func saveUserProfile(_ profile: User)
+    func isUserProfileExpired() -> Bool
+    func clearUserProfile()
+    
+    func getTargets() -> [Target]?
+    func saveTargets(_ targets: [Target])
+    func isTargetsExpired() -> Bool
+    func clearTargets()
+    
+    func getHeartRateZones() -> [HeartRateZone]?
+    func saveHeartRateZones(_ zones: [HeartRateZone])
+    func isHeartRateZonesExpired() -> Bool
+    func clearHeartRateZones()
+    
+    func clearAll()
+    func getCacheSize() -> Int
+}
+
 // MARK: - UserProfileLocalDataSource
 /// Handles local caching of user profile data
 /// Data Layer - Pure cache management, no business logic
-final class UserProfileLocalDataSource {
+final class UserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
 
     // MARK: - Constants
     private enum Keys {

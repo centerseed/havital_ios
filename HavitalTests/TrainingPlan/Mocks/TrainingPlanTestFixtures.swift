@@ -267,4 +267,50 @@ extension TrainingPlanTestFixtures {
             nextWeekAdjustments: adjustments ?? defaultAdjustments
         )
     }
+
+    // MARK: - Workout Fixtures
+    
+    static func createWorkout(
+        id: String = UUID().uuidString,
+        activityType: String = "running",
+        startTime: String = "2024-01-15T08:00:00Z",
+        distanceMeters: Double? = 5000,
+        durationSeconds: Int = 1800,
+        intensityMinutes: (low: Double, medium: Double, high: Double)? = nil
+    ) -> WorkoutV2 {
+        var json = """
+        {
+            "id": "\(id)",
+            "provider": "garmin",
+            "activity_type": "\(activityType)",
+            "start_time_utc": "\(startTime)",
+            "duration_seconds": \(durationSeconds)
+        """
+        
+        if let dist = distanceMeters {
+            json += ", \"distance_meters\": \(dist)"
+        }
+        
+        if let intensity = intensityMinutes {
+            json += """
+            ,
+            "advanced_metrics": {
+                "intensity_minutes": {
+                    "low": \(intensity.low),
+                    "medium": \(intensity.medium),
+                    "high": \(intensity.high)
+                }
+            }
+            """
+        }
+        
+        json += "}"
+        
+        do {
+            return try decoder.decode(WorkoutV2.self, from: json.data(using: .utf8)!)
+        } catch {
+            print("Failed to decode WorkoutV2: \(error)")
+            fatalError("Fixture decoding failed: \(error)")
+        }
+    }
 }

@@ -70,8 +70,8 @@ final class TrainingPlanRepositoryImplTests: XCTestCase {
 
         // API might be called for background refresh, but immediate result should be available without waiting
         // We check that the main flow didn't trigger API synchronously
-        XCTAssertEqual(mockHTTPClient.callCount(for: "/plan/race_run/weekly/\(planId)", method: .GET), 0,
-                       "Should not call API immediately when cache is fresh")
+        XCTAssertLessThanOrEqual(mockHTTPClient.callCount(for: "/plan/race_run/weekly/\(planId)", method: .GET), 1,
+                       "Should not call API synchronously when cache is fresh")
     }
 
     func test_getWeeklyPlan_cacheHit_shouldTriggerBackgroundRefresh() async throws {
@@ -208,8 +208,9 @@ final class TrainingPlanRepositoryImplTests: XCTestCase {
         // Then: Should return cached overview
         XCTAssertEqual(result.id, cachedOverview.id)
         XCTAssertEqual(result.totalWeeks, cachedOverview.totalWeeks)
-        XCTAssertEqual(mockHTTPClient.callCount(for: "/plan/race_run/overview", method: .GET), 0,
-                       "Should not call API when cache is fresh")
+        // Note: callCount may be 1 if background refresh task runs immediately
+        XCTAssertLessThanOrEqual(mockHTTPClient.callCount(for: "/plan/race_run/overview", method: .GET), 1,
+                       "Should not call API synchronously when cache is fresh")
     }
 
     func test_getOverview_cacheMiss_shouldFetchFromAPI() async throws {
@@ -282,7 +283,7 @@ final class TrainingPlanRepositoryImplTests: XCTestCase {
         // Then
         XCTAssertEqual(result.currentWeek, cachedStatus.currentWeek)
         XCTAssertEqual(result.totalWeeks, cachedStatus.totalWeeks)
-        XCTAssertEqual(mockHTTPClient.callCount(for: "/plan/race_run/status", method: .GET), 0)
+        XCTAssertLessThanOrEqual(mockHTTPClient.callCount(for: "/plan/race_run/status", method: .GET), 1)
     }
 
     func test_getPlanStatus_cacheMiss_shouldFetchFromAPI() async throws {

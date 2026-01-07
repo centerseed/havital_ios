@@ -1,9 +1,43 @@
 import Foundation
 
+// MARK: - UserPreferencesLocalDataSource Protocol
+protocol UserPreferencesLocalDataSourceProtocol: AnyObject {
+    func getPreferences() -> UserPreferences?
+    func savePreferences(_ preferences: UserPreferences)
+    func isPreferencesExpired() -> Bool
+    func clearPreferencesCache()
+    
+    var dataSourcePreference: DataSourceType { get set }
+    var maxHeartRate: Int? { get set }
+    var restingHeartRate: Int? { get set }
+    var doNotShowHeartRatePrompt: Bool { get set }
+    var heartRatePromptNextRemindDate: Date? { get set }
+    var heartRateZones: Data? { get set }
+    
+    var email: String { get set }
+    var name: String? { get set }
+    var photoURL: String? { get set }
+    var age: Int? { get set }
+    
+    var currentPace: String? { get set }
+    var currentDistance: String? { get set }
+    var preferWeekDays: [String]? { get set }
+    var preferWeekDaysLongRun: [String]? { get set }
+    var weekOfTraining: Int? { get set }
+    
+    var languagePreference: String? { get set }
+    var timezonePreference: String? { get set }
+    
+    var currentVDOT: Double? { get set }
+    var targetVDOT: Double? { get set }
+    
+    func clearAll()
+}
+
 // MARK: - UserPreferencesLocalDataSource
 /// Handles local storage of user preferences
 /// Data Layer - Pure storage, no business logic
-final class UserPreferencesLocalDataSource {
+final class UserPreferencesLocalDataSource: UserPreferencesLocalDataSourceProtocol {
 
     // MARK: - Constants
     private enum Keys {

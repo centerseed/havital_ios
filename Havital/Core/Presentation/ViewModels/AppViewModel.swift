@@ -14,15 +14,20 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     @Published var showDataSourceNotBoundAlert = false
 
     // 使用新的狀態管理中心
-    private let appStateManager = AppStateManager.shared
-    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
+    private let appStateManager: any AppStateManagerProtocol
+    private let unifiedWorkoutManager: any UnifiedWorkoutManagerProtocol
 
     // MARK: - Clean Architecture Dependencies
     private var userProfileRepository: UserProfileRepository {
         DependencyContainer.shared.resolve()
     }
 
-    init() {
+    init(
+        appStateManager: any AppStateManagerProtocol = AppStateManager.shared,
+        unifiedWorkoutManager: any UnifiedWorkoutManagerProtocol = UnifiedWorkoutManager.shared
+    ) {
+        self.appStateManager = appStateManager
+        self.unifiedWorkoutManager = unifiedWorkoutManager
         // 監聽 HealthKit 權限提示通知
         NotificationCenter.default.addObserver(
             forName: NSNotification.Name("ShowHealthKitPermissionAlert"),

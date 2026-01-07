@@ -1,9 +1,21 @@
 import Foundation
 
+// MARK: - UserProfileRemoteDataSource Protocol
+protocol UserProfileRemoteDataSourceProtocol {
+    func getUserProfile() async throws -> User
+    func updateUserProfile(_ updates: [String: Any]) async throws
+    func updateDataSource(_ dataSource: String) async throws
+    func updatePersonalBest(_ performanceData: [String: Any]) async throws
+    func deleteUser(userId: String) async throws
+    func getTargets() async throws -> [Target]
+    func createTarget(_ target: Target) async throws
+    func recordRatingPrompt(promptCount: Int, lastPromptDate: String) async throws
+}
+
 // MARK: - UserProfileRemoteDataSource
 /// Handles all API calls related to user profile
 /// Data Layer - Pure HTTP communication, no caching logic
-final class UserProfileRemoteDataSource {
+final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
 
     // MARK: - Dependencies
     private let httpClient: HTTPClient

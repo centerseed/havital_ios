@@ -6,13 +6,13 @@ import Foundation
 final class TargetRepositoryImpl: TargetRepository {
 
     // MARK: - Dependencies
-    private let remoteDataSource: TargetRemoteDataSource
-    private let localDataSource: TargetLocalDataSource
+    private let remoteDataSource: TargetRemoteDataSourceProtocol
+    private let localDataSource: TargetLocalDataSourceProtocol
 
     // MARK: - Initialization
     init(
-        remoteDataSource: TargetRemoteDataSource = TargetRemoteDataSource(),
-        localDataSource: TargetLocalDataSource = TargetLocalDataSource()
+        remoteDataSource: TargetRemoteDataSourceProtocol = TargetRemoteDataSource(),
+        localDataSource: TargetLocalDataSourceProtocol = TargetLocalDataSource()
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
@@ -192,15 +192,15 @@ extension DependencyContainer {
     func registerTargetModule() {
         // Register DataSources
         let localDS = TargetLocalDataSource()
-        register(localDS, for: TargetLocalDataSource.self)
+        register(localDS, forProtocol: TargetLocalDataSourceProtocol.self)
 
         let remoteDS = TargetRemoteDataSource()
-        register(remoteDS, for: TargetRemoteDataSource.self)
+        register(remoteDS, forProtocol: TargetRemoteDataSourceProtocol.self)
 
         // Register Repository
         let repository = TargetRepositoryImpl(
-            remoteDataSource: resolve(),
-            localDataSource: resolve()
+            remoteDataSource: resolve() as TargetRemoteDataSourceProtocol,
+            localDataSource: resolve() as TargetLocalDataSourceProtocol
         )
         register(repository as TargetRepository, forProtocol: TargetRepository.self)
 

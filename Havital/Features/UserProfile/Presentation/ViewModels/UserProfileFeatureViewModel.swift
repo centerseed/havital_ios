@@ -168,7 +168,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     private let calculateUserStatsUseCase: CalculateUserStatsUseCase
     private let preferencesRepository: UserPreferencesRepository
     private let userRepository: UserProfileRepository
-    private let authService: AuthenticationService
+    private let authService: AuthenticationServiceProtocol
 
     // MARK: - Task Management
     let taskRegistry = TaskRegistry()
@@ -186,7 +186,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         calculateUserStatsUseCase: CalculateUserStatsUseCase,
         preferencesRepository: UserPreferencesRepository,
         userRepository: UserProfileRepository,
-        authService: AuthenticationService = .shared
+        authService: AuthenticationServiceProtocol = AuthenticationService.shared
     ) {
         self.getUserProfileUseCase = getUserProfileUseCase
         self.updateUserProfileUseCase = updateUserProfileUseCase
@@ -593,7 +593,8 @@ extension DependencyContainer {
             syncUserPreferencesUseCase: makeSyncUserPreferencesUseCase(),
             calculateUserStatsUseCase: makeCalculateUserStatsUseCase(),
             preferencesRepository: resolve(),
-            userRepository: resolve()
+            userRepository: resolve(),
+            authService: AuthenticationService.shared
         )
     }
 }

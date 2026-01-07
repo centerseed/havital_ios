@@ -8,12 +8,19 @@ import CryptoKit // For SHA256 nonce
 import FirebaseMessaging // For FCM token
 import FirebaseAnalytics // For user ID tracking
 
+// MARK: - AuthenticationService Protocol
+protocol AuthenticationServiceProtocol: AnyObject {
+    var isAuthenticated: Bool { get }
+    var appUser: User? { get }
+    func signOut() async throws
+}
+
 /// ⚠️ DEPRECATED: Use AuthenticationViewModel and Repository pattern instead
 /// - Presentation Layer: Use AuthenticationViewModel.shared for UI state
 /// - Domain/Data Layer: Use AuthSessionRepository and AuthRepository via DependencyContainer
 /// - LoginView: Temporary exception, will be migrated when Apple Sign In is refactored
 @available(*, deprecated, message: "Use AuthenticationViewModel for UI state and AuthSessionRepository/AuthRepository for data access. See Features/Authentication/Presentation/ViewModels/AuthenticationViewModel.swift")
-class AuthenticationService: NSObject, ObservableObject, TaskManageable {
+class AuthenticationService: NSObject, ObservableObject, TaskManageable, AuthenticationServiceProtocol {
     @Published var user: FirebaseAuth.User?
     @Published var appUser: User?
     @Published var isAuthenticated = false

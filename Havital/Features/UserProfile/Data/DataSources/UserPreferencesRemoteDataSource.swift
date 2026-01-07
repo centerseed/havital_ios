@@ -1,9 +1,17 @@
 import Foundation
 
+// MARK: - UserPreferencesRemoteDataSource Protocol
+protocol UserPreferencesRemoteDataSourceProtocol {
+    func getPreferences() async throws -> UserPreferences
+    func updatePreferences(language: String?, timezone: String?) async throws
+    func updateTimezone(_ timezone: String) async throws
+    func updateLanguage(_ language: String) async throws
+}
+
 // MARK: - UserPreferencesRemoteDataSource
 /// Handles all API calls related to user preferences
 /// Data Layer - Pure HTTP communication, no caching logic
-final class UserPreferencesRemoteDataSource {
+final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProtocol {
 
     // MARK: - Dependencies
     private let httpClient: HTTPClient
