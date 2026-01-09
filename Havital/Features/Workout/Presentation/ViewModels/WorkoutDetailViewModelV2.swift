@@ -160,6 +160,79 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
     }
 
+    // MARK: - 訓練心得更新功能
+
+    /// 更新訓練心得
+    /// - Parameter notes: 訓練心得文本（最多 \(WorkoutConstants.maxTrainingNotesLength) 字符）
+    /// - Returns: 是否更新成功
+    func updateTrainingNotes(_ notes: String) async -> Bool {
+        // 驗證字符數限制
+        guard notes.count <= WorkoutConstants.maxTrainingNotesLength else {
+            Logger.error("[WorkoutDetailViewModelV2] 訓練心得超過\(WorkoutConstants.maxTrainingNotesLength)字符限制")
+            return false
+        }
+
+        do {
+            // 構建 PATCH 請求 body
+            let body: [String: Any] = ["training_notes": notes]
+            let bodyData = try JSONSerialization.data(withJSONObject: body)
+
+            // 直接使用 HTTPClient 發送 PATCH 請求（類似 deleteWorkout 的內聯模式）
+            let httpClient = DefaultHTTPClient.shared
+            let path = "/v2/workouts/\(workout.id)"
+
+            Logger.debug("[WorkoutDetailViewModelV2] 更新訓練心得 - workout_id: \(workout.id)")
+
+            _ = try await httpClient.request(
+                path: path,
+                method: .PATCH,
+                body: bodyData
+            )
+
+            // 清除詳情緩存，強制下次重新載入
+            cacheManager.clearWorkoutDetailCache(workoutId: workout.id)
+
+            // 刷新當前詳情以立即顯示更新
+            await refreshWorkoutDetail()
+
+            // ✅ Clean Architecture: 發布 CacheEventBus 事件通知其他模組
+            await MainActor.run {
+                CacheEventBus.shared.publish(.dataChanged(.workouts))
+            }
+            Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (訓練心得更新)")
+
+            Logger.firebase(
+                "訓練心得更新成功",
+                level: .info,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "update_training_notes"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "notes_length": notes.count
+                ]
+            )
+
+            return true
+        } catch {
+            Logger.firebase(
+                "訓練心得更新失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "update_training_notes",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "error": error.localizedDescription
+                ]
+            )
+            return false
+        }
+    }
+
     // MARK: - 重新上傳功能 (Apple Health Only)
 
     /// 重新上傳結果枚舉

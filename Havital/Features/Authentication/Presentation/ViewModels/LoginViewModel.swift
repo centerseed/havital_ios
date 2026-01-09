@@ -81,7 +81,52 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    /// Sign in with Apple ID
+    /// Sign in with Apple ID (full async flow)
+    /// Executes 7-step authentication flow via AuthRepository
+    /// Publishes authentication event on success
+    func signInWithApple() async {
+        isAppleSignInLoading = true
+        state = .loading
+
+        Logger.debug("[LoginViewModel] Starting Apple Sign-In")
+
+        do {
+            // Step 1-7: Execute authentication flow via Repository
+            let authUser = try await authRepository.signInWithApple()
+
+            // Update UI state
+            state = .loaded(authUser)
+            isAppleSignInLoading = false
+
+            Logger.debug("[LoginViewModel] Apple Sign-In succeeded: \(authUser.uid)")
+
+            // ✅ Publish authentication event (ViewModel responsibility)
+            publishAuthenticationEvent(user: authUser)
+
+        } catch let error as AuthenticationError {
+            // Handle authentication errors
+            state = .error(error.toDomainError())
+            isAppleSignInLoading = false
+
+            // Ignore user cancellation - don't show error
+            if case .appleSignInFailed(let message) = error, message == "User cancelled sign-in" {
+                state = .empty
+                Logger.debug("[LoginViewModel] Apple Sign-In cancelled by user")
+                return
+            }
+
+            Logger.error("[LoginViewModel] Apple Sign-In failed: \(error.localizedDescription)")
+
+        } catch {
+            // Handle unexpected errors
+            state = .error(error.toDomainError())
+            isAppleSignInLoading = false
+
+            Logger.error("[LoginViewModel] Apple Sign-In unexpected error: \(error.localizedDescription)")
+        }
+    }
+
+    /// Sign in with Apple ID (with pre-obtained credential)
     /// Executes 7-step authentication flow via AuthRepository
     /// Publishes authentication event on success
     /// - Parameter credential: Apple authentication credential (Domain abstraction)
@@ -89,7 +134,7 @@ final class LoginViewModel: ObservableObject {
         isAppleSignInLoading = true
         state = .loading
 
-        Logger.debug("[LoginViewModel] Starting Apple Sign-In")
+        Logger.debug("[LoginViewModel] Starting Apple Sign-In with credential")
 
         do {
             // Step 1-7: Execute authentication flow via Repository

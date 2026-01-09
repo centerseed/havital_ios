@@ -6,6 +6,14 @@ import Foundation
 /// Implements secure caching strategy: business data cached (5 min), tokens NOT cached
 final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
+    // MARK: - Constants
+
+    /// UserDefaults key for legacy onboarding completion status
+    private static let legacyOnboardingKey = "hasCompletedOnboarding"
+
+    /// UserDefaults key to track if legacy migration sync has been done
+    private static let legacyMigrationSyncedKey = "hasCompletedOnboarding_migrationSynced"
+
     // MARK: - Dependencies
 
     private let firebaseAuth: FirebaseAuthDataSource
@@ -44,6 +52,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     /// Fetch current user from Firebase and Backend (asynchronous)
     /// Always fetches fresh data from API, updates cache
+    /// Also performs one-time legacy migration sync if needed
     func fetchCurrentUser() async throws -> AuthUser {
         do {
             // Step 1: Get current Firebase user
@@ -66,13 +75,19 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             )
             let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
 
-            // Step 4: Map to AuthUser Entity
+            // Step 4: Check for legacy migration and sync if needed (one-time)
+            await syncLegacyOnboardingStatusIfNeeded(
+                uid: firebaseUser.uid,
+                backendCompleted: syncResponse.onboardingStatus.isCompleted
+            )
+
+            // Step 5: Map to AuthUser Entity (includes legacy fallback logic)
             let authUser = FirebaseUserMapper.toDomain(
                 firebaseUser: firebaseUser,
                 syncResponse: syncResponse
             )
 
-            // Step 5: Update cache
+            // Step 6: Update cache
             authCache.saveUser(authUser)
 
             Logger.debug("[AuthSession] User data fetched and cached: \(authUser.uid)")
@@ -84,6 +99,49 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
         } catch {
             Logger.error("[AuthSession] Unexpected error fetching user: \(error.localizedDescription)")
             throw AuthenticationError.userNotFound
+        }
+    }
+
+    // MARK: - Legacy Migration
+
+    /// Sync legacy onboarding status to backend if there's a mismatch
+    /// This is a one-time operation to migrate from old AuthenticationService
+    /// - Parameters:
+    ///   - uid: User's Firebase UID
+    ///   - backendCompleted: Backend's current onboarding completion status
+    private func syncLegacyOnboardingStatusIfNeeded(uid: String, backendCompleted: Bool) async {
+        // Skip if backend already says completed
+        guard !backendCompleted else { return }
+
+        // Skip if we've already done the migration sync for this user
+        let migrationSynced = UserDefaults.standard.bool(forKey: Self.legacyMigrationSyncedKey)
+        guard !migrationSynced else { return }
+
+        // Check if legacy UserDefaults says completed
+        let legacyCompleted = UserDefaults.standard.bool(forKey: Self.legacyOnboardingKey)
+        guard legacyCompleted else { return }
+
+        // Mismatch detected: legacy says completed, backend says not
+        Logger.debug("[AuthSession] 🔄 Legacy migration: syncing onboarding status to backend")
+        Logger.debug("[AuthSession]   Backend: false, Legacy: true → Updating backend")
+
+        do {
+            // Sync to backend (fire and forget, don't block login)
+            try await backendAuth.completeOnboarding(uid: uid, data: [
+                "migrated_from": "legacy_userdefaults",
+                "migration_timestamp": ISO8601DateFormatter().string(from: Date())
+            ])
+
+            // Mark migration as done (won't try again)
+            UserDefaults.standard.set(true, forKey: Self.legacyMigrationSyncedKey)
+
+            Logger.debug("[AuthSession] ✅ Legacy onboarding status synced to backend successfully")
+
+        } catch {
+            // Don't fail login if sync fails - just log and continue
+            // The legacy fallback in FirebaseUserMapper will still work
+            Logger.error("[AuthSession] ⚠️ Failed to sync legacy status to backend: \(error.localizedDescription)")
+            Logger.debug("[AuthSession]   Will retry on next login")
         }
     }
 

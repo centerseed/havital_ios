@@ -5,18 +5,35 @@ import Foundation
 /// Domain Layer - 只定義介面，不涉及實作細節
 protocol WorkoutRepository {
 
-    // MARK: - Query (TrainingPlan 模組使用)
+    // MARK: - Query (DEPRECATED - Use Async versions)
 
     /// 獲取指定日期範圍內的訓練記錄
+    /// - Warning: Deprecated - Use getWorkoutsInDateRangeAsync() for LocalDataSource consistency
     /// - Parameters:
     ///   - startDate: 開始日期
     ///   - endDate: 結束日期
     /// - Returns: 訓練記錄列表
+    @available(*, deprecated, message: "Use getWorkoutsInDateRangeAsync() for LocalDataSource consistency")
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2]
 
     /// 獲取所有已載入的訓練記錄
+    /// - Warning: Deprecated - Use getAllWorkoutsAsync() for LocalDataSource consistency
     /// - Returns: 訓練記錄列表
+    @available(*, deprecated, message: "Use getAllWorkoutsAsync() for LocalDataSource consistency")
     func getAllWorkouts() -> [WorkoutV2]
+
+    // MARK: - Async Query (Clean Architecture - LocalDataSource)
+
+    /// 獲取指定日期範圍內的訓練記錄 (異步版本)
+    /// - Parameters:
+    ///   - startDate: 開始日期
+    ///   - endDate: 結束日期
+    /// - Returns: 訓練記錄列表
+    func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2]
+
+    /// 獲取所有已載入的訓練記錄 (異步版本)
+    /// - Returns: 訓練記錄列表
+    func getAllWorkoutsAsync() async -> [WorkoutV2]
 
     // MARK: - Workout List (Workout 模組使用)
 
@@ -30,6 +47,27 @@ protocol WorkoutRepository {
     /// 強制刷新訓練列表（跳過緩存）
     /// - Returns: 最新的訓練列表
     func refreshWorkouts() async throws -> [WorkoutV2]
+
+    // MARK: - Pagination (Migrated from UnifiedWorkoutManager)
+
+    /// 載入初始運動記錄（分頁版本）
+    /// - Parameter pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應
+    func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse
+
+    /// 載入更多運動記錄（分頁版本）
+    /// - Parameters:
+    ///   - afterCursor: 最舊記錄的 ID
+    ///   - pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應
+    func loadMoreWorkouts(afterCursor: String, pageSize: Int) async throws -> WorkoutListResponse
+
+    /// 刷新最新運動記錄（分頁版本）
+    /// - Parameters:
+    ///   - beforeCursor: 最新記錄的 ID
+    ///   - pageSize: 每頁數量，預設 10
+    /// - Returns: 分頁回應
+    func refreshLatestWorkouts(beforeCursor: String?, pageSize: Int) async throws -> WorkoutListResponse
 
     // MARK: - Single Workout
 

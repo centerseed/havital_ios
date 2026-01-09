@@ -229,38 +229,102 @@ struct UserPreferences: Codable {
 /// 時區選項（用於 UI 顯示）
 struct TimezoneOption: Identifiable, Equatable {
     let id: String  // IANA 時區 ID (例如 "Asia/Taipei")
-    let displayName: String  // 顯示名稱 (例如 "台北 (GMT+8)")
+    let displayName: String  // 顯示名稱 (例如 "台北")
     let offset: String  // 時區偏移 (例如 "GMT+8")
 
-    /// 常用時區列表
-    static let commonTimezones: [TimezoneOption] = [
-        TimezoneOption(id: "Asia/Taipei", displayName: NSLocalizedString("timezone.taipei", comment: "台北"), offset: "GMT+8"),
-        TimezoneOption(id: "Asia/Tokyo", displayName: NSLocalizedString("timezone.tokyo", comment: "東京"), offset: "GMT+9"),
-        TimezoneOption(id: "Asia/Hong_Kong", displayName: NSLocalizedString("timezone.hong_kong", comment: "香港"), offset: "GMT+8"),
-        TimezoneOption(id: "Asia/Singapore", displayName: NSLocalizedString("timezone.singapore", comment: "新加坡"), offset: "GMT+8"),
-        TimezoneOption(id: "Asia/Seoul", displayName: NSLocalizedString("timezone.seoul", comment: "首爾"), offset: "GMT+9"),
-        TimezoneOption(id: "America/New_York", displayName: NSLocalizedString("timezone.new_york", comment: "紐約"), offset: "GMT-5/-4"),
-        TimezoneOption(id: "America/Los_Angeles", displayName: NSLocalizedString("timezone.los_angeles", comment: "洛杉磯"), offset: "GMT-8/-7"),
-        TimezoneOption(id: "Europe/London", displayName: NSLocalizedString("timezone.london", comment: "倫敦"), offset: "GMT+0/+1"),
-        TimezoneOption(id: "Australia/Sydney", displayName: NSLocalizedString("timezone.sydney", comment: "雪梨"), offset: "GMT+10/+11")
+    // MARK: - Static Utility Methods
+
+    /// 獲取裝置當前時區 ID（IANA 格式）
+    static func getDeviceTimezoneId() -> String {
+        return TimeZone.current.identifier
+    }
+
+    /// 獲取時區的本地化顯示名稱
+    /// - Parameter identifier: IANA 時區 ID
+    /// - Returns: 本地化顯示名稱
+    static func getDisplayName(for identifier: String) -> String {
+        guard let timezone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        return timezone.localizedName(for: .standard, locale: Locale.current) ?? identifier
+    }
+
+    /// 計算時區的 GMT 偏移字串
+    /// - Parameter identifier: IANA 時區 ID
+    /// - Returns: 例如 "GMT+8" 或 "GMT-5"
+    static func getCurrentOffset(for identifier: String) -> String {
+        guard let tz = TimeZone(identifier: identifier) else {
+            return "GMT"
+        }
+        let offsetSeconds = tz.secondsFromGMT()
+        let offsetHours = offsetSeconds / 3600
+        let offsetMinutes = abs(offsetSeconds % 3600) / 60
+
+        if offsetMinutes == 0 {
+            return String(format: "GMT%+d", offsetHours)
+        } else {
+            return String(format: "GMT%+d:%02d", offsetHours, offsetMinutes)
+        }
+    }
+
+    // MARK: - Common Timezones
+
+    /// 常用時區 ID 列表
+    private static let commonTimezoneIds: [String] = [
+        "Asia/Taipei",
+        "Asia/Tokyo",
+        "Asia/Hong_Kong",
+        "Asia/Singapore",
+        "Asia/Seoul",
+        "America/New_York",
+        "America/Los_Angeles",
+        "Europe/London",
+        "Australia/Sydney"
     ]
+
+    /// 常用時區列表（動態計算偏移量）
+    static var commonTimezones: [TimezoneOption] {
+        return commonTimezoneIds.map { id in
+            makeTimezoneOption(from: id)
+        }
+    }
+
+    /// 從 IANA 時區 ID 創建 TimezoneOption
+    /// - Parameter identifier: IANA 時區 ID
+    /// - Returns: TimezoneOption 實例
+    static func makeTimezoneOption(from identifier: String) -> TimezoneOption {
+        let localizedNames: [String: String] = [
+            "Asia/Taipei": NSLocalizedString("timezone.taipei", comment: "台北"),
+            "Asia/Tokyo": NSLocalizedString("timezone.tokyo", comment: "東京"),
+            "Asia/Hong_Kong": NSLocalizedString("timezone.hong_kong", comment: "香港"),
+            "Asia/Singapore": NSLocalizedString("timezone.singapore", comment: "新加坡"),
+            "Asia/Seoul": NSLocalizedString("timezone.seoul", comment: "首爾"),
+            "America/New_York": NSLocalizedString("timezone.new_york", comment: "紐約"),
+            "America/Los_Angeles": NSLocalizedString("timezone.los_angeles", comment: "洛杉磯"),
+            "Europe/London": NSLocalizedString("timezone.london", comment: "倫敦"),
+            "Australia/Sydney": NSLocalizedString("timezone.sydney", comment: "雪梨")
+        ]
+
+        let displayName = localizedNames[identifier] ?? getDisplayName(for: identifier)
+        let offset = getCurrentOffset(for: identifier)
+
+        return TimezoneOption(id: identifier, displayName: displayName, offset: offset)
+    }
 
     /// 獲取裝置當前時區
     static var deviceTimezone: TimezoneOption {
         let tzIdentifier = TimeZone.current.identifier
 
         // 如果在常用時區列表中，返回完整資訊
-        if let common = commonTimezones.first(where: { $0.id == tzIdentifier }) {
-            return common
+        if commonTimezoneIds.contains(tzIdentifier) {
+            return makeTimezoneOption(from: tzIdentifier)
         }
 
         // 否則創建自訂時區選項
-        let tz = TimeZone.current
-        let displayName = tz.localizedName(for: .standard, locale: Locale.current) ?? tzIdentifier
-        let offsetSeconds = tz.secondsFromGMT()
-        let offsetHours = offsetSeconds / 3600
-        let offsetString = String(format: "GMT%+d", offsetHours)
-
-        return TimezoneOption(id: tzIdentifier, displayName: displayName, offset: offsetString)
+        return TimezoneOption(
+            id: tzIdentifier,
+            displayName: getDisplayName(for: tzIdentifier),
+            offset: getCurrentOffset(for: tzIdentifier)
+        )
     }
 }

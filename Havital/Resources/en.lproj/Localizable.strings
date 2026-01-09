@@ -439,6 +439,15 @@
 "workout.detail.intensity_medium" = "Medium";
 "workout.detail.intensity_high" = "High";
 "workout.detail.minutes" = "min";
+"workout.detail.training_notes_title" = "Training Notes";
+"workout.detail.training_notes_add" = "Add";
+"workout.detail.training_notes_edit" = "Edit";
+"workout.detail.training_notes_save" = "Save";
+"workout.detail.training_notes_cancel" = "Cancel";
+"workout.detail.training_notes_saving" = "Saving...";
+"workout.detail.training_notes_placeholder" = "No training notes yet. Tap 'Add' to record your thoughts and reflections.";
+"workout.detail.training_notes_save_error" = "Failed to save training notes. Please try again later.";
+"workout.detail.training_notes_editor_title" = "Edit Training Notes";
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "Distance";

@@ -25,11 +25,11 @@ struct LoadWeeklyWorkoutsUseCase {
     func execute(
         weekInfo: WeekDateInfo,
         activityTypes: Set<String> = ["running", "walking", "hiking", "cross_training"]
-    ) -> [Int: [WorkoutV2]] {
+    ) async -> [Int: [WorkoutV2]] {
         Logger.debug("[LoadWeeklyWorkoutsUseCase] Loading workouts from \(weekInfo.startDate) to \(weekInfo.endDate)")
 
-        // 從 Repository 獲取訓練記錄
-        let weekWorkouts = workoutRepository.getWorkoutsInDateRange(
+        // ✅ 使用 async 版本從 LocalDataSource 獲取訓練記錄
+        let weekWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: weekInfo.startDate,
             endDate: weekInfo.endDate
         )

@@ -34,7 +34,6 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     // MARK: - Dependencies
 
     private let repository: WorkoutRepository
-    private let unifiedWorkoutManager: UnifiedWorkoutManager
 
     // MARK: - Private Properties
 
@@ -48,10 +47,8 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
 
     // MARK: - Initialization
 
-    init(repository: WorkoutRepository = WorkoutRepositoryImpl.shared,
-         unifiedWorkoutManager: UnifiedWorkoutManager = .shared) {
+    init(repository: WorkoutRepository = WorkoutRepositoryImpl.shared) {
         self.repository = repository
-        self.unifiedWorkoutManager = unifiedWorkoutManager
 
         syncFromRepository()
         setupObservers()
@@ -147,8 +144,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     
     // MARK: - Private Implementation
 
-    /// 簡化的分頁載入更多邏輯 - 使用 UnifiedWorkoutManager 的分頁API
-    /// 注：分頁 API 尚未遷移到 Repository，暫時保留使用 UnifiedWorkoutManager
+    /// 簡化的分頁載入更多邏輯 - 使用 Repository 的分頁API
     private func performLoadMore() async {
         Logger.debug("[TrainingRecordViewModel] performLoadMore - hasMoreData: \(hasMoreData), oldestId: \(oldestId ?? "nil")")
 
@@ -163,8 +159,8 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
         }
 
         do {
-            // 使用 UnifiedWorkoutManager 的分頁API（待遷移到 Repository）
-            let response = try await unifiedWorkoutManager.loadMoreWorkouts(
+            // ✅ 使用 Repository 的分頁 API（已遷移）
+            let response = try await repository.loadMoreWorkouts(
                 afterCursor: oldestId,
                 pageSize: currentPageSize
             )

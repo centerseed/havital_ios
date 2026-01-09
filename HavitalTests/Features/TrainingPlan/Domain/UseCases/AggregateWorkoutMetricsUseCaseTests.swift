@@ -25,7 +25,7 @@ final class AggregateWorkoutMetricsUseCaseTests: XCTestCase {
         super.tearDown()
     }
     
-    func testExecute_CalculatesTotalDistanceCorrectly() {
+    func testExecute_CalculatesTotalDistanceCorrectly() async {
         // Given
         let workout1 = TrainingPlanTestFixtures.createWorkout(
             activityType: "running",
@@ -41,65 +41,65 @@ final class AggregateWorkoutMetricsUseCaseTests: XCTestCase {
             activityType: "cycling",
             distanceMeters: 20000
         )
-        
+
         mockRepository.workoutsToReturn = [workout1, workout2, workout3]
-        
+
         let weekInfo = WeekDateInfo(
             startDate: Date(),
             endDate: Date().addingTimeInterval(86400 * 7),
             daysMap: [:]
         )
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         // 5000 + 3500 = 8500m = 8.5km (cycling excluded from distance sum based on code)
         XCTAssertEqual(result.totalDistanceKm, 8.5, accuracy: 0.01)
     }
     
-    func testExecute_CalculatesIntensityFromAdvancedMetrics() {
+    func testExecute_CalculatesIntensityFromAdvancedMetrics() async {
         // Given
         let workout1 = TrainingPlanTestFixtures.createWorkout(
             intensityMinutes: (low: 10, medium: 20, high: 0)
         ) // 10, 20, 0
-        
+
         let workout2 = TrainingPlanTestFixtures.createWorkout(
             intensityMinutes: (low: 5, medium: 5, high: 10)
         ) // 5, 5, 10
-        
+
         mockRepository.workoutsToReturn = [workout1, workout2]
         let weekInfo = WeekDateInfo(startDate: Date(), endDate: Date(), daysMap: [:])
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         XCTAssertEqual(result.intensity.low, 15, accuracy: 0.01)
         XCTAssertEqual(result.intensity.medium, 25, accuracy: 0.01)
         XCTAssertEqual(result.intensity.high, 10, accuracy: 0.01)
     }
     
-    func testExecute_CalculatesIntensityFromDuration_WhenMetricsMissing() {
+    func testExecute_CalculatesIntensityFromDuration_WhenMetricsMissing() async {
         // Given
         // No advanced metrics, fallback to duration (minutes) added to 'low'
         let workout1 = TrainingPlanTestFixtures.createWorkout(
             durationSeconds: 1800 // 30 mins
         )
-        
+
         mockRepository.workoutsToReturn = [workout1]
         let weekInfo = WeekDateInfo(startDate: Date(), endDate: Date(), daysMap: [:])
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         XCTAssertEqual(result.intensity.low, 30, accuracy: 0.01)
         XCTAssertEqual(result.intensity.medium, 0)
         XCTAssertEqual(result.intensity.high, 0)
     }
     
-    func testExecute_ExcludesNonAerobicActivitiesFromIntensity() {
+    func testExecute_ExcludesNonAerobicActivitiesFromIntensity() async {
         // Given
         let workout1 = TrainingPlanTestFixtures.createWorkout(
             activityType: "running",
@@ -109,26 +109,26 @@ final class AggregateWorkoutMetricsUseCaseTests: XCTestCase {
             activityType: "yoga", // likely not in aerobic list
             durationSeconds: 3600
         )
-        
+
         mockRepository.workoutsToReturn = [workout1, workout2]
         let weekInfo = WeekDateInfo(startDate: Date(), endDate: Date(), daysMap: [:])
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         // Only running included: 30 mins low
         XCTAssertEqual(result.intensity.low, 30, accuracy: 0.01)
     }
     
-    func testExecute_HandlesEmptyWorkouts() {
+    func testExecute_HandlesEmptyWorkouts() async {
         // Given
         mockRepository.workoutsToReturn = []
         let weekInfo = WeekDateInfo(startDate: Date(), endDate: Date(), daysMap: [:])
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         XCTAssertEqual(result.totalDistanceKm, 0)
         XCTAssertEqual(result.intensity.low, 0)

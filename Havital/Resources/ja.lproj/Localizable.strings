@@ -439,6 +439,15 @@
 "workout.detail.intensity_medium" = "中";
 "workout.detail.intensity_high" = "高";
 "workout.detail.minutes" = "分";
+"workout.detail.training_notes_title" = "トレーニングメモ";
+"workout.detail.training_notes_add" = "追加";
+"workout.detail.training_notes_edit" = "編集";
+"workout.detail.training_notes_save" = "保存";
+"workout.detail.training_notes_cancel" = "キャンセル";
+"workout.detail.training_notes_saving" = "保存中...";
+"workout.detail.training_notes_placeholder" = "まだトレーニングメモがありません。「追加」をタップして感想を記録しましょう。";
+"workout.detail.training_notes_save_error" = "トレーニングメモの保存に失敗しました。後でもう一度お試しください。";
+"workout.detail.training_notes_editor_title" = "トレーニングメモを編集";
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";

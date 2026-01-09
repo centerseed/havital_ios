@@ -327,12 +327,13 @@ class DataSyncViewModel: ObservableObject {
 
     private let workoutV2Service = WorkoutV2Service.shared
     private let healthKitManager = HealthKitManager()
-    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
+    private let repository: WorkoutRepository
 
     // MARK: - Initialization
 
-    init(mode: DataSyncMode = .settings) {
+    init(mode: DataSyncMode = .settings, repository: WorkoutRepository = DependencyContainer.shared.resolve()) {
         self.mode = mode
+        self.repository = repository
     }
     
     func startSync(for dataSource: DataSourceType) {
@@ -452,7 +453,7 @@ class DataSyncViewModel: ObservableObject {
                 self.currentStep = L10n.Sync.reloadData.localized
             }
             
-            await unifiedWorkoutManager.refreshWorkouts()
+            _ = try? await repository.refreshWorkouts()
             
             // 完成
             await MainActor.run {
@@ -630,7 +631,7 @@ class DataSyncViewModel: ObservableObject {
             self.currentStep = L10n.Sync.reloadData.localized
         }
         
-        await unifiedWorkoutManager.refreshWorkouts()
+        _ = try? await repository.refreshWorkouts()
         
         // 完成
         await MainActor.run {
@@ -726,7 +727,7 @@ class DataSyncViewModel: ObservableObject {
             self.currentStep = L10n.Sync.reloadData.localized
         }
         
-        await unifiedWorkoutManager.refreshWorkouts()
+        _ = try? await repository.refreshWorkouts()
         
         // 完成
         await MainActor.run {

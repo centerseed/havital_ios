@@ -31,11 +31,11 @@ struct AggregateWorkoutMetricsUseCase {
     /// 執行用例：計算指定週的訓練指標
     /// - Parameter weekInfo: 週日期資訊
     /// - Returns: 週訓練指標
-    func execute(weekInfo: WeekDateInfo) -> WeeklyMetrics {
+    func execute(weekInfo: WeekDateInfo) async -> WeeklyMetrics {
         Logger.debug("[AggregateWorkoutMetricsUseCase] Calculating metrics from \(weekInfo.startDate) to \(weekInfo.endDate)")
 
-        // 從 Repository 獲取訓練記錄
-        let weekWorkouts = workoutRepository.getWorkoutsInDateRange(
+        // ✅ 使用 async 版本從 LocalDataSource 獲取訓練記錄
+        let weekWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: weekInfo.startDate,
             endDate: weekInfo.endDate
         )

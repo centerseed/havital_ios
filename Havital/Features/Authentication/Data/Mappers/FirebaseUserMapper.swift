@@ -6,6 +6,12 @@ import FirebaseAuth
 /// Combines data from Firebase Auth and Backend API
 struct FirebaseUserMapper {
 
+    // MARK: - Legacy Migration Constants
+
+    /// UserDefaults key for legacy onboarding completion status
+    /// Used for migration from old AuthenticationService
+    private static let legacyOnboardingKey = "hasCompletedOnboarding"
+
     // MARK: - Mapping from Firebase User + UserSyncResponse
 
     /// Convert Firebase User + Backend response to AuthUser Entity
@@ -32,6 +38,12 @@ struct FirebaseUserMapper {
         // Determine onboarding mode from backend
         let onboardingMode = syncResponse.onboardingStatus.toOnboardingMode()
 
+        // Determine onboarding completion with legacy fallback
+        let hasCompletedOnboarding = resolveOnboardingStatus(
+            backendCompleted: syncResponse.onboardingStatus.isCompleted,
+            uid: firebaseUser.uid
+        )
+
         // Create AuthUser entity
         return AuthUser(
             uid: firebaseUser.uid,
@@ -39,9 +51,41 @@ struct FirebaseUserMapper {
             displayName: firebaseUser.displayName ?? syncResponse.user.displayName,
             photoURL: photoURL,
             isAuthenticated: true,
-            hasCompletedOnboarding: syncResponse.onboardingStatus.isCompleted,
-            onboardingMode: onboardingMode
+            hasCompletedOnboarding: hasCompletedOnboarding,
+            onboardingMode: hasCompletedOnboarding ? .none : onboardingMode
         )
+    }
+
+    // MARK: - Onboarding Status Resolution
+
+    /// Resolve onboarding completion status with legacy UserDefaults fallback
+    /// Handles migration from old AuthenticationService which stored status in UserDefaults
+    /// - Parameters:
+    ///   - backendCompleted: Backend API's is_completed status
+    ///   - uid: User's Firebase UID for logging
+    /// - Returns: Final onboarding completion status
+    private static func resolveOnboardingStatus(backendCompleted: Bool, uid: String) -> Bool {
+        // If backend says completed, trust it
+        if backendCompleted {
+            Logger.debug("[FirebaseUserMapper] Backend says onboarding completed for \(uid)")
+            return true
+        }
+
+        // Backend says NOT completed - check legacy UserDefaults fallback
+        let legacyCompleted = UserDefaults.standard.bool(forKey: legacyOnboardingKey)
+
+        if legacyCompleted {
+            // Legacy data says completed but backend says not
+            // Trust legacy for migration, but log the discrepancy
+            Logger.debug("[FirebaseUserMapper] ⚠️ Onboarding status mismatch for \(uid)")
+            Logger.debug("[FirebaseUserMapper]   Backend: false, Legacy UserDefaults: true")
+            Logger.debug("[FirebaseUserMapper]   Using legacy status (migration scenario)")
+            return true
+        }
+
+        // Both backend and legacy say not completed
+        Logger.debug("[FirebaseUserMapper] Onboarding not completed for \(uid)")
+        return false
     }
 
     // MARK: - Mapping from Firebase User Only (Fallback)
@@ -51,14 +95,20 @@ struct FirebaseUserMapper {
     /// - Parameter firebaseUser: Firebase Auth user object
     /// - Returns: AuthUser entity with Firebase data only
     static func toDomain(firebaseUser: FirebaseUser) -> AuthUser {
+        // Check legacy UserDefaults even without backend data
+        let hasCompletedOnboarding = resolveOnboardingStatus(
+            backendCompleted: false,
+            uid: firebaseUser.uid
+        )
+
         return AuthUser(
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             isAuthenticated: true,
-            hasCompletedOnboarding: false, // Assume not completed if backend unavailable
-            onboardingMode: .initial // Default to initial onboarding
+            hasCompletedOnboarding: hasCompletedOnboarding,
+            onboardingMode: hasCompletedOnboarding ? .none : .initial
         )
     }
 
@@ -80,6 +130,12 @@ struct FirebaseUserMapper {
         // Determine onboarding mode from backend
         let onboardingMode = syncResponse.onboardingStatus.toOnboardingMode()
 
+        // Determine onboarding completion with legacy fallback
+        let hasCompletedOnboarding = resolveOnboardingStatus(
+            backendCompleted: syncResponse.onboardingStatus.isCompleted,
+            uid: syncResponse.user.uid
+        )
+
         // Create AuthUser entity
         return AuthUser(
             uid: syncResponse.user.uid,
@@ -87,8 +143,8 @@ struct FirebaseUserMapper {
             displayName: syncResponse.user.displayName,
             photoURL: photoURL,
             isAuthenticated: true,
-            hasCompletedOnboarding: syncResponse.onboardingStatus.isCompleted,
-            onboardingMode: onboardingMode
+            hasCompletedOnboarding: hasCompletedOnboarding,
+            onboardingMode: hasCompletedOnboarding ? .none : onboardingMode
         )
     }
 }

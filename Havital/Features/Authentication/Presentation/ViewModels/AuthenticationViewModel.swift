@@ -131,6 +131,26 @@ final class AuthenticationViewModel: ObservableObject {
                 CacheEventBus.shared.publish(.dataChanged(.user))
             }
         }
+
+        // ✅ Subscribe to user data change events (e.g., from LoginViewModel)
+        // This ensures AuthenticationViewModel stays in sync when user logs in via Clean Architecture
+        CacheEventBus.shared.subscribe(for: "dataChanged.user") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[AuthViewModel] Received dataChanged.user event, refreshing user data")
+
+            // Fetch latest user data from backend
+            await self.fetchCurrentUserData()
+
+            // Update onboarding status from user data
+            if let user = self.currentUser {
+                await MainActor.run {
+                    self.hasCompletedOnboarding = user.hasCompletedOnboarding
+                    UserDefaults.standard.set(user.hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
+                    Logger.debug("[AuthViewModel] ✅ Onboarding status updated: \(user.hasCompletedOnboarding)")
+                }
+            }
+        }
     }
 
     // MARK: - User Data Management

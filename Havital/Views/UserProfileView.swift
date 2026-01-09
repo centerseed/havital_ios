@@ -128,7 +128,7 @@ struct UserProfileView: View {
             LanguageSettingsView()
         }
         .sheet(isPresented: $showTimezoneSettings) {
-            TimezoneSettingsView()
+            TimezoneSettingsView(currentTimezone: viewModel.timezonePreference)
         }
         .sheet(isPresented: $showFeedbackReport) {
             if let userData = viewModel.userData {
@@ -357,7 +357,7 @@ struct UserProfileView: View {
                     Text(NSLocalizedString("settings.timezone", comment: "Timezone"))
                     Spacer()
                     if let timezone = viewModel.timezonePreference {
-                        Text(UserPreferencesManager.getTimezoneDisplayName(for: timezone))
+                        Text(TimezoneOption.getDisplayName(for: timezone))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

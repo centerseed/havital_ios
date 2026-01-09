@@ -60,12 +60,13 @@ class AppStateManager: ObservableObject {
     // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
     private let authSessionRepository: AuthSessionRepository
     private var userService: UserService?
-    private var unifiedWorkoutManager: UnifiedWorkoutManager?
+    private let workoutRepository: WorkoutRepository
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
     private init() {
         // Initialize repositories via DI
         self.authSessionRepository = DependencyContainer.shared.resolve()
+        self.workoutRepository = DependencyContainer.shared.resolve()
         print("🏁 AppStateManager: 已初始化")
     }
     
@@ -258,14 +259,12 @@ class AppStateManager: ObservableObject {
         print("⚙️ AppStateManager: 開始設置服務")
         
         // 初始化核心服務
-        unifiedWorkoutManager = UnifiedWorkoutManager.shared
         healthDataUploadManager = HealthDataUploadManagerV2.shared
         
         // 根據用戶狀態初始化服務
         if isUserAuthenticated {
-            // 初始化運動管理器
-            await unifiedWorkoutManager?.initialize()
-            await unifiedWorkoutManager?.loadWorkouts()
+            // 初始化運動 Repository (預載入數據)
+            await workoutRepository.preloadData()
             
             // 啟動健康數據同步
             await APICallTracker.$currentSource.withValue("AppStateManager: setupServices") {

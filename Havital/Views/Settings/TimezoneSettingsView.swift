@@ -10,15 +10,12 @@ struct TimezoneSettingsView: View {
     @State private var errorMessage = ""
     @State private var showWarningAlert = false
 
-    init() {
-        // Get current timezone from repository via static access
-        let container = DependencyContainer.shared
-        if !container.isRegistered(UserPreferencesRepository.self) {
-            container.registerUserProfileModule()
-        }
-        let repo: UserPreferencesRepository = container.resolve()
-        let currentTimezone = repo.timezonePreference ?? UserPreferencesManager.getDeviceTimezone()
-        _selectedTimezone = State(initialValue: currentTimezone)
+    /// Initialize with current timezone
+    /// - Parameter currentTimezone: The user's current timezone (pass from parent view)
+    init(currentTimezone: String? = nil) {
+        // Use provided timezone, or fall back to device timezone
+        let initialTimezone = currentTimezone ?? TimezoneOption.getDeviceTimezoneId()
+        _selectedTimezone = State(initialValue: initialTimezone)
     }
 
     var body: some View {
@@ -26,7 +23,7 @@ struct TimezoneSettingsView: View {
             List {
                 // Current Timezone Section
                 Section(header: Text(L10n.Timezone.current.localized)) {
-                    Text(UserPreferencesManager.getTimezoneDisplayName(for: selectedTimezone))
+                    Text(TimezoneOption.getDisplayName(for: selectedTimezone))
                         .font(.headline)
                         .foregroundColor(.primary)
                 }
@@ -93,8 +90,8 @@ struct TimezoneSettingsView: View {
         }
         .alert(L10n.Timezone.changeConfirm.localized, isPresented: $showWarningAlert) {
             Button(L10n.Common.cancel.localized, role: .cancel) {
-                // Reset selection
-                selectedTimezone = viewModel.timezonePreference ?? UserPreferencesManager.getDeviceTimezone()
+                // Reset selection to current saved preference or device default
+                selectedTimezone = viewModel.timezonePreference ?? TimezoneOption.getDeviceTimezoneId()
             }
             Button(L10n.Common.confirm.localized) {
                 Task {

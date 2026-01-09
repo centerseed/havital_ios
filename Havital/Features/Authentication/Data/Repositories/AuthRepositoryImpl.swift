@@ -101,14 +101,81 @@ final class AuthRepositoryImpl: AuthRepository {
         }
     }
 
-    /// Sign in with Apple ID
+    /// Sign in with Apple ID (full async flow)
+    /// Handles ASAuthorizationController internally via AppleSignInDataSource
     /// Similar 7-Step flow as Google Sign-In
-    func signInWithApple(credential: AppleAuthCredential) async throws -> AuthUser {
+    func signInWithApple() async throws -> AuthUser {
         do {
             // Step 1: Generate nonce for security
             Logger.debug("[AuthRepository] Step 1: Generating nonce for Apple Sign-In")
             let rawNonce = FirebaseAuthDataSource.generateNonce()
             let hashedNonce = FirebaseAuthDataSource.sha256(rawNonce)
+
+            // Step 2: Apple Sign-In via DataSource (presents UI)
+            Logger.debug("[AuthRepository] Step 2: Presenting Apple Sign-In UI")
+            let appleCredential = try await appleSignIn.performSignIn(nonce: hashedNonce)
+
+            // Extract identity token
+            guard let identityToken = appleCredential.identityToken else {
+                throw AuthenticationError.appleSignInFailed("Missing identity token")
+            }
+
+            // Step 3: Firebase OAuth authentication
+            Logger.debug("[AuthRepository] Step 3: Authenticating with Firebase")
+            let firebaseUser = try await firebaseAuth.signInWithApple(
+                identityToken: identityToken,
+                rawNonce: rawNonce
+            )
+
+            // Step 4: Get Firebase ID Token
+            Logger.debug("[AuthRepository] Step 4: Fetching Firebase ID Token")
+            let idToken = try await firebaseAuth.getIdToken()
+
+            // Step 5: Backend user sync
+            Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let syncRequest = UserSyncRequest(
+                firebaseUid: firebaseUser.uid,
+                idToken: idToken,
+                fcmToken: nil,
+                deviceInfo: DeviceInfo(
+                    model: UIDevice.current.model,
+                    osVersion: UIDevice.current.systemVersion,
+                    appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                    locale: Locale.current.identifier
+                )
+            )
+            let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
+
+            // Step 6: Map DTO → AuthUser Entity
+            Logger.debug("[AuthRepository] Step 6: Mapping to AuthUser Entity")
+            let authUser = FirebaseUserMapper.toDomain(
+                firebaseUser: firebaseUser,
+                syncResponse: syncResponse
+            )
+
+            // Step 7: Cache AuthUser
+            Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
+            authCache.saveUser(authUser)
+
+            Logger.debug("[AuthRepository] Apple Sign-In completed successfully: \(authUser.uid)")
+            return authUser
+
+        } catch let error as AuthenticationError {
+            Logger.error("[AuthRepository] Apple Sign-In failed: \(error.localizedDescription)")
+            throw error
+        } catch {
+            Logger.error("[AuthRepository] Apple Sign-In unexpected error: \(error.localizedDescription)")
+            throw AuthenticationError.appleSignInFailed(error.localizedDescription)
+        }
+    }
+
+    /// Sign in with Apple ID (with pre-obtained credential)
+    /// Similar 7-Step flow as Google Sign-In
+    func signInWithApple(credential: AppleAuthCredential) async throws -> AuthUser {
+        do {
+            // Step 1: Generate nonce for security (rawNonce needed for Firebase verification)
+            Logger.debug("[AuthRepository] Step 1: Generating nonce for Apple Sign-In")
+            let rawNonce = FirebaseAuthDataSource.generateNonce()
 
             // Step 2: Apple Sign-In (credential already provided)
             Logger.debug("[AuthRepository] Step 2: Using provided Apple credential")

@@ -1,16 +1,63 @@
 import SwiftUI
 import HealthKit
 
+// MARK: - ViewModel
+
+/// TrainingCalendarViewModel
+/// 負責 TrainingCalendarView 的數據邏輯
+@MainActor
+class TrainingCalendarViewModel: ObservableObject {
+    @Published var workouts: [WorkoutV2] = []
+    @Published var isLoading = false
+    
+    private let repository: WorkoutRepository
+    
+    init(repository: WorkoutRepository = DependencyContainer.shared.resolve()) {
+        self.repository = repository
+        
+        // 初始載入緩存數據
+        Task {
+            await loadCachedWorkouts()
+        }
+    }
+    
+    private func loadCachedWorkouts() async {
+        // 嘗試獲取緩存數據顯示初始狀態
+        let cached = await repository.getAllWorkoutsAsync()
+        if !cached.isEmpty {
+            self.workouts = cached
+        }
+    }
+    
+    func loadWorkoutsForMonth(month: Date) async {
+        isLoading = true
+        let calendar = Calendar.current
+        
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
+              let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
+            isLoading = false
+            return
+        }
+        
+        // 擴大範圍以確保覆蓋（或者可以使用 getAllWorkoutsAsync 然後過濾）
+        // 這裡我們直接獲取所有緩存並過濾，因为日曆通常需要快速響應
+        // Repository 的 getWorkoutsInDateRangeAsync 是基於本地緩存的，所以很快
+        let monthWorkouts = await repository.getWorkoutsInDateRangeAsync(startDate: startOfMonth, endDate: endOfMonth)
+        
+        self.workouts = monthWorkouts
+        self.isLoading = false
+    }
+}
+
 /// 訓練日曆視圖 - 顯示每月訓練記錄（從緩存讀取）
 struct TrainingCalendarView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
+    
+    @StateObject private var viewModel = TrainingCalendarViewModel()
 
     @State private var selectedMonth = Date()
     @State private var workoutsByDate: [Date: DayWorkoutInfo] = [:]  // 日期 -> 訓練資訊
-
-    // 使用 UnifiedWorkoutManager 作為數據源（緩存）
-    private let unifiedWorkoutManager = UnifiedWorkoutManager.shared
 
     private var monthName: String {
         let formatter = DateFormatter()
@@ -27,8 +74,10 @@ struct TrainingCalendarView: View {
             return 0
         }
 
-        // 從 UnifiedWorkoutManager 獲取該月的跑步記錄
-        let runningWorkouts = unifiedWorkoutManager.workouts.filter { workout in
+        // 從 ViewModel 獲取該月的跑步記錄
+        let runningWorkouts = viewModel.workouts.filter { workout in
+            // 注意：viewModel.workouts 已經是該月的數據（如果是通過 loadWorkoutsForMonth 加載的）
+            // 但為了安全起見，再次過濾日期（因為初始加載可能是所有數據）
             let workoutDate = workout.startDate
             let isInMonth = workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
             let isRunning = workout.activityType == "running"
@@ -47,7 +96,7 @@ struct TrainingCalendarView: View {
         }
 
         // ✅ 只計算跑步類型的訓練記錄
-        let runningWorkouts = unifiedWorkoutManager.workouts.filter { workout in
+        let runningWorkouts = viewModel.workouts.filter { workout in
             let workoutDate = workout.startDate
             let isInMonth = workoutDate >= startOfMonth && workoutDate <= calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonth) ?? endOfMonth
             let isRunning = workout.activityType == "running"
@@ -94,6 +143,9 @@ struct TrainingCalendarView: View {
         }
         .onAppear {
             loadWorkoutsForMonth()
+        }
+        .onChange(of: viewModel.workouts) { _ in
+            processWorkoutsForDisplay()
         }
     }
 
@@ -220,17 +272,24 @@ struct TrainingCalendarView: View {
         .padding(.bottom, 4)
     }
 
-    // MARK: - 數據加載（從緩存讀取，不調用 API）
+    // MARK: - 數據加載
 
     private func loadWorkoutsForMonth() {
+        // 使用 Task 調用異步方法
+        Task {
+            await viewModel.loadWorkoutsForMonth(month: selectedMonth)
+        }
+    }
+    
+    private func processWorkoutsForDisplay() {
         let calendar = Calendar.current
         guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth)),
               let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
             return
         }
-
-        // ✅ 從 UnifiedWorkoutManager 緩存讀取，不調用 API
-        let allWorkouts = unifiedWorkoutManager.workouts
+        
+        // 這些數據已經是該月的了，但我們還是過濾一下確保安全
+        let allWorkouts = viewModel.workouts
 
         // 過濾當月的訓練記錄（排除 rest 類型）
         let monthWorkouts = allWorkouts.filter { workout in
@@ -271,7 +330,7 @@ struct TrainingCalendarView: View {
 
         workoutsByDate = grouped
 
-        print("📅 日曆載入完成：\(selectedMonth) 共 \(monthWorkouts.count) 筆記錄")
+        print("📅 日曆數據處理完成：\(selectedMonth) 共 \(monthWorkouts.count) 筆記錄")
     }
 
     // MARK: - Helper Functions
@@ -392,6 +451,8 @@ struct DayCell: View {
         case "elliptical":
             return "figure.elliptical"
         case "rest":
+            return "bed.double.fill"
+        case "rest_day":
             return "bed.double.fill"
         default:
             // 未知類型使用通用圖標，避免誤認為跑步

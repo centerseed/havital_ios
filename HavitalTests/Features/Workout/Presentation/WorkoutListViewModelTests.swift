@@ -127,7 +127,27 @@ final class WorkoutListViewModelTests: XCTestCase {
 class WorkoutListTestMockRepository: WorkoutRepository {
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] { return [] }
     func getAllWorkouts() -> [WorkoutV2] { return [] }
-    
+
+    // Async methods
+    func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { return [] }
+    func getAllWorkoutsAsync() async -> [WorkoutV2] { return [] }
+
+    // Pagination methods
+    func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse {
+        let pagination = PaginationInfo(nextCursor: nil, prevCursor: nil, hasMore: false, hasNewer: false, oldestId: nil, newestId: nil, totalItems: 0, pageSize: pageSize)
+        return WorkoutListResponse(workouts: [], pagination: pagination)
+    }
+
+    func loadMoreWorkouts(afterCursor: String, pageSize: Int) async throws -> WorkoutListResponse {
+        let pagination = PaginationInfo(nextCursor: nil, prevCursor: afterCursor, hasMore: false, hasNewer: false, oldestId: nil, newestId: nil, totalItems: 0, pageSize: pageSize)
+        return WorkoutListResponse(workouts: [], pagination: pagination)
+    }
+
+    func refreshLatestWorkouts(beforeCursor: String?, pageSize: Int) async throws -> WorkoutListResponse {
+        let pagination = PaginationInfo(nextCursor: nil, prevCursor: beforeCursor, hasMore: false, hasNewer: false, oldestId: nil, newestId: nil, totalItems: 0, pageSize: pageSize)
+        return WorkoutListResponse(workouts: [], pagination: pagination)
+    }
+
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { return [] }
     func refreshWorkouts() async throws -> [WorkoutV2] { return [] }
     func getWorkout(id: String) async throws -> WorkoutV2 { fatalError("Not implemented") }
@@ -135,7 +155,7 @@ class WorkoutListTestMockRepository: WorkoutRepository {
     func deleteWorkout(id: String) async throws {}
     func clearCache() async {}
     func preloadData() async {}
-    
+
     var workoutsDidUpdateNotification: Notification.Name { return Notification.Name("MockWorkoutUpdate") }
 }
 

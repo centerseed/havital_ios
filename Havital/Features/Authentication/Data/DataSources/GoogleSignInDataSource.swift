@@ -1,5 +1,6 @@
 import Foundation
 import GoogleSignIn
+import FirebaseCore
 
 // MARK: - Google Sign-In Data Source
 /// Handles Google Sign-In SDK operations
@@ -17,6 +18,15 @@ final class GoogleSignInDataSource {
     /// - Returns: GIDGoogleUser with tokens
     /// - Throws: AuthenticationError.googleSignInFailed if sign-in fails
     func performSignIn() async throws -> GIDGoogleUser {
+        // Configure Google Sign-In with Firebase client ID
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            Logger.error("[GoogleSignInDataSource] Firebase client ID not found")
+            throw AuthenticationError.googleSignInFailed("Firebase client ID not configured")
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
         // Get presenting view controller
         guard let presentingViewController = await getRootViewController() else {
             throw AuthenticationError.googleSignInFailed("No presenting view controller available")

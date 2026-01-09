@@ -111,7 +111,7 @@ struct HavitalApp: App {
                     if let featureFlagManager = featureFlagManager {
                         ContentView() // 使用 ContentView 作為根視圖
                             .environmentObject(authViewModel)      // Clean Architecture: AuthenticationViewModel
-                            .environmentObject(AuthenticationService.shared) // Transition: Keep for LoginView
+                            // ✅ AuthenticationService removed - LoginView now uses LoginViewModel
                             .environmentObject(healthKitManager)   // 注入 HealthKitManager
                             .environmentObject(appViewModel)       // 注入 AppViewModel
                             .environmentObject(featureFlagManager) // 注入 FeatureFlagManager

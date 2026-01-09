@@ -30,6 +30,7 @@ final class TrainingPlanViewModelIntegrationTests: IntegrationTestBase {
 
         // 從 DependencyContainer 獲取 Repository
         let repository: TrainingPlanRepository = getRepository()
+        let workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
         
         // 獲取 UseCases (會自動註冊 WorkoutRepository)
         let loadWorkoutsUC = DependencyContainer.shared.makeLoadWeeklyWorkoutsUseCase()
@@ -38,6 +39,7 @@ final class TrainingPlanViewModelIntegrationTests: IntegrationTestBase {
         // 初始化 ViewModel
         viewModel = TrainingPlanViewModel(
             repository: repository,
+            workoutRepository: workoutRepository,
             loadWeeklyWorkoutsUseCase: loadWorkoutsUC,
             aggregateWorkoutMetricsUseCase: aggregageMetricsUC
         )

@@ -14,7 +14,13 @@ protocol AuthRepository {
     /// - Throws: AuthenticationError if sign-in fails
     func signInWithGoogle() async throws -> AuthUser
 
-    /// Sign in with Apple ID
+    /// Sign in with Apple ID (full async flow)
+    /// Handles ASAuthorizationController internally
+    /// - Returns: Authenticated user with business properties
+    /// - Throws: AuthenticationError if sign-in fails
+    func signInWithApple() async throws -> AuthUser
+
+    /// Sign in with Apple ID (with pre-obtained credential)
     /// - Parameter credential: Apple authentication credential (domain abstraction, not SDK type)
     /// - Returns: Authenticated user with business properties
     /// - Throws: AuthenticationError if sign-in fails

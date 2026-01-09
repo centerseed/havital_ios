@@ -25,7 +25,11 @@ struct WorkoutDetailViewV2: View {
     @State private var isDeletingWorkout = false
     @State private var deleteResultMessage: String?
     @State private var showDeleteResult = false
-    
+
+    // 訓練心得相關狀態
+    @State private var showTrainingNotesEditor = false
+    @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
+
     enum ZoneTab: CaseIterable {
         case heartRate, pace
         
@@ -68,6 +72,14 @@ struct WorkoutDetailViewV2: View {
                         dataProvider: viewModel.workout.provider
                     )
                 }
+
+                // 訓練心得卡片（優先顯示本地更新的內容）
+                TrainingNotesCard(
+                    notes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
+                    onEdit: {
+                        showTrainingNotesEditor = true
+                    }
+                )
 
                 // 載入狀態或錯誤訊息
                 if viewModel.isLoading {
@@ -181,8 +193,31 @@ struct WorkoutDetailViewV2: View {
                 workoutDetail: viewModel.workoutDetail
             )
         }
+        .sheet(isPresented: $showTrainingNotesEditor) {
+            TrainingNotesEditorView(
+                workoutId: viewModel.workout.id,
+                initialNotes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
+                onSave: { notes in
+                    // 使用 Task.tracked 進行 API 追蹤（符合 CLAUDE.md Section 7 規範）
+                    return await Task {
+                        let success = await viewModel.updateTrainingNotes(notes)
+                        if success {
+                            // 樂觀 UI 更新：立即更新顯示的內容
+                            displayedTrainingNotes = notes
+                        }
+                        return success
+                    }.tracked(from: "WorkoutDetailViewV2: updateTrainingNotes").value
+                }
+            )
+        }
+        .onChange(of: viewModel.workoutDetail?.trainingNotes) { newNotes in
+            // 當從 API 刷新後，同步更新本地狀態
+            if displayedTrainingNotes == nil {
+                displayedTrainingNotes = newNotes
+            }
+        }
     }
-    
+
     // MARK: - 基本資訊卡片
     
     private var basicInfoCard: some View {

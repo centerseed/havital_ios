@@ -160,8 +160,8 @@ class TrainingPlanViewModel: ObservableObject {
 
         Logger.debug("[TrainingPlanVM] Loading workouts from \(weekInfo.startDate) to \(weekInfo.endDate)")
 
-        // ✅ 使用 Use Case 載入並分組訓練記錄
-        let grouped = loadWeeklyWorkoutsUseCase.execute(weekInfo: weekInfo)
+        // ✅ 使用 Use Case 載入並分組訓練記錄（async 版本）
+        let grouped = await loadWeeklyWorkoutsUseCase.execute(weekInfo: weekInfo)
 
         await MainActor.run {
             self.workoutsByDayV2 = grouped
@@ -185,8 +185,8 @@ class TrainingPlanViewModel: ObservableObject {
 
         Logger.debug("[TrainingPlanVM] Calculating metrics for week \(selectedWeek)")
 
-        // ✅ 使用 Use Case 計算訓練指標
-        let metrics = aggregateWorkoutMetricsUseCase.execute(weekInfo: weekInfo)
+        // ✅ 使用 Use Case 計算訓練指標（async 版本）
+        let metrics = await aggregateWorkoutMetricsUseCase.execute(weekInfo: weekInfo)
 
         await MainActor.run {
             self.currentWeekDistance = metrics.totalDistanceKm
@@ -217,6 +217,7 @@ class TrainingPlanViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let repository: TrainingPlanRepository
+    private let workoutRepository: WorkoutRepository
     private let loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase
     private let aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase
 
@@ -232,12 +233,14 @@ class TrainingPlanViewModel: ObservableObject {
 
     init(
         repository: TrainingPlanRepository,
+        workoutRepository: WorkoutRepository,
         loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
         aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
         weeklyPlanVM: WeeklyPlanViewModel? = nil,
         summaryVM: WeeklySummaryViewModel? = nil
     ) {
         self.repository = repository
+        self.workoutRepository = workoutRepository
         self.loadWeeklyWorkoutsUseCase = loadWeeklyWorkoutsUseCase
         self.aggregateWorkoutMetricsUseCase = aggregateWorkoutMetricsUseCase
         self.weeklyPlanVM = weeklyPlanVM ?? WeeklyPlanViewModel(repository: repository)
@@ -259,11 +262,13 @@ class TrainingPlanViewModel: ObservableObject {
         }
 
         let repository: TrainingPlanRepository = container.resolve()
+        let workoutRepository: WorkoutRepository = container.resolve()
         let loadWeeklyWorkoutsUseCase = container.makeLoadWeeklyWorkoutsUseCase()
         let aggregateWorkoutMetricsUseCase = container.makeAggregateWorkoutMetricsUseCase()
 
         self.init(
             repository: repository,
+            workoutRepository: workoutRepository,
             loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
             aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase
         )
@@ -341,6 +346,11 @@ class TrainingPlanViewModel: ObservableObject {
             // 清除 Repository 緩存
             await self.repository.clearCache()
 
+            // ✅ 重置初始化標記，允許重新初始化
+            await MainActor.run {
+                self.hasInitialized = false
+            }
+
             // 重新載入所有數據
             await self.initialize()
 
@@ -371,10 +381,10 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱訓練計畫修改事件
         // 當訓練計畫被修改時（例如從 EditScheduleView），刷新週計畫
-        CacheEventBus.shared.subscribe(for: "trainingPlanModified") { [weak self] in
+        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlan") { [weak self] in
             guard let self = self else { return }
 
-            Logger.debug("[TrainingPlanVM] 收到 trainingPlanModified 事件，刷新週計畫")
+            Logger.debug("[TrainingPlanVM] 收到 dataChanged.trainingPlan 事件，刷新週計畫")
 
             // 強制刷新當前週計畫
             await self.weeklyPlanVM.refreshWeeklyPlan()
@@ -401,7 +411,30 @@ class TrainingPlanViewModel: ObservableObject {
             Logger.debug("[TrainingPlanVM] ✅ 目標更新後數據已刷新")
         }
 
-        // 監聽歷史週回顧列表狀態，更新 legacy properties
+        // ✅ Clean Architecture: 訂閱用戶登入事件
+        // 當用戶登入時（已完成 onboarding 的用戶），重新初始化所有數據
+        // 修復：登出再登入後 workouts 不顯示的問題
+        CacheEventBus.shared.subscribe(for: "dataChanged.user") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[TrainingPlanVM] 收到 dataChanged.user 事件，重新載入所有數據")
+
+            // 清除 Repository 緩存
+            await self.repository.clearCache()
+
+            // ✅ 關鍵修復：重置初始化標記，允許重新初始化
+            // 否則 initialize() 的 guard 會直接退出，導致數據不會重新載入
+            await MainActor.run {
+                self.hasInitialized = false
+            }
+
+            // 重新載入所有數據
+            await self.initialize()
+
+            Logger.debug("[TrainingPlanVM] ✅ 用戶登入後數據重新載入完成")
+        }
+
+        // 監聯歷史週回顧列表狀態，更新 legacy properties
         summaryVM.$summariesState
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
@@ -429,30 +462,61 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 初始化載入所有數據
     func initialize() async {
-        Logger.debug("[TrainingPlanVM] Initializing...")
+        // 防止重複初始化
+        guard !hasInitialized else {
+            Logger.debug("[TrainingPlanVM] ⚠️ Already initialized, skipping")
+            return
+        }
+
+        Logger.debug("[TrainingPlanVM] 🚀 Starting initialization...")
 
         // 顯示 loading 狀態
         planStatus = .loading
 
+        // ✅ Clean Architecture: 步驟 0 - 確保 Workout 數據已載入
+        // 使用 WorkoutRepository 刷新數據，確保保存到 WorkoutLocalDataSource
+        // 這樣 LoadWeeklyWorkoutsUseCase 才能讀取到正確的數據
+        Logger.debug("[TrainingPlanVM] Step 0: Ensuring workout data is loaded...")
+        do {
+            _ = try await workoutRepository.refreshWorkouts()
+            Logger.debug("[TrainingPlanVM] ✅ Workout data refreshed via WorkoutRepository")
+        } catch {
+            Logger.error("[TrainingPlanVM] ⚠️ Failed to refresh workouts: \(error.localizedDescription)")
+            // 不中斷流程，繼續嘗試使用緩存數據
+        }
+
         // 步驟 1: 載入計畫狀態
+        Logger.debug("[TrainingPlanVM] Step 1: Loading plan status...")
         await loadPlanStatus()
 
         // 根據 plan status 決定下一步操作
         guard let response = planStatusResponse else {
-            Logger.error("[TrainingPlanVM] No plan status response")
+            Logger.error("[TrainingPlanVM] ❌ No plan status response")
             planStatus = .noPlan
             return
         }
+        Logger.debug("[TrainingPlanVM] ✅ Plan status loaded: nextAction=\(response.nextAction)")
 
         // 步驟 2: 載入訓練概覽
+        Logger.debug("[TrainingPlanVM] Step 2: Loading training overview...")
         await weeklyPlanVM.loadOverview()
+
+        // 驗證 overview 已載入
+        if let overview = trainingOverview {
+            Logger.debug("[TrainingPlanVM] ✅ Training overview loaded: id=\(overview.id)")
+        } else {
+            Logger.error("[TrainingPlanVM] ❌ Training overview is nil after loadOverview()")
+        }
 
         // 步驟 3: 根據 nextAction 決定是否載入週計畫
         if response.nextAction == .viewPlan {
+            Logger.debug("[TrainingPlanVM] Step 3: Loading weekly plan...")
             await weeklyPlanVM.loadWeeklyPlan()
 
             // ✅ 關鍵修改：立即載入 workouts，在更新 planStatus 之前
+            Logger.debug("[TrainingPlanVM] Step 4: Loading workouts for current week...")
             await loadWorkoutsForCurrentWeek()
+            Logger.debug("[TrainingPlanVM] ✅ Workouts loaded: \(workoutsByDayV2.values.flatMap { $0 }.count) workouts")
 
             // ✅ 所有數據準備完畢後，手動更新 planStatus
             switch weeklyPlanVM.state {
@@ -480,6 +544,15 @@ class TrainingPlanViewModel: ObservableObject {
         // ✅ 標記初始化完成，允許通知監聽器開始響應
         hasInitialized = true
         Logger.debug("[TrainingPlanVM] ✅ 初始化完成，通知監聽器已啟用")
+
+        // ✅ 修復競態條件：主動重新載入 workouts
+        // 因為 .workoutsDidUpdate 通知可能在 hasInitialized = true 之前就到達並被跳過
+        // 此時 UnifiedWorkoutManager.workouts 應該已經有數據了
+        if response.nextAction == .viewPlan {
+            Logger.debug("[TrainingPlanVM] Step 5: Re-loading workouts to fix race condition...")
+            await loadWorkoutsForCurrentWeek()
+            Logger.debug("[TrainingPlanVM] ✅ 競態條件修復：重新載入 workouts 完成，total=\(workoutsByDayV2.values.flatMap { $0 }.count)")
+        }
     }
 
     // MARK: - Plan Status

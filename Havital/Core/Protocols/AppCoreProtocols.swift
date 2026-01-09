@@ -26,22 +26,4 @@ protocol AppStateManagerProtocol: ObservableObject {
 // Ensure AppStateManager conforms to the protocol
 extension AppStateManager: AppStateManagerProtocol {}
 
-// MARK: - UnifiedWorkoutManager Protocol
 
-@MainActor
-protocol UnifiedWorkoutManagerProtocol: ObservableObject {
-    var isLoading: Bool { get }
-    var workouts: [WorkoutV2] { get }
-    var lastSyncTime: Date? { get }
-    var syncError: String? { get }
-    
-    func initialize() async
-    func loadWorkouts() async
-    func refreshWorkouts() async
-    func forceRefreshFromAPI() async
-    func switchDataSource(to newDataSource: DataSourceType) async
-    func getWorkoutStats(days: Int) async throws -> WorkoutStatsResponse
-}
-
-// Ensure UnifiedWorkoutManager conforms to the protocol
-extension UnifiedWorkoutManager: UnifiedWorkoutManagerProtocol {}

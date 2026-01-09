@@ -439,6 +439,15 @@
 "workout.detail.intensity_medium" = "中";
 "workout.detail.intensity_high" = "高";
 "workout.detail.minutes" = "分";
+"workout.detail.training_notes_title" = "訓練心得";
+"workout.detail.training_notes_add" = "添加";
+"workout.detail.training_notes_edit" = "編輯";
+"workout.detail.training_notes_save" = "保存";
+"workout.detail.training_notes_cancel" = "取消";
+"workout.detail.training_notes_saving" = "保存中...";
+"workout.detail.training_notes_placeholder" = "尚未記錄訓練心得。點擊「添加」按鈕記錄您的感受和想法。";
+"workout.detail.training_notes_save_error" = "保存訓練心得失敗，請稍後重試。";
+"workout.detail.training_notes_editor_title" = "編輯訓練心得";
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";

@@ -341,7 +341,11 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
             
             // 與後端同步 (使用 Firebase Token)
             try await syncUserWithBackend(idToken: firebaseToken)
-            
+
+            // ✅ 發布用戶登入事件，通知 TrainingPlanViewModel 等重新載入數據
+            CacheEventBus.shared.publish(.dataChanged(.user))
+            Logger.debug("[AuthenticationService] ✅ 已發布 dataChanged.user 事件")
+
             await MainActor.run {
                 isLoading = false
             }
@@ -454,6 +458,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
             }
 
             UserService.shared.syncUserPreferences(with: user)
+
+            // ✅ 發布用戶登入事件，通知 TrainingPlanViewModel 等重新載入數據
+            CacheEventBus.shared.publish(.dataChanged(.user))
+            Logger.debug("[AuthenticationService] ✅ 已發布 dataChanged.user 事件 (Demo Login)")
 
             print("✅ [Demo Login] 登入流程完成")
             print("🔍 [Demo Login] 🚨 最終狀態: isAuthenticated=\(self.isAuthenticated), hasCompletedOnboarding=\(self.hasCompletedOnboarding) 🚨")
@@ -1085,7 +1093,11 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
                 print("Apple Sign In: Successfully signed in with Firebase. Firebase ID token length: \(firebaseToken.count)")
                 
                 try await syncUserWithBackend(idToken: firebaseToken)
-                
+
+                // ✅ 發布用戶登入事件，通知 TrainingPlanViewModel 等重新載入數據
+                CacheEventBus.shared.publish(.dataChanged(.user))
+                Logger.debug("[AuthenticationService] ✅ 已發布 dataChanged.user 事件 (Apple Sign-In)")
+
                 await MainActor.run {
                     self.isLoading = false
                 }

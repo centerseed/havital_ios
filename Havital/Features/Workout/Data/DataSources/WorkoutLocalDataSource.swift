@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Workout Local Data Source
 /// 負責本地緩存的 Workout 數據管理
 /// Data Layer - Local Data Source
-final class WorkoutLocalDataSource {
+class WorkoutLocalDataSource {
 
     // MARK: - Properties
 
@@ -135,6 +135,52 @@ final class WorkoutLocalDataSource {
         let listSize = cacheManager.getCacheSize()
         let detailSize = workoutCacheManager.getCacheSize()
         return (listSize, detailSize, listSize + detailSize)
+    }
+
+    // MARK: - Compatibility Methods (for UnifiedWorkoutManager migration)
+
+    /// 合併新的訓練數據到緩存（兼容 WorkoutV2CacheManager.mergeWorkoutsToCache）
+    /// - Parameter newWorkouts: 新的訓練列表
+    /// - Returns: 新增的訓練數量
+    func mergeWorkoutsToCache(_ newWorkouts: [WorkoutV2]) -> Int {
+        guard !newWorkouts.isEmpty else { return 0 }
+
+        // 獲取現有緩存（即使過期也要讀取，以便合併）
+        let existingWorkouts = cacheManager.loadFromCache() ?? []
+        let existingIds = Set(existingWorkouts.map { $0.id })
+
+        // 找出新的訓練（不在現有緩存中的）
+        let trulyNewWorkouts = newWorkouts.filter { !existingIds.contains($0.id) }
+
+        if trulyNewWorkouts.isEmpty {
+            Logger.debug("[WorkoutLocalDataSource] mergeWorkoutsToCache - 沒有新數據需要合併")
+            return 0
+        }
+
+        // 合併並保存
+        let mergedWorkouts = (existingWorkouts + trulyNewWorkouts).sorted { $0.endDate > $1.endDate }
+        saveWorkouts(mergedWorkouts)
+
+        Logger.debug("[WorkoutLocalDataSource] mergeWorkoutsToCache - 合併了 \(trulyNewWorkouts.count) 條新記錄，總計 \(mergedWorkouts.count)")
+        return trulyNewWorkouts.count
+    }
+
+    /// 檢查是否有緩存的訓練數據（兼容 WorkoutV2CacheManager.hasCachedWorkouts）
+    func hasCachedWorkouts() -> Bool {
+        return getWorkouts() != nil
+    }
+
+    /// 獲取最後同步時間（兼容 WorkoutV2CacheManager.getLastSyncTime）
+    /// 注意：LocalDataSource 不追蹤同步時間，返回 nil
+    func getLastSyncTime() -> Date? {
+        // LocalDataSource 不追蹤同步時間
+        // 如果需要，可以在未來添加 UserDefaults 來存儲
+        return nil
+    }
+
+    /// 檢查緩存是否需要刷新（兼容 WorkoutV2CacheManager.shouldRefreshCache）
+    func shouldRefreshCache() -> Bool {
+        return cacheManager.isExpired()
     }
 }
 

@@ -40,10 +40,10 @@ final class LoadWeeklyWorkoutsUseCaseTests: XCTestCase {
         let workout3 = createWorkout(id: "3", date: "2024-01-03T14:00:00Z", type: "running") // Wed (later)
         
         mockWorkoutRepository.workoutsToReturn = [workout1, workout2, workout3]
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         XCTAssertEqual(mockWorkoutRepository.getWorkoutsInDateRangeCallCount, 1)
         XCTAssertEqual(result.count, 2) // Mon and Wed
@@ -67,10 +67,10 @@ final class LoadWeeklyWorkoutsUseCaseTests: XCTestCase {
         let swim = createWorkout(id: "2", date: "2024-01-02T10:00:00Z", type: "swimming")
         
         mockWorkoutRepository.workoutsToReturn = [run, swim]
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo, activityTypes: ["running"])
-        
+        let result = await sut.execute(weekInfo: weekInfo, activityTypes: ["running"])
+
         // Then
         XCTAssertEqual(result.count, 1)
         XCTAssertNotNil(result[1])
@@ -82,10 +82,10 @@ final class LoadWeeklyWorkoutsUseCaseTests: XCTestCase {
         let startDate = Date()
         let weekInfo = WeekDateInfo(startDate: startDate, endDate: startDate.addingTimeInterval(86400*7), daysMap: [:])
         mockWorkoutRepository.workoutsToReturn = []
-        
+
         // When
-        let result = sut.execute(weekInfo: weekInfo)
-        
+        let result = await sut.execute(weekInfo: weekInfo)
+
         // Then
         XCTAssertTrue(result.isEmpty)
     }

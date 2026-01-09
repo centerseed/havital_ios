@@ -48,6 +48,72 @@ class MockWorkoutRepository: WorkoutRepository {
         return workoutsToReturn
     }
 
+    // MARK: - New Async Methods
+
+    func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] {
+        getWorkoutsInDateRangeCallCount += 1
+        getWorkoutsInDateRangeLastParams = (startDate, endDate)
+        return workoutsToReturn
+    }
+
+    func getAllWorkoutsAsync() async -> [WorkoutV2] {
+        getAllWorkoutsCallCount += 1
+        return workoutsToReturn
+    }
+
+    // MARK: - Pagination Methods
+
+    func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse {
+        if let error = errorToThrow {
+            throw error
+        }
+        let pagination = PaginationInfo(
+            nextCursor: nil,
+            prevCursor: nil,
+            hasMore: false,
+            hasNewer: false,
+            oldestId: nil,
+            newestId: nil,
+            totalItems: workoutsToReturn.count,
+            pageSize: pageSize
+        )
+        return WorkoutListResponse(workouts: workoutsToReturn, pagination: pagination)
+    }
+
+    func loadMoreWorkouts(afterCursor: String, pageSize: Int) async throws -> WorkoutListResponse {
+        if let error = errorToThrow {
+            throw error
+        }
+        let pagination = PaginationInfo(
+            nextCursor: nil,
+            prevCursor: afterCursor,
+            hasMore: false,
+            hasNewer: false,
+            oldestId: nil,
+            newestId: nil,
+            totalItems: workoutsToReturn.count,
+            pageSize: pageSize
+        )
+        return WorkoutListResponse(workouts: workoutsToReturn, pagination: pagination)
+    }
+
+    func refreshLatestWorkouts(beforeCursor: String?, pageSize: Int) async throws -> WorkoutListResponse {
+        if let error = errorToThrow {
+            throw error
+        }
+        let pagination = PaginationInfo(
+            nextCursor: nil,
+            prevCursor: beforeCursor,
+            hasMore: false,
+            hasNewer: false,
+            oldestId: nil,
+            newestId: nil,
+            totalItems: workoutsToReturn.count,
+            pageSize: pageSize
+        )
+        return WorkoutListResponse(workouts: workoutsToReturn, pagination: pagination)
+    }
+
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] {
         getWorkoutsCallCount += 1
         getWorkoutsLastParams = (limit, offset)

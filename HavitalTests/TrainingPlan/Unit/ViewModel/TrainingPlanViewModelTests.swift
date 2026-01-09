@@ -30,6 +30,7 @@ final class TrainingPlanViewModelTests: XCTestCase {
         
         sut = TrainingPlanViewModel(
             repository: mockRepository,
+            workoutRepository: mockWorkoutRepository,
             loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
             aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
             weeklyPlanVM: WeeklyPlanViewModel(repository: mockRepository),

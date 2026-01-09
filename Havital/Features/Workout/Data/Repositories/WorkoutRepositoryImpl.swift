@@ -3,6 +3,7 @@ import Foundation
 // MARK: - Workout Repository Implementation
 /// 訓練記錄 Repository 實作
 /// Data Layer - 協調雙數據源實現雙軌緩存策略
+/// ✅ Clean Architecture: 完全使用 RemoteDataSource + LocalDataSource，不依賴 UnifiedWorkoutManager
 final class WorkoutRepositoryImpl: WorkoutRepository {
 
     // MARK: - Singleton (for backwards compatibility)
@@ -11,16 +12,13 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
     // MARK: - Properties
 
-    private let workoutManager: UnifiedWorkoutManager
     private let remoteDataSource: WorkoutRemoteDataSource
     private let localDataSource: WorkoutLocalDataSource
 
     // MARK: - Initialization
 
-    init(workoutManager: UnifiedWorkoutManager = .shared,
-         remoteDataSource: WorkoutRemoteDataSource = WorkoutRemoteDataSource(),
+    init(remoteDataSource: WorkoutRemoteDataSource = WorkoutRemoteDataSource(),
          localDataSource: WorkoutLocalDataSource = WorkoutLocalDataSource()) {
-        self.workoutManager = workoutManager
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
 
@@ -33,12 +31,58 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         return .workoutsDidUpdate
     }
 
+    // ⚠️ DEPRECATED - NOW USES LocalDataSource for consistency
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] {
-        return workoutManager.getWorkoutsInDateRange(startDate: startDate, endDate: endDate)
+        Logger.debug("[WorkoutRepositoryImpl] ⚠️ getWorkoutsInDateRange (deprecated) - migrate to async version")
+
+        // ✅ NOW USES LocalDataSource instead of UnifiedWorkoutManager
+        guard let allWorkouts = localDataSource.getWorkouts() else {
+            return []
+        }
+
+        return allWorkouts.filter { workout in
+            workout.startDate >= startDate && workout.startDate <= endDate
+        }.sorted { $0.endDate > $1.endDate }
     }
 
+    // ⚠️ DEPRECATED - NOW USES LocalDataSource for consistency
     func getAllWorkouts() -> [WorkoutV2] {
-        return workoutManager.workouts
+        Logger.debug("[WorkoutRepositoryImpl] ⚠️ getAllWorkouts (deprecated) - migrate to async version")
+
+        // ✅ NOW USES LocalDataSource instead of UnifiedWorkoutManager
+        return localDataSource.getWorkouts()?.sorted { $0.endDate > $1.endDate } ?? []
+    }
+
+    // MARK: - Async Query (LocalDataSource as Single Source of Truth)
+
+    func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] {
+        Logger.debug("[WorkoutRepositoryImpl] getWorkoutsInDateRangeAsync - from \(startDate) to \(endDate)")
+
+        // ✅ Use LocalDataSource as single source
+        guard let allWorkouts = localDataSource.getWorkouts() else {
+            Logger.debug("[WorkoutRepositoryImpl] No cached workouts, returning empty")
+            return []
+        }
+
+        // Filter by date range
+        let filtered = allWorkouts.filter { workout in
+            workout.startDate >= startDate && workout.startDate <= endDate
+        }.sorted { $0.endDate > $1.endDate }
+
+        Logger.debug("[WorkoutRepositoryImpl] Found \(filtered.count) workouts in date range")
+        return filtered
+    }
+
+    func getAllWorkoutsAsync() async -> [WorkoutV2] {
+        Logger.debug("[WorkoutRepositoryImpl] getAllWorkoutsAsync")
+
+        // ✅ Use LocalDataSource as single source
+        guard let allWorkouts = localDataSource.getWorkouts() else {
+            Logger.debug("[WorkoutRepositoryImpl] No cached workouts, returning empty")
+            return []
+        }
+
+        return allWorkouts.sorted { $0.endDate > $1.endDate }
     }
 
     // MARK: - Workout List (雙軌緩存策略)
@@ -75,6 +119,89 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
         Logger.debug("[WorkoutRepositoryImpl] refreshWorkouts - 完成，數量: \(workouts.count)")
         return workouts
+    }
+
+    // MARK: - Pagination (Migrated from UnifiedWorkoutManager)
+
+    func loadInitialWorkouts(pageSize: Int = 10) async throws -> WorkoutListResponse {
+        Logger.debug("[WorkoutRepositoryImpl] loadInitialWorkouts - pageSize: \(pageSize)")
+
+        // Fetch from API
+        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil)
+
+        // Update cache
+        localDataSource.saveWorkouts(workouts)
+
+        // Construct pagination info
+        let pagination = PaginationInfo(
+            nextCursor: workouts.last?.id,
+            prevCursor: nil,
+            hasMore: workouts.count >= pageSize,
+            hasNewer: false,
+            oldestId: workouts.last?.id,
+            newestId: workouts.first?.id,
+            totalItems: workouts.count,
+            pageSize: pageSize
+        )
+
+        Logger.debug("[WorkoutRepositoryImpl] loadInitialWorkouts - 完成，數量: \(workouts.count)")
+        return WorkoutListResponse(workouts: workouts, pagination: pagination)
+    }
+
+    func loadMoreWorkouts(afterCursor: String, pageSize: Int = 10) async throws -> WorkoutListResponse {
+        Logger.debug("[WorkoutRepositoryImpl] loadMoreWorkouts - afterCursor: \(afterCursor), pageSize: \(pageSize)")
+
+        // Fetch from API
+        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: afterCursor)
+
+        // Merge with existing cache
+        if var cachedWorkouts = localDataSource.getWorkouts() {
+            cachedWorkouts.append(contentsOf: workouts)
+            localDataSource.saveWorkouts(cachedWorkouts)
+            Logger.debug("[WorkoutRepositoryImpl] Merged with cache, total: \(cachedWorkouts.count)")
+        } else {
+            localDataSource.saveWorkouts(workouts)
+        }
+
+        // Construct pagination info
+        let pagination = PaginationInfo(
+            nextCursor: workouts.last?.id,
+            prevCursor: afterCursor,
+            hasMore: workouts.count >= pageSize,
+            hasNewer: false,
+            oldestId: workouts.last?.id,
+            newestId: workouts.first?.id,
+            totalItems: workouts.count,
+            pageSize: pageSize
+        )
+
+        Logger.debug("[WorkoutRepositoryImpl] loadMoreWorkouts - 完成，返回: \(workouts.count)")
+        return WorkoutListResponse(workouts: workouts, pagination: pagination)
+    }
+
+    func refreshLatestWorkouts(beforeCursor: String? = nil, pageSize: Int = 10) async throws -> WorkoutListResponse {
+        Logger.debug("[WorkoutRepositoryImpl] refreshLatestWorkouts - beforeCursor: \(String(describing: beforeCursor)), pageSize: \(pageSize)")
+
+        // Fetch from API
+        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil)
+
+        // Replace cache (not merge)
+        localDataSource.saveWorkouts(workouts)
+
+        // Construct pagination info
+        let pagination = PaginationInfo(
+            nextCursor: workouts.last?.id,
+            prevCursor: nil,
+            hasMore: workouts.count >= pageSize,
+            hasNewer: false,
+            oldestId: workouts.last?.id,
+            newestId: workouts.first?.id,
+            totalItems: workouts.count,
+            pageSize: pageSize
+        )
+
+        Logger.debug("[WorkoutRepositoryImpl] refreshLatestWorkouts - 完成，數量: \(workouts.count)")
+        return WorkoutListResponse(workouts: workouts, pagination: pagination)
     }
 
     // MARK: - Single Workout

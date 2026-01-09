@@ -11,22 +11,22 @@ final class AppViewModelTests: XCTestCase {
     
     var sut: AppViewModel!
     var mockAppStateManager: MockAppStateManager!
-    var mockUnifiedWorkoutManager: MockUnifiedWorkoutManager!
+    var mockWorkoutRepository: MockWorkoutRepository!
     
     override func setUp() async throws {
         try await super.setUp()
         mockAppStateManager = MockAppStateManager()
-        mockUnifiedWorkoutManager = MockUnifiedWorkoutManager()
+        mockWorkoutRepository = MockWorkoutRepository()
         sut = AppViewModel(
             appStateManager: mockAppStateManager,
-            unifiedWorkoutManager: mockUnifiedWorkoutManager
+            workoutRepository: mockWorkoutRepository
         )
     }
     
     override func tearDown() async throws {
         sut = nil
         mockAppStateManager = nil
-        mockUnifiedWorkoutManager = nil
+        mockWorkoutRepository = nil
         try await super.tearDown()
     }
     
@@ -48,7 +48,7 @@ final class AppViewModelTests: XCTestCase {
         await sut.onAppBecameActive()
         
         // Then
-        XCTAssertEqual(mockUnifiedWorkoutManager.refreshWorkoutsCallCount, 1)
+        XCTAssertEqual(mockWorkoutRepository.refreshWorkoutsCallCount, 1)
     }
     
     func testOnAppBecameActive_NotReadyState_DoesNotRefreshWorkouts() async {
@@ -59,7 +59,7 @@ final class AppViewModelTests: XCTestCase {
         await sut.onAppBecameActive()
         
         // Then
-        XCTAssertEqual(mockUnifiedWorkoutManager.refreshWorkoutsCallCount, 0)
+        XCTAssertEqual(mockWorkoutRepository.refreshWorkoutsCallCount, 0)
     }
     
     func testRefreshData_ReadyState_RefreshesWorkouts() async {
@@ -70,7 +70,7 @@ final class AppViewModelTests: XCTestCase {
         await sut.refreshData()
         
         // Then
-        XCTAssertEqual(mockUnifiedWorkoutManager.refreshWorkoutsCallCount, 1)
+        XCTAssertEqual(mockWorkoutRepository.refreshWorkoutsCallCount, 1)
     }
     
     func testRefreshData_NotReadyState_DoesNotRefreshWorkouts() async {
@@ -81,7 +81,7 @@ final class AppViewModelTests: XCTestCase {
         await sut.refreshData()
         
         // Then
-        XCTAssertEqual(mockUnifiedWorkoutManager.refreshWorkoutsCallCount, 0)
+        XCTAssertEqual(mockWorkoutRepository.refreshWorkoutsCallCount, 0)
     }
     
     // MARK: - Notification Tests

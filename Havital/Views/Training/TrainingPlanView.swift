@@ -370,6 +370,12 @@ struct TrainingPlanView: View {
         .onAppear {
             Logger.debug("[TrainingPlanView] onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
 
+            // ✅ CRITICAL: Initialize ViewModel data on first appear
+            Task {
+                await viewModel.initialize()
+                Logger.debug("[TrainingPlanView] ✅ ViewModel initialized")
+            }
+
             // 打印心率设置调试信息
             #if DEBUG
             HeartRateDebugHelper.printAllHeartRateSettings()

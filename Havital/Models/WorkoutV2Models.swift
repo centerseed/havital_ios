@@ -423,6 +423,7 @@ struct WorkoutV2Detail: Codable {
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
     let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+    let trainingNotes: String?  // 訓練心得 (optional,向後兼容)
 
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -450,6 +451,7 @@ struct WorkoutV2Detail: Codable {
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
         case shareCardContent = "share_card_content"
+        case trainingNotes = "training_notes"
     }
 }
 
@@ -1448,3 +1450,37 @@ extension LapData {
         fatalError("Failed to create LapData from Apple Health data")
     }
 }
+
+// MARK: - Equatable Extensions
+
+extension SafeDouble: Equatable {}
+extension SafeInt: Equatable {}
+
+extension V2BasicMetrics: Equatable {}
+extension V2AdvancedMetrics: Equatable {}
+extension V2IntensityMinutes: Equatable {}
+extension V2PaceZoneSpeed: Equatable {}
+extension V2ZoneDistribution: Equatable {}
+extension V2TimeSeries: Equatable {}
+extension V2RouteData: Equatable {}
+extension V2DeviceInfo: Equatable {}
+extension V2Environment: Equatable {}
+extension V2Metadata: Equatable {}
+
+extension APIIntensityMinutes: Equatable {}
+extension ZoneDistribution: Equatable {}
+extension BasicMetrics: Equatable {}
+extension AdvancedMetrics: Equatable {}
+
+extension DailyPlanSummary: Equatable {}
+extension AISummary: Equatable {}
+extension ShareCardContent: Equatable {}
+extension LapData: Equatable {}
+
+extension WorkoutV2: Equatable {}
+extension WorkoutV2Detail: Equatable {}
+
+// MARK: - More Equatable Extensions (DailyPlan)
+extension DailyPlanSegment: Equatable {}
+extension DailyTrainingDetails: Equatable {}
+extension DailySummaryHeartRateRange: Equatable {}

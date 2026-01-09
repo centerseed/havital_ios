@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Workout Remote Data Source
 /// 負責從遠端 API 獲取 Workout 數據
 /// Data Layer - Remote Data Source
-final class WorkoutRemoteDataSource {
+class WorkoutRemoteDataSource {
 
     // MARK: - Properties
 

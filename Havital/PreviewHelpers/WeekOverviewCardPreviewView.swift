@@ -10,6 +10,7 @@ struct WeekOverviewCardPreviewView: View {
     class PreviewViewModel: TrainingPlanViewModel {
         override init(
             repository: TrainingPlanRepository,
+            workoutRepository: WorkoutRepository,
             loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
             aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
             weeklyPlanVM: WeeklyPlanViewModel? = nil,
@@ -17,6 +18,7 @@ struct WeekOverviewCardPreviewView: View {
         ) {
             super.init(
                 repository: repository,
+                workoutRepository: workoutRepository,
                 loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
                 aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
                 weeklyPlanVM: weeklyPlanVM,
@@ -33,10 +35,12 @@ struct WeekOverviewCardPreviewView: View {
                 container.registerWorkoutModule()
             }
             let repository: TrainingPlanRepository = container.resolve()
+            let workoutRepository: WorkoutRepository = container.resolve()
             let loadUseCase = container.makeLoadWeeklyWorkoutsUseCase()
             let aggregateUseCase = container.makeAggregateWorkoutMetricsUseCase()
             self.init(
                 repository: repository,
+                workoutRepository: workoutRepository,
                 loadWeeklyWorkoutsUseCase: loadUseCase,
                 aggregateWorkoutMetricsUseCase: aggregateUseCase
             )

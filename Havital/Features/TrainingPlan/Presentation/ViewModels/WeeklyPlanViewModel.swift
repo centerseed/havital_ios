@@ -85,10 +85,10 @@ final class WeeklyPlanViewModel: ObservableObject {
         }
 
         // ✅ Clean Architecture: 訂閱訓練計畫修改事件
-        CacheEventBus.shared.subscribe(for: "trainingPlanModified") { [weak self] in
+        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlan") { [weak self] in
             guard let self = self else { return }
 
-            Logger.debug("[WeeklyPlanVM] 收到 trainingPlanModified 事件，刷新週計畫")
+            Logger.debug("[WeeklyPlanVM] 收到 dataChanged.trainingPlan 事件，刷新週計畫")
 
             // 強制刷新當前週計畫
             await self.refreshWeeklyPlan()

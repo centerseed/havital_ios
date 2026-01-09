@@ -15,7 +15,7 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     // 使用新的狀態管理中心
     private let appStateManager: any AppStateManagerProtocol
-    private let unifiedWorkoutManager: any UnifiedWorkoutManagerProtocol
+    private let workoutRepository: WorkoutRepository
 
     // MARK: - Clean Architecture Dependencies
     private var userProfileRepository: UserProfileRepository {
@@ -24,10 +24,10 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     init(
         appStateManager: any AppStateManagerProtocol = AppStateManager.shared,
-        unifiedWorkoutManager: any UnifiedWorkoutManagerProtocol = UnifiedWorkoutManager.shared
+        workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
     ) {
         self.appStateManager = appStateManager
-        self.unifiedWorkoutManager = unifiedWorkoutManager
+        self.workoutRepository = workoutRepository
         // 監聽 HealthKit 權限提示通知
         NotificationCenter.default.addObserver(
             forName: NSNotification.Name("ShowHealthKitPermissionAlert"),
@@ -83,10 +83,11 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     
     /// 註冊所有快取管理器到快取事件總線
     private func registerCacheManagers() {
-        CacheEventBus.shared.register(WorkoutV2CacheManager.shared)
+        CacheEventBus.shared.register(WorkoutV2CacheManager.shared) // 暫時保留，直到完全移除
         CacheEventBus.shared.register(TrainingPlanStorage.shared)
         CacheEventBus.shared.register(TargetStorage.shared)
         CacheEventBus.shared.register(WeeklySummaryStorage.shared)
+        // WorkoutRepository 的 LocalDataSource 不需要在此註冊，因為它自己管理過期
         
         Logger.firebase("所有快取管理器已註冊到 CacheEventBus", level: .info, labels: [
             "module": "AppViewModel",
@@ -102,7 +103,7 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
             return
         }
         
-        await unifiedWorkoutManager.refreshWorkouts()
+        _ = try? await workoutRepository.refreshWorkouts()
     }
     
     /// 手動刷新數據（下拉刷新等）
@@ -113,7 +114,7 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
             return
         }
         
-        await unifiedWorkoutManager.refreshWorkouts()
+        _ = try? await workoutRepository.refreshWorkouts()
     }
     
     // MARK: - Garmin 數據源處理方法
@@ -125,7 +126,7 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
             await GarminManager.shared.startConnection()
             
             // 切換到 Garmin 數據來源
-            await unifiedWorkoutManager.switchDataSource(to: .garmin)
+            await switchDataSource(to: .garmin)
             
             await MainActor.run {
                 isHandlingGarminMismatch = false
@@ -158,8 +159,8 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
                 // 先同步到後端 (Clean Architecture: ViewModel → Repository)
                 try await userProfileRepository.updateDataSource(DataSourceType.appleHealth.rawValue)
 
-                // 使用 UnifiedWorkoutManager 切換數據來源
-                await unifiedWorkoutManager.switchDataSource(to: .appleHealth)
+                // 切換數據來源
+                await switchDataSource(to: .appleHealth)
                 
                 await MainActor.run {
                     print("已切換到 Apple Health 並同步到後端")
@@ -175,5 +176,17 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
                 }
             }
         }
+    }
+    
+    /// 私有輔助方法：切換數據源
+    private func switchDataSource(to newSource: DataSourceType) async {
+        // 1. 更新本地偏好設置
+        UserPreferencesManager.shared.dataSourcePreference = newSource
+        
+        // 2. 清除舊數據源的緩存
+        await workoutRepository.clearCache()
+        
+        // 3. 刷新數據（這會觸發使用新數據源的加載）
+        _ = try? await workoutRepository.refreshWorkouts()
     }
 }

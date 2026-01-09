@@ -29,6 +29,16 @@ final class MockAuthRepository: AuthRepository {
         }
     }
 
+    func signInWithApple() async throws -> AuthUser {
+        signInWithAppleCalled = true
+        switch signInWithAppleResult {
+        case .success(let user):
+            return user
+        case .failure(let error):
+            throw error
+        }
+    }
+
     func signInWithApple(credential: AppleAuthCredential) async throws -> AuthUser {
         signInWithAppleCalled = true
         switch signInWithAppleResult {

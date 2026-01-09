@@ -673,6 +673,17 @@ enum GaitAnalysisChart {
         static let medium = "workout.detail.intensity_medium"
         static let high = "workout.detail.intensity_high"
         static let minutes = "workout.detail.minutes"
+
+        // Training Notes
+        static let trainingNotesTitle = "workout.detail.training_notes_title"
+        static let trainingNotesAdd = "workout.detail.training_notes_add"
+        static let trainingNotesEdit = "workout.detail.training_notes_edit"
+        static let trainingNotesSave = "workout.detail.training_notes_save"
+        static let trainingNotesCancel = "workout.detail.training_notes_cancel"
+        static let trainingNotesSaving = "workout.detail.training_notes_saving"
+        static let trainingNotesPlaceholder = "workout.detail.training_notes_placeholder"
+        static let trainingNotesSaveError = "workout.detail.training_notes_save_error"
+        static let trainingNotesEditorTitle = "workout.detail.training_notes_editor_title"
     }
     
     // MARK: - Workout Metrics
