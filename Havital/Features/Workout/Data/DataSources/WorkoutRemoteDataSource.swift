@@ -35,7 +35,7 @@ class WorkoutRemoteDataSource {
             queryItems.append(URLQueryItem(name: "cursor", value: cursor))
         }
 
-        let path = buildPath("/v2/workouts", queryItems: queryItems)
+        let path = URLBuilderHelper.buildPath("/v2/workouts", queryItems: queryItems)
 
         Logger.debug("[WorkoutRemoteDataSource] fetchWorkouts - path: \(path)")
 
@@ -69,6 +69,20 @@ class WorkoutRemoteDataSource {
         return WorkoutMapper.toWorkoutV2(from: response)
     }
 
+    /// 獲取完整訓練詳情（包含時間序列數據）
+    /// - Parameter id: 訓練 ID
+    /// - Returns: 完整的訓練詳情
+    func fetchWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        let path = "/v2/workouts/\(id)"
+
+        Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutDetail - id: \(id)")
+
+        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let response = try ResponseProcessor.extractData(WorkoutV2Detail.self, from: rawData, using: parser)
+
+        return response
+    }
+
     // MARK: - Upload & Sync
 
     /// 上傳訓練數據
@@ -86,6 +100,20 @@ class WorkoutRemoteDataSource {
         let response = try ResponseProcessor.extractData(UploadWorkoutResponse.self, from: rawData, using: parser)
 
         return response
+    }
+
+    // MARK: - Update
+
+    /// 更新訓練數據
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - body: 更新內容
+    func updateWorkout(id: String, body: [String: Any]) async throws {
+        let path = "/v2/workouts/\(id)"
+        Logger.debug("[WorkoutRemoteDataSource] updateWorkout - id: \(id)")
+        
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+        _ = try await httpClient.request(path: path, method: .PATCH, body: bodyData)
     }
 
     // MARK: - Delete
@@ -116,16 +144,4 @@ class WorkoutRemoteDataSource {
         return response
     }
 
-    // MARK: - Helper Methods
-
-    /// 構建完整的 API 路徑（包含查詢參數）
-    private func buildPath(_ basePath: String, queryItems: [URLQueryItem]) -> String {
-        if queryItems.isEmpty {
-            return basePath
-        }
-
-        var components = URLComponents(string: basePath)
-        components?.queryItems = queryItems
-        return components?.string ?? basePath
-    }
 }

@@ -70,6 +70,25 @@ final class TrainingPlanRemoteDataSource {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         let bodyData = try encoder.encode(requestBody)
 
+        // 🔍 DEBUG: 打印實際編碼發送的 JSON
+        if let jsonString = String(data: bodyData, encoding: .utf8) {
+            Logger.debug("[RemoteDataSource] 📤 發送 JSON 到後端:")
+            Logger.debug("[RemoteDataSource] URL: /plan/race_run/weekly/\(planId)/modify")
+            Logger.debug("[RemoteDataSource] Method: PUT")
+
+            // 美化 JSON 輸出（分多行打印）
+            if let jsonObject = try? JSONSerialization.jsonObject(with: bodyData),
+               let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+               let prettyString = String(data: prettyData, encoding: .utf8) {
+                let lines = prettyString.split(separator: "\n", omittingEmptySubsequences: false)
+                for line in lines {
+                    Logger.debug("[RemoteDataSource] \(line)")
+                }
+            } else {
+                Logger.debug("[RemoteDataSource] Body: \(jsonString)")
+            }
+        }
+
         let rawData = try await httpClient.request(
             path: "/plan/race_run/weekly/\(planId)/modify",
             method: .PUT,

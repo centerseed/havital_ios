@@ -24,13 +24,9 @@ struct WeeklyDistanceSetupView: View {
         _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
     }
 
-    // Slider max value calculation
+    // Slider max value - always use maxWeeklyDistance (180km)
     private var sliderMaxDistance: Double {
-        if let targetDistance = targetDistance {
-            return max(targetDistance * 4, 60.0)
-        } else {
-            return maxWeeklyDistance
-        }
+        return maxWeeklyDistance
     }
 
     var body: some View {

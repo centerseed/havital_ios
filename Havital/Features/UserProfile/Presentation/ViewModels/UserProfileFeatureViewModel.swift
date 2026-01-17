@@ -452,6 +452,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     // MARK: - Account Management
 
     /// Delete user account
+    /// - Important: Resets onboarding status BEFORE deletion to ensure fresh onboarding on next login
     func deleteAccount() async throws {
         guard let userId = currentUserId else {
             throw UserProfileError.notAuthenticated
@@ -459,7 +460,26 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
         Logger.debug("[UserProfileVM] Deleting account: \(userId)")
 
+        // ✅ STEP 1: Reset onboarding status in backend BEFORE deleting account
+        // This ensures if the user logs in again with the same account (soft delete scenario),
+        // they will go through onboarding again
+        do {
+            let onboardingRepo = DependencyContainer.shared.resolve() as OnboardingRepository
+            try await onboardingRepo.resetOnboarding()
+            Logger.debug("[UserProfileVM] Onboarding status reset successfully")
+        } catch {
+            Logger.error("[UserProfileVM] Failed to reset onboarding (non-critical): \(error.localizedDescription)")
+            // Continue with deletion even if reset fails
+        }
+
+        // ✅ STEP 2: Delete account from backend
         try await userRepository.deleteAccount(userId: userId)
+
+        // ✅ STEP 3: Publish user logout event to clear ALL caches (TrainingPlan, Workout, MonthlyStats, etc.)
+        // This ensures no local data remains when the user logs in again
+        CacheEventBus.shared.publish(.userLogout)
+
+        // ✅ STEP 4: Sign out (clears UserDefaults, Firebase session, etc.)
         try await authService.signOut()
 
         // Clear state
@@ -524,18 +544,9 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     }
 
     /// Check if error is task cancellation (should be ignored for UI state)
+    /// Uses the standardized isCancellationError extension for consistency
     private func isTaskCancelled(_ error: Error) -> Bool {
-        // Check SystemError.taskCancelled
-        if let systemError = error as? SystemError,
-           case .taskCancelled = systemError {
-            return true
-        }
-        // Check NSURLErrorCancelled
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-            return true
-        }
-        return false
+        return error.isCancellationError
     }
 
     // MARK: - Formatting Helpers

@@ -486,6 +486,13 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
                 ]
             )
         } catch {
+            // 如果是取消操作，不視為錯誤記錄
+            if error is CancellationError {
+                print("ℹ️ [Demo Login] 任務已取消")
+                await MainActor.run { isLoading = false }
+                return
+            }
+
             print("❌ [Demo Login] 失敗: \(error)")
             print("   錯誤類型: \(type(of: error))")
             print("   錯誤描述: \(error.localizedDescription)")

@@ -211,7 +211,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                               type == .lsd ? L10n.Training.TrainingType.lsd.localized :
                               L10n.Training.TrainingType.easy.localized,
                         runDetails: description,
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(
                             pace: details.pace,
                             distanceKm: distance,
@@ -254,13 +254,25 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     let workItem = WeeklyTrainingItem(
                         name: intervalTypeName,
                         runDetails: work.description ?? "",
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(pace: work.pace, distanceKm: workDistance, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(workItem)
 
                     // recovery 為 nil 時表示原地休息，建立一個空的恢復段
-                    let recoveryTimeMinutes = details.recovery?.timeMinutes.map { Int($0) }
+                    // 優先使用 timeSeconds，沒有則用 timeMinutes * 60 轉換成秒數
+                    let recoveryDurationSeconds: Int? = {
+                        if let seconds = details.recovery?.timeSeconds {
+                            Logger.debug("[WeeklyPlan] 恢復段計算: 使用 timeSeconds = \(seconds)")
+                            return seconds
+                        } else if let minutes = details.recovery?.timeMinutes {
+                            let calculated = Int(round(minutes * 60))
+                            Logger.debug("[WeeklyPlan] 恢復段計算: 使用 timeMinutes = \(minutes) 轉換為 \(calculated)秒")
+                            return calculated
+                        }
+                        Logger.debug("[WeeklyPlan] 恢復段計算: 無時間數據（timeSeconds=\(details.recovery?.timeSeconds ?? -1), timeMinutes=\(details.recovery?.timeMinutes ?? -1)）")
+                        return nil
+                    }()
                     let recoveryPace = details.recovery?.pace
 
                     // 優先使用 distanceKm，如果為 nil 則使用 distanceM 轉換
@@ -273,10 +285,20 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         return nil
                     }()
 
+                    // 優先找不為 0 的來算，如果兩個都不為 0 就都保留不處理
+                    let recoveryDurationMinutes: Double? = {
+                        if let seconds = details.recovery?.timeSeconds, seconds > 0 {
+                            return Double(seconds) / 60.0
+                        } else {
+                            return details.recovery?.timeMinutes
+                        }
+                    }()
+
                     let recoveryItem = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.recovery.localized,
                         runDetails: details.recovery?.description ?? "",
-                        durationMinutes: recoveryTimeMinutes,
+                        durationMinutes: recoveryDurationMinutes,
+                        durationSeconds: recoveryDurationSeconds,        // 精確秒數用於主畫面顯示
                         goals: TrainingGoals(pace: recoveryPace, distanceKm: recoveryDistance, heartRateRange: nil, heartRate: nil, times: repeats)
                     )
                     items.append(recoveryItem)
@@ -297,7 +319,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     let item = WeeklyTrainingItem(
                         name: typeName,
                         runDetails: description,
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(
                             pace: details.pace, // pace 可以是 nil
                             distanceKm: distance,
@@ -314,7 +336,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     let item = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.progression.localized,
                         runDetails: description,
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
                     )
                     return [item]
@@ -333,7 +355,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     let item = WeeklyTrainingItem(
                         name: typeName,
                         runDetails: description,
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: totalDistance, heartRateRange: nil, heartRate: nil, times: nil)
                     )
                     return [item]
@@ -343,7 +365,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 let item = WeeklyTrainingItem(
                         name: L10n.Training.TrainingType.race.localized,
                         runDetails: description,
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: nil, heartRateRange: nil, heartRate: nil, times: nil)
                     )
                     return [item]
@@ -357,7 +379,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 let item = WeeklyTrainingItem(
                         name: activityName,
                         runDetails: description,
-                        durationMinutes: nil,
+                        durationMinutes: nil, durationSeconds: nil,
                         goals: TrainingGoals(pace: nil, distanceKm: details.distanceKm, heartRateRange: details.heartRateRange, heartRate: nil, times: nil)
                     )
                     return [item]
@@ -447,7 +469,8 @@ struct WorkoutSegment: Codable, Equatable {
     let description: String?  // 改為可選，間歇恢復段可能沒有描述
     let distanceKm: Double?  // 改為可選，因為 API 可能返回 null
     let distanceM: Double?   // 添加米的距離欄位
-    let timeMinutes: Double? // 添加時間欄位
+    let timeMinutes: Double? // 分鐘（后端改成 int，會失去精度）
+    let timeSeconds: Int?    // 精確秒數（optional，優先使用）
     let pace: String?
     let heartRateRange: HeartRateRange?  // 添加心率區間欄位
 
@@ -456,8 +479,50 @@ struct WorkoutSegment: Codable, Equatable {
         case distanceKm = "distance_km"
         case distanceM = "distance_m"
         case timeMinutes = "time_minutes"
+        case timeSeconds = "time_seconds"
         case pace
         case heartRateRange = "heart_rate_range"
+    }
+
+    /// 自定義初始化器
+    init(
+        description: String? = nil,
+        distanceKm: Double? = nil,
+        distanceM: Double? = nil,
+        timeMinutes: Double? = nil,
+        timeSeconds: Int? = nil,
+        pace: String? = nil,
+        heartRateRange: HeartRateRange? = nil
+    ) {
+        self.description = description
+        self.distanceKm = distanceKm
+        self.distanceM = distanceM
+        self.timeMinutes = timeMinutes
+        self.timeSeconds = timeSeconds
+        self.pace = pace
+        self.heartRateRange = heartRateRange
+    }
+
+    /// 自定義解碼器 - 確保 timeSeconds 被正確解析
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm)
+        distanceM = try container.decodeIfPresent(Double.self, forKey: .distanceM)
+        timeMinutes = try container.decodeIfPresent(Double.self, forKey: .timeMinutes)
+
+        // 優先解析 timeSeconds（Int），如果失敗則嘗試用 Double 轉換
+        if let seconds = try container.decodeIfPresent(Int.self, forKey: .timeSeconds) {
+            timeSeconds = seconds
+        } else if let secondsDouble = try container.decodeIfPresent(Double.self, forKey: .timeSeconds) {
+            timeSeconds = Int(round(secondsDouble))
+        } else {
+            timeSeconds = nil
+        }
+
+        pace = try container.decodeIfPresent(String.self, forKey: .pace)
+        heartRateRange = try container.decodeIfPresent(HeartRateRange.self, forKey: .heartRateRange)
     }
 
     /// 自定義編碼器 - 確保 nil 值被編碼為 null（而非省略）
@@ -470,6 +535,7 @@ struct WorkoutSegment: Codable, Equatable {
         try container.encode(distanceKm, forKey: .distanceKm)
         try container.encode(distanceM, forKey: .distanceM)
         try container.encode(timeMinutes, forKey: .timeMinutes)
+        try container.encode(timeSeconds, forKey: .timeSeconds)
         try container.encode(pace, forKey: .pace)
         try container.encode(heartRateRange, forKey: .heartRateRange)
     }
@@ -529,7 +595,8 @@ struct WeeklyTrainingItem: Identifiable {
     var id = UUID()
     let name: String
     let runDetails: String
-    let durationMinutes: Int?
+    let durationMinutes: Double?  // 向後兼容，用於一般訓練
+    let durationSeconds: Int?     // 精確的秒數（間歇訓練恢復段使用）
     let goals: TrainingGoals
 }
 

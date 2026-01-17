@@ -189,10 +189,11 @@ struct DataSourceSelectionView: View {
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(selectedDataSource == type ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(selectedDataSource == type ? Color.accentColor : Color.clear, lineWidth: 2)
-                    )
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selectedDataSource == type ? Color.accentColor : Color(.systemGray3), lineWidth: selectedDataSource == type ? 2.5 : 1.5)
             )
         }
         .accessibilityIdentifier("DataSourceOption_\(type)")

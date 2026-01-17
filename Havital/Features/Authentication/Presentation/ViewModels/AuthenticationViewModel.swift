@@ -116,15 +116,22 @@ final class AuthenticationViewModel: ObservableObject {
             Task { @MainActor in
                 Logger.debug("[AuthViewModel] Firebase Auth state changed: user=\(firebaseUser?.uid ?? "nil")")
 
-                // Update authentication status
-                self.isAuthenticated = firebaseUser != nil
+                // Update authentication status using AuthSessionRepository (supports both Firebase and Demo mode)
+                self.isAuthenticated = self.authSessionRepository.isAuthenticated()
 
                 // Fetch user data if authenticated
                 if firebaseUser != nil {
                     await self.fetchCurrentUserData()
                 } else {
-                    // Clear user data if signed out
-                    self.currentUser = nil
+                    // For demo mode, check if we have a cached user
+                    // Demo mode has no Firebase session but may have a cached user
+                    if let cachedUser = self.authSessionRepository.getCurrentUser() {
+                        Logger.debug("[AuthViewModel] Demo mode: keeping cached user")
+                        self.currentUser = cachedUser
+                    } else {
+                        // Clear user data if signed out
+                        self.currentUser = nil
+                    }
                 }
 
                 // Publish authentication state change event
@@ -139,6 +146,12 @@ final class AuthenticationViewModel: ObservableObject {
 
             Logger.debug("[AuthViewModel] Received dataChanged.user event, refreshing user data")
 
+            // Update authentication status (supports both Firebase and Demo mode)
+            await MainActor.run {
+                self.isAuthenticated = self.authSessionRepository.isAuthenticated()
+                Logger.debug("[AuthViewModel] Updated isAuthenticated: \(self.isAuthenticated)")
+            }
+
             // Fetch latest user data from backend
             await self.fetchCurrentUserData()
 
@@ -150,6 +163,18 @@ final class AuthenticationViewModel: ObservableObject {
                     Logger.debug("[AuthViewModel] ✅ Onboarding status updated: \(user.hasCompletedOnboarding)")
                 }
             }
+        }
+
+        // ✅ Subscribe to re-onboarding completed event
+        // Clean Architecture: OnboardingCoordinator publishes event, AuthenticationViewModel subscribes
+        // This decouples the Coordinator from the ViewModel
+        CacheEventBus.shared.subscribe(for: "reonboardingCompleted") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[AuthViewModel] Received reonboardingCompleted event, closing sheet")
+
+            // Close the re-onboarding sheet
+            self.isReonboardingMode = false
         }
     }
 

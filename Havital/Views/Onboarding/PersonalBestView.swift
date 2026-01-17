@@ -40,7 +40,7 @@ struct PersonalBestView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(viewModel.availablePersonalBests.keys.sorted { a, b in
-                                        Double(a) ?? 0 < Double(b) ?? 0
+                                        Double(a) ?? 0 > Double(b) ?? 0
                                     }, id: \.self) { distanceKey in
                                         if let records = viewModel.availablePersonalBests[distanceKey],
                                            let bestRecord = records.first {
@@ -54,12 +54,21 @@ struct PersonalBestView: View {
                                                     Text(bestRecord.formattedTime())
                                                         .font(.caption2)
                                                 }
-                                                .frame(maxWidth: .infinity)
-                                                .padding(8)
-                                                .background(viewModel.selectedPersonalBestKey == distanceKey ? Color.accentColor : Color(.systemGray5))
+                                                .frame(minWidth: 70)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 10)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .fill(viewModel.selectedPersonalBestKey == distanceKey ? Color.accentColor : Color(.systemGray6))
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .stroke(viewModel.selectedPersonalBestKey == distanceKey ? Color.accentColor : Color(.systemGray3), lineWidth: 1.5)
+                                                )
                                                 .foregroundColor(viewModel.selectedPersonalBestKey == distanceKey ? .white : .primary)
-                                                .cornerRadius(8)
+                                                .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
                                             }
+                                            .buttonStyle(.plain)
                                         }
                                     }
                                 }

@@ -58,8 +58,6 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     let workout: WorkoutV2
     private let repository: WorkoutRepository
-    private let workoutV2Service: WorkoutV2Service
-    private let cacheManager: WorkoutV2CacheManager
 
     // MARK: - TaskManageable
 
@@ -69,13 +67,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     /// ✅ Clean Architecture: 建構子注入 Repository Protocol（不依賴 Singleton）
     init(workout: WorkoutV2,
-         repository: WorkoutRepository,
-         workoutV2Service: WorkoutV2Service = .shared,
-         cacheManager: WorkoutV2CacheManager = .shared) {
+         repository: WorkoutRepository) {
         self.workout = workout
         self.repository = repository
-        self.workoutV2Service = workoutV2Service
-        self.cacheManager = cacheManager
 
         Logger.debug("[WorkoutDetailViewModelV2] 初始化完成 - workout: \(workout.id)")
     }
@@ -173,26 +167,12 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
 
         do {
-            // 構建 PATCH 請求 body
-            let body: [String: Any] = ["training_notes": notes]
-            let bodyData = try JSONSerialization.data(withJSONObject: body)
-
-            // 直接使用 HTTPClient 發送 PATCH 請求（類似 deleteWorkout 的內聯模式）
-            let httpClient = DefaultHTTPClient.shared
-            let path = "/v2/workouts/\(workout.id)"
-
             Logger.debug("[WorkoutDetailViewModelV2] 更新訓練心得 - workout_id: \(workout.id)")
 
-            _ = try await httpClient.request(
-                path: path,
-                method: .PATCH,
-                body: bodyData
-            )
+            // ✅ Clean Architecture: 使用 Repository 更新訓練心得
+            try await repository.updateTrainingNotes(id: workout.id, notes: notes)
 
-            // 清除詳情緩存，強制下次重新載入
-            cacheManager.clearWorkoutDetailCache(workoutId: workout.id)
-
-            // 刷新當前詳情以立即顯示更新
+            // Repository 已經清除了緩存，現在刷新詳情以立即顯示更新
             await refreshWorkoutDetail()
 
             // ✅ Clean Architecture: 發布 CacheEventBus 事件通知其他模組
@@ -215,6 +195,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             )
 
             return true
+        } catch is CancellationError {
+            Logger.debug("[WorkoutDetailViewModelV2] 訓練心得更新已取消")
+            return false
         } catch {
             Logger.firebase(
                 "訓練心得更新失敗",
@@ -729,20 +712,14 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         state = .loading
 
         do {
-            // 清除快取，強制重新從 API 獲取
-            cacheManager.clearWorkoutDetailCache(workoutId: workout.id)
-
             // 檢查任務是否被取消
             try Task.checkCancellation()
 
-            // 從 API 獲取詳細數據
-            let response = try await workoutV2Service.fetchWorkoutDetail(workoutId: workout.id)
+            // ✅ Clean Architecture: 使用 Repository 強制刷新詳細數據
+            let response = try await repository.refreshWorkoutDetail(id: workout.id)
 
             // 檢查任務是否被取消
             try Task.checkCancellation()
-
-            // 快取詳細數據
-            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response)
 
             // 清除舊的圖表數據
             self.heartRates.removeAll()
@@ -812,42 +789,14 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         state = .loading
 
         do {
-            // 首先檢查快取（30 分鐘 TTL）
-            if let cachedDetail = cacheManager.getCachedWorkoutDetail(workoutId: workout.id, maxAge: 30 * 60) {
-                Logger.firebase(
-                    "從快取載入運動詳情",
-                    level: .info,
-                    labels: ["module": "WorkoutDetailViewModelV2", "action": "load_cached"]
-                )
-
-                // 處理快取的時間序列數據
-                self.processTimeSeriesData(from: cachedDetail)
-
-                // 設置心率 Y 軸範圍
-                if !heartRates.isEmpty {
-                    let hrValues = heartRates.map { $0.value }
-                    let minHR = hrValues.min() ?? 60
-                    let maxHR = hrValues.max() ?? 180
-                    let margin = (maxHR - minHR) * 0.1
-                    self.yAxisRange = (max(minHR - margin, 50), min(maxHR + margin, 220))
-                }
-
-                // 更新狀態
-                self.state = .loaded(cachedDetail)
-                return // 使用快取數據，不需要 API 呼叫
-            }
-
             // 檢查任務是否被取消
             try Task.checkCancellation()
 
-            // 從 API 獲取詳細數據
-            let response = try await workoutV2Service.fetchWorkoutDetail(workoutId: workout.id)
+            // ✅ Clean Architecture: 使用 Repository 獲取詳細數據（自動處理緩存）
+            let response = try await repository.getWorkoutDetail(id: workout.id)
 
             // 檢查任務是否被取消
             try Task.checkCancellation()
-
-            // 快取詳細數據
-            cacheManager.cacheWorkoutDetail(workoutId: workout.id, detail: response)
 
             // 處理時間序列數據，轉換成圖表格式
             self.processTimeSeriesData(from: response)
@@ -891,7 +840,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 "has_cached_detail": workoutDetail != nil,
                 "context": "workout_detail_load"
             ]
-            
+
             Logger.firebase("Workout detail load failed with detailed error info",
                           level: .error,
                           labels: ["cloud_logging": "true", "component": "WorkoutDetailViewModelV2", "operation": "loadWorkoutDetail"],

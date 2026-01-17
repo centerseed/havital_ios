@@ -4,7 +4,8 @@ import SwiftUI
 // MARK: - EditSchedule ViewModel
 /// 負責訓練課表編輯的 UI 狀態管理
 @MainActor
-final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManageable {
+final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManageable, Identifiable {
+    let id = UUID()
 
     // MARK: - Published State
 
@@ -48,7 +49,16 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
         self.weeklyPlan = weeklyPlan
         self.startDate = startDate
         self.repository = repository
+
+        // 直接在 init 中初始化編輯數據，確保 ViewModel 創建後立即可用
+        self.editingDays = weeklyPlan.days.map { day in
+            MutableTrainingDay(from: day)
+        }
+        self.isEditingLoaded = true
+
         loadVDOT()
+
+        Logger.debug("[EditScheduleVM] init - editingDays initialized with \(editingDays.count) days")
     }
 
     /// 便利初始化器（使用 DI Container）
@@ -72,19 +82,27 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// 載入 VDOT 數值
     func loadVDOT() {
-        // TODO: 從 VDOTManager 載入
-        currentVDOT = PaceCalculator.defaultVDOT
+        // 先從 VDOTManager 本地快取同步載入（避免 async 造成的初始化問題）
+        VDOTManager.shared.loadLocalCacheSync()
+
+        // 使用 VDOTManager 的當前 VDOT，如果沒有則使用預設值
+        let vdot = VDOTManager.shared.currentVDOT
+        currentVDOT = vdot > 0 ? vdot : PaceCalculator.defaultVDOT
+
+        Logger.debug("[EditScheduleVM] loadVDOT - currentVDOT: \(currentVDOT ?? 0)")
     }
 
     /// 初始化編輯狀態
     func initializeEditing() {
-        guard !isEditingLoaded else { return }
+        // 強制重新初始化，確保每次進入都能正確載入
+        Logger.debug("[EditScheduleVM] initializeEditing - isEditingLoaded: \(isEditingLoaded), editingDays.count: \(editingDays.count)")
 
         editingDays = weeklyPlan.days.map { day in
             MutableTrainingDay(from: day)
         }
 
         isEditingLoaded = true
+        Logger.debug("[EditScheduleVM] initializeEditing completed - editingDays.count: \(editingDays.count)")
     }
 
     /// 添加新的訓練日
@@ -162,8 +180,11 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
     }
 
     /// 保存編輯
-    func saveEdits() async throws {
+    /// - Returns: 保存後的 WeeklyPlan（用於直接更新 UI，避免重新請求 API）
+    func saveEdits() async throws -> WeeklyPlan {
         Logger.debug("[EditScheduleVM] Saving edits for \(editingDays.count) days")
+
+        var resultPlan: WeeklyPlan?
 
         await executeTask(id: TaskID("save_edits_\(weeklyPlan.id)")) { [weak self] in
             guard let self = self else { return }
@@ -186,6 +207,40 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
                     try self.buildUpdatedPlan()
                 }
 
+                // 🔍 DEBUG: 打印發送到後端的課表數據
+                Logger.debug("[EditScheduleVM] 📤 發送課表到後端:")
+                Logger.debug("[EditScheduleVM] Plan ID: \(updatedPlan.id)")
+                Logger.debug("[EditScheduleVM] Total days: \(updatedPlan.days.count)")
+                for (index, day) in updatedPlan.days.enumerated() {
+                    Logger.debug("[EditScheduleVM] Day \(index + 1): \(day.trainingType)")
+                    if let details = day.trainingDetails {
+                        Logger.debug("[EditScheduleVM]   - Distance: \(details.distanceKm ?? 0)km")
+                        Logger.debug("[EditScheduleVM]   - Pace: \(details.pace ?? "N/A")")
+
+                        // 打印間歇訓練的詳細信息
+                        if let work = details.work {
+                            Logger.debug("[EditScheduleVM]   - Work segment:")
+                            Logger.debug("[EditScheduleVM]     - Distance: \(work.distanceKm ?? 0)km")
+                            Logger.debug("[EditScheduleVM]     - Time: \(work.timeMinutes ?? 0)min")
+                            Logger.debug("[EditScheduleVM]     - Pace: \(work.pace ?? "N/A")")
+                            Logger.debug("[EditScheduleVM]     - timeSeconds: \(work.timeSeconds ?? 0)s")
+                        }
+
+                        if let recovery = details.recovery {
+                            Logger.debug("[EditScheduleVM]   - Recovery segment:")
+                            Logger.debug("[EditScheduleVM]     - Distance: \(recovery.distanceKm ?? 0)km")
+                            Logger.debug("[EditScheduleVM]     - Time: \(recovery.timeMinutes ?? 0)min")
+                            Logger.debug("[EditScheduleVM]     - Pace: \(recovery.pace ?? "N/A")")
+                            Logger.debug("[EditScheduleVM]     - timeSeconds: \(recovery.timeSeconds ?? 0)s")
+                            Logger.debug("[EditScheduleVM]     - Description: \(recovery.description ?? "N/A")")
+                        }
+
+                        if let repeats = details.repeats {
+                            Logger.debug("[EditScheduleVM]   - Repeats: \(repeats)")
+                        }
+                    }
+                }
+
                 // 4. 調用 Repository 保存
                 let savedPlan = try await self.repository.modifyWeeklyPlan(
                     planId: self.weeklyPlan.id,
@@ -202,8 +257,13 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
                     )
                 }
 
-                // 6. 發布事件通知其他模組
+                // 6. 保存結果供外部使用
+                resultPlan = savedPlan
+
+                // 7. 發布事件通知其他模組
+                Logger.debug("[EditScheduleVM] 📢 發布事件: dataChanged.trainingPlan")
                 CacheEventBus.shared.publish(.dataChanged(.trainingPlan))
+                Logger.debug("[EditScheduleVM] ✅ 事件已發布")
 
                 Logger.debug("[EditScheduleVM] Successfully saved plan: \(savedPlan.id)")
 
@@ -235,6 +295,16 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
                 throw domainError
             }
         }
+
+        // 返回保存的 plan（如果成功）
+        guard let plan = resultPlan else {
+            throw DomainError.unknown(NSLocalizedString(
+                "edit_schedule.error.save_result_missing",
+                value: "保存成功但無法獲取結果",
+                comment: "Save result missing error"
+            ))
+        }
+        return plan
     }
 
     // MARK: - Private Helper Methods

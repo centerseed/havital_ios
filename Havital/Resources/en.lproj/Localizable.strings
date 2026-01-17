@@ -195,7 +195,6 @@
 // MARK: - Onboarding
 "onboarding.welcome" = "Welcome to Paceriz";
 "onboarding.set_goal" = "Set Training Goal";
-"onboarding.race_distance" = "Race Distance";
 "onboarding.target_time" = "Target Finish Time";
 "onboarding.training_days" = "Training Days";
 "onboarding.weekly_volume" = "Weekly Volume";
@@ -755,6 +754,10 @@
 "onboarding.minutes" = "minutes";
 "onboarding.average_pace" = "Average pace: %@ /km";
 "onboarding.next_step" = "Next Step";
+"onboarding.distance_and_target_time" = "Distance & Target Time";
+"onboarding.distance_time_hint" = "Tap to edit race distance and target finish time";
+"onboarding.edit_distance_time" = "Edit Distance & Time";
+"onboarding.common_times_reference" = "Common Times";
 "onboarding.set_training_goal" = "Set Training Goal";
 "onboarding.back" = "Back";
 "onboarding.my_training_goal" = "My Training Goal";
@@ -768,7 +771,7 @@
 "onboarding.goal_type_beginner_5k" = "Complete your first 5K and experience the joy of running";
 "onboarding.goal_type_beginner_5k_desc" = "4-week training plan to help you reach the 5K goal";
 "onboarding.goal_type_nav_title" = "Training Goal";
-"onboarding.beginner_5k_goal" = "能跑 5 公里";
+"onboarding.beginner_5k_goal" = "Run 5 km";
 
 // MARK: - Training Overview View
 "onboarding.training_overview_title" = "Training Overview";
@@ -778,7 +781,7 @@
 "onboarding.target_pace" = "Target Pace";
 "onboarding.target_evaluate" = "Target Evaluation";
 "onboarding.training_timeline" = "Training Timeline";
-"onboarding.training_focus" = "Training Focus";
+"onboarding.training_focus_title" = "Training Focus";
 "onboarding.training_highlight" = "Training Highlight";
 "onboarding.generate_first_week" = "Generate First Week Plan";
 "onboarding.confirm_generate_first_week" = "Confirm and Generate First Week Plan";
@@ -812,6 +815,7 @@
 "onboarding.skip_personal_best" = "Skip Personal Best";
 "onboarding.skip_personal_best_message" = "No problem! Paceriz will adjust training intensity based on your training progress.";
 "onboarding.personal_best_title_nav" = "Personal Best";
+"onboarding.select_existing_pb" = "Or select from your existing personal bests";
  
 // MARK: - Backfill Prompt
 "onboarding.backfill_prompt.title" = "Sync recent training data?";
@@ -881,8 +885,6 @@
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "Your Weekly Running Volume";
 "onboarding.skip" = "Skip";
-"onboarding.back" = "Back";
-"onboarding.next_step" = "Next";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "Today";
@@ -973,6 +975,23 @@
 "hr_zone.understand" = "Understand";
 "hr_zone.max_heart_rate_display" = "Max Heart Rate";
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
+
+// MARK: - Heart Rate Zone Names & Details
+"hr_zone.easy" = "Recovery";
+"hr_zone.easy.description" = "Recovery and warmup";
+"hr_zone.easy.benefit" = "Active recovery";
+"hr_zone.aerobic" = "Aerobic";
+"hr_zone.aerobic.description" = "Marathon pace training";
+"hr_zone.aerobic.benefit" = "Improve aerobic capacity";
+"hr_zone.threshold" = "Marathon";
+"hr_zone.threshold.description" = "Lactate threshold training";
+"hr_zone.threshold.benefit" = "Increase lactate threshold";
+"hr_zone.vo2max" = "Threshold";
+"hr_zone.vo2max.description" = "Interval training";
+"hr_zone.vo2max.benefit" = "Improve VO2Max";
+"hr_zone.max" = "Anaerobic";
+"hr_zone.max.description" = "Speed work";
+"hr_zone.max.benefit" = "Maximum effort";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "Select General Training Days";
@@ -1431,6 +1450,10 @@
 "feedback.error.description_required" = "Description is required";
 "feedback.success_title" = "Success";
 "feedback.success_message" = "Thank you for your feedback!";
+
+// MARK: - Contact
+"contact.paceriz" = "Contact Paceriz";
+"contact.contact_support" = "Contact Support";
 "common.submit" = "Submit";
 
 // MARK: - Workout Detail

@@ -9,9 +9,11 @@ class WorkoutLocalDataSource {
 
     private let cacheManager: BaseCacheManagerTemplate<[WorkoutV2]>
     private let workoutCacheManager: BaseCacheManagerTemplate<WorkoutV2>
+    private let detailCacheManager: BaseCacheManagerTemplate<WorkoutV2Detail>
 
-    /// 緩存過期時間（30 分鐘）
-    private let cacheExpirationInterval: TimeInterval = 30 * 60
+    /// 緩存過期時間（2 小時 - 合理的平衡點）
+    /// ✅ 2小時足夠減少 API 請求，又不會讓數據太舊
+    private let cacheExpirationInterval: TimeInterval = 2 * 60 * 60 // 2 小時
 
     // MARK: - Cache Keys
 
@@ -19,6 +21,9 @@ class WorkoutLocalDataSource {
         static let workoutsList = "workouts_list"
         static func workout(id: String) -> String {
             return "workout_\(id)"
+        }
+        static func workoutDetail(id: String) -> String {
+            return "workout_detail_\(id)"
         }
     }
 
@@ -41,26 +46,40 @@ class WorkoutLocalDataSource {
             defaultTTL: cacheExpirationInterval
         )
 
+        // 初始化完整詳情緩存管理器（包含時間序列數據）
+        self.detailCacheManager = BaseCacheManagerTemplate<WorkoutV2Detail>(
+            identifier: "WorkoutFullDetailCache\(suffix)",
+            defaultTTL: cacheExpirationInterval
+        )
+
         Logger.debug("[WorkoutLocalDataSource] 初始化完成，緩存過期時間: \(cacheExpirationInterval / 60) 分鐘")
     }
 
     // MARK: - Workout List
 
     /// 獲取緩存的訓練列表
-    /// - Returns: 訓練列表，如果緩存不存在或已過期則返回 nil
+    /// ✅ Clean Architecture: DataSource 永遠返回可用數據，不因 TTL 拒絕返回
+    /// - Returns: 訓練列表，只有真的沒有數據時才返回 nil
     func getWorkouts() -> [WorkoutV2]? {
-        if cacheManager.isExpired() {
-            Logger.debug("[WorkoutLocalDataSource] getWorkouts - 緩存已過期")
-            return nil
+        let workouts = cacheManager.loadFromCache()
+
+        if let workouts = workouts {
+            if cacheManager.isExpired() {
+                Logger.debug("[WorkoutLocalDataSource] 緩存已過期但仍返回，數量: \(workouts.count)（需背景刷新）")
+            } else {
+                Logger.debug("[WorkoutLocalDataSource] 緩存有效，數量: \(workouts.count)")
+            }
+        } else {
+            Logger.debug("[WorkoutLocalDataSource] 無緩存數據")
         }
 
-        guard let workouts = cacheManager.loadFromCache() else {
-            Logger.debug("[WorkoutLocalDataSource] getWorkouts - 緩存未命中")
-            return nil
-        }
-
-        Logger.debug("[WorkoutLocalDataSource] getWorkouts - 緩存命中，數量: \(workouts.count)")
         return workouts
+    }
+
+    /// 檢查緩存是否需要刷新（給 Repository 層用）
+    /// - Returns: true 表示需要背景刷新，false 表示數據新鮮
+    func shouldRefresh() -> Bool {
+        return cacheManager.isExpired()
     }
 
     /// 保存訓練列表到緩存
@@ -97,6 +116,46 @@ class WorkoutLocalDataSource {
         Logger.debug("[WorkoutLocalDataSource] saveWorkout(\(workout.id)) - 已保存到緩存")
     }
 
+    // MARK: - Workout Detail (Full Detail with TimeSeries)
+
+    /// 獲取緩存的完整訓練詳情（包含時間序列數據）
+    /// - Parameter id: 訓練 ID
+    /// - Returns: 完整訓練詳情，如果緩存不存在或已過期則返回 nil
+    func getWorkoutDetail(id: String) -> WorkoutV2Detail? {
+        if detailCacheManager.isExpired() {
+            Logger.debug("[WorkoutLocalDataSource] getWorkoutDetail(\(id)) - 緩存已過期")
+            return nil
+        }
+
+        guard let detail = detailCacheManager.loadFromCache() else {
+            Logger.debug("[WorkoutLocalDataSource] getWorkoutDetail(\(id)) - 緩存未命中")
+            return nil
+        }
+
+        // 確認 ID 匹配
+        guard detail.id == id else {
+            Logger.debug("[WorkoutLocalDataSource] getWorkoutDetail(\(id)) - ID 不匹配，緩存的是 \(detail.id)")
+            return nil
+        }
+
+        Logger.debug("[WorkoutLocalDataSource] getWorkoutDetail(\(id)) - 緩存命中")
+        return detail
+    }
+
+    /// 保存完整訓練詳情到緩存
+    /// - Parameter detail: 完整訓練詳情
+    func saveWorkoutDetail(_ detail: WorkoutV2Detail) {
+        detailCacheManager.saveToCache(detail)
+        Logger.debug("[WorkoutLocalDataSource] saveWorkoutDetail(\(detail.id)) - 已保存到緩存")
+    }
+
+    /// 清除指定訓練的詳情緩存
+    /// - Parameter id: 訓練 ID
+    func clearWorkoutDetailCache(id: String) {
+        detailCacheManager.clearCache()
+        Logger.debug("[WorkoutLocalDataSource] clearWorkoutDetailCache(\(id)) - 已清除詳情緩存")
+    }
+
     /// 從列表緩存中查找單個訓練
     /// - Parameter id: 訓練 ID
     /// - Returns: 訓練實體，如果不存在則返回 nil
@@ -111,6 +170,7 @@ class WorkoutLocalDataSource {
     /// - Parameter id: 訓練 ID
     func deleteWorkout(id: String) {
         workoutCacheManager.clearCache()
+        detailCacheManager.clearCache()
         Logger.debug("[WorkoutLocalDataSource] deleteWorkout(\(id)) - 已從詳情緩存刪除")
 
         // 直接從緩存讀取，不經過過期檢查，確保列表緩存正確更新
@@ -127,6 +187,7 @@ class WorkoutLocalDataSource {
     func clearAll() {
         cacheManager.clearCache()
         workoutCacheManager.clearCache()
+        detailCacheManager.clearCache()
         Logger.debug("[WorkoutLocalDataSource] clearAll - 所有緩存已清空")
     }
 

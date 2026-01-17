@@ -2,36 +2,23 @@ import Foundation
 
 /// Garmin 解除綁定服務
 /// 負責調用後端API來解除Garmin連接，確保符合隱私法規要求
+/// Uses APICallHelper for unified error handling
 class GarminDisconnectService {
     static let shared = GarminDisconnectService()
-    
-    // MARK: - New Architecture Dependencies
+
+    // MARK: - Dependencies
+
+    private let apiHelper: APICallHelper
     private let httpClient: HTTPClient
-    private let parser: APIParser
-    
+
     private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
                  parser: APIParser = DefaultAPIParser.shared) {
         self.httpClient = httpClient
-        self.parser = parser
-    }
-    
-    // MARK: - Unified API Call Method
-    
-    /// 統一的 API 調用方法
-    private func makeAPICall<T: Codable>(
-        _ type: T.Type,
-        path: String,
-        method: HTTPMethod = .GET,
-        body: Data? = nil
-    ) async throws -> T {
-        do {
-            let rawData = try await httpClient.request(path: path, method: method, body: body)
-            return try ResponseProcessor.extractData(type, from: rawData, using: parser)
-        } catch let apiError as APIError where apiError.isCancelled {
-            throw SystemError.taskCancelled
-        } catch {
-            throw error
-        }
+        self.apiHelper = APICallHelper(
+            httpClient: httpClient,
+            parser: parser,
+            moduleName: "GarminDisconnect"
+        )
     }
     
     /// 移除 Garmin 連接 (RESTful 標準)
@@ -128,12 +115,12 @@ class GarminDisconnectService {
     /// - Returns: 解除綁定結果
     func disconnectGarmin() async throws -> DisconnectResponse {
         do {
-            let response: DisconnectResponse = try await makeAPICall(
+            let response: DisconnectResponse = try await apiHelper.call(
                 DisconnectResponse.self,
                 path: "/connect/garmin/disconnect",
                 method: .POST
             )
-            
+
             Logger.firebase(
                 "Garmin 解除綁定成功",
                 level: .info,
@@ -147,7 +134,7 @@ class GarminDisconnectService {
                     "disconnected_at": response.data?.disconnected_at ?? ""
                 ]
             )
-            
+
             return response
         } catch {
             Logger.firebase(

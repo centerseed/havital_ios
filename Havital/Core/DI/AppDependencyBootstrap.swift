@@ -32,13 +32,16 @@ struct AppDependencyBootstrap {
         // 2. Workout 模組 (基礎數據，無外部依賴)
         registerWorkoutModule()
 
-        // 3. UserProfile 模組 (依賴 Workout)
+        // 3. MonthlyStats 模組 (獨立模組，用於訓練日曆)
+        registerMonthlyStatsModule()
+
+        // 4. UserProfile 模組 (依賴 Workout)
         registerUserProfileModule()
 
-        // 4. Target 模組 (獨立模組)
+        // 5. Target 模組 (獨立模組)
         registerTargetModule()
 
-        // 5. TrainingPlan 模組 (依賴 Workout, Target)
+        // 6. TrainingPlan 模組 (依賴 Workout, Target)
         registerTrainingPlanModule()
     }
 
@@ -66,6 +69,18 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerWorkoutModule()
         Logger.debug("[Bootstrap] ✅ Workout module registered")
+    }
+
+    /// 註冊 MonthlyStats 模組
+    /// 包含: MonthlyStatsRepository, MonthlyStatsLocalDataSource, MonthlyStatsRemoteDataSource
+    private static func registerMonthlyStatsModule() {
+        guard !DependencyContainer.shared.isRegistered(MonthlyStatsRepository.self) else {
+            Logger.debug("[Bootstrap] MonthlyStats module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerMonthlyStatsModule()
+        Logger.debug("[Bootstrap] ✅ MonthlyStats module registered")
     }
 
     /// 註冊 UserProfile 模組

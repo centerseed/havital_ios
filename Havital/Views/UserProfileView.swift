@@ -28,7 +28,6 @@ struct UserProfileView: View {
     @State private var showStravaAlreadyBoundAlert = false
     @State private var showLanguageSettings = false
     @State private var showTimezoneSettings = false
-    @State private var showFeedbackReport = false
     @State private var showDebugFailedWorkouts = false
 
     private var appVersion: String {
@@ -129,13 +128,6 @@ struct UserProfileView: View {
         }
         .sheet(isPresented: $showTimezoneSettings) {
             TimezoneSettingsView(currentTimezone: viewModel.timezonePreference)
-        }
-        .sheet(isPresented: $showFeedbackReport) {
-            if let userData = viewModel.userData {
-                FeedbackReportView(userEmail: userData.email ?? "")
-            } else {
-                FeedbackReportView(userEmail: "")
-            }
         }
         .sheet(isPresented: $showDebugFailedWorkouts) {
             DebugFailedWorkoutsView()
@@ -366,20 +358,64 @@ struct UserProfileView: View {
                         .font(.caption)
                 }
             }
+        }
+    }
 
-            Button(action: {
-                showFeedbackReport = true
-            }) {
-                HStack {
-                    Image(systemName: "exclamationmark.bubble")
-                    Text(NSLocalizedString("feedback.title", comment: "Feedback"))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+    @ViewBuilder
+    private var contactSection: some View {
+        Section(header: Text(NSLocalizedString("profile.contact", value: "Contact", comment: "Contact"))) {
+            if isChineseLanguage {
+                // Facebook
+                Link(destination: URL(string: "https://www.facebook.com/profile.php?id=61574822777267")!) {
+                    HStack {
+                        Image(systemName: "hand.thumbsup.fill")
+                            .foregroundColor(.blue)
+                        Text("FB 粉絲團")
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Threads
+                Link(destination: URL(string: "https://www.threads.net/@paceriz_official")!) {
+                    HStack {
+                        Image(systemName: "at")
+                            .foregroundColor(.primary)
+                        Text("Threads")
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                // Email
+                Button(action: {
+                    let email = "contact@paceriz.com"
+                    if let url = URL(string: "mailto:\(email)") {
+                        if UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "envelope.fill")
+                        Text(NSLocalizedString("contact.contact_support", value: "Contact Support", comment: "Contact Support"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }
+    }
+
+    private var isChineseLanguage: Bool {
+        guard let lang = Bundle.main.preferredLocalizations.first else { return false }
+        return lang.hasPrefix("zh")
     }
 
     @ViewBuilder
@@ -881,6 +917,8 @@ struct UserProfileView: View {
                         // 本地斷開Strava連接（remote: false 避免重複調用）
                         await stravaManager.disconnect(remote: false)
 
+                    } catch is CancellationError {
+                        print("Strava解除綁定已取消")
                     } catch {
                         print("❌ Strava解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
@@ -920,6 +958,8 @@ struct UserProfileView: View {
 
                     // 切換完成，不再顯示同步畫面
                     print("Apple Health 數據源切換完成")
+                } catch is CancellationError {
+                    print("同步數據源設定已取消")
                 } catch {
                     print("❌ 同步數據源設定到後端失敗: \(error.localizedDescription)")
 

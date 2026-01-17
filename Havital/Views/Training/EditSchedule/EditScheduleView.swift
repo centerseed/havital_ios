@@ -72,11 +72,13 @@ struct EditScheduleView: View {
             Text(NSLocalizedString("edit_schedule.unsaved_changes_message", comment: "您有未儲存的變更，確定要放棄嗎？"))
         }
         .onAppear {
-            setupEditableWeeklyPlan()
+            Logger.debug("[EditScheduleView] onAppear triggered - isEditingLoaded: \(editViewModel.isEditingLoaded), editingDays: \(editViewModel.editingDays.count)")
+            // 數據已經在 ViewModel.init 中初始化，不需要額外操作
         }
     }
 
     private func cleanupAndDismiss() {
+        Logger.debug("[EditScheduleView] cleanupAndDismiss - resetting state")
         editViewModel.isEditingLoaded = false
         editViewModel.editingDays = []
         dismiss()
@@ -134,11 +136,21 @@ struct EditScheduleView: View {
 
     private func saveChanges() async {
         do {
-            // Use ViewModel's saveEdits method (uses TrainingPlanRepository internally)
-            try await editViewModel.saveEdits()
+            // 保存並獲取更新後的 plan
+            let savedPlan = try await editViewModel.saveEdits()
+
+            // ✅ 直接更新 state（無閃爍，因為 Repository 已更新緩存）
+            Logger.debug("[EditScheduleView] 保存成功，直接更新 UI state")
+            await MainActor.run {
+                // 更新 WeeklyPlanVM state（單一數據源）
+                viewModel.weeklyPlanVM.state = .loaded(savedPlan)
+                // 同步更新 planStatus（向下兼容）
+                viewModel.planStatus = .ready(savedPlan)
+            }
 
             await MainActor.run {
-                // 清理編輯狀態
+                // 清理編輯狀態並關閉 sheet
+                Logger.debug("[EditScheduleView] saveChanges success - resetting state")
                 editViewModel.isEditingLoaded = false
                 editViewModel.editingDays = []
                 dismiss()

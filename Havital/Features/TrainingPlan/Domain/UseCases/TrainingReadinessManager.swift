@@ -191,9 +191,8 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
             print("[TrainingReadinessManager] ✅ 刷新完成")
 
         } catch {
-            // Check if it's a cancellation error
-            let nsError = error as NSError
-            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+            // Use standardized isCancellationError extension for consistency
+            if error.isCancellationError {
                 print("[TrainingReadinessManager] 任務被取消，忽略錯誤")
                 return
             }

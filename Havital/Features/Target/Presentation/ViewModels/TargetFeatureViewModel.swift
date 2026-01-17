@@ -4,8 +4,15 @@ import SwiftUI
 // MARK: - TargetFeatureViewModel
 /// Clean Architecture ViewModel for Target feature
 /// Replaces TargetManager.shared
+///
+/// Uses unified helpers:
+/// - EventSubscriptionHelper for CacheEventBus subscriptions
+/// - DualTrackCacheHelper (via Repository) for caching
 @MainActor
 class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
+
+    // MARK: - ViewModel Name (for logging)
+    private let viewModelName = "TargetVM"
 
     // MARK: - Published State
 
@@ -52,6 +59,32 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
     /// Primary initializer with dependency injection
     init(repository: TargetRepository) {
         self.repository = repository
+        setupEventSubscriptions()
+    }
+
+    // MARK: - Event Subscriptions
+
+    /// Setup CacheEventBus subscriptions using EventSubscriptionHelper
+    private func setupEventSubscriptions() {
+        // Subscribe to userLogout - clear state
+        EventSubscriptionHelper.subscribeToUserLogout(viewModelName: viewModelName) { [weak self] in
+            self?.repository.clearCache()
+            self?.targets = []
+            self?.mainTarget = nil
+            self?.supportingTargets = []
+            self?.error = nil
+        }
+
+        // Subscribe to onboardingCompleted - force refresh
+        EventSubscriptionHelper.subscribeToOnboardingCompleted(viewModelName: viewModelName) { [weak self] in
+            self?.repository.clearCache()
+            await self?.forceRefresh()
+        }
+
+        // Subscribe to target data changes
+        EventSubscriptionHelper.subscribeToDataChanged(dataType: .targets, viewModelName: viewModelName) { [weak self] in
+            await self?.loadTargets()
+        }
     }
 
     /// Convenience initializer for Views (uses DI Container)
@@ -77,9 +110,19 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
 
             do {
                 let loadedTargets = try await self.repository.getTargets()
-                await self.updateTargetsState(loadedTargets)
+                await MainActor.run {
+                    self.updateTargetsState(loadedTargets)
+                }
             } catch {
-                await self.handleError(error)
+                // Use centralized cancellation check
+                if error.isCancellationError {
+                    Logger.debug("[TargetVM] Task cancelled, ignoring error")
+                } else {
+                    await MainActor.run {
+                        self.error = error
+                    }
+                    Logger.error("[TargetVM] Error: \(error.localizedDescription)")
+                }
             }
 
             await MainActor.run {
@@ -93,7 +136,12 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
         do {
             return try await repository.getTarget(id: id)
         } catch {
-            await handleError(error)
+            if error.isCancellationError {
+                Logger.debug("[TargetVM] Task cancelled, ignoring error")
+                return nil
+            }
+            self.error = error
+            Logger.error("[TargetVM] Error: \(error.localizedDescription)")
             return nil
         }
     }
@@ -112,10 +160,20 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
 
             do {
                 let refreshedTargets = try await self.repository.forceRefresh()
-                await self.updateTargetsState(refreshedTargets)
+                await MainActor.run {
+                    self.updateTargetsState(refreshedTargets)
+                }
                 Logger.debug("[TargetVM] Force refresh complete")
             } catch {
-                await self.handleError(error)
+                // Use centralized cancellation check
+                if error.isCancellationError {
+                    Logger.debug("[TargetVM] Task cancelled, ignoring error")
+                } else {
+                    await MainActor.run {
+                        self.error = error
+                    }
+                    Logger.error("[TargetVM] Error: \(error.localizedDescription)")
+                }
             }
 
             await MainActor.run {
@@ -226,26 +284,11 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
     // MARK: - Private Methods
 
     /// Update all target-related state
-    private func updateTargetsState(_ newTargets: [Target]) async {
-        await MainActor.run {
-            self.targets = newTargets
-            self.mainTarget = newTargets.first { $0.isMainRace }
-            self.supportingTargets = newTargets.filter { !$0.isMainRace }
-            Logger.debug("[TargetVM] State updated: main=\(self.mainTarget?.name ?? "none"), supporting=\(self.supportingTargets.count)")
-        }
-    }
-
-    /// Handle errors with cancellation filtering
-    private func handleError(_ error: Error) async {
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-            Logger.debug("[TargetVM] Task cancelled, ignoring error")
-            return
-        }
-
-        await MainActor.run {
-            self.error = error
-        }
-        Logger.error("[TargetVM] Error: \(error.localizedDescription)")
+    /// Note: This is already on MainActor so no await needed
+    private func updateTargetsState(_ newTargets: [Target]) {
+        self.targets = newTargets
+        self.mainTarget = newTargets.first { $0.isMainRace }
+        self.supportingTargets = newTargets.filter { !$0.isMainRace }
+        Logger.debug("[TargetVM] State updated: main=\(self.mainTarget?.name ?? "none"), supporting=\(self.supportingTargets.count)")
     }
 }

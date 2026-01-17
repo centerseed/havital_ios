@@ -1448,7 +1448,7 @@ extension L10n {
     enum OnboardingAdditional {
         static let trainingPlanPreview = "onboarding.training_plan_preview" // "您的訓練計畫預覽"
         static let goalAssessment = "onboarding.goal_assessment" // "目標評估"
-        static let trainingFocus = "onboarding.training_focus" // "訓練重點"
+        static let trainingFocus = "onboarding.training_focus_title" // "訓練重點"
     }
 
     // MARK: - Miscellaneous

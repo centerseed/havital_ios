@@ -76,10 +76,30 @@ protocol WorkoutRepository {
     /// - Returns: 訓練實體
     func getWorkout(id: String) async throws -> WorkoutV2
 
+    /// 獲取完整訓練詳情（包含時間序列數據）
+    /// - Parameter id: 訓練 ID
+    /// - Returns: 完整訓練詳情
+    func getWorkoutDetail(id: String) async throws -> WorkoutV2Detail
+
+    /// 刷新訓練詳情（跳過緩存）
+    /// - Parameter id: 訓練 ID
+    /// - Returns: 最新的完整訓練詳情
+    func refreshWorkoutDetail(id: String) async throws -> WorkoutV2Detail
+
+    /// 清除指定訓練的詳情緩存
+    /// - Parameter id: 訓練 ID
+    func clearWorkoutDetailCache(id: String) async
+
     /// 同步訓練數據到後端
     /// - Parameter workout: 訓練實體
     /// - Returns: 同步後的訓練實體
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2
+
+    /// 更新訓練心得
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - notes: 心得內容
+    func updateTrainingNotes(id: String, notes: String) async throws
 
     /// 刪除訓練
     /// - Parameter id: 訓練 ID

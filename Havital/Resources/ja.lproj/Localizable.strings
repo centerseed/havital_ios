@@ -195,7 +195,6 @@
 // MARK: - Onboarding
 "onboarding.welcome" = "Pacerizへようこそ";
 "onboarding.set_goal" = "トレーニング目標を設定";
-"onboarding.race_distance" = "レース距離";
 "onboarding.target_time" = "目標完走時間";
 "onboarding.training_days" = "トレーニング日";
 "onboarding.weekly_volume" = "週間走行距離";
@@ -754,6 +753,10 @@
 "onboarding.minutes" = "分";
 "onboarding.average_pace" = "平均ペース：%@ /km";
 "onboarding.next_step" = "次のステップ";
+"onboarding.distance_and_target_time" = "距離と目標タイム";
+"onboarding.distance_time_hint" = "タップしてレース距離と目標完走時間を編集";
+"onboarding.edit_distance_time" = "距離とタイムを編集";
+"onboarding.common_times_reference" = "参考タイム";
 "onboarding.set_training_goal" = "トレーニング目標を設定";
 "onboarding.back" = "戻る";
 "onboarding.my_training_goal" = "私のトレーニング目標";
@@ -777,7 +780,7 @@
 "onboarding.target_pace" = "目標ペース";
 "onboarding.target_evaluate" = "目標評価";
 "onboarding.training_timeline" = "トレーニングタイムライン";
-"onboarding.training_focus" = "トレーニング重点";
+"onboarding.training_focus_title" = "トレーニング重点";
 "onboarding.training_highlight" = "トレーニングハイライト";
 "onboarding.generate_first_week" = "第1週のプランを生成";
 "onboarding.confirm_generate_first_week" = "確認して第1週のプランを生成";
@@ -811,6 +814,7 @@
 "onboarding.skip_personal_best" = "個人ベストをスキップ";
 "onboarding.skip_personal_best_message" = "問題ありません！Pacerizはトレーニングの進捗に基づいて強度を調整します。";
 "onboarding.personal_best_title_nav" = "個人ベスト";
+"onboarding.select_existing_pb" = "または既存の記録から選択";
  
 // MARK: - Backfill Prompt
 "onboarding.backfill_prompt.title" = "最近のトレーニングデータを同期しますか？";
@@ -880,8 +884,6 @@
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "あなたの週間ランニング量";
 "onboarding.skip" = "スキップ";
-"onboarding.back" = "戻る";
-"onboarding.next_step" = "次へ";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "今日";
@@ -972,6 +974,23 @@
 "hr_zone.understand" = "理解しました";
 "hr_zone.max_heart_rate_display" = "最大心拍数";
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
+
+// MARK: - Heart Rate Zone Names & Details
+"hr_zone.easy" = "リカバリー";
+"hr_zone.easy.description" = "リカバリーとウォームアップ";
+"hr_zone.easy.benefit" = "アクティブリカバリー";
+"hr_zone.aerobic" = "有氧";
+"hr_zone.aerobic.description" = "マラソンペース訓練";
+"hr_zone.aerobic.benefit" = "有氧能力を改善";
+"hr_zone.threshold" = "マラソン";
+"hr_zone.threshold.description" = "乳酸閾値訓練";
+"hr_zone.threshold.benefit" = "乳酸閾値を上げる";
+"hr_zone.vo2max" = "閾値";
+"hr_zone.vo2max.description" = "インターバルトレーニング";
+"hr_zone.vo2max.benefit" = "VO2マックスを改善";
+"hr_zone.max" = "無酸素";
+"hr_zone.max.description" = "スピードワーク";
+"hr_zone.max.benefit" = "最大努力";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "一般的なトレーニング日を選択";
@@ -1430,6 +1449,10 @@
 "feedback.error.description_required" = "説明が必要です";
 "feedback.success_title" = "成功";
 "feedback.success_message" = "フィードバックをありがとうございます！";
+
+// MARK: - Contact
+"contact.paceriz" = "Pacerizに連絡";
+"contact.contact_support" = "サポートに連絡";
 "common.submit" = "送信";
 
 // MARK: - Workout Detail

@@ -244,6 +244,47 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         return workout
     }
 
+    // MARK: - Workout Detail (Full Detail with TimeSeries)
+
+    func getWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        Logger.debug("[WorkoutRepositoryImpl] getWorkoutDetail - id: \(id)")
+
+        // Track A: 先檢查詳情緩存
+        if let cachedDetail = localDataSource.getWorkoutDetail(id: id) {
+            Logger.debug("[WorkoutRepositoryImpl] Track A - 返回詳情緩存")
+
+            // Track B: 背景刷新
+            Task.detached(priority: .background) { [weak self] in
+                await self?.backgroundRefreshWorkoutDetail(id: id)
+            }
+
+            return cachedDetail
+        }
+
+        // 沒有緩存，從 API 獲取
+        Logger.debug("[WorkoutRepositoryImpl] 無詳情緩存，從 API 載入")
+        let detail = try await remoteDataSource.fetchWorkoutDetail(id: id)
+        localDataSource.saveWorkoutDetail(detail)
+
+        return detail
+    }
+
+    func refreshWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        Logger.debug("[WorkoutRepositoryImpl] refreshWorkoutDetail - id: \(id)")
+
+        // 強制刷新：跳過緩存，直接從 API 獲取
+        let detail = try await remoteDataSource.fetchWorkoutDetail(id: id)
+        localDataSource.saveWorkoutDetail(detail)
+
+        Logger.debug("[WorkoutRepositoryImpl] refreshWorkoutDetail - 完成")
+        return detail
+    }
+
+    func clearWorkoutDetailCache(id: String) async {
+        Logger.debug("[WorkoutRepositoryImpl] clearWorkoutDetailCache - id: \(id)")
+        localDataSource.clearWorkoutDetailCache(id: id)
+    }
+
     // MARK: - Sync & Upload
 
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2 {
@@ -266,6 +307,18 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
         Logger.debug("[WorkoutRepositoryImpl] syncWorkout - 完成")
         return syncedWorkout
+    }
+
+    func updateTrainingNotes(id: String, notes: String) async throws {
+        Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - id: \(id)")
+
+        let body: [String: Any] = ["training_notes": notes]
+        try await remoteDataSource.updateWorkout(id: id, body: body)
+
+        // 成功後，清除詳情緩存，強制下次重新載入
+        localDataSource.clearWorkoutDetailCache(id: id)
+
+        Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - 完成")
     }
 
     // MARK: - Delete
@@ -303,38 +356,66 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
     // MARK: - Background Refresh Helpers
 
-    /// 背景刷新訓練列表
-    private func backgroundRefreshWorkouts(pageSize: Int?) async {
+    /// Generic background refresh helper
+    ///
+    /// Implements the dual-track caching pattern's Track B (background refresh).
+    /// This helper standardizes the background refresh logic across different entity types.
+    ///
+    /// - Parameters:
+    ///   - taskName: Descriptive name for logging (e.g., "workouts", "workout detail")
+    ///   - fetch: Async closure that fetches data from remote API
+    ///   - save: Closure that saves fetched data to local storage
+    ///
+    /// **Pattern**:
+    /// 1. Fetch data from remote API
+    /// 2. Save to local data source
+    /// 3. Publish CacheEventBus event
+    /// 4. Log success or error
+    private func backgroundRefresh<T>(
+        taskName: String,
+        fetch: () async throws -> T,
+        save: (T) -> Void
+    ) async {
         do {
-            let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil)
-            localDataSource.saveWorkouts(workouts)
-            Logger.debug("[WorkoutRepositoryImpl] Track B - 背景刷新完成，數量: \(workouts.count)")
+            let data = try await fetch()
+            save(data)
+            Logger.debug("[WorkoutRepositoryImpl] Track B - \(taskName) 背景刷新完成")
 
             // ✅ Clean Architecture: 只使用 CacheEventBus，不使用 NotificationCenter
             await MainActor.run {
                 CacheEventBus.shared.publish(.dataChanged(.workouts))
             }
-            Logger.debug("[WorkoutRepositoryImpl] ✅ 發布 CacheEventBus 事件: workouts data changed")
+            Logger.debug("[WorkoutRepositoryImpl] ✅ 發布 CacheEventBus 事件: \(taskName) refreshed")
         } catch {
-            Logger.error("[WorkoutRepositoryImpl] Track B - 背景刷新失敗: \(error.localizedDescription)")
+            Logger.error("[WorkoutRepositoryImpl] Track B - \(taskName) 背景刷新失敗: \(error.localizedDescription)")
         }
+    }
+
+    /// 背景刷新訓練列表
+    private func backgroundRefreshWorkouts(pageSize: Int?) async {
+        await backgroundRefresh(
+            taskName: "訓練列表",
+            fetch: { try await self.remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil) },
+            save: { workouts in self.localDataSource.saveWorkouts(workouts) }
+        )
     }
 
     /// 背景刷新單個訓練
     private func backgroundRefreshSingleWorkout(id: String) async {
-        do {
-            let workout = try await remoteDataSource.fetchWorkout(id: id)
-            localDataSource.saveWorkout(workout)
-            Logger.debug("[WorkoutRepositoryImpl] Track B - 單個訓練背景刷新完成")
+        await backgroundRefresh(
+            taskName: "單個訓練",
+            fetch: { try await self.remoteDataSource.fetchWorkout(id: id) },
+            save: { workout in self.localDataSource.saveWorkout(workout) }
+        )
+    }
 
-            // ✅ Clean Architecture: 只使用 CacheEventBus，不使用 NotificationCenter
-            await MainActor.run {
-                CacheEventBus.shared.publish(.dataChanged(.workouts))
-            }
-            Logger.debug("[WorkoutRepositoryImpl] ✅ 發布 CacheEventBus 事件: workouts data changed")
-        } catch {
-            Logger.error("[WorkoutRepositoryImpl] Track B - 單個訓練背景刷新失敗: \(error.localizedDescription)")
-        }
+    /// 背景刷新訓練詳情
+    private func backgroundRefreshWorkoutDetail(id: String) async {
+        await backgroundRefresh(
+            taskName: "訓練詳情",
+            fetch: { try await self.remoteDataSource.fetchWorkoutDetail(id: id) },
+            save: { detail in self.localDataSource.saveWorkoutDetail(detail) }
+        )
     }
 }
 

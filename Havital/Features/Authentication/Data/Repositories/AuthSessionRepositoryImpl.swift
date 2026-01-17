@@ -55,6 +55,20 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     /// Also performs one-time legacy migration sync if needed
     func fetchCurrentUser() async throws -> AuthUser {
         do {
+            // Step 0: Check if we're in demo mode (has demo token)
+            Logger.debug("[AuthSession] 🎯 fetchCurrentUser called. SessionRepo ID: \(ObjectIdentifier(self)). DemoToken: \(demoToken != nil ? "set" : "nil")")
+
+            if demoToken != nil {
+                // In demo mode, return cached user (set by demoLogin)
+                if let cachedUser = authCache.getCurrentUser() {
+                    Logger.debug("[AuthSession] ✅ Demo mode: returning cached user \(cachedUser.uid)")
+                    return cachedUser
+                } else {
+                    Logger.error("[AuthSession] ❌ Demo mode: no cached user found. SessionRepo ID: \(ObjectIdentifier(self))")
+                    throw AuthenticationError.userNotFound
+                }
+            }
+
             // Step 1: Get current Firebase user
             guard let firebaseUser = firebaseAuth.getCurrentUser() else {
                 Logger.debug("[AuthSession] No Firebase user session found")
@@ -146,8 +160,15 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     }
 
     /// Check if user is currently authenticated
-    /// Validates Firebase Auth State
+    /// Validates Firebase Auth State or Demo Mode
     func isAuthenticated() -> Bool {
+        // Check if in demo mode
+        if demoToken != nil {
+            let hasCachedUser = authCache.getCurrentUser() != nil
+            Logger.debug("[AuthSession] Demo mode authentication: \(hasCachedUser)")
+            return hasCachedUser
+        }
+
         let authenticated = firebaseAuth.isAuthenticated()
         Logger.debug("[AuthSession] Authentication status: \(authenticated)")
         return authenticated
@@ -202,6 +223,6 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     func setDemoToken(_ token: String?) {
         self.demoToken = token
-        Logger.debug("[AuthSession] Demo token set: \(token != nil)")
+        Logger.debug("[AuthSession] 🎯 Demo token set in SessionRepo ID: \(ObjectIdentifier(self)). Token: \(token != nil ? "set" : "cleared")")
     }
 }

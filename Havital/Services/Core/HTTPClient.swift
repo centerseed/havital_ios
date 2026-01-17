@@ -174,6 +174,10 @@ actor DefaultHTTPClient: HTTPClient {
                 await APICallTracker.shared.logAPICallError(source: source, method: method.rawValue, path: path, error: urlError)
             }
             throw mapURLErrorToHTTPError(urlError)
+        } catch is CancellationError {
+            // 任務被取消
+            Logger.debug("⚠️ 請求任務被取消")
+            throw HTTPError.cancelled
         } catch {
             // 其他錯誤
             Logger.error("❌ \(error.localizedDescription)")

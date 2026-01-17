@@ -11,19 +11,24 @@ protocol UserPreferencesRemoteDataSourceProtocol {
 // MARK: - UserPreferencesRemoteDataSource
 /// Handles all API calls related to user preferences
 /// Data Layer - Pure HTTP communication, no caching logic
+/// Uses APICallHelper for unified error handling
 final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProtocol {
 
     // MARK: - Dependencies
-    private let httpClient: HTTPClient
-    private let parser: APIParser
+
+    private let apiHelper: APICallHelper
 
     // MARK: - Initialization
+
     init(
         httpClient: HTTPClient = DefaultHTTPClient.shared,
         parser: APIParser = DefaultAPIParser.shared
     ) {
-        self.httpClient = httpClient
-        self.parser = parser
+        self.apiHelper = APICallHelper(
+            httpClient: httpClient,
+            parser: parser,
+            moduleName: "UserPreferencesRemoteDS"
+        )
     }
 
     // MARK: - API Methods
@@ -32,13 +37,7 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
     /// - Returns: UserPreferences model
     func getPreferences() async throws -> UserPreferences {
         Logger.debug("[UserPreferencesRemoteDS] Fetching preferences")
-
-        do {
-            let rawData = try await httpClient.request(path: "/user/preferences", method: .GET)
-            return try ResponseProcessor.extractData(UserPreferences.self, from: rawData, using: parser)
-        } catch let apiError as APIError where apiError.isCancelled {
-            throw SystemError.taskCancelled
-        }
+        return try await apiHelper.get(UserPreferences.self, path: "/user/preferences")
     }
 
     /// Update user preferences (language and/or timezone)
@@ -62,13 +61,8 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
         }
 
         let body = try JSONEncoder().encode(requestBody)
-
-        do {
-            _ = try await httpClient.request(path: "/user/preferences", method: .PUT, body: body)
-            Logger.info("[UserPreferencesRemoteDS] Preferences updated: \(requestBody)")
-        } catch let apiError as APIError where apiError.isCancelled {
-            throw SystemError.taskCancelled
-        }
+        try await apiHelper.callNoResponse(path: "/user/preferences", method: .PUT, body: body)
+        Logger.info("[UserPreferencesRemoteDS] Preferences updated: \(requestBody)")
     }
 
     /// Update only timezone

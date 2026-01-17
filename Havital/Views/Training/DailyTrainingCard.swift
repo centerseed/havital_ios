@@ -7,6 +7,14 @@ import Foundation
 // These types are defined in the Models module but may need explicit imports
 // TrainingDay, WorkoutV2, ProgressionSegment are defined in Models/ files
 
+// MARK: - Helper Functions
+/// 格式化休息時間（秒轉換為 mm:ss 格式）
+private func formatRestTime(_ durationSeconds: Int) -> String {
+    let minutes = durationSeconds / 60
+    let seconds = durationSeconds % 60
+    return String(format: "%d:%02d", minutes, seconds)
+}
+
 // MARK: - Supporting Views
 struct DayHeaderView: View {
     let day: TrainingDay
@@ -517,12 +525,22 @@ struct IntervalSegmentRow: View {
                 .background(Color.gray.opacity(0.15))
                 .cornerRadius(8)
 
-                if let duration = item.durationMinutes {
+                // 優先顯示 durationSeconds（精確秒數），沒有則用 durationMinutes * 60 轉換
+                let displaySeconds: Int? = {
+                    if let seconds = item.durationSeconds {
+                        return seconds
+                    } else if let minutes = item.durationMinutes {
+                        return Int(round(minutes * 60))
+                    }
+                    return nil
+                }()
+
+                if let seconds = displaySeconds {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.fill")
                             .font(.caption2)
                             .foregroundColor(.blue)
-                        Text(String(format: NSLocalizedString("dailytrainingcard.text_3", comment: ""), "\(duration)"))
+                        Text(formatRestTime(seconds))
                             .font(.system(size: 11, weight: .medium))
                     }
                     .padding(.horizontal, 6)
@@ -731,7 +749,7 @@ struct DailyTrainingCard: View {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) / 60 % 60
         let seconds = Int(duration) % 60
-        
+
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {

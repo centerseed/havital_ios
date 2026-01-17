@@ -172,7 +172,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             print("🚨 運動已上傳到 V2 API，跳過重複上傳")
             return .success(hasHeartRate: hasHeartRate)
         }
-        
+
         // 檢查基本數據（時間和距離）
         let duration = workout.duration
         let _ = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
@@ -979,6 +979,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         errorReport["data_quality"] = dataQualityAnalysis
         
+        // 如果是取消操作，不視為錯誤記錄（忽略上傳到 Firebase）
+        if error.isCancellationError || (error as NSError).code == NSURLErrorCancelled {
+            print("ℹ️ [詳細錯誤分析] 上傳任務已取消，不發送錯誤報告")
+            return
+        }
+
         // 使用 Firebase 記錄錯誤 - 標記需要上傳到雲端
         // 只記錄非預期的錯誤為 error，預期的錯誤記為 warning
         let shouldLogAsError = !isExpectedError(error)
@@ -1013,6 +1019,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     
     /// HealthKit 數據獲取錯誤回報
     private func reportHealthKitDataError(workout: HKWorkout, dataType: String, error: Error) async {
+        // 如果是取消操作，不視為錯誤記錄（忽略上傳到 Firebase）
+        if error.isCancellationError {
+            print("ℹ️ [HealthKit] 獲取數據任務已取消 - \(dataType)")
+            return
+        }
+
         var errorReport: [String: Any] = [
             "workout_uuid": workout.uuid.uuidString,
             "workout_type": workout.workoutActivityType.rawValue,
@@ -1095,10 +1107,9 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     
     /// 檢查是否為預期的錯誤（不應記為 error）
     private func isExpectedError(_ error: Error) -> Bool {
-        // 取消錯誤
-        if error is CancellationError { return true }
-        if (error as NSError).code == NSURLErrorCancelled { return true }
-        
+        // Use standardized isCancellationError extension for cancellation checks
+        if error.isCancellationError { return true }
+
         // 網路暫時性錯誤
         if let urlError = error as? URLError {
             switch urlError.code {
@@ -1108,7 +1119,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 break
             }
         }
-        
+
         // 429 Too Many Requests
         if (error as NSError).code == 429 { return true }
         

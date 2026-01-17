@@ -44,6 +44,10 @@ class CacheEventBus {
             // Onboarding 完成時清除所有緩存，確保顯示最新數據
             invalidateAllCaches()
             Logger.firebase("Onboarding 完成，清除所有緩存", level: .info)
+        case .reonboardingCompleted:
+            // Re-onboarding 完成：不需要清除緩存，只需通知 UI
+            // UI 層（AuthenticationViewModel）訂閱此事件來關閉 sheet
+            Logger.firebase("Re-onboarding 完成，通知 UI 關閉 sheet", level: .info)
         }
 
         notifyListeners(reason: reason)
@@ -99,6 +103,8 @@ class CacheEventBus {
         switch event {
         case .onboardingCompleted:
             eventKey = "onboardingCompleted"
+        case .reonboardingCompleted:
+            eventKey = "reonboardingCompleted"
         case .userLogout:
             eventKey = "userLogout"
         case .dataChanged(let dataType):

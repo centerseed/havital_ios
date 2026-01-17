@@ -234,6 +234,35 @@ struct DateFormatterHelper {
         return calendar.date(byAdding: .day, value: dayIndex - 1, to: startDate)
     }
 
+    /// 獲取指定日期所在月份的起始和結束日期
+    /// - Parameter date: 任意日期
+    /// - Returns: 月份範圍 (start, end)，結束日期為當月最後一天的 23:59:59；失敗返回 nil
+    ///
+    /// **用途**: 用於獲取月份的完整時間範圍，常用於篩選該月的所有訓練記錄
+    ///
+    /// **示例**:
+    /// ```swift
+    /// let date = Date() // 2024-01-15
+    /// let range = DateFormatterHelper.monthRange(for: date)
+    /// // range.start = 2024-01-01 00:00:00
+    /// // range.end   = 2024-01-31 23:59:59
+    /// ```
+    static func monthRange(for date: Date) -> (start: Date, end: Date)? {
+        var calendar = Calendar.current
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
+           let tz = TimeZone(identifier: userTimezone) {
+            calendar.timeZone = tz
+        }
+
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
+              let endOfMonthDay = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth),
+              let endOfMonth = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endOfMonthDay) else {
+            return nil
+        }
+
+        return (startOfMonth, endOfMonth)
+    }
+
     // MARK: - 調試工具
 
     /// 獲取當前使用的時區資訊（用於調試）

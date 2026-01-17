@@ -100,17 +100,6 @@ struct ContentView: View {
                         OnboardingContainerView(isReonboarding: true)
                             .environmentObject(authViewModel)
                             .environmentObject(FeatureFlagManager.shared)
-                            .onAppear {
-                                Logger.firebase(
-                                    "顯示重新設定目標畫面 (Sheet) - 從最佳成績開始",
-                                    level: .info,
-                                    labels: [
-                                        "module": "ContentView",
-                                        "action": "show_reonboarding_sheet",
-                                        "user_id": authViewModel.currentUser?.uid ?? "unknown"
-                                    ]
-                                )
-                            }
                     }
             }
         }

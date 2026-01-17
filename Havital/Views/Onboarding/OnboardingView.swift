@@ -231,6 +231,7 @@ struct OnboardingView: View {
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     @State private var showTimeWarning = false
+    @State private var showDistanceTimeEditor = false
     // @StateObject private var authService = AuthenticationService.shared // authService 在此 View 未直接使用
 
     var body: some View {
@@ -259,14 +260,22 @@ struct OnboardingView: View {
                                                     .lineLimit(1)
                                                 Text("\(target.distanceKm)km")
                                                     .font(.caption2)
-                                                    .foregroundColor(.secondary)
                                             }
-                                            .frame(maxWidth: .infinity)
-                                            .padding(8)
-                                            .background(viewModel.selectedTargetKey == target.id ? Color.accentColor : Color(.systemGray5))
+                                            .frame(minWidth: 80)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 10)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .fill(viewModel.selectedTargetKey == target.id ? Color.accentColor : Color(.systemGray6))
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(viewModel.selectedTargetKey == target.id ? Color.accentColor : Color(.systemGray3), lineWidth: 1.5)
+                                            )
                                             .foregroundColor(viewModel.selectedTargetKey == target.id ? .white : .primary)
-                                            .cornerRadius(8)
+                                            .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
                                         }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -286,43 +295,87 @@ struct OnboardingView: View {
                     Text(String(format: NSLocalizedString("onboarding.weeks_until_race", comment: "Weeks until race"), viewModel.trainingWeeks))
                         .foregroundColor(.secondary)
                 }
-                
-                Section(header: Text(NSLocalizedString("onboarding.race_distance", comment: "Race Distance"))) {
-                    Picker(NSLocalizedString("onboarding.select_distance", comment: "Select Distance"), selection: $viewModel.selectedDistance) {
-                        ForEach(Array(viewModel.availableDistances.keys.sorted()), id: \.self) { key in
-                            Text(viewModel.availableDistances[key] ?? key)
-                                .tag(key)
+
+                // 距離與目標時間（合併為單一卡片，點擊編輯）
+                Section(
+                    header: Text(NSLocalizedString("onboarding.distance_and_target_time", comment: "距離與目標時間"))
+                ) {
+                    Button(action: {
+                        showDistanceTimeEditor = true
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 8) {
+                                // 距離
+                                HStack(spacing: 8) {
+                                    Image(systemName: "figure.run")
+                                        .foregroundColor(.accentColor)
+                                        .frame(width: 24)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(NSLocalizedString("onboarding.race_distance", comment: "Race Distance"))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(viewModel.availableDistances[viewModel.selectedDistance] ?? viewModel.selectedDistance)
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+
+                                Divider()
+                                    .padding(.leading, 32)
+
+                                // 目標完賽時間
+                                HStack(spacing: 8) {
+                                    Image(systemName: "clock")
+                                        .foregroundColor(.accentColor)
+                                        .frame(width: 24)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time"))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(String(format: "%d:%02d:00", viewModel.targetHours, viewModel.targetMinutes))
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+
+                                Divider()
+                                    .padding(.leading, 32)
+
+                                // 配速
+                                HStack(spacing: 8) {
+                                    Image(systemName: "speedometer")
+                                        .foregroundColor(.accentColor)
+                                        .frame(width: 24)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(NSLocalizedString("common.pace", comment: "Pace"))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(String(format: "%@ /km", viewModel.targetPace))
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+
+                            Spacer()
+
+                            // 明顯的編輯按鈕
+                            VStack(spacing: 4) {
+                                Image(systemName: "pencil.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.accentColor)
+                                Text(NSLocalizedString("common.edit", comment: "Edit"))
+                                    .font(.caption2)
+                                    .foregroundColor(.accentColor)
+                            }
+                            .padding(.leading, 8)
                         }
                     }
-                    .pickerStyle(.menu)
-                }
-                
-                Section(header: Text(NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time")), footer: Text(NSLocalizedString("onboarding.target_time_description", comment: "Target time description"))) {
-                    HStack {
-                        Picker(L10n.Onboarding.hoursLabel.localized, selection: $viewModel.targetHours) {
-                            ForEach(0...6, id: \.self) { hour in
-                                Text("\(hour)")
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(width: 100)
-                        
-                        Text(NSLocalizedString("onboarding.hours", comment: "hours"))
-                        
-                        Picker(L10n.Onboarding.minutesLabel.localized, selection: $viewModel.targetMinutes) {
-                            ForEach(0..<60, id: \.self) { minute in
-                                Text("\(minute)")
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(width: 100)
-                        
-                        Text(NSLocalizedString("onboarding.minutes", comment: "minutes"))
-                    }
-                    .padding(.vertical, 8)
-                    
-                    Text(String(format: NSLocalizedString("onboarding.average_pace", comment: "Average pace"), viewModel.targetPace))
-                        .foregroundColor(.secondary)
+                    .buttonStyle(.plain)
                 }
                 
                 if let error = viewModel.error {
@@ -392,6 +445,14 @@ struct OnboardingView: View {
                 }
                 .disabled(viewModel.isLoading)
             }
+        }
+        .sheet(isPresented: $showDistanceTimeEditor) {
+            RaceDistanceTimeEditorSheet(
+                selectedDistance: $viewModel.selectedDistance,
+                targetHours: $viewModel.targetHours,
+                targetMinutes: $viewModel.targetMinutes,
+                availableDistances: viewModel.availableDistances
+            )
         }
         .onAppear {
             // 載入用戶已設定的未來目標

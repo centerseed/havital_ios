@@ -68,6 +68,31 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
     func modifyWeeklyPlan(planId: String, updatedPlan: WeeklyPlan) async throws -> WeeklyPlan {
         Logger.debug("[Repository] Modifying weekly plan: \(planId)")
 
+        // 🔍 DEBUG: 詳細打印即將發送到後端的計畫內容
+        Logger.debug("[Repository] 📤 發送修改請求到後端:")
+        Logger.debug("[Repository] Plan ID: \(planId)")
+        Logger.debug("[Repository] Total days: \(updatedPlan.days.count)")
+
+        for (index, day) in updatedPlan.days.enumerated() {
+            Logger.debug("[Repository] Day \(index + 1): type=\(day.trainingType), target=\(day.dayTarget ?? "none")")
+
+            if let details = day.trainingDetails {
+                Logger.debug("[Repository]   trainingDetails: distance=\(details.distanceKm ?? 0)km, pace=\(details.pace ?? "N/A")")
+
+                if let work = details.work {
+                    Logger.debug("[Repository]     work: dist=\(work.distanceKm ?? 0)km, time=\(work.timeMinutes ?? 0)min, timeSeconds=\(work.timeSeconds ?? 0)s, pace=\(work.pace ?? "N/A")")
+                }
+
+                if let recovery = details.recovery {
+                    Logger.debug("[Repository]     recovery: dist=\(recovery.distanceKm ?? 0)km, time=\(recovery.timeMinutes ?? 0)min, timeSeconds=\(recovery.timeSeconds ?? 0)s, pace=\(recovery.pace ?? "N/A"), desc=\(recovery.description ?? "N/A")")
+                }
+
+                if let repeats = details.repeats {
+                    Logger.debug("[Repository]     repeats: \(repeats)")
+                }
+            }
+        }
+
         let modifiedPlan = try await remoteDataSource.modifyWeeklyPlan(
             planId: planId,
             updatedPlan: updatedPlan

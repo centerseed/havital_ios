@@ -124,10 +124,14 @@ class OnboardingCoordinator: ObservableObject {
             // ✅ Clean Architecture: 使用 UseCase 執行完成流程
             print("[OnboardingCoordinator] 開始執行 CompleteOnboardingUseCase...")
 
+            // ✅ 直接從 AuthenticationViewModel 讀取 isReonboardingMode
+            // 這是唯一的狀態源，不需要在 Coordinator 維護重複狀態
+            let isReonboardingMode = AuthenticationViewModel.shared.isReonboardingMode
+
             let input = CompleteOnboardingUseCase.Input(
                 startFromStage: selectedStartStage,
                 isBeginner: isBeginner,
-                isReonboarding: isReonboarding
+                isReonboarding: isReonboardingMode
             )
 
             let output = try await completeOnboardingUseCase.execute(input: input)
@@ -135,22 +139,36 @@ class OnboardingCoordinator: ObservableObject {
             print("[OnboardingCoordinator] ✅ CompleteOnboardingUseCase 執行成功")
             print("[OnboardingCoordinator] - 創建的週計畫 ID: \(output.weeklyPlan.id)")
 
-            // UI cleanup based on mode
+            // 關閉 loading 動畫
+            isCompleting = false
+            print("[OnboardingCoordinator] Loading 動畫已關閉")
+
+            // 清理 UI 狀態
             if output.wasReonboarding {
-                navigationPath.removeAll()
+                // Re-onboarding 模式：直接關閉 sheet
+                // ✅ 簡化：直接設置狀態，不需要事件系統
+                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet")
+                AuthenticationViewModel.shared.isReonboardingMode = false
             } else {
+                // 新用戶 onboarding：重置所有狀態並發布事件
                 reset()
+                print("[OnboardingCoordinator] 新用戶 onboarding 完成，發布 onboardingCompleted 事件")
+                CacheEventBus.shared.publish(.onboardingCompleted)
             }
 
         } catch let onboardingError as OnboardingError {
-            self.error = onboardingError.localizedDescription
+            await MainActor.run {
+                self.error = onboardingError.localizedDescription
+                self.isCompleting = false
+            }
             print("[OnboardingCoordinator] ❌ OnboardingError: \(onboardingError.localizedDescription)")
         } catch {
-            self.error = error.localizedDescription
+            await MainActor.run {
+                self.error = error.localizedDescription
+                self.isCompleting = false
+            }
             print("[OnboardingCoordinator] ❌ 完成 onboarding 失敗: \(error.localizedDescription)")
         }
-
-        isCompleting = false
     }
 
     /// 重置所有狀態

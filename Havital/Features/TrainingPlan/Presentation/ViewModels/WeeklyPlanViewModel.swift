@@ -149,26 +149,43 @@ final class WeeklyPlanViewModel: ObservableObject {
     }
 
     /// 強制刷新週計畫
-    func refreshWeeklyPlan() async {
+    /// - Parameter silent: 是否靜默刷新（默認 true）。靜默模式下，有緩存時不顯示 loading，避免閃爍
+    func refreshWeeklyPlan(silent: Bool = true) async {
         guard let planId = currentPlanId else { return }
 
-        state = .loading
+        // ✅ 雙軌緩存策略：只有在無數據時才顯示 loading
+        let hasData = state.data != nil
+        if !hasData && !silent {
+            state = .loading
+        }
 
         do {
             let plan = try await repository.refreshWeeklyPlan(planId: planId)
             state = .loaded(plan)
+            Logger.debug("[WeeklyPlanVM] Successfully refreshed plan (silent: \(silent), hadData: \(hasData))")
         } catch let error as TrainingPlanError {
             // ✅ 處理計畫不存在的情況（與 loadWeeklyPlan 一致）
             if case .weeklyPlanNotFound = error {
                 state = .empty
                 Logger.debug("[WeeklyPlanVM] Weekly plan not found during refresh, setting state to empty")
             } else {
-                state = .error(error.toDomainError())
+                // ✅ 有緩存時，刷新失敗不改變 state（保持顯示舊數據）
+                if !hasData {
+                    state = .error(error.toDomainError())
+                } else {
+                    Logger.warn("[WeeklyPlanVM] Refresh failed but keeping cached data: \(error.localizedDescription)")
+                }
             }
         } catch {
             let domainError = error.toDomainError()
             if case .cancellation = domainError { return }
-            state = .error(domainError)
+
+            // ✅ 有緩存時，刷新失敗不改變 state（保持顯示舊數據）
+            if !hasData {
+                state = .error(domainError)
+            } else {
+                Logger.warn("[WeeklyPlanVM] Refresh failed but keeping cached data: \(domainError.localizedDescription ?? "Unknown")")
+            }
         }
     }
 

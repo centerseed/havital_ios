@@ -289,13 +289,30 @@ struct TimelineItemView: View {
                                                             .background(Color.gray.opacity(0.15))
                                                             .cornerRadius(4)
 
-                                                        // 顯示原地休息的時間
-                                                        if let duration = recoveryItem.durationMinutes {
+                                                        // 顯示原地休息的時間：優先顯示 durationSeconds，沒有則用 durationMinutes
+                                                        if let seconds = recoveryItem.durationSeconds {
+                                                            // 🔍 DEBUG: 秒數被正確傳遞
+                                                            let _ = Logger.debug("[WeekTimelineView] 恢復段 - 使用 durationSeconds: \(seconds)")
                                                             HStack(spacing: 2) {
                                                                 Image(systemName: "clock.fill")
                                                                     .font(.system(size: 8))
                                                                     .foregroundColor(.white)
-                                                                Text("\(duration) 分鐘")
+                                                                Text(formatRestTime(seconds))
+                                                                    .font(.system(size: 10, weight: .medium))
+                                                                    .foregroundColor(.white)
+                                                            }
+                                                            .padding(.horizontal, 5)
+                                                            .padding(.vertical, 3)
+                                                            .background(Color.blue)
+                                                            .cornerRadius(4)
+                                                        } else if let minutes = recoveryItem.durationMinutes {
+                                                            // 用 durationMinutes 轉換為秒數顯示
+                                                            let totalSeconds = Int(round(minutes * 60))
+                                                            HStack(spacing: 2) {
+                                                                Image(systemName: "clock.fill")
+                                                                    .font(.system(size: 8))
+                                                                    .foregroundColor(.white)
+                                                                Text(formatRestTime(totalSeconds))
                                                                     .font(.system(size: 10, weight: .medium))
                                                                     .foregroundColor(.white)
                                                             }
@@ -366,12 +383,25 @@ struct TimelineItemView: View {
                                                 .background(Color.orange)
                                                 .cornerRadius(4)
 
-                                            if let timeMinutes = work.timeMinutes {
+                                            if let seconds = work.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
                                                         .font(.system(size: 8))
                                                         .foregroundColor(.white)
-                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                    Text(formatRestTime(seconds))
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = work.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
                                                         .font(.system(size: 10, weight: .medium))
                                                         .foregroundColor(.white)
                                                 }
@@ -414,12 +444,25 @@ struct TimelineItemView: View {
                                                 .background(isRestInPlaceN4x4 ? Color.gray : Color.mint)
                                                 .cornerRadius(4)
 
-                                            if let timeMinutes = recovery.timeMinutes {
+                                            if let seconds = recovery.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
                                                         .font(.system(size: 8))
                                                         .foregroundColor(.white)
-                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                    Text(formatRestTime(seconds))
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
                                                         .font(.system(size: 10, weight: .medium))
                                                         .foregroundColor(.white)
                                                 }
@@ -522,12 +565,25 @@ struct TimelineItemView: View {
                                                 .cornerRadius(4)
 
                                             // 顯示時間
-                                            if let timeMinutes = recovery.timeMinutes {
+                                            if let seconds = recovery.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
                                                         .font(.system(size: 8))
                                                         .foregroundColor(.white)
-                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                    Text(formatRestTime(seconds))
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
                                                         .font(.system(size: 10, weight: .medium))
                                                         .foregroundColor(.white)
                                                 }
@@ -605,12 +661,25 @@ struct TimelineItemView: View {
                                                     .padding(.vertical, 3)
                                                     .background(Color.purple.opacity(0.8))
                                                     .cornerRadius(4)
+                                            } else if let seconds = work.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
                                             } else if let timeMinutes = work.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
                                                         .font(.system(size: 8))
                                                         .foregroundColor(.white)
-                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
                                                         .font(.system(size: 10, weight: .medium))
                                                         .foregroundColor(.white)
                                                 }
@@ -672,12 +741,25 @@ struct TimelineItemView: View {
                                                     .padding(.vertical, 3)
                                                     .background(Color.purple.opacity(0.8))
                                                     .cornerRadius(4)
+                                            } else if let seconds = recovery.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 8))
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
                                             } else if let timeMinutes = recovery.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
                                                         .font(.system(size: 8))
                                                         .foregroundColor(.white)
-                                                    Text("\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
                                                         .font(.system(size: 10, weight: .medium))
                                                         .foregroundColor(.white)
                                                 }
@@ -1035,6 +1117,13 @@ struct TimelineItemView: View {
         } else {
             return String(format: "%d:%02d", minutes, seconds)
         }
+    }
+
+    // 格式化休息時間（秒轉換為 mm:ss 格式）
+    private func formatRestTime(_ durationSeconds: Int) -> String {
+        let minutes = durationSeconds / 60
+        let seconds = durationSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
     // 檢查分段是否應該隱藏配速

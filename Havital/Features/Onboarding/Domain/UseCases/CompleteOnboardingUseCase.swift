@@ -116,15 +116,16 @@ final class CompleteOnboardingUseCase {
     }
 
     /// Update completion flags based on onboarding mode
+    /// ⚠️ Note: This does NOT set isReonboardingMode
+    /// OnboardingCoordinator is responsible for managing isReonboardingMode
     private func updateCompletionFlags(isReonboarding: Bool) async {
-        await MainActor.run {
-            if isReonboarding {
-                // Re-onboarding: Just close the mode
-                // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
-                AuthenticationViewModel.shared.isReonboardingMode = false
-                Logger.debug("[CompleteOnboardingUseCase] Re-onboarding mode closed")
-            } else {
-                // New user onboarding: Set global completion flags
+        if isReonboarding {
+            // Re-onboarding: No need to update backend flags
+            // OnboardingCoordinator will handle UI state (isReonboardingMode)
+            Logger.debug("[CompleteOnboardingUseCase] Re-onboarding completion - no flags to update")
+        } else {
+            // New user onboarding: Set global completion flags
+            await MainActor.run {
                 UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                 // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
                 AuthenticationViewModel.shared.hasCompletedOnboarding = true

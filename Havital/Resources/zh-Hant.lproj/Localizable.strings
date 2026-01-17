@@ -195,7 +195,6 @@
 // MARK: - Onboarding
 "onboarding.welcome" = "歡迎來到 Paceriz";
 "onboarding.set_goal" = "設定訓練目標";
-"onboarding.race_distance" = "比賽距離";
 "onboarding.target_time" = "目標完賽時間";
 "onboarding.training_days" = "訓練日";
 "onboarding.weekly_volume" = "週跑量";
@@ -753,6 +752,10 @@
 "onboarding.minutes" = "分鐘";
 "onboarding.average_pace" = "平均配速：%@ /公里";
 "onboarding.next_step" = "下一步";
+"onboarding.distance_and_target_time" = "距離與目標時間";
+"onboarding.distance_time_hint" = "點擊編輯以設定比賽距離和目標完賽時間";
+"onboarding.edit_distance_time" = "編輯距離與時間";
+"onboarding.common_times_reference" = "參考時間";
 "onboarding.set_training_goal" = "設定訓練目標";
 "onboarding.back" = "返回";
 "onboarding.my_training_goal" = "我的訓練目標";
@@ -776,7 +779,7 @@
 "onboarding.target_pace" = "目標配速";
 "onboarding.target_evaluate" = "目標評估";
 "onboarding.training_timeline" = "訓練時間軸";
-"onboarding.training_focus" = "訓練重點";
+"onboarding.training_focus_title" = "訓練重點";
 "onboarding.training_highlight" = "訓練亮點";
 "onboarding.generate_first_week" = "生成第一週訓練計劃";
 "onboarding.confirm_generate_first_week" = "確認並生成第一週計劃";
@@ -810,6 +813,7 @@
 "onboarding.skip_personal_best" = "跳過個人最佳成績";
 "onboarding.skip_personal_best_message" = "沒問題！Paceriz 會根據您的訓練狀況調整課表強度";
 "onboarding.personal_best_title_nav" = "個人最佳成績";
+"onboarding.select_existing_pb" = "或選擇已有的成績紀錄";
  
 // MARK: - Backfill Prompt
 "onboarding.backfill_prompt.title" = "同步近期的訓練資料？";
@@ -879,8 +883,6 @@
 "onboarding.km_label" = "%.0f 公里";
 "onboarding.weekly_distance_title" = "您的週跑量";
 "onboarding.skip" = "略過";
-"onboarding.back" = "返回";
-"onboarding.next_step" = "下一步";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "今天";
@@ -971,6 +973,23 @@
 "hr_zone.understand" = "了解";
 "hr_zone.max_heart_rate_display" = "最大心率";
 "hr_zone.resting_heart_rate_display" = "靜息心率";
+
+// MARK: - Heart Rate Zone Names & Details
+"hr_zone.easy" = "恢復";
+"hr_zone.easy.description" = "恢復與熱身";
+"hr_zone.easy.benefit" = "主動恢復";
+"hr_zone.aerobic" = "有氧";
+"hr_zone.aerobic.description" = "馬拉松配速訓練";
+"hr_zone.aerobic.benefit" = "提升有氧能力";
+"hr_zone.threshold" = "馬拉松";
+"hr_zone.threshold.description" = "乳酸閾值訓練";
+"hr_zone.threshold.benefit" = "提升乳酸閾值";
+"hr_zone.vo2max" = "閾值";
+"hr_zone.vo2max.description" = "間歇訓練";
+"hr_zone.vo2max.benefit" = "提升 VO2 最大值";
+"hr_zone.max" = "無氧";
+"hr_zone.max.description" = "速度訓練";
+"hr_zone.max.benefit" = "最大努力";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "選擇一般訓練日";
@@ -1494,6 +1513,10 @@
 "feedback.error.description_required" = "請輸入描述內容";
 "feedback.success_title" = "提交成功";
 "feedback.success_message" = "感謝您的回報！";
+
+// MARK: - Contact
+"contact.paceriz" = "聯絡 Paceriz";
+"contact.contact_support" = "聯絡客服";
 "common.submit" = "提交";
 
 // MARK: - Workout Detail
@@ -1754,7 +1777,7 @@
 // MARK: - Onboarding Additional
 "onboarding.training_plan_preview" = "您的訓練計畫預覽";
 "onboarding.goal_assessment" = "目標評估";
-"onboarding.training_focus" = "訓練重點";
+
 
 // MARK: - Miscellaneous
 "misc.loading" = "載入中...";

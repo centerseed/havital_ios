@@ -171,10 +171,11 @@ struct GoalTypeCard: View {
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(.systemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
-                    )
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.accentColor : Color(.systemGray3), lineWidth: isSelected ? 2.5 : 1.5)
             )
         }
         .buttonStyle(PlainButtonStyle())

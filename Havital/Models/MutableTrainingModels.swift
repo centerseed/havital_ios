@@ -249,6 +249,7 @@ struct MutableWorkoutSegment: Equatable {
     var distanceKm: Double?
     var distanceM: Double?
     var timeMinutes: Double?
+    var timeSeconds: Int?  // 精確秒數
     var pace: String?
     var heartRateRange: HeartRateRange?
 
@@ -258,6 +259,7 @@ struct MutableWorkoutSegment: Equatable {
         self.distanceKm = segment.distanceKm
         self.distanceM = segment.distanceM
         self.timeMinutes = segment.timeMinutes
+        self.timeSeconds = segment.timeSeconds
         self.pace = segment.pace
         self.heartRateRange = segment.heartRateRange
     }
@@ -268,6 +270,7 @@ struct MutableWorkoutSegment: Equatable {
         distanceKm: Double? = nil,
         distanceM: Double? = nil,
         timeMinutes: Double? = nil,
+        timeSeconds: Int? = nil,
         pace: String? = nil,
         heartRateRange: HeartRateRange? = nil
     ) {
@@ -275,6 +278,7 @@ struct MutableWorkoutSegment: Equatable {
         self.distanceKm = distanceKm
         self.distanceM = distanceM
         self.timeMinutes = timeMinutes
+        self.timeSeconds = timeSeconds
         self.pace = pace
         self.heartRateRange = heartRateRange
     }
@@ -286,6 +290,7 @@ struct MutableWorkoutSegment: Equatable {
             distanceKm: distanceKm,
             distanceM: distanceM,
             timeMinutes: timeMinutes,
+            timeSeconds: timeSeconds,
             pace: pace,
             heartRateRange: heartRateRange
         )
@@ -348,6 +353,7 @@ extension MutableWorkoutSegment: Codable {
         case distanceKm = "distance_km"
         case distanceM = "distance_m"
         case timeMinutes = "time_minutes"
+        case timeSeconds = "time_seconds"
         case pace
         case heartRateRange = "heart_rate_range"
     }
@@ -362,6 +368,7 @@ extension MutableWorkoutSegment: Codable {
         try container.encode(distanceKm, forKey: .distanceKm)
         try container.encode(distanceM, forKey: .distanceM)
         try container.encode(timeMinutes, forKey: .timeMinutes)
+        try container.encode(timeSeconds, forKey: .timeSeconds)
         try container.encode(pace, forKey: .pace)
         try container.encode(heartRateRange, forKey: .heartRateRange)
     }

@@ -52,17 +52,25 @@ final class TrainingDayEditState: ObservableObject {
         let workHasDistance = details?.work?.distanceKm != nil && details!.work!.distanceKm! > 0
         self.isTimeBased = workHasTime && !workHasDistance
 
-        // 判斷是否為原地休息：有 timeMinutes 但沒有 distanceKm（或為 0）
+        // 判斷是否為原地休息：有 timeMinutes 或 timeSeconds，但沒有 distanceKm（或為 0）
         let recovery = details?.recovery
         let hasTimeMinutes = recovery?.timeMinutes != nil && recovery!.timeMinutes! > 0
+        let hasTimeSeconds = recovery?.timeSeconds != nil && recovery!.timeSeconds! > 0
+        let hasTime = hasTimeMinutes || hasTimeSeconds  // 有時間就視為有時間
         let hasDistance = recovery?.distanceKm != nil && recovery!.distanceKm! > 0
-        let isRest = hasTimeMinutes && !hasDistance
+        let isRest = hasTime && !hasDistance
         self.isRestInPlace = isRest
 
-        // 恢復段參數
+        // 恢復段參數：優先用 timeSeconds（精確值），沒有則用 timeMinutes
         self.recoveryPace = recovery?.pace ?? "6:00"
         self.recoveryDistance = recovery?.distanceKm ?? 0.2
-        self.recoveryTimeMinutes = recovery?.timeMinutes ?? 2.0
+        if let seconds = recovery?.timeSeconds {
+            // 優先用秒數，轉換為分鐘（精確值）
+            self.recoveryTimeMinutes = Double(seconds) / 60.0
+        } else {
+            // 備選用分鐘
+            self.recoveryTimeMinutes = recovery?.timeMinutes ?? 2.0
+        }
 
         // 組合跑欄位
         if let segs = details?.segments {
@@ -118,15 +126,18 @@ final class TrainingDayEditState: ObservableObject {
                 heartRateRange: nil
             )
 
-            // 原地休息：只設置 timeMinutes 和 description，distanceKm 和 pace 為 nil
+            // 原地休息：只設置 timeSeconds
             // 主動恢復：設置 distanceKm 和 pace
             let recovery: MutableWorkoutSegment
             if isRestInPlace {
+                // 從分鐘轉換為秒數（只發送秒數給後端）
+                let timeSeconds = Int(round(recoveryTimeMinutes * 60))
                 recovery = MutableWorkoutSegment(
                     description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
                     distanceKm: nil,
                     distanceM: nil,
-                    timeMinutes: recoveryTimeMinutes,
+                    timeMinutes: nil,      // 不發送給後端
+                    timeSeconds: timeSeconds,  // 精確秒數
                     pace: nil,
                     heartRateRange: nil
                 )
@@ -173,20 +184,24 @@ final class TrainingDayEditState: ObservableObject {
                 )
             }
 
-            // 原地休息：只設置 timeMinutes 和 description，distanceKm 和 pace 為 nil
+            // 原地休息：只設置 timeSeconds
             // 恢復跑：挪威4x4 使用 timeMinutes + pace，亞索800 使用 distanceKm + pace
             let recovery: MutableWorkoutSegment
             if isRestInPlace {
+                // 從分鐘轉換為秒數（只發送秒數給後端）
+                let timeSeconds = Int(round(recoveryTimeMinutes * 60))
                 recovery = MutableWorkoutSegment(
                     description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
                     distanceKm: nil,
                     distanceM: nil,
-                    timeMinutes: recoveryTimeMinutes,
+                    timeMinutes: nil,      // 不發送給後端
+                    timeSeconds: timeSeconds,  // 精確秒數
                     pace: nil,
                     heartRateRange: nil
                 )
             } else if type == .norwegian4x4 {
-                // 挪威4x4：時間制恢復跑
+                // 挪威4x4：時間制恢復跑，同時設置 timeSeconds
+                let timeSeconds = Int(round(recoveryTimeMinutes * 60))
                 let recoveryDistanceM = calculateDistanceMeters(pace: recoveryPace, timeMinutes: recoveryTimeMinutes)
                 let recoveryDistanceKm = recoveryDistanceM.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
                 recovery = MutableWorkoutSegment(
@@ -194,10 +209,11 @@ final class TrainingDayEditState: ObservableObject {
                     distanceKm: recoveryDistanceKm,
                     distanceM: recoveryDistanceM,
                     timeMinutes: recoveryTimeMinutes,
+                    timeSeconds: timeSeconds,  // 同時設置秒數
                     pace: recoveryPace.isEmpty ? nil : recoveryPace,
                     heartRateRange: nil
                 )
-                Logger.debug("[恢復跑] 保存挪威4x4 - 恢復跑: timeMinutes=\(recoveryTimeMinutes), distanceKm=\(recoveryDistanceKm ?? 0), distanceM=\(recoveryDistanceM ?? 0), pace=\(recoveryPace)")
+                Logger.debug("[恢復跑] 保存挪威4x4 - 恢復跑: timeMinutes=\(recoveryTimeMinutes), timeSeconds=\(timeSeconds), distanceKm=\(recoveryDistanceKm ?? 0), distanceM=\(recoveryDistanceM ?? 0), pace=\(recoveryPace)")
             } else {
                 // 亞索800 等：距離制恢復跑
                 recovery = MutableWorkoutSegment(
@@ -280,15 +296,17 @@ final class TrainingDayEditState: ObservableObject {
         return timeMinutes / paceInMinutes
     }
 
-    /// 格式化恢復時間顯示（支援30秒增量）
+    /// 格式化恢復時間顯示（支援 1 秒精度）
     /// - Parameter minutes: 時間（分鐘，例如 2.5 表示 2 分 30 秒）
-    /// - Returns: 格式化字串，例如 "2分30秒" 或 "3分鐘"
+    /// - Returns: 格式化字串，例如 "2分30秒" 或 "3分鐘" 或 "45秒"
     func formatRecoveryTime(_ minutes: Double) -> String {
-        let totalSeconds = Int(minutes * 60)
+        let totalSeconds = Int(round(minutes * 60))
         let mins = totalSeconds / 60
         let secs = totalSeconds % 60
 
-        if secs == 0 {
+        if mins == 0 {
+            return "\(secs)秒"
+        } else if secs == 0 {
             return "\(mins)分鐘"
         } else {
             return "\(mins)分\(secs)秒"
@@ -1325,18 +1343,20 @@ struct RestTimePickerFieldV2: View {
             }
             .sheet(isPresented: $showingPicker) {
                 RestTimeWheelPicker(selectedTimeMinutes: $timeMinutes)
-                    .presentationDetents([.height(320)])
+                    .presentationDetents([.height(420)])
             }
         }
     }
 
-    /// 格式化時間顯示（支援30秒增量）
+    /// 格式化時間顯示（支援 1 秒精度）
     private func formatTime(_ minutes: Double) -> String {
-        let totalSeconds = Int(minutes * 60)
+        let totalSeconds = Int(round(minutes * 60))
         let mins = totalSeconds / 60
         let secs = totalSeconds % 60
 
-        if secs == 0 {
+        if mins == 0 {
+            return "\(secs) 秒"
+        } else if secs == 0 {
             return "\(mins) 分鐘"
         } else {
             return "\(mins) 分 \(secs) 秒"
@@ -1348,43 +1368,134 @@ struct RestTimeWheelPicker: View {
     @Binding var selectedTimeMinutes: Double
     @Environment(\.dismiss) private var dismiss
 
-    // 可選時間：0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0
-    private let timeOptions: [Double] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+    // 內部狀態：分鐘和秒分開管理
+    @State private var minutes: Int = 0
+    @State private var seconds: Int = 0
+
+    // 可選範圍：0-10 分鐘，0-59 秒
+    private let minuteOptions = Array(0...10)
+    private let secondOptions = Array(0..<60)
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                Picker("休息時間", selection: $selectedTimeMinutes) {
-                    ForEach(timeOptions, id: \.self) { minutes in
-                        Text(formatTime(minutes)).tag(minutes)
+            VStack(spacing: 16) {
+                // 當前選擇時間顯示
+                Text(formatTime(Double(minutes) + Double(seconds) / 60.0))
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.top, 8)
+
+                // 雙輪選擇器
+                HStack(spacing: 0) {
+                    // 分鐘選擇器
+                    Picker("分鐘", selection: $minutes) {
+                        ForEach(minuteOptions, id: \.self) { min in
+                            Text("\(min)").tag(min)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                    .clipped()
+
+                    Text("分")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .frame(width: 30)
+
+                    // 秒選擇器
+                    Picker("秒", selection: $seconds) {
+                        ForEach(secondOptions, id: \.self) { sec in
+                            Text(String(format: "%02d", sec)).tag(sec)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                    .clipped()
+
+                    Text("秒")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .frame(width: 30)
+                }
+                .frame(height: 180)
+
+                // 快速選擇按鈕
+                VStack(spacing: 8) {
+                    Text("快速選擇")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 12) {
+                        QuickSelectButton(label: "30秒", action: { setTime(0, 30) })
+                        QuickSelectButton(label: "1分", action: { setTime(1, 0) })
+                        QuickSelectButton(label: "1分30秒", action: { setTime(1, 30) })
+                        QuickSelectButton(label: "2分", action: { setTime(2, 0) })
+                        QuickSelectButton(label: "3分", action: { setTime(3, 0) })
                     }
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 200)
+                .padding(.horizontal)
+
+                Spacer()
             }
             .navigationTitle("選擇休息時間")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("完成") {
+                        // 更新 binding 值
+                        selectedTimeMinutes = Double(minutes) + Double(seconds) / 60.0
                         dismiss()
                     }
                     .fontWeight(.semibold)
                 }
             }
+            .onAppear {
+                // 初始化分鐘和秒的狀態
+                let totalSeconds = Int(round(selectedTimeMinutes * 60))
+                minutes = totalSeconds / 60
+                seconds = totalSeconds % 60
+            }
         }
     }
 
-    /// 格式化時間顯示（支援30秒增量）
-    private func formatTime(_ minutes: Double) -> String {
-        let totalSeconds = Int(minutes * 60)
+    private func setTime(_ mins: Int, _ secs: Int) {
+        minutes = mins
+        seconds = secs
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    /// 格式化時間顯示（支援 1 秒精度）
+    private func formatTime(_ totalMinutes: Double) -> String {
+        let totalSeconds = Int(round(totalMinutes * 60))
         let mins = totalSeconds / 60
         let secs = totalSeconds % 60
 
-        if secs == 0 {
+        if mins == 0 {
+            return "\(secs) 秒"
+        } else if secs == 0 {
             return "\(mins) 分鐘"
         } else {
             return "\(mins) 分 \(secs) 秒"
+        }
+    }
+}
+
+// MARK: - 快速選擇按鈕元件
+private struct QuickSelectButton: View {
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption)
+                .fontWeight(.medium)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.15))
+                .foregroundColor(.blue)
+                .cornerRadius(16)
         }
     }
 }

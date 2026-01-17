@@ -32,14 +32,15 @@ struct NewWeekPromptView: View {
                 // 顯示取得回顧按鈕（週回顧會以 sheet 形式彈出）
                 Button(action: {
                     TrackedTask("TrainingPlanView: createWeeklySummary") {
-                        // ✅ 根據 status API，產生上週（currentWeek - 1）的週回顧
-                        let weekNumber = currentTrainingWeek - 1
+                        // ✅ 直接傳入當前週數，後端會自動減1計算應產生的週回顧
+                        // 不需要在前端減1，否則會導致雙重減1的問題
+                        let weekNumber = currentTrainingWeek
 
                         // 🔍 [DEBUG] Entry point logging
                         Logger.debug("========================================")
-                        Logger.debug("[TrainingPlanView] 🔵 產生本週回顧按鈕被點擊")
+                        Logger.debug("[TrainingPlanView] 🔵 產生週回顧按鈕被點擊")
                         Logger.debug("[TrainingPlanView] currentTrainingWeek: \(currentTrainingWeek)")
-                        Logger.debug("[TrainingPlanView] 計算的 weekNumber: \(weekNumber)")
+                        Logger.debug("[TrainingPlanView] 傳入的 weekNumber: \(weekNumber)（後端會自動減1）")
                         Logger.debug("[TrainingPlanView] → 調用 createWeeklySummary(weekNumber: \(weekNumber))")
                         Logger.debug("========================================")
 
@@ -148,10 +149,13 @@ struct TrainingPlanView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
-    @State private var showEditSchedule = false
+    @State private var editViewModel: EditScheduleViewModel? = nil
     @State private var showHeartRateSetup = false
     @State private var showHeartRateSetupFullScreen = false
+    @State private var showContactPaceriz = false
+    @State private var showFeedbackReport = false
     @ObservedObject private var userPreferenceManager = UserPreferencesManager.shared
+    @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
     
     
     var body: some View {
@@ -204,10 +208,11 @@ struct TrainingPlanView: View {
             await viewModel.initialize()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Only refresh if app initialization is complete (avoid duplicate refresh during app launch)
-            if AppStateManager.shared.currentState.isReady {
-                refreshWorkouts()
-            }
+            // ✅ CRITICAL FIX: 總是執行刷新，不檢查 AppStateManager 狀態
+            // 原因：記憶體清除後 AppStateManager 可能未就緒，導致刷新被跳過
+            Logger.debug("[TrainingPlanView] App 從背景回來，AppStateManager.isReady: \(AppStateManager.shared.currentState.isReady)")
+            Logger.debug("[TrainingPlanView] 執行刷新（無條件）")
+            refreshWorkouts()
         }
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
             Logger.debug("Received onboardingCompleted notification, refreshing weekly volume")
@@ -241,16 +246,15 @@ struct TrainingPlanView: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
-        .sheet(isPresented: $showEditSchedule) {
-            if let weeklyPlan = viewModel.weeklyPlan,
-               let weekStartDate = viewModel.getWeekStartDate() {
-                EditScheduleView(
-                    editViewModel: EditScheduleViewModel(weeklyPlan: weeklyPlan, startDate: weekStartDate),
-                    viewModel: viewModel
-                )
-            } else {
-                Text("No weekly plan available")
-            }
+        .sheet(item: $editViewModel, onDismiss: {
+            // 清理 ViewModel，下次打開時重新創建
+            Logger.debug("[TrainingPlanView] Sheet dismissed, cleaning up EditScheduleViewModel")
+            editViewModel = nil
+        }) { editVM in
+            EditScheduleView(
+                editViewModel: editVM,
+                viewModel: viewModel
+            )
         }
         .sheet(isPresented: viewModel.showAdjustmentConfirmation) {
             AdjustmentConfirmationView(
@@ -374,7 +378,14 @@ struct TrainingPlanView: View {
             Task {
                 await viewModel.initialize()
                 Logger.debug("[TrainingPlanView] ✅ ViewModel initialized")
+
+                // ✅ CRITICAL: Initialize VDOTManager for EditScheduleView pace calculation
+                await VDOTManager.shared.initialize()
+                Logger.debug("[TrainingPlanView] ✅ VDOTManager initialized, currentVDOT: \(VDOTManager.shared.currentVDOT)")
             }
+
+            // 預先載入使用者資料（用於問題回報功能）
+            userProfileViewModel.fetchUserProfile()
 
             // 打印心率设置调试信息
             #if DEBUG
@@ -409,6 +420,62 @@ struct TrainingPlanView: View {
                 HeartRateZoneInfoView(mode: .profile)
             }
         }
+        .confirmationDialog(
+            NSLocalizedString("contact.paceriz", comment: "Contact Paceriz"),
+            isPresented: $showContactPaceriz,
+            titleVisibility: .visible
+        ) {
+            // 問題回報
+            Button(NSLocalizedString("feedback.title", comment: "Feedback")) {
+                // 確保載入使用者資料
+                if userProfileViewModel.userData == nil {
+                    userProfileViewModel.fetchUserProfile()
+                }
+                showFeedbackReport = true
+            }
+
+            // 根據語言顯示不同的聯絡方式
+            if isChineseLanguage {
+                // Facebook
+                Button("FB 粉絲團") {
+                    if let url = URL(string: "https://www.facebook.com/profile.php?id=61574822777267") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+
+                // Threads
+                Button("Threads") {
+                    if let url = URL(string: "https://www.threads.net/@paceriz_official") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } else {
+                // Email
+                Button(NSLocalizedString("contact.contact_support", value: "Contact Support", comment: "Contact Support")) {
+                    let email = "contact@paceriz.com"
+                    if let url = URL(string: "mailto:\(email)") {
+                        if UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }
+            }
+
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+        }
+        .sheet(isPresented: $showFeedbackReport) {
+            if let userData = userProfileViewModel.userData {
+                FeedbackReportView(userEmail: userData.email ?? "")
+            } else {
+                FeedbackReportView(userEmail: "")
+            }
+        }
+    }
+
+    // 判斷是否為中文語言
+    private var isChineseLanguage: Bool {
+        guard let lang = Bundle.main.preferredLocalizations.first else { return false }
+        return lang.hasPrefix("zh")
     }
     
     // 拆分主內容視圖 - 使用方案二：時間軸式設計 + 焦點模式
@@ -508,19 +575,6 @@ struct TrainingPlanView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
-                        shareTrainingPlan()
-                    }) {
-                        if isGeneratingScreenshot {
-                            Label(NSLocalizedString("common.generating", comment: "Generating..."), systemImage: "arrow.2.squarepath")
-                        } else {
-                            Label(NSLocalizedString("training.share_schedule", comment: "Share Schedule"), systemImage: "square.and.arrow.up")
-                        }
-                    }
-                    .disabled(isGeneratingScreenshot || viewModel.planStatus == .loading)
-                    
-                    Divider()
-                    
-                    Button(action: {
                         showUserProfile = true
                     }) {
                         Label(NSLocalizedString("profile.title", comment: "Profile"), systemImage: "person.circle")
@@ -539,11 +593,25 @@ struct TrainingPlanView: View {
                     }
                     
                     Button(action: {
-                        showEditSchedule = true
+                        // 創建 EditScheduleViewModel，sheet 會自動顯示（因為使用 .sheet(item:)）
+                        if let weeklyPlan = viewModel.weeklyPlan,
+                           let weekStartDate = viewModel.getWeekStartDate() {
+                            Logger.debug("[TrainingPlanView] Creating EditScheduleViewModel")
+                            // 設置 editViewModel 會自動觸發 sheet 顯示
+                            editViewModel = EditScheduleViewModel(weeklyPlan: weeklyPlan, startDate: weekStartDate)
+                        }
                     }) {
                         Label(NSLocalizedString("training.edit_schedule", comment: "Edit Schedule"), systemImage: "slider.horizontal.3")
                     }
                     .disabled(viewModel.planStatus == .loading || viewModel.weeklyPlan == nil)
+
+                    Divider()
+
+                    Button(action: {
+                        showContactPaceriz = true
+                    }) {
+                        Label(NSLocalizedString("contact.paceriz", comment: "Contact Paceriz"), systemImage: "envelope.circle")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
@@ -692,18 +760,13 @@ struct TrainingPlanView: View {
     private func refreshWorkouts() {
         Logger.debug("Refreshing training records and weekly volume")
         TrackedTask("TrainingPlanView: refreshWorkouts") {
-            // ✅ 使用統一的刷新方法（isManualRefresh: true 會觸發完整刷新流程）
-            // refreshWeeklyPlan(isManualRefresh: true) 內部已經執行：
-            // 1. loadPlanStatus(skipCache: true) - 同步訓練計畫狀態
-            // 2. loadWeeklyPlan(skipCache: true) - 載入週計畫
-            // 3. unifiedWorkoutManager.refreshWorkouts() - 刷新運動數據
-            // 4. loadCurrentWeekData() - 載入當週距離和強度（純內存計算）
-            await viewModel.refreshWeeklyPlan(isManualRefresh: true)
-
-            // ✅ 載入當週運動記錄（用於 UI 顯示每日分組數據）
-            // 注意：此函數內部會調用 loadCurrentWeekData()，但由於 executeTask 的防重複機制
-            // 和 smartUpdateWeekData 的 3 秒 cooldown，不會重複執行
-            await viewModel.loadWorkoutsForCurrentWeek()
+            // ✅ ROOT CAUSE FIX: 強制重新初始化，確保所有依賴數據都有效
+            // 問題：loadWorkoutsForCurrentWeek() 依賴 trainingOverview
+            // 如果 overview 是 nil，就會直接返回，導致 workoutsByDayV2 不更新
+            // 解決：從背景回來時強制執行完整初始化流程（force: true）
+            Logger.debug("[TrainingPlanView] 執行強制重新初始化（force: true）...")
+            await viewModel.initialize(force: true)
+            Logger.debug("[TrainingPlanView] ✅ 強制初始化完成")
         }
     }
     

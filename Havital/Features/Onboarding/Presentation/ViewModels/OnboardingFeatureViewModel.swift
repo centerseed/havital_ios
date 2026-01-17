@@ -76,6 +76,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
     // MARK: - UI State
 
     @Published var isLoading: Bool = false
+    @Published var isLoadingPreferences: Bool = false  // Separate state for loading preferences (no fullScreenCover)
     @Published var error: String?
 
     // MARK: - Available Distances for Personal Best
@@ -285,7 +286,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     /// Load user's training day preferences
     func loadTrainingDayPreferences() async {
-        isLoading = true
+        // ✅ Use separate loading state to avoid triggering fullScreenCover
+        // This loading is fast (reads from cache) and doesn't need a full-screen loading animation
+        isLoadingPreferences = true
 
         do {
             let user = try await userProfileRepository.getUserProfile()
@@ -306,7 +309,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
             Logger.debug("[OnboardingFeatureVM] Failed to load training days: \(error.localizedDescription)")
         }
 
-        isLoading = false
+        isLoadingPreferences = false
     }
 
     /// Save training day preferences and generate overview

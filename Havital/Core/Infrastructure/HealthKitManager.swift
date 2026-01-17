@@ -624,14 +624,14 @@ class HealthKitManager: ObservableObject, TaskManageable {
                             continuation.resume(throwing: error)
                             return
                         }
-                        
+
                         guard let samples = samples else {
                             continuation.resume(returning: [])
                             return
                         }
-                        
+
                         let workouts = samples.compactMap { $0 as? HKWorkout }
-                        
+
                         continuation.resume(returning: workouts)
                     }
                     
@@ -1369,8 +1369,61 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 }
             }
 
-            // 直接使用 workout activities 的分段資料
+            // 如果從 workout activities 提取到分段資料，檢查是否有缺失
             if !lapsFromActivities.isEmpty {
+                // 🔍 檢查是否有缺失的距離（如開放目標訓練）
+                let totalWorkoutDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+                let totalWorkoutDuration = workout.duration
+                let recordedDistance = lapsFromActivities.reduce(0.0, { $0 + ($1.totalDistanceM ?? 0) })
+                let recordedDuration = lapsFromActivities.reduce(0.0, { $0 + Double($1.totalTimeS ?? 0) })
+
+                let missingDistance = totalWorkoutDistance - recordedDistance
+                let missingDuration = totalWorkoutDuration - recordedDuration
+
+                print("📊 [Activities] 總距離: \(String(format: "%.2f", totalWorkoutDistance))m, 已記錄: \(String(format: "%.2f", recordedDistance))m, 缺失: \(String(format: "%.2f", missingDistance))m")
+                print("📊 [Activities] 總時長: \(String(format: "%.1f", totalWorkoutDuration))s, 已記錄: \(String(format: "%.1f", recordedDuration))s, 缺失: \(String(format: "%.1f", missingDuration))s")
+
+                // 補充條件：避免補充太短的分段
+                // 1. 距離 > 500m 且時長 > 60s（正常的開放目標訓練）
+                // 2. 或者缺失比例 > 10%（顯著的數據缺失）
+                let missingDistanceRatio = totalWorkoutDistance > 0 ? (missingDistance / totalWorkoutDistance) : 0
+                let shouldSupplement = (missingDistance > 500 && missingDuration > 60) || (missingDistanceRatio > 0.10)
+
+                if shouldSupplement {
+                    print("⚠️ [Activities] 檢測到缺失的分段數據，自動補充...")
+
+                    let lastActivity = lapsFromActivities.last
+                    let supplementalStartOffset = Double((lastActivity?.startTimeOffsetS ?? 0) + (lastActivity?.totalTimeS ?? 0))
+                    let supplementalLapNumber = lapsFromActivities.count + 1
+                    let supplementalPace = missingDuration / (missingDistance / 1000.0)
+
+                    // 計算補充 lap 的平均心率
+                    let supplementalStartTime = workout.startDate.addingTimeInterval(supplementalStartOffset)
+                    let supplementalEndTime = workout.endDate
+                    let supplementalAvgHR = await self.calculateAverageHeartRate(
+                        for: workout,
+                        startTime: supplementalStartTime,
+                        endTime: supplementalEndTime
+                    )
+
+                    var updatedLaps = lapsFromActivities
+                    let supplementalLap = LapData.fromAppleHealth(
+                        lapNumber: supplementalLapNumber,
+                        startTimeOffset: supplementalStartOffset,
+                        duration: missingDuration,
+                        distance: missingDistance,
+                        averagePace: supplementalPace,
+                        averageHeartRate: supplementalAvgHR,
+                        type: "open_goal",
+                        metadata: ["supplemental": "true", "reason": "missing_activity_data"]
+                    )
+
+                    updatedLaps.append(supplementalLap)
+                    print("✅ [Activities] 補充第 \(supplementalLapNumber) 段 - 偏移: \(String(format: "%.0f", supplementalStartOffset))秒, 持續: \(String(format: "%.0f", missingDuration))秒, 距離: \(String(format: "%.2f", missingDistance))m")
+
+                    return updatedLaps
+                }
+
                 return lapsFromActivities
             }
 
@@ -1486,7 +1539,56 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 持續: \(String(format: "%.0f", duration))秒, 距離: \(lapDistance)米, 配速: \(String(format: "%.0f", averagePace))秒/公里, 心率: \(averageHeartRate?.description ?? "N/A")bpm")
             }
 
-            print("✅ [LapData] 成功提取 \(laps.count) 圈資料")
+            // 🔍 檢查是否有缺失的距離（如開放目標訓練）
+            let totalWorkoutDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+            let totalWorkoutDuration = workout.duration
+            let recordedDistance = laps.reduce(0.0) { $0 + ($1.totalDistanceM ?? 0) }
+            let recordedDuration = laps.reduce(0.0) { $0 + Double($1.totalTimeS ?? 0) }
+
+            let missingDistance = totalWorkoutDistance - recordedDistance
+            let missingDuration = totalWorkoutDuration - recordedDuration
+
+            print("📊 [LapData] 總距離: \(String(format: "%.2f", totalWorkoutDistance))m, 已記錄: \(String(format: "%.2f", recordedDistance))m, 缺失: \(String(format: "%.2f", missingDistance))m")
+            print("📊 [LapData] 總時長: \(String(format: "%.1f", totalWorkoutDuration))s, 已記錄: \(String(format: "%.1f", recordedDuration))s, 缺失: \(String(format: "%.1f", missingDuration))s")
+
+            // 補充條件：避免補充太短的 lap
+            // 1. 距離 > 500m 且時長 > 60s（正常的開放目標訓練）
+            // 2. 或者缺失比例 > 10%（顯著的數據缺失）
+            let missingDistanceRatio = totalWorkoutDistance > 0 ? (missingDistance / totalWorkoutDistance) : 0
+            let shouldSupplement = (missingDistance > 500 && missingDuration > 60) || (missingDistanceRatio > 0.10)
+
+            if shouldSupplement {
+                print("⚠️ [LapData] 檢測到缺失的分圈數據，自動補充...")
+
+                let supplementalLapNumber = laps.count + 1
+                let supplementalStartOffset = cumulativeOffset
+                let supplementalPace = missingDuration / (missingDistance / 1000.0)
+
+                // 計算補充 lap 的平均心率
+                let supplementalStartTime = workout.startDate.addingTimeInterval(supplementalStartOffset)
+                let supplementalEndTime = workout.endDate
+                let supplementalAvgHR = await self.calculateAverageHeartRate(
+                    for: workout,
+                    startTime: supplementalStartTime,
+                    endTime: supplementalEndTime
+                )
+
+                let supplementalLap = LapData.fromAppleHealth(
+                    lapNumber: supplementalLapNumber,
+                    startTimeOffset: supplementalStartOffset,
+                    duration: missingDuration,
+                    distance: missingDistance,
+                    averagePace: supplementalPace,
+                    averageHeartRate: supplementalAvgHR,
+                    type: "open_goal",  // 標記為開放目標
+                    metadata: ["supplemental": "true", "reason": "missing_lap_data"]
+                )
+
+                laps.append(supplementalLap)
+                print("✅ [LapData] 補充第 \(supplementalLapNumber) 圈 - 偏移: \(String(format: "%.0f", supplementalStartOffset))秒, 持續: \(String(format: "%.0f", missingDuration))秒, 距離: \(String(format: "%.2f", missingDistance))m, 配速: \(String(format: "%.0f", supplementalPace))秒/公里")
+            }
+
+            print("✅ [LapData] 成功提取 \(laps.count) 圈資料（含補充）")
             return laps
         }
 
@@ -1775,9 +1877,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
             ) { _, samples, error in
                 if let error = error {
-                    // 檢查是否為取消錯誤（遵循 CLAUDE.md 的任務取消處理原則）
-                    let nsError = error as NSError
-                    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    // Use standardized isCancellationError extension for consistency
+                    if error.isCancellationError {
                         print("🎯 [EffortScore] ℹ️ Effort Score 查詢被取消，忽略錯誤")
                         continuation.resume(returning: nil)
                         return

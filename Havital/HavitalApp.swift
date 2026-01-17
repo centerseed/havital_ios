@@ -52,6 +52,10 @@ struct HavitalApp: App {
         // 2. ✅ Clean Architecture: 使用集中式 Bootstrap 註冊所有模組依賴
         AppDependencyBootstrap.registerAllModules()
         print("📦 所有模組依賴已優先註冊")
+
+        // 🔍 DEBUG: 驗證 MonthlyStatsRepository 是否註冊
+        let testRepo: MonthlyStatsRepository? = DependencyContainer.shared.tryResolve()
+        print("🔍 MonthlyStatsRepository 註冊驗證: \(testRepo != nil ? "✅ 成功" : "❌ 失敗")")
         
         // 3. 🚀 必須在訪問 self 之前初始化所有屬性
         // 注意：此時 Firebase 已就緒，DI Container 已填充，可以安全創建單例和 ViewModels

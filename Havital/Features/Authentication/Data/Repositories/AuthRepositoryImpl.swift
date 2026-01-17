@@ -14,6 +14,7 @@ final class AuthRepositoryImpl: AuthRepository {
     private let appleSignIn: AppleSignInDataSource
     private let backendAuth: BackendAuthDataSource
     private let authCache: AuthCache
+    private let authSessionRepository: AuthSessionRepository
 
     // MARK: - Initialization
 
@@ -22,13 +23,15 @@ final class AuthRepositoryImpl: AuthRepository {
         googleSignIn: GoogleSignInDataSource,
         appleSignIn: AppleSignInDataSource,
         backendAuth: BackendAuthDataSource,
-        authCache: AuthCache
+        authCache: AuthCache,
+        authSessionRepository: AuthSessionRepository
     ) {
         self.firebaseAuth = firebaseAuth
         self.googleSignIn = googleSignIn
         self.appleSignIn = appleSignIn
         self.backendAuth = backendAuth
         self.authCache = authCache
+        self.authSessionRepository = authSessionRepository
     }
 
     // MARK: - Sign-In Operations
@@ -246,7 +249,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             Logger.debug("[AuthRepository] Demo login API succeeded, UID: \(demoResponse.uid)")
 
-            // Step 2: Create AuthUser from demo response
+            // Step 2: Store demo token in AuthSessionRepository
+            // This is crucial for subsequent API calls to use the demo token
+            authSessionRepository.setDemoToken(demoResponse.idToken)
+            Logger.debug("[AuthRepository] 🎯 Demo token stored. SessionRepo ID: \(ObjectIdentifier(authSessionRepository as AnyObject))")
+
+            // Step 3: Create AuthUser from demo response
             let authUser = AuthUser(
                 uid: demoResponse.uid,
                 email: demoResponse.email,
@@ -257,8 +265,9 @@ final class AuthRepositoryImpl: AuthRepository {
                 onboardingMode: .none
             )
 
-            // Step 3: Cache the user
+            // Step 4: Cache the user
             authCache.saveUser(authUser)
+            Logger.debug("[AuthRepository] 🎯 User cached with UID: \(authUser.uid)")
 
             Logger.debug("[AuthRepository] Demo login completed successfully")
             return authUser
@@ -324,21 +333,24 @@ extension DependencyContainer {
         register(backendAuthDS, for: BackendAuthDataSource.self)
 
         // Step 3: Register Repositories
-        let authRepo = AuthRepositoryImpl(
-            firebaseAuth: resolve(),
-            googleSignIn: resolve(),
-            appleSignIn: resolve(),
-            backendAuth: resolve(),
-            authCache: resolve()
-        )
-        register(authRepo as AuthRepository, forProtocol: AuthRepository.self)
-
+        // First register AuthSessionRepository since AuthRepository depends on it
         let authSessionRepo = AuthSessionRepositoryImpl(
             firebaseAuth: resolve(),
             backendAuth: resolve(),
             authCache: resolve()
         )
         register(authSessionRepo as AuthSessionRepository, forProtocol: AuthSessionRepository.self)
+
+        // Then register AuthRepository with AuthSessionRepository dependency
+        let authRepo = AuthRepositoryImpl(
+            firebaseAuth: resolve(),
+            googleSignIn: resolve(),
+            appleSignIn: resolve(),
+            backendAuth: resolve(),
+            authCache: resolve(),
+            authSessionRepository: authSessionRepo
+        )
+        register(authRepo as AuthRepository, forProtocol: AuthRepository.self)
 
         let onboardingRepo = OnboardingRepositoryImpl(
             firebaseAuth: resolve(),
