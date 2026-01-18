@@ -480,6 +480,56 @@ struct UserProfileView: View {
     @ViewBuilder
     private var developerSection: some View {
         Section(header: Text(NSLocalizedString("userprofile.text_0", comment: ""))) {
+            // Training Version Debug Info
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                    Text("Training Version Debug")
+                        .font(.headline)
+                }
+
+                if let userData = viewModel.userData {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("User.trainingVersion:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(userData.trainingVersion ?? "nil (default: v1)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(userData.trainingVersion == "v2" ? .green : .orange)
+                        }
+
+                        Button {
+                            Task {
+                                let router: TrainingVersionRouter = DependencyContainer.shared.resolve()
+                                let version = await router.getTrainingVersion()
+                                let isV2 = await router.isV2User()
+                                print("🔍 [Debug] TrainingVersionRouter Results:")
+                                print("   - getTrainingVersion(): \(version)")
+                                print("   - isV2User(): \(isV2)")
+                                print("   - User.trainingVersion: \(userData.trainingVersion ?? "nil")")
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.circle")
+                                Text("Test Version Router")
+                                    .font(.caption)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.vertical, 4)
+
+            Divider()
+
             // 重新開始完整 Onboarding 流程
             Button {
                 // 清除 onboarding 完成標記

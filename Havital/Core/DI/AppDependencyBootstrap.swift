@@ -41,8 +41,11 @@ struct AppDependencyBootstrap {
         // 5. Target 模組 (獨立模組)
         registerTargetModule()
 
-        // 6. TrainingPlan 模組 (依賴 Workout, Target)
+        // 6. TrainingPlan V1 模組 (依賴 Workout, Target)
         registerTrainingPlanModule()
+
+        // 7. TrainingPlanV2 模組 (依賴 UserProfile)
+        registerTrainingPlanV2Module()
     }
 
     // MARK: - Individual Module Registration
@@ -107,16 +110,25 @@ struct AppDependencyBootstrap {
         Logger.debug("[Bootstrap] ✅ Target module registered")
     }
 
-    /// 註冊 TrainingPlan 模組
+    /// 註冊 TrainingPlan V1 模組
     /// 包含: TrainingPlanRepository, DataSources, UseCases
     private static func registerTrainingPlanModule() {
-        guard !DependencyContainer.shared.isRegistered(TrainingPlanRepository.self) else {
-            Logger.debug("[Bootstrap] TrainingPlan module already registered, skipping")
+        // V1 版本目前尚未遷移至 Clean Architecture
+        // 保留此方法作為 placeholder
+        DependencyContainer.shared.registerTrainingPlanDependencies()
+        Logger.debug("[Bootstrap] ✅ TrainingPlan V1 module registered (placeholder)")
+    }
+
+    /// 註冊 TrainingPlanV2 模組
+    /// 包含: TrainingPlanV2Repository, DataSources, TrainingVersionRouter
+    private static func registerTrainingPlanV2Module() {
+        guard !DependencyContainer.shared.isRegistered(TrainingPlanV2Repository.self) else {
+            Logger.debug("[Bootstrap] TrainingPlanV2 module already registered, skipping")
             return
         }
 
-        DependencyContainer.shared.registerTrainingPlanModule()
-        Logger.debug("[Bootstrap] ✅ TrainingPlan module registered")
+        DependencyContainer.shared.registerTrainingPlanV2Dependencies()
+        Logger.debug("[Bootstrap] ✅ TrainingPlanV2 module registered")
     }
 
     // MARK: - Testing Support

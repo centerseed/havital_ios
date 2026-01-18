@@ -109,13 +109,24 @@ final class DependencyContainer {
 
     // MARK: - Feature Registration (擴展點)
 
-    /// 註冊 TrainingPlan 模組依賴
+    /// 註冊 TrainingPlan 模組依賴（V1 版本）
     func registerTrainingPlanDependencies() {
-        // 將在 TrainingPlan 模組實作後添加
-        // register(TrainingPlanRemoteDataSource(...), for: TrainingPlanRemoteDataSource.self)
-        // register(TrainingPlanLocalDataSource(), for: TrainingPlanLocalDataSource.self)
-        // register(TrainingPlanRepositoryImpl(...) as TrainingPlanRepository, forProtocol: TrainingPlanRepository.self)
-        // registerFactory(for: WeeklyPlanViewModel.self) { ... }
+        // V1 版本的 TrainingPlan 依賴註冊
+        // 目前 V1 尚未遷移至 Clean Architecture，保留此方法以供未來遷移使用
+        Logger.debug("[DI] TrainingPlan V1 module dependencies registered (placeholder)")
+    }
+
+    /// 註冊 TrainingPlanV2 模組依賴（V2 版本）
+    /// 調用 TrainingPlanV2 模組的完整註冊流程
+    func registerTrainingPlanV2Dependencies() {
+        // 調用 TrainingPlanV2RepositoryImpl 擴展中定義的註冊方法
+        // 包含 DataSources, Repositories 的註冊
+        registerTrainingPlanV2Module()
+
+        // 註冊 TrainingVersionRouter
+        registerTrainingVersionRouter()
+
+        Logger.debug("[DI] TrainingPlanV2 module dependencies registered")
     }
 
     /// 註冊 User 模組依賴
