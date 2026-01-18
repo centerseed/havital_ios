@@ -5,7 +5,8 @@ struct TrainingProgressView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedStageIndex: Int? = nil
     @State private var isLoadingWeeklySummaries = false
-    
+    @State private var selectedWeekForSummary: Int? = nil  // ✅ 保存當前查看週回顧的週數
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -44,8 +45,30 @@ struct TrainingProgressView: View {
             // 自動展開當前週期對應的階段
             expandCurrentStage()
         }
+        .sheet(isPresented: viewModel.showWeeklySummary) {
+            // ✅ 在 TrainingProgressView 內部顯示週回顧 sheet
+            // 注意:這裡不傳 onGenerateNextWeek,所以不會顯示"產生下週課表"按鈕
+            if let summary = viewModel.weeklySummary {
+                NavigationView {
+                    WeeklySummaryView(
+                        summary: summary,
+                        weekNumber: selectedWeekForSummary,  // ✅ 使用保存的週數
+                        isVisible: viewModel.showWeeklySummary,
+                        onGenerateNextWeek: nil,  // ✅ 不顯示產生下週課表按鈕
+                        onSetNewGoal: nil
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(L10n.Common.close.localized) {
+                                viewModel.showWeeklySummary.wrappedValue = false
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    
+
     // 當前訓練進度卡片
     private var currentTrainingStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -293,9 +316,11 @@ struct TrainingProgressView: View {
                     // 週回顧按鈕
                     if hasSummary {
                         Button {
-                            Task { 
-                                await viewModel.fetchWeeklySummary(weekNumber: weekNumber) 
-                                dismiss() // 關閉當前視圖以顯示回顧
+                            Task {
+                                Logger.debug("[TrainingProgressView] 🔵 Review 按鈕被點擊 - weekNumber: \(weekNumber)")
+                                selectedWeekForSummary = weekNumber  // ✅ 保存週數
+                                await viewModel.fetchWeeklySummary(weekNumber: weekNumber)
+                                Logger.debug("[TrainingProgressView] ✅ fetchWeeklySummary 完成, showWeeklySummary: \(viewModel.showWeeklySummary)")
                             }
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
@@ -319,7 +344,10 @@ struct TrainingProgressView: View {
                     if hasWeekPlan {
                         Button {
                             Task {
+                                // ✅ 直接調用 fetchWeekPlan,它內部會處理 selectedWeek 和 currentWeek 的更新
+                                Logger.debug("[TrainingProgressView] 🔘 Schedule 按鈕被點擊 - weekNumber: \(weekNumber)")
                                 await viewModel.fetchWeekPlan(week: weekNumber)
+                                Logger.debug("[TrainingProgressView] ✅ fetchWeekPlan 完成,準備關閉視圖")
                                 dismiss() // 關閉當前視圖以顯示課表
                             }
                         } label: {
@@ -385,6 +413,7 @@ struct TrainingProgressView: View {
                             // 已有週回顧時顯示產生課表按鈕
                             Button {
                                 Task {
+                                    // ✅ 產生課表會自動設置 selectedWeek，不需要手動設置
                                     await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
                                 }
                             } label: {

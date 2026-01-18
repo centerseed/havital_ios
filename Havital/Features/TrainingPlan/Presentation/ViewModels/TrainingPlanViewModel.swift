@@ -78,6 +78,11 @@ class TrainingPlanViewModel: ObservableObject {
         // 顯示 loading 狀態
         planStatus = .loading
 
+        // ✅ 修復：先刷新 plan status 以更新 currentWeek，避免 selectWeek 的 guard 失敗
+        // 這確保了 weeklyPlanVM.currentWeek 反映最新的週數
+        Logger.debug("[TrainingPlanVM] 先刷新 plan status 以確保 currentWeek 正確")
+        await loadPlanStatus(skipCache: true, shouldResetSelectedWeek: false)
+
         // 切換週次
         await weeklyPlanVM.selectWeek(week)
 
@@ -109,13 +114,15 @@ class TrainingPlanViewModel: ObservableObject {
             return nil
         }
 
-        guard let weekInfo = WeekDateService.weekDateInfo(createdAt: overview.createdAt, weekNumber: currentWeek) else {
-            Logger.error("[TrainingPlanVM] Failed to calculate week date info for week \(currentWeek)")
+        // ✅ 修復：使用 selectedWeek 而非 currentWeek，以顯示正確的週日期
+        // 配合 trainingOverview.createdAt（計畫起始日期）計算實際日期範圍
+        guard let weekInfo = WeekDateService.weekDateInfo(createdAt: overview.createdAt, weekNumber: selectedWeek) else {
+            Logger.error("[TrainingPlanVM] Failed to calculate week date info for week \(selectedWeek)")
             return nil
         }
 
         let date = weekInfo.daysMap[dayIndex]
-        Logger.debug("[TrainingPlanVM] getDateForDay(\(dayIndex)) for week \(currentWeek) -> \(date?.description ?? "nil")")
+        Logger.debug("[TrainingPlanVM] getDateForDay(\(dayIndex)) for week \(selectedWeek) -> \(date?.description ?? "nil")")
         return date
     }
 
@@ -333,13 +340,14 @@ class TrainingPlanViewModel: ObservableObject {
         return currentWeek
     }
 
-    /// 獲取當前週的起始日期（週一）
+    /// 獲取當前選擇週的起始日期（週一）
     func getWeekStartDate() -> Date? {
         guard let overview = trainingOverview else {
             return nil
         }
 
-        guard let weekInfo = WeekDateService.weekDateInfo(createdAt: overview.createdAt, weekNumber: currentWeek) else {
+        // ✅ 修復：使用 selectedWeek 而非 currentWeek，以取得正確的週起始日期
+        guard let weekInfo = WeekDateService.weekDateInfo(createdAt: overview.createdAt, weekNumber: selectedWeek) else {
             return nil
         }
 
@@ -425,6 +433,40 @@ class TrainingPlanViewModel: ObservableObject {
         summaryVM.$isGenerating
             .receive(on: DispatchQueue.main)
             .assign(to: &$isLoadingAnimation)
+
+        // ✅ 關鍵修復：監聽 weeklyPlanVM.selectedWeek 變更
+        // 當 selectedWeek 變更時，需要觸發 objectWillChange 讓 UI 重新渲染
+        // 否則 getDateForDay() 等使用 selectedWeek 的計算屬性不會更新顯示
+        weeklyPlanVM.$selectedWeek
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newWeek in
+                guard let self = self else { return }
+                Logger.debug("[TrainingPlanVM] selectedWeek 變更為 \(newWeek)，觸發 UI 更新")
+                self.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        // ✅ 關鍵修復：監聽 summaryVM.showSummarySheet 變更
+        // 當 showSummarySheet 變更時，需要觸發 objectWillChange 讓 UI 重新渲染
+        summaryVM.$showSummarySheet
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] showSheet in
+                guard let self = self else { return }
+                Logger.debug("[TrainingPlanVM] showSummarySheet 變更為 \(showSheet)，觸發 UI 更新")
+                self.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        // ✅ 關鍵修復：監聽 summaryVM.summaryState 變更
+        // 當 summaryState 變更時（載入完成），需要觸發 objectWillChange 讓 UI 重新渲染
+        summaryVM.$summaryState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                guard let self = self else { return }
+                Logger.debug("[TrainingPlanVM] summaryState 變更為 \(state.isLoading ? "loading" : state.hasData ? "loaded" : "empty")，觸發 UI 更新")
+                self.objectWillChange.send()
+            }
+            .store(in: &cancellables)
 
         // ✅ 關鍵修復：監聽 workouts 更新通知
         // 當 UnifiedWorkoutManager 完成載入後，重新載入本週 workouts
@@ -624,7 +666,8 @@ class TrainingPlanViewModel: ObservableObject {
 
         // 步驟 1: 載入計畫狀態
         Logger.debug("[TrainingPlanVM] Step 1: Loading plan status...")
-        await loadPlanStatus()
+        // ✅ 初始化時重置 selectedWeek 到 currentWeek
+        await loadPlanStatus(shouldResetSelectedWeek: true)
 
         // 根據 plan status 決定下一步操作
         guard let response = planStatusResponse else {
@@ -688,8 +731,8 @@ class TrainingPlanViewModel: ObservableObject {
     // MARK: - Plan Status
 
     /// 載入計畫狀態
-    func loadPlanStatus(skipCache: Bool = false) async {
-        Logger.debug("[TrainingPlanVM] Loading plan status (skipCache: \(skipCache))")
+    func loadPlanStatus(skipCache: Bool = false, shouldResetSelectedWeek: Bool = false) async {
+        Logger.debug("[TrainingPlanVM] Loading plan status (skipCache: \(skipCache), shouldResetSelectedWeek: \(shouldResetSelectedWeek))")
 
         do {
             let status = skipCache
@@ -699,8 +742,18 @@ class TrainingPlanViewModel: ObservableObject {
             planStatusResponse = status
 
             // 更新當前週數
+            let oldCurrentWeek = weeklyPlanVM.currentWeek
             weeklyPlanVM.currentWeek = status.currentWeek
-            weeklyPlanVM.selectedWeek = status.currentWeek
+            Logger.debug("[TrainingPlanVM] ✅ currentWeek 更新: \(oldCurrentWeek) → \(status.currentWeek)")
+
+            // ✅ 修復：只在必要時才重置 selectedWeek，避免覆蓋用戶手動選擇的週數
+            // 只有在明確要求重置（例如初始化）時才更新 selectedWeek
+            if shouldResetSelectedWeek {
+                weeklyPlanVM.selectedWeek = status.currentWeek
+                Logger.debug("[TrainingPlanVM] selectedWeek reset to currentWeek: \(status.currentWeek)")
+            } else {
+                Logger.debug("[TrainingPlanVM] selectedWeek preserved: \(weeklyPlanVM.selectedWeek)")
+            }
 
             // 更新訓練計畫名稱
             if let overview = weeklyPlanVM.overviewState.data {
@@ -762,59 +815,90 @@ class TrainingPlanViewModel: ObservableObject {
     }
 
     /// 產生下週課表
-    func generateNextWeekPlan(targetWeek: Int) async {
+    /// - Parameter forceGenerate: 是否強制產生課表（跳過週回顧顯示）。從週回顧 sheet 點擊按鈕時應設為 true
+    func generateNextWeekPlan(targetWeek: Int, forceGenerate: Bool = false) async {
         // 🔍 [DEBUG] Enhanced entry point logging
         Logger.debug("========================================")
-        Logger.debug("[TrainingPlanVM] 🎯 generateNextWeekPlan(targetWeek: \(targetWeek)) 被調用")
+        Logger.debug("[TrainingPlanVM] 🎯 generateNextWeekPlan(targetWeek: \(targetWeek), forceGenerate: \(forceGenerate)) 被調用")
         Logger.debug("[TrainingPlanVM] currentWeek: \(currentWeek)")
         Logger.debug("[TrainingPlanVM] selectedWeek: \(selectedWeek)")
         Logger.debug("========================================")
 
-        // ✅ 檢查是否需要先產生週回顧
-        // 後端會自動根據 targetWeek 減1來產生對應的週回顧
-        // 例如：要產生第7週課表，傳入 targetWeek=7，後端會自動產生第6週的週回顧
-        let requiredSummaryWeek = targetWeek - 1
+        // ✅ 如果是從週回顧 sheet 點擊的「產生下週課表」按鈕，直接產生課表
+        if forceGenerate {
+            Logger.debug("[TrainingPlanVM] forceGenerate=true，跳過週回顧檢查，直接產生課表")
+        } else {
+            // ✅ 檢查是否需要先產生週回顧
+            // 後端會自動根據 targetWeek 減1來產生對應的週回顧
+            // 例如：要產生第7週課表，傳入 targetWeek=7，後端會自動產生第6週的週回顧
+            let requiredSummaryWeek = targetWeek - 1
 
-        // 嘗試獲取週回顧，如果不存在則先產生
-        Logger.debug("[TrainingPlanVM] 檢查是否需要先產生第 \(requiredSummaryWeek) 週的週回顧")
+            // 嘗試獲取週回顧，如果不存在則先產生
+            Logger.debug("[TrainingPlanVM] 檢查是否需要先產生第 \(requiredSummaryWeek) 週的週回顧")
 
-        do {
-            // ✅ 通過 Repository 檢查週回顧是否存在（符合 Clean Arch）
-            _ = try await repository.getWeeklySummary(weekNumber: requiredSummaryWeek)
-            Logger.debug("[TrainingPlanVM] 第 \(requiredSummaryWeek) 週週回顧已存在，直接產生課表")
-        } catch {
-            // 週回顧不存在，需要先產生
-            Logger.debug("[TrainingPlanVM] 第 \(requiredSummaryWeek) 週週回顧不存在，先產生週回顧")
-            Logger.debug("[TrainingPlanVM] 傳入 targetWeek=\(targetWeek)，後端會自動減1產生第 \(requiredSummaryWeek) 週的週回顧")
+            do {
+                // ✅ 通過 Repository 檢查週回顧是否存在（符合 Clean Arch）
+                let existingSummary = try await repository.getWeeklySummary(weekNumber: requiredSummaryWeek)
+                Logger.debug("[TrainingPlanVM] 第 \(requiredSummaryWeek) 週週回顧已存在")
 
-            // 設置待產生的目標週數
-            summaryVM.pendingTargetWeek = targetWeek
+                // ✅ 修復：即使週回顧已存在，也要先顯示給用戶查看
+                // 載入週回顧並顯示 sheet
+                summaryVM.summaryState = .loaded(existingSummary)
+                summaryVM.pendingTargetWeek = targetWeek
 
-            // ✅ 產生週回顧：直接傳入 targetWeek，後端會自動減1
-            await summaryVM.createWeeklySummary(weekNumber: targetWeek)
+                // 檢查並保存調整項目（如果有的話）
+                if let adjustments = existingSummary.nextWeekAdjustments.items, !adjustments.isEmpty {
+                    summaryVM.pendingAdjustments = adjustments
+                    summaryVM.pendingSummaryId = existingSummary.id
+                    Logger.debug("[TrainingPlanVM] 有 \(adjustments.count) 個調整項目，先顯示週回顧")
+                }
 
-            // 檢查是否有調整項目需要確認
-            if !summaryVM.pendingAdjustments.isEmpty {
-                Logger.debug("[TrainingPlanVM] 有 \(summaryVM.pendingAdjustments.count) 個調整項目，等待用戶確認後再產生課表")
+                // 顯示週回顧 sheet
+                summaryVM.showSummarySheet = true
+                Logger.debug("[TrainingPlanVM] 顯示週回顧給用戶查看")
+                isLoadingAnimation = false
+                return
+            } catch {
+                // 週回顧不存在，需要先產生
+                Logger.debug("[TrainingPlanVM] 第 \(requiredSummaryWeek) 週週回顧不存在，先產生週回顧")
+                Logger.debug("[TrainingPlanVM] 傳入 targetWeek=\(targetWeek)，後端會自動減1產生第 \(requiredSummaryWeek) 週的週回顧")
+
+                // 設置待產生的目標週數
+                summaryVM.pendingTargetWeek = targetWeek
+
+                // ✅ 產生週回顧：直接傳入 targetWeek，後端會自動減1
+                await summaryVM.createWeeklySummary(weekNumber: targetWeek)
+
+                // 檢查是否有調整項目需要確認
+                if !summaryVM.pendingAdjustments.isEmpty {
+                    Logger.debug("[TrainingPlanVM] 有 \(summaryVM.pendingAdjustments.count) 個調整項目，等待用戶確認後再產生課表")
+                    isLoadingAnimation = false
+                    return
+                }
+
+                // ✅ 修復：週回顧剛產生時，應該先讓用戶查看，不要自動產生課表
+                // 用戶需要從週回顧 sheet 中點擊「產生下週課表」按鈕來手動觸發
+                Logger.debug("[TrainingPlanVM] 週回顧已完成，無調整項目，等待用戶查看並手動產生課表")
                 isLoadingAnimation = false
                 return
             }
-
-            // ✅ 修復：週回顧剛產生時，應該先讓用戶查看，不要自動產生課表
-            // 用戶需要從週回顧 sheet 中點擊「產生下週課表」按鈕來手動觸發
-            Logger.debug("[TrainingPlanVM] 週回顧已完成，無調整項目，等待用戶查看並手動產生課表")
-            isLoadingAnimation = false
-            return
         }
 
         isLoadingAnimation = true
 
-        await weeklyPlanVM.generateWeeklyPlan(targetWeek: targetWeek)
+        // ✅ 先設置 selectedWeek 為目標週數，確保日期計算使用正確的週數
+        weeklyPlanVM.selectedWeek = targetWeek
+        Logger.debug("[TrainingPlanVM] 設置 selectedWeek = \(targetWeek)")
 
-        // 刷新計畫狀態 (這會更新 weeklyPlanVM.currentWeek)
-        await loadPlanStatus(skipCache: true)
-        
-        // ✅ 產生後需要載入該週的訓練記錄
+        // ✅ 產生週計畫並載入到 state（generateWeeklyPlan 會設置 state = .loaded(新計畫)）
+        await weeklyPlanVM.generateWeeklyPlan(targetWeek: targetWeek)
+        Logger.debug("[TrainingPlanVM] 產生第 \(targetWeek) 週計畫完成")
+
+        // 刷新計畫狀態（這會更新 weeklyPlanVM.currentWeek）
+        await loadPlanStatus(skipCache: true, shouldResetSelectedWeek: false)
+
+        // ✅ 載入該週的訓練記錄
+        // getDateForDay() 使用 trainingOverview.createdAt + selectedWeek 計算正確的日期範圍
         await loadWorkoutsForCurrentWeek()
 
         // ✅ 使用 helper 更新 planStatus，讓 UI 顯示新課表
@@ -953,9 +1037,9 @@ class TrainingPlanViewModel: ObservableObject {
     }
 
     /// 獲取指定週回顧（Legacy Proxy）
-    /// 實際上是調用 createWeeklySummary，如果存在則返回，不存在則創建
+    /// 用於查看已存在的歷史週回顧
     func fetchWeeklySummary(weekNumber: Int) async {
-        await summaryVM.createWeeklySummary(weekNumber: weekNumber)
+        await summaryVM.loadWeeklySummary(weekNumber: weekNumber)
     }
 
     /// 獲取所有週回顧（Legacy Proxy）
@@ -992,8 +1076,9 @@ class TrainingPlanViewModel: ObservableObject {
         }
 
         // ✅ 無論是否有調整，都要產生下週課表
-        Logger.debug("[TrainingPlanVM] Generating next week plan for week \(targetWeek)")
-        await generateNextWeekPlan(targetWeek: targetWeek)
+        // ✅ 從週回顧/調整確認流程調用，設置 forceGenerate=true 跳過週回顧檢查
+        Logger.debug("[TrainingPlanVM] Generating next week plan for week \(targetWeek) (forceGenerate=true)")
+        await generateNextWeekPlan(targetWeek: targetWeek, forceGenerate: true)
     }
 
     /// 取消調整確認

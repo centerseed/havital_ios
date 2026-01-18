@@ -306,9 +306,9 @@ struct TrainingPlanView: View {
                                     // next_week_info 流程：產生指定週數
                                     await viewModel.confirmAdjustmentsAndGenerateNextWeek(targetWeek: targetWeekToProduce)
                                 } else {
-                                    Logger.debug("[TrainingPlanView] → 調用 generateNextWeekPlan(targetWeek: \(targetWeekToProduce))")
-                                    // 一般流程：根據當前狀態產生正確的週數
-                                    await viewModel.generateNextWeekPlan(targetWeek: targetWeekToProduce)
+                                    Logger.debug("[TrainingPlanView] → 調用 generateNextWeekPlan(targetWeek: \(targetWeekToProduce), forceGenerate: true)")
+                                    // ✅ 從週回顧 sheet 點擊按鈕，設置 forceGenerate=true 跳過週回顧檢查
+                                    await viewModel.generateNextWeekPlan(targetWeek: targetWeekToProduce, forceGenerate: true)
                                 }
                                 Logger.debug("========================================")
                             }
@@ -322,7 +322,7 @@ struct TrainingPlanView: View {
                         } : nil
                     )
                     .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
+                        ToolbarItem(placement: .navigationBarLeading) {
                             Button(L10n.Common.close.localized) {
                                 viewModel.clearWeeklySummary()
                             }

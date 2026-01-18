@@ -13,34 +13,6 @@ struct WeeklySummaryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 標題與分享按鈕
-                HStack {
-                    if let weekNumber = weekNumber {
-                        Text(L10n.Training.Review.weekReview.localized(with: weekNumber))
-                            .font(AppFont.title2())
-                            .fontWeight(.bold)
-                    } else {
-                        Text(L10n.Training.Review.lastWeekReview.localized)
-                            .font(AppFont.title2())
-                            .fontWeight(.bold)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        shareWeeklySummary()
-                    } label: {
-                        if isGeneratingScreenshot {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(AppFont.title3())
-                        }
-                    }
-                    .disabled(isGeneratingScreenshot)
-                }
-                
                 // 訓練完成度部分
                 completionSection
                 
@@ -97,10 +69,36 @@ struct WeeklySummaryView: View {
             .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    shareWeeklySummary()
+                } label: {
+                    if isGeneratingScreenshot {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isGeneratingScreenshot)
+            }
+        }
         .sheet(isPresented: $showShareSheet) {
             if let shareImage = shareImage {
                 ActivityViewController(activityItems: [shareImage])
             }
+        }
+    }
+
+    // 計算導航標題
+    private var navigationTitle: String {
+        if let weekNumber = weekNumber {
+            return L10n.Training.Review.weekReview.localized(with: weekNumber)
+        } else {
+            return L10n.Training.Review.lastWeekReview.localized
         }
     }
     

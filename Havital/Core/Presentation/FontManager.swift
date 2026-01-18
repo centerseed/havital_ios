@@ -10,7 +10,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 54, relativeTo: .largeTitle)
+            return .custom("Onest", size: 54, relativeTo: .largeTitle)
         case .japanese, .traditionalChinese:
             return .system(size: 52, weight: .semibold, design: .default)
         }
@@ -22,7 +22,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 28, relativeTo: .title)
+            return .custom("Onest", size: 28, relativeTo: .title)
         case .japanese, .traditionalChinese:
             return .system(size: 28, weight: .bold, design: .default)
         }
@@ -34,7 +34,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 24, relativeTo: .headline)
+            return .custom("Onest", size: 24, relativeTo: .headline)
         case .japanese, .traditionalChinese:
             return .system(size: 24, weight: .bold, design: .default)
         }
@@ -46,7 +46,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 20, relativeTo: .headline)
+            return .custom("Onest", size: 20, relativeTo: .headline)
         case .japanese, .traditionalChinese:
             return .system(size: 20, weight: .semibold, design: .default)
         }
@@ -58,7 +58,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 18, relativeTo: .body)
+            return .custom("Onest", size: 18, relativeTo: .body)
         case .japanese, .traditionalChinese:
             return .system(size: 18, weight: .semibold, design: .default)
         }
@@ -70,7 +70,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 16, relativeTo: .body)
+            return .custom("Onest", size: 16, relativeTo: .body)
         case .japanese, .traditionalChinese:
             return .system(size: 16, weight: .semibold, design: .default)
         }
@@ -82,7 +82,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 16, relativeTo: .body)
+            return .custom("Onest", size: 16, relativeTo: .body)
         case .japanese, .traditionalChinese:
             return .system(size: 16, weight: .regular, design: .default)
         }
@@ -94,7 +94,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 16, relativeTo: .body)
+            return .custom("Onest", size: 16, relativeTo: .body)
         case .japanese, .traditionalChinese:
             return .system(size: 16, weight: .semibold, design: .default)
         }
@@ -106,7 +106,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 14, relativeTo: .subheadline)
+            return .custom("Onest", size: 14, relativeTo: .subheadline)
         case .japanese, .traditionalChinese:
             return .system(size: 14, weight: .regular, design: .default)
         }
@@ -118,7 +118,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 12, relativeTo: .caption)
+            return .custom("Onest", size: 12, relativeTo: .caption)
         case .japanese, .traditionalChinese:
             return .system(size: 12, weight: .regular, design: .default)
         }
@@ -130,7 +130,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 12, relativeTo: .caption)
+            return .custom("Onest", size: 12, relativeTo: .caption)
         case .japanese, .traditionalChinese:
             return .system(size: 12, weight: .semibold, design: .default)
         }
@@ -142,7 +142,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 10, relativeTo: .caption2)
+            return .custom("Onest", size: 10, relativeTo: .caption2)
         case .japanese, .traditionalChinese:
             return .system(size: 10, weight: .regular, design: .default)
         }
@@ -154,7 +154,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 54, relativeTo: .largeTitle)
+            return .custom("Onest", size: 54, relativeTo: .largeTitle)
         case .japanese, .traditionalChinese:
             return .system(size: 52, weight: .semibold, design: .default)
         }
@@ -165,7 +165,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 40, relativeTo: .largeTitle)
+            return .custom("Onest", size: 40, relativeTo: .largeTitle)
         case .japanese, .traditionalChinese:
             return .system(size: 38, weight: .semibold, design: .default)
         }
@@ -176,7 +176,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 28, relativeTo: .title)
+            return .custom("Onest", size: 28, relativeTo: .title)
         case .japanese, .traditionalChinese:
             return .system(size: 26, weight: .semibold, design: .default)
         }
@@ -188,7 +188,7 @@ struct AppFont {
         let language = LanguageManager.shared.currentLanguage
         switch language {
         case .english:
-            return .custom("Inter", size: 16, relativeTo: .body)
+            return .custom("Onest", size: 16, relativeTo: .body)
         case .japanese, .traditionalChinese:
             return .system(size: 16, weight: .semibold, design: .default)
         }
@@ -205,7 +205,7 @@ struct AppFont {
         case .english:
             // 英文使用 Inter 自訂字型
             let weightName = weightName(for: weight)
-            return .custom("Inter", size: size, relativeTo: .body)
+            return .custom("Onest", size: size, relativeTo: .body)
         case .japanese, .traditionalChinese:
             // 日文和中文使用系統字型
             return .system(size: size, weight: weight, design: .default)
@@ -237,6 +237,66 @@ struct AppFont {
         default:
             return "Regular"
         }
+    }
+
+    // MARK: - Dynamic Font Loading
+    /// 動態載入 Onest 字體檔案（如果未被 Info.plist 載入）
+    static func loadOnestFontsIfNeeded() {
+        let fontNames = ["Onest-Regular", "Onest-Medium", "Onest-SemiBold", "Onest-Bold"]
+
+        for fontName in fontNames {
+            let fonts = UIFont.fontNames(forFamilyName: "Onest")
+            if !fonts.isEmpty {
+                return  // 字體已經載入，無需重複載入
+            }
+
+            // 嘗試從 app bundle 根目錄載入
+            if let path = Bundle.main.path(forResource: fontName, ofType: "ttf"),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+               let provider = CGDataProvider(data: data as CFData),
+               let font = CGFont(provider) {
+                var error: Unmanaged<CFError>?
+                if CTFontManagerRegisterGraphicsFont(font, &error) {
+                    Logger.debug("✅ 動態載入字體成功: \(fontName)")
+                } else if let error = error?.takeRetainedValue() {
+                    Logger.error("❌ 動態載入字體失敗 (\(fontName)): \(error.localizedDescription)")
+                }
+            } else {
+                Logger.error("❌ 找不到字體檔案: \(fontName).ttf 或無法讀取")
+            }
+        }
+    }
+
+    // MARK: - Debug: Verify Font Loading
+    /// Debug 函數：驗證 Onest 字體是否被正確載入
+    static func debugCheckFonts() {
+        #if DEBUG
+        Logger.debug("=== Font Loading Debug Info ===")
+
+        // 檢查 Onest 字體是否可用
+        let onestFamilyName = "Onest"
+        let fonts = UIFont.fontNames(forFamilyName: onestFamilyName)
+        if !fonts.isEmpty {
+            Logger.debug("✅ Onest 字體已載入，可用的字重：")
+            for fontName in fonts {
+                Logger.debug("   - \(fontName)")
+            }
+        } else {
+            Logger.error("❌ Onest 字體未找到！")
+        }
+
+        // 列出所有已載入的字體家族
+        let allFamilies = UIFont.familyNames.sorted()
+        Logger.debug("已載入的字體家族總數：\(allFamilies.count)")
+
+        // 搜尋包含 "Onest" 的字體
+        let onestFamilies = allFamilies.filter { $0.lowercased().contains("onest") }
+        if onestFamilies.isEmpty {
+            Logger.error("❌ 未找到任何包含 'Onest' 的字體家族")
+        } else {
+            Logger.debug("找到 Onest 字體家族：\(onestFamilies)")
+        }
+        #endif
     }
 }
 

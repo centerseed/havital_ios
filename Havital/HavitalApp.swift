@@ -96,13 +96,24 @@ struct HavitalApp: App {
             print("❌ Firebase 初始化失敗！")
         } else {
             print("✅ Firebase 已成功初始化")
-            
+
             // 6. 初始化語言管理器（Firebase 完成後才能安全使用 Logger.firebase）
             _ = LanguageManager.shared
             print("🌍 LanguageManager 已初始化")
+
+            // 7. 動態載入 Onest 字體（如果未被 Info.plist 載入）
+            print("🔤 開始動態載入 Onest 字體...")
+            AppFont.loadOnestFontsIfNeeded()
+
+            // 8. 檢查字體載入情況（DEBUG only）
+            print("🔍 檢查字體載入結果...")
+            AppFont.debugCheckFonts()
+
+            // 9. 設定 Tab Bar 字體（根據語言選擇）
+            self.configureTabBarFont()
         }
-        
-        // 7. 檢查是否因語言變更而重啟
+
+        // 10. 檢查是否因語言變更而重啟
         checkLanguageChangeRestart()
     }
     
@@ -477,6 +488,32 @@ struct HavitalApp: App {
         }
     }
     
+    /// 設定 Tab Bar 字體（根據當前語言）
+    private func configureTabBarFont() {
+        let language = LanguageManager.shared.currentLanguage
+
+        // 根據語言選擇字體
+        let font: UIFont
+        switch language {
+        case .english:
+            // 英文使用 Onest
+            font = UIFont(name: "Onest-Medium", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .medium)
+        case .japanese, .traditionalChinese:
+            // 日文和中文使用系統字體
+            font = UIFont.systemFont(ofSize: 10, weight: .medium)
+        }
+
+        // 設定 Tab Bar Item 的字體
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font
+        ]
+
+        UITabBarItem.appearance().setTitleTextAttributes(attributes, for: .normal)
+        UITabBarItem.appearance().setTitleTextAttributes(attributes, for: .selected)
+
+        print("✅ Tab Bar 字體已設定: \(language == .english ? "Onest-Medium" : "System Font")")
+    }
+
     /// 檢查是否因語言變更而重啟
     private func checkLanguageChangeRestart() {
         if UserDefaults.standard.bool(forKey: "language_changed_restart") {
