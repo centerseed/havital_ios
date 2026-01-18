@@ -29,16 +29,16 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: type.systemImage)
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(type.iconColor)
             
             VStack(spacing: 8) {
                 Text(type.title)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 
                 Text(customMessage ?? type.description)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -47,7 +47,7 @@ struct EmptyStateView: View {
                 Button(L10n.Misc.retry.localized) {
                     onRetry()
                 }
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.white)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
@@ -152,16 +152,16 @@ struct ContentUnavailableWrapper: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: systemImage)
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.gray)
             
             Text(title)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
             
             if let description = description {
                 description
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -170,7 +170,7 @@ struct ContentUnavailableWrapper: View {
                 Button(L10n.Misc.retry.localized) {
                     onRetry()
                 }
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.white)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)

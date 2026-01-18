@@ -8,7 +8,7 @@ struct DeviceInfoSheetView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(L10n.Record.deviceInfoTitle.localized)
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.bold)
                         .padding(.bottom, 4)
                     Text(L10n.Record.deviceInfoNativeSupport.localized)

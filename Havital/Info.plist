@@ -105,6 +105,13 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Onest-Regular.ttf</string>
+		<string>Onest-Medium.ttf</string>
+		<string>Onest-SemiBold.ttf</string>
+		<string>Onest-Bold.ttf</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

@@ -40,12 +40,12 @@ struct StartStageSelectionView: View {
                             Image(systemName: "clock.fill")
                                 .foregroundColor(.orange)
                             Text(NSLocalizedString("start_stage.time_notice_title", comment: "訓練時間提醒"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                         }
 
                         Text(String(format: NSLocalizedString("start_stage.time_notice", comment: "你的賽事在 %d 週後"),
                                    weeksRemaining))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
 
                         // 訓練習慣提醒（重要）
@@ -54,10 +54,10 @@ struct StartStageSelectionView: View {
                             HStack(alignment: .top, spacing: 8) {
                                 Image(systemName: "info.circle.fill")
                                     .foregroundColor(.blue)
-                                    .font(.system(size: 14))
+                                    .font(AppFont.bodySmall())
 
                                 Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -76,7 +76,7 @@ struct StartStageSelectionView: View {
                         // 推薦標籤
                         HStack {
                             Text(NSLocalizedString("start_stage.recommendation", comment: "推薦起始階段"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 12)
@@ -184,7 +184,7 @@ struct StageOptionCard: View {
             // 階段名稱
             HStack {
                 Text(stageName)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.bold)
 
                 Spacer()
@@ -192,23 +192,23 @@ struct StageOptionCard: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.accentColor)
-                        .font(.title3)
+                        .font(AppFont.title3())
                 }
             }
 
             // 推薦理由
             Text(reason)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             // 風險等級標籤
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption())
                 Text(String(format: NSLocalizedString("start_stage.risk_level", comment: "風險等級: %@"),
                            riskLevel.displayName))
-                    .font(.caption)
+                    .font(AppFont.caption())
             }
             .foregroundColor(riskLevelColor)
             .padding(.horizontal, 10)
@@ -243,7 +243,7 @@ struct StageAlternativeCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(alternative.stageName)
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Spacer()
 
@@ -254,11 +254,11 @@ struct StageAlternativeCard: View {
             }
 
             Text(alternative.suitableFor)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.primary)
 
             Text(alternative.description)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -361,13 +361,13 @@ struct StageDistributionRow: View {
                 .frame(width: 10, height: 10)
 
             Text(stageName)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             Spacer()
 
             Text(String(format: NSLocalizedString("start_stage.weeks_count", comment: "%d 週"), weeks))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
     }

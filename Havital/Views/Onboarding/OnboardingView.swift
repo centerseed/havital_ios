@@ -242,7 +242,7 @@ struct OnboardingView: View {
                     if !viewModel.availableTargets.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(NSLocalizedString("onboarding.or_select_existing_target", comment: "或選擇已設定的未來賽事"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
 
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -255,11 +255,11 @@ struct OnboardingView: View {
                                         }) {
                                             VStack(spacing: 4) {
                                                 Text(target.name)
-                                                    .font(.caption)
+                                                    .font(AppFont.caption())
                                                     .fontWeight(.semibold)
                                                     .lineLimit(1)
                                                 Text("\(target.distanceKm)km")
-                                                    .font(.caption2)
+                                                    .font(AppFont.captionSmall())
                                             }
                                             .frame(minWidth: 80)
                                             .padding(.horizontal, 12)
@@ -313,10 +313,10 @@ struct OnboardingView: View {
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(NSLocalizedString("onboarding.race_distance", comment: "Race Distance"))
-                                            .font(.caption)
+                                            .font(AppFont.caption())
                                             .foregroundColor(.secondary)
                                         Text(viewModel.availableDistances[viewModel.selectedDistance] ?? viewModel.selectedDistance)
-                                            .font(.headline)
+                                            .font(AppFont.headline())
                                             .foregroundColor(.primary)
                                     }
                                 }
@@ -332,10 +332,10 @@ struct OnboardingView: View {
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time"))
-                                            .font(.caption)
+                                            .font(AppFont.caption())
                                             .foregroundColor(.secondary)
                                         Text(String(format: "%d:%02d:00", viewModel.targetHours, viewModel.targetMinutes))
-                                            .font(.headline)
+                                            .font(AppFont.headline())
                                             .foregroundColor(.primary)
                                     }
                                 }
@@ -351,10 +351,10 @@ struct OnboardingView: View {
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(NSLocalizedString("common.pace", comment: "Pace"))
-                                            .font(.caption)
+                                            .font(AppFont.caption())
                                             .foregroundColor(.secondary)
                                         Text(String(format: "%@ /km", viewModel.targetPace))
-                                            .font(.headline)
+                                            .font(AppFont.headline())
                                             .foregroundColor(.primary)
                                     }
                                 }
@@ -369,7 +369,7 @@ struct OnboardingView: View {
                                     .font(.system(size: 32))
                                     .foregroundColor(.accentColor)
                                 Text(NSLocalizedString("common.edit", comment: "Edit"))
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                                     .foregroundColor(.accentColor)
                             }
                             .padding(.leading, 8)

@@ -40,7 +40,7 @@ struct TrainingNotesEditorView: View {
                     HStack {
                         Spacer()
                         Text("\(notesText.count) / \(maxCharacters)")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(characterCountColor)
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
@@ -50,7 +50,7 @@ struct TrainingNotesEditorView: View {
 
                     // 文字編輯器
                     TextEditor(text: $notesText)
-                        .font(.body)
+                        .font(AppFont.body())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,7 +70,7 @@ struct TrainingNotesEditorView: View {
 
                         Text(NSLocalizedString(L10n.WorkoutDetail.trainingNotesSaving, comment: ""))
                             .foregroundColor(.white)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                     }
                 }
             }

@@ -44,7 +44,7 @@ struct SleepHeartRateChartView: View {
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
                                     Text(formatDate(date))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                 }
                                 AxisGridLine()
                                 AxisTick()
@@ -56,7 +56,7 @@ struct SleepHeartRateChartView: View {
                             AxisValueLabel {
                                 if let heartRate = value.as(Double.self) {
                                     Text("\(Int(heartRate))")
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                 }
                             }
                             AxisGridLine()

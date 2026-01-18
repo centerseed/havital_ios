@@ -24,7 +24,7 @@ struct LoginView: View {
                         .frame(height: 60)
 
                     Text(NSLocalizedString("login.tagline", comment: "Login tagline"))
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .foregroundColor(AppTheme.TextColors.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -41,9 +41,9 @@ struct LoginView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "g.circle.fill")
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("login.google_signin", comment: "Sign in with Google"))
-                                .font(.title3)
+                                .font(AppFont.title3())
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -70,9 +70,9 @@ struct LoginView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "apple.logo")
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("login.apple_signin", comment: "Sign in with Apple"))
-                                .font(.title3)
+                                .font(AppFont.title3())
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -109,13 +109,13 @@ struct LoginView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "play.circle.fill")
-                                .font(.title2)
+                                .font(AppFont.title2())
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(NSLocalizedString("login.demo_mode", comment: ""))
-                                    .font(.title3)
+                                    .font(AppFont.title3())
                                     .fontWeight(.semibold)
                                 Text(NSLocalizedString("login.for_apple_review", comment: ""))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .opacity(0.7)
                             }
                         }

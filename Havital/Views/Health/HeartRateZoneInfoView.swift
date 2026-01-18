@@ -126,7 +126,7 @@ struct HeartRateZoneInfoView: View {
     private var editToggleHeader: some View {
         HStack {
             Text(NSLocalizedString("hr_zone.current_settings", comment: "Current Settings"))
-                .font(.headline)
+                .font(AppFont.headline())
 
             Spacer()
 
@@ -170,10 +170,10 @@ struct HeartRateZoneInfoView: View {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -192,13 +192,13 @@ struct HeartRateZoneInfoView: View {
 
                     Text("bpm")
                         .foregroundColor(.secondary)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                 }
             }
 
             // 添加 220-年齡 公式提示
             Text(NSLocalizedString("hr_zone.max_hr_formula_hint", comment: "Tip: You can estimate your max heart rate using the formula: 220 - age"))
-                .font(.caption2)
+                .font(AppFont.captionSmall())
                 .foregroundColor(.secondary.opacity(0.8))
                 .italic()
         }
@@ -211,10 +211,10 @@ struct HeartRateZoneInfoView: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -233,7 +233,7 @@ struct HeartRateZoneInfoView: View {
 
                 Text("bpm")
                     .foregroundColor(.secondary)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
             }
         }
         .padding(.horizontal)
@@ -244,20 +244,20 @@ struct HeartRateZoneInfoView: View {
     private var displayModeContent: some View {
         HStack {
             Text(NSLocalizedString("hr_zone.max_heart_rate_display", comment: "Max Heart Rate"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
             Spacer()
             Text("\(maxHeartRate) bpm")
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal)
 
         HStack {
             Text(NSLocalizedString("hr_zone.resting_heart_rate_display", comment: "Resting Heart Rate"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
             Spacer()
             Text("\(restingHeartRate) bpm")
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal)
@@ -267,7 +267,7 @@ struct HeartRateZoneInfoView: View {
     private var heartRateZoneDetailsView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(NSLocalizedString("hr_zone.details", comment: "Heart Rate Zone Details"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .padding(.horizontal)
 
             if isLoading {
@@ -287,23 +287,23 @@ struct HeartRateZoneInfoView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
 
                 Spacer()
 
                 Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.primary)
                     .fontWeight(.medium)
             }
 
             Text(zone.description)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             Text(String(format: NSLocalizedString("hr_zone.benefit", comment: "Benefit"), zone.benefit))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)

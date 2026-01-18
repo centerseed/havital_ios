@@ -19,11 +19,11 @@ struct WorkoutV2RowView: View {
                 HStack(alignment: .top) {
                     HStack(spacing: 6) {
                         Image(systemName: getActivityTypeIcon(workout.activityType))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(getActivityTypeColor(workout.activityType))
 
                         Text(workout.activityType.workoutTypeDisplayName())
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
 
@@ -31,7 +31,7 @@ struct WorkoutV2RowView: View {
                             Text("·")
                                 .foregroundColor(.secondary)
                             Text(formatTrainingType(trainingType))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -42,10 +42,10 @@ struct WorkoutV2RowView: View {
                     if let dynamicVdot = workout.dynamicVdot {
                         HStack(spacing: 4) {
                             Image(systemName: "speedometer")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.orange)
                             Text(String(format: "VDOT %.1f", dynamicVdot))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .fontWeight(.medium)
                                 .foregroundColor(.orange)
                         }
@@ -70,7 +70,7 @@ struct WorkoutV2RowView: View {
                                 .foregroundColor(.secondary)
                         }
                         Text(L10n.WorkoutMetrics.distance.localized)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,7 +81,7 @@ struct WorkoutV2RowView: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.primary)
                         Text(L10n.WorkoutMetrics.time.localized)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -98,7 +98,7 @@ struct WorkoutV2RowView: View {
                                 .foregroundColor(.secondary)
                         }
                         Text(L10n.WorkoutMetrics.calories.localized)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -112,7 +112,7 @@ struct WorkoutV2RowView: View {
                 // 底部：日期時間（左） + Badge（右）
                 HStack {
                     Text(formattedDate(workout.startDate))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
 
                     Spacer()

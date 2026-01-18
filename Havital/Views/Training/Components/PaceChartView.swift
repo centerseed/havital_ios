@@ -191,7 +191,7 @@ struct PaceChartView: View {
                     let originalPace = invertedPaceValue(invertedPace)
                     AxisValueLabel {
                         Text(formatPaceFromSeconds(originalPace))
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                     }
                 }
                 AxisTick()
@@ -204,7 +204,7 @@ struct PaceChartView: View {
                 if let date = value.as(Date.self) {
                     AxisValueLabel {
                         Text(timeFormatter(date))
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }
@@ -221,7 +221,7 @@ struct PaceChartView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack { // Group title and unit
                 Text(L10n.PaceChart.title.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
@@ -229,7 +229,7 @@ struct PaceChartView: View {
                     attributionBadges
 
                     Text(L10n.PaceChart.unit.localized)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -260,10 +260,10 @@ struct PaceChartView: View {
                     HStack {
                         HStack(spacing: 4) {
                             Text(L10n.PaceChart.fastest.localized)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Text(formatPaceFromSeconds(getMaxPace()))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .fontWeight(.medium)
                                 .foregroundColor(.green)
                         }
@@ -272,10 +272,10 @@ struct PaceChartView: View {
 
                         HStack(spacing: 4) {
                             Text(L10n.PaceChart.slowest.localized)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Text(formatPaceFromSeconds(getMinPace()))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .fontWeight(.medium)
                                 .foregroundColor(.orange)
                         }

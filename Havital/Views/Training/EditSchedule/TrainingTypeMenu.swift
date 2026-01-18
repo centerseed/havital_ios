@@ -77,10 +77,10 @@ struct TrainingTypeMenu: View {
         } label: {
             HStack(spacing: 4) {
                 Text(currentType.localizedName)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 Image(systemName: "chevron.down")
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)

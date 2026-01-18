@@ -38,7 +38,7 @@ struct CalendarSyncSetupView: View {
                     if selectedPreference == .specificTime {
                         VStack(alignment: .leading, spacing: 24) {
                             Text(L10n.CalendarSyncSetup.trainingTime.localized)
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .padding(.horizontal)
                             
                             VStack(spacing: 16) {

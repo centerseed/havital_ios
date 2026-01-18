@@ -25,10 +25,10 @@ struct HRRHeartRateZoneEditorView: View {
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                                    .font(.headline)
+                                    .font(AppFont.headline())
 
                                 Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -44,7 +44,7 @@ struct HRRHeartRateZoneEditorView: View {
 
                                 Text("bpm")
                                     .foregroundColor(.secondary)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                             }
                         }
                     }
@@ -62,10 +62,10 @@ struct HRRHeartRateZoneEditorView: View {
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
-                                    .font(.headline)
+                                    .font(AppFont.headline())
 
                                 Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -81,7 +81,7 @@ struct HRRHeartRateZoneEditorView: View {
 
                                 Text("bpm")
                                     .foregroundColor(.secondary)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                             }
                         }
                     }
@@ -104,12 +104,12 @@ struct HRRHeartRateZoneEditorView: View {
                         ForEach(zones, id: \.zone) { zone in
                             HStack {
                                 Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                 
                                 Spacer()
                                 
                                 Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .foregroundColor(.secondary)
                             }
                         }

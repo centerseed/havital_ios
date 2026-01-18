@@ -24,7 +24,7 @@ struct TimezoneSettingsView: View {
                 // Current Timezone Section
                 Section(header: Text(L10n.Timezone.current.localized)) {
                     Text(TimezoneOption.getDisplayName(for: selectedTimezone))
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
                 }
 
@@ -34,9 +34,9 @@ struct TimezoneSettingsView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(timezone.displayName)
-                                    .font(.body)
+                                    .font(AppFont.body())
                                 Text(timezone.offset)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                             }
                             Spacer()

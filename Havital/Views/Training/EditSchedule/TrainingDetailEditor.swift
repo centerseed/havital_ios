@@ -402,12 +402,12 @@ struct TrainingEditSheetV2: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(editState.type.localizedName)
-                .font(.title2)
+                .font(AppFont.title2())
                 .fontWeight(.bold)
                 .foregroundColor(typeColor)
 
             Text(editState.dayTarget)
-                .font(.body)
+                .font(AppFont.body())
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -483,7 +483,7 @@ struct EasyRunEditorV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.easyRunSettings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.green)
 
             // 建議配速
@@ -518,7 +518,7 @@ struct TempoEditorV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.tempoRunSettings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.orange)
 
             // 建議配速
@@ -571,7 +571,7 @@ struct IntervalEditorV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.intervalSettings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.orange)
 
             // 快速選擇模板
@@ -582,7 +582,7 @@ struct IntervalEditorV2: View {
                             applyTemplate(index)
                         } label: {
                             Text(templates[index].name)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .background(selectedTemplate == index ? Color.orange : Color.orange.opacity(0.15))
@@ -610,7 +610,7 @@ struct IntervalEditorV2: View {
                 HStack {
                     Circle().fill(Color.red).frame(width: 8, height: 8)
                     Text(L10n.EditSchedule.sprintSegment.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                 }
 
@@ -628,7 +628,7 @@ struct IntervalEditorV2: View {
                 HStack {
                     Circle().fill(Color.blue).frame(width: 8, height: 8)
                     Text(L10n.EditSchedule.recoverySegment.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                 }
 
@@ -689,16 +689,16 @@ struct Norwegian4x4EditorV2: View {
             // 標題：挪威4x4訓練設定（不是通用的「間歇訓練設定」）
             HStack {
                 Text("🇳🇴")
-                    .font(.title2)
+                    .font(AppFont.title2())
                 Text(L10n.EditSchedule.norwegian4x4Settings.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.orange)
             }
 
             // 訓練說明
             VStack(alignment: .leading, spacing: 8) {
                 Text(L10n.EditSchedule.norwegian4x4Description.localized)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -723,7 +723,7 @@ struct Norwegian4x4EditorV2: View {
                 HStack {
                     Circle().fill(Color.red).frame(width: 8, height: 8)
                     Text(L10n.EditSchedule.sprintSegment.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                 }
 
@@ -741,11 +741,11 @@ struct Norwegian4x4EditorV2: View {
                 HStack {
                     Circle().fill(Color.blue).frame(width: 8, height: 8)
                     Text(L10n.EditSchedule.recoverySegment.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     Spacer()
                     Text("恢復跑")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.mint)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -806,13 +806,13 @@ struct Yasso800EditorV2: View {
         VStack(alignment: .leading, spacing: 16) {
             // 標題：亞索800訓練設定
             Text(L10n.EditSchedule.yasso800Settings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.orange)
 
             // 訓練說明
             VStack(alignment: .leading, spacing: 8) {
                 Text(L10n.EditSchedule.yasso800Description.localized)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -836,11 +836,11 @@ struct Yasso800EditorV2: View {
                 HStack {
                     Circle().fill(Color.red).frame(width: 8, height: 8)
                     Text(L10n.EditSchedule.sprintSegment.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     Spacer()
                     Text("800m")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -859,7 +859,7 @@ struct Yasso800EditorV2: View {
                 HStack {
                     Circle().fill(Color.blue).frame(width: 8, height: 8)
                     Text(L10n.EditSchedule.recoverySegment.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                 }
 
@@ -870,7 +870,7 @@ struct Yasso800EditorV2: View {
                 } else {
                     HStack {
                         Text("400m 慢跑恢復")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                         Spacer()
                     }
@@ -918,7 +918,7 @@ struct WorkTimePickerFieldV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -929,7 +929,7 @@ struct WorkTimePickerFieldV2: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -989,7 +989,7 @@ struct CombinationEditorV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.combinationSettings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.orange)
 
             // 分段列表
@@ -1029,7 +1029,7 @@ struct CombinationEditorV2: View {
                     .foregroundColor(.secondary)
                 Spacer()
                 Text(String(format: "%.1f km", editState.totalSegmentDistance))
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.bold)
                     .foregroundColor(.orange)
             }
@@ -1057,13 +1057,13 @@ struct SegmentEditorRowV2: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(String(format: L10n.EditSchedule.segment.localized, index + 1))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
 
                 if let desc = segment.description, !desc.isEmpty {
                     Text(desc)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -1076,7 +1076,7 @@ struct SegmentEditorRowV2: View {
                 if canDelete {
                     Button { onDelete() } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 14))
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.red)
                             .padding(8)
                             .background(Color.red.opacity(0.1))
@@ -1105,7 +1105,7 @@ struct LongRunEditorV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.longRunSettings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.blue)
 
             DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
@@ -1129,7 +1129,7 @@ struct SimpleEditorV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.EditSchedule.trainingSettings.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.blue)
 
             if editState.type != .rest {
@@ -1156,7 +1156,7 @@ struct DistancePickerFieldV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -1167,7 +1167,7 @@ struct DistancePickerFieldV2: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -1196,7 +1196,7 @@ struct PacePickerFieldV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -1207,7 +1207,7 @@ struct PacePickerFieldV2: View {
                         .foregroundColor(pace.isEmpty ? .secondary : .primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -1235,7 +1235,7 @@ struct RepeatsPickerFieldV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -1246,7 +1246,7 @@ struct RepeatsPickerFieldV2: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -1279,7 +1279,7 @@ struct IntervalDistancePickerFieldV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -1290,7 +1290,7 @@ struct IntervalDistancePickerFieldV2: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -1318,7 +1318,7 @@ struct RestTimePickerFieldV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -1329,7 +1329,7 @@ struct RestTimePickerFieldV2: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -1381,7 +1381,7 @@ struct RestTimeWheelPicker: View {
             VStack(spacing: 16) {
                 // 當前選擇時間顯示
                 Text(formatTime(Double(minutes) + Double(seconds) / 60.0))
-                    .font(.title)
+                    .font(AppFont.title1())
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                     .padding(.top, 8)
@@ -1399,7 +1399,7 @@ struct RestTimeWheelPicker: View {
                     .clipped()
 
                     Text("分")
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .frame(width: 30)
 
@@ -1414,7 +1414,7 @@ struct RestTimeWheelPicker: View {
                     .clipped()
 
                     Text("秒")
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .frame(width: 30)
                 }
@@ -1423,7 +1423,7 @@ struct RestTimeWheelPicker: View {
                 // 快速選擇按鈕
                 VStack(spacing: 8) {
                     Text("快速選擇")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 12) {
@@ -1489,7 +1489,7 @@ private struct QuickSelectButton: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.caption)
+                .font(AppFont.caption())
                 .fontWeight(.medium)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -1512,10 +1512,10 @@ struct SuggestedPaceViewV2: View {
             HStack(spacing: 8) {
                 Image(systemName: "lightbulb.fill")
                     .foregroundColor(.yellow)
-                    .font(.caption)
+                    .font(AppFont.caption())
 
                 Text(String(format: L10n.EditSchedule.suggestedPace.localized, pace))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
 
                 Spacer()
@@ -1523,7 +1523,7 @@ struct SuggestedPaceViewV2: View {
                 Button(L10n.EditSchedule.apply.localized) {
                     onApply()
                 }
-                .font(.caption)
+                .font(AppFont.caption())
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
@@ -1531,11 +1531,11 @@ struct SuggestedPaceViewV2: View {
             if let range = paceRange {
                 HStack(spacing: 4) {
                     Image(systemName: "gauge.medium")
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.secondary)
 
                     Text(String(format: L10n.EditSchedule.paceRange.localized, range.max, range.min))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -1554,11 +1554,11 @@ struct DescriptionViewV2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L10n.EditSchedule.description.localized)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Text(description)
-                .font(.body)
+                .font(AppFont.body())
                 .foregroundColor(.secondary)
                 .padding()
                 .background(Color(.tertiarySystemBackground))

@@ -12,7 +12,7 @@ struct SectionTitleWithInfo: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
             
             Button {
@@ -144,7 +144,7 @@ struct MyAchievementView: View {
                             // Last updated time
                             if let updateTime = formattedUpdateTime {
                                 Text(updateTime)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                             }
 
@@ -156,7 +156,7 @@ struct MyAchievementView: View {
                             }) {
                                 Image(systemName: "arrow.clockwise")
                                     .foregroundColor(trainingReadinessManager.isLoading ? .gray : .blue)
-                                    .font(.system(size: 16))
+                                    .font(AppFont.body())
                                     .rotationEffect(.degrees(refreshRotation))
                             }
                             .disabled(trainingReadinessManager.isLoading)
@@ -402,7 +402,7 @@ struct CombinedHeartRateChartSection: View {
                             ProgressView()
                                 .scaleEffect(0.8)
                             Text(NSLocalizedString("performance.updating", comment: "Updating..."))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         } else {
                             // Garmin Attribution for main chart data
@@ -846,7 +846,7 @@ struct SharedHealthDataChartView: View {
                     // Title and Garmin Attribution for empty state
                     HStack {
                         Text(chartTitle)
-                            .font(.headline)
+                            .font(AppFont.headline())
                         
                         Spacer()
                         
@@ -944,7 +944,7 @@ struct SharedHealthDataChartView: View {
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatDateForDisplay(date))
-                                .font(.caption)
+                                .font(AppFont.caption())
                         }
                         AxisGridLine()
                         AxisTick()
@@ -1254,9 +1254,9 @@ struct APIBasedRestingHeartRateChartView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundColor(.orange)
                     Text(NSLocalizedString("performance.load_failed", comment: "Load failed"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Text(error)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -1320,11 +1320,11 @@ struct EmptyDataSourceView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "questionmark.circle")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.gray)
             
             Text(message)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -1370,7 +1370,7 @@ struct TrainingLoadChartSection: View {
                     }) {
                         Image(systemName: "arrow.clockwise")
                             .foregroundColor(.blue)
-                            .font(.system(size: 16))
+                            .font(AppFont.body())
                     }
                 }
                 .padding(.horizontal)
@@ -1495,14 +1495,14 @@ struct TrainingLoadChartView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("體適能指數 & 訓練壓力平衡")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
 
                     if isLoadingChartData {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text("同步中...")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     }
                 }
@@ -1624,7 +1624,7 @@ struct TrainingLoadChartView: View {
                         AxisValueLabel {
                             if let doubleValue = value.as(Double.self) {
                                 Text(String(format: "%.0f", doubleValue))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.blue)
                             }
                         }
@@ -1639,7 +1639,7 @@ struct TrainingLoadChartView: View {
                         if let date = value.as(Date.self) {
                             AxisValueLabel {
                                 Text(formatWeekForDisplay(date))
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                             }
                             AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
                             AxisTick()
@@ -1650,7 +1650,7 @@ struct TrainingLoadChartView: View {
                 // TSB 狀態說明
                 VStack(alignment: .leading, spacing: 4) {
                     Text(NSLocalizedString("myachievement.tsb", comment: ""))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
                         .padding(.top, 8)
@@ -1662,7 +1662,7 @@ struct TrainingLoadChartView: View {
                                 .fill(Color.red.opacity(0.3))
                                 .frame(width: 12, height: 12)
                             Text(NSLocalizedString("myachievement.text_3", comment: ""))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -1672,7 +1672,7 @@ struct TrainingLoadChartView: View {
                                 .fill(Color.green.opacity(0.3))
                                 .frame(width: 12, height: 12)
                             Text(NSLocalizedString("myachievement.text_4", comment: ""))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -1682,7 +1682,7 @@ struct TrainingLoadChartView: View {
                                 .fill(Color.blue.opacity(0.3))
                                 .frame(width: 12, height: 12)
                             Text(NSLocalizedString("myachievement.text_5", comment: ""))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -2034,7 +2034,7 @@ struct FitnessIndexChartView: View {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text(NSLocalizedString("misc.syncing", comment: ""))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 8)
@@ -2140,7 +2140,7 @@ struct FitnessIndexChartView: View {
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text(String(format: "%.0f", doubleValue))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.blue)
                         }
                     }
@@ -2154,7 +2154,7 @@ struct FitnessIndexChartView: View {
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatWeekForDisplay(date))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                         }
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
                         AxisTick()
@@ -2165,7 +2165,7 @@ struct FitnessIndexChartView: View {
             // 圓點標記說明和CTL區間說明
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.MyAchievement.markerExplanation.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
@@ -2176,7 +2176,7 @@ struct FitnessIndexChartView: View {
                             .fill(Color.blue)
                             .frame(width: 12, height: 12)
                         Text(L10n.MyAchievement.hasTraining.localized)
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2185,7 +2185,7 @@ struct FitnessIndexChartView: View {
                             .stroke(Color.blue, lineWidth: 2)
                             .frame(width: 12, height: 12)
                         Text(L10n.MyAchievement.restDay.localized)
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2201,7 +2201,7 @@ struct FitnessIndexChartView: View {
                                 .fill(Color.green.opacity(0.4))
                                 .frame(width: 12, height: 12)
                             Text(NSLocalizedString("myachievement.text_6", comment: ""))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -2444,7 +2444,7 @@ struct TSBChartView: View {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text(NSLocalizedString("misc.syncing", comment: ""))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 8)
@@ -2519,7 +2519,7 @@ struct TSBChartView: View {
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text(String(format: "%.0f", doubleValue))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.green)
                         }
                     }
@@ -2533,7 +2533,7 @@ struct TSBChartView: View {
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatWeekForDisplay(date))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                         }
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
                         AxisTick()
@@ -2544,7 +2544,7 @@ struct TSBChartView: View {
             // TSB 狀態說明
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("myachievement.tsb", comment: ""))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
@@ -2555,7 +2555,7 @@ struct TSBChartView: View {
                             .fill(Color.red.opacity(0.3))
                             .frame(width: 12, height: 12)
                         Text(NSLocalizedString("myachievement.text_4", comment: ""))
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2564,7 +2564,7 @@ struct TSBChartView: View {
                             .fill(Color.green.opacity(0.3))
                             .frame(width: 12, height: 12)
                         Text(NSLocalizedString("myachievement.text_4", comment: ""))
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2573,7 +2573,7 @@ struct TSBChartView: View {
                             .fill(Color.blue.opacity(0.3))
                             .frame(width: 12, height: 12)
                         Text(NSLocalizedString("myachievement.text_5", comment: ""))
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2699,7 +2699,7 @@ struct TrainingLoadDetailExplanationView: View {
                             .fontWeight(.bold)
 
                         Text(NSLocalizedString("trainingload.text_1", comment: ""))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2710,26 +2710,26 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "chart.line.uptrend.xyaxis")
                                 .foregroundColor(.blue)
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("trainingload.text_2", comment: ""))
-                                .font(.title2)
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
                         Text(NSLocalizedString("trainingload.text_3", comment: ""))
-                            .font(.body)
+                            .font(AppFont.body())
 
                         // 體適能指數趨勢說明
                         VStack(alignment: .leading, spacing: 8) {
                             Text(NSLocalizedString("trainingload.text_4", comment: ""))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .padding(.top, 8)
 
                             fitnessRangeView(range: "↗️", description: NSLocalizedString("trainingload.text_5", comment: ""), color: .green, icon: "arrow.up.circle.fill")
                             fitnessRangeView(range: "➡️", description: NSLocalizedString("trainingload.text_6", comment: ""), color: .blue, icon: "minus.circle.fill")
                             fitnessRangeView(range: "↘️", description: NSLocalizedString("trainingload.text_7", comment: ""), color: .orange, icon: "arrow.down.circle.fill")
                             Text(NSLocalizedString("trainingload.text_8", comment: ""))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
                                 .padding(.top, 4)
                         }
@@ -2743,19 +2743,19 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "gauge.medium")
                                 .foregroundColor(.green)
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("trainingload.text_9", comment: ""))
-                                .font(.title2)
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
                         Text(NSLocalizedString("trainingload.text_10", comment: ""))
-                            .font(.body)
+                            .font(AppFont.body())
 
                         // TSB 狀態說明
                         VStack(alignment: .leading, spacing: 8) {
                             Text(NSLocalizedString("trainingload.text_11", comment: ""))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .padding(.top, 8)
 
                             tsbStatusView(
@@ -2795,9 +2795,9 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "chart.xyaxis.line")
                                 .foregroundColor(.purple)
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("trainingload.text_18", comment: ""))
-                                .font(.title2)
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
@@ -2816,7 +2816,7 @@ struct TrainingLoadDetailExplanationView: View {
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(L10n.MyAchievement.dotExplanation.localized)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(.medium)
 
                                 HStack(alignment: .center, spacing: 8) {
@@ -2824,7 +2824,7 @@ struct TrainingLoadDetailExplanationView: View {
                                         .fill(Color.blue)
                                         .frame(width: 12, height: 12)
                                     Text(L10n.MyAchievement.solidDot.localized)
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
 
@@ -2833,7 +2833,7 @@ struct TrainingLoadDetailExplanationView: View {
                                         .stroke(Color.blue, lineWidth: 2)
                                         .frame(width: 12, height: 12)
                                     Text(L10n.MyAchievement.hollowDot.localized)
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -2847,9 +2847,9 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "lightbulb.fill")
                                 .foregroundColor(.yellow)
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("trainingload.text_23", comment: ""))
-                                .font(.title2)
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
@@ -2890,23 +2890,23 @@ struct TrainingLoadDetailExplanationView: View {
                     // 注意事項
                     VStack(alignment: .leading, spacing: 8) {
                         Text(NSLocalizedString("trainingload.text_32", comment: ""))
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.secondary)
 
                         Text(NSLocalizedString("trainingload.text_33", comment: ""))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         Text(NSLocalizedString("trainingload.text_34", comment: ""))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         Text(NSLocalizedString("trainingload.text_35", comment: ""))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         Text(NSLocalizedString("trainingload.text_36", comment: ""))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 16)
@@ -2933,12 +2933,12 @@ struct TrainingLoadDetailExplanationView: View {
                 .frame(width: 20)
 
             Text(range)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
                 .frame(width: 40, alignment: .leading)
 
             Text(description)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
     }
@@ -2959,17 +2959,17 @@ struct TrainingLoadDetailExplanationView: View {
                     .frame(width: 20)
 
                 Text(range)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                     .frame(width: 60, alignment: .leading)
 
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
             }
 
             Text(description)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .padding(.leading, 32)
         }
@@ -2988,10 +2988,10 @@ struct TrainingLoadDetailExplanationView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 Text(description)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }
@@ -3006,10 +3006,10 @@ struct TrainingLoadDetailExplanationView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 Text(suggestion)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }

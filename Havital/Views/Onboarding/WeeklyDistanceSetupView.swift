@@ -38,13 +38,13 @@ struct WeeklyDistanceSetupView: View {
                 // Only show target distance if available
                 if let targetDistance = targetDistance {
                     Text(String(format: NSLocalizedString("onboarding.target_distance_label", comment: "Target Distance Label"), targetDistance))
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                         .padding(.bottom, 5)
                 }
 
                 Text(NSLocalizedString("onboarding.adjust_weekly_volume", comment: "Adjust Weekly Volume"))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .padding(.bottom, 10)
 
@@ -66,11 +66,11 @@ struct WeeklyDistanceSetupView: View {
 
                     HStack {
                         Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), minimumWeeklyDistance))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Spacer()
                         Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), sliderMaxDistance))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }

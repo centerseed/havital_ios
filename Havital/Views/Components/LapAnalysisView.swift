@@ -10,7 +10,7 @@ struct LapAnalysisView: View {
             // Header with Garmin attribution
             HStack {
                 Text(L10n.LapAnalysisView.title.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.semibold)
                 
                 Spacer()
@@ -27,11 +27,11 @@ struct LapAnalysisView: View {
                 // Empty state
                 VStack(spacing: 12) {
                     Image(systemName: "timer.circle")
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .foregroundColor(.secondary)
                     
                     Text(L10n.LapAnalysisView.noLapData.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -43,31 +43,31 @@ struct LapAnalysisView: View {
                         // Table header
                         HStack(spacing: 4) {
                             Text(L10n.LapAnalysisView.lapColumn.localized)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.1, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.distanceColumn.localized)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.timeColumn.localized)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.paceColumn.localized)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.heartRateColumn.localized)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
@@ -104,29 +104,29 @@ struct LapRowView: View {
         HStack(spacing: 4) {
             // Lap number
             Text("\(lap.lapNumber)")
-                .font(.caption)
+                .font(AppFont.caption())
                 .frame(width: width * 0.1, alignment: .center)
             
             // Distance - 精簡顯示
             Text(lap.totalDistanceM != nil ? String(format: "%.2f", lap.totalDistanceM! / 1000) : "--")
-                .font(.caption)
+                .font(AppFont.caption())
                 .frame(width: width * 0.225, alignment: .center)
             
             // Time
             Text(lap.formattedTime)
-                .font(.caption)
+                .font(AppFont.caption())
                 .frame(width: width * 0.225, alignment: .center)
             
             // Pace
             Text(lap.formattedPace)
-                .font(.caption)
+                .font(AppFont.caption())
                 .fontWeight(.medium)
                 .foregroundColor(.blue)
                 .frame(width: width * 0.225, alignment: .center)
             
             // Heart rate - 只顯示數字
             Text(lap.avgHeartRateBpm != nil ? "\(lap.avgHeartRateBpm!)" : "--")
-                .font(.caption)
+                .font(AppFont.caption())
                 .frame(width: width * 0.225, alignment: .center)
         }
         .frame(height: 35)

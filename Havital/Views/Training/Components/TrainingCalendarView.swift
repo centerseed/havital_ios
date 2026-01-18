@@ -286,7 +286,7 @@ struct TrainingCalendarView: View {
                 loadWorkoutsForMonth()
             }) {
                 Image(systemName: "chevron.left")
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .foregroundColor(.blue)
                     .frame(width: 44, height: 44)
             }
@@ -294,7 +294,7 @@ struct TrainingCalendarView: View {
             Spacer()
 
             Text(monthName)
-                .font(.title2)
+                .font(AppFont.title2())
                 .fontWeight(.semibold)
 
             Spacer()
@@ -307,7 +307,7 @@ struct TrainingCalendarView: View {
                 }
             }) {
                 Image(systemName: "chevron.right")
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .foregroundColor(canGoToNextMonth ? .blue : .gray.opacity(0.3))
                     .frame(width: 44, height: 44)
             }
@@ -326,17 +326,17 @@ struct TrainingCalendarView: View {
         HStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("training_plan.monthly_total_distance", comment: "Monthly Total Distance"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(String(format: "%.1f", totalMonthDistance))
-                        .font(.title)
+                        .font(AppFont.title1())
                         .fontWeight(.bold)
                         .foregroundColor(.green)
 
                     Text("km")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
             }
@@ -345,11 +345,11 @@ struct TrainingCalendarView: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text(NSLocalizedString("training_plan.average_pace", comment: "Average Pace"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
 
                 Text(averagePace)
-                    .font(.title)
+                    .font(AppFont.title1())
                     .fontWeight(.bold)
                     .foregroundColor(.orange)
             }
@@ -391,7 +391,7 @@ struct TrainingCalendarView: View {
         HStack(spacing: 4) {
             ForEach(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], id: \.self) { day in
                 Text(day)
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)

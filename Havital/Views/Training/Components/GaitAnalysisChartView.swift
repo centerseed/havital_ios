@@ -179,7 +179,7 @@ struct GaitAnalysisChartView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text(L10n.GaitAnalysisChart.title.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.semibold)
 
                 Spacer()
@@ -239,7 +239,7 @@ struct GaitAnalysisChartView: View {
                 // Current metric description
                 VStack(alignment: .leading, spacing: 8) {
                     Text(selectedGaitTab.description)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
                     
@@ -299,7 +299,7 @@ struct GaitAnalysisChartView: View {
                         if let yValue = value.as(Double.self) {
                             AxisValueLabel {
                                 Text(formatYAxisLabel(yValue))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                         }
                     }
@@ -313,7 +313,7 @@ struct GaitAnalysisChartView: View {
                         if let date = value.as(Date.self) {
                             AxisValueLabel {
                                 Text(formatXAxisLabel(date))
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                             }
                         }
                     }
@@ -549,10 +549,10 @@ struct StatItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
             Text(value)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
                 .foregroundColor(color)
         }

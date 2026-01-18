@@ -29,12 +29,12 @@ struct DataSourceSelectionView: View {
                             .foregroundColor(.accentColor)
                         
                         Text(L10n.Onboarding.chooseDataSource.localized)
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                         
                         Text(L10n.Onboarding.selectPlatformDescription.localized)
-                            .font(.body)
+                            .font(AppFont.body())
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
@@ -84,7 +84,7 @@ struct DataSourceSelectionView: View {
                                     .scaleEffect(0.8)
                             }
                             Text(isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized)
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.white)
                         }
                         .frame(maxWidth: .infinity)
@@ -152,17 +152,17 @@ struct DataSourceSelectionView: View {
                             .frame(width: 30)
                     } else {
                         Image(systemName: icon)
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .foregroundColor(selectedDataSource == type ? .accentColor : .secondary)
                             .frame(width: 30)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.primary)
                         Text(subtitle)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                     
@@ -172,16 +172,16 @@ struct DataSourceSelectionView: View {
                     if selectedDataSource == type {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.accentColor)
-                            .font(.title2)
+                            .font(AppFont.title2())
                     } else {
                         Image(systemName: "circle")
                             .foregroundColor(.secondary)
-                            .font(.title2)
+                            .font(AppFont.title2())
                     }
                 }
                 
                 Text(description)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
             }

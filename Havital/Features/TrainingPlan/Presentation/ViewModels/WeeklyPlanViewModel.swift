@@ -116,22 +116,29 @@ final class WeeklyPlanViewModel: ObservableObject {
 
     /// 載入當前選擇週的計畫
     func loadWeeklyPlan() async {
+        Logger.debug("[WeeklyPlanVM] 📤 開始載入週計畫 - selectedWeek: \(selectedWeek), currentWeek: \(currentWeek)")
+
         guard let planId = currentPlanId else {
-            Logger.debug("[WeeklyPlanVM] No plan ID available")
+            Logger.debug("[WeeklyPlanVM] ❌ No plan ID available - overviewState: \(overviewState)")
             state = .empty
             return
         }
 
+        Logger.debug("[WeeklyPlanVM] 🔄 載入計畫 - planId: \(planId)")
         state = .loading
 
         do {
             let plan = try await repository.getWeeklyPlan(planId: planId)
+            Logger.debug("[WeeklyPlanVM] 📥 收到週計畫 - plan.id: \(plan.id), plan.weekOfPlan: \(plan.weekOfPlan)")
+            Logger.debug("[WeeklyPlanVM] 📥 計畫內容 - totalDistance: \(plan.totalDistance), days count: \(plan.days.count)")
             state = .loaded(plan)
-            Logger.debug("[WeeklyPlanVM] Weekly plan loaded: \(planId)")
+            Logger.debug("[WeeklyPlanVM] ✅ Weekly plan loaded: \(planId)")
         } catch let error as TrainingPlanError {
             if case .weeklyPlanNotFound = error {
+                Logger.debug("[WeeklyPlanVM] ⚠️ Weekly plan not found: \(planId)")
                 state = .empty
             } else {
+                Logger.error("[WeeklyPlanVM] ❌ Error: \(error)")
                 state = .error(error.toDomainError())
             }
         } catch {
@@ -139,12 +146,12 @@ final class WeeklyPlanViewModel: ObservableObject {
 
             // 取消錯誤不更新 UI
             if case .cancellation = domainError {
-                Logger.debug("[WeeklyPlanVM] Task cancelled, ignoring")
+                Logger.debug("[WeeklyPlanVM] ⚠️ Task cancelled, ignoring")
                 return
             }
 
             state = .error(domainError)
-            Logger.error("[WeeklyPlanVM] Failed to load plan: \(domainError.localizedDescription ?? "")")
+            Logger.error("[WeeklyPlanVM] ❌ Failed to load plan: \(domainError.localizedDescription ?? "")")
         }
     }
 
@@ -191,8 +198,16 @@ final class WeeklyPlanViewModel: ObservableObject {
 
     /// 切換到指定週
     func selectWeek(_ week: Int) async {
-        guard week >= 1 && week <= currentWeek else { return }
+        Logger.debug("[WeeklyPlanVM] selectWeek(\(week)) 被調用 - currentWeek: \(currentWeek), selectedWeek: \(selectedWeek)")
 
+        // ✅ 修復:允許查看任何已產生的週計畫,包括未來週
+        // 只檢查週數 >= 1,計畫是否存在由 loadWeeklyPlan 處理
+        guard week >= 1 else {
+            Logger.error("[WeeklyPlanVM] ❌ selectWeek 失敗 - week(\(week)) 必須 >= 1")
+            return
+        }
+
+        Logger.debug("[WeeklyPlanVM] ✅ selectWeek 驗證通過,準備載入第 \(week) 週計畫")
         selectedWeek = week
         await loadWeeklyPlan()
     }
@@ -206,11 +221,18 @@ final class WeeklyPlanViewModel: ObservableObject {
         state = .loading
 
         do {
+            let week = targetWeek ?? selectedWeek
+            Logger.debug("[WeeklyPlanVM] 📤 請求產生週計畫 - week: \(week), targetWeek: \(targetWeek?.description ?? "nil"), selectedWeek: \(selectedWeek)")
+
             let plan = try await repository.createWeeklyPlan(
-                week: targetWeek ?? selectedWeek,
+                week: week,
                 startFromStage: startFromStage,
                 isBeginner: isBeginner
             )
+
+            Logger.debug("[WeeklyPlanVM] 📥 收到週計畫 - plan.id: \(plan.id), plan.weekOfPlan: \(plan.weekOfPlan)")
+            Logger.debug("[WeeklyPlanVM] 📥 計畫內容 - totalDistance: \(plan.totalDistance), days count: \(plan.days.count)")
+
             state = .loaded(plan)
             Logger.debug("[WeeklyPlanVM] Weekly plan generated: \(plan.id)")
         } catch {

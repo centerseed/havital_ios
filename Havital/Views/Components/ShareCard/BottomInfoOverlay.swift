@@ -46,7 +46,7 @@ struct BottomInfoOverlay: View {
                                     .font(.system(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text("距離 (km)")
-                                    .font(.system(size: 28))
+                                    .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }
                         }
@@ -57,7 +57,7 @@ struct BottomInfoOverlay: View {
                                 .font(.system(size: 54, weight: .semibold))
                                 .foregroundColor(.white)
                             Text("總計時間")
-                                .font(.system(size: 28))
+                                .font(AppFont.dataSmall())
                                 .foregroundColor(.white.opacity(0.8))
                         }
 
@@ -68,7 +68,7 @@ struct BottomInfoOverlay: View {
                                     .font(.system(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text("平均配速")
-                                    .font(.system(size: 28))
+                                    .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }
                         }

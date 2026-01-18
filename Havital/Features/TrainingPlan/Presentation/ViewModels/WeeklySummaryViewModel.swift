@@ -107,6 +107,41 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
 
     // MARK: - Public Methods - Summary CRUD
 
+    /// 載入已存在的週回顧（用於查看歷史週回顧）
+    func loadWeeklySummary(weekNumber: Int) async {
+        Logger.debug("[WeeklySummaryVM] 📤 開始載入週回顧 - weekNumber: \(weekNumber)")
+
+        summaryState = .loading
+        summaryError = nil
+
+        do {
+            // 調用 Repository 獲取已存在的週回顧
+            Logger.debug("[WeeklySummaryVM] 🔄 調用 repository.getWeeklySummary...")
+            let summary = try await repository.getWeeklySummary(weekNumber: weekNumber)
+
+            Logger.debug("[WeeklySummaryVM] 📥 收到週回顧 - id: \(summary.id)")
+            summaryState = .loaded(summary)
+
+            // ✅ 顯示週回顧 sheet
+            showSummarySheet = true
+            Logger.debug("[WeeklySummaryVM] ✅ 設置 showSummarySheet = true")
+
+            Logger.debug("[WeeklySummaryVM] ✅ 載入完成 - week \(weekNumber)")
+        } catch {
+            let domainError = error.toDomainError()
+
+            // 取消錯誤不更新 UI
+            if case .cancellation = domainError {
+                Logger.debug("[WeeklySummaryVM] ⚠️ Task cancelled")
+                return
+            }
+
+            summaryState = .error(domainError)
+            summaryError = error
+            Logger.error("[WeeklySummaryVM] ❌ 載入失敗: \(error.localizedDescription)")
+        }
+    }
+
     /// 創建週回顧（可選指定週數）
     func createWeeklySummary(weekNumber: Int? = nil) async {
         Logger.debug("[WeeklySummaryVM] Creating summary for week \(weekNumber ?? -1)")
@@ -121,18 +156,17 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
 
             summaryState = .loaded(summary)
 
-            // 檢查是否有調整項目需要確認
+            // ✅ 修復：一律先顯示週回顧，讓用戶看到本週的訓練分析
+            showSummarySheet = true
+
+            // 檢查並保存調整項目（如果有的話）
             if let adjustments = summary.nextWeekAdjustments.items, !adjustments.isEmpty {
-                // 需要調整確認流程
                 pendingAdjustments = adjustments
                 pendingSummaryId = summary.id
                 pendingTargetWeek = weekNumber.map { $0 + 1 } // 下一週
-                showAdjustmentConfirmation = true
-                Logger.debug("[WeeklySummaryVM] \(adjustments.count) adjustments pending confirmation")
+                Logger.debug("[WeeklySummaryVM] \(adjustments.count) adjustments pending, will show after user views summary")
             } else {
-                // 無需調整，直接顯示週回顧
-                showSummarySheet = true
-                Logger.debug("[WeeklySummaryVM] No adjustments, showing summary")
+                Logger.debug("[WeeklySummaryVM] No adjustments, showing summary only")
             }
 
             isGenerating = false

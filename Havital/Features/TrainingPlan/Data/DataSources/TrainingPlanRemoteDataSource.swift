@@ -53,6 +53,8 @@ final class TrainingPlanRemoteDataSource {
             params["is_beginner"] = true
         }
 
+        Logger.debug("[RemoteDataSource] 📤 createWeeklyPlan - week: \(week?.description ?? "nil"), params: \(params)")
+
         let bodyData = params.isEmpty ? nil : try JSONSerialization.data(withJSONObject: params)
 
         let rawData = try await httpClient.request(
@@ -60,7 +62,11 @@ final class TrainingPlanRemoteDataSource {
             method: .POST,
             body: bodyData
         )
-        return try ResponseProcessor.extractData(WeeklyPlan.self, from: rawData, using: parser)
+
+        let plan = try ResponseProcessor.extractData(WeeklyPlan.self, from: rawData, using: parser)
+        Logger.debug("[RemoteDataSource] 📥 createWeeklyPlan response - plan.id: \(plan.id), plan.weekOfPlan: \(plan.weekOfPlan)")
+
+        return plan
     }
 
     /// 修改週計畫

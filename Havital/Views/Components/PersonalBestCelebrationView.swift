@@ -35,13 +35,13 @@ struct PersonalBestCelebrationView: View {
                     .shadow(color: .yellow.opacity(0.5), radius: 10)
 
                 Text(L10n.MyAchievement.Celebration.newRecord.localized)
-                    .font(.title)
+                    .font(AppFont.title1())
                     .fontWeight(.bold)
 
                 VStack(spacing: 8) {
                     if let distance = RaceDistanceV2(rawValue: update.distance) {
                         Text(distance.displayName)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.secondary)
                     }
 
@@ -65,7 +65,7 @@ struct PersonalBestCelebrationView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.green)
                         }
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                     }
                 }
 
@@ -73,7 +73,7 @@ struct PersonalBestCelebrationView: View {
                     dismissWithAnimation()
                 } label: {
                     Text(L10n.Common.done.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.white)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 12)

@@ -21,12 +21,12 @@ struct HeartRateSetupAlertView: View {
                 // 标题和描述
                 VStack(spacing: 12) {
                     Text(NSLocalizedString("heart_rate.setup_prompt_title", comment: "Set Up Heart Rate"))
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.bold)
                         .multilineTextAlignment(.center)
 
                     Text(NSLocalizedString("heart_rate.setup_prompt_message", comment: "Setting your max and resting heart rate helps us provide more accurate training recommendations and heart rate zone analysis."))
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)

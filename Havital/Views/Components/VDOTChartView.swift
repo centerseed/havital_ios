@@ -14,7 +14,7 @@ struct VDOTChartView: View {
             // Title
             HStack {
                 Text(L10n.Performance.VDOT.vdotTitle.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 
                 Button {
                     showingInfo = true
@@ -40,7 +40,7 @@ struct VDOTChartView: View {
                             .foregroundColor(.red)
                         
                         Text(L10n.Performance.VDOT.heartRateZonePrompt.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                         
                         Spacer()
                     }
@@ -48,7 +48,7 @@ struct VDOTChartView: View {
                     Button(L10n.Performance.VDOT.setHeartRateZones.localized) {
                         showingHeartRateZoneEditor = true
                     }
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.white)
                     .padding(.vertical, 6)
                     .padding(.horizontal, 12)
@@ -113,14 +113,14 @@ struct VDOTChartView: View {
                 HStack {
                     VStack(alignment: .leading) {
                         Text("\(L10n.Performance.Chart.date.localized): \(dateFormatter.string(from: point.date))")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text("\(L10n.Performance.VDOT.dynamicVdot.localized): \(String(format: "%.2f", point.value))")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.blue)
                         if let weight = point.weightVdot {
                             Text("\(L10n.Performance.VDOT.weightedVdot.localized): \(String(format: "%.2f", weight))")
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.orange)
                         }
                     }
@@ -189,7 +189,7 @@ struct VDOTChartView: View {
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text(String(format: "%.1f", doubleValue))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -253,11 +253,11 @@ struct VDOTChartView: View {
     private func statsBox(title: String, value: String, backgroundColor: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
             
             Text(value)
-                .font(.title3)
+                .font(AppFont.title3())
                 .fontWeight(.bold)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

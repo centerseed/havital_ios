@@ -141,7 +141,7 @@ struct TrainingOverviewView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(NSLocalizedString("onboarding.target_evaluate", comment: "Target Evaluation"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Spacer()
                 Button(action: {
                     withAnimation {
@@ -154,7 +154,7 @@ struct TrainingOverviewView: View {
             }
 
             Text(text)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .lineLimit(isTargetEvaluateExpanded ? nil : 2)
                 .animation(.easeInOut, value: isTargetEvaluateExpanded)
@@ -169,7 +169,7 @@ struct TrainingOverviewView: View {
     private func timelineSection(_ overview: TrainingPlanOverview) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(NSLocalizedString("onboarding.training_timeline", comment: "Training Timeline"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .padding(.bottom, 16)
 
             // Training Highlight card (at top)
@@ -214,7 +214,7 @@ struct TrainingOverviewView: View {
                                 .frame(width: 3, height: 6)
                         }
                         Image(systemName: "arrowtriangle.down.fill")
-                            .font(.system(size: 10))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(nextColor.opacity(0.6))
                     }
                     .padding(.top, 4)
@@ -226,21 +226,21 @@ struct TrainingOverviewView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(stage.stageName)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Spacer()
                     Text(weekRangeText(stage))
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
 
                 Text(targetPace)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(stageColor(for: stageIndex))
 
                 if !stage.trainingFocus.isEmpty {
                     Text(stage.trainingFocus)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -256,7 +256,7 @@ struct TrainingOverviewView: View {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
                 Text(NSLocalizedString("onboarding.training_highlight", comment: "Training Highlight"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Spacer()
                 Button(action: {
                     withAnimation {
@@ -269,7 +269,7 @@ struct TrainingOverviewView: View {
             }
 
             Text(highlight)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .lineLimit(isHighlightExpanded ? nil : 2)
                 .animation(.easeInOut, value: isHighlightExpanded)

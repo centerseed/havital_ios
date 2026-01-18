@@ -15,7 +15,7 @@ struct TrainingPlanInfoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(NSLocalizedString("training.plan_info", comment: "Training Plan Info"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.semibold)
             
             let _ = print("📋 TrainingPlanInfoCard - dailyPlanSummary: \(workoutDetail?.dailyPlanSummary != nil), aiSummary: \(workoutDetail?.aiSummary != nil)")
@@ -25,7 +25,7 @@ struct TrainingPlanInfoCard: View {
                     // Day target
                     if let dayTarget = dailyPlan.dayTarget {
                         Text(dayTarget)
-                            .font(.body)
+                            .font(AppFont.body())
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
@@ -81,7 +81,7 @@ struct TrainingPlanInfoCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text(NSLocalizedString("training.ai_analysis", comment: "AI Analysis"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .fontWeight(.semibold)
                             .foregroundColor(.blue)
 
@@ -94,7 +94,7 @@ struct TrainingPlanInfoCard: View {
                                 }
                             }) {
                                 Text(isAnalysisExpanded ? NSLocalizedString("training.collapse", comment: "Collapse") : NSLocalizedString("training.expand", comment: "Expand"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.blue)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
@@ -106,7 +106,7 @@ struct TrainingPlanInfoCard: View {
                     }
                     
                     Text(aiSummary.analysis)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                         .lineLimit(forceExpandAnalysis || isAnalysisExpanded ? nil : 3)
                         .animation(.easeInOut(duration: 0.2), value: isAnalysisExpanded)
@@ -206,15 +206,15 @@ struct TrainingInfoItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppFont.title3())
                 .foregroundColor(.blue)
             
             Text(title)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
             
             Text(value)
-                .font(.caption)
+                .font(AppFont.caption())
                 .fontWeight(.medium)
                 .multilineTextAlignment(.center)
         }

@@ -45,7 +45,7 @@ struct WeekSelectorSheet: View {
                         HStack {
                             // 左側：週次與完成率
                             Text(L10n.WeekSelector.weekNumber.localized(with: item.weekIndex))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                             // 顯示完成率（若有）
                             if let percent = item.completionPercentage {
@@ -73,8 +73,13 @@ struct WeekSelectorSheet: View {
                             HStack(spacing: 8) {
                                 if item.weekSummary != nil {
                                     Button {
-                                        Task { await viewModel.fetchWeeklySummary(weekNumber: item.weekIndex) }.tracked(from: "WeekSelectorSheet: fetchWeeklySummary")
-                                        isPresented = false
+                                        Task {
+                                            await viewModel.fetchWeeklySummary(weekNumber: item.weekIndex)
+                                            // ✅ 延遲關閉 sheet，確保週回顧 sheet 可以正常顯示
+                                            // SwiftUI 限制：同一時間只能顯示一個 sheet
+                                            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒
+                                            isPresented = false
+                                        }.tracked(from: "WeekSelectorSheet: fetchWeeklySummary")
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "doc.text.magnifyingglass")
@@ -96,8 +101,9 @@ struct WeekSelectorSheet: View {
                                 if item.weekPlan != nil {
                                     Button {
                                         Task {
-                                            viewModel.selectedWeek = item.weekIndex
+                                            // ✅ 直接調用 fetchWeekPlan,它內部會處理 selectedWeek 和 currentWeek 的更新
                                             await viewModel.fetchWeekPlan(week: item.weekIndex)
+                                            // ✅ 等待課表載入完成後再關閉 sheet
                                             isPresented = false
                                         }.tracked(from: "WeekSelectorSheet: fetchWeekPlan")
                                     } label: {

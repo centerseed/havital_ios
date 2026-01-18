@@ -13,13 +13,13 @@ struct GarminReconnectionAlert: View {
             
             // 標題
             Text(L10n.GarminReconnectionAlert.title.localized)
-                .font(.title2)
+                .font(AppFont.title2())
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
             
             // 訊息
             Text(garminManager.reconnectionMessage ?? L10n.GarminReconnectionAlert.defaultMessage.localized)
-                .font(.body)
+                .font(AppFont.body())
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
             
