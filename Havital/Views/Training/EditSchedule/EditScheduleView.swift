@@ -349,7 +349,7 @@ struct SimplifiedDailyCard: View {
                             .fontWeight(.medium)
                             .foregroundColor(.blue)
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 8))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.blue)
                     }
                     .padding(.horizontal, 8)
@@ -373,7 +373,7 @@ struct SimplifiedDailyCard: View {
                             .fontWeight(.medium)
                             .foregroundColor(.blue)
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 8))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.blue)
                     }
                     .padding(.horizontal, 8)
@@ -441,7 +441,7 @@ struct SimplifiedDailyCard: View {
                         .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppFont.caption())
                 }
                 .foregroundColor(getTypeColor())
                 .padding(.horizontal, 12)
