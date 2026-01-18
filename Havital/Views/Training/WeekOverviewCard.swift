@@ -19,10 +19,10 @@ struct WeekOverviewCard: View {
             HStack {
                 Image(systemName: "chart.pie.fill")
                     .foregroundColor(.blue)
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Text(NSLocalizedString("training_plan.weekly_volume_and_intensity", comment: "週跑量和訓練強度"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
             }
 
@@ -66,7 +66,7 @@ struct WeekOverviewCard: View {
                         }
 
                         Text(L10n.Unit.km.localized)
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
                     .offset(y: 3)  // 下移 3pt
@@ -83,14 +83,14 @@ struct WeekOverviewCard: View {
                         HStack(spacing: 6) {
                             Image(systemName: "target")
                                 .foregroundColor(.blue)
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
 
                             Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.primary)
 
                             Image(systemName: "chevron.right")
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 6)
@@ -107,14 +107,14 @@ struct WeekOverviewCard: View {
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
                                 .foregroundColor(.green)
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
 
                             Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.primary)
 
                             Image(systemName: "chevron.right")
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 6)
@@ -199,7 +199,7 @@ struct CompactIntensityBar: View {
         VStack(alignment: .leading, spacing: 4) {
             // 標籤和數字
             Text("\(label) \(current)/\(target)")
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
 
             // 自定義進度條（確保截圖時顏色正確）
@@ -238,12 +238,12 @@ struct WeekTargetDetailView: View {
                             .font(.title3)
 
                         Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.primary)
                     }
 
                     Text(purpose)
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.leading, 4)
@@ -263,7 +263,7 @@ struct WeekTargetDetailView: View {
                                 .font(.title3)
 
                             Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                         }
 
@@ -271,12 +271,12 @@ struct WeekTargetDetailView: View {
                             ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
                                 HStack(alignment: .top, spacing: 10) {
                                     Text("\(index + 1).")
-                                        .font(.body)
+                                        .font(AppFont.body())
                                         .fontWeight(.medium)
                                         .foregroundColor(.orange)
 
                                     Text(reason)
-                                        .font(.body)
+                                        .font(AppFont.body())
                                         .foregroundColor(.primary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }

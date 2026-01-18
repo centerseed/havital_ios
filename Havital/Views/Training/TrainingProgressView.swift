@@ -53,12 +53,12 @@ struct TrainingProgressView: View {
                 let currentWeek = viewModel.calculateCurrentTrainingWeek()
                 HStack {
                     Text(L10n.Training.currentProgress.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     
                     Spacer()
                     
                     Text(L10n.Training.currentWeekOfTotal.localized(with: currentWeek, viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks))
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 
@@ -93,19 +93,19 @@ struct TrainingProgressView: View {
                             .frame(width: 12, height: 12)
                         
                         Text(L10n.Training.currentStage.localized(with: currentStage.stageName))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .fontWeight(.medium)
                         
                         Spacer()
                         
                         Text(L10n.Training.weekRange.localized(with: currentStage.weekStart, currentStage.weekEnd))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
             } else {
                 Text(L10n.Training.cannotGetProgress.localized)
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
             }
         }
@@ -118,23 +118,23 @@ struct TrainingProgressView: View {
     private func targetRaceCard(overview: TrainingPlanOverview) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.targetRace.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(overview.trainingPlanName)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.semibold)
                 
                 // 分隔線
                 Divider()
                 
                 Text(L10n.Training.raceAssessment.localized)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                     .padding(.top, 4)
                 
                 Text(overview.targetEvaluate)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
             }
         }
@@ -147,7 +147,7 @@ struct TrainingProgressView: View {
     private var trainingStagesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.trainingStages.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             if let overview = viewModel.trainingOverview {
                 let currentWeek = viewModel.calculateCurrentTrainingWeek()
@@ -159,7 +159,7 @@ struct TrainingProgressView: View {
                 }
             } else {
                 Text(L10n.Training.cannotGetStages.localized)
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
             }
         }
@@ -182,18 +182,18 @@ struct TrainingProgressView: View {
                         .frame(width: 16, height: 16)
                     
                     Text(stage.stageName)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
                         .foregroundColor(isCurrentStage ? .primary : .secondary)
                     
                     Spacer()
                     
                     Text(L10n.Training.weekRange.localized(with: stage.weekStart, stage.weekEnd ?? stage.weekStart))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     
                     Image(systemName: selectedStageIndex == index ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 12)
@@ -208,7 +208,7 @@ struct TrainingProgressView: View {
                 VStack(spacing: 4) {
                     // 階段描述
                     Text(stage.stageDescription)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -260,7 +260,7 @@ struct TrainingProgressView: View {
             HStack {
                 // 週數指示
                 Text(L10n.Training.weekNumber.localized(with: weekNumber))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(isCurrentWeek ? .bold : .regular)
                     .foregroundColor(isCurrentWeek ? .primary : .secondary)
                 

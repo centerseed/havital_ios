@@ -225,13 +225,13 @@ struct WorkoutDetailViewV2: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text(viewModel.workoutType.workoutTypeDisplayName())
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.semibold)
                 }
                 
                 if let trainingType = viewModel.trainingType {
                     Text(trainingType)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.blue)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -266,7 +266,7 @@ struct WorkoutDetailViewV2: View {
             
             // 日期時間
             Text(L10n.Workout.startTime.localized + ": \(formatDate(viewModel.workout.startDate))")
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
         .padding()
@@ -374,7 +374,7 @@ struct WorkoutDetailViewV2: View {
     private var sourceInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Profile.dataSources.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.semibold)
 
             providerInfoRow
@@ -395,7 +395,7 @@ struct WorkoutDetailViewV2: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.Workout.provider.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 providerBadges
             }
@@ -404,10 +404,10 @@ struct WorkoutDetailViewV2: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text(L10n.Workout.activityType.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(viewModel.workout.activityType.workoutTypeDisplayName())
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
             }
         }
@@ -436,7 +436,7 @@ struct WorkoutDetailViewV2: View {
                viewModel.workout.provider.lowercased() != "garmin" &&
                viewModel.workoutDetail?.deviceInfo?.deviceManufacturer?.lowercased() != "garmin" {
                 Text(viewModel.workout.provider)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
             }
         }
@@ -446,10 +446,10 @@ struct WorkoutDetailViewV2: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.Workout.resyncData.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(L10n.Workout.forceReuploadDescription.localized)
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
@@ -465,7 +465,7 @@ struct WorkoutDetailViewV2: View {
                         .frame(width: 60, height: 28)
                 } else {
                     Label(L10n.WorkoutDetail.reupload.localized, systemImage: "arrow.triangle.2.circlepath")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color.blue)
@@ -519,11 +519,11 @@ struct WorkoutDetailViewV2: View {
     private var deleteWorkoutCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Common.delete.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.semibold)
 
             Text(L10n.WorkoutDetail.deleteConfirmMessage.localized)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             Button(action: {
@@ -534,7 +534,7 @@ struct WorkoutDetailViewV2: View {
                         ProgressView()
                             .scaleEffect(0.8)
                         Text(L10n.Common.loading.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -629,9 +629,9 @@ struct WorkoutDetailViewV2: View {
                 // 簡化的空狀態顯示
                 VStack {
                     Text(L10n.WorkoutDetail.heartRateData.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Text(L10n.WorkoutDetail.noHeartRateData.localized)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding()
@@ -674,9 +674,9 @@ struct WorkoutDetailViewV2: View {
                 // 簡化的空狀態顯示
                 VStack {
                     Text(L10n.WorkoutDetail.gaitAnalysis.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Text(L10n.WorkoutDetail.noGaitData.localized)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding()
@@ -691,7 +691,7 @@ struct WorkoutDetailViewV2: View {
     private var advancedMetricsCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.WorkoutDetail.advancedMetrics.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.semibold)
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
@@ -727,7 +727,7 @@ struct WorkoutDetailViewV2: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text(L10n.WorkoutDetail.heartRateZones.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.semibold)
                 
                 Spacer()
@@ -775,7 +775,7 @@ struct WorkoutDetailViewV2: View {
     private func paceZoneCard(_ paceZones: V2ZoneDistribution) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.WorkoutDetail.paceZones.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.semibold)
             
             VStack(spacing: 8) {
@@ -811,7 +811,7 @@ struct WorkoutDetailViewV2: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text(L10n.WorkoutDetail.zoneDistribution.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.semibold)
                 
                 Spacer()
@@ -905,7 +905,7 @@ struct WorkoutDetailViewV2: View {
             ProgressView()
                 .scaleEffect(1.2)
             Text(L10n.WorkoutDetail.loadingDetails.localized)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -917,15 +917,15 @@ struct WorkoutDetailViewV2: View {
     private func errorView(_ error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.title2)
+                .font(AppFont.title2())
                 .foregroundColor(.red)
             
             Text(L10n.WorkoutDetail.loadFailed.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.semibold)
             
             Text(error)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -1107,11 +1107,11 @@ struct DataItem: View {
                 .foregroundColor(.blue)
             
             Text(title)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
             
             Text(value)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
                 .multilineTextAlignment(.center)
         }
@@ -1126,7 +1126,7 @@ struct ZoneRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .frame(minWidth: 60, maxWidth: 120, alignment: .leading)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -1147,7 +1147,7 @@ struct ZoneRow: View {
             .frame(height: 8)
             
             Text(String(format: "%.1f%%", percentage))
-                .font(.caption)
+                .font(AppFont.caption())
                 .fontWeight(.medium)
                 .frame(width: 50, alignment: .trailing)
         }

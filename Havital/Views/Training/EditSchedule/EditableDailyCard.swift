@@ -139,7 +139,7 @@ struct Norwegian4x4CardView: View {
             // 標題行
             HStack {
                 Text("🇳🇴 挪威4x4")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
 
@@ -147,7 +147,7 @@ struct Norwegian4x4CardView: View {
 
                 if let repeats = details.repeats {
                     Text("\(repeats) 組")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -162,17 +162,17 @@ struct Norwegian4x4CardView: View {
                 if let work = details.work {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("衝刺")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             if let timeMinutes = work.timeMinutes {
                                 Text("\(Int(timeMinutes)) 分鐘")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
                             if let pace = work.pace {
                                 Text("@ \(pace)")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.orange)
                             }
                         }
@@ -187,17 +187,17 @@ struct Norwegian4x4CardView: View {
                 if let recovery = details.recovery {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("恢復")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             if let timeMinutes = recovery.timeMinutes {
                                 Text("\(Int(timeMinutes)) 分鐘")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
                             if let pace = recovery.pace {
                                 Text("@ \(pace)")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.blue)
                             }
                         }
@@ -227,7 +227,7 @@ struct Yasso800CardView: View {
             // 標題行
             HStack {
                 Text("亞索800")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
 
@@ -235,7 +235,7 @@ struct Yasso800CardView: View {
 
                 if let repeats = details.repeats {
                     Text("\(repeats) 組")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -250,22 +250,22 @@ struct Yasso800CardView: View {
                 if let work = details.work {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("衝刺")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             // 顯示距離（優先 distanceM，否則 distanceKm）
                             if let distanceM = work.distanceM {
                                 Text("\(Int(distanceM))m")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                             } else if let distanceKm = work.distanceKm {
                                 Text("\(Int(distanceKm * 1000))m")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
                             if let pace = work.pace {
                                 Text("@ \(pace)")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.orange)
                             }
                         }
@@ -280,17 +280,17 @@ struct Yasso800CardView: View {
                 if let recovery = details.recovery {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("恢復")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             if let timeMinutes = recovery.timeMinutes {
                                 Text("\(Int(timeMinutes)) 分鐘")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
                             if let pace = recovery.pace {
                                 Text("@ \(pace)")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.blue)
                             }
                         }
@@ -317,7 +317,7 @@ struct IntervalEditView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("間歇訓練")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
 
@@ -364,12 +364,12 @@ struct IntervalEditView: View {
                 // recovery 為 nil 時顯示原地休息
                 HStack(spacing: 8) {
                     Text("恢復段")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
                     Spacer()
                     Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.gray.opacity(0.15))
@@ -445,7 +445,7 @@ struct CombinationSegmentSummary: View {
             // 分段描述或編號
             if let desc = segment.description, !desc.isEmpty {
                 Text(desc)
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
                     .foregroundColor(.secondary)
             }
 
@@ -453,12 +453,12 @@ struct CombinationSegmentSummary: View {
             HStack(spacing: 4) {
                 if let distance = segment.distanceKm {
                     Text(String(format: "%.1fkm", distance))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                 }
                 if let pace = segment.pace {
                     Text("@\(pace)")
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.secondary)
                 }
             }
@@ -561,18 +561,18 @@ struct EditableValueView: View {
             HStack(spacing: 4) {
                 if !title.isEmpty {
                     Text(title + ": ")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
                 Text(value)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(isEditable ? .blue : .secondary)
 
                 if isEditable {
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 10))
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.blue)
                 }
             }
@@ -687,7 +687,7 @@ struct IntervalSegmentEditView: View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
 
@@ -697,7 +697,7 @@ struct IntervalSegmentEditView: View {
 
                     HStack(spacing: 4) {
                         Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         Toggle("", isOn: Binding(
@@ -766,7 +766,7 @@ struct IntervalSegmentEditView: View {
                 // 原地休息狀態顯示
                 HStack {
                     Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.gray.opacity(0.15))
@@ -991,7 +991,7 @@ struct PaceWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_pace", comment: "選擇配速"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.pace", comment: "配速"), selection: $selectedIndex) {
@@ -1011,10 +1011,10 @@ struct PaceWheelPicker: View {
 
                         HStack {
                             Image(systemName: "clock")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Text(NSLocalizedString("edit_schedule.estimated_time", comment: "預估時間"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(estimatedTime(for: distance, pace: paceOptions[selectedIndex]))
@@ -1026,7 +1026,7 @@ struct PaceWheelPicker: View {
                         .padding(.vertical, 8)
 
                         Text(String(format: NSLocalizedString("edit_schedule.for_distance", comment: "%.1f 公里"), distance))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .padding(.bottom, 8)
@@ -1101,7 +1101,7 @@ struct IntervalDistanceWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_interval_distance", comment: "選擇間歇距離"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.distance", comment: "距離"), selection: $selectedIndex) {
@@ -1170,7 +1170,7 @@ struct CombinationTrainingTypeWheelPicker: View {
         NavigationView {
             VStack {
                 Text(NSLocalizedString("edit_schedule.select_training_type", comment: "選擇訓練類型"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.training_type", comment: "訓練類型"), selection: $selectedIndex) {
@@ -1238,7 +1238,7 @@ struct DistanceWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_distance", comment: "選擇距離"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.distance", comment: "距離"), selection: $selectedIndex) {
@@ -1300,7 +1300,7 @@ struct RepeatsWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_repeats", comment: "選擇重複次數"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.repeats", comment: "重複次數"), selection: $selectedIndex) {
@@ -1366,7 +1366,7 @@ struct TimeWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_time", comment: "選擇時間"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.time", comment: "時間"), selection: $selectedIndex) {
