@@ -12,9 +12,9 @@ struct WeekTimelineView: View {
             HStack {
                 Image(systemName: "calendar")
                     .foregroundColor(.secondary)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
             }
@@ -90,7 +90,7 @@ struct TimelineItemView: View {
 
                 if isCompleted {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.white)
                 } else if isToday {
                     Circle()
@@ -115,19 +115,19 @@ struct TimelineItemView: View {
                             // 日期
                             HStack(spacing: 6) {
                                 Text(viewModel.weekdayName(for: day.dayIndexInt))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(isToday ? .semibold : .regular)
                                     .foregroundColor(isToday ? .blue : .primary)
 
                                 if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
                                     Text(viewModel.formatShortDate(date))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
 
                                 if isToday {
                                     Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -144,7 +144,7 @@ struct TimelineItemView: View {
                                     showTrainingTypeInfo = true
                                 }) {
                                     Text(day.type.localizedName)
-                                        .font(.subheadline)
+                                        .font(AppFont.bodySmall())
                                         .fontWeight(.medium)
                                         .foregroundColor(getTypeColor())
                                         .padding(.horizontal, 10)
@@ -155,7 +155,7 @@ struct TimelineItemView: View {
                                 .buttonStyle(.borderless)
                             } else {
                                 Text(day.type.localizedName)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(.medium)
                                     .foregroundColor(getTypeColor())
                                     .padding(.horizontal, 10)
@@ -168,7 +168,7 @@ struct TimelineItemView: View {
                             if !isToday {
                                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                     .foregroundColor(.secondary)
-                                    .font(.system(size: 14))
+                                    .font(AppFont.bodySmall())
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
                             }
@@ -177,7 +177,7 @@ struct TimelineItemView: View {
                         // 第二行：距離
                         if let distance = day.trainingDetails?.totalDistanceKm {
                             Text(String(format: "%.1f km", distance))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -196,13 +196,13 @@ struct TimelineItemView: View {
                             if day.type != .norwegian4x4 && day.type != .yasso800 {
                                 if let desc = day.trainingDetails?.description, !desc.isEmpty {
                                     Text(desc)
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
                                         .fixedSize(horizontal: false, vertical: true)
                                 } else {
                                     Text(day.dayTarget)
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -215,12 +215,12 @@ struct TimelineItemView: View {
                                     if let repeats = trainingItems[0].goals.times {
                                         HStack {
                                             Text("間歇訓練")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                             Spacer()
                                             Text("\(repeats) × 組")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                         }
@@ -234,7 +234,7 @@ struct TimelineItemView: View {
                                             // 衝刺段
                                             HStack(spacing: 6) {
                                                 Text("衝刺段")
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 6)
                                                     .padding(.vertical, 3)
@@ -244,10 +244,10 @@ struct TimelineItemView: View {
                                                 if let pace = sprintItem.goals.pace {
                                                     HStack(spacing: 2) {
                                                         Image(systemName: "speedometer")
-                                                            .font(.system(size: 8))
+                                                            .font(AppFont.captionSmall())
                                                             .foregroundColor(.white)
                                                         Text(pace)
-                                                            .font(.system(size: 10, weight: .medium))
+                                                            .font(AppFont.caption())
                                                             .foregroundColor(.white)
                                                     }
                                                     .padding(.horizontal, 5)
@@ -258,7 +258,7 @@ struct TimelineItemView: View {
 
                                                 if let distance = sprintItem.goals.distanceKm {
                                                     Text(String(format: "%.1fkm", distance))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                         .padding(.horizontal, 5)
                                                         .padding(.vertical, 3)
@@ -273,7 +273,7 @@ struct TimelineItemView: View {
                                             if let recoveryItem = recoveryItem {
                                                 HStack(spacing: 6) {
                                                     Text("恢復段")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                         .padding(.horizontal, 6)
                                                         .padding(.vertical, 3)
@@ -282,7 +282,7 @@ struct TimelineItemView: View {
 
                                                     if recoveryItem.goals.pace == nil && recoveryItem.goals.distanceKm == nil {
                                                         Text("原地休息")
-                                                            .font(.system(size: 10, weight: .medium))
+                                                            .font(AppFont.caption())
                                                             .foregroundColor(.secondary)
                                                             .padding(.horizontal, 5)
                                                             .padding(.vertical, 3)
@@ -295,10 +295,10 @@ struct TimelineItemView: View {
                                                             let _ = Logger.debug("[WeekTimelineView] 恢復段 - 使用 durationSeconds: \(seconds)")
                                                             HStack(spacing: 2) {
                                                                 Image(systemName: "clock.fill")
-                                                                    .font(.system(size: 8))
+                                                                    .font(AppFont.captionSmall())
                                                                     .foregroundColor(.white)
                                                                 Text(formatRestTime(seconds))
-                                                                    .font(.system(size: 10, weight: .medium))
+                                                                    .font(AppFont.caption())
                                                                     .foregroundColor(.white)
                                                             }
                                                             .padding(.horizontal, 5)
@@ -310,10 +310,10 @@ struct TimelineItemView: View {
                                                             let totalSeconds = Int(round(minutes * 60))
                                                             HStack(spacing: 2) {
                                                                 Image(systemName: "clock.fill")
-                                                                    .font(.system(size: 8))
+                                                                    .font(AppFont.captionSmall())
                                                                     .foregroundColor(.white)
                                                                 Text(formatRestTime(totalSeconds))
-                                                                    .font(.system(size: 10, weight: .medium))
+                                                                    .font(AppFont.caption())
                                                                     .foregroundColor(.white)
                                                             }
                                                             .padding(.horizontal, 5)
@@ -325,10 +325,10 @@ struct TimelineItemView: View {
                                                         if let pace = recoveryItem.goals.pace {
                                                             HStack(spacing: 2) {
                                                                 Image(systemName: "speedometer")
-                                                                    .font(.system(size: 8))
+                                                                    .font(AppFont.captionSmall())
                                                                     .foregroundColor(.white)
                                                                 Text(pace)
-                                                                    .font(.system(size: 10, weight: .medium))
+                                                                    .font(AppFont.caption())
                                                                     .foregroundColor(.white)
                                                             }
                                                             .padding(.horizontal, 5)
@@ -339,7 +339,7 @@ struct TimelineItemView: View {
 
                                                         if let distance = recoveryItem.goals.distanceKm {
                                                             Text(String(format: "%.1fkm", distance))
-                                                                .font(.system(size: 10, weight: .medium))
+                                                                .font(AppFont.caption())
                                                                 .foregroundColor(.white)
                                                                 .padding(.horizontal, 5)
                                                                 .padding(.vertical, 3)
@@ -360,13 +360,13 @@ struct TimelineItemView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text("🇳🇴 挪威4x4")
-                                            .font(.caption)
+                                            .font(AppFont.caption())
                                             .fontWeight(.semibold)
                                             .foregroundColor(.orange)
                                         Spacer()
                                         if let repeats = details.repeats {
                                             Text("\(repeats) 組")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                         }
@@ -376,7 +376,7 @@ struct TimelineItemView: View {
                                     if let work = details.work {
                                         HStack(spacing: 6) {
                                             Text("衝刺")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -386,10 +386,10 @@ struct TimelineItemView: View {
                                             if let seconds = work.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(formatRestTime(seconds))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -399,10 +399,10 @@ struct TimelineItemView: View {
                                             } else if let timeMinutes = work.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -414,10 +414,10 @@ struct TimelineItemView: View {
                                             if let pace = work.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -437,7 +437,7 @@ struct TimelineItemView: View {
 
                                         HStack(spacing: 6) {
                                             Text(isRestInPlaceN4x4 ? "原地休息" : "恢復跑")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -447,10 +447,10 @@ struct TimelineItemView: View {
                                             if let seconds = recovery.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(formatRestTime(seconds))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -460,10 +460,10 @@ struct TimelineItemView: View {
                                             } else if let timeMinutes = recovery.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -475,10 +475,10 @@ struct TimelineItemView: View {
                                             if let pace = recovery.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -497,13 +497,13 @@ struct TimelineItemView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text("亞索800")
-                                            .font(.caption)
+                                            .font(AppFont.caption())
                                             .fontWeight(.semibold)
                                             .foregroundColor(.orange)
                                         Spacer()
                                         if let repeats = details.repeats {
                                             Text("\(repeats) 組")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                         }
@@ -513,7 +513,7 @@ struct TimelineItemView: View {
                                     if let work = details.work {
                                         HStack(spacing: 6) {
                                             Text("衝刺")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -523,7 +523,7 @@ struct TimelineItemView: View {
                                             // 顯示距離
                                             if let distanceKm = work.distanceKm {
                                                 Text("\(Int(distanceKm * 1000))m")
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -534,10 +534,10 @@ struct TimelineItemView: View {
                                             if let pace = work.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -557,7 +557,7 @@ struct TimelineItemView: View {
 
                                         HStack(spacing: 6) {
                                             Text(isRestInPlaceY800 ? "原地休息" : "恢復跑")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -568,10 +568,10 @@ struct TimelineItemView: View {
                                             if let seconds = recovery.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(formatRestTime(seconds))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -581,10 +581,10 @@ struct TimelineItemView: View {
                                             } else if let timeMinutes = recovery.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -597,10 +597,10 @@ struct TimelineItemView: View {
                                             if let pace = recovery.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -621,13 +621,13 @@ struct TimelineItemView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text(day.type.localizedName)
-                                            .font(.caption)
+                                            .font(AppFont.caption())
                                             .fontWeight(.semibold)
                                             .foregroundColor(.orange)
                                         Spacer()
                                         if let repeats = details.repeats {
                                             Text("\(repeats) 組")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                         }
@@ -637,7 +637,7 @@ struct TimelineItemView: View {
                                     if let work = details.work {
                                         HStack(spacing: 6) {
                                             Text("衝刺")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -647,7 +647,7 @@ struct TimelineItemView: View {
                                             // 距離（優先顯示）
                                             if let distanceKm = work.distanceKm {
                                                 Text(String(format: "%.0fm", distanceKm * 1000))
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -655,7 +655,7 @@ struct TimelineItemView: View {
                                                     .cornerRadius(4)
                                             } else if let distanceM = work.distanceM {
                                                 Text(String(format: "%.0fm", distanceM))
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -664,10 +664,10 @@ struct TimelineItemView: View {
                                             } else if let seconds = work.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(formatRestTime(seconds))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -677,10 +677,10 @@ struct TimelineItemView: View {
                                             } else if let timeMinutes = work.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -693,10 +693,10 @@ struct TimelineItemView: View {
                                             if let pace = work.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -717,7 +717,7 @@ struct TimelineItemView: View {
                                         HStack(spacing: 6) {
                                             // 根據恢復類型顯示不同標籤
                                             Text(isRestInPlace ? "原地休息" : "恢復跑")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -727,7 +727,7 @@ struct TimelineItemView: View {
                                             // 距離或時間
                                             if let distanceKm = recovery.distanceKm {
                                                 Text(String(format: "%.0fm", distanceKm * 1000))
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -735,7 +735,7 @@ struct TimelineItemView: View {
                                                     .cornerRadius(4)
                                             } else if let distanceM = recovery.distanceM {
                                                 Text(String(format: "%.0fm", distanceM))
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -744,10 +744,10 @@ struct TimelineItemView: View {
                                             } else if let seconds = recovery.timeSeconds {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(formatRestTime(seconds))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -757,10 +757,10 @@ struct TimelineItemView: View {
                                             } else if let timeMinutes = recovery.timeMinutes {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "clock.fill")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -773,10 +773,10 @@ struct TimelineItemView: View {
                                             if let pace = recovery.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -800,7 +800,7 @@ struct TimelineItemView: View {
                                         HStack(spacing: 6) {
                                             // 段落標籤
                                             Text("第\(index + 1)段")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
@@ -811,10 +811,10 @@ struct TimelineItemView: View {
                                             if let pace = segment.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -826,7 +826,7 @@ struct TimelineItemView: View {
                                             // 距離
                                             if let distance = segment.distanceKm {
                                                 Text(String(format: "%.1fkm", distance))
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -846,10 +846,10 @@ struct TimelineItemView: View {
                                     if let distance = details.distanceKm {
                                         HStack(spacing: 2) {
                                             Image(systemName: "figure.run")
-                                                .font(.system(size: 8))
+                                                .font(AppFont.captionSmall())
                                                 .foregroundColor(.white)
                                             Text(String(format: "%.1fkm", distance))
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
@@ -862,10 +862,10 @@ struct TimelineItemView: View {
                                     if let pace = details.pace, !shouldHidePaceForTrainingType() {
                                         HStack(spacing: 2) {
                                             Image(systemName: "speedometer")
-                                                .font(.system(size: 8))
+                                                .font(AppFont.captionSmall())
                                                 .foregroundColor(.white)
                                             Text(pace)
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
@@ -878,10 +878,10 @@ struct TimelineItemView: View {
                                     if let hr = details.heartRateRange, let displayText = hr.displayText {
                                         HStack(spacing: 2) {
                                             Image(systemName: "heart.fill")
-                                                .font(.system(size: 8))
+                                                .font(AppFont.captionSmall())
                                                 .foregroundColor(.white)
                                             Text(displayText)
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
@@ -903,7 +903,7 @@ struct TimelineItemView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("已完成訓練")
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                                     .fontWeight(.semibold)
                                     .foregroundColor(.green)
                                     .padding(.bottom, 2)
@@ -915,17 +915,17 @@ struct TimelineItemView: View {
                                         HStack {
                                             Image(systemName: "figure.run")
                                                 .foregroundColor(.green)
-                                                .font(.caption2)
+                                                .font(AppFont.captionSmall())
 
                                             Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.primary)
 
                                             Text("·")
                                                 .foregroundColor(.secondary)
 
                                             Text(formatDuration(workout.duration))
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.secondary)
 
                                             Spacer()
@@ -937,7 +937,7 @@ struct TimelineItemView: View {
 
                                 if workouts.count > 2 {
                                     Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
-                                        .font(.caption2)
+                                        .font(AppFont.captionSmall())
                                         .foregroundColor(.blue)
                                 }
                             }
@@ -958,17 +958,17 @@ struct TimelineItemView: View {
                                 HStack {
                                     Image(systemName: "figure.run")
                                         .foregroundColor(.green)
-                                        .font(.caption2)
+                                        .font(AppFont.captionSmall())
 
                                     Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.primary)
 
                                     Text("·")
                                         .foregroundColor(.secondary)
 
                                     Text(formatDuration(workout.duration))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
 
                                     Spacer()
@@ -979,7 +979,7 @@ struct TimelineItemView: View {
 
                         if workouts.count > 2 {
                             Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
                         }
                     }
