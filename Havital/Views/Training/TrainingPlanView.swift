@@ -10,7 +10,7 @@ struct NewWeekPromptView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text(NSLocalizedString("training.current_week_progress", comment: "Current training progress has entered week") + " \(currentTrainingWeek) " + NSLocalizedString("date.week", comment: "Week"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .multilineTextAlignment(.center)
                 
             Text(NSLocalizedString("training.paceriz_plan_description", comment: "Paceriz will generate a personalized weekly schedule based on your training condition. Let's check this week's training status and generate a new schedule!"))
@@ -76,7 +76,7 @@ struct FinalWeekPromptView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text(NSLocalizedString("training.cycle_completed_message", comment: "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .multilineTextAlignment(.center)
 
             if viewModel.isLoadingWeeklySummary {
@@ -172,7 +172,7 @@ struct TrainingPlanView: View {
                                 ProgressView()
                                     .scaleEffect(0.8)
                                 Text(L10n.Common.loading.localized)
-                                    .font(.footnote)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
                                 .foregroundColor(.gray)
@@ -628,7 +628,7 @@ struct TrainingPlanView: View {
             } else {
                 VStack(spacing: 20) {
                     Text(NSLocalizedString("training.cannot_load_overview", comment: "Unable to load training plan overview"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                     
                     Button(NSLocalizedString("common.close", comment: "Close")) {
                         showTrainingOverview = false
@@ -658,20 +658,20 @@ struct TrainingPlanView: View {
             VStack(spacing: 20) {
                 // 錯誤圖示
                 Image(systemName: "wifi.exclamationmark")
-                    .font(.system(size: 48))
+                    .font(AppFont.dataLarge())
                     .foregroundColor(.orange)
                     .padding(.top, 8)
                 
                 VStack(spacing: 12) {
                     // 主要錯誤訊息
                     Text(NSLocalizedString("training.cannot_load_plan", comment: "Unable to load training plan"))
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                     
                     // 詳細說明文字
                     Text(NSLocalizedString("error.network_or_server_error", comment: "Network connection or server error, please check your network connection and reload"))
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 4)
@@ -683,7 +683,7 @@ struct TrainingPlanView: View {
                         Image(systemName: "arrow.clockwise")
                         Text(NSLocalizedString("common.reload", comment: "Reload"))
                     }
-                    .font(.body)
+                    .font(AppFont.body())
                     .fontWeight(.medium)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -779,13 +779,13 @@ struct TrainingPlanView: View {
                 // 標題部分
                 VStack(alignment: .leading, spacing: 8) {
                     Text(viewModel.trainingPlanName)
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     if let plan = viewModel.weeklyPlan {
                         Text(NSLocalizedString("training.week_schedule", comment: "Week Schedule") + " \(plan.weekOfPlan)")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -807,14 +807,14 @@ struct TrainingPlanView: View {
             case .noPlan:
                 VStack(spacing: 16) {
                     Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 40))
+                        .font(AppFont.dataMedium())
                         .foregroundColor(.gray)
 
                     Text(NSLocalizedString("training.no_schedule_generated", comment: "This week's schedule has not been generated yet"))
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     Text(NSLocalizedString("training.generate_review_first", comment: "Please generate a weekly review first to get personalized training recommendations"))
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -826,14 +826,14 @@ struct TrainingPlanView: View {
             case .completed:
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 40))
+                        .font(AppFont.dataMedium())
                         .foregroundColor(.green)
 
                     Text(L10n.TrainingPlan.cycleCompleted.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     Text(L10n.TrainingPlan.congratulations.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 .padding()
@@ -844,11 +844,11 @@ struct TrainingPlanView: View {
             case .loading, .error:
                 VStack(spacing: 16) {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 40))
+                        .font(AppFont.dataMedium())
                         .foregroundColor(.gray)
 
                     Text(L10n.TrainingPlan.loadingSchedule.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
