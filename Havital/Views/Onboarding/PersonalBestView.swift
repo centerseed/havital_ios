@@ -34,7 +34,7 @@ struct PersonalBestView: View {
                     if viewModel.hasPersonalBest && !viewModel.availablePersonalBests.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(NSLocalizedString("onboarding.select_existing_pb", comment: "Or select existing personal best"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
 
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -49,10 +49,10 @@ struct PersonalBestView: View {
                                             }) {
                                                 VStack(spacing: 4) {
                                                     Text("\(distanceKey)km")
-                                                        .font(.caption)
+                                                        .font(AppFont.caption())
                                                         .fontWeight(.semibold)
                                                     Text(bestRecord.formattedTime())
-                                                        .font(.caption2)
+                                                        .font(AppFont.captionSmall())
                                                 }
                                                 .frame(minWidth: 70)
                                                 .padding(.horizontal, 12)
@@ -82,7 +82,7 @@ struct PersonalBestView: View {
                 if viewModel.hasPersonalBest {
                     Section(header: Text(NSLocalizedString("onboarding.personal_best_details", comment: "Personal Best Details"))) {
                         Text(NSLocalizedString("onboarding.select_distance_time", comment: "Select Distance and Time"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                             .padding(.bottom, 5)
 
@@ -133,7 +133,7 @@ struct PersonalBestView: View {
                             .foregroundColor(.secondary)
                         } else if viewModel.hasPersonalBest && totalTimeInSeconds == 0 {
                             Text(NSLocalizedString("onboarding.enter_valid_time", comment: "Enter Valid Time"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.orange)
                         }
                     }

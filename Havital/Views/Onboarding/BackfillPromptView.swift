@@ -94,12 +94,12 @@ struct BackfillPromptContentView: View {
 
             VStack(spacing: 12) {
                 Text(NSLocalizedString("onboarding.backfill_prompt.title", comment: "Sync recent training data?"))
-                    .font(.title2)
+                    .font(AppFont.title2())
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
 
                 Text(String(format: NSLocalizedString("onboarding.backfill_prompt.subtitle", comment: "Get your last 14 days from %@"), viewModel.dataSourceDisplayName))
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -112,14 +112,14 @@ struct BackfillPromptContentView: View {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundColor(.accentColor)
-                    .font(.title3)
+                    .font(AppFont.title3())
 
                 Text(NSLocalizedString("onboarding.backfill_prompt.what_is_backfill", comment: "What is data sync?"))
-                    .font(.headline)
+                    .font(AppFont.headline())
             }
 
             Text(NSLocalizedString("onboarding.backfill_prompt.backfill_description", comment: "We'll sync your last 14 days of running records"))
-                .font(.body)
+                .font(AppFont.body())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -134,7 +134,7 @@ struct BackfillPromptContentView: View {
     private var benefitsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(NSLocalizedString("onboarding.backfill_prompt.why_it_helps", comment: "Why it helps?"))
-                .font(.headline)
+                .font(AppFont.headline())
 
             VStack(alignment: .leading, spacing: 14) {
                 benefitItem(
@@ -163,16 +163,16 @@ struct BackfillPromptContentView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(.accentColor)
-                .font(.title3)
+                .font(AppFont.title3())
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
 
                 Text(description)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -187,7 +187,7 @@ struct BackfillPromptContentView: View {
                 viewModel.confirmBackfill()
             }) {
                 Text(NSLocalizedString("onboarding.backfill_prompt.confirm_button", comment: "Yes, Get My Data"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -200,7 +200,7 @@ struct BackfillPromptContentView: View {
                 viewModel.skipBackfill()
             }) {
                 Text(NSLocalizedString("onboarding.backfill_prompt.skip_button", comment: "Skip for Now"))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding()

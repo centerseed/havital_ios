@@ -24,7 +24,7 @@ struct TargetRaceCard: View {
 
                 // 賽事名稱
                 Text(target.name)
-                    .font(.title2)
+                    .font(AppFont.title2())
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -35,11 +35,11 @@ struct TargetRaceCard: View {
 
                     HStack(spacing: 8) {
                         Image(systemName: "target")
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .foregroundColor(.blue)
 
                         Text(NSLocalizedString("target_race_card.days_remaining", comment: "還有"))
-                            .font(.title3)
+                            .font(AppFont.title3())
                             .foregroundColor(.primary)
 
                         Text("\(daysRemaining)")
@@ -47,23 +47,23 @@ struct TargetRaceCard: View {
                             .foregroundColor(.blue)
 
                         Text(NSLocalizedString("target_race_card.days_unit", comment: "天"))
-                            .font(.title3)
+                            .font(AppFont.title3())
                             .foregroundColor(.primary)
                     }
 
                     // 賽事日期
                     HStack(spacing: 6) {
                         Image(systemName: "calendar")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                         Text(formatDate(target.raceDate))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
 
                     // 距離標籤
                     Text("\(target.distanceKm) \(NSLocalizedString("target_race_card.distance_unit", comment: "公里"))")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
@@ -87,7 +87,7 @@ struct TargetRaceCard: View {
                             .foregroundColor(.primary)
 
                         Text(NSLocalizedString("target_race_card.target_finish_time", comment: "目標時間"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -107,7 +107,7 @@ struct TargetRaceCard: View {
                             .foregroundColor(.primary)
 
                         Text(NSLocalizedString("target_race_card.target_pace", comment: "目標配速"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity)

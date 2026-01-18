@@ -800,7 +800,11 @@ class TrainingPlanViewModel: ObservableObject {
                 return
             }
 
-            Logger.debug("[TrainingPlanVM] 週回顧已完成，無調整項目，繼續產生課表")
+            // ✅ 修復：週回顧剛產生時，應該先讓用戶查看，不要自動產生課表
+            // 用戶需要從週回顧 sheet 中點擊「產生下週課表」按鈕來手動觸發
+            Logger.debug("[TrainingPlanVM] 週回顧已完成，無調整項目，等待用戶查看並手動產生課表")
+            isLoadingAnimation = false
+            return
         }
 
         isLoadingAnimation = true
@@ -820,7 +824,7 @@ class TrainingPlanViewModel: ObservableObject {
         isLoadingAnimation = false
 
         if case .ready = planStatus {
-            successToast = NSLocalizedString("training.plan_generated", comment: "Plan generated successfully")
+            successToast = L10n.Success.planGenerated.localized
         }
     }
 
@@ -848,9 +852,10 @@ class TrainingPlanViewModel: ObservableObject {
                 // 有調整項目，等待用戶確認後會自動產生下週課表
                 return
             } else {
-                Logger.debug("[TrainingPlanVM] 無調整項目，週回顧已完成，繼續產生第 \(nextWeekInfo.weekNumber) 週課表")
-                // 無調整項目，直接產生下週課表
-                await generateNextWeekPlan(targetWeek: nextWeekInfo.weekNumber)
+                Logger.debug("[TrainingPlanVM] 無調整項目，週回顧已完成，顯示給用戶查看")
+                // ✅ 修復：只顯示週回顧，不自動產生下週課表
+                // 用戶需要從週回顧 sheet 中點擊「產生下週課表」按鈕來手動觸發
+                // 這樣才能確保用戶有機會查看週回顧內容
                 return
             }
         }
@@ -920,10 +925,25 @@ class TrainingPlanViewModel: ObservableObject {
         // 🔍 [DEBUG] 週回顧關閉日誌
         Logger.debug("========================================")
         Logger.debug("[TrainingPlanVM] 🔴 週回顧彈窗被關閉")
-        Logger.debug("[TrainingPlanVM] 清除 summaryVM 狀態並刷新 plan status")
+        Logger.debug("[TrainingPlanVM] 檢查是否有待處理的調整項目")
         Logger.debug("========================================")
 
-        summaryVM.clearSummary()
+        // ✅ 修復：檢查是否有待處理的調整項目
+        // 如果有，在關閉週回顧後自動顯示調整確認 sheet
+        let hasPendingAdjustments = !summaryVM.pendingAdjustments.isEmpty
+
+        if hasPendingAdjustments {
+            Logger.debug("[TrainingPlanVM] 有 \(summaryVM.pendingAdjustments.count) 個待處理的調整項目，顯示調整確認 sheet")
+            // 關閉週回顧 sheet
+            summaryVM.clearSummary()
+            // 延遲一點顯示調整確認 sheet，避免 sheet 切換衝突
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.summaryVM.showAdjustmentConfirmation = true
+            }
+        } else {
+            Logger.debug("[TrainingPlanVM] 無待處理的調整項目，直接清除 summaryVM 狀態")
+            summaryVM.clearSummary()
+        }
 
         // ✅ 刷新計畫狀態，因為產生週回顧後 nextAction 可能已改變
         Task {

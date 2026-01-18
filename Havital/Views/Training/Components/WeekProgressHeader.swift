@@ -23,7 +23,7 @@ struct WeekProgressHeader: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.primary)
                         Image(systemName: "chevron.down.circle.fill")
-                            .font(.system(size: 12))
+                            .font(AppFont.caption())
                             .foregroundColor(.blue)
                     }
                 }

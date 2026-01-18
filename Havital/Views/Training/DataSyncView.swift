@@ -45,11 +45,11 @@ struct DataSyncView: View {
 
                     VStack(spacing: 8) {
                         Text(L10n.Sync.syncData.localized(with: dataSource.displayName))
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
 
                         Text(L10n.Sync.syncingRecords.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -72,20 +72,20 @@ struct DataSyncView: View {
                             
                             HStack {
                                 Text("\(viewModel.processedCount)/\(viewModel.totalCount)")
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(.medium)
                                 
                                 Spacer()
                                 
                                 Text("\(Int(viewModel.progressPercentage))%")
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(.medium)
                             }
                             .foregroundColor(.primary)
                             
                             if let currentItem = viewModel.currentItem, !currentItem.isEmpty {
                                 Text(currentItem)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                             }
@@ -98,7 +98,7 @@ struct DataSyncView: View {
                     }
                     
                     Text(viewModel.currentStep)
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
@@ -144,13 +144,13 @@ struct DataSyncView: View {
             
             VStack(spacing: 8) {
                 Text(L10n.Sync.complete.localized)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.semibold)
                 
                 if let results = viewModel.syncResults {
                     if results.errorCount > 0 {
                         Text(L10n.Sync.errorRecordsFailed.localized(with: results.errorCount))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.orange)
                     }
                 }
@@ -167,12 +167,12 @@ struct DataSyncView: View {
             
             VStack(spacing: 8) {
                 Text(L10n.Sync.failed.localized)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.semibold)
                 
                 if let error = viewModel.syncError {
                     Text(error)
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -229,11 +229,11 @@ struct DataSyncView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.Sync.timeoutWarningTitle.localized)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
 
                 Text(L10n.Sync.timeoutWarningMessage.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
 

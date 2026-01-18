@@ -34,7 +34,7 @@ struct CircleProgressView: View {
             VStack(spacing: 4) {
                 if !title.isEmpty {
                     Text(title)
-                        .font(.system(size: 12))
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
@@ -85,7 +85,7 @@ struct CircleProgressView: View {
                     }
 
                     Text(unit ?? "km")
-                        .font(.system(size: 12))
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)

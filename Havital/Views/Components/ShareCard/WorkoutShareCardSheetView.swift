@@ -336,7 +336,7 @@ struct WorkoutShareCardSheetView: View {
 
                         if selectedPhoto != nil {
                             Text("雙指縮放、拖曳調整圖片位置")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -348,7 +348,7 @@ struct WorkoutShareCardSheetView: View {
                     ProgressView()
                         .scaleEffect(1.5)
                     Text("正在生成分享卡...")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -370,11 +370,11 @@ struct WorkoutShareCardSheetView: View {
                     }) {
                         HStack {
                             Text("已添加的文字 (\(textOverlays.count))")
-                                .font(.body)
+                                .font(AppFont.body())
                                 .foregroundColor(.secondary)
                             Spacer()
                             Image(systemName: showTextOverlayList ? "chevron.down" : "chevron.up")
-                                .font(.body)
+                                .font(AppFont.body())
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 16)
@@ -388,14 +388,14 @@ struct WorkoutShareCardSheetView: View {
                                 ForEach(textOverlays) { overlay in
                                     HStack(spacing: 8) {
                                         Text(overlay.text)
-                                            .font(.body)
+                                            .font(AppFont.body())
                                             .lineLimit(1)
 
                                         Button(action: {
                                             editTextOverlay(overlay)
                                         }) {
                                             Image(systemName: "pencil")
-                                                .font(.system(size: 16))
+                                                .font(AppFont.body())
                                                 .foregroundColor(.blue)
                                         }
 
@@ -403,7 +403,7 @@ struct WorkoutShareCardSheetView: View {
                                             deleteTextOverlay(overlay.id)
                                         }) {
                                             Image(systemName: "trash")
-                                                .font(.system(size: 16))
+                                                .font(AppFont.body())
                                                 .foregroundColor(.red)
                                         }
                                     }

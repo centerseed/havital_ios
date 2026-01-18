@@ -1018,7 +1018,7 @@ struct PaceWheelPicker: View {
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(estimatedTime(for: distance, pace: paceOptions[selectedIndex]))
-                                .font(.title3)
+                                .font(AppFont.title3())
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                         }

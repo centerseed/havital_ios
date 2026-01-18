@@ -23,7 +23,7 @@ struct TopInfoOverlay: View {
                     // 主標題區域（如果標題為空字串則不顯示）
                     if !data.achievementTitle.isEmpty {
                         Text(data.achievementTitle)
-                            .font(.system(size: 48, weight: .semibold))
+                            .font(AppFont.title2())
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
@@ -41,10 +41,10 @@ struct TopInfoOverlay: View {
                         if let distance = data.workout.distanceMeters {
                             VStack(spacing: 6) {
                                 Text(String(format: "%.2f", distance / 1000))
-                                    .font(.system(size: 54, weight: .semibold))
+                                    .font(AppFont.dataLarge())
                                     .foregroundColor(.white)
                                 Text("距離 (km)")
-                                    .font(.system(size: 28))
+                                    .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }
                         }
@@ -52,10 +52,10 @@ struct TopInfoOverlay: View {
                         // 總計時間
                         VStack(spacing: 6) {
                             Text(data.workout.formattedDuration)
-                                .font(.system(size: 54, weight: .semibold))
+                                .font(AppFont.dataLarge())
                                 .foregroundColor(.white)
                             Text("總計時間")
-                                .font(.system(size: 28))
+                                .font(AppFont.dataSmall())
                                 .foregroundColor(.white.opacity(0.8))
                         }
 
@@ -63,10 +63,10 @@ struct TopInfoOverlay: View {
                         if let paceText = getPaceText() {
                             VStack(spacing: 6) {
                                 Text(paceText)
-                                    .font(.system(size: 54, weight: .semibold))
+                                    .font(AppFont.dataLarge())
                                     .foregroundColor(.white)
                                 Text("平均配速")
-                                    .font(.system(size: 28))
+                                    .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }
                         }

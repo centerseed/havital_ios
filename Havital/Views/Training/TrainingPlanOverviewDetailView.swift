@@ -70,10 +70,10 @@ struct TrainingPlanOverviewDetailView: View {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
                         Text(overview.trainingPlanName)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .fontWeight(.semibold)
                         Text(String(format: NSLocalizedString("training.total_weeks", comment: "Total weeks: %d weeks"), overview.totalWeeks))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -160,7 +160,7 @@ struct TrainingPlanOverviewDetailView: View {
                             .scaleEffect(1.5)
 
                         Text(NSLocalizedString("training.updating_plan", comment: "Updating training plan..."))
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.white)
                     }
                     .padding(24)
@@ -179,10 +179,10 @@ struct TrainingPlanOverviewDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: isUpdateSuccessful ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                             .foregroundColor(isUpdateSuccessful ? .green : .red)
-                            .font(.title2)
+                            .font(AppFont.title2())
 
                         Text(updateStatusMessage)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
 
                         Spacer()
@@ -250,7 +250,7 @@ struct TrainingPlanOverviewDetailView: View {
                     summary: String(overview.targetEvaluate.prefix(50)) + "..."
                 ) {
                     Text(overview.targetEvaluate)
-                        .font(.body)
+                        .font(AppFont.body())
                         .lineLimit(nil)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,7 +265,7 @@ struct TrainingPlanOverviewDetailView: View {
                     summary: String(overview.trainingHighlight.prefix(50)) + "..."
                 ) {
                     Text(overview.trainingHighlight)
-                        .font(.body)
+                        .font(AppFont.body())
                         .lineLimit(nil)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -360,7 +360,7 @@ struct CollapsibleOverviewCard<Content: View>: View {
                 HStack {
                     Label {
                         Text(title)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
                     } icon: {
@@ -371,7 +371,7 @@ struct CollapsibleOverviewCard<Content: View>: View {
                     Spacer()
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 16)
@@ -386,7 +386,7 @@ struct CollapsibleOverviewCard<Content: View>: View {
                     Divider()
                         .padding(.horizontal, 16)
                     Text(summary)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .padding(.horizontal, 16)
@@ -423,7 +423,7 @@ struct SectionHeader: View {
     var body: some View {
         Label {
             Text(title)
-                .font(.title3)
+                .font(AppFont.title3())
                 .fontWeight(.bold)
         } icon: {
             Image(systemName: systemImage)

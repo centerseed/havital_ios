@@ -26,23 +26,23 @@ struct TrainingStageCard: View {
                     .frame(width: 30, height: 30)
                     .overlay(
                         Text("\(index + 1)")
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                     )
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stage.stageName)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(stageColors.0)
 
                     if let weekEnd = stage.weekEnd {
                         Text(L10n.TrainingStageCard.weekRange.localized(with: stage.weekStart, weekEnd))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     } else {
                         Text(L10n.TrainingStageCard.weekStart.localized(with: stage.weekStart))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -55,12 +55,12 @@ struct TrainingStageCard: View {
                     Image(systemName: "flame.fill")
                         .foregroundColor(stageColors.0)
                     Text(L10n.TrainingStageCard.trainingFocus.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                 }
 
                 Text(stage.trainingFocus)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(stageColors.0)
                     .fontWeight(.semibold)
                     .lineLimit(nil)
@@ -85,14 +85,14 @@ struct TrainingStageCard: View {
                 } label: {
                     HStack {
                         Text(NSLocalizedString("training.stage_description", comment: "階段說明"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
                         Image(systemName: isDescriptionExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .contentShape(Rectangle())
@@ -102,7 +102,7 @@ struct TrainingStageCard: View {
                 // 階段描述內容（可收折）
                 if isDescriptionExpanded {
                     Text(stage.stageDescription)
-                        .font(.body)
+                        .font(AppFont.body())
                         .lineLimit(nil)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)

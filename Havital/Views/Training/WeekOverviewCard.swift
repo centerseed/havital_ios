@@ -235,7 +235,7 @@ struct WeekTargetDetailView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "target")
                             .foregroundColor(.blue)
-                            .font(.title3)
+                            .font(AppFont.title3())
 
                         Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
                             .font(AppFont.headline())
@@ -260,7 +260,7 @@ struct WeekTargetDetailView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "lightbulb.circle.fill")
                                 .foregroundColor(.orange)
-                                .font(.title3)
+                                .font(AppFont.title3())
 
                             Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
                                 .font(AppFont.headline())

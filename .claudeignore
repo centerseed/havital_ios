@@ -1,0 +1,161 @@
+# ============================================
+# Claude Ignore Configuration
+# 減少索引量，提升效能
+# ============================================
+
+# ============================================
+# 1. Xcode 編譯產物與暫存檔
+# ============================================
+build/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcuserstate
+*.xcscmblueprint
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+
+# ============================================
+# 2. Swift Package Manager 依賴庫
+# ============================================
+.swiftpm/
+.build/
+SourcePackages/
+Package.resolved
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# 大型第三方依賴（這些 Claude 讀不懂也改不了）
+**/checkouts/
+**/firebase-ios-sdk/**
+**/GoogleSignIn-iOS/**
+**/GoogleAppMeasurement/**
+**/GoogleUtilities/**
+**/GoogleDataTransport/**
+**/grpc-binary/**
+**/abseil-cpp-binary/**
+**/leveldb/**
+**/nanopb/**
+**/swift-protobuf/**
+**/AppAuth-iOS/**
+**/GTMAppAuth/**
+**/generative-ai-swift/**
+**/promises/**
+**/gtm-session-fetcher/**
+**/app-check/**
+**/interop-ios-for-google-sdks/**
+
+# ============================================
+# 3. 資源檔案（Claude 讀不懂的二進位檔案）
+# ============================================
+# 圖片檔案
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.webp
+*.ico
+
+# 字體檔案
+*.ttf
+*.otf
+*.woff
+*.woff2
+
+# 音訊/視訊檔案
+*.mp3
+*.mp4
+*.mov
+*.wav
+*.avi
+*.m4a
+
+# Assets Catalog（包含大量圖片）
+Assets.xcassets/
+
+# ============================================
+# 4. IDE 與系統特定檔案
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Xcode Playground
+*.playground/
+
+# VSCode
+.vscode/
+
+# Cursor
+.cursor/
+
+# Claude
+.claude/
+
+# Other IDEs
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================
+# 5. 文件與說明（選擇性忽略）
+# ============================================
+# 如果不需要 Claude 讀取這些大型文件，可以取消註解
+# *.md
+# LICENSE
+# CHANGELOG.md
+
+# ============================================
+# 6. 敏感資訊（API Keys 等）
+# ============================================
+Havital/Resources/key.plist
+Havital/Resources/GoogleService-Info.plist
+Havital/Resources/APIKeys.plist
+*.env
+*.env.*
+secrets.json
+credentials.json
+
+# ============================================
+# 7. 測試與覆蓋率報告
+# ============================================
+*.coverage
+coverage/
+*.gcda
+*.gcno
+*.profdata
+
+# ============================================
+# 8. 日誌與暫存檔
+# ============================================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+
+# ============================================
+# 索引優化結果：
+# - 忽略 1.4GB+ 的 DerivedData
+# - 忽略所有第三方依賴庫
+# - 忽略所有二進位資源檔案
+# - 保留核心 Swift 原始碼和專案配置
+# ============================================

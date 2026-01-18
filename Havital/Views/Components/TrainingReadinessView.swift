@@ -60,11 +60,11 @@ struct TrainingReadinessView: View {
     private func errorView(error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.orange)
 
             Text(error)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
 
@@ -74,7 +74,7 @@ struct TrainingReadinessView: View {
                 }
             } label: {
                 Text(NSLocalizedString("common.retry", comment: ""))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.white)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
@@ -90,11 +90,11 @@ struct TrainingReadinessView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "chart.bar.doc.horizontal")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.secondary)
 
             Text(NSLocalizedString("training_readiness.no_data", comment: ""))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .frame(height: 200)
@@ -111,7 +111,7 @@ struct TrainingReadinessView: View {
             if viewModel.hasAnyMetric {
                 HStack {
                     Text(L10n.TrainingReadiness.trainingMetrics.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
 
                     Button {
@@ -153,7 +153,7 @@ struct TrainingReadinessView: View {
                         if let estimatedTime = viewModel.estimatedRaceTime, !estimatedTime.isEmpty {
                             VStack(alignment: .center, spacing: 2) {
                                 Text(NSLocalizedString("training_readiness.estimated_race_time", comment: "Estimated Race Time"))
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                                     .foregroundColor(.secondary)
                                 Text(estimatedTime)
                                     .font(.system(.body, design: .monospaced))
@@ -165,7 +165,7 @@ struct TrainingReadinessView: View {
 
                     // Status text
                     Text(apiStatusText)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -263,7 +263,7 @@ struct TrainingReadinessView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Title
             Text(title)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             // Score
@@ -279,7 +279,7 @@ struct TrainingReadinessView: View {
 
             // Subtitle
             Text(subtitle)
-                .font(.caption2)
+                .font(AppFont.captionSmall())
                 .foregroundColor(.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -307,7 +307,7 @@ struct TrainingReadinessView: View {
             // Title with info icon
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
 
                 if let desc = description {
@@ -315,7 +315,7 @@ struct TrainingReadinessView: View {
                         showMetricDescription(title: title, description: desc)
                     } label: {
                         Image(systemName: "info.circle")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -341,7 +341,7 @@ struct TrainingReadinessView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(lines.prefix(2), id: \.self) { line in
                             Text(line)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -370,7 +370,7 @@ struct TrainingReadinessView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Title
             Text(NSLocalizedString("training_readiness.training_load", comment: ""))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             // Score
@@ -382,17 +382,17 @@ struct TrainingReadinessView: View {
             if let tsb = metric.currentTsb {
                 HStack(spacing: 4) {
                     Text("TSB")
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.secondary)
                     Text(viewModel.formatTSB(tsb))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.primary)
                 }
             }
 
             // Subtitle
             Text(metric.message ?? "")
-                .font(.caption2)
+                .font(AppFont.captionSmall())
                 .foregroundColor(.secondary)
                 .lineLimit(1)
 
@@ -412,7 +412,7 @@ struct TrainingReadinessView: View {
             // Title with info icon
             HStack(spacing: 4) {
                 Text(NSLocalizedString("training_readiness.training_load", comment: ""))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
 
                 if let description = metric.description {
@@ -423,7 +423,7 @@ struct TrainingReadinessView: View {
                         )
                     } label: {
                         Image(systemName: "info.circle")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -449,7 +449,7 @@ struct TrainingReadinessView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(lines.prefix(2), id: \.self) { line in
                             Text(line)
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -480,15 +480,15 @@ struct TrainingReadinessView: View {
             case "improving":
                 Image(systemName: "arrow.up.right")
                     .foregroundColor(.green)
-                    .font(.caption)
+                    .font(AppFont.caption())
             case "declining":
                 Image(systemName: "arrow.down.right")
                     .foregroundColor(.red)
-                    .font(.caption)
+                    .font(AppFont.caption())
             case "stable":
                 Image(systemName: "minus")
                     .foregroundColor(.secondary)
-                    .font(.caption)
+                    .font(AppFont.caption())
             default:
                 EmptyView()
             }
@@ -573,7 +573,7 @@ struct TrainingReadinessMetricsExplanationView: View {
                             .fontWeight(.bold)
 
                         Text(L10n.TrainingReadiness.metricsSubtitle.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal)
@@ -645,9 +645,9 @@ struct TrainingReadinessMetricsExplanationView: View {
                         HStack {
                             Image(systemName: "lightbulb.fill")
                                 .foregroundColor(.yellow)
-                                .font(.headline)
+                                .font(AppFont.headline())
                             Text(L10n.TrainingReadiness.quickTips.localized)
-                                .font(.headline)
+                                .font(AppFont.headline())
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
@@ -692,15 +692,15 @@ struct TrainingReadinessMetricsExplanationView: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .foregroundColor(iconColor)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .frame(width: 24)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
                     Text(description)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
@@ -712,18 +712,18 @@ struct TrainingReadinessMetricsExplanationView: View {
             // 含義
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.TrainingReadiness.whatItMeans.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
                 Text(whatItMeans)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.primary)
             }
 
             // 如何提升
             VStack(alignment: .leading, spacing: 6) {
                 Text(L10n.TrainingReadiness.howToImprove.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
 
@@ -732,11 +732,11 @@ struct TrainingReadinessMetricsExplanationView: View {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(iconColor)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .padding(.top, 2)
 
                             Text(tip)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.primary)
                         }
                     }
@@ -746,11 +746,11 @@ struct TrainingReadinessMetricsExplanationView: View {
             // 分數下降
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.TrainingReadiness.whenItDecreases.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
                 Text(whenDecreases)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.orange)
             }
         }
@@ -764,11 +764,11 @@ struct TrainingReadinessMetricsExplanationView: View {
     private func bulletPoint(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Text("•")
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.secondary)
 
             Text(text)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.primary)
         }
     }

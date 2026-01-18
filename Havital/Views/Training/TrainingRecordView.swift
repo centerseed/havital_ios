@@ -23,7 +23,7 @@ struct TrainingRecordView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(NSLocalizedString("record.title", comment: "Training Log"))
-                        .font(.title3)
+                        .font(AppFont.title3())
                         .foregroundColor(.primary)
                 }
 
@@ -102,7 +102,7 @@ struct TrainingRecordView: View {
             HStack {
                 Spacer()
                 ProgressView(NSLocalizedString("training.loading_more_records", comment: "Loading more records..."))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .padding()
                 Spacer()
             }

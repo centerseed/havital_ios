@@ -57,7 +57,7 @@ struct PersonalBestCardView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(distance.shortName)
-                .font(.caption2)
+                .font(AppFont.captionSmall())
                 .foregroundColor(.secondary)
 
             Text(record.formattedTime())
@@ -77,11 +77,11 @@ struct PersonalBestCardView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "trophy")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.secondary)
 
             Text(L10n.MyAchievement.PersonalBest.noData.localized)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -123,19 +123,19 @@ struct PersonalBestDetailView: View {
                     ForEach(Array(records.prefix(3).enumerated()), id: \.element.workoutId) { index, record in
                         HStack {
                             Text(rankEmoji(rank: index + 1))
-                                .font(.title3)
+                                .font(AppFont.title3())
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(record.formattedTime())
-                                    .font(.headline)
+                                    .font(AppFont.headline())
 
                                 HStack(spacing: 12) {
                                     Text("\(record.pace)/km")
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
 
                                     Text(formatWorkoutDate(record.workoutDate))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
                             }

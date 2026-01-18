@@ -22,7 +22,7 @@ struct PerformanceChartView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("近三個月訓練表現")
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .padding(.horizontal)
                         
                         // 圖例
@@ -32,14 +32,14 @@ struct PerformanceChartView: View {
                                     .fill(Color.orange)
                                     .frame(width: 8, height: 8)
                                 Text("訓練日")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                             HStack(spacing: 4) {
                                 Circle()
                                     .fill(Color.blue)
                                     .frame(width: 8, height: 8)
                                 Text(L10n.Training.TrainingType.restDay.localized)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                         }
                         .padding(.horizontal)
@@ -79,14 +79,14 @@ struct PerformanceChartView: View {
                         if let selectedPoint = selectedPoint {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(selectedPoint.date.formatted(.dateTime.year().month().day()))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                 if selectedPoint.hasWorkout {
                                     Text(selectedPoint.workoutName ?? "未知運動")
-                                        .font(.subheadline)
+                                        .font(AppFont.bodySmall())
                                         .foregroundColor(.orange)
                                 }
                                 Text(String(format: "表現指數: %.1f", selectedPoint.performance))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 4)

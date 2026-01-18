@@ -16,7 +16,7 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
         VStack(alignment: .leading) {
             if !title.isEmpty {
                 Text(title)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding(.horizontal)
             }
             
@@ -57,7 +57,7 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
                     .annotation(position: .top) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(point.date.formatted(.dateTime.month().day()))
-                                .font(.caption)
+                                .font(AppFont.caption())
                             Text(String(format: "%.1f", point.value))
                                 .font(.caption.bold())
                         }

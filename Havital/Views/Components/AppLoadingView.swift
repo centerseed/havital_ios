@@ -21,7 +21,7 @@ struct AppLoadingView: View {
                 
                 // 載入狀態文字
                 Text(appStateManager.currentState.description)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
@@ -32,7 +32,7 @@ struct AppLoadingView: View {
                 
                 // 進度百分比
                 Text("\(Int(appStateManager.initializationProgress * 100))%")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.gray)
                 
                 // 錯誤狀態的重試按鈕
@@ -44,11 +44,11 @@ struct AppLoadingView: View {
                                 .foregroundColor(.orange)
                             
                             Text(L10n.AppLoadingView.initializationFailed.localized)
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.white)
                             
                             Text(L10n.AppLoadingView.checkConnection.localized)
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                         }
@@ -62,7 +62,7 @@ struct AppLoadingView: View {
                                 Image(systemName: "arrow.clockwise")
                                 Text(L10n.AppLoadingView.restart.localized)
                             }
-                            .font(.body)
+                            .font(AppFont.body())
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)

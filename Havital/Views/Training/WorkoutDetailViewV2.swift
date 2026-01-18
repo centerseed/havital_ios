@@ -1103,7 +1103,7 @@ struct DataItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppFont.title3())
                 .foregroundColor(.blue)
             
             Text(title)

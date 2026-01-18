@@ -45,7 +45,7 @@ struct WeekSelectorSheet: View {
                         HStack {
                             // 左側：週次與完成率
                             Text(L10n.WeekSelector.weekNumber.localized(with: item.weekIndex))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                             // 顯示完成率（若有）
                             if let percent = item.completionPercentage {

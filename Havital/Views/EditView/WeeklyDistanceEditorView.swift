@@ -46,7 +46,7 @@ struct WeeklyDistanceEditorView: View {
                     }
                     
                     Text(L10n.WeeklyDistanceEditor.nextWeekNotice.localized)
-                        .font(.body)
+                        .font(AppFont.body())
                 }
             }
             .navigationTitle(L10n.WeeklyDistanceEditor.title.localized)

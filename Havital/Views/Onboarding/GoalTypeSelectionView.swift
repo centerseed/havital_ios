@@ -31,11 +31,11 @@ struct GoalTypeSelectionView: View {
                     // Title and description
                     VStack(alignment: .leading, spacing: 12) {
                         Text(NSLocalizedString("onboarding.goal_type_title", comment: "Choose your training goal"))
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
 
                         Text(NSLocalizedString("onboarding.goal_type_description", comment: "We'll create a suitable training plan based on your experience and goals"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal)
@@ -67,7 +67,7 @@ struct GoalTypeSelectionView: View {
                     if let error = viewModel.error {
                         Text(error)
                             .foregroundColor(.red)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .padding(.horizontal)
                     }
                 }
@@ -150,12 +150,12 @@ struct GoalTypeCard: View {
                 // Text content
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
                         .multilineTextAlignment(.leading)
 
                     Text(description)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
                 }
@@ -164,7 +164,7 @@ struct GoalTypeCard: View {
 
                 // Selection indicator
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 24))
+                    .font(AppFont.title2())
                     .foregroundColor(isSelected ? .accentColor : .secondary.opacity(0.3))
             }
             .padding()

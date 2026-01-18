@@ -43,7 +43,7 @@ struct EditScheduleView: View {
                                 showingPaceTable = true
                             } label: {
                                 Image(systemName: "speedometer")
-                                    .font(.body)
+                                    .font(AppFont.body())
                             }
                         }
 
@@ -279,13 +279,13 @@ struct SimplifiedDailyCard: View {
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(editViewModel.weekdayName(for: "\(displayDayIndex)"))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
 
                 if let date = editViewModel.getDateForDay(dayIndex: displayDayIndex) {
                     Text(editViewModel.formatShortDate(date))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -300,7 +300,7 @@ struct SimplifiedDailyCard: View {
                     showingEditSheet = true
                 } label: {
                     Image(systemName: "gearshape.fill")
-                        .font(.system(size: 16))
+                        .font(AppFont.body())
                         .foregroundColor(.blue)
                         .padding(8)
                         .background(Color.blue.opacity(0.1))
@@ -323,7 +323,7 @@ struct SimplifiedDailyCard: View {
 
                 if isComplexTraining {
                     Text(complexTrainingSummary)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -342,10 +342,10 @@ struct SimplifiedDailyCard: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("配速:")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(day.trainingDetails?.pace ?? "")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.blue)
                         Image(systemName: "chevron.up.chevron.down")
@@ -366,10 +366,10 @@ struct SimplifiedDailyCard: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("距離:")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(String(format: "%.1f km", distance))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.blue)
                         Image(systemName: "chevron.up.chevron.down")
@@ -438,7 +438,7 @@ struct SimplifiedDailyCard: View {
             } label: {
                 HStack(spacing: 4) {
                     Text(day.type.localizedName)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
@@ -452,10 +452,10 @@ struct SimplifiedDailyCard: View {
         } else {
             HStack(spacing: 4) {
                 Text(day.type.localizedName)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                 Button(action: { showingInfoAlert = true }) {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 12))
+                        .font(AppFont.caption())
                 }
             }
             .foregroundColor(.secondary)

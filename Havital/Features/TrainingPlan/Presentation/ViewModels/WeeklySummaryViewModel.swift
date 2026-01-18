@@ -121,18 +121,17 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
 
             summaryState = .loaded(summary)
 
-            // 檢查是否有調整項目需要確認
+            // ✅ 修復：一律先顯示週回顧，讓用戶看到本週的訓練分析
+            showSummarySheet = true
+
+            // 檢查並保存調整項目（如果有的話）
             if let adjustments = summary.nextWeekAdjustments.items, !adjustments.isEmpty {
-                // 需要調整確認流程
                 pendingAdjustments = adjustments
                 pendingSummaryId = summary.id
                 pendingTargetWeek = weekNumber.map { $0 + 1 } // 下一週
-                showAdjustmentConfirmation = true
-                Logger.debug("[WeeklySummaryVM] \(adjustments.count) adjustments pending confirmation")
+                Logger.debug("[WeeklySummaryVM] \(adjustments.count) adjustments pending, will show after user views summary")
             } else {
-                // 無需調整，直接顯示週回顧
-                showSummarySheet = true
-                Logger.debug("[WeeklySummaryVM] No adjustments, showing summary")
+                Logger.debug("[WeeklySummaryVM] No adjustments, showing summary only")
             }
 
             isGenerating = false

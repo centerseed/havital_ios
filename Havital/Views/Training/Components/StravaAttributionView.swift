@@ -89,19 +89,19 @@ struct ConditionalStravaAttributionView: View {
     VStack(spacing: 20) {
         VStack(alignment: .leading, spacing: 8) {
             Text("Title Level")
-                .font(.headline)
+                .font(AppFont.headline())
             StravaAttributionView(displayStyle: .titleLevel)
         }
 
         VStack(alignment: .leading, spacing: 8) {
             Text("Secondary")
-                .font(.headline)
+                .font(AppFont.headline())
             StravaAttributionView(displayStyle: .secondary)
         }
 
         VStack(alignment: .leading, spacing: 8) {
             Text("Compact")
-                .font(.headline)
+                .font(AppFont.headline())
             StravaAttributionView(displayStyle: .compact)
         }
     }

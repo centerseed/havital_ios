@@ -28,11 +28,11 @@ struct OnboardingIntroView: View {
                         // 主要內容區塊
                         VStack(alignment: .leading, spacing: 24) {
                             Text(NSLocalizedString("onboarding.ready_to_start", comment: "Ready to start your running journey?"))
-                                .font(.body)
+                                .font(AppFont.body())
                                 .fixedSize(horizontal: false, vertical: true)
                             
                             Text(NSLocalizedString("onboarding.training_focus", comment: "Our training plans focus on:"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                             
                             // 特色項目
                             VStack(alignment: .leading, spacing: 16) {
@@ -57,7 +57,7 @@ struct OnboardingIntroView: View {
                         
                         // 底部提示文字
                         Text(NSLocalizedString("onboarding.setup_guide", comment: "Setup guide text"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
@@ -70,7 +70,7 @@ struct OnboardingIntroView: View {
                             coordinator.navigate(to: .dataSource)
                         }) {
                             Text(NSLocalizedString("onboarding.start_setup", comment: "Start Setup"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -92,16 +92,16 @@ struct OnboardingIntroView: View {
     private func featureRow(icon: String, title: String, description: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppFont.title3())
                 .foregroundColor(.accentColor)
                 .frame(width: 24, alignment: .leading)
                 .padding(.top, 2)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text("**\(title)**")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                 Text(description)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

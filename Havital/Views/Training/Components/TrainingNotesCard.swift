@@ -11,7 +11,7 @@ struct TrainingNotesCard: View {
             // 標題和編輯按鈕
             HStack {
                 Text(NSLocalizedString(L10n.WorkoutDetail.trainingNotesTitle, comment: ""))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.semibold)
 
                 Spacer()
@@ -23,7 +23,7 @@ struct TrainingNotesCard: View {
                             NSLocalizedString(L10n.WorkoutDetail.trainingNotesAdd, comment: "") :
                             NSLocalizedString(L10n.WorkoutDetail.trainingNotesEdit, comment: ""))
                     }
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.blue)
                 }
             }
@@ -31,13 +31,13 @@ struct TrainingNotesCard: View {
             // 心得內容或佔位符
             if let notes = notes, !notes.isEmpty {
                 Text(notes)
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.primary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(NSLocalizedString(L10n.WorkoutDetail.trainingNotesPlaceholder, comment: ""))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .italic()
             }

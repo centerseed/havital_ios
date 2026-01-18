@@ -192,18 +192,18 @@ struct UserProfileView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(userData.displayName ?? NSLocalizedString("profile.name", comment: "Name"))
-                    .font(.title2).bold()
+                    .font(AppFont.title2()).bold()
                 
                 // 檢查是否為 Apple 登入且 email 為空或匿名
                 if let providerData = Auth.auth().currentUser?.providerData.first,
                    providerData.providerID == "apple.com" &&
                    (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
                     Text(L10n.ProfileView.appleUser.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 } else {
                     Text(userData.email ?? Auth.auth().currentUser?.email ?? "")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
             }
@@ -255,7 +255,7 @@ struct UserProfileView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }
@@ -290,7 +290,7 @@ struct UserProfileView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
 
@@ -318,7 +318,7 @@ struct UserProfileView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }
@@ -337,7 +337,7 @@ struct UserProfileView: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
             }
 
@@ -350,12 +350,12 @@ struct UserProfileView: View {
                     Spacer()
                     if let timezone = viewModel.timezonePreference {
                         Text(TimezoneOption.getDisplayName(for: timezone))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
             }
         }
@@ -373,7 +373,7 @@ struct UserProfileView: View {
                         Text("FB 粉絲團")
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -386,7 +386,7 @@ struct UserProfileView: View {
                         Text("Threads")
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -405,7 +405,7 @@ struct UserProfileView: View {
                         Text(NSLocalizedString("contact.contact_support", value: "Contact Support", comment: "Contact Support"))
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -576,12 +576,12 @@ struct UserProfileView: View {
                         .frame(width: 10, height: 10)
                     
                     Text(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone") + " \(zone.zone): \(zone.name)")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                     
                     Spacer()
                     
                     Text("\(Int(zone.range.lowerBound))-\(Int(zone.range.upperBound))")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -594,14 +594,14 @@ struct UserProfileView: View {
             // Regular training days
             HStack {
                 Text(NSLocalizedString("onboarding.training_days", comment: "Training Days") + ":")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 
                 Spacer()
                 
                 ForEach(userData.preferWeekDays?.filter { !(userData.preferWeekDaysLongrun?.contains($0) ?? false) }.sorted() ?? [], id: \.self) { day in
                     Text(viewModel.weekdayShortName(for: day))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .frame(width: 24, height: 24)
                         .background(Color.green.opacity(0.2))
@@ -614,14 +614,14 @@ struct UserProfileView: View {
             if !(userData.preferWeekDaysLongrun?.isEmpty ?? false) {
                 HStack {
                     Text(NSLocalizedString("training.type.long", comment: "Long Run") + ":")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     
                     Spacer()
                     
                     ForEach(userData.preferWeekDaysLongrun?.sorted() ?? [], id: \.self) { day in
                         Text(viewModel.weekdayShortName(for: day))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .frame(width: 24, height: 24)
                             .background(Color.blue.opacity(0.2))
@@ -638,7 +638,7 @@ struct UserProfileView: View {
             Image(systemName: "exclamationmark.triangle")
                 .foregroundColor(.red)
             Text(NSLocalizedString("error.unknown", comment: "Unknown Error") + ": \(error.localizedDescription)")
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.red)
         }
         .padding()
@@ -654,10 +654,10 @@ struct UserProfileView: View {
                             .foregroundColor(.orange)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(NSLocalizedString("datasource.not_connected", comment: "Not Connected"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .fontWeight(.medium)
                             Text(NSLocalizedString("datasource.select_primary_message", comment: "Please select a primary data source to sync your training records"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -803,10 +803,10 @@ struct UserProfileView: View {
                     if type != .strava {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(title)
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                             Text(subtitle)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -818,9 +818,9 @@ struct UserProfileView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
-                                .font(.caption)
+                                .font(AppFont.caption())
                             Text(NSLocalizedString("datasource.connected", comment: "Connected"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.green)
                         }
                         .padding(.horizontal, 8)
@@ -846,7 +846,7 @@ struct UserProfileView: View {
                 // Strava subtitle 獨立顯示在下一行
                 if type == .strava {
                     Text(subtitle)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.leading, 8)
                 }
@@ -855,11 +855,11 @@ struct UserProfileView: View {
                 HStack {
                     if isCurrentSource {
                         Text(NSLocalizedString("datasource.currently_active", comment: "Currently active data source"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.green)
                     } else {
                         Text(isUnbound ? NSLocalizedString("datasource.connect", comment: "Connect") : NSLocalizedString("datasource.switch_to_this", comment: "Switch to this data source"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
                     }
                     Spacer()
