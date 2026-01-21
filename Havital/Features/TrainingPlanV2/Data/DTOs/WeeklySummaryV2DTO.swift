@@ -9,9 +9,9 @@ struct WeeklySummaryV2DTO: Codable {
     // MARK: - Properties
 
     let id: String
-    let uid: String
-    let weeklyPlanId: String
-    let trainingOverviewId: String
+    let uid: String?
+    let weeklyPlanId: String?
+    let trainingOverviewId: String?
     let weekOfTraining: Int
     let createdAt: String?
     let planContext: PlanContextSummaryDTO?
@@ -548,9 +548,6 @@ struct FinalTrainingReviewDTO: Codable {
 }
 
 // MARK: - API Response Wrapper
-/// API 響應包裝器
-struct WeeklySummaryV2Response: Codable {
-    let success: Bool
-    let message: String?
-    let data: WeeklySummaryV2DTO
-}
+/// API 響應包裝器已由 ResponseProcessor 自動處理
+/// 後端返回格式：{"success": true, "data": {...}}
+/// 前端使用 WeeklySummaryV2DTO 即可，ResponseProcessor 會自動解析

@@ -70,9 +70,6 @@ struct PlanOverviewV2: Codable, Equatable {
     /// 里程碑列表
     let milestones: [MilestoneV2]
 
-    /// 週訓練項目預覽
-    let weeklyPreview: [WeeklyPreviewV2]
-
     // MARK: - Metadata
 
     /// 創建時間
@@ -241,67 +238,4 @@ struct MilestoneV2: Codable, Equatable {
 
     /// 是否為關鍵里程碑
     let isKeyMilestone: Bool
-}
-
-// MARK: - WeeklyPreviewV2 Entity
-/// 週訓練項目預覽 - 讓用戶預見每週的訓練架構
-struct WeeklyPreviewV2: Codable, Equatable {
-
-    /// 週數
-    let week: Int
-
-    /// 所屬階段
-    let stageId: String
-
-    /// 該週目標跑量
-    let targetKm: Double
-
-    /// 每天的訓練安排
-    let dailySchedule: [DailyScheduleItemV2]
-
-    /// 強度分佈
-    let intensityDistribution: IntensityDistributionV2
-
-    /// 該週的里程碑類型（如有）
-    let milestoneRef: String?
-
-    // MARK: - Computed Properties
-
-    /// 訓練天數
-    var trainingDays: Int {
-        return dailySchedule.filter { $0.trainingType != "rest" }.count
-    }
-
-    /// 重點訓練列表
-    var keyWorkouts: [DailyScheduleItemV2] {
-        return dailySchedule.filter { $0.isKeyWorkout }
-    }
-}
-
-// MARK: - DailyScheduleItemV2 Entity
-/// 每日訓練安排
-struct DailyScheduleItemV2: Codable, Equatable {
-
-    /// 星期幾（1=週一, 7=週日）
-    let dayOfWeek: Int
-
-    /// 訓練類型（easy_run, lsd, interval, tempo, rest...）
-    let trainingType: String
-
-    /// 是否為重點訓練
-    let isKeyWorkout: Bool
-
-    // MARK: - Computed Properties
-
-    /// 是否為休息日
-    var isRestDay: Bool {
-        return trainingType == "rest"
-    }
-
-    /// 星期名稱
-    var dayName: String {
-        let weekdays = ["", "週一", "週二", "週三", "週四", "週五", "週六", "週日"]
-        guard dayOfWeek >= 1 && dayOfWeek <= 7 else { return "" }
-        return weekdays[dayOfWeek]
-    }
 }

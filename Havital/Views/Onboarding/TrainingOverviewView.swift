@@ -28,6 +28,26 @@ struct TrainingOverviewView: View {
     let mode: TrainingOverviewMode
     let initialOverview: TrainingPlanOverview?
 
+    /// 判斷是否為 V2 流程
+    private var isV2Flow: Bool {
+        return coordinator.selectedTargetTypeId != nil
+    }
+
+    /// V2 Overview（優先從 coordinator 獲取）
+    private var overviewV2: PlanOverviewV2? {
+        return coordinator.trainingPlanOverviewV2 ?? viewModel.trainingOverviewV2
+    }
+
+    /// V1 Overview（優先從 coordinator 獲取）
+    private var overviewV1: TrainingPlanOverview? {
+        return viewModel.trainingOverview ?? coordinator.trainingPlanOverview
+    }
+
+    /// 是否有可顯示的 Overview
+    private var hasOverview: Bool {
+        return isV2Flow ? overviewV2 != nil : overviewV1 != nil
+    }
+
     init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
         self.mode = mode
         self.initialOverview = trainingOverview
@@ -39,18 +59,12 @@ struct TrainingOverviewView: View {
             // Main content area
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Summary Section
-                    summarySection
-
-                    // Target Evaluate (collapsible)
-                    if let overview = viewModel.trainingOverview,
-                       !overview.targetEvaluate.isEmpty {
-                        targetEvaluateSection(overview.targetEvaluate)
-                    }
-
-                    // Training Timeline
-                    if let overview = viewModel.trainingOverview {
-                        timelineSection(overview)
+                    if isV2Flow {
+                        // V2 Flow Content
+                        v2ContentSection
+                    } else {
+                        // V1 Flow Content
+                        v1ContentSection
                     }
 
                     // Bottom padding to avoid button overlay
@@ -71,13 +85,24 @@ struct TrainingOverviewView: View {
             // Set isBeginner from coordinator
             viewModel.isBeginner = coordinator.isBeginner
 
-            // Use initial overview if provided, otherwise load from repository
-            if let overview = initialOverview {
-                viewModel.trainingOverview = overview
-                await loadTargetPace()
+            if isV2Flow {
+                // V2 流程：Overview 已經在 TrainingDaysSetupView 中創建
+                // 從 coordinator 獲取，更新 targetPace
+                if let overview = overviewV2 {
+                    targetPace = overview.targetPace ?? "6:00"
+                    Logger.debug("[TrainingOverviewView] V2 flow: Using overview from coordinator: \(overview.id)")
+                } else {
+                    Logger.warn("[TrainingOverviewView] V2 flow: No overview found in coordinator")
+                }
             } else {
-                await viewModel.loadTrainingOverview()
-                await loadTargetPace()
+                // V1 流程：使用原有邏輯
+                if let overview = initialOverview {
+                    viewModel.trainingOverview = overview
+                    await loadTargetPace()
+                } else {
+                    await viewModel.loadTrainingOverview()
+                    await loadTargetPace()
+                }
             }
         }
         .fullScreenCover(isPresented: $coordinator.isCompleting) {
@@ -103,11 +128,251 @@ struct TrainingOverviewView: View {
         targetPace = await viewModel.loadTargetPace()
     }
 
-    // MARK: - Summary Section
+    // MARK: - V1 Content Section
+    @ViewBuilder
+    private var v1ContentSection: some View {
+        // Summary Section
+        summarySection
+
+        // Target Evaluate (collapsible)
+        if let overview = overviewV1,
+           !overview.targetEvaluate.isEmpty {
+            targetEvaluateSection(overview.targetEvaluate)
+        }
+
+        // Training Timeline
+        if let overview = overviewV1 {
+            timelineSection(overview)
+        }
+    }
+
+    // MARK: - V2 Content Section
+    @ViewBuilder
+    private var v2ContentSection: some View {
+        if let overview = overviewV2 {
+            // Summary Section - V2
+            summarySectionV2(overview)
+
+            // Target Evaluate (collapsible)
+            if !overview.targetEvaluate.isEmpty {
+                targetEvaluateSection(overview.targetEvaluate)
+            }
+
+            // Approach Summary (類似 V1 的 Training Highlight)
+            if !overview.approachSummary.isEmpty {
+                approachSummarySection(overview.approachSummary)
+            }
+
+            // Training Timeline - V2
+            timelineSectionV2(overview)
+        } else {
+            // Loading state
+            VStack(spacing: 16) {
+                ProgressView()
+                Text(NSLocalizedString("common.loading", comment: "Loading..."))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    // MARK: - Summary Section V2
+    @ViewBuilder
+    private func summarySectionV2(_ overview: PlanOverviewV2) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Total Weeks
+            HStack {
+                Label(NSLocalizedString("onboarding.total_weeks", comment: "Total Weeks"), systemImage: "calendar")
+                Spacer()
+                Text("\(overview.totalWeeks) \(NSLocalizedString("common.weeks", comment: "weeks"))")
+                    .foregroundColor(.secondary)
+            }
+
+            // Target Type / Race Date
+            if overview.isRaceRunTarget, let raceDate = overview.raceDateValue {
+                HStack {
+                    Label(NSLocalizedString("onboarding.race_date", comment: "Race Date"), systemImage: "flag.checkered")
+                    Spacer()
+                    Text(raceDate, style: .date)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                HStack {
+                    Label(NSLocalizedString("onboarding.target_type", comment: "Target Type"), systemImage: "target")
+                    Spacer()
+                    Text(overview.targetDescription ?? overview.targetType)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Target Pace (if available)
+            if let pace = overview.targetPace {
+                HStack {
+                    Label(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"), systemImage: "speedometer")
+                    Spacer()
+                    Text("\(pace) /km")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Methodology (if available)
+            if let methodology = overview.methodologyOverview {
+                HStack {
+                    Label(NSLocalizedString("onboarding.methodology", comment: "Methodology"), systemImage: "book.closed")
+                    Spacer()
+                    Text(methodology.name)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+    }
+
+    // MARK: - Approach Summary Section (V2)
+    @ViewBuilder
+    private func approachSummarySection(_ summary: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.orange)
+                Text(NSLocalizedString("onboarding.approach_summary", comment: "Training Approach"))
+                    .font(AppFont.headline())
+                Spacer()
+                Button(action: {
+                    withAnimation {
+                        isHighlightExpanded.toggle()
+                    }
+                }) {
+                    Image(systemName: isHighlightExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Text(summary)
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
+                .lineLimit(isHighlightExpanded ? nil : 3)
+                .animation(.easeInOut, value: isHighlightExpanded)
+        }
+        .padding()
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.orange.opacity(0.1), Color.yellow.opacity(0.05)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .cornerRadius(12)
+    }
+
+    // MARK: - Timeline Section V2
+    @ViewBuilder
+    private func timelineSectionV2(_ overview: PlanOverviewV2) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(NSLocalizedString("onboarding.training_timeline", comment: "Training Timeline"))
+                .font(AppFont.headline())
+                .padding(.bottom, 16)
+
+            // Stage cards - V2
+            ForEach(Array(overview.trainingStages.enumerated()), id: \.offset) { index, stage in
+                stageCardV2(
+                    stage,
+                    stageIndex: index,
+                    isLast: index == overview.trainingStages.count - 1,
+                    nextStageColor: index < overview.trainingStages.count - 1 ? stageColor(for: index + 1) : nil
+                )
+            }
+        }
+    }
+
+    // MARK: - Stage Card V2
+    @ViewBuilder
+    private func stageCardV2(_ stage: TrainingStageV2, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Left timeline (circle + connection line)
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(stageColor(for: stageIndex))
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                    )
+                    .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
+
+                if !isLast, let nextColor = nextStageColor {
+                    VStack(spacing: 2) {
+                        ForEach(0..<8, id: \.self) { _ in
+                            Rectangle()
+                                .fill(nextColor.opacity(0.6))
+                                .frame(width: 3, height: 6)
+                        }
+                        Image(systemName: "arrowtriangle.down.fill")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(nextColor.opacity(0.6))
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .frame(width: 20)
+
+            // Right content
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(stage.stageName)
+                        .font(AppFont.headline())
+                    Spacer()
+                    Text(weekRangeTextV2(stage))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+                }
+
+                // Weekly distance range
+                Text("\(Int(stage.targetWeeklyKmRange.low))-\(Int(stage.targetWeeklyKmRange.high)) \(NSLocalizedString("unit.km", comment: "km"))/\(NSLocalizedString("common.week_unit", comment: "week"))")
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(stageColor(for: stageIndex))
+
+                // Training Focus (brief)
+                if !stage.trainingFocus.isEmpty {
+                    Text(stage.trainingFocus)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.top, 2)
+                }
+
+                // Stage Description (detailed)
+                if !stage.stageDescription.isEmpty {
+                    Text(stage.stageDescription)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
+            }
+        }
+        .padding(.bottom, isLast ? 0 : 8)
+    }
+
+    // MARK: - Helper for V2 Week Range
+    private func weekRangeTextV2(_ stage: TrainingStageV2) -> String {
+        if stage.weekStart == stage.weekEnd {
+            return String(format: NSLocalizedString("onboarding.week_single", comment: "Week %d"), stage.weekStart)
+        } else {
+            return String(format: NSLocalizedString("onboarding.week_range", comment: "Week %d-%d"), stage.weekStart, stage.weekEnd)
+        }
+    }
+
+    // MARK: - Summary Section (V1)
     @ViewBuilder
     private var summarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let overview = viewModel.trainingOverview {
+            if let overview = overviewV1 {
                 HStack {
                     Label(NSLocalizedString("onboarding.total_weeks", comment: "Total Weeks"), systemImage: "calendar")
                     Spacer()
@@ -315,7 +580,7 @@ struct TrainingOverviewView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
-            .disabled(coordinator.isCompleting || viewModel.trainingOverview == nil)
+            .disabled(coordinator.isCompleting || !hasOverview)
             .padding(.horizontal)
             .padding(.bottom, 20)
             .background(Color(.systemBackground))

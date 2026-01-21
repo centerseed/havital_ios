@@ -65,6 +65,9 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    /// 防止重複初始化的鎖
+    private var isInitializing = false
+
     // MARK: - Initialization
 
     init(
@@ -111,7 +114,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             guard let self = self else { return }
             Logger.debug("[TrainingPlanV2VM] 收到 onboardingCompleted 事件，清除快取並重新初始化")
             await self.repository.clearOverviewCache()
-            await self.repository.clearWeeklyPlanCache()
+            await self.repository.clearWeeklyPlanCache(weekOfTraining: nil)
             await self.initialize()
         }
 
@@ -120,7 +123,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             guard let self = self else { return }
             Logger.debug("[TrainingPlanV2VM] 收到 userLogout 事件，清除所有狀態")
             await self.repository.clearOverviewCache()
-            await self.repository.clearWeeklyPlanCache()
+            await self.repository.clearWeeklyPlanCache(weekOfTraining: nil)
             await MainActor.run {
                 self.planStatus = .loading
                 self.planOverview = nil
@@ -142,6 +145,15 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
     /// 初始化載入所有資料
     func initialize() async {
+        // 防止重複初始化
+        guard !isInitializing else {
+            Logger.debug("[TrainingPlanV2VM] ⏭️ 初始化已在進行中，跳過本次調用")
+            return
+        }
+
+        isInitializing = true
+        defer { isInitializing = false }
+
         Logger.debug("[TrainingPlanV2VM] 🚀 開始初始化...")
 
         planStatus = .loading
@@ -176,7 +188,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
             await MainActor.run {
                 self.planOverview = overview
-                self.trainingPlanName = overview.targetName
+                self.trainingPlanName = overview.targetName ?? "訓練計畫"
                 self.calculateCurrentWeek(from: overview)
             }
 
@@ -205,7 +217,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 // 只在資料有變化時更新 UI
                 if self.planOverview?.id != freshOverview.id {
                     self.planOverview = freshOverview
-                    self.trainingPlanName = freshOverview.targetName
+                    self.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
                     self.calculateCurrentWeek(from: freshOverview)
                 }
             }
@@ -220,7 +232,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
         do {
             // Track A: 立即返回快取
-            let plan = try await repository.getWeeklyPlan(week: currentWeek)
+            let plan = try await repository.getWeeklyPlan(weekOfTraining: currentWeek)
 
             await MainActor.run {
                 self.weeklyPlan = plan
@@ -245,7 +257,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 背景刷新週課表（Track B）
     private func backgroundRefreshWeeklyPlan(week: Int) async {
         do {
-            let freshPlan = try await repository.refreshWeeklyPlan(week: week)
+            let freshPlan = try await repository.refreshWeeklyPlan(weekOfTraining: week)
             Logger.debug("[TrainingPlanV2VM] ✅ Background refresh: Weekly plan updated")
 
             await MainActor.run {
@@ -268,32 +280,39 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             return
         }
 
-        guard let weekInfo = WeekDateService.weekDateInfo(
-            createdAt: overview.createdAt,
-            weekNumber: selectedWeek
-        ) else {
-            Logger.error("[TrainingPlanV2VM] ❌ 無法計算週日期範圍")
+        // 將 createdAt (Date?) 轉換為 ISO8601 String
+        // 必須使用 overview.createdAt 作為 Week 1 的基準點
+        // 注意：weeklyPlan.createdAt 是該週課表生成時間，不能作為週日期計算的基準
+        guard let createdAt = overview.createdAt else {
+            Logger.error("[TrainingPlanV2VM] ❌ Overview createdAt 為 nil，無法載入訓練記錄。請檢查 API 回傳的 createdAt 是否正確解析")
             return
         }
 
-        do {
-            let allWorkouts = try await workoutRepository.getAllWorkouts()
+        let formatter = ISO8601DateFormatter()
+        let createdAtString = formatter.string(from: createdAt)
+        Logger.debug("[TrainingPlanV2VM] 使用 Overview createdAt: \(createdAtString)")
 
-            // 過濾本週的訓練記錄並按天分組
-            let grouped = groupWorkoutsByDay(allWorkouts, weekInfo: weekInfo)
-
-            await MainActor.run {
-                self.workoutsByDay = grouped
-            }
-
-            // 計算本週跑量和強度
-            await calculateWeekMetrics(workouts: allWorkouts, weekInfo: weekInfo)
-
-            Logger.debug("[TrainingPlanV2VM] ✅ 訓練記錄載入完成: \(grouped.values.flatMap { $0 }.count) 筆")
-
-        } catch {
-            Logger.error("[TrainingPlanV2VM] ❌ 訓練記錄載入失敗: \(error.localizedDescription)")
+        guard let weekInfo = WeekDateService.weekDateInfo(
+            createdAt: createdAtString,
+            weekNumber: selectedWeek
+        ) else {
+            Logger.error("[TrainingPlanV2VM] ❌ 無法計算週日期範圍，createdAt: \(createdAtString)")
+            return
         }
+
+        let allWorkouts = await workoutRepository.getAllWorkoutsAsync()
+
+        // 過濾本週的訓練記錄並按天分組
+        let grouped = groupWorkoutsByDay(allWorkouts, weekInfo: weekInfo)
+
+        await MainActor.run {
+            self.workoutsByDay = grouped
+        }
+
+        // 計算本週跑量和強度
+        await calculateWeekMetrics(workouts: allWorkouts, weekInfo: weekInfo)
+
+        Logger.debug("[TrainingPlanV2VM] ✅ 訓練記錄載入完成: \(grouped.values.flatMap { $0 }.count) 筆")
     }
 
     /// 按天分組訓練記錄
@@ -343,25 +362,48 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             $0.startDate >= weekInfo.startDate && $0.startDate <= weekInfo.endDate
         }
 
-        // 計算總跑量
-        let totalDistance = weekWorkouts.reduce(0.0) { $0 + $1.distance }
+        // 計算總跑量（從 distanceMeters 轉換為公里）
+        let totalDistanceMeters = weekWorkouts.reduce(0.0) { $0 + ($1.distanceMeters ?? 0) }
+        let totalDistanceKm = totalDistanceMeters / 1000.0
 
-        // 計算強度分配
-        let intensity = TrainingIntensityManager.calculateIntensity(from: weekWorkouts)
+        // 計算強度分配（從 WorkoutV2 的 advancedMetrics.intensityMinutes 中累加）
+        var totalLow: Double = 0.0
+        var totalMedium: Double = 0.0
+        var totalHigh: Double = 0.0
+
+        for workout in weekWorkouts {
+            if let intensityMinutes = workout.advancedMetrics?.intensityMinutes {
+                totalLow += intensityMinutes.low ?? 0.0
+                totalMedium += intensityMinutes.medium ?? 0.0
+                totalHigh += intensityMinutes.high ?? 0.0
+            }
+        }
+
+        let intensity = TrainingIntensityManager.IntensityMinutes(
+            low: totalLow,
+            medium: totalMedium,
+            high: totalHigh
+        )
 
         await MainActor.run {
-            self.currentWeekDistance = totalDistance
+            self.currentWeekDistance = totalDistanceKm
             self.currentWeekIntensity = intensity
         }
 
-        Logger.debug("[TrainingPlanV2VM] 本週統計: 跑量=\(totalDistance) km, 低強度=\(intensity.low) 分鐘")
+        Logger.debug("[TrainingPlanV2VM] 本週統計: 跑量=\(totalDistanceKm) km, 強度(低/中/高)=\(totalLow)/\(totalMedium)/\(totalHigh) 分鐘")
     }
 
     /// 計算當前訓練週數（根據 Plan 建立時間）
     private func calculateCurrentWeek(from overview: PlanOverviewV2) {
         let calendar = Calendar.current
         let now = Date()
-        let startDate = overview.createdAt
+
+        guard let startDate = overview.createdAt else {
+            Logger.error("[TrainingPlanV2VM] ❌ Plan Overview createdAt 為 nil，無法計算訓練週數")
+            currentWeek = 1
+            selectedWeek = 1
+            return
+        }
 
         guard let weekDiff = calendar.dateComponents([.weekOfYear], from: startDate, to: now).weekOfYear else {
             Logger.error("[TrainingPlanV2VM] ❌ 無法計算訓練週數")
@@ -400,7 +442,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
         planStatus = .loading
 
         do {
-            let plan = try await repository.getWeeklyPlan(week: week)
+            let plan = try await repository.getWeeklyPlan(weekOfTraining: week)
 
             await MainActor.run {
                 self.weeklyPlan = plan
@@ -430,8 +472,18 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     func getDate(for dayIndex: Int) -> Date? {
         guard let overview = planOverview else { return nil }
 
+        // 必須使用 overview.createdAt 作為 Week 1 的基準點
+        // 注意：weeklyPlan.createdAt 是該週課表生成時間，不能作為週日期計算的基準
+        guard let createdAt = overview.createdAt else {
+            Logger.error("[TrainingPlanV2VM] ❌ getDate: Overview createdAt 為 nil")
+            return nil
+        }
+
+        let formatter = ISO8601DateFormatter()
+        let createdAtString = formatter.string(from: createdAt)
+
         guard let weekInfo = WeekDateService.weekDateInfo(
-            createdAt: overview.createdAt,
+            createdAt: createdAtString,
             weekNumber: selectedWeek
         ) else {
             return nil
@@ -454,6 +506,93 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 清除成功提示
     func clearSuccessToast() {
         successToast = nil
+    }
+
+    // MARK: - Debug Actions
+
+    /// 在任何時間產生週回顧（Debug）
+    func debugGenerateWeeklySummary() async {
+        Logger.debug("[TrainingPlanV2VM] 🐛 [DEBUG] Generating weekly summary for week \(currentWeek)")
+
+        do {
+            let summary = try await repository.generateWeeklySummary(weekOfPlan: currentWeek, forceUpdate: true)
+
+            await MainActor.run {
+                self.successToast = "✅ [DEBUG] 週回顧已產生: week \(currentWeek)"
+            }
+
+            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly summary generated: \(summary.id)")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] Failed to generate weekly summary: \(error.localizedDescription)")
+
+            await MainActor.run {
+                self.networkError = error
+            }
+        }
+    }
+
+    /// 刪除當前週課表（Debug）
+    func debugDeleteCurrentWeekPlan() async {
+        guard let planId = weeklyPlan?.id else {
+            Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] No weekly plan to delete")
+            await MainActor.run {
+                self.networkError = NSError(domain: "TrainingPlanV2", code: -1, userInfo: [NSLocalizedDescriptionKey: "無週課表可刪除"])
+            }
+            return
+        }
+
+        Logger.debug("[TrainingPlanV2VM] 🗑️ [DEBUG] Deleting weekly plan: \(planId)")
+
+        do {
+            try await repository.deleteWeeklyPlan(planId: planId)
+
+            await MainActor.run {
+                self.weeklyPlan = nil
+                self.planStatus = .loading
+                self.successToast = "✅ [DEBUG] 週課表已刪除"
+            }
+
+            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly plan deleted: \(planId)")
+
+            // 清除本地快取
+            await repository.clearWeeklyPlanCache(weekOfTraining: currentWeek)
+
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] Failed to delete weekly plan: \(error.localizedDescription)")
+
+            await MainActor.run {
+                self.networkError = error
+            }
+        }
+    }
+
+    /// 刪除當前週回顧（Debug）
+    func debugDeleteCurrentWeeklySummary() async {
+        // 先獲取週摘要以取得 summaryId
+        do {
+            let summary = try await repository.getWeeklySummary(weekOfPlan: currentWeek)
+            let summaryId = summary.id
+
+            Logger.debug("[TrainingPlanV2VM] 🗑️ [DEBUG] Deleting weekly summary: \(summaryId)")
+
+            try await repository.deleteWeeklySummary(summaryId: summaryId)
+
+            await MainActor.run {
+                self.successToast = "✅ [DEBUG] 週回顧已刪除"
+            }
+
+            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
+
+            // 清除本地快取
+            await repository.clearWeeklySummaryCache(weekOfPlan: currentWeek)
+
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] Failed to delete weekly summary: \(error.localizedDescription)")
+
+            await MainActor.run {
+                self.networkError = error
+            }
+        }
     }
 }
 

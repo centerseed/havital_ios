@@ -7,9 +7,27 @@ struct WeekOverviewCardV2: View {
     let plan: WeeklyPlanV2
     @State private var showWeekTargetDetail = false
 
-    // 從 plan.plan 中提取總跑量（簡化版）
+    // ✅ 直接從 WeeklyPlanV2 Entity 提取總跑量（V1 欄位）
     private var targetDistance: Double {
-        return plan.plan.double(forKey: "total_distance") ?? 0.0
+        return plan.totalDistance
+    }
+
+    // ✅ 從 intensityTotalMinutes 提取強度目標（分鐘）
+    private var lowIntensityTarget: Int {
+        return Int(plan.intensityTotalMinutes?.low ?? 0)
+    }
+
+    private var mediumIntensityTarget: Int {
+        return Int(plan.intensityTotalMinutes?.medium ?? 0)
+    }
+
+    private var highIntensityTarget: Int {
+        return Int(plan.intensityTotalMinutes?.high ?? 0)
+    }
+
+    // ✅ 直接從 WeeklyPlanV2 Entity 提取設計原因（V1 欄位）
+    private var designReason: [String]? {
+        return plan.designReason
     }
 
     private var weekProgress: Double {
@@ -106,13 +124,13 @@ struct WeekOverviewCardV2: View {
                 Spacer()
             }
 
-            // 下半部：強度分布（簡化版 - 使用 ViewModel 中的數據）
+            // 下半部：強度分布（使用從 plan.plan 提取的目標值）
             HStack(spacing: 12) {
                 // 低強度
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.low", comment: "Low"),
                     current: Int(viewModel.currentWeekIntensity.low),
-                    target: 100,  // TODO: 從 plan.plan 中提取目標值
+                    target: lowIntensityTarget,
                     color: .green
                 )
 
@@ -120,7 +138,7 @@ struct WeekOverviewCardV2: View {
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.medium", comment: "Medium"),
                     current: Int(viewModel.currentWeekIntensity.medium),
-                    target: 40,   // TODO: 從 plan.plan 中提取目標值
+                    target: mediumIntensityTarget,
                     color: .orange
                 )
 
@@ -128,7 +146,7 @@ struct WeekOverviewCardV2: View {
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.high", comment: "High"),
                     current: Int(viewModel.currentWeekIntensity.high),
-                    target: 15,   // TODO: 從 plan.plan 中提取目標值
+                    target: highIntensityTarget,
                     color: .red
                 )
             }
@@ -142,8 +160,8 @@ struct WeekOverviewCardV2: View {
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailViewV2(
-                    purpose: plan.plan.string(forKey: "purpose") ?? "本週訓練",
-                    designReason: nil  // TODO: 從 plan.plan 中提取
+                    purpose: plan.purpose,  // ✅ 直接使用 V1 欄位
+                    designReason: designReason
                 )
             }
         }

@@ -32,17 +32,8 @@ struct WeeklyDistanceSetupView: View {
     var body: some View {
         Form {
             Section(
-                header: Text(NSLocalizedString("onboarding.current_weekly_distance", comment: "Current Weekly Distance")).padding(.top, 10),
                 footer: Text(NSLocalizedString("onboarding.weekly_distance_description", comment: "Weekly Distance Description"))
             ) {
-                // Only show target distance if available
-                if let targetDistance = targetDistance {
-                    Text(String(format: NSLocalizedString("onboarding.target_distance_label", comment: "Target Distance Label"), targetDistance))
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 5)
-                }
-
                 Text(NSLocalizedString("onboarding.adjust_weekly_volume", comment: "Adjust Weekly Volume"))
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
@@ -121,16 +112,15 @@ struct WeeklyDistanceSetupView: View {
         }
         .background(EmptyView())
         .onAppear {
-            // Set target distance and initialize weekly distance
+            // Always reset to default 10km on appear
+            viewModel.weeklyDistance = 10.0
+
+            // Set target distance if available (for future use)
             if let targetDistance = targetDistance {
                 viewModel.targetDistance = targetDistance
-                let suggestedDistance = targetDistance * 0.3
-                viewModel.weeklyDistance = max(minimumWeeklyDistance, min(suggestedDistance, defaultMaxWeeklyDistanceCap))
-            } else {
-                viewModel.weeklyDistance = 10.0
             }
 
-            // Load historical weekly distance
+            // Load historical weekly distance (for logging only, doesn't override default)
             Task {
                 await viewModel.loadHistoricalWeeklyDistance()
             }
@@ -140,13 +130,10 @@ struct WeeklyDistanceSetupView: View {
     // MARK: - Navigation
 
     private func navigateToNextStep() {
-        if coordinator.isReonboarding {
-            // Re-onboarding skips GoalType, goes directly to RaceSetup
-            coordinator.navigate(to: .raceSetup)
-        } else {
-            let nextStep = viewModel.determineNextStepAfterWeeklyDistance()
-            coordinator.navigate(to: nextStep)
-        }
+        // V2 Flow: Always go to Goal Type first (both onboarding and re-onboarding)
+        // User can choose race_run, beginner, or maintenance target types
+        let nextStep = viewModel.determineNextStepAfterWeeklyDistance()
+        coordinator.navigate(to: nextStep)
     }
 }
 

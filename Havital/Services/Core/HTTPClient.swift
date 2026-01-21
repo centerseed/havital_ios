@@ -212,8 +212,13 @@ actor DefaultHTTPClient: HTTPClient {
         
         // 添加認證 token（除了登入相關端點，且沒有自定義 Authorization）
         if !isAuthenticationEndpoint(path: path) && customHeaders?["Authorization"] == nil {
+            Logger.debug("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
             let token = try await authSessionRepository.getIdToken()
+            let tokenPreview = String(token.prefix(30))
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            Logger.debug("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
+        } else if isAuthenticationEndpoint(path: path) {
+            Logger.debug("[HTTPClient] ⚪ Skipping auth token for authentication endpoint: \(path)")
         }
         
         // 設置請求體

@@ -22,6 +22,29 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         self.localDataSource = localDataSource
     }
 
+    // MARK: - Target Types & Methodologies
+
+    func getTargetTypes() async throws -> [TargetTypeV2] {
+        Logger.debug("[TrainingPlanV2Repo] Fetching target types")
+
+        // No caching for target types - they're rarely changed and small payload
+        let targetTypes = try await remoteDataSource.getTargetTypes()
+
+        Logger.info("[TrainingPlanV2Repo] Fetched \(targetTypes.count) target types")
+        return targetTypes
+    }
+
+    func getMethodologies(targetType: String?) async throws -> [MethodologyV2] {
+        Logger.debug("[TrainingPlanV2Repo] 🎯 Fetching methodologies for: '\(targetType ?? "nil")'")
+
+        // No caching for methodologies - they're rarely changed and small payload
+        Logger.debug("[TrainingPlanV2Repo] 📡 Calling remoteDataSource.getMethodologies with targetType=\(targetType ?? "nil")")
+        let methodologies = try await remoteDataSource.getMethodologies(targetType: targetType)
+
+        Logger.info("[TrainingPlanV2Repo] ✅ Fetched \(methodologies.count) methodologies: \(methodologies.map { $0.id })")
+        return methodologies
+    }
+
     // MARK: - Plan Overview
 
     func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2 {
@@ -74,12 +97,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         if let cached = localDataSource.getOverview(),
            !localDataSource.isOverviewExpired() {
             Logger.debug("[TrainingPlanV2Repo] Cache hit")
-
-            // Track B: Background refresh
-            Task.detached(priority: .background) { [weak self] in
-                await self?.refreshOverviewInBackground()
-            }
-
+            // Note: Track B (background refresh) is handled by ViewModel layer
             return cached
         }
 
@@ -144,12 +162,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         if let cached = localDataSource.getWeeklyPlan(week: weekOfTraining),
            !localDataSource.isWeeklyPlanExpired(week: weekOfTraining) {
             Logger.debug("[TrainingPlanV2Repo] Cache hit for week \(weekOfTraining)")
-
-            // Track B: Background refresh
-            Task.detached(priority: .background) { [weak self] in
-                await self?.refreshWeeklyPlanInBackground(week: weekOfTraining)
-            }
-
+            // Note: Track B (background refresh) is handled by ViewModel layer
             return cached
         }
 
@@ -171,6 +184,12 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             promptVersion: nil,
             methodology: nil
         )
+    }
+
+    func deleteWeeklyPlan(planId: String) async throws {
+        Logger.debug("[TrainingPlanV2Repo] 🗑️ [DEBUG] Deleting weekly plan: \(planId)")
+        try await remoteDataSource.deleteWeeklyPlan(planId: planId)
+        Logger.info("[TrainingPlanV2Repo] ✅ [DEBUG] Weekly plan deleted: \(planId)")
     }
 
     // MARK: - Weekly Summary
@@ -216,6 +235,12 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         Logger.debug("[TrainingPlanV2Repo] Force refresh weekly summary for week \(weekOfPlan)")
         return try await generateWeeklySummary(weekOfPlan: weekOfPlan, forceUpdate: true)
+    }
+
+    func deleteWeeklySummary(summaryId: String) async throws {
+        Logger.debug("[TrainingPlanV2Repo] 🗑️ [DEBUG] Deleting weekly summary: \(summaryId)")
+        try await remoteDataSource.deleteWeeklySummary(summaryId: summaryId)
+        Logger.info("[TrainingPlanV2Repo] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
     }
 
     // MARK: - Cache Management

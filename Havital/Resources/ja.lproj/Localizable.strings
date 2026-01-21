@@ -880,7 +880,7 @@
 "onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
 "onboarding.target_distance_label" = "目標距離：%.1f km";
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
-"onboarding.weekly_volume_label" = "週間量：%.0f km";
+"onboarding.weekly_volume_label" = "推定週間量：%.0f km";
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "あなたの週間ランニング量";
 "onboarding.skip" = "スキップ";

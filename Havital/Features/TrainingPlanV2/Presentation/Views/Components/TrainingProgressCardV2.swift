@@ -8,7 +8,7 @@ struct TrainingProgressCardV2: View {
 
     private var progress: Double {
         guard let overview = viewModel.planOverview, overview.totalWeeks > 0 else { return 0 }
-        return min(Double(plan.weekOfTraining) / Double(overview.totalWeeks), 1.0)
+        return min(Double(plan.effectiveWeek) / Double(overview.totalWeeks), 1.0)
     }
 
     var body: some View {
@@ -29,7 +29,7 @@ struct TrainingProgressCardV2: View {
                     Spacer()
 
                     if let overview = viewModel.planOverview {
-                        Text(String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.weekOfTraining, overview.totalWeeks))
+                        Text(String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.effectiveWeek, overview.totalWeeks))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
@@ -84,7 +84,7 @@ struct TrainingProgressCardV2: View {
 
     /// 獲取當前階段（簡化版）
     private func getCurrentStage(from overview: PlanOverviewV2) -> (stageName: String, weekStart: Int, weekEnd: Int)? {
-        let currentWeek = plan.weekOfTraining
+        let currentWeek = plan.effectiveWeek
 
         for stage in overview.trainingStages {
             if currentWeek >= stage.weekStart && currentWeek <= stage.weekEnd {

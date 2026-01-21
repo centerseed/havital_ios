@@ -881,7 +881,7 @@
 "onboarding.weekly_distance_description" = "Weekly running volume is the total distance you typically run in a week. This helps Paceriz understand your current running habits and set appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
-"onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
+"onboarding.weekly_volume_label" = "Estimated weekly volume: %.0f km";
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "Your Weekly Running Volume";
 "onboarding.skip" = "Skip";
@@ -2125,4 +2125,15 @@
 "workoutsyncdebug.text_7" = "Created Test Workout ID: %@";
 "workoutsyncdebug.text_8" = "Test Data Management";
 "workoutsyncdebug.text_9" = "Delete Test Data";
+
+/* Methodology Selection */
+"onboarding.methodology_title" = "Choose Your Training Methodology";
+"onboarding.methodology_description" = "Different methodologies focus on different training approaches.";
+"onboarding.methodology_nav_title" = "Training Methodology";
+"onboarding.methodology_load_failed" = "Failed to load methodologies";
+"onboarding.loading_methodologies" = "Loading methodologies...";
+"onboarding.methodology_phases" = "%d phases";
+"onboarding.recommended" = "Recommended";
+"onboarding.cross_training_enabled" = "Cross-training enabled";
+
 >>>>>>> dev

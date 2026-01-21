@@ -3,6 +3,7 @@ import Foundation
 // MARK: - WeeklyPlanV2Mapper
 /// Weekly Plan V2 Mapper - Data Layer
 /// 負責 DTO ↔ Entity 雙向轉換
+/// ✅ 完整兼容 V1 WeeklyPlan 結構
 enum WeeklyPlanV2Mapper {
 
     // MARK: - DTO → Entity
@@ -12,15 +13,23 @@ enum WeeklyPlanV2Mapper {
     /// - Returns: Domain Layer 業務實體
     static func toEntity(from dto: WeeklyPlanV2DTO) -> WeeklyPlanV2 {
         return WeeklyPlanV2(
-            id: dto.id,
-            uid: dto.uid,
-            activeTrainingId: dto.activeTrainingId,
+            planId: dto.planId,
             weekOfTraining: dto.weekOfTraining,
-            targetType: dto.targetType,
-            methodologyId: dto.methodologyId,
-            plan: PlanData(rawData: dto.plan),
+            id: dto.id,
+            purpose: dto.purpose,
+            weekOfPlan: dto.weekOfPlan,
+            totalWeeks: dto.totalWeeks,
+            totalDistance: dto.totalDistance,
+            totalDistanceReason: dto.totalDistanceReason,
+            designReason: dto.designReason,
+            days: dto.days,  // 直接使用 V1 的 TrainingDay，無需轉換
+            intensityTotalMinutes: dto.intensityTotalMinutes,  // 直接使用 V1 的 IntensityTotalMinutes
             createdAt: parseDate(from: dto.createdAt),
-            updatedAt: parseDate(from: dto.updatedAt)
+            updatedAt: parseDate(from: dto.updatedAt),
+            trainingLoadAnalysis: dto.trainingLoadAnalysis,
+            personalizedRecommendations: dto.personalizedRecommendations,
+            realTimeAdjustments: dto.realTimeAdjustments,
+            apiVersion: dto.apiVersion
         )
     }
 
@@ -31,26 +40,43 @@ enum WeeklyPlanV2Mapper {
     /// - Returns: API 請求的 DTO
     static func toDTO(from entity: WeeklyPlanV2) -> WeeklyPlanV2DTO {
         return WeeklyPlanV2DTO(
-            id: entity.id,
-            uid: entity.uid,
-            activeTrainingId: entity.activeTrainingId,
+            planId: entity.planId,
             weekOfTraining: entity.weekOfTraining,
-            targetType: entity.targetType,
-            methodologyId: entity.methodologyId,
-            plan: entity.plan.rawData,
+            id: entity.id,
+            purpose: entity.purpose,
+            weekOfPlan: entity.weekOfPlan,
+            totalWeeks: entity.totalWeeks,
+            totalDistance: entity.totalDistance,
+            totalDistanceReason: entity.totalDistanceReason,
+            designReason: entity.designReason,
+            days: entity.days,  // 直接使用，無需轉換
+            intensityTotalMinutes: entity.intensityTotalMinutes,
             createdAt: formatDate(entity.createdAt),
-            updatedAt: formatDate(entity.updatedAt)
+            updatedAt: formatDate(entity.updatedAt),
+            trainingLoadAnalysis: entity.trainingLoadAnalysis,
+            personalizedRecommendations: entity.personalizedRecommendations,
+            realTimeAdjustments: entity.realTimeAdjustments,
+            apiVersion: entity.apiVersion
         )
     }
 
     // MARK: - Date Helpers
 
     /// 解析 ISO 8601 日期字串為 Date
+    /// 支援格式：2026-01-21T15:24:26.194000+00:00（含微秒）
     private static func parseDate(from dateString: String?) -> Date? {
         guard let dateString = dateString else { return nil }
 
+        // 嘗試標準 ISO8601 格式（無微秒）
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // 嘗試含微秒的 ISO8601 格式
+        let formatterWithFractional = ISO8601DateFormatter()
+        formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatterWithFractional.date(from: dateString) {
             return date
         }
 
@@ -59,6 +85,7 @@ enum WeeklyPlanV2Mapper {
             return Date(timeIntervalSince1970: TimeInterval(timestamp))
         }
 
+        Logger.error("[WeeklyPlanV2Mapper] ❌ 無法解析日期: \(dateString)")
         return nil
     }
 

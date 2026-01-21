@@ -33,7 +33,6 @@ struct PlanOverviewV2DTO: Codable {
     // 訓練結構
     let trainingStages: [TrainingStageDTO]
     let milestones: [MilestoneDTO]
-    let weeklyPreview: [WeeklyPreviewDTO]
 
     // Metadata
     let createdAt: String?
@@ -60,7 +59,6 @@ struct PlanOverviewV2DTO: Codable {
         case approachSummary = "approach_summary"
         case trainingStages = "training_stages"
         case milestones
-        case weeklyPreview = "weekly_preview"
         case createdAt = "created_at"
         case methodologyVersion = "methodology_version"
     }
@@ -136,42 +134,7 @@ struct MilestoneDTO: Codable {
     }
 }
 
-// MARK: - WeeklyPreviewDTO
-struct WeeklyPreviewDTO: Codable {
-    let week: Int
-    let stageId: String
-    let targetKm: Double
-    let dailySchedule: [DailyScheduleItemDTO]
-    let intensityDistribution: IntensityDistributionDTO
-    let milestoneRef: String?
-
-    enum CodingKeys: String, CodingKey {
-        case week
-        case stageId = "stage_id"
-        case targetKm = "target_km"
-        case dailySchedule = "daily_schedule"
-        case intensityDistribution = "intensity_distribution"
-        case milestoneRef = "milestone_ref"
-    }
-}
-
-// MARK: - DailyScheduleItemDTO
-struct DailyScheduleItemDTO: Codable {
-    let dayOfWeek: Int
-    let trainingType: String
-    let isKeyWorkout: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case dayOfWeek = "day_of_week"
-        case trainingType = "training_type"
-        case isKeyWorkout = "is_key_workout"
-    }
-}
-
 // MARK: - API Response Wrapper
-/// API 響應包裝器
-struct PlanOverviewV2Response: Codable {
-    let success: Bool
-    let message: String?
-    let data: PlanOverviewV2DTO
-}
+/// API 響應包裝器已由 ResponseProcessor 自動處理
+/// 後端返回格式：{"success": true, "data": {...}}
+/// 前端使用 PlanOverviewV2DTO 即可，ResponseProcessor 會自動解析

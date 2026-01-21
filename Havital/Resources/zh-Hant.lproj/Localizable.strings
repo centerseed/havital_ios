@@ -879,7 +879,7 @@
 "onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Paceriz 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
 "onboarding.target_distance_label" = "您的目標距離：%.1f 公里";
 "onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
-"onboarding.weekly_volume_label" = "本週跑量：%.0f 公里";
+"onboarding.weekly_volume_label" = "週跑量約為：%.0f 公里";
 "onboarding.km_label" = "%.0f 公里";
 "onboarding.weekly_distance_title" = "您的週跑量";
 "onboarding.skip" = "略過";
@@ -2156,3 +2156,29 @@
 "workoutsyncdebug.text_7" = "已創建測試健身記錄 ID: %@";
 "workoutsyncdebug.text_8" = "測試數據管理";
 "workoutsyncdebug.text_9" = "刪除測試數據";
+
+/* Methodology Selection */
+"onboarding.methodology_title" = "選擇訓練方法";
+"onboarding.methodology_description" = "不同的訓練方法專注於不同的訓練策略。";
+"onboarding.methodology_nav_title" = "訓練方法";
+"onboarding.methodology_load_failed" = "載入方法論失敗";
+"onboarding.loading_methodologies" = "正在載入方法論...";
+"onboarding.methodology_phases" = "%d 個階段";
+"onboarding.recommended" = "推薦";
+"onboarding.cross_training_enabled" = "支援交叉訓練";
+
+/* Training Weeks Setup */
+"onboarding.training_weeks_title" = "訓練週數";
+"onboarding.training_weeks_description" = "您計劃訓練幾週？";
+"onboarding.training_weeks_nav_title" = "訓練週數";
+"onboarding.quick_options" = "快速選項";
+"onboarding.selected_duration" = "選擇的訓練週數";
+"onboarding.custom_weeks" = "自訂週數";
+"onboarding.select_weeks" = "選擇週數";
+"onboarding.short_duration_warning" = "較短的訓練時間可能會限制進步空間";
+"onboarding.long_duration_benefit" = "較長的訓練時間能讓您循序漸進地提升";
+
+/* Training Overview V2 */
+"onboarding.target_type" = "目標類型";
+"onboarding.methodology" = "訓練方法";
+"onboarding.approach_summary" = "訓練方針";

@@ -7,6 +7,10 @@ struct ContentView: View {
     @EnvironmentObject private var appViewModel: AppViewModel
     @ObservedObject private var appStateManager = AppStateManager.shared
 
+    // 訓練版本路由狀態
+    @State private var trainingVersion: String = "v1"
+    @State private var isCheckingVersion: Bool = true
+
     var body: some View {
         let _ = print("📱 [ContentView] body 重新評估 - isAuth=\(authViewModel.isAuthenticated), hasOnboarding=\(authViewModel.hasCompletedOnboarding), isReOnboarding=\(authViewModel.isReonboardingMode), loading=\(appStateManager.shouldShowLoadingScreen)")
 
@@ -85,6 +89,9 @@ struct ContentView: View {
                                 "has_completed_onboarding": authViewModel.hasCompletedOnboarding
                             ]
                         )
+
+                        // 檢查訓練版本
+                        checkTrainingVersion()
                     }
                     .sheet(isPresented: Binding(
                         get: { authViewModel.isReonboardingMode },
@@ -142,8 +149,8 @@ struct ContentView: View {
     private func mainAppContent() -> some View {
         // 從 HavitalApp.swift 遷移過來的 TabView
         TabView {
-            TrainingPlanView()
-                // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
+            // 根據訓練版本顯示對應的訓練計劃視圖
+            trainingPlanTab()
                 .tabItem {
                     Image(systemName: "figure.run")
                     Text(L10n.Tab.trainingPlan.localized)
@@ -201,7 +208,46 @@ struct ContentView: View {
     }
 
 
-    
+
+    // MARK: - Training Version Routing
+
+    /// 訓練計劃 Tab - 根據版本動態選擇 V1 或 V2
+    @ViewBuilder
+    private func trainingPlanTab() -> some View {
+        if isCheckingVersion {
+            // 正在檢查版本時顯示載入指示器
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if trainingVersion == "v2" {
+            // V2 版本
+            TrainingPlanV2View()
+        } else {
+            // V1 版本（預設）
+            TrainingPlanView()
+        }
+    }
+
+    /// 檢查訓練版本
+    private func checkTrainingVersion() {
+        Task {
+            let container = DependencyContainer.shared
+
+            // 確保 TrainingVersionRouter 已註冊
+            if !container.isRegistered(TrainingVersionRouter.self) {
+                container.registerTrainingVersionRouter()
+            }
+
+            let router: TrainingVersionRouter = container.resolve()
+            let version = await router.getTrainingVersion()
+
+            await MainActor.run {
+                self.trainingVersion = version
+                self.isCheckingVersion = false
+                Logger.debug("[ContentView] Training version detected: \(version)")
+            }
+        }
+    }
+
     // 輔助屬性，用於避免在 SwiftUI Previews 中自動彈出 Onboarding
     private var isInPreview: Bool {
         return ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"

@@ -5,6 +5,17 @@ import Foundation
 /// Domain Layer - 只定義介面，不涉及實作細節
 protocol TrainingPlanV2Repository {
 
+    // MARK: - Target Types & Methodologies
+
+    /// 獲取支援的目標類型
+    /// - Returns: 目標類型列表
+    func getTargetTypes() async throws -> [TargetTypeV2]
+
+    /// 獲取方法論列表
+    /// - Parameter targetType: 目標類型（可選，不提供則返回所有方法論）
+    /// - Returns: 方法論列表
+    func getMethodologies(targetType: String?) async throws -> [MethodologyV2]
+
     // MARK: - Plan Overview
 
     /// 創建訓練計畫概覽（賽事模式）
@@ -71,6 +82,10 @@ protocol TrainingPlanV2Repository {
     /// - Returns: 最新的週課表
     func refreshWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2
 
+    /// 刪除週課表 (Debug)
+    /// - Parameter planId: 週課表 ID
+    func deleteWeeklyPlan(planId: String) async throws
+
     // MARK: - Weekly Summary
 
     /// 生成週摘要
@@ -89,6 +104,10 @@ protocol TrainingPlanV2Repository {
     /// - Parameter weekOfPlan: 訓練週次
     /// - Returns: 最新的週摘要
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2
+
+    /// 刪除週摘要 (Debug)
+    /// - Parameter summaryId: 週摘要 ID
+    func deleteWeeklySummary(summaryId: String) async throws
 
     // MARK: - Cache Management
 

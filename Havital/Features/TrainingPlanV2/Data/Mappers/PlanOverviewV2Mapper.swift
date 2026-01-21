@@ -30,7 +30,6 @@ enum PlanOverviewV2Mapper {
             approachSummary: dto.approachSummary,
             trainingStages: dto.trainingStages.map { toTrainingStage(from: $0) },
             milestones: dto.milestones.map { toMilestone(from: $0) },
-            weeklyPreview: dto.weeklyPreview.map { toWeeklyPreview(from: $0) },
             createdAt: parseDate(from: dto.createdAt),
             methodologyVersion: dto.methodologyVersion
         )
@@ -61,7 +60,6 @@ enum PlanOverviewV2Mapper {
             approachSummary: entity.approachSummary,
             trainingStages: entity.trainingStages.map { toTrainingStageDTO(from: $0) },
             milestones: entity.milestones.map { toMilestoneDTO(from: $0) },
-            weeklyPreview: entity.weeklyPreview.map { toWeeklyPreviewDTO(from: $0) },
             createdAt: formatDate(entity.createdAt),
             methodologyVersion: entity.methodologyVersion
         )
@@ -110,25 +108,6 @@ enum PlanOverviewV2Mapper {
         )
     }
 
-    private static func toWeeklyPreview(from dto: WeeklyPreviewDTO) -> WeeklyPreviewV2 {
-        return WeeklyPreviewV2(
-            week: dto.week,
-            stageId: dto.stageId,
-            targetKm: dto.targetKm,
-            dailySchedule: dto.dailySchedule.map { toDailyScheduleItem(from: $0) },
-            intensityDistribution: toIntensityDistribution(from: dto.intensityDistribution),
-            milestoneRef: dto.milestoneRef
-        )
-    }
-
-    private static func toDailyScheduleItem(from dto: DailyScheduleItemDTO) -> DailyScheduleItemV2 {
-        return DailyScheduleItemV2(
-            dayOfWeek: dto.dayOfWeek,
-            trainingType: dto.trainingType,
-            isKeyWorkout: dto.isKeyWorkout
-        )
-    }
-
     // MARK: - Nested Conversions (Entity → DTO)
 
     private static func toMethodologyOverviewDTO(from entity: MethodologyOverviewV2) -> MethodologyOverviewDTO {
@@ -172,33 +151,23 @@ enum PlanOverviewV2Mapper {
         )
     }
 
-    private static func toWeeklyPreviewDTO(from entity: WeeklyPreviewV2) -> WeeklyPreviewDTO {
-        return WeeklyPreviewDTO(
-            week: entity.week,
-            stageId: entity.stageId,
-            targetKm: entity.targetKm,
-            dailySchedule: entity.dailySchedule.map { toDailyScheduleItemDTO(from: $0) },
-            intensityDistribution: toIntensityDistributionDTO(from: entity.intensityDistribution),
-            milestoneRef: entity.milestoneRef
-        )
-    }
-
-    private static func toDailyScheduleItemDTO(from entity: DailyScheduleItemV2) -> DailyScheduleItemDTO {
-        return DailyScheduleItemDTO(
-            dayOfWeek: entity.dayOfWeek,
-            trainingType: entity.trainingType,
-            isKeyWorkout: entity.isKeyWorkout
-        )
-    }
-
     // MARK: - Date Helpers
 
     /// 解析 ISO 8601 日期字串為 Date
+    /// 支援格式：2026-01-21T15:24:26.194000+00:00（含微秒）
     private static func parseDate(from dateString: String?) -> Date? {
         guard let dateString = dateString else { return nil }
 
+        // 嘗試標準 ISO8601 格式（無微秒）
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // 嘗試含微秒的 ISO8601 格式
+        let formatterWithFractional = ISO8601DateFormatter()
+        formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatterWithFractional.date(from: dateString) {
             return date
         }
 
@@ -207,6 +176,7 @@ enum PlanOverviewV2Mapper {
             return Date(timeIntervalSince1970: TimeInterval(timestamp))
         }
 
+        Logger.error("[PlanOverviewV2Mapper] ❌ 無法解析日期: \(dateString)")
         return nil
     }
 

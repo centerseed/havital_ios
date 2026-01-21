@@ -183,6 +183,16 @@ extension APICallHelper {
         return try await call(type, path: path, method: .PUT, body: bodyData)
     }
 
+    /// Make a PUT request with dictionary body
+    func put<T: Codable>(
+        _ type: T.Type,
+        path: String,
+        bodyDict: [String: Any]
+    ) async throws -> T {
+        let bodyData = try JSONSerialization.data(withJSONObject: bodyDict)
+        return try await call(type, path: path, method: .PUT, body: bodyData)
+    }
+
     /// Make a DELETE request
     func delete(path: String) async throws {
         try await callNoResponse(path: path, method: .DELETE)

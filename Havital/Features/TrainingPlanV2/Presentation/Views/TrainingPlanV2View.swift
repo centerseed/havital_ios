@@ -31,9 +31,8 @@ struct TrainingPlanV2View: View {
                         // 2️⃣ 週總覽卡片（與 V1 相同）
                         WeekOverviewCardV2(viewModel: viewModel, plan: weeklyPlan)
 
-                        // 3️⃣ 週時間軸（簡化版 - 待實作）
-                        // TODO: 實作 WeekTimelineViewV2
-                        PlaceholderWeekTimelineView()
+                        // 3️⃣ 週時間軸
+                        WeekTimelineViewV2(viewModel: viewModel, plan: weeklyPlan)
 
                     case .noPlan:
                         NoPlanPromptView()
@@ -90,6 +89,39 @@ struct TrainingPlanV2View: View {
                         }) {
                             Label("聯絡 Paceriz", systemImage: "envelope.circle")
                         }
+
+                        // Debug 選單
+                        #if DEBUG
+                        Divider()
+
+                        Menu {
+                            Button(action: {
+                                Task {
+                                    await viewModel.debugGenerateWeeklySummary()
+                                }
+                            }) {
+                                Label("🐛 產生週回顧", systemImage: "note.text.badge.plus")
+                            }
+
+                            Button(role: .destructive, action: {
+                                Task {
+                                    await viewModel.debugDeleteCurrentWeekPlan()
+                                }
+                            }) {
+                                Label("🗑️ 刪除當前週課表", systemImage: "trash")
+                            }
+
+                            Button(role: .destructive, action: {
+                                Task {
+                                    await viewModel.debugDeleteCurrentWeeklySummary()
+                                }
+                            }) {
+                                Label("🗑️ 刪除當前週回顧", systemImage: "trash")
+                            }
+                        } label: {
+                            Label("🐛 Debug 工具", systemImage: "hammer.circle")
+                        }
+                        #endif
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .foregroundColor(.primary)
@@ -108,6 +140,50 @@ struct TrainingPlanV2View: View {
         }
         .task {
             await viewModel.initialize()
+        }
+        // 成功訊息 Toast
+        .overlay(alignment: .top) {
+            if let successMessage = viewModel.successToast {
+                VStack {
+                    Text(successMessage)
+                        .font(AppFont.bodySmall())
+                        .padding()
+                        .background(Color.green.opacity(0.9))
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.top, 60)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                viewModel.clearSuccessToast()
+                            }
+                        }
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut, value: viewModel.successToast)
+            }
+        }
+        // 錯誤訊息 Toast
+        .overlay(alignment: .top) {
+            if let error = viewModel.networkError {
+                VStack {
+                    Text("❌ \(error.localizedDescription)")
+                        .font(AppFont.bodySmall())
+                        .padding()
+                        .background(Color.red.opacity(0.9))
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.top, 60)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                viewModel.clearError()
+                            }
+                        }
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut, value: viewModel.networkError as? NSError)
+            }
         }
     }
 }

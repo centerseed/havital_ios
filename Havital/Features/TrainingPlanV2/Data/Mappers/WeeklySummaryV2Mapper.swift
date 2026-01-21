@@ -14,9 +14,9 @@ enum WeeklySummaryV2Mapper {
     static func toEntity(from dto: WeeklySummaryV2DTO) -> WeeklySummaryV2 {
         return WeeklySummaryV2(
             id: dto.id,
-            uid: dto.uid,
-            weeklyPlanId: dto.weeklyPlanId,
-            trainingOverviewId: dto.trainingOverviewId,
+            uid: dto.uid ?? "",
+            weeklyPlanId: dto.weeklyPlanId ?? "",
+            trainingOverviewId: dto.trainingOverviewId ?? "",
             weekOfTraining: dto.weekOfTraining,
             createdAt: parseDate(from: dto.createdAt),
             planContext: dto.planContext.map { toPlanContext(from: $0) },
@@ -351,11 +351,20 @@ enum WeeklySummaryV2Mapper {
     // MARK: - Date Helpers
 
     /// 解析 ISO 8601 日期字串為 Date
+    /// 支援格式：2026-01-21T15:24:26.194000+00:00（含微秒）
     private static func parseDate(from dateString: String?) -> Date? {
         guard let dateString = dateString else { return nil }
 
+        // 嘗試標準 ISO8601 格式（無微秒）
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // 嘗試含微秒的 ISO8601 格式
+        let formatterWithFractional = ISO8601DateFormatter()
+        formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatterWithFractional.date(from: dateString) {
             return date
         }
 
@@ -364,6 +373,7 @@ enum WeeklySummaryV2Mapper {
             return Date(timeIntervalSince1970: TimeInterval(timestamp))
         }
 
+        Logger.error("[WeeklySummaryV2Mapper] ❌ 無法解析日期: \(dateString)")
         return nil
     }
 }
