@@ -81,15 +81,21 @@ struct TrainingDaysSetupView: View {
                     }
                     .disabled(viewModel.selectedWeekdays.isEmpty)
                     .onAppear {
+                        // Prefer Saturday, then Sunday for long run day
                         if viewModel.selectedWeekdays.contains(6) {
                             viewModel.selectedLongRunDay = 6
+                        } else if viewModel.selectedWeekdays.contains(7) {
+                            viewModel.selectedLongRunDay = 7
                         } else if let first = viewModel.selectedWeekdays.sorted().first {
                             viewModel.selectedLongRunDay = first
                         }
                     }
                     .onChange(of: viewModel.selectedWeekdays) { newWeekdays in
+                        // Prefer Saturday, then Sunday for long run day
                         if newWeekdays.contains(6) {
                             viewModel.selectedLongRunDay = 6
+                        } else if newWeekdays.contains(7) {
+                            viewModel.selectedLongRunDay = 7
                         } else if !newWeekdays.contains(viewModel.selectedLongRunDay), let first = newWeekdays.sorted().first {
                             viewModel.selectedLongRunDay = first
                         }
@@ -98,8 +104,8 @@ struct TrainingDaysSetupView: View {
                     if !viewModel.selectedWeekdays.contains(viewModel.selectedLongRunDay) {
                         Text(NSLocalizedString("onboarding.long_run_day_must_be_training_day", comment: "Long run day must be training day"))
                             .foregroundColor(.red)
-                    } else if !viewModel.selectedWeekdays.contains(6) {
-                        Text(NSLocalizedString("onboarding.suggest_saturday_long_run", comment: "Suggest Saturday long run"))
+                    } else if !viewModel.selectedWeekdays.contains(6) && !viewModel.selectedWeekdays.contains(7) {
+                        Text(NSLocalizedString("onboarding.suggest_saturday_long_run", comment: "Suggest weekend long run"))
                             .foregroundColor(.orange)
                     }
                 }

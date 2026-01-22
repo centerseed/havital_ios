@@ -34,18 +34,19 @@ final class AuthenticationIntegrationTests: XCTestCase {
         let authCache = UserDefaultsAuthCache()
 
         // Repositories
+        authSessionRepository = AuthSessionRepositoryImpl(
+            firebaseAuth: firebaseAuth,
+            backendAuth: backendAuth,
+            authCache: authCache
+        )
+
         authRepository = AuthRepositoryImpl(
             firebaseAuth: firebaseAuth,
             googleSignIn: googleSignIn,
             appleSignIn: appleSignIn,
             backendAuth: backendAuth,
-            authCache: authCache
-        )
-
-        authSessionRepository = AuthSessionRepositoryImpl(
-            firebaseAuth: firebaseAuth,
-            backendAuth: backendAuth,
-            authCache: authCache
+            authCache: authCache,
+            authSessionRepository: authSessionRepository
         )
 
         onboardingRepository = OnboardingRepositoryImpl(

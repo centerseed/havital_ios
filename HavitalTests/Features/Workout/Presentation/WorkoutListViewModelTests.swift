@@ -151,7 +151,11 @@ class WorkoutListTestMockRepository: WorkoutRepository {
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { return [] }
     func refreshWorkouts() async throws -> [WorkoutV2] { return [] }
     func getWorkout(id: String) async throws -> WorkoutV2 { fatalError("Not implemented") }
+    func getWorkoutDetail(id: String) async throws -> WorkoutV2Detail { fatalError("Not implemented") }
+    func refreshWorkoutDetail(id: String) async throws -> WorkoutV2Detail { fatalError("Not implemented") }
+    func clearWorkoutDetailCache(id: String) async {}
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2 { return workout }
+    func updateTrainingNotes(id: String, notes: String) async throws {}
     func deleteWorkout(id: String) async throws {}
     func clearCache() async {}
     func preloadData() async {}

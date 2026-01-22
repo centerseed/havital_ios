@@ -158,6 +158,31 @@ class MockWorkoutRepository: WorkoutRepository {
         }
     }
 
+    func getWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        if let error = errorToThrow {
+            throw error
+        }
+        // Return a mock detail - in real tests, you'd configure this
+        throw DomainError.notFound("Mock not implemented")
+    }
+
+    func refreshWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        if let error = errorToThrow {
+            throw error
+        }
+        throw DomainError.notFound("Mock not implemented")
+    }
+
+    func clearWorkoutDetailCache(id: String) async {
+        // Mock implementation
+    }
+
+    func updateTrainingNotes(id: String, notes: String) async throws {
+        if let error = errorToThrow {
+            throw error
+        }
+    }
+
     func clearCache() async {
         clearCacheCallCount += 1
     }
