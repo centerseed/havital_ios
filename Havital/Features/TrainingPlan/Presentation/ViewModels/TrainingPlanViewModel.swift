@@ -803,6 +803,14 @@ class TrainingPlanViewModel: ObservableObject {
         // 刷新計畫狀態
         await loadPlanStatus(skipCache: isManualRefresh)
 
+        // ✅ 修復：檢查訓練是否完成，優先於其他狀態
+        if planStatusResponse?.nextAction == .trainingCompleted {
+            weeklyPlanVM.state = .empty
+            planStatus = .completed
+            Logger.debug("[TrainingPlanVM] ✅ Training completed detected during refresh")
+            return
+        }
+
         // 刷新週計畫（靜默模式，不顯示 loading）
         await weeklyPlanVM.refreshWeeklyPlan(silent: true)
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct TrainingProgressView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @State private var selectedStageIndex: Int? = nil
     @State private var isLoadingWeeklySummaries = false
     @State private var selectedWeekForSummary: Int? = nil  // ✅ 保存當前查看週回顧的週數
@@ -69,22 +70,31 @@ struct TrainingProgressView: View {
         }
     }
 
+    // 檢查訓練是否完成
+    private var isTrainingCompleted: Bool {
+        viewModel.planStatus == .completed ||
+        viewModel.planStatusResponse?.nextAction == .trainingCompleted
+    }
+
     // 當前訓練進度卡片
     private var currentTrainingStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let plan = viewModel.weeklyPlan {
-                let currentWeek = viewModel.calculateCurrentTrainingWeek()
+            // 使用 overview 的 totalWeeks 作為主要來源，weeklyPlan 作為備用
+            let totalWeeks = viewModel.trainingOverview?.totalWeeks ?? viewModel.weeklyPlan?.totalWeeks ?? 0
+            let currentWeek = viewModel.calculateCurrentTrainingWeek()
+
+            if totalWeeks > 0 {
                 HStack {
                     Text(L10n.Training.currentProgress.localized)
                         .font(AppFont.headline())
-                    
+
                     Spacer()
-                    
-                    Text(L10n.Training.currentWeekOfTotal.localized(with: currentWeek, viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks))
+
+                    Text(L10n.Training.currentWeekOfTotal.localized(with: currentWeek, totalWeeks))
                         .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
-                
+
                 // 進度條
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
@@ -92,8 +102,9 @@ struct TrainingProgressView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.gray.opacity(0.3))
                             .frame(height: 12)
-                        
-                        // 完成進度
+
+                        // 完成進度（限制最大為 100%）
+                        let progress = min(Double(currentWeek) / Double(totalWeeks), 1.0)
                         RoundedRectangle(cornerRadius: 8)
                             .fill(
                                 LinearGradient(
@@ -102,28 +113,51 @@ struct TrainingProgressView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(geometry.size.width * CGFloat(Double(currentWeek) / Double(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks)), 0), height: 12)
+                            .frame(width: max(geometry.size.width * CGFloat(progress), 0), height: 12)
                     }
                 }
                 .frame(height: 12)
-                
-                // 目前訓練階段
+
+                // 目前訓練階段（訓練完成時可能找不到當前階段）
                 if let overview = viewModel.trainingOverview,
                    let currentStage = getCurrentStage(from: overview, currentWeek: currentWeek) {
                     HStack(alignment: .center, spacing: 12) {
                         Circle()
                             .fill(getStageColor(stageIndex: currentStage.index))
                             .frame(width: 12, height: 12)
-                        
+
                         Text(L10n.Training.currentStage.localized(with: currentStage.stageName))
                             .font(AppFont.bodySmall())
                             .fontWeight(.medium)
-                        
+
                         Spacer()
-                        
+
                         Text(L10n.Training.weekRange.localized(with: currentStage.weekStart, currentStage.weekEnd))
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
+                    }
+                }
+
+                // 🆕 訓練完成時顯示「設定新目標」按鈕
+                if isTrainingCompleted {
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    Button(action: {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            authViewModel.startReonboarding()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "target")
+                            Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
                     }
                 }
             } else {
