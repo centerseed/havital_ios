@@ -57,7 +57,9 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
         // Update local language manager if language changed
         if let language = language,
            let supportedLanguage = SupportedLanguage(rawValue: language) {
-            LanguageManager.shared.currentLanguage = supportedLanguage
+            await MainActor.run {
+                LanguageManager.shared.currentLanguage = supportedLanguage
+            }
         }
 
         // Update local timezone if changed
@@ -203,7 +205,9 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
         do {
             try await remoteDataSource.updateLanguage(language.rawValue)
             localDataSource.languagePreference = language.rawValue
-            LanguageManager.shared.currentLanguage = language
+            await MainActor.run {
+                LanguageManager.shared.currentLanguage = language
+            }
         } catch {
             Logger.error("[UserPreferencesRepo] Failed to update language: \(error)")
         }

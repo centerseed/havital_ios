@@ -111,13 +111,16 @@ class FeatureFlagManager: ObservableObject {
                 "garmin_enabled": "\(isGarminEnabled)",
                 "change_trigger": "remote_config_update"
             ])
-            
+
             // 發送通知讓其他組件知道 feature flag 改變了
-            NotificationCenter.default.post(
-                name: NSNotification.Name("FeatureFlagDidChange"),
-                object: nil,
-                userInfo: ["garmin_enabled": isGarminEnabled]
-            )
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("FeatureFlagDidChange"),
+                    object: nil,
+                    userInfo: ["garmin_enabled": self.isGarminEnabled]
+                )
+            }
         } else {
             Logger.firebase("Feature Flag 值未變更", level: .info, labels: [
                 "module": "FeatureFlagManager",
@@ -194,7 +197,7 @@ extension FeatureFlagManager {
     /// 考慮 Remote Config + Client ID 有效性
     var isGarminIntegrationAvailable: Bool {
         let featureFlagEnabled = isGarminEnabled
-        let clientIDValid = GarminManager.shared.isClientIDValid
+        let clientIDValid = MainActor.assumeIsolated { GarminManager.shared.isClientIDValid }
         let result = featureFlagEnabled && clientIDValid
         
         Logger.firebase("檢查 Garmin 整合可用性", level: .info, labels: [
@@ -222,7 +225,7 @@ extension FeatureFlagManager {
         let key = FeatureKeys.garminIntegration.rawValue
         let remoteConfigValue = remoteConfig.configValue(forKey: key)
         let publishedValue = isGarminEnabled
-        let clientIDValid = GarminManager.shared.isClientIDValid
+        let clientIDValid = MainActor.assumeIsolated { GarminManager.shared.isClientIDValid }
         let finalAvailable = isGarminIntegrationAvailable
         
         print("🚧 DEBUG: Feature Flags 完整狀態 (Firebase Remote Config 模式)")

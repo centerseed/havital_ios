@@ -33,6 +33,7 @@ enum HRVTimeRange: String, CaseIterable, Codable {
 
 // MARK: - 統一 HRV 管理器
 /// 遵循 DataManageable 協議，提供標準化的 HRV 數據管理
+@MainActor
 class HRVManager: ObservableObject, DataManageable {
     
     // MARK: - Type Definitions
@@ -164,11 +165,13 @@ class HRVManager: ObservableObject, DataManageable {
         await MainActor.run {
             self.updateHRVData(dataPoints)
         }
-        
+
         cacheManager.saveHRVData(dataPoints, for: selectedTimeRange)
-        
+
         // 發送通知
-        NotificationCenter.default.post(name: .hrvDataDidUpdate, object: nil)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .hrvDataDidUpdate, object: nil)
+        }
         
         Logger.firebase(
             "HRV 數據載入成功",
@@ -195,11 +198,13 @@ class HRVManager: ObservableObject, DataManageable {
         await MainActor.run {
             self.updateHRVData(dataPoints)
         }
-        
+
         cacheManager.saveHRVData(dataPoints, for: selectedTimeRange)
-        
+
         // 發送通知
-        NotificationCenter.default.post(name: .hrvDataDidUpdate, object: nil)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .hrvDataDidUpdate, object: nil)
+        }
     }
     
     // MARK: - Time Range Management

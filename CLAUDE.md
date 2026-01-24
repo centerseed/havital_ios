@@ -243,6 +243,7 @@ App Launch → User Authentication → User Data Loading
 ## 開發檢查清單
 
 ### 新功能開發
+- [ ] ViewModel 使用 `@MainActor` 標記（自動確保 UI 狀態更新在主線程）
 - [ ] ViewModel 只依賴 Repository Protocol，不依賴具體實作
 - [ ] View 不包含業務邏輯，只負責渲染和使用者輸入
 - [ ] Repository Protocol 定義在 Domain Layer

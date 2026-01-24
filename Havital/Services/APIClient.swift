@@ -319,10 +319,9 @@ struct HealthRecord: Codable, Equatable {
             createdAt = try dynamicContainer.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "createdAt")!)
 
             if atl != nil || ctl != nil || fitness != nil || tsb != nil {
-                print("🔍 直接解析 TSB 字段成功: fitness=\(fitness?.description ?? "nil"), tsb=\(tsb?.description ?? "nil")")
-            } else {
-                print("❌ TSBMetrics 解析失敗或不存在")
+                Logger.debug("[HealthRecord] 直接解析 TSB 字段成功: fitness=\(fitness?.description ?? "nil"), tsb=\(tsb?.description ?? "nil")")
             }
+            // 移除錯誤訊息 - TSB 數據不存在是正常情況（新用戶或無訓練數據）
         }
     }
 

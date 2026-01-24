@@ -57,8 +57,8 @@ class CacheEventBus {
     func publish(_ event: CacheInvalidationReason) {
         invalidateCache(for: event)
 
-        // 通知事件訂閱者
-        Task {
+        // 通知事件訂閱者（確保在主線程執行，因為訂閱者可能更新 UI）
+        Task { @MainActor in
             await notifyEventSubscribers(for: event)
         }
     }

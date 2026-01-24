@@ -200,7 +200,8 @@ actor DefaultHTTPClient: HTTPClient {
         
         // 添加 Accept-Language 標頭（除非自定義 headers 中已包含）
         if customHeaders?["Accept-Language"] == nil {
-            request.setValue(LanguageManager.shared.currentLanguage.apiCode, forHTTPHeaderField: "Accept-Language")
+            let languageCode = await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+            request.setValue(languageCode, forHTTPHeaderField: "Accept-Language")
         }
         
         // 添加自定義 headers（優先級最高）

@@ -911,7 +911,7 @@ struct TrainingEditSheet: View {
     }
 
     var body: some View {
-        let _ = print("🔍 [TrainingEditSheet] body - @State editedDay.repeats = \(editedDay.trainingDetails?.repeats ?? -1)")
+        // 移除高頻日誌：body 每次重新評估都會觸發
         // iOS 18 修復：使用 TrainingEditSheetV2
         TrainingEditSheetV2(
             day: editedDay,

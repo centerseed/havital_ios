@@ -3,6 +3,7 @@ import SafariServices
 import SwiftUI
 import CommonCrypto
 
+@MainActor
 class StravaManager: NSObject, ObservableObject {
     static let shared = StravaManager()
     

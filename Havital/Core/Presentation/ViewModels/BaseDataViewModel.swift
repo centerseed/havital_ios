@@ -82,12 +82,12 @@ class BaseDataViewModel<DataType: Codable, ManagerType: DataManageable>: Observa
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
+            Task { @MainActor in
                 await self?.refreshData()
             }
         }
         notificationObservers.append(globalRefreshObserver)
-        
+
         // 監聽快取失效
         let cacheInvalidateObserver = NotificationCenter.default.addObserver(
             forName: .cacheDidInvalidate,
@@ -95,11 +95,11 @@ class BaseDataViewModel<DataType: Codable, ManagerType: DataManageable>: Observa
             queue: .main
         ) { [weak self] notification in
             guard let self = self else { return }
-            
+
             // 檢查是否影響當前數據類型
             if let cacheIdentifier = notification.userInfo?["cacheIdentifier"] as? String,
                cacheIdentifier == self.manager.cacheIdentifier {
-                Task {
+                Task { @MainActor in
                     await self.refreshData()
                 }
             }

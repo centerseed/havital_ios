@@ -59,7 +59,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     /// Current data source
     var currentDataSource: DataSourceType {
         get { preferencesRepository.dataSourcePreference }
-        set { Task { await updateDataSource(newValue) } }
+        set { Task { @MainActor in await updateDataSource(newValue) } }
     }
 
     /// Timezone preference (for display)
@@ -101,13 +101,13 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     /// Do not show heart rate prompt
     var doNotShowHeartRatePrompt: Bool {
         get { preferencesRepository.doNotShowHeartRatePrompt }
-        set { Task { await preferencesRepository.updateHeartRatePromptSettings(doNotShow: newValue, nextRemindDate: heartRatePromptNextRemindDate) } }
+        set { Task { @MainActor in await preferencesRepository.updateHeartRatePromptSettings(doNotShow: newValue, nextRemindDate: heartRatePromptNextRemindDate) } }
     }
 
     /// Next remind date for heart rate prompt
     var heartRatePromptNextRemindDate: Date? {
         get { preferencesRepository.heartRatePromptNextRemindDate }
-        set { Task { await preferencesRepository.updateHeartRatePromptSettings(doNotShow: doNotShowHeartRatePrompt, nextRemindDate: newValue) } }
+        set { Task { @MainActor in await preferencesRepository.updateHeartRatePromptSettings(doNotShow: doNotShowHeartRatePrompt, nextRemindDate: newValue) } }
     }
 
     // MARK: - Heart Rate Data
@@ -291,7 +291,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     /// Backward compatibility alias for loadUserProfile
     /// - Note: Deprecated, use loadUserProfile() instead
     func fetchUserProfile() {
-        Task {
+        Task { @MainActor in
             await loadUserProfile()
         }
     }
@@ -441,7 +441,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// Calculate and update statistics
     func calculateStatistics() {
-        Task { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
             if let output = await self.calculateUserStatsUseCase.execute() {
                 self.statistics = output.statistics

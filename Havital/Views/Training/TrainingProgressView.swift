@@ -546,9 +546,9 @@ struct TrainingProgressView: View {
         // 先嘗試從緩存載入
         if !viewModel.weeklySummaries.isEmpty {
             isLoadingWeeklySummaries = false
-            
-            // 背景更新
-            Task.detached { [weak viewModel] in
+
+            // 背景更新（使用 Task 而非 Task.detached 以保持主線程上下文）
+            Task { [weak viewModel] in
                 await viewModel?.fetchWeeklySummaries()
             }
             return

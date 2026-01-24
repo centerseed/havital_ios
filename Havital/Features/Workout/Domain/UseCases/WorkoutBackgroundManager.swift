@@ -13,6 +13,43 @@ import UIKit
 // 3. 移除 Singleton 模式，改用依賴注入
 @available(*, deprecated, message: "Needs refactoring to UseCase pattern")
 class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
+
+    // MARK: - Observer Debouncer
+    // 用於合併多次 HKObserverQuery 回調，避免重複處理
+    private actor ObserverDebouncer {
+        private var pendingTask: Task<Void, Never>?
+        private let debounceDelay: UInt64
+
+        init(debounceDelay: UInt64 = 20_000_000_000) { // 預設 20 秒
+            self.debounceDelay = debounceDelay
+        }
+
+        /// 排程一個 debounced 執行。取消任何待處理的任務並排程新任務。
+        func debounce(action: @escaping @Sendable () async -> Void) {
+            // 取消任何現有的待處理任務
+            pendingTask?.cancel()
+
+            // 創建新任務
+            pendingTask = Task {
+                do {
+                    try await Task.sleep(nanoseconds: debounceDelay)
+
+                    // 只有在未被取消時才執行
+                    if !Task.isCancelled {
+                        await action()
+                    }
+                } catch {
+                    // Task 被取消，不做任何事
+                }
+            }
+        }
+
+        /// 取消任何待處理的 debounced 任務
+        func cancel() {
+            pendingTask?.cancel()
+            pendingTask = nil
+        }
+    }
     static let shared = WorkoutBackgroundManager()
     
     private let healthStore = HKHealthStore()
@@ -43,12 +80,15 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 防止過度觸發的冷卻機制
     private var lastUploadCheckTime: Date?
-    private let uploadCheckCooldown: TimeInterval = 60 // 1分鐘冷卻時間
+    private let uploadCheckCooldown: TimeInterval = 30 // 30秒冷卻時間（減少連續運動上傳延遲）
     private var isCurrentlyProcessing = false
     
     // 使用中的觀察查詢
     private var activeObserverQuery: HKObserverQuery?
     private var isObservingWorkouts = false
+
+    // Observer 回調 debouncer（合併多次 HealthKit 回調）
+    private let observerDebouncer = ObserverDebouncer(debounceDelay: 20_000_000_000) // 20秒
     
     // 跑步相關的活動類型
     private let runningActivityTypes: [HKWorkoutActivityType] = [
@@ -76,23 +116,40 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         clearAllWorkoutNotifications()
     }
     
-    // 設置觀察者來監聽新的健身記錄 - 修正版
+    // 設置觀察者來監聯新的健身記錄 - 修正版
     func setupWorkoutObserver() async {
         // 檢查當前數據來源設定
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         print("當前數據來源設定: \(dataSourcePreference.displayName)")
-        
+
+        // 📊 Firebase 日誌：記錄 Observer 設置開始
+        Logger.firebase(
+            "設置 Workout Observer",
+            level: .info,
+            labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer"],
+            jsonPayload: [
+                "dataSource": dataSourcePreference.rawValue,
+                "isObservingWorkouts": isObservingWorkouts
+            ]
+        )
+
         // 只有 Apple Health 用戶才需要啟動 HealthKit 觀察者
         guard dataSourcePreference == .appleHealth else {
             print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 觀察者設置")
+            Logger.firebase(
+                "Observer 設置跳過：非 Apple Health",
+                level: .info,
+                labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_skipped"],
+                jsonPayload: ["reason": "non_apple_health", "actualDataSource": dataSourcePreference.rawValue]
+            )
             stopObservingWorkouts() // 確保停止任何現有的觀察者
             return
         }
-        
+
         do {
             // 1. 請求授權
             try await requestAuthorizations()
-            
+
             // 2. 啟用健康資料更新背景傳遞
             let status = await withCheckedContinuation { continuation in
                 healthStore.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .immediate) { success, error in
@@ -104,27 +161,46 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
                     continuation.resume(returning: success)
                 }
             }
-            
+
             if status {
                 // 3. 啟動觀察者查詢
                 startObservingWorkouts()
                 print("已成功設置背景健身記錄觀察器")
-                
+
+                // 📊 Firebase 日誌：Observer 設置成功
+                Logger.firebase(
+                    "Workout Observer 設置成功",
+                    level: .info,
+                    labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_success"]
+                )
+
                 // 運行一次上傳邏輯，處理已存在但尚未上傳的記錄
                 await checkAndUploadPendingWorkouts()
-                
+
                 // 檢查是否需要重試獲取心率資料
-                
+
                 // 設置後台刷新確保即使觀察者不觸發也能定期檢查
                 setupBackgroundRefresh()
-                
+
                 // 標記為非首次登入同步
                 isFirstLoginSync = false
             } else {
                 print("無法設置背景健身記錄觀察器")
+                Logger.firebase(
+                    "Workout Observer 設置失敗",
+                    level: .error,
+                    labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_failed"],
+                    jsonPayload: ["reason": "background_delivery_failed"]
+                )
             }
         } catch {
             print("設置健身記錄觀察器時出錯: \(error.localizedDescription)")
+            Logger.firebase(
+                "Workout Observer 設置異常",
+                level: .error,
+                labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_error"],
+                jsonPayload: ["error": error.localizedDescription]
+            )
         }
     }
     
@@ -169,31 +245,60 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     func checkAndUploadPendingWorkouts() async {
         // 🚨 關鍵修復：加強數據源檢查，避免競態條件
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
-        
+        let hasCompletedOnboarding = await AuthenticationViewModel.shared.hasCompletedOnboarding
+
+        // 📊 Firebase 日誌：記錄上傳檢查開始的狀態
+        Logger.firebase(
+            "Workout 上傳檢查開始",
+            level: .info,
+            labels: ["module": "WorkoutBackgroundManager", "action": "check_upload"],
+            jsonPayload: [
+                "dataSource": dataSourcePreference.rawValue,
+                "hasCompletedOnboarding": hasCompletedOnboarding,
+                "isCurrentlyProcessing": isCurrentlyProcessing,
+                "lastUploadCheckTime": lastUploadCheckTime?.timeIntervalSince1970 ?? 0,
+                "cooldownSeconds": uploadCheckCooldown
+            ]
+        )
+
         // 嚴格檢查：只有明確設定為 Apple Health 且用戶已完成 onboarding 才上傳
         guard dataSourcePreference == .appleHealth else {
             print("⚠️ 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據上傳")
+            Logger.firebase(
+                "Workout 上傳跳過：非 Apple Health",
+                level: .warn,
+                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped"],
+                jsonPayload: ["reason": "non_apple_health", "actualDataSource": dataSourcePreference.rawValue]
+            )
             return
         }
-        
+
         // 額外檢查：確保用戶已完成 onboarding，避免初始化時的競態條件
         // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
-        guard await AuthenticationViewModel.shared.hasCompletedOnboarding else {
+        guard hasCompletedOnboarding else {
             print("⚠️ 用戶尚未完成 onboarding，跳過 HealthKit 數據上傳")
+            Logger.firebase(
+                "Workout 上傳跳過：Onboarding 未完成",
+                level: .warn,
+                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped"],
+                jsonPayload: ["reason": "onboarding_not_completed"]
+            )
             return
         }
-        
+
         // 防止過度觸發 - 檢查冷卻時間
         let now = Date()
         if let lastTime = lastUploadCheckTime,
            now.timeIntervalSince(lastTime) < uploadCheckCooldown {
             print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
+            // 冷卻時間跳過不記錄到 Firebase（太頻繁）
             return
         }
-        
+
         // 防止並發執行
         guard !isCurrentlyProcessing else {
             print("🔄 已有上傳任務在進行中，跳過重複調用")
+            // 並發跳過不記錄到 Firebase（太頻繁）
             return
         }
         
@@ -288,20 +393,25 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
                         print("📱 開始在背景處理 \(trulyNewWorkouts.count) 筆新健身記錄")
                     }
                     
-                    // 在後台線程處理跑步記錄，避免阻塞主流程
-                    if !runningWorkouts.isEmpty {
-                        Task.detached { [weak self] in
-                            let runSuccessCount = await self?.uploadWorkouts(runningWorkouts, sendIndividualNotifications: false) ?? 0
-                            print("✅ 跑步記錄上傳完成：\(runSuccessCount) 筆成功")
+                    // ✅ 修復：使用 TaskGroup 等待所有上傳完成，確保背景任務不會提前結束
+                    await withTaskGroup(of: Int.self) { group in
+                        if !runningWorkouts.isEmpty {
+                            group.addTask { [weak self] in
+                                await self?.uploadWorkouts(runningWorkouts, sendIndividualNotifications: false) ?? 0
+                            }
                         }
-                    }
-                    
-                    // 在後台線程處理非跑步記錄，避免阻塞主流程
-                    if !nonRunningWorkouts.isEmpty {
-                        Task.detached { [weak self] in
-                            let nonRunSuccessCount = await self?.uploadWorkouts(nonRunningWorkouts, sendIndividualNotifications: false) ?? 0
-                            print("✅ 非跑步記錄上傳完成：\(nonRunSuccessCount) 筆成功")
+
+                        if !nonRunningWorkouts.isEmpty {
+                            group.addTask { [weak self] in
+                                await self?.uploadWorkouts(nonRunningWorkouts, sendIndividualNotifications: false) ?? 0
+                            }
                         }
+
+                        var totalSuccess = 0
+                        for await count in group {
+                            totalSuccess += count
+                        }
+                        print("✅ 所有記錄上傳完成：\(totalSuccess) 筆成功")
                     }
                 }
                 
@@ -487,47 +597,30 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
                 completionHandler()
                 return
             }
-            
+
             if let error = error {
                 print("健身記錄觀察者查詢錯誤: \(error.localizedDescription)")
                 completionHandler()
                 return
             }
-            
-            print("偵測到新的健身記錄，將在20秒後開始處理...")
-            
-            // 請求背景執行時間
-            var backgroundTask: UIBackgroundTaskIdentifier = .invalid
-            backgroundTask = UIApplication.shared.beginBackgroundTask {
-                // 背景執行時間即將到期
-                if backgroundTask != .invalid {
-                    UIApplication.shared.endBackgroundTask(backgroundTask)
-                    backgroundTask = .invalid
-                }
-                completionHandler()
-            }
-            
-            // 檢測到新的健身記錄，延遲20秒後執行上傳邏輯
+
+            // 使用 debouncer 合併多次回調（HealthKit 可能對同一事件觸發多次回調）
+            print("偵測到健身記錄變化，排程處理（將合併多次回調）...")
+
             Task {
-                // 延遲20秒，讓 Apple Health 完成數據同步
-                try? await Task.sleep(nanoseconds: 20_000_000_000) // 20秒
-                
-                print("20秒延遲結束，開始處理健身記錄...")
-                await self.checkAndUploadPendingWorkouts()
-                
-                // 完成背景任務
-                if backgroundTask != .invalid {
-                    UIApplication.shared.endBackgroundTask(backgroundTask)
-                    backgroundTask = .invalid
-                }
-                
-                // 在後台模式下，主動請求更多背景處理時間
-                if UIApplication.shared.applicationState == .background {
-                    // 安排後台任務以繼續處理
-                    self.scheduleBackgroundTask()
+                await self.observerDebouncer.debounce { [weak self] in
+                    guard let self = self else { return }
+
+                    print("Debounce 延遲結束，開始處理健身記錄...")
+                    await self.checkAndUploadPendingWorkouts()
+
+                    // 在後台模式下，主動請求更多背景處理時間
+                    if await MainActor.run(body: { UIApplication.shared.applicationState == .background }) {
+                        self.scheduleBackgroundTask()
+                    }
                 }
             }
-            
+
             completionHandler()
         }
         
@@ -602,9 +695,12 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     func stopObservingWorkouts() {
         if activeObserverQuery != nil {
             Task {
+                // 取消任何待處理的 debounced 任務
+                await observerDebouncer.cancel()
+
                 // 使用 HealthKitObserverCoordinator 移除 Observer
                 await HealthKitObserverCoordinator.shared.removeObserver(type: HealthKitObserverCoordinator.ObserverType.workoutBackground)
-                
+
                 activeObserverQuery = nil
                 isObservingWorkouts = false
                 print("已停止監聽健身記錄變化")
@@ -614,7 +710,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // MARK: - TaskManageable Cleanup
     deinit {
-        // 在對象銷毀時停止監聽並取消所有任務
+        // 取消 debouncer 中的待處理任務
+        Task { [observerDebouncer] in
+            await observerDebouncer.cancel()
+        }
+        // 在對象銷毀時停止監聯並取消所有任務
         stopObservingWorkouts()
         cancelAllTasks()
     }
