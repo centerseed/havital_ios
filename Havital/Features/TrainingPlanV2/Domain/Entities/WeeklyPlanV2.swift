@@ -37,8 +37,8 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 安排理由列表
     let designReason: [String]?
 
-    /// 訓練日陣列（7 天完整資料）- 重用 V1 的 TrainingDay
-    let days: [TrainingDay]
+    /// 訓練日陣列（7 天完整資料）- V2.1+ 使用 DayDetail
+    let days: [DayDetail]
 
     /// 強度分鐘數分布 - 重用 V1 的 IntensityTotalMinutes
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?

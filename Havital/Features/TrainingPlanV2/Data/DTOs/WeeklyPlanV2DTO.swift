@@ -37,8 +37,8 @@ struct WeeklyPlanV2DTO: Codable {
     /// 安排理由列表
     let designReason: [String]?
 
-    /// 訓練日陣列（7 天完整資料）
-    let days: [TrainingDay]
+    /// 訓練日陣列（7 天完整資料）- V2.1+ 使用 DayDetailDTO
+    let days: [DayDetailDTO]
 
     /// 強度分鐘數分布 {low, medium, high}
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?

@@ -204,11 +204,15 @@ GET /v2/plan/overview
 
 ```
 POST /v2/plan/weekly
+DELETE /v2/plan/weekly/<id>
+GET /v2/plan/<overview_id>/weekly-preview
 ```
 
 ### 功能
 
-生成指定週次的週訓練課表。
+- **POST /v2/plan/weekly**: 生成指定週次的週訓練課表
+- **DELETE /v2/plan/weekly/<id>**: 刪除週課表（DEBUG）
+- **GET /v2/plan/<overview_id>/weekly-preview**: 獲取週預覽資料
 
 ### Request Body
 
@@ -229,13 +233,13 @@ POST /v2/plan/weekly
 - **Pydantic 路徑**: `data_models/weekly_plan_v2_response.py:11`
 - **基於**: `WeeklyTrainingPlan` (繼承所有欄位)
 
-**Response 格式** (完整 WeeklyTrainingPlan + plan_id):
+**Response 格式** (完整 WeeklyTrainingPlan + id):
 
 ```json
 {
     "success": true,
     "data": {
-        "plan_id": "overview_xyz_week_5",
+        "id": "overview_xyz_week_5",
         "week_of_training": 5,
 
         // ✅ 完整的 WeeklyTrainingPlan 欄位
@@ -278,7 +282,7 @@ POST /v2/plan/weekly
 
 ```
 // 核心訓練計畫欄位
-- plan_id: str                           週課表 ID (格式: {overview_id}_{week_number})
+- id: str                           週課表 ID (格式: {overview_id}_{week_number})
 - purpose: str                           當週具體的訓練目的
 - days: List[DayDetail]                  訓練日陣列（7 天完整資料）
 - total_distance_km: int/float           週跑量
@@ -295,10 +299,279 @@ POST /v2/plan/weekly
 - _api_version: str                       API 回應版本 (默認 "2.0")
 ```
 
+### ⭐ DayDetail 新結構（V2.1+）
+
+**注意**：前端更新後直接使用新 Model，舊週課表需重新生成。
+
+#### DayDetail 欄位
+
+```
+DayDetail
+├── day_index: int (1-7)              星期幾
+├── day_target: str                   當日訓練目標
+├── reason: str                       安排原因
+├── tips: Optional[str]               注意事項
+├── category: str                     訓練大類: "run", "strength", "cross", "rest"
+└── session: TrainingSession          完整訓練課程
+```
+
+#### TrainingSession 結構
+
+```
+TrainingSession
+├── warmup: Optional[RunSegment]              暖身（輕鬆跑，後端自動填充）
+├── primary: RunActivity | StrengthActivity | CrossActivity  主訓練
+├── cooldown: Optional[RunSegment]            緩和（輕鬆跑，後端自動填充）
+└── supplementary: Optional[List[...]]        補充訓練（如力量訓練）
+```
+
+#### RunSegment（暖身/緩和）
+
+```
+RunSegment
+├── distance_km: Optional[float]      距離（公里）
+├── distance_m: Optional[int]         距離（公尺）- 短距離用
+├── duration_minutes: Optional[int]   時間（分鐘）
+├── pace: Optional[str]               配速 (mm:ss/km)
+├── heart_rate_range: Optional[HeartRateRange]  目標心率
+├── intensity: Optional[str]          強度: easy, moderate, hard, max
+└── description: Optional[str]        說明
+```
+
+#### RunActivity（跑步活動）
+
+```
+RunActivity
+├── run_type: str                     跑步類型（見下表）
+├── distance_km: Optional[float]      總距離
+├── duration_minutes: Optional[int]   總時間
+├── pace: Optional[str]               目標配速
+├── heart_rate_range: Optional[HeartRateRange]  目標心率
+├── interval: Optional[IntervalBlock] 間歇訓練區塊（interval/fartlek 類型使用）
+├── segments: Optional[List[RunSegment]] 分段（progression 類型使用）
+└── description: str                  訓練說明
+```
+
+**RunType 類型表**：
+
+| run_type | 中文 | warmup/cooldown | 使用結構 |
+|----------|------|-----------------|----------|
+| `easy` | 輕鬆跑 | ❌ 不需要 | distance_km + pace |
+| `lsd` | 長距離慢跑 | ❌ 不需要 | distance_km + pace |
+| `tempo` | 節奏跑 | ✅ 1.5km | distance_km + pace |
+| `threshold` | 閾值跑 | ✅ 1.5km | distance_km + pace |
+| `interval` | 間歇訓練 | ✅ 2km | IntervalBlock |
+| `fartlek` | 法特雷克 | ✅ 1km | IntervalBlock |
+| `progression` | 漸速跑 | ❌ 不需要 | segments |
+| `race` | 正式比賽 | ✅ 自訂 | distance_km + pace |
+| `race_pace` | 比賽配速訓練 | ✅ 1.5km | distance_km + pace |
+
+#### IntervalBlock（間歇訓練）
+
+```
+IntervalBlock
+├── repeats: int                      重複次數
+├── work_distance_km: Optional[float] 高強度距離（公里）
+├── work_distance_m: Optional[int]    高強度距離（公尺）
+├── work_duration_minutes: Optional[int] 高強度時間
+├── work_pace: Optional[str]          高強度配速
+├── work_description: Optional[str]   高強度說明
+├── recovery_distance_km: Optional[float] 恢復距離（公里）
+├── recovery_distance_m: Optional[int]    恢復距離（公尺）
+├── recovery_duration_minutes: Optional[int] 恢復時間
+├── recovery_pace: Optional[str]      恢復配速
+├── recovery_description: Optional[str] 恢復說明
+└── variant: Optional[str]            間歇變種（見下表）
+```
+
+**Interval Variant 類型**：
+
+| variant | 說明 |
+|---------|------|
+| `short_interval` | 短間歇 200-800m |
+| `long_interval` | 長間歇 1000-1600m |
+| `strides` | 大步跑 6x100m |
+| `hill_repeats` | 山坡重複跑 |
+| `cruise_intervals` | 巡航間歇 |
+| `norwegian_4x4` | 挪威 4x4 |
+| `yasso_800` | Yasso 800 |
+| `mile_repeats` | 英里重複跑 |
+
+#### StrengthActivity（力量訓練）
+
+```
+StrengthActivity
+├── strength_type: str                力量類型（見下表）
+├── exercises: List[Exercise]         動作列表
+├── duration_minutes: int             總時間
+└── description: str                  訓練說明
+
+Exercise
+├── name: str                         動作名稱
+├── sets: Optional[int]               組數
+├── reps: Optional[str]               次數 (如 "8-12")
+├── duration_seconds: Optional[int]   持續時間（如 plank）
+├── weight_kg: Optional[float]        重量
+├── rest_seconds: Optional[int]       組間休息
+└── description: str                  動作說明
+```
+
+**StrengthType 類型**：
+
+| strength_type | 中文 | 代表動作 |
+|--------------|------|----------|
+| `core_stability` | 核心穩定 | 棒式、死蟲式、鳥狗式 |
+| `glutes_hip` | 臀部/髖關節 | 臀橋、蛤蜊式、側抬腿 |
+| `lower_strength` | 下肢力量 | 深蹲、弓步蹲、單腳硬舉 |
+| `plyometric` | 增強式/爆發力 | Box Jump、跳躍深蹲 |
+| `mobility` | 活動度/伸展 | 髖關節伸展、動態伸展 |
+
+#### CrossActivity（交叉訓練）
+
+```
+CrossActivity
+├── cross_type: str                   交叉訓練類型
+├── duration_minutes: int             總時間
+├── distance_km: Optional[float]      距離
+├── intensity: Optional[str]          強度: easy, moderate, hard
+└── description: str                  訓練說明
+```
+
+**CrossType 類型**：`cycling`, `swimming`, `yoga`, `hiking`, `elliptical`, `rowing`
+
+#### 新結構 Response 範例
+
+```json
+{
+    "day_index": 3,
+    "category": "run",
+    "session": {
+        "warmup": {
+            "distance_km": 2.0,
+            "pace": "6:30",
+            "description": "暖身跑 2km，輕鬆配速"
+        },
+        "primary": {
+            "run_type": "interval",
+            "interval": {
+                "repeats": 5,
+                "work_distance_m": 1000,
+                "work_pace": "4:30",
+                "work_description": "高強度跑",
+                "recovery_distance_m": 400,
+                "recovery_pace": "6:00",
+                "recovery_description": "慢跑恢復"
+            },
+            "description": "1000m x 5 間歇訓練"
+        },
+        "cooldown": {
+            "distance_km": 2.0,
+            "pace": "6:30",
+            "description": "緩和跑 2km，輕鬆配速"
+        }
+    },
+    "day_target": "提升最大攝氧量",
+    "reason": "週三安排高強度訓練，促進心肺適能"
+}
+```
+
+#### 智能暖身/緩和邏輯
+
+後端會根據 `run_type` **自動填充** warmup/cooldown：
+
+| 行為 | 說明 |
+|-----|------|
+| **自動補上** | 如果 primary 是 interval/tempo 等需要暖身的類型，後端自動補上 warmup/cooldown |
+| **智能清除** | 如果用戶將類型改為 easy/lsd，後端自動清除原有的 warmup/cooldown |
+| **保留用戶設定** | 如果用戶已手動設定 warmup/cooldown，後端會保留（除非 force_overwrite=true）|
+
+**前端無需處理暖身/緩和邏輯**，直接顯示 `session.warmup` 和 `session.cooldown` 即可。
+
 ### Status Codes
 
 - `200 OK`: 成功
 - `400 Bad Request`: 參數錯誤
+- `500 Internal Server Error`: 服務錯誤
+
+### 2.2 獲取週預覽 - `GET /v2/plan/<overview_id>/weekly-preview`
+
+#### 功能
+
+獲取計畫的週預覽資料。週預覽包含每週的目標里程、訓練階段、是否恢復週等資訊。
+此資料在生成 `plan_overview` 時一併產生，獨立存放於 Firestore。
+
+**儲存位置**: `users/{uid}/weekly_previews/{overview_id}`
+
+#### Request
+
+```
+GET /v2/plan/{overview_id}/weekly-preview
+```
+
+#### Response
+
+**Status**: 200 OK
+
+```json
+{
+    "success": true,
+    "data": {
+        "id": "overview_xxx_20250120",
+        "methodology_id": "paceriz",
+        "weeks": [
+            {
+                "week": 1,
+                "stage_id": "base",
+                "target_km": 35,
+                "is_recovery": false,
+                "milestone_ref": null
+            },
+            {
+                "week": 2,
+                "stage_id": "base",
+                "target_km": 38,
+                "is_recovery": false,
+                "milestone_ref": null
+            },
+            {
+                "week": 3,
+                "stage_id": "base",
+                "target_km": 41,
+                "is_recovery": false,
+                "milestone_ref": null
+            },
+            {
+                "week": 4,
+                "stage_id": "base",
+                "target_km": 31,
+                "is_recovery": true,
+                "milestone_ref": null
+            }
+        ],
+        "created_at": 1704067200,
+        "updated_at": 1704067200
+    }
+}
+```
+
+**核心欄位**:
+
+```
+- id: str                              週預覽 ID（同 overview_id）
+- methodology_id: str                  方法論 ID
+- weeks: List[WeekPreview]             每週預覽列表
+    - week: int                        週次（1-based）
+    - stage_id: str                    訓練階段 ID (base, build, peak, taper)
+    - target_km: float                 目標週跑量
+    - is_recovery: bool                是否為恢復週
+    - milestone_ref: Optional[str]     里程碑參考
+- created_at: int                      創建時間（UTC timestamp）
+- updated_at: int                      更新時間（UTC timestamp）
+```
+
+**Status Codes**:
+- `200 OK`: 成功
+- `404 Not Found`: 週預覽不存在（計畫尚未生成或已被刪除）
 - `500 Internal Server Error`: 服務錯誤
 
 ---
@@ -342,7 +615,7 @@ POST /v2/summary/apply-recommendations-via-coordinator
 ```
 - id: str                                        週摘要 ID
 - uid: str                                       用戶 ID
-- weekly_plan_id: str                            關聯的週課表 ID
+- weekly_id: str                            關聯的週課表 ID
 - training_overview_id: str                      關聯的計畫 ID
 - week_of_training: int                          訓練週次
 
@@ -771,6 +1044,8 @@ GET /v2/summary/weekly?week_of_plan=8
 | Plan Enums | [data_models/plan_enums.py](../../data_models/plan_enums.py) | `StageType`, `MilestoneType` |
 | Methodology Customization | [data_models/methodology_customization.py](../../data_models/methodology_customization.py) | `TrainingTypePreference`, `VolumeAdjustment` 等 |
 | Conflict Coordinator Models | [data_models/conflict_coordinator_models.py](../../data_models/conflict_coordinator_models.py) | `ConflictCoordinatorDecision` |
+| **Training Category Enums** | [data_models/schemas/training_category.py](../../data_models/schemas/training_category.py) | `TrainingCategory`, `RunType`, `StrengthType`, `CrossType` |
+| **TrainingSession Models** | [data_models/plan_models.py](../../data_models/plan_models.py) | `TrainingSession`, `RunActivity`, `RunSegment`, `IntervalBlock`, `StrengthActivity`, `CrossActivity`, `Exercise` |
 
 ---
 
@@ -841,7 +1116,7 @@ Pydantic Model 位置：[data_models/weekly_plan_v2_response.py](../../data_mode
 | 資料類型 | 路徑 |
 |---------|------|
 | Plan Overview V2 | `users/{uid}/plan_overviews_v2/{overview_id}` |
-| Weekly Plan V2 | `users/{uid}/weekly_plans_v2/{plan_id}` |
+| Weekly Plan V2 | `users/{uid}/weekly_plans_v2/{id}` |
 | Weekly Summary V2 | `users/{uid}/weekly_summaries_v2/{summary_id}` |
 | Methodology Customization | `users/{uid}/methodology_customizations/{methodology_id}` |
 
@@ -867,4 +1142,4 @@ Pydantic Model 位置：[data_models/weekly_plan_v2_response.py](../../data_mode
 
 ---
 
-**最後更新**: 2025-01-17
+**最後更新**: 2026-01-23 (新增 TrainingSession 結構說明)

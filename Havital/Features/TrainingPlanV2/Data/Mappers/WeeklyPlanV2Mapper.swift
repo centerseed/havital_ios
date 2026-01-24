@@ -22,7 +22,7 @@ enum WeeklyPlanV2Mapper {
             totalDistance: dto.totalDistance,
             totalDistanceReason: dto.totalDistanceReason,
             designReason: dto.designReason,
-            days: dto.days,  // 直接使用 V1 的 TrainingDay，無需轉換
+            days: dto.days.map { TrainingSessionMapper.toEntity(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
             intensityTotalMinutes: dto.intensityTotalMinutes,  // 直接使用 V1 的 IntensityTotalMinutes
             createdAt: parseDate(from: dto.createdAt),
             updatedAt: parseDate(from: dto.updatedAt),
@@ -49,7 +49,7 @@ enum WeeklyPlanV2Mapper {
             totalDistance: entity.totalDistance,
             totalDistanceReason: entity.totalDistanceReason,
             designReason: entity.designReason,
-            days: entity.days,  // 直接使用，無需轉換
+            days: entity.days.map { TrainingSessionMapper.toDTO(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
             intensityTotalMinutes: entity.intensityTotalMinutes,
             createdAt: formatDate(entity.createdAt),
             updatedAt: formatDate(entity.updatedAt),
