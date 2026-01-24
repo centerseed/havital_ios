@@ -5,7 +5,8 @@ import UserNotifications
 /// TrainingRecordViewModel - Clean Architecture Presentation Layer
 /// 依賴 WorkoutRepository Protocol，負責分頁邏輯和 UI 狀態管理
 /// Phase 3 重構：使用 ViewState 統一狀態管理，整合 CacheEventBus
-class TrainingRecordViewModel: ObservableObject, TaskManageable {
+@MainActor
+class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     // MARK: - ViewState (主要狀態)
 
@@ -332,7 +333,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            Task { [weak self] in
+            Task { @MainActor [weak self] in
                 // 檢查是否包含已刪除的 workout ID
                 if let deletedWorkoutId = notification.userInfo?["deletedWorkoutId"] as? String {
                     Logger.debug("[TrainingRecordViewModel] 收到刪除通知 - 移除 workout: \(deletedWorkoutId)")
@@ -375,7 +376,7 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
 
             case .dataChanged(let dataType) where dataType == .workouts:
                 Logger.debug("[TrainingRecordViewModel] 收到 Workout 數據變更事件，刷新列表")
-                Task {
+                Task { @MainActor in
                     await self.syncFromRepositoryAsync()
                 }
 
@@ -386,8 +387,8 @@ class TrainingRecordViewModel: ObservableObject, TaskManageable {
     }
 
     /// CacheEventBus 訂閱標識符
-    private var cacheIdentifier: String {
-        return "TrainingRecordViewModel"
+    private nonisolated var cacheIdentifier: String {
+        "TrainingRecordViewModel"
     }
 
     /// 立即移除已刪除的 workout（不需要重新刷新）

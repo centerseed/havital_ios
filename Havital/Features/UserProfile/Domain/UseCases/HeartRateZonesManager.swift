@@ -122,11 +122,15 @@ class HeartRateZonesManager {
                 "benefit": zone.benefit
             ]
         }
-        
+
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: zonesData)
-            userPreferenceManager.heartRateZones = jsonData
-            print("已成功儲存心率區間")
+
+            // 確保在主線程更新 @Published 屬性
+            Task { @MainActor in
+                userPreferenceManager.heartRateZones = jsonData
+                print("已成功儲存心率區間")
+            }
         } catch {
             print("儲存心率區間時發生錯誤: \(error)")
         }
@@ -223,13 +227,16 @@ class HeartRateZonesManager {
             if userProfile.maxHr ?? 0 > 0 && userProfile.relaxingHr ?? 0 > 0 {
                 let maxHR = userProfile.maxHr
                 let restingHR = userProfile.relaxingHr
-                
+
                 print("從用戶資料同步心率區間 - 最大心率: \(maxHR), 靜息心率: \(restingHR)")
-                
-                // 保存到 UserPreferencesManager
-                userPreferenceManager.maxHeartRate = maxHR
-                userPreferenceManager.restingHeartRate = restingHR
-                
+
+                // 確保在主線程更新 @Published 屬性
+                await MainActor.run {
+                    // 保存到 UserPreferencesManager
+                    userPreferenceManager.maxHeartRate = maxHR
+                    userPreferenceManager.restingHeartRate = restingHR
+                }
+
                 // 計算並保存心率區間
                 calculateAndSaveHeartRateZones(maxHR: maxHR ?? 0, restingHR: restingHR ?? 0)
             }  else {

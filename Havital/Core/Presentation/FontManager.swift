@@ -4,10 +4,26 @@ import SwiftUI
 /// 自動根據當前語言選擇合適的字型
 struct AppFont {
 
+    // MARK: - Thread-Safe Language Cache
+
+    /// 線程安全的語言緩存（避免使用 MainActor.assumeIsolated）
+    private static var cachedLanguage: SupportedLanguage = .english
+
+    /// 更新緩存的語言（應該在 LanguageManager 語言改變時調用）
+    @MainActor
+    static func updateLanguage(_ language: SupportedLanguage) {
+        cachedLanguage = language
+    }
+
+    /// 獲取當前語言（線程安全）
+    private static func currentLanguage() -> SupportedLanguage {
+        return cachedLanguage
+    }
+
     // MARK: - Large Titles (大標題)
     /// 用於主頁面標題 (54pt)
     static func largeTitle() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 54, relativeTo: .largeTitle)
@@ -19,7 +35,7 @@ struct AppFont {
     // MARK: - Title 1 (主標題)
     /// 用於頁面主標題 (28pt)
     static func title1() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 28, relativeTo: .title)
@@ -31,7 +47,7 @@ struct AppFont {
     // MARK: - Title 2 (次標題)
     /// 用於分區標題或卡片標題 (24pt)
     static func title2() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 24, relativeTo: .headline)
@@ -43,7 +59,7 @@ struct AppFont {
     // MARK: - Title 3 (小標題)
     /// 用於子標題 (20pt)
     static func title3() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 20, relativeTo: .headline)
@@ -55,7 +71,7 @@ struct AppFont {
     // MARK: - Headline
     /// 用於強調文本或次要標題 (18pt)
     static func headline() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 18, relativeTo: .body)
@@ -67,7 +83,7 @@ struct AppFont {
     // MARK: - Headline Medium
     /// 用於中等強調 (16pt, semibold)
     static func headlineMedium() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 16, relativeTo: .body)
@@ -79,7 +95,7 @@ struct AppFont {
     // MARK: - Body
     /// 用於主要內文 (16pt)
     static func body() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 16, relativeTo: .body)
@@ -91,7 +107,7 @@ struct AppFont {
     // MARK: - Body Medium
     /// 用於強調內文 (16pt, semibold)
     static func bodyMedium() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 16, relativeTo: .body)
@@ -103,7 +119,7 @@ struct AppFont {
     // MARK: - Body Small
     /// 用於次要內文 (14pt)
     static func bodySmall() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 14, relativeTo: .subheadline)
@@ -115,7 +131,7 @@ struct AppFont {
     // MARK: - Caption
     /// 用於輔助文本或標籤 (12pt)
     static func caption() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 12, relativeTo: .caption)
@@ -127,7 +143,7 @@ struct AppFont {
     // MARK: - Caption Medium
     /// 用於中等輔助文本 (12pt, semibold)
     static func captionMedium() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 12, relativeTo: .caption)
@@ -139,7 +155,7 @@ struct AppFont {
     // MARK: - Caption Small
     /// 用於最小輔助文本 (10pt)
     static func captionSmall() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 10, relativeTo: .caption2)
@@ -151,7 +167,7 @@ struct AppFont {
     // MARK: - Data Display (數據展示)
     /// 用於大型數據顯示 (54pt, 適用於訓練卡片)
     static func dataLarge() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 54, relativeTo: .largeTitle)
@@ -162,7 +178,7 @@ struct AppFont {
 
     /// 用於中型數據顯示 (40pt)
     static func dataMedium() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 40, relativeTo: .largeTitle)
@@ -173,7 +189,7 @@ struct AppFont {
 
     /// 用於小型數據顯示 (28pt)
     static func dataSmall() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 28, relativeTo: .title)
@@ -185,7 +201,7 @@ struct AppFont {
     // MARK: - Button
     /// 用於按鈕文本 (16pt, semibold)
     static func button() -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             return .custom("Onest", size: 16, relativeTo: .body)
@@ -200,7 +216,7 @@ struct AppFont {
     ///   - size: 字號大小
     ///   - weight: 字重 (.regular, .medium, .semibold, .bold)
     static func custom(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        let language = LanguageManager.shared.currentLanguage
+        let language = currentLanguage()
         switch language {
         case .english:
             // 英文使用 Inter 自訂字型

@@ -17,9 +17,9 @@ struct TrainingPlanInfoCard: View {
             Text(NSLocalizedString("training.plan_info", comment: "Training Plan Info"))
                 .font(AppFont.headline())
                 .fontWeight(.semibold)
-            
-            let _ = print("📋 TrainingPlanInfoCard - dailyPlanSummary: \(workoutDetail?.dailyPlanSummary != nil), aiSummary: \(workoutDetail?.aiSummary != nil)")
-            
+
+            // 移除高頻日誌：此方法在每次 UI 渲染時都會被調用
+
             if let dailyPlan = workoutDetail?.dailyPlanSummary {
                 VStack(alignment: .leading, spacing: 12) {
                     // Day target
@@ -74,7 +74,7 @@ struct TrainingPlanInfoCard: View {
             
             // AI Summary section
             if let aiSummary = workoutDetail?.aiSummary {
-                let _ = print("🤖 顯示AI分析: \(aiSummary.analysis.prefix(50))...")
+                // 移除高頻日誌：此方法在每次 UI 渲染時都會被調用
                 Divider()
                     .padding(.vertical, 4)
                 

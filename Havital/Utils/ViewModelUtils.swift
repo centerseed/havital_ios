@@ -85,6 +85,6 @@ struct ViewModelUtils {
     
     /// 檢查當前語言是否為中文
     static func isCurrentLanguageChinese() -> Bool {
-        return LanguageManager.shared.currentLanguage == .traditionalChinese
+        return MainActor.assumeIsolated { LanguageManager.shared.currentLanguage == .traditionalChinese }
     }
 }

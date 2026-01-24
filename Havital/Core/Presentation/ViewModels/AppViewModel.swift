@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     let taskRegistry = TaskRegistry()
 
@@ -122,58 +123,53 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     /// 用戶選擇重新綁定 Garmin
     func reconnectGarmin() {
         isHandlingGarminMismatch = true
-        Task {
+        Task { @MainActor in
             await GarminManager.shared.startConnection()
-            
+
             // 切換到 Garmin 數據來源
             await switchDataSource(to: .garmin)
-            
-            await MainActor.run {
-                isHandlingGarminMismatch = false
-                showGarminMismatchAlert = false
-            }
+
+            isHandlingGarminMismatch = false
+            showGarminMismatchAlert = false
         }
     }
     
     /// 用戶選擇切換回 Apple Health
     func switchToAppleHealth() {
         isHandlingGarminMismatch = true
-        Task {
+        Task { @MainActor in
             do {
                 // 先解除Garmin綁定
-                if GarminManager.shared.isConnected {
+                let isGarminConnected = GarminManager.shared.isConnected
+                if isGarminConnected {
                     do {
                         try await GarminDisconnectService.shared.disconnectGarmin()
                         print("Garmin解除綁定成功")
-                        
+
                         // 本地斷開Garmin連接（不再呼叫後端）
                         await GarminManager.shared.disconnect(remote: false)
-                        
+
                     } catch {
                         print("Garmin解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
                         await GarminManager.shared.disconnect(remote: false)
                     }
                 }
-                
+
                 // 先同步到後端 (Clean Architecture: ViewModel → Repository)
                 try await userProfileRepository.updateDataSource(DataSourceType.appleHealth.rawValue)
 
                 // 切換數據來源
                 await switchDataSource(to: .appleHealth)
-                
-                await MainActor.run {
-                    print("已切換到 Apple Health 並同步到後端")
-                    
-                    isHandlingGarminMismatch = false
-                    showGarminMismatchAlert = false
-                }
+
+                print("已切換到 Apple Health 並同步到後端")
+
+                isHandlingGarminMismatch = false
+                showGarminMismatchAlert = false
             } catch {
                 print("切換到 Apple Health 失敗: \(error.localizedDescription)")
-                await MainActor.run {
-                    isHandlingGarminMismatch = false
-                    // 保持對話框開啟，讓用戶可以重試
-                }
+                isHandlingGarminMismatch = false
+                // 保持對話框開啟，讓用戶可以重試
             }
         }
     }

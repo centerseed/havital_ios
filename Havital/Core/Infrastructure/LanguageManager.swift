@@ -4,6 +4,7 @@ import Combine
 import ObjectiveC
 
 /// Manager for handling app language preferences and localization
+@MainActor
 class LanguageManager: ObservableObject {
     static let shared = LanguageManager()
     
@@ -18,6 +19,8 @@ class LanguageManager: ObservableObject {
                 syncWithBackend()
                 // 通知 HTTPClient 語言已變更，之後的請求會使用新的 Accept-Language 標頭
                 Logger.firebase("Language changed to: \(currentLanguage.apiCode)", level: .info)
+                // 更新 AppFont 的語言緩存
+                AppFont.updateLanguage(currentLanguage)
             }
         }
     }
@@ -37,7 +40,10 @@ class LanguageManager: ObservableObject {
         
         // Apply the language on init (but don't sync with backend during init)
         applyLanguageWithoutBackendSync()
-        
+
+        // Initialize AppFont's language cache
+        AppFont.updateLanguage(currentLanguage)
+
         // Debug: Print language initialization info
         Logger.debug("LanguageManager initialized with: \(currentLanguage.rawValue) (API: \(currentLanguage.apiCode))")
     }

@@ -45,6 +45,9 @@ final class AuthenticationViewModel: ObservableObject {
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var cancellables = Set<AnyCancellable>()
 
+    // 防止重複調用 fetchCurrentUserData
+    private var isFetchingUserData = false
+
     // MARK: - Singleton
 
     static let shared = AuthenticationViewModel()
@@ -144,6 +147,12 @@ final class AuthenticationViewModel: ObservableObject {
         CacheEventBus.shared.subscribe(for: "dataChanged.user") { [weak self] in
             guard let self = self else { return }
 
+            // 如果正在獲取用戶數據，跳過重複調用
+            guard !self.isFetchingUserData else {
+                Logger.debug("[AuthViewModel] Skipping duplicate fetchCurrentUserData (already in progress)")
+                return
+            }
+
             Logger.debug("[AuthViewModel] Received dataChanged.user event, refreshing user data")
 
             // Update authentication status (supports both Firebase and Demo mode)
@@ -182,6 +191,14 @@ final class AuthenticationViewModel: ObservableObject {
 
     /// Fetch current user data from backend
     func fetchCurrentUserData() async {
+        guard !isFetchingUserData else {
+            Logger.debug("[AuthViewModel] fetchCurrentUserData already in progress, skipping")
+            return
+        }
+
+        isFetchingUserData = true
+        defer { isFetchingUserData = false }
+
         do {
             Logger.debug("[AuthViewModel] Fetching current user data")
 

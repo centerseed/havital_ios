@@ -98,17 +98,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
 
                 // If user is authenticated with Firebase, fetch their profile from backend
                 self.fetchUserProfile()
-                // 嘗試同步當前 FCM token (Clean Architecture: Service → Repository)
-                if let token = Messaging.messaging().fcmToken {
-                    Task {
-                        do {
-                            try await self.userProfileRepository.updateUserProfile(["fcm_token": token])
-                            print("✅ 已於登入後同步 FCM token 到後端")
-                        } catch {
-                            print("⚠️ 登入後同步 FCM token 失敗: \(error.localizedDescription)")
-                        }
-                    }
-                }
+                // ✅ REMOVED: FCM token 同步已由 AppDelegate.swift 的 MessagingDelegate 統一處理
+                // 避免重複上傳（會觸發多次 PUT /user + GET /user）
             } else {
                 // 🎯 如果是 Demo 模式，不要清除用戶資料
                 if self.demoIdToken == nil {
@@ -790,7 +781,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
     func signOut() async throws {
         // 登出時只清除本地 Garmin 狀態，不解除後端綁定
         // 這樣用戶重新登入時可以恢復 Garmin 連接
-        if GarminManager.shared.isConnected {
+        let isGarminConnected = await MainActor.run { GarminManager.shared.isConnected }
+        if isGarminConnected {
             print("🔄 登出時清除本地 Garmin 狀態（保留後端連接）")
             await GarminManager.shared.disconnect(remote: false)
         }

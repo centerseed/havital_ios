@@ -130,8 +130,7 @@ struct WeekOverviewCard: View {
 
             // 下半部：強度分布（一行三個進度條，移除標題）
             if let intensity = plan.intensityTotalMinutes {
-                let _ = print("[INTENSITY_DEBUG] WeekOverviewCard 讀取 - low: \(viewModel.currentWeekIntensity.low), medium: \(viewModel.currentWeekIntensity.medium), high: \(viewModel.currentWeekIntensity.high)")
-                let _ = print("[INTENSITY_DEBUG] plan.intensityTotalMinutes - low: \(intensity.low), medium: \(intensity.medium), high: \(intensity.high)")
+                // 移除高頻日誌：此方法在每次 UI 渲染時都會被調用
                 HStack(spacing: 12) {
                     // 低強度
                     CompactIntensityBar(
@@ -195,7 +194,7 @@ struct CompactIntensityBar: View {
     }
 
     var body: some View {
-        let _ = print("[INTENSITY_DEBUG] CompactIntensityBar[\(label)] current=\(current), target=\(target)")
+        // 移除高頻日誌：此方法在每次 UI 渲染時都會被調用
         VStack(alignment: .leading, spacing: 4) {
             // 標籤和數字
             Text("\(label) \(current)/\(target)")

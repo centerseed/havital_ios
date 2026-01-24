@@ -270,10 +270,12 @@ class VDOTManager: ObservableObject, DataManageable {
             needUpdatedHrRange: response.needUpdatedHrRange
         )
         cacheManager.saveToCache(cacheData)
-        
+
         // 發送通知
-        NotificationCenter.default.post(name: .vdotDataDidUpdate, object: nil)
-        
+        await MainActor.run {
+            NotificationCenter.default.post(name: .vdotDataDidUpdate, object: nil)
+        }
+
         Logger.firebase(
             "VDOT 數據載入成功",
             level: .info,
@@ -311,9 +313,11 @@ class VDOTManager: ObservableObject, DataManageable {
             needUpdatedHrRange: response.needUpdatedHrRange
         )
         cacheManager.forceRefresh(with: cacheData)
-        
+
         // 發送通知
-        NotificationCenter.default.post(name: .vdotDataDidUpdate, object: nil)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .vdotDataDidUpdate, object: nil)
+        }
     }
     
     // MARK: - Data Limit Management

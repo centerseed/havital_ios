@@ -7,6 +7,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     private let userProfileRepository: UserProfileRepository
     private let authSessionRepository: AuthSessionRepository
 
+    // 防止重複上傳相同的 FCM token
+    private var lastUploadedFCMToken: String?
+
     override init() {
         // 初始化 Repository (在 super.init() 之前)
         self.userProfileRepository = DependencyContainer.shared.resolve()
@@ -48,6 +51,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     }
     
     private func syncFCMTokenToBackend(_ fcmToken: String) {
+        // 防止重複上傳相同的 token
+        guard fcmToken != lastUploadedFCMToken else {
+            print("🔍 DEBUG: FCM token 未變更，跳過上傳")
+            return
+        }
+
         print("🔍 DEBUG: 嘗試上傳 FCM token: \(fcmToken.prefix(20))...")
 
         // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
@@ -58,15 +67,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
             print("使用者尚未登入，暫不上傳 FCM token")
             return
         }
+
+        // ✅ CRITICAL FIX: 在開始上傳前就標記，防止重複調用
+        // 如果上傳失敗，會在 catch 中清除，下次重試
+        lastUploadedFCMToken = fcmToken
+
         Task {
             await TrackedTask("AppDelegate: syncFCMTokenToBackend") {
                 do {
-                    // Clean Architecture: AppDelegate → Repository
-                    try await self.userProfileRepository.updateUserProfile(["fcm_token": fcmToken])
-                    print("✅ FCM token 已成功上傳到後端: \(fcmToken.prefix(20))...")
+                    // ✅ 優化：FCM token 更新不需要返回完整的 User，丟棄返回值
+                    _ = try await self.userProfileRepository.updateUserProfile(["fcm_token": fcmToken])
+                    print("✅ 已於登入後同步 FCM token 到後端")
                 } catch {
+                    // ⚠️ 上傳失敗，清除標記，下次重試
+                    self.lastUploadedFCMToken = nil
                     print("❌ 上傳 FCM token 失敗: \(error.localizedDescription)")
-                    print("❌ 詳細錯誤: \(error)")
                 }
             }.value
         }

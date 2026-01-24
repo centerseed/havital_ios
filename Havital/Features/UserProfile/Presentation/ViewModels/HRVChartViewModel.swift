@@ -7,6 +7,7 @@ private struct CachePoint: Codable {
     let value: Double
 }
 
+@MainActor
 class HRVChartViewModel: ObservableObject, TaskManageable {
     // MARK: - TaskManageable Properties (Actor-based)
     let taskRegistry = TaskRegistry()

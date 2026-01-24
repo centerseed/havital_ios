@@ -3,6 +3,7 @@ import SafariServices
 import SwiftUI
 import CryptoKit
 
+@MainActor
 class GarminManager: NSObject, ObservableObject {
     static let shared = GarminManager()
     

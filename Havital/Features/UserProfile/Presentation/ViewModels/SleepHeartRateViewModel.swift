@@ -7,6 +7,7 @@ private struct CachePoint: Codable {
     let value: Double
 }
 
+@MainActor
 class SleepHeartRateViewModel: ObservableObject, TaskManageable {
     // MARK: - TaskManageable Properties (Actor-based)
     let taskRegistry = TaskRegistry()
@@ -43,29 +44,29 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
+            Task { @MainActor in
                 await self?.loadHeartRateData()
             }
         }
-        
+
         // 監聽 Apple Health 數據刷新通知
         NotificationCenter.default.addObserver(
             forName: .appleHealthDataRefresh,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
+            Task { @MainActor in
                 await self?.loadHeartRateData()
             }
         }
-        
+
         // 監聽數據源切換通知
         NotificationCenter.default.addObserver(
             forName: .dataSourceChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
+            Task { @MainActor in
                 await self?.loadHeartRateData()
             }
         }

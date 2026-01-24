@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var isCheckingVersion: Bool = true
 
     var body: some View {
-        let _ = print("📱 [ContentView] body 重新評估 - isAuth=\(authViewModel.isAuthenticated), hasOnboarding=\(authViewModel.hasCompletedOnboarding), isReOnboarding=\(authViewModel.isReonboardingMode), loading=\(appStateManager.shouldShowLoadingScreen)")
+        // 移除高頻日誌：body 每次重新評估都會觸發
 
         Group {
             // 如果 App 正在初始化，顯示載入畫面

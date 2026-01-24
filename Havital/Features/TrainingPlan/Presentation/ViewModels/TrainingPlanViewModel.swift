@@ -122,7 +122,7 @@ class TrainingPlanViewModel: ObservableObject {
         }
 
         let date = weekInfo.daysMap[dayIndex]
-        Logger.debug("[TrainingPlanVM] getDateForDay(\(dayIndex)) for week \(selectedWeek) -> \(date?.description ?? "nil")")
+        // 移除高頻日誌：此方法在每個 day cell 渲染時都會被調用
         return date
     }
 
@@ -489,7 +489,7 @@ class TrainingPlanViewModel: ObservableObject {
                 case "initial_cache", "initial_load":
                     // ✅ 初始載入時需要更新 UI（修復首次進入不顯示 workouts 的問題）
                     Logger.debug("[TrainingPlanVM] 初始載入通知，更新記憶體緩存和週 workouts")
-                    Task {
+                    Task { @MainActor in
                         // ✅ 從 Repository 重新載入數據到記憶體緩存
                         await self.refreshMemoryCache()
                         await self.loadWorkoutsForCurrentWeek()
@@ -498,7 +498,7 @@ class TrainingPlanViewModel: ObservableObject {
                 case "background_update", "user_refresh", "new_workout_synced", "background_refresh":
                     // 有新數據時更新記憶體緩存和週數據
                     Logger.debug("[TrainingPlanVM] 發現新運動數據，更新記憶體緩存和週 workouts")
-                    Task {
+                    Task { @MainActor in
                         await self.refreshMemoryCache()
                         await self.loadWorkoutsForCurrentWeek()
                     }
@@ -506,14 +506,14 @@ class TrainingPlanViewModel: ObservableObject {
                 case "force_refresh":
                     // ✅ force_refresh 已經在 forceRefreshWorkouts() 中更新了緩存，只需要重新載入本週數據
                     Logger.debug("[TrainingPlanVM] force_refresh 通知，記憶體緩存已更新，重新載入週 workouts")
-                    Task {
+                    Task { @MainActor in
                         await self.loadWorkoutsForCurrentWeek()
                     }
 
                 default:
                     // 其他情況也更新（保持兼容性）
                     Logger.debug("[TrainingPlanVM] 未知通知原因，執行記憶體緩存和週 workouts 更新")
-                    Task {
+                    Task { @MainActor in
                         await self.refreshMemoryCache()
                         await self.loadWorkoutsForCurrentWeek()
                     }
@@ -739,25 +739,27 @@ class TrainingPlanViewModel: ObservableObject {
                 ? try await repository.refreshPlanStatus()
                 : try await repository.getPlanStatus()
 
-            planStatusResponse = status
+            await MainActor.run {
+                planStatusResponse = status
 
-            // 更新當前週數
-            let oldCurrentWeek = weeklyPlanVM.currentWeek
-            weeklyPlanVM.currentWeek = status.currentWeek
-            Logger.debug("[TrainingPlanVM] ✅ currentWeek 更新: \(oldCurrentWeek) → \(status.currentWeek)")
+                // 更新當前週數
+                let oldCurrentWeek = weeklyPlanVM.currentWeek
+                weeklyPlanVM.currentWeek = status.currentWeek
+                Logger.debug("[TrainingPlanVM] ✅ currentWeek 更新: \(oldCurrentWeek) → \(status.currentWeek)")
 
-            // ✅ 修復：只在必要時才重置 selectedWeek，避免覆蓋用戶手動選擇的週數
-            // 只有在明確要求重置（例如初始化）時才更新 selectedWeek
-            if shouldResetSelectedWeek {
-                weeklyPlanVM.selectedWeek = status.currentWeek
-                Logger.debug("[TrainingPlanVM] selectedWeek reset to currentWeek: \(status.currentWeek)")
-            } else {
-                Logger.debug("[TrainingPlanVM] selectedWeek preserved: \(weeklyPlanVM.selectedWeek)")
-            }
+                // ✅ 修復：只在必要時才重置 selectedWeek，避免覆蓋用戶手動選擇的週數
+                // 只有在明確要求重置（例如初始化）時才更新 selectedWeek
+                if shouldResetSelectedWeek {
+                    weeklyPlanVM.selectedWeek = status.currentWeek
+                    Logger.debug("[TrainingPlanVM] selectedWeek reset to currentWeek: \(status.currentWeek)")
+                } else {
+                    Logger.debug("[TrainingPlanVM] selectedWeek preserved: \(weeklyPlanVM.selectedWeek)")
+                }
 
-            // 更新訓練計畫名稱
-            if let overview = weeklyPlanVM.overviewState.data {
-                trainingPlanName = overview.trainingPlanName
+                // 更新訓練計畫名稱
+                if let overview = weeklyPlanVM.overviewState.data {
+                    trainingPlanName = overview.trainingPlanName
+                }
             }
 
             // 🔍 [DEBUG] 詳細的 status API 回應日誌
@@ -784,7 +786,9 @@ class TrainingPlanViewModel: ObservableObject {
             Logger.debug("[TrainingPlanVM] Plan status loading cancelled")
         } catch {
             Logger.error("[TrainingPlanVM] Failed to load plan status: \(error.localizedDescription)")
-            networkError = error
+            await MainActor.run {
+                networkError = error
+            }
         }
     }
 
@@ -1029,7 +1033,8 @@ class TrainingPlanViewModel: ObservableObject {
             // 關閉週回顧 sheet
             summaryVM.clearSummary()
             // 延遲一點顯示調整確認 sheet，避免 sheet 切換衝突
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 秒
                 self.summaryVM.showAdjustmentConfirmation = true
             }
         } else {
@@ -1038,7 +1043,7 @@ class TrainingPlanViewModel: ObservableObject {
         }
 
         // ✅ 刷新計畫狀態，因為產生週回顧後 nextAction 可能已改變
-        Task {
+        Task { @MainActor in
             await loadPlanStatus(skipCache: true)
             Logger.debug("[TrainingPlanVM] ✅ Plan status 已刷新（關閉週回顧後）")
         }

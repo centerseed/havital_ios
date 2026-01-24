@@ -156,6 +156,9 @@ struct TrainingPlanView: View {
     @State private var showFeedbackReport = false
     @ObservedObject private var userPreferenceManager = UserPreferencesManager.shared
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
+
+    // ✅ 防止 .task 重複初始化
+    @State private var hasPerformedInitialLoad = false
     
     
     var body: some View {
@@ -205,14 +208,34 @@ struct TrainingPlanView: View {
             }
         }
         .task {
+            // ✅ 確保只初始化一次，防止 SwiftUI .task 多次觸發
+            guard !hasPerformedInitialLoad else {
+                Logger.debug("[TrainingPlanView] ⚠️ 已初始化，跳過重複調用")
+                return
+            }
+            hasPerformedInitialLoad = true
+            Logger.debug("[TrainingPlanView] 🚀 首次初始化 ViewModel")
+
+            // 初始化 ViewModel
             await viewModel.initialize()
+
+            // 初始化 VDOTManager（用於 EditScheduleView 配速計算）
+            await VDOTManager.shared.initialize()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // ✅ CRITICAL FIX: 總是執行刷新，不檢查 AppStateManager 狀態
             // 原因：記憶體清除後 AppStateManager 可能未就緒，導致刷新被跳過
             Logger.debug("[TrainingPlanView] App 從背景回來，AppStateManager.isReady: \(AppStateManager.shared.currentState.isReady)")
             Logger.debug("[TrainingPlanView] 執行刷新（無條件）")
+
+            // 刷新訓練記錄
             refreshWorkouts()
+
+            // 背景刷新使用者資料（使用雙軌快取策略）
+            Task {
+                await userProfileViewModel.loadUserProfile(forceRefresh: false)
+                Logger.debug("[TrainingPlanView] ✅ User profile background refresh triggered")
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
             Logger.debug("Received onboardingCompleted notification, refreshing weekly volume")
@@ -372,29 +395,14 @@ struct TrainingPlanView: View {
             }
         }
         .onAppear {
-            Logger.debug("[TrainingPlanView] onAppear - hasCompletedOnboarding: \(hasCompletedOnboarding), isReady: \(AppStateManager.shared.currentState.isReady)")
+            // ✅ 移除重複的初始化調用（已在 .task 中處理）
+            // ✅ 只保留 UI 提示相關的邏輯（心率檢查、App 評分）
 
-            // ✅ CRITICAL: Initialize ViewModel data on first appear
-            Task {
-                await viewModel.initialize()
-                Logger.debug("[TrainingPlanView] ✅ ViewModel initialized")
-
-                // ✅ CRITICAL: Initialize VDOTManager for EditScheduleView pace calculation
-                await VDOTManager.shared.initialize()
-                Logger.debug("[TrainingPlanView] ✅ VDOTManager initialized, currentVDOT: \(VDOTManager.shared.currentVDOT)")
-            }
-
-            // 預先載入使用者資料（用於問題回報功能）
-            userProfileViewModel.fetchUserProfile()
-
-            // 打印心率设置调试信息
             #if DEBUG
             HeartRateDebugHelper.printAllHeartRateSettings()
             #endif
 
             if hasCompletedOnboarding && AppStateManager.shared.currentState.isReady {
-                Logger.debug("[TrainingPlanView] ✅ 條件符合，開始檢查")
-
                 // 檢查用戶是否設定了心率，如果未設定則顯示提示
                 checkAndShowHeartRateSetup()
 
@@ -403,8 +411,6 @@ struct TrainingPlanView: View {
                     // 延遲 5 秒確保用戶數據和訓練計劃都已完全載入
                     await AppRatingManager.shared.checkOnAppLaunch(delaySeconds: 5)
                 }
-            } else {
-                Logger.debug("[TrainingPlanView] ❌ 條件不符，跳過檢查")
             }
         }
         .sheet(isPresented: $showHeartRateSetup) {
@@ -526,28 +532,7 @@ struct TrainingPlanView: View {
             }
 
             // 🆕 產生下週課表按鈕（週六日顯示）
-            // 🔍 [DEBUG] 記錄按鈕顯示條件
-            let _ = {
-                Logger.debug("========================================")
-                Logger.debug("[TrainingPlanView] 🔍 GenerateNextWeekButton 顯示條件檢查:")
-                Logger.debug("  nextWeekInfo 存在: \(viewModel.nextWeekInfo != nil)")
-                if let info = viewModel.nextWeekInfo {
-                    Logger.debug("  nextWeekInfo.canGenerate: \(info.canGenerate)")
-                    Logger.debug("  nextWeekInfo.hasPlan: \(info.hasPlan)")
-                    Logger.debug("  nextWeekInfo.weekNumber: \(info.weekNumber)")
-                    Logger.debug("  nextWeekInfo.requiresCurrentWeekSummary: \(info.requiresCurrentWeekSummary)")
-                }
-                Logger.debug("  selectedWeek: \(viewModel.selectedWeek)")
-                Logger.debug("  currentWeek: \(viewModel.currentWeek)")
-                Logger.debug("  selectedWeek == currentWeek: \(viewModel.selectedWeek == viewModel.currentWeek)")
-
-                let shouldShow = viewModel.nextWeekInfo != nil &&
-                                 viewModel.nextWeekInfo!.canGenerate &&
-                                 !viewModel.nextWeekInfo!.hasPlan &&
-                                 viewModel.selectedWeek == viewModel.currentWeek
-                Logger.debug("  🎯 按鈕應該顯示: \(shouldShow)")
-                Logger.debug("========================================")
-            }()
+            // 移除高頻 DEBUG 日誌：此區塊在每次 SwiftUI body 重新評估時都會執行
 
             if let nextWeekInfo = viewModel.nextWeekInfo,
                nextWeekInfo.canGenerate,

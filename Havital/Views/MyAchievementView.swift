@@ -446,12 +446,11 @@ struct CombinedHeartRateChartSection: View {
 
     @ViewBuilder
     private var hrvChartContent: some View {
-        let _ = print("🔍 [CombinedHeartRateChartSection] 顯示 HRV 圖表，數據來源: \(dataSourcePreference)")
+        // 移除高頻日誌：此方法在每次 UI 重新渲染時都會被調用
 
         switch dataSourcePreference {
         case .appleHealth:
             // Apple Health: 直接使用 HealthKit 數據（與靜息心率保持一致）
-            let _ = print("🔍 [CombinedHeartRateChartSection] Apple Health 用戶，使用 HRVTrendChartView 直接讀取 HealthKit")
             HRVTrendChartView()
                 .environmentObject(healthKitManager)
 

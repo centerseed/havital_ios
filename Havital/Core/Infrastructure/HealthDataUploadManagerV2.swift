@@ -68,6 +68,7 @@ struct HealthDataCollection: Codable {
 
 // MARK: - 重構後的健康數據上傳管理器
 /// 遵循 DataManageable 協議，整合統一快取系統
+@MainActor
 class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     // MARK: - Type Definitions
@@ -223,39 +224,27 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         // 優先從快取載入
         if let cachedCollection = cacheManager.loadHealthDataCollection(for: days),
            !cacheManager.shouldRefresh() {
-            print("📊 [loadHealthDataForRange] ✅ 使用快取數據，記錄數: \(cachedCollection.records.count)")
             let hrvCount = cachedCollection.records.filter { $0.hrvLastNightAvg != nil }.count
-            print("📊 [loadHealthDataForRange] 快取中 HRV 記錄數: \(hrvCount)")
-            for record in cachedCollection.records.prefix(3).filter({ $0.hrvLastNightAvg != nil }) {
-                print("   - 快取日期: \(record.date), HRV: \(record.hrvLastNightAvg ?? 0)")
-            }
+            print("📊 [loadHealthDataForRange] ✅ 使用快取數據（\(cachedCollection.records.count) 筆，HRV: \(hrvCount) 天）")
             await MainActor.run {
                 self.healthDataCollections[days] = cachedCollection
             }
             return
         }
 
-        print("📊 [loadHealthDataForRange] 快取無效或需要刷新，從 API 獲取")
-
         // 從 API 獲取
         do {
-            print("📊 [loadHealthDataForRange] 調用 API: service.getHealthDaily(limit: \(days))")
             let response = try await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: loadHealthDataForRange") {
                 try await service.getHealthDaily(limit: days)
             }
             let healthData = response.healthData
-            print("📊 [loadHealthDataForRange] ✅ API 返回 \(healthData.count) 筆記錄")
             let hrvCount = healthData.filter { $0.hrvLastNightAvg != nil }.count
-            print("📊 [loadHealthDataForRange] API 返回的 HRV 記錄數: \(hrvCount)")
-            for record in healthData.prefix(3).filter({ $0.hrvLastNightAvg != nil }) {
-                print("   - API 日期: \(record.date), HRV: \(record.hrvLastNightAvg ?? 0)")
-            }
+            print("📊 [loadHealthDataForRange] ✅ API 返回 \(healthData.count) 筆（HRV: \(hrvCount) 天）")
 
             // ⚠️ 如果 API 返回成功但沒有 HRV 數據，且用戶是 Apple Health，回退到本地數據
             if hrvCount == 0 && userPreferenceManager.dataSourcePreference == .appleHealth {
-                print("📊 [loadHealthDataForRange] ⚠️ API 無 HRV 數據，Apple Health 用戶回退到本地")
+                print("📊 [loadHealthDataForRange] ℹ️ API 無 HRV 數據，回退到本地 HealthKit")
                 let localData = await getLocalHealthData(days: days)
-                print("📊 [loadHealthDataForRange] 本地數據返回 \(localData.count) 筆記錄")
                 let collection = HealthDataCollection(records: localData, days: days)
 
                 await MainActor.run {
@@ -285,12 +274,17 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             )
             
         } catch {
+            // ✅ 優化：如果是取消錯誤，不要回退到本地 HealthKit
+            if error.isCancellationError {
+                print("📊 [loadHealthDataForRange] ℹ️ API 請求被取消（TaskRegistry 冷卻機制），跳過處理")
+                return
+            }
+
             print("📊 [loadHealthDataForRange] ❌ API 調用失敗: \(error.localizedDescription)")
             print("📊 [loadHealthDataForRange] 回退到本地 HealthKit 數據")
 
             // 回退到本地 HealthKit 數據
             let localData = await getLocalHealthData(days: days)
-            print("📊 [loadHealthDataForRange] 本地數據返回 \(localData.count) 筆記錄")
             let collection = HealthDataCollection(records: localData, days: days)
 
             await MainActor.run {
@@ -926,8 +920,10 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             dateFormatter.dateFormat = "yyyy-MM-dd"
             dateFormatter.timeZone = TimeZone.current
 
-            print("📊 [getLocalHealthData] 開始從 HealthKit 獲取數據，天數: \(days)")
-            print("📊 [getLocalHealthData] 從 HealthKit 獲取到 \(hrv.count) 筆 HRV 原始數據")
+            // ✅ 只在有數據時才輸出詳細日誌
+            if hrv.count > 0 {
+                print("📊 [getLocalHealthData] 從 HealthKit 獲取到 \(hrv.count) 筆 HRV 原始數據")
+            }
 
             // 將 HRV 數據按日期分組並轉換為 HealthRecord
             // 使用 TimeInterval 作為 key 確保線程安全（避免 Date 對象作為 Dictionary key）
@@ -935,15 +931,11 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                 Calendar.current.startOfDay(for: record.0).timeIntervalSince1970
             }
 
-            print("📊 [getLocalHealthData] 分組後有 \(groupedHRV.count) 天的數據")
-
             for (timeInterval, values) in groupedHRV {
                 let date = Date(timeIntervalSince1970: timeInterval)
                 let avgHRV = values.map { $0.1 }.reduce(0, +) / Double(values.count)
                 let dateString = dateFormatter.string(from: date)
 
-                print("📊 [getLocalHealthData] 日期: \(dateString), 平均HRV: \(avgHRV), 原始數據數量: \(values.count)")
-                
                 let record = HealthRecord(
                     date: dateString,
                     dailyCalories: nil,
@@ -979,9 +971,11 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                 records.append(record)
             }
 
-            print("📊 [getLocalHealthData] 最終返回 \(records.count) 筆 HealthRecord")
-            for record in records.prefix(3) {
-                print("   - 日期: \(record.date), HRV: \(record.hrvLastNightAvg ?? 0), RHR: \(record.restingHeartRate ?? 0)")
+            // ✅ 簡化日誌：只顯示摘要
+            if records.count > 0 {
+                print("📊 [getLocalHealthData] ✅ 返回 \(records.count) 筆記錄（HRV: \(groupedHRV.count) 天，RHR: \(restingHR > 0 ? 1 : 0) 天）")
+            } else {
+                print("📊 [getLocalHealthData] ℹ️ 無 HealthKit 數據（這是正常情況）")
             }
 
             return records
@@ -1038,8 +1032,6 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     /// 獲取健康數據（優先從緩存）
     func getHealthData(days: Int = 7) async -> [HealthRecord] {
-        print("📊 [getHealthData] 被調用，天數: \(days)")
-
         // ✅ 使用 executeTask 防止重複調用
         let result = await executeTask(id: TaskID("get_health_data_\(days)")) {
             return await self.performGetHealthData(days: days)
@@ -1060,22 +1052,20 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         }
 
         if let collection = cachedCollection {
-            print("📊 [getHealthData] ✅ 從內存緩存返回 \(collection.records.count) 筆記錄")
             let hrvCount = collection.records.filter { $0.hrvLastNightAvg != nil }.count
-            print("📊 [getHealthData] 內存緩存中 HRV 記錄數: \(hrvCount)")
 
             // ✅ 優化：檢查緩存時效性（30 分鐘內不重新載入）
             let cacheAge = Date().timeIntervalSince(collection.lastUpdated)
             let cacheValid = cacheAge < 1800 // 30 分鐘
 
             if cacheValid {
-                print("📊 [getHealthData] 緩存有效（更新於 \(Int(cacheAge/60)) 分鐘前），直接返回")
+                // ✅ 簡化日誌：正常緩存命中不輸出
                 return collection.records
             }
 
             // ⚠️ 如果快取中沒有 HRV 數據，且是 Apple Health 用戶，強制刷新
             if hrvCount == 0 && userPreferenceManager.dataSourcePreference == .appleHealth {
-                print("📊 [getHealthData] ⚠️ 快取中無 HRV 數據，強制刷新")
+                print("📊 [getHealthData] ℹ️ 快取無 HRV，刷新中...")
                 await MainActor.run {
                     self.healthDataCollections.removeValue(forKey: days)
                 }
@@ -1088,18 +1078,14 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
                 let refreshedResult = await MainActor.run {
                     self.healthDataCollections[days]?.records ?? []
                 }
-                let refreshedHrvCount = refreshedResult.filter { $0.hrvLastNightAvg != nil }.count
-                print("📊 [getHealthData] 刷新後返回 \(refreshedResult.count) 筆記錄，HRV 記錄數: \(refreshedHrvCount)")
                 return refreshedResult
             }
 
             // 緩存過期但有數據，背景更新但立即返回舊數據
-            print("📊 [getHealthData] 緩存過期，背景更新中...")
             Task.detached { [weak self] in
                 // ✅ 使用 executeTask 防止重複調用
                 await self?.executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
                     try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData (background)") {
-                        print("📊 [getHealthData] 緩存過期，背景更新loadHealthDataForRange")
                         try await self?.loadHealthDataForRange(days: days)
                     }
                 }
@@ -1107,32 +1093,27 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             return collection.records
         }
 
-        print("📊 [getHealthData] 內存緩存未命中，觸發載入")
-
         // 如果沒有快取，觸發載入
         // ✅ 使用 executeTask 防止重複調用
         await executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
             try? await APICallTracker.$currentSource.withValue("HealthDataUploadManagerV2: getHealthData") {
-                print("📊 [getHealthData] 如果沒有快取，觸發載入loadHealthDataForRange")
                 try await self.loadHealthDataForRange(days: days)
             }
         }
         let result = await MainActor.run {
             self.healthDataCollections[days]?.records ?? []
         }
-        print("📊 [getHealthData] 載入後返回 \(result.count) 筆記錄")
         return result
     }
 
     /// 強制刷新健康數據（清除快取）
     func forceRefreshHealthData(days: Int = 7) async {
-        print("📊 [getHealthData] 強制刷新，天數: \(days)")
+        print("📊 [forceRefreshHealthData] 強制刷新 \(days) 天數據")
         // ⚠️ 必須在 MainActor 上修改 @Published 屬性
         await MainActor.run {
             self.healthDataCollections.removeValue(forKey: days)
         }
         cacheManager.clearCache()
-        print("📊 [getHealthData] 強制刷新：loadHealthDataForRange")
         // ✅ 使用 executeTask 防止重複調用
         await executeTask(id: TaskID("load_health_data_\(days)"), cooldownSeconds: 30) {
             try? await self.loadHealthDataForRange(days: days)
@@ -1175,7 +1156,9 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     
     deinit {
         cancelAllTasks()
-        stopHealthKitObservers()
+        MainActor.assumeIsolated {
+            stopHealthKitObservers()
+        }
         NotificationCenter.default.removeObserver(self)
     }
 }

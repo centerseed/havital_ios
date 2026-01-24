@@ -211,7 +211,7 @@ class UserPreferencesManager: ObservableObject, DataManageable {
             return SupportedLanguage.current
         }
         set {
-            Task {
+            Task { @MainActor in
                 try? await updatePreferences(language: newValue.rawValue, timezone: nil)
                 // Sync with LanguageManager
                 LanguageManager.shared.currentLanguage = newValue
@@ -223,7 +223,7 @@ class UserPreferencesManager: ObservableObject, DataManageable {
         get { preferences?.timezone }
         set {
             if let timezone = newValue {
-                Task {
+                Task { @MainActor in
                     try? await updatePreferences(language: nil, timezone: timezone)
                 }
             }
