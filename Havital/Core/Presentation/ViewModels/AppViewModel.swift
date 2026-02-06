@@ -14,6 +14,9 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     // 新增數據源未綁定相關的狀態
     @Published var showDataSourceNotBoundAlert = false
 
+    // 跨週檢測：記錄上次 App 活躍時的日曆週一（用戶本地時區）
+    private var lastActiveMonday: Date?
+
     // 使用新的狀態管理中心
     private let appStateManager: any AppStateManagerProtocol
     private let workoutRepository: WorkoutRepository
@@ -72,13 +75,16 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     /// App 啟動時的初始化 - 委託給 AppStateManager
     func initializeApp() async {
         print("📱 AppViewModel: 開始委託 AppStateManager 初始化")
-        
+
         // 註冊所有快取管理器
         registerCacheManagers()
-        
+
+        // 初始化跨週檢測：記錄當前日曆週一
+        lastActiveMonday = WeekDateService.currentCalendarMonday()
+
         // 委託給 AppStateManager 進行完整初始化
         await appStateManager.initializeApp()
-        
+
         print("✅ AppViewModel: 初始化委託完成")
     }
     
@@ -103,7 +109,19 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
             print("⚠️ AppViewModel: App 未就緒，跳過前台刷新")
             return
         }
-        
+
+        // 🔄 跨週檢測：比較當前週一與上次活躍時的週一（基於用戶本地時區）
+        let currentMonday = WeekDateService.currentCalendarMonday()
+        if let lastMonday = lastActiveMonday, let current = currentMonday {
+            if current != lastMonday {
+                // 跨週了！發布事件通知 TrainingPlanViewModel 更新 selectedWeek
+                Logger.debug("[AppViewModel] 🔄 檢測到跨週：\(lastMonday) → \(current)")
+                CacheEventBus.shared.publish(.weekChanged)
+            }
+        }
+        // 更新上次活躍的週一
+        lastActiveMonday = currentMonday
+
         _ = try? await workoutRepository.refreshWorkouts()
     }
     

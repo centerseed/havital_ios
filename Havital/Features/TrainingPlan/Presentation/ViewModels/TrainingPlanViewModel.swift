@@ -551,6 +551,10 @@ class TrainingPlanViewModel: ObservableObject {
         subscribeToEvent("dataChanged.trainingPlan") {
             await self.weeklyPlanVM.refreshWeeklyPlan()
             await self.loadWorkoutsForCurrentWeek()
+            // ✅ 修復：手動更新 planStatus（因為自動 binding 已移除）
+            await MainActor.run {
+                self.updatePlanStatus(from: self.weeklyPlanVM.state)
+            }
         }
 
         // ✅ Clean Architecture: 訂閱目標更新事件
@@ -558,6 +562,74 @@ class TrainingPlanViewModel: ObservableObject {
         subscribeToEvent("targetUpdated") {
             await self.weeklyPlanVM.loadOverview()
             await self.loadPlanStatus()
+            // ✅ 修復：更新 planStatus 以反映最新狀態
+            if let response = self.planStatusResponse {
+                if response.nextAction == .viewPlan {
+                    await self.weeklyPlanVM.loadWeeklyPlan()
+                    await MainActor.run {
+                        self.updatePlanStatus(from: self.weeklyPlanVM.state)
+                    }
+                } else if response.nextAction == .trainingCompleted {
+                    await MainActor.run {
+                        self.weeklyPlanVM.state = .empty
+                        self.planStatus = .completed
+                    }
+                } else {
+                    await MainActor.run {
+                        self.weeklyPlanVM.state = .empty
+                        self.planStatus = .noPlan
+                    }
+                }
+            }
+        }
+
+        // ✅ 跨週事件：當 App 從背景恢復且跨週時，刷新 plan status 並更新 selectedWeek
+        // 確保用戶週一打開 App 時看到當前週的課表，而非上週的
+        subscribeToEvent("weekChanged") {
+            Logger.debug("[TrainingPlanVM] 🔄 跨週事件：刷新 plan status 並更新 selectedWeek")
+
+            // 顯示 loading 狀態
+            await MainActor.run {
+                self.planStatus = .loading
+            }
+
+            // 強制刷新 plan status（跳過緩存），並重置 selectedWeek 到 currentWeek
+            await self.loadPlanStatus(skipCache: true, shouldResetSelectedWeek: true)
+
+            // 根據 planStatusResponse.nextAction 決定下一步操作（與 initialize() 邏輯一致）
+            guard let response = self.planStatusResponse else {
+                Logger.error("[TrainingPlanVM] ❌ weekChanged: No plan status response")
+                await MainActor.run {
+                    self.planStatus = .noPlan
+                }
+                return
+            }
+
+            Logger.debug("[TrainingPlanVM] weekChanged: nextAction=\(response.nextAction)")
+
+            if response.nextAction == .viewPlan {
+                // 有課表可顯示：載入週課表
+                await self.weeklyPlanVM.loadWeeklyPlan()
+                await self.loadWorkoutsForCurrentWeek()
+                await MainActor.run {
+                    self.updatePlanStatus(from: self.weeklyPlanVM.state)
+                }
+                Logger.debug("[TrainingPlanVM] ✅ weekChanged: 課表載入完成")
+            } else if response.nextAction == .trainingCompleted {
+                // 訓練計畫已完成
+                await MainActor.run {
+                    self.weeklyPlanVM.state = .empty
+                    self.planStatus = .completed
+                }
+                Logger.debug("[TrainingPlanVM] ✅ weekChanged: 訓練計畫已完成")
+            } else {
+                // 需要產生週回顧或課表（createSummary, createPlan, noActivePlan）
+                await MainActor.run {
+                    self.weeklyPlanVM.state = .empty
+                    self.planStatus = .noPlan
+                }
+                Logger.debug("[TrainingPlanVM] ✅ weekChanged: 需要產生課表或週回顧 (nextAction: \(response.nextAction))")
+            }
         }
 
         // ✅ Clean Architecture: 訂閱用戶登入事件
@@ -898,6 +970,10 @@ class TrainingPlanViewModel: ObservableObject {
 
         isLoadingAnimation = true
 
+        // ✅ 關鍵修復：先設置 planStatus = .loading，防止 UI 刷新時顯示舊課表
+        planStatus = .loading
+        Logger.debug("[TrainingPlanVM] planStatus 設為 .loading")
+
         // ✅ 先設置 selectedWeek 為目標週數，確保日期計算使用正確的週數
         weeklyPlanVM.selectedWeek = targetWeek
         Logger.debug("[TrainingPlanVM] 設置 selectedWeek = \(targetWeek)")
@@ -906,16 +982,21 @@ class TrainingPlanViewModel: ObservableObject {
         await weeklyPlanVM.generateWeeklyPlan(targetWeek: targetWeek)
         Logger.debug("[TrainingPlanVM] 產生第 \(targetWeek) 週計畫完成")
 
-        // 刷新計畫狀態（這會更新 weeklyPlanVM.currentWeek）
+        // ✅ 關鍵修復：產生課表後立即更新 planStatus，確保 UI 顯示新課表
+        // 必須在 loadWorkoutsForCurrentWeek 之前執行，因為 loadWorkoutsForCurrentWeek 會觸發 objectWillChange.send()
+        updatePlanStatus(from: weeklyPlanVM.state)
+        Logger.debug("[TrainingPlanVM] ✅ planStatus 已更新為新課表 (selectedWeek: \(selectedWeek))")
+
+        // 刷新計畫狀態（這會更新 weeklyPlanVM.currentWeek，但不重置 selectedWeek）
         await loadPlanStatus(skipCache: true, shouldResetSelectedWeek: false)
 
         // ✅ 載入該週的訓練記錄
         // getDateForDay() 使用 trainingOverview.createdAt + selectedWeek 計算正確的日期範圍
         await loadWorkoutsForCurrentWeek()
 
-        // ✅ 使用 helper 更新 planStatus，讓 UI 顯示新課表
+        // ✅ 再次確認 planStatus 是正確的（防止 loadPlanStatus 期間有任何異常）
         updatePlanStatus(from: weeklyPlanVM.state)
-        Logger.debug("[TrainingPlanVM] ✅ Next week plan status updated")
+        Logger.debug("[TrainingPlanVM] ✅ 最終確認 planStatus (selectedWeek: \(selectedWeek), state: \(weeklyPlanVM.state))")
 
         isLoadingAnimation = false
 
@@ -1191,8 +1272,32 @@ class TrainingPlanViewModel: ObservableObject {
     }
 
     /// 下週資訊
+    /// DEV 環境：如果後端未提供 nextWeekInfo，自動生成一個以便測試提前產生下週課表
     var nextWeekInfo: NextWeekInfo? {
-        return planStatusResponse?.nextWeekInfo
+        // 優先使用後端提供的 nextWeekInfo
+        if let backendInfo = planStatusResponse?.nextWeekInfo {
+            return backendInfo
+        }
+
+        // DEV 環境：自動生成 nextWeekInfo 以便提前測試
+        #if DEBUG
+        if FeatureFlagManager.shared.allowEarlyNextWeekGeneration,
+           let status = planStatusResponse {
+            let nextWeek = status.currentWeek + 1
+            // 確保不超過總週數
+            guard nextWeek <= status.totalWeeks else { return nil }
+
+            return NextWeekInfo(
+                weekNumber: nextWeek,
+                hasPlan: false,  // 假設下週課表尚未存在
+                canGenerate: true,
+                requiresCurrentWeekSummary: true,  // 通常需要先產生週回顧
+                nextAction: "create_plan_for_week_\(nextWeek)"
+            )
+        }
+        #endif
+
+        return nil
     }
 
     /// 成功訊息（用於 Toast 顯示）

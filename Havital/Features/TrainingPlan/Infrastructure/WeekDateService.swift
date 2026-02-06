@@ -8,7 +8,13 @@ public struct WeekDateInfo {
 }
 
 public enum WeekDateService {
-    private static let calendar = Calendar(identifier: .gregorian)
+    /// 使用用戶本地時區的日曆，確保跨週判斷基於當地時間
+    /// 週日 23:59:59 → 週一 00:00:00 即為跨週
+    private static var calendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone.current  // 明確使用當前時區
+        return cal
+    }()
     private static let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -81,5 +87,49 @@ public enum WeekDateService {
         let fmt = DateFormatter()
         fmt.dateFormat = "MM/dd"
         return "\(fmt.string(from: lastMonday)) - \(fmt.string(from: lastSunday))"
+    }
+
+    /// 根據訓練計畫創建日期計算當前訓練週數
+    /// - Parameter createdAt: 訓練計畫創建日期（ISO8601 格式）
+    /// - Returns: 當前訓練週數（從 1 開始），如果解析失敗返回 nil
+    public static func currentTrainingWeek(createdAt: String) -> Int? {
+        // 解析 createdAt
+        guard let rawDate = isoFormatter.date(from: createdAt) ?? ISO8601DateFormatter().date(from: createdAt) else {
+            return nil
+        }
+
+        let today = Date()
+
+        // 計算訓練計畫創建時的週一
+        let createdWeekday = calendar.component(.weekday, from: rawDate)
+        let createdOffsetToMonday = (createdWeekday + 5) % 7
+        guard let overviewMonday = calendar.date(byAdding: .day,
+                                                  value: -createdOffsetToMonday,
+                                                  to: calendar.startOfDay(for: rawDate)) else {
+            return nil
+        }
+
+        // 計算今天所在的週一
+        let todayWeekday = calendar.component(.weekday, from: today)
+        let todayOffsetToMonday = (todayWeekday + 5) % 7
+        guard let todayMonday = calendar.date(byAdding: .day,
+                                               value: -todayOffsetToMonday,
+                                               to: calendar.startOfDay(for: today)) else {
+            return nil
+        }
+
+        // 計算週數差距
+        let days = calendar.dateComponents([.day], from: overviewMonday, to: todayMonday).day ?? 0
+        let weekNumber = (days / 7) + 1
+
+        return max(1, weekNumber)
+    }
+
+    /// 計算今天所在的日曆週一（用於跨週檢測）
+    public static func currentCalendarMonday() -> Date? {
+        let today = Date()
+        let weekday = calendar.component(.weekday, from: today)
+        let offsetToMonday = (weekday + 5) % 7
+        return calendar.date(byAdding: .day, value: -offsetToMonday, to: calendar.startOfDay(for: today))
     }
 }

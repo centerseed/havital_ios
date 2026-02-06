@@ -28,6 +28,7 @@ enum CacheInvalidationReason {
     case expired
     case onboardingCompleted      // 新用戶 Onboarding 完成，需清除舊緩存並強制刷新
     case reonboardingCompleted    // Re-onboarding 完成，通知 UI 關閉 sheet
+    case weekChanged              // 跨週事件：App 從背景恢復時發現已跨週，需更新 selectedWeek
 }
 
 // MARK: - 資料類型

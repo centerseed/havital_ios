@@ -48,6 +48,9 @@ class CacheEventBus {
             // Re-onboarding 完成：不需要清除緩存，只需通知 UI
             // UI 層（AuthenticationViewModel）訂閱此事件來關閉 sheet
             Logger.firebase("Re-onboarding 完成，通知 UI 關閉 sheet", level: .info)
+        case .weekChanged:
+            // 跨週事件：不需要清除緩存，只需通知 TrainingPlanViewModel 更新 selectedWeek
+            Logger.debug("[CacheEventBus] 跨週事件：通知 UI 更新當前週數")
         }
 
         notifyListeners(reason: reason)
@@ -113,6 +116,8 @@ class CacheEventBus {
             eventKey = "manualClear"
         case .expired:
             eventKey = "expired"
+        case .weekChanged:
+            eventKey = "weekChanged"
         }
 
         // 通知基於 eventKey 的訂閱者

@@ -531,11 +531,10 @@ struct TrainingPlanView: View {
                 EmptyView()
             }
 
-            // 🆕 產生下週課表按鈕（週六日顯示）
-            // 移除高頻 DEBUG 日誌：此區塊在每次 SwiftUI body 重新評估時都會執行
-
+            // 🆕 產生下週課表按鈕（週六日顯示，或 DEV 環境可提前產生）
+            // 條件：canGenerate=true（後端判斷週六日）或 DEV 環境開啟 allowEarlyNextWeekGeneration
             if let nextWeekInfo = viewModel.nextWeekInfo,
-               nextWeekInfo.canGenerate,
+               (nextWeekInfo.canGenerate || FeatureFlagManager.shared.allowEarlyNextWeekGeneration),
                !nextWeekInfo.hasPlan,
                viewModel.selectedWeek == viewModel.currentWeek {
                 GenerateNextWeekButton(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
