@@ -125,7 +125,12 @@ final class WeeklyPlanViewModel: ObservableObject {
         }
 
         Logger.debug("[WeeklyPlanVM] 🔄 載入計畫 - planId: \(planId)")
-        state = .loading
+
+        // ✅ Stale-While-Revalidate: 有數據時不顯示 loading，避免 UI 閃爍
+        let hasData = state.data != nil
+        if !hasData {
+            state = .loading
+        }
 
         do {
             let plan = try await repository.getWeeklyPlan(planId: planId)
@@ -138,8 +143,13 @@ final class WeeklyPlanViewModel: ObservableObject {
                 Logger.debug("[WeeklyPlanVM] ⚠️ Weekly plan not found: \(planId)")
                 state = .empty
             } else {
-                Logger.error("[WeeklyPlanVM] ❌ Error: \(error)")
-                state = .error(error.toDomainError())
+                // ✅ 有緩存時，錯誤不覆蓋已顯示的數據
+                if !hasData {
+                    Logger.error("[WeeklyPlanVM] ❌ Error: \(error)")
+                    state = .error(error.toDomainError())
+                } else {
+                    Logger.warn("[WeeklyPlanVM] ⚠️ Load failed but keeping cached data: \(error)")
+                }
             }
         } catch {
             let domainError = error.toDomainError()
@@ -150,8 +160,13 @@ final class WeeklyPlanViewModel: ObservableObject {
                 return
             }
 
-            state = .error(domainError)
-            Logger.error("[WeeklyPlanVM] ❌ Failed to load plan: \(domainError.localizedDescription ?? "")")
+            // ✅ 有緩存時，錯誤不覆蓋已顯示的數據（503 等暫時性錯誤）
+            if !hasData {
+                state = .error(domainError)
+                Logger.error("[WeeklyPlanVM] ❌ Failed to load plan: \(domainError.localizedDescription ?? "")")
+            } else {
+                Logger.warn("[WeeklyPlanVM] ⚠️ Load failed but keeping cached data: \(domainError.localizedDescription ?? "")")
+            }
         }
     }
 
@@ -264,7 +279,11 @@ final class WeeklyPlanViewModel: ObservableObject {
 
     /// 載入訓練概覽
     func loadOverview() async {
-        overviewState = .loading
+        // ✅ Stale-While-Revalidate: 有數據時不顯示 loading，避免 UI 閃爍
+        let hasData = overviewState.data != nil
+        if !hasData {
+            overviewState = .loading
+        }
 
         do {
             let overview = try await repository.getOverview()
@@ -273,7 +292,13 @@ final class WeeklyPlanViewModel: ObservableObject {
         } catch {
             let domainError = error.toDomainError()
             if case .cancellation = domainError { return }
-            overviewState = .error(domainError)
+
+            // ✅ 有緩存時，錯誤不覆蓋已顯示的數據
+            if !hasData {
+                overviewState = .error(domainError)
+            } else {
+                Logger.warn("[WeeklyPlanVM] Overview load failed but keeping cached data: \(domainError.localizedDescription ?? "")")
+            }
         }
     }
 

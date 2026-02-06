@@ -23,12 +23,12 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
     func getWeeklyPlan(planId: String) async throws -> WeeklyPlan {
         Logger.debug("[Repository] getWeeklyPlan: \(planId)")
 
-        // Track A: 檢查本地緩存
-        if let cached = localDataSource.getWeeklyPlan(planId: planId),
-           !localDataSource.isWeeklyPlanExpired(planId: planId) {
-            Logger.debug("[Repository] Cache hit: \(planId)")
+        // ✅ Stale-While-Revalidate 策略：有緩存就先返回，即使過期
+        if let cached = localDataSource.getWeeklyPlan(planId: planId) {
+            let isExpired = localDataSource.isWeeklyPlanExpired(planId: planId)
+            Logger.debug("[Repository] Cache \(isExpired ? "stale" : "hit"): \(planId)")
 
-            // Track B: 背景刷新
+            // Track B: 背景刷新（無論是否過期都執行）
             Task.detached(priority: .background) { [weak self] in
                 await self?.refreshWeeklyPlanInBackground(planId: planId)
             }
@@ -36,7 +36,7 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
             return cached
         }
 
-        // 無緩存或已過期，從 API 獲取
+        // 完全無緩存，從 API 獲取
         Logger.debug("[Repository] Cache miss, fetching from API: \(planId)")
         return try await fetchAndCacheWeeklyPlan(planId: planId)
     }
@@ -109,12 +109,12 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
     func getOverview() async throws -> TrainingPlanOverview {
         Logger.debug("[Repository] getOverview")
 
-        // Track A: 檢查本地緩存
-        if let cached = localDataSource.getOverview(),
-           !localDataSource.isOverviewExpired() {
-            Logger.debug("[Repository] Overview cache hit")
+        // ✅ Stale-While-Revalidate 策略：有緩存就先返回，即使過期
+        if let cached = localDataSource.getOverview() {
+            let isExpired = localDataSource.isOverviewExpired()
+            Logger.debug("[Repository] Overview cache \(isExpired ? "stale" : "hit")")
 
-            // Track B: 背景刷新
+            // Track B: 背景刷新（無論是否過期都執行）
             Task.detached(priority: .background) { [weak self] in
                 await self?.refreshOverviewInBackground()
             }
@@ -122,7 +122,7 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
             return cached
         }
 
-        // 無緩存或已過期
+        // 完全無緩存，從 API 獲取
         Logger.debug("[Repository] Overview cache miss, fetching from API")
         return try await fetchAndCacheOverview()
     }
@@ -157,12 +157,12 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
     func getPlanStatus() async throws -> PlanStatusResponse {
         Logger.debug("[Repository] getPlanStatus")
 
-        // Track A: 檢查本地緩存
-        if let cached = localDataSource.getPlanStatus(),
-           !localDataSource.isPlanStatusExpired() {
-            Logger.debug("[Repository] Plan status cache hit")
+        // ✅ Stale-While-Revalidate 策略：有緩存就先返回，即使過期
+        if let cached = localDataSource.getPlanStatus() {
+            let isExpired = localDataSource.isPlanStatusExpired()
+            Logger.debug("[Repository] Plan status cache \(isExpired ? "stale" : "hit")")
 
-            // Track B: 背景刷新
+            // Track B: 背景刷新（無論是否過期都執行）
             Task.detached(priority: .background) { [weak self] in
                 await self?.refreshPlanStatusInBackground()
             }
@@ -170,7 +170,7 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
             return cached
         }
 
-        // 無緩存或已過期
+        // 完全無緩存，從 API 獲取
         Logger.debug("[Repository] Plan status cache miss, fetching from API")
         return try await fetchAndCachePlanStatus()
     }

@@ -13,13 +13,14 @@ class FeatureFlagManager: ObservableObject {
     // MARK: - Feature Flag Keys
     private enum FeatureKeys: String {
         case garminIntegration = "garmin_integration_enabled"
-        // 未來可以加入更多 feature flags
-        // case newTrainingPlan = "new_training_plan_enabled"
-        // case betaFeatures = "beta_features_enabled"
+        case allowEarlyNextWeekGeneration = "allow_early_next_week_generation"
     }
     
     // MARK: - Published Properties
     @Published var isGarminEnabled: Bool = false
+
+    /// [DEV ONLY] 允許提前產生下週課表（不需等到週六日）
+    @Published var allowEarlyNextWeekGeneration: Bool = false
     
     private init() {
         remoteConfig = RemoteConfig.remoteConfig()
@@ -30,9 +31,18 @@ class FeatureFlagManager: ObservableObject {
     // MARK: - Setup
     private func setupRemoteConfig() {
         // 設定 Remote Config 預設值
+        #if DEBUG
+        // DEV 環境：預設允許提前產生下週課表
         let defaults: [String: NSObject] = [
-            FeatureKeys.garminIntegration.rawValue: false as NSObject
+            FeatureKeys.garminIntegration.rawValue: false as NSObject,
+            FeatureKeys.allowEarlyNextWeekGeneration.rawValue: true as NSObject
         ]
+        #else
+        let defaults: [String: NSObject] = [
+            FeatureKeys.garminIntegration.rawValue: false as NSObject,
+            FeatureKeys.allowEarlyNextWeekGeneration.rawValue: false as NSObject
+        ]
+        #endif
         
         remoteConfig.setDefaults(defaults)
         
@@ -92,7 +102,8 @@ class FeatureFlagManager: ObservableObject {
     // MARK: - Update Feature Flags
     private func updateFeatureFlags() {
         let newGarminEnabled = remoteConfig.configValue(forKey: FeatureKeys.garminIntegration.rawValue).boolValue
-        
+        let newAllowEarlyGeneration = remoteConfig.configValue(forKey: FeatureKeys.allowEarlyNextWeekGeneration.rawValue).boolValue
+
         Logger.firebase("Feature Flag 讀取", level: .info, labels: [
             "module": "FeatureFlagManager",
             "key": FeatureKeys.garminIntegration.rawValue,
@@ -100,10 +111,11 @@ class FeatureFlagManager: ObservableObject {
             "current_published_value": "\(isGarminEnabled)",
             "remote_config_source": "\(remoteConfig.configValue(forKey: FeatureKeys.garminIntegration.rawValue).source.rawValue)"
         ])
-        
+
         // 更新值（初始化時也要更新）
         let valueChanged = newGarminEnabled != isGarminEnabled
         isGarminEnabled = newGarminEnabled
+        allowEarlyNextWeekGeneration = newAllowEarlyGeneration
         
         if valueChanged {
             Logger.firebase("Feature Flag 值已變更", level: .info, labels: [

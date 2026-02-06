@@ -2,23 +2,25 @@
 
 # ==============================================================================
 # Unified Test Runner
-# 
+#
 # Usage: ./test.sh [type] [options]
-# 
+#
 # Types:
 #   unit        Run only unit tests (skips integration tests)
 #   integration Run only integration tests
 #   ui          Run only UI tests
+#   flow        Run loading flow tests (ARCH-006 scenarios)
 #   all         Run all tests (default)
-# 
+#
 # Options:
 #   --clean     Clear simulator cache before running
 #   -v, --verbose Show verbose output
 #   --filter <Class> Run specific test class
-# 
+#
 # Example:
 #   ./test.sh unit
 #   ./test.sh integration --verbose
+#   ./test.sh flow              # ARCH-006 載入流程測試
 #   ./test.sh all --clean
 # ==============================================================================
 
@@ -41,6 +43,11 @@ INTEGRATION_TESTS=(
     "TrainingPlanFlowIntegrationTests"
     "TrainingPlanViewModelIntegrationTests"
     "TargetToOverviewIntegrationTests"
+)
+
+# Loading Flow Tests (ARCH-006 scenarios)
+LOADING_FLOW_TESTS=(
+    "TrainingPlanLoadingFlowTests"
 )
 
 # Colors
@@ -88,7 +95,7 @@ FILTER=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        unit|integration|ui|all)
+        unit|integration|ui|flow|all)
             TYPE="$1"
             shift
             ;;
@@ -106,7 +113,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo -e "${RED}Unknown argument: $1${NC}"
-            echo "Usage: $0 [unit|integration|all] [--clean] [--verbose] [--filter ClassName]"
+            echo "Usage: $0 [unit|integration|ui|flow|all] [--clean] [--verbose] [--filter ClassName]"
             exit 1
             ;;
     esac
@@ -187,6 +194,12 @@ elif [ "$TYPE" == "integration" ]; then
 elif [ "$TYPE" == "ui" ]; then
     echo "📱 Mode: UI Tests Only"
     TEST_CMD+=("-only-testing:HavitalUITests")
+
+elif [ "$TYPE" == "flow" ]; then
+    echo "🔄 Mode: Loading Flow Tests (ARCH-006)"
+    for test in "${LOADING_FLOW_TESTS[@]}"; do
+        TEST_CMD+=("-only-testing:$TEST_TARGET/$test")
+    done
 
 else # all
     echo "🌎 Mode: All Tests"
