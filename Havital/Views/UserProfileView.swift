@@ -613,6 +613,57 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.orange)
+
+            Divider()
+
+            Button {
+                Task {
+                    do {
+                        // 從 DependencyContainer 取得 Repository
+                        let repository: TrainingPlanV2Repository = DependencyContainer.shared.resolve()
+
+                        // 先取得 Overview 以計算當前週數
+                        print("🔧 [Debug] 正在取得當前週數...")
+                        let overview = try await repository.getOverview()
+
+                        // 計算當前週數（與 TrainingPlanV2ViewModel 相同邏輯）
+                        let calendar = Calendar.current
+                        let now = Date()
+                        guard let startDate = overview.createdAt else {
+                            print("❌ [Debug] Overview createdAt 為 nil")
+                            return
+                        }
+
+                        guard let weekDiff = calendar.dateComponents([.weekOfYear], from: startDate, to: now).weekOfYear else {
+                            print("❌ [Debug] 無法計算週數差異")
+                            return
+                        }
+
+                        let currentWeek = min(max(weekDiff + 1, 1), overview.totalWeeks)
+
+                        print("🔧 [Debug] 開始產生第 \(currentWeek) 週回顧（強制更新）")
+
+                        let summary = try await repository.generateWeeklySummary(
+                            weekOfPlan: currentWeek,
+                            forceUpdate: true
+                        )
+
+                        print("✅ [Debug] 週回顧產生成功！")
+                        print("   - 週數: 第 \(currentWeek) 週 / 共 \(overview.totalWeeks) 週")
+                        print("   - ID: \(summary.id)")
+                        print("   - 完成度: \(Int(summary.trainingCompletion.percentage * 100))%")
+                        print("   - 完成場次: \(summary.trainingCompletion.completedSessions)/\(summary.trainingCompletion.plannedSessions)")
+                    } catch {
+                        print("❌ [Debug] 產生週回顧失敗: \(error.localizedDescription)")
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                    Text("🐛 產生當週回顧（強制）")
+                }
+            }
+            .foregroundColor(.purple)
         }
     }
     #endif

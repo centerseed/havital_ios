@@ -111,9 +111,7 @@ final class DependencyContainer {
 
     /// 註冊 TrainingPlan 模組依賴（V1 版本）
     func registerTrainingPlanDependencies() {
-        // V1 版本的 TrainingPlan 依賴註冊
-        // 目前 V1 尚未遷移至 Clean Architecture，保留此方法以供未來遷移使用
-        Logger.debug("[DI] TrainingPlan V1 module dependencies registered (placeholder)")
+        registerTrainingPlanModule()
     }
 
     /// 註冊 TrainingPlanV2 模組依賴（V2 版本）

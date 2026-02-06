@@ -421,6 +421,12 @@ struct TrainingDetails: Codable, Equatable {
     let repeats: Int?
     let heartRateRange: HeartRateRange?  // 對於一般訓練是必填的，但對於rest是可選的
     let segments: [ProgressionSegment]?
+
+    // V2 新增欄位 - 所有設為可選以確保向下兼容
+    let warmup: RunSegmentV2?           // 暖身段
+    let cooldown: RunSegmentV2?         // 緩和段
+    let exercises: [ExerciseV2]?        // 力量訓練動作清單
+    let supplementary: [SupplementaryActivityV2]?  // 補充訓練
     
     static func == (lhs: TrainingDetails, rhs: TrainingDetails) -> Bool {
         return lhs.description == rhs.description &&
@@ -432,7 +438,11 @@ struct TrainingDetails: Codable, Equatable {
                lhs.recovery == rhs.recovery &&
                lhs.repeats == rhs.repeats &&
                lhs.heartRateRange == rhs.heartRateRange &&
-               lhs.segments == rhs.segments
+               lhs.segments == rhs.segments &&
+               lhs.warmup == rhs.warmup &&
+               lhs.cooldown == rhs.cooldown &&
+               lhs.exercises == rhs.exercises &&
+               lhs.supplementary == rhs.supplementary
     }
     
     enum CodingKeys: String, CodingKey {
@@ -446,6 +456,10 @@ struct TrainingDetails: Codable, Equatable {
         case repeats
         case heartRateRange = "heart_rate_range"
         case segments
+        case warmup
+        case cooldown
+        case exercises
+        case supplementary
     }
 
     /// 自定義編碼器 - 確保 nil 值被編碼為 null
@@ -462,6 +476,10 @@ struct TrainingDetails: Codable, Equatable {
         try container.encode(repeats, forKey: .repeats)
         try container.encode(heartRateRange, forKey: .heartRateRange)
         try container.encode(segments, forKey: .segments)
+        try container.encodeIfPresent(warmup, forKey: .warmup)
+        try container.encodeIfPresent(cooldown, forKey: .cooldown)
+        try container.encodeIfPresent(exercises, forKey: .exercises)
+        try container.encodeIfPresent(supplementary, forKey: .supplementary)
     }
 }
 
@@ -606,7 +624,7 @@ struct TrainingGoals {
     let heartRateRange: HeartRateRange?
     let heartRate: String? // 保留原本欄位，兼容舊資料
     let times: Int?
-    
+
     init(pace: String?, distanceKm: Double?, heartRateRange: HeartRateRange?, heartRate: String?, times: Int?) {
         self.pace = pace
         self.distanceKm = distanceKm
@@ -615,3 +633,11 @@ struct TrainingGoals {
         self.times = times
     }
 }
+
+// MARK: - V2 類型別名 (供 TrainingDetails 使用)
+
+/// 從 V2 Domain 層引用的類型別名
+/// 這些類型定義在 Features/TrainingPlanV2/Domain/Entities/TrainingSessionModels.swift
+typealias RunSegmentV2 = RunSegment
+typealias ExerciseV2 = Exercise
+typealias SupplementaryActivityV2 = SupplementaryActivity

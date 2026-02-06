@@ -113,10 +113,13 @@ struct AppDependencyBootstrap {
     /// 註冊 TrainingPlan V1 模組
     /// 包含: TrainingPlanRepository, DataSources, UseCases
     private static func registerTrainingPlanModule() {
-        // V1 版本目前尚未遷移至 Clean Architecture
-        // 保留此方法作為 placeholder
+        guard !DependencyContainer.shared.isRegistered(TrainingPlanRepository.self) else {
+            Logger.debug("[Bootstrap] TrainingPlan V1 module already registered, skipping")
+            return
+        }
+
         DependencyContainer.shared.registerTrainingPlanDependencies()
-        Logger.debug("[Bootstrap] ✅ TrainingPlan V1 module registered (placeholder)")
+        Logger.debug("[Bootstrap] ✅ TrainingPlan V1 module registered")
     }
 
     /// 註冊 TrainingPlanV2 模組

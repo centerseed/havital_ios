@@ -1150,13 +1150,13 @@ struct TimelineItemView: View {
         designReason: ["測試用"],
         days: [
             TrainingDay(dayIndex: "0", dayTarget: "恢復跑", reason: nil, tips: nil, trainingType: "recovery_run",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: 6.19, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 6.19, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil)),
             TrainingDay(dayIndex: "1", dayTarget: "間歇訓練", reason: nil, tips: nil, trainingType: "interval",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: 4.42, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 4.42, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil)),
             TrainingDay(dayIndex: "4", dayTarget: "組合訓練", reason: nil, tips: nil, trainingType: "combination",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: nil, totalDistanceKm: 10.0, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: nil, totalDistanceKm: 10.0, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil)),
             TrainingDay(dayIndex: "2", dayTarget: "輕鬆跑", reason: nil, tips: nil, trainingType: "easy",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: 8.0, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil))
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 8.0, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil))
         ],
         intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 120, medium: 45, high: 15)
     )

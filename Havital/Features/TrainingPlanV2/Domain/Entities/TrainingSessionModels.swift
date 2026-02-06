@@ -345,14 +345,36 @@ extension DayDetail {
 
     /// 將 TrainingSession 轉換為 TrainingDetails
     private func convertToTrainingDetails(from session: TrainingSession) -> TrainingDetails {
+        // 先轉換主訓練
+        var details: TrainingDetails
         switch session.primary {
         case .run(let runActivity):
-            return convertRunActivityToDetails(runActivity)
+            details = convertRunActivityToDetails(runActivity)
         case .strength(let strengthActivity):
-            return convertStrengthActivityToDetails(strengthActivity)
+            details = convertStrengthActivityToDetails(strengthActivity)
         case .cross(let crossActivity):
-            return convertCrossActivityToDetails(crossActivity)
+            details = convertCrossActivityToDetails(crossActivity)
         }
+
+        // 合併 warmup/cooldown/supplementary (V2 新功能)
+        details = TrainingDetails(
+            description: details.description,
+            distanceKm: details.distanceKm,
+            totalDistanceKm: details.totalDistanceKm,
+            timeMinutes: details.timeMinutes,
+            pace: details.pace,
+            work: details.work,
+            recovery: details.recovery,
+            repeats: details.repeats,
+            heartRateRange: details.heartRateRange,
+            segments: details.segments,
+            warmup: session.warmup,
+            cooldown: session.cooldown,
+            exercises: details.exercises,
+            supplementary: session.supplementary
+        )
+
+        return details
     }
 
     /// 將 RunActivity 轉換為 TrainingDetails
@@ -394,7 +416,11 @@ extension DayDetail {
                 recovery: recovery,
                 repeats: interval.repeats,
                 heartRateRange: heartRateRange,
-                segments: nil
+                segments: nil,
+                warmup: nil,
+                cooldown: nil,
+                exercises: nil,
+                supplementary: nil
             )
         }
 
@@ -426,7 +452,11 @@ extension DayDetail {
                 recovery: nil,
                 repeats: nil,
                 heartRateRange: heartRateRange,
-                segments: progressionSegments
+                segments: progressionSegments,
+                warmup: nil,
+                cooldown: nil,
+                exercises: nil,
+                supplementary: nil
             )
         }
 
@@ -441,7 +471,11 @@ extension DayDetail {
             recovery: nil,
             repeats: nil,
             heartRateRange: heartRateRange,
-            segments: nil
+            segments: nil,
+            warmup: nil,
+            cooldown: nil,
+            exercises: nil,
+            supplementary: nil
         )
     }
 
@@ -457,7 +491,11 @@ extension DayDetail {
             recovery: nil,
             repeats: nil,
             heartRateRange: nil,
-            segments: nil
+            segments: nil,
+            warmup: nil,
+            cooldown: nil,
+            exercises: activity.exercises,  // ✨ 保留 exercises 陣列
+            supplementary: nil
         )
     }
 
@@ -473,7 +511,11 @@ extension DayDetail {
             recovery: nil,
             repeats: nil,
             heartRateRange: nil,
-            segments: nil
+            segments: nil,
+            warmup: nil,
+            cooldown: nil,
+            exercises: nil,
+            supplementary: nil
         )
     }
 }

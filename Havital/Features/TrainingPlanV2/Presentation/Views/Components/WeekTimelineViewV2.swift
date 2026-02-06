@@ -60,7 +60,7 @@ struct WeekTimelineViewV2: View {
 /// V2 時間軸單項視圖
 struct TimelineItemViewV2: View {
     @ObservedObject var viewModel: TrainingPlanV2ViewModel
-    let day: TrainingDay
+    let day: DayDetail
     let onWorkoutSelect: (WorkoutV2) -> Void
 
     @State private var isExpanded = false
@@ -393,73 +393,102 @@ struct TimelineItemViewV2: View {
 
 /// 訓練詳情視圖
 private struct TrainingDetailsViewV2: View {
-    let day: TrainingDay
+    let day: DayDetail
     let details: TrainingDetails
 
     var body: some View {
-        HStack(spacing: 6) {
-            // 距離
-            if let distance = details.distanceKm {
-                HStack(spacing: 2) {
-                    Image(systemName: "figure.run")
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.white)
-                    Text(String(format: "%.1fkm", distance))
-                        .font(AppFont.caption())
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 5)
-                .padding(.vertical, 3)
-                .background(Color.blue)
-                .cornerRadius(4)
-            } else if let totalDistance = details.totalDistanceKm {
-                HStack(spacing: 2) {
-                    Image(systemName: "figure.run")
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.white)
-                    Text(String(format: "%.1fkm", totalDistance))
-                        .font(AppFont.caption())
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 5)
-                .padding(.vertical, 3)
-                .background(Color.blue)
-                .cornerRadius(4)
+        VStack(alignment: .leading, spacing: 8) {
+            // ✨ 暖身段（V2 新功能）
+            if let warmup = details.warmup {
+                WarmupCooldownView(
+                    segment: warmup,
+                    type: .warmup
+                )
             }
 
-            // 配速（根據訓練類型決定是否顯示）
-            if let pace = details.pace, !shouldHidePace() {
-                HStack(spacing: 2) {
-                    Image(systemName: "speedometer")
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.white)
-                    Text(pace)
-                        .font(AppFont.caption())
-                        .foregroundColor(.white)
+            // 主訓練詳情
+            HStack(spacing: 6) {
+                // 距離
+                if let distance = details.distanceKm {
+                    HStack(spacing: 2) {
+                        Image(systemName: "figure.run")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.white)
+                        Text(String(format: "%.1fkm", distance))
+                            .font(AppFont.caption())
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 3)
+                    .background(Color.blue)
+                    .cornerRadius(4)
+                } else if let totalDistance = details.totalDistanceKm {
+                    HStack(spacing: 2) {
+                        Image(systemName: "figure.run")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.white)
+                        Text(String(format: "%.1fkm", totalDistance))
+                            .font(AppFont.caption())
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 3)
+                    .background(Color.blue)
+                    .cornerRadius(4)
                 }
-                .padding(.horizontal, 5)
-                .padding(.vertical, 3)
-                .background(Color.orange)
-                .cornerRadius(4)
+
+                // 配速（根據訓練類型決定是否顯示）
+                if let pace = details.pace, !shouldHidePace() {
+                    HStack(spacing: 2) {
+                        Image(systemName: "speedometer")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.white)
+                        Text(pace)
+                            .font(AppFont.caption())
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 3)
+                    .background(Color.orange)
+                    .cornerRadius(4)
+                }
+
+                // 心率區間
+                if let hr = details.heartRateRange, let displayText = hr.displayText {
+                    HStack(spacing: 2) {
+                        Image(systemName: "heart.fill")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.white)
+                        Text(displayText)
+                            .font(AppFont.caption())
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 3)
+                    .background(Color.red)
+                    .cornerRadius(4)
+                }
+
+                Spacer()
             }
 
-            // 心率區間
-            if let hr = details.heartRateRange, let displayText = hr.displayText {
-                HStack(spacing: 2) {
-                    Image(systemName: "heart.fill")
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.white)
-                    Text(displayText)
-                        .font(AppFont.caption())
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 5)
-                .padding(.vertical, 3)
-                .background(Color.red)
-                .cornerRadius(4)
+            // ✨ 力量訓練動作清單（V2 新功能）
+            if let exercises = details.exercises, !exercises.isEmpty {
+                ExercisesListView(exercises: exercises)
             }
 
-            Spacer()
+            // ✨ 緩和段（V2 新功能）
+            if let cooldown = details.cooldown {
+                WarmupCooldownView(
+                    segment: cooldown,
+                    type: .cooldown
+                )
+            }
+
+            // ✨ 補充訓練（V2 新功能）
+            if let supplementary = details.supplementary, !supplementary.isEmpty {
+                SupplementaryTrainingView(activities: supplementary)
+            }
         }
         .padding(.top, 4)
     }

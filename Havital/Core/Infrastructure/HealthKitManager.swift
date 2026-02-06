@@ -1895,8 +1895,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     return
                 }
 
-                // Effort score is on 0-10 scale, use .count() unit
-                let value = sample.quantity.doubleValue(for: .count())
+                // Effort score uses appleEffortScore unit (iOS 18+)
+                let value = sample.quantity.doubleValue(for: .appleEffortScore())
                 print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
                 continuation.resume(returning: value)
             }

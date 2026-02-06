@@ -6,6 +6,7 @@ struct TrainingPlanV2View: View {
     @StateObject private var viewModel: TrainingPlanV2ViewModel
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
+    @State private var showWeeklySummary = false
 
     // MARK: - Initialization
 
@@ -82,6 +83,10 @@ struct TrainingPlanV2View: View {
                             Label("訓練計畫概覽", systemImage: "doc.text.below.ecg")
                         }
 
+                        Button(action: { showWeeklySummary = true }) {
+                            Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
+                        }
+
                         Divider()
 
                         Button(action: {
@@ -135,6 +140,18 @@ struct TrainingPlanV2View: View {
             .sheet(isPresented: $showUserProfile) {
                 NavigationView {
                     UserProfileView()
+                }
+            }
+            .sheet(isPresented: $showWeeklySummary) {
+                NavigationStack {
+                    WeeklySummaryV2View(viewModel: viewModel, weekOfPlan: viewModel.selectedWeek)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(NSLocalizedString("common.close", comment: "Close")) {
+                                    showWeeklySummary = false
+                                }
+                            }
+                        }
                 }
             }
         }

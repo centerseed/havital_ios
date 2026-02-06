@@ -185,7 +185,11 @@ struct MutableTrainingDetails: Equatable {
             recovery: recovery?.toWorkoutSegment(),
             repeats: repeats,
             heartRateRange: heartRateRange,
-            segments: segments?.map { $0.toProgressionSegment() }
+            segments: segments?.map { $0.toProgressionSegment() },
+            warmup: nil,
+            cooldown: nil,
+            exercises: nil,
+            supplementary: nil
         )
     }
 

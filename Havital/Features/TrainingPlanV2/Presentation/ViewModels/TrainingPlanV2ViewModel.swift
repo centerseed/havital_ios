@@ -49,6 +49,9 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 成功提示訊息
     @Published var successToast: String?
 
+    /// 週摘要狀態
+    @Published var weeklySummary: ViewState<WeeklySummaryV2> = .loading
+
     // MARK: - Computed Properties
 
     /// 是否正在載入
@@ -506,6 +509,49 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 清除成功提示
     func clearSuccessToast() {
         successToast = nil
+    }
+
+    // MARK: - Weekly Summary
+
+    /// 載入週摘要
+    func loadWeeklySummary(weekOfPlan: Int) async {
+        Logger.debug("[TrainingPlanV2VM] 載入第 \(weekOfPlan) 週摘要...")
+
+        weeklySummary = .loading
+
+        do {
+            let summary = try await repository.getWeeklySummary(weekOfPlan: weekOfPlan)
+            weeklySummary = .loaded(summary)
+            Logger.debug("[TrainingPlanV2VM] ✅ 週摘要載入成功: \(summary.id)")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ 週摘要載入失敗: \(error.localizedDescription)")
+            if let domainError = error as? DomainError {
+                weeklySummary = .error(domainError)
+            } else {
+                weeklySummary = .error(.networkFailure(error.localizedDescription))
+            }
+        }
+    }
+
+    /// 產生週摘要
+    func generateWeeklySummary() async {
+        Logger.debug("[TrainingPlanV2VM] 產生第 \(selectedWeek) 週摘要...")
+
+        weeklySummary = .loading
+
+        do {
+            let summary = try await repository.generateWeeklySummary(weekOfPlan: selectedWeek, forceUpdate: true)
+            weeklySummary = .loaded(summary)
+            successToast = "週回顧已產生"
+            Logger.info("[TrainingPlanV2VM] ✅ 週摘要產生成功: \(summary.id)")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
+            if let domainError = error as? DomainError {
+                weeklySummary = .error(domainError)
+            } else {
+                weeklySummary = .error(.networkFailure(error.localizedDescription))
+            }
+        }
     }
 
     // MARK: - Debug Actions

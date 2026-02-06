@@ -279,7 +279,11 @@ struct TodayTrainingContent: View {
                 ProgressionSegment(distanceKm: 3.0, pace: nil, description: "輕鬆開始", heartRateRange: HeartRateRange(min: 141, max: 162)),
                 ProgressionSegment(distanceKm: 4.0, pace: "5:25", description: "提速", heartRateRange: HeartRateRange(min: 162, max: 176)),
                 ProgressionSegment(distanceKm: 3.0, pace: nil, description: "放鬆結束", heartRateRange: HeartRateRange(min: 141, max: 162))
-            ]
+            ],
+            warmup: nil,
+            cooldown: nil,
+            exercises: nil,
+            supplementary: nil
         )
     )
 
