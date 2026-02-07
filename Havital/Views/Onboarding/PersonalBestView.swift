@@ -87,7 +87,7 @@ struct PersonalBestView: View {
                             .padding(.bottom, 5)
 
                         Picker(NSLocalizedString("onboarding.distance_selection", comment: "Distance Selection"), selection: $viewModel.selectedPBDistance) {
-                            ForEach(Array(viewModel.availablePBDistances.keys.sorted(by: { Double($0)! < Double($1)! })), id: \.self) { key in
+                            ForEach(Array(viewModel.availablePBDistances.keys.sorted(by: { (Double($0) ?? 0) < (Double($1) ?? 0) })), id: \.self) { key in
                                 Text(viewModel.availablePBDistances[key] ?? key)
                                     .tag(key)
                             }

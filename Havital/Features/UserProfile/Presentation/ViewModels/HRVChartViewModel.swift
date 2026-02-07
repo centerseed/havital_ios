@@ -63,13 +63,13 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
             
             switch selectedTimeRange {
             case .week:
-                startDate = Calendar.current.date(byAdding: .day, value: -7, to: now)!
+                startDate = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
             case .month:
-                startDate = Calendar.current.date(byAdding: .month, value: -1, to: now)!
+                startDate = Calendar.current.date(byAdding: .month, value: -1, to: now) ?? now
             case .threeMonths:
-                startDate = Calendar.current.date(byAdding: .month, value: -3, to: now)!
+                startDate = Calendar.current.date(byAdding: .month, value: -3, to: now) ?? now
             }
-            
+
             let rawData = try await healthKitManager.fetchHRVData(start: startDate, end: now)
             
             // 按日期分組並計算每天凌晨的平均值 - 使用 TimeInterval 作為 key 避免崩潰
@@ -146,11 +146,11 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
         let startDate: Date
         switch selectedTimeRange {
         case .week:
-            startDate = Calendar.current.date(byAdding: .day, value: -7, to: now)!
+            startDate = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
         case .month:
-            startDate = Calendar.current.date(byAdding: .month, value: -1, to: now)!
+            startDate = Calendar.current.date(byAdding: .month, value: -1, to: now) ?? now
         case .threeMonths:
-            startDate = Calendar.current.date(byAdding: .month, value: -3, to: now)!
+            startDate = Calendar.current.date(byAdding: .month, value: -3, to: now) ?? now
         }
         do {
             // 檢查讀取授權

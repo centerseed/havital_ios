@@ -214,9 +214,12 @@ final class TrainingPlanRemoteDataSource {
     /// 創建週回顧
     func createWeeklySummary(weekNumber: Int?, forceUpdate: Bool) async throws -> WeeklyTrainingSummary {
         // Use the path format from the legacy WeeklySummaryService
-        let path = weekNumber != nil ?
-            "/summary/run_race/week/\(weekNumber!)" :
-            "/summary/run_race/week"
+        let path: String
+        if let week = weekNumber {
+            path = "/summary/run_race/week/\(week)"
+        } else {
+            path = "/summary/run_race/week"
+        }
             
         var params: [String: Any] = [:]
         // week_number is handled in the URL path, not the body

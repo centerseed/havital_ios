@@ -400,7 +400,7 @@ class DataSyncViewModel: ObservableObject {
             }
             
             let endDate = Date()
-            let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate)!
+            guard let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) else { return }
             let workouts = try await healthKitManager.fetchWorkoutsForDateRange(start: startDate, end: endDate)
             
             // 檢查是否有運動記錄
@@ -661,7 +661,7 @@ class DataSyncViewModel: ObservableObject {
             // 步驟2: 觸發 Backfill (近 14 天)
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
-            let startDate = Calendar.current.date(byAdding: .day, value: -14, to: Date())!
+            guard let startDate = Calendar.current.date(byAdding: .day, value: -14, to: Date()) else { return }
             let startDateString = dateFormatter.string(from: startDate)
             
             let response = try await StravaService.shared.triggerBackfill(startDate: startDateString, days: 14)

@@ -89,7 +89,11 @@ extension AppleSignInDataSource: ASAuthorizationControllerPresentationContextPro
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
-            fatalError("No window available for Apple Sign-In presentation")
+            Logger.firebase("Apple Sign-In 無法取得 window", level: .error, labels: [
+                "module": "AppleSignInDataSource",
+                "action": "presentationAnchor"
+            ])
+            return UIWindow()
         }
         return window
     }

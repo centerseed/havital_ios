@@ -65,8 +65,7 @@ class AppRatingManager: ObservableObject, @preconcurrency TaskManageable {
         let user = userProfileLocalDataSource.getUserProfile()
         let overview = trainingPlanLocalDataSource.getOverview()
 
-        let currentWeek = overview != nil ?
-            (TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: overview!.createdAt) ?? 0) : 0
+        let currentWeek = overview.flatMap { TrainingDateUtils.calculateCurrentTrainingWeek(createdAt: $0.createdAt) } ?? 0
 
         return [
             "user_loaded": user != nil,

@@ -16,7 +16,10 @@ import Combine
 /// Unified ViewModel for the entire onboarding flow
 /// Uses Clean Architecture principles with Repository dependencies
 @MainActor
-final class OnboardingFeatureViewModel: ObservableObject {
+final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
+
+    // MARK: - TaskManageable
+    nonisolated let taskRegistry = TaskRegistry()
 
     // MARK: - Dependencies
 
@@ -117,19 +120,25 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     /// Load existing personal bests from user profile
     func loadPersonalBests() async {
-        Logger.debug("[OnboardingFeatureVM] Loading personal bests")
+        let repo = userProfileRepository
+        await executeTask(id: TaskID("load_personal_bests")) { [weak self] in
+            Logger.debug("[OnboardingFeatureVM] Loading personal bests")
 
-        do {
-            let user = try await userProfileRepository.getUserProfile()
+            do {
+                let user = try await repo.getUserProfile()
 
-            if let personalBestV2 = user.personalBestV2,
-               let raceRunData = personalBestV2["race_run"] {
-                self.availablePersonalBests = raceRunData
-                Logger.debug("[OnboardingFeatureVM] Loaded \(raceRunData.count) PB distances")
+                if let personalBestV2 = user.personalBestV2,
+                   let raceRunData = personalBestV2["race_run"] {
+                    await MainActor.run {
+                        self?.availablePersonalBests = raceRunData
+                    }
+                    Logger.debug("[OnboardingFeatureVM] Loaded \(raceRunData.count) PB distances")
+                }
+            } catch is CancellationError {
+                // Ignore cancellation
+            } catch {
+                Logger.debug("[OnboardingFeatureVM] Failed to load PBs: \(error.localizedDescription)")
             }
-        } catch {
-            Logger.debug("[OnboardingFeatureVM] Failed to load PBs: \(error.localizedDescription)")
-            // Don't show error - new users may not have PBs
         }
     }
 
@@ -180,6 +189,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
             isLoading = false
             return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -193,23 +205,28 @@ final class OnboardingFeatureViewModel: ObservableObject {
     func loadHistoricalWeeklyDistance() async {
         isLoadingWeeklyHistory = true
 
-        do {
-            // Use WeeklySummaryService for now (peripheral service, not user data)
-            let summaries = try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
+        await executeTask(id: TaskID("load_weekly_distance")) { [weak self] in
+            do {
+                let summaries = try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
 
-            if !summaries.isEmpty {
-                let recentWeeks = summaries.suffix(4)
-                let distances = recentWeeks.compactMap { $0.distanceKm }.filter { $0 > 0 }
+                if !summaries.isEmpty {
+                    let recentWeeks = summaries.suffix(4)
+                    let distances = recentWeeks.compactMap { $0.distanceKm }.filter { $0 > 0 }
 
-                if !distances.isEmpty {
-                    let average = distances.reduce(0, +) / Double(distances.count)
-                    weeklyDistance = min(max(average, 5.0), 30.0)
-                    Logger.debug("[OnboardingFeatureVM] Calculated weekly distance: \(weeklyDistance)km")
+                    if !distances.isEmpty {
+                        let average = distances.reduce(0, +) / Double(distances.count)
+                        let clamped = min(max(average, 5.0), 30.0)
+                        await MainActor.run {
+                            self?.weeklyDistance = clamped
+                        }
+                        Logger.debug("[OnboardingFeatureVM] Calculated weekly distance: \(clamped)km")
+                    }
                 }
+            } catch is CancellationError {
+                // Ignore cancellation
+            } catch {
+                Logger.debug("[OnboardingFeatureVM] Failed to load weekly history: \(error.localizedDescription)")
             }
-        } catch {
-            Logger.debug("[OnboardingFeatureVM] Failed to load weekly history: \(error.localizedDescription)")
-            // Keep default value on error
         }
 
         isLoadingWeeklyHistory = false
@@ -229,6 +246,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
             isLoading = false
             return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -275,6 +295,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
             isLoading = false
             return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -289,24 +312,31 @@ final class OnboardingFeatureViewModel: ObservableObject {
         // ✅ Use separate loading state to avoid triggering fullScreenCover
         // This loading is fast (reads from cache) and doesn't need a full-screen loading animation
         isLoadingPreferences = true
+        let repo = userProfileRepository
 
-        do {
-            let user = try await userProfileRepository.getUserProfile()
+        await executeTask(id: TaskID("load_training_day_prefs")) { [weak self] in
+            do {
+                let user = try await repo.getUserProfile()
 
-            if let weekdayPreferences = user.preferWeekDays, !weekdayPreferences.isEmpty {
-                selectedWeekdays = Set(weekdayPreferences)
-                Logger.debug("[OnboardingFeatureVM] Loaded training days: \(weekdayPreferences)")
+                await MainActor.run {
+                    if let weekdayPreferences = user.preferWeekDays, !weekdayPreferences.isEmpty {
+                        self?.selectedWeekdays = Set(weekdayPreferences)
+                        Logger.debug("[OnboardingFeatureVM] Loaded training days: \(weekdayPreferences)")
+                    }
+
+                    if let longrunDays = user.preferWeekDaysLongrun,
+                       let longrunDay = longrunDays.first {
+                        self?.selectedLongRunDay = longrunDay
+                        Logger.debug("[OnboardingFeatureVM] Loaded long run day: \(longrunDay)")
+                    } else if let weekdays = self?.selectedWeekdays, !weekdays.isEmpty {
+                        self?.selectedLongRunDay = weekdays.contains(6) ? 6 : (weekdays.sorted().first ?? 6)
+                    }
+                }
+            } catch is CancellationError {
+                // Ignore cancellation
+            } catch {
+                Logger.debug("[OnboardingFeatureVM] Failed to load training days: \(error.localizedDescription)")
             }
-
-            if let longrunDays = user.preferWeekDaysLongrun,
-               let longrunDay = longrunDays.first {
-                selectedLongRunDay = longrunDay
-                Logger.debug("[OnboardingFeatureVM] Loaded long run day: \(longrunDay)")
-            } else if !selectedWeekdays.isEmpty {
-                selectedLongRunDay = selectedWeekdays.contains(6) ? 6 : (selectedWeekdays.sorted().first ?? 6)
-            }
-        } catch {
-            Logger.debug("[OnboardingFeatureVM] Failed to load training days: \(error.localizedDescription)")
         }
 
         isLoadingPreferences = false
@@ -346,6 +376,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
             isLoading = false
             return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -390,6 +423,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
             let overview = try await trainingPlanRepository.getOverview()
             trainingOverview = overview
             Logger.debug("[OnboardingFeatureVM] Training overview loaded: \(overview.id)")
+        } catch is CancellationError {
+            // Ignore cancellation
         } catch {
             self.error = error.localizedDescription
         }
@@ -427,6 +462,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
             Logger.debug("[OnboardingFeatureVM] Weekly plan created, onboarding complete")
             isLoading = false
             return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false

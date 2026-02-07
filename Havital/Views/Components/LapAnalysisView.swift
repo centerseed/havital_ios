@@ -183,7 +183,17 @@ extension LapData {
             jsonDict["avg_heart_rate_bpm"] = hr
         }
 
-        let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict)
-        return try! decoder.decode(LapData.self, from: jsonData)
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict),
+              let lapData = try? decoder.decode(LapData.self, from: jsonData) else {
+            Logger.firebase("LapData JSON 解析失敗", level: .error, labels: [
+                "module": "LapAnalysisView",
+                "action": "decodeLapData"
+            ])
+            // Fallback: 用最小 JSON 建立空 LapData（硬編碼 JSON 一定能解析）
+            let fallbackJson = Data("{\"lap_number\":\(lapNumber),\"start_time_offset_s\":0}".utf8)
+            // swiftlint:disable:next force_try
+            return try! decoder.decode(LapData.self, from: fallbackJson)
+        }
+        return lapData
     }
 }

@@ -104,11 +104,11 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
             
             switch selectedTimeRange {
             case .week:
-                startDate = Calendar.current.date(byAdding: .day, value: -7, to: now)!
+                startDate = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
             case .month:
-                startDate = Calendar.current.date(byAdding: .month, value: -1, to: now)!
+                startDate = Calendar.current.date(byAdding: .month, value: -1, to: now) ?? now
             case .threeMonths:
-                startDate = Calendar.current.date(byAdding: .month, value: -3, to: now)!
+                startDate = Calendar.current.date(byAdding: .month, value: -3, to: now) ?? now
             }
             
             var points: [(Date, Double)] = []
@@ -131,7 +131,8 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
                     if let heartRate = try await healthKit.fetchSleepHeartRateAverage(for: currentDate) {
                         points.append((currentDate, heartRate))
                     }
-                    currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate)!
+                    guard let nextDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate) else { break }
+                    currentDate = nextDate
                 }
                 
             case .garmin:

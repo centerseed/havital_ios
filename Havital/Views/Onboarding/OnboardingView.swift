@@ -159,6 +159,9 @@ class OnboardingViewModel: ObservableObject {
             print(NSLocalizedString("onboarding.target_created", comment: "Training goal created"))
             isLoading = false
             return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -184,6 +187,8 @@ class OnboardingViewModel: ObservableObject {
                 self.availableTargets = futureMainTargets
                 print("[OnboardingViewModel] 成功載入 \(futureMainTargets.count) 個未來主要目標")
             }
+        } catch is CancellationError {
+            // Ignore cancellation
         } catch {
             print("[OnboardingViewModel] 載入目標失敗: \(error.localizedDescription)")
             // 不顯示錯誤，因為新用戶可能沒有目標
