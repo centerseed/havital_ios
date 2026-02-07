@@ -15,6 +15,10 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
     private let remoteDataSource: WorkoutRemoteDataSource
     private let localDataSource: WorkoutLocalDataSource
 
+    /// Track B cooldown: 背景刷新間隔至少 5 分鐘，避免重複 API 呼叫
+    private var lastBackgroundRefreshTime: Date = .distantPast
+    private let backgroundRefreshCooldown: TimeInterval = 43200 // 12 小時
+
     // MARK: - Initialization
 
     init(remoteDataSource: WorkoutRemoteDataSource = WorkoutRemoteDataSource(),
@@ -337,9 +341,15 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
     // MARK: - Cache Management
 
+    func invalidateRefreshCooldown() {
+        Logger.debug("[WorkoutRepositoryImpl] invalidateRefreshCooldown - 收到推播，重置 cooldown")
+        lastBackgroundRefreshTime = .distantPast
+    }
+
     func clearCache() async {
         Logger.debug("[WorkoutRepositoryImpl] clearCache")
         localDataSource.clearAll()
+        lastBackgroundRefreshTime = .distantPast // 重置 cooldown，允許下次立即刷新
     }
 
     func preloadData() async {
@@ -391,8 +401,16 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         }
     }
 
-    /// 背景刷新訓練列表
+    /// 背景刷新訓練列表（含 cooldown 保護）
     private func backgroundRefreshWorkouts(pageSize: Int?) async {
+        let now = Date()
+        let elapsed = now.timeIntervalSince(lastBackgroundRefreshTime)
+        if elapsed < backgroundRefreshCooldown {
+            Logger.debug("[WorkoutRepositoryImpl] Track B - 跳過背景刷新（距上次 \(Int(elapsed))s，cooldown \(Int(backgroundRefreshCooldown))s）")
+            return
+        }
+        lastBackgroundRefreshTime = now
+
         await backgroundRefresh(
             taskName: "訓練列表",
             fetch: { try await self.remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil) },

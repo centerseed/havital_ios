@@ -98,7 +98,15 @@ class StravaManager: NSObject, ObservableObject {
     }
     
     // MARK: - 連接狀態管理
-    
+
+    /// Session-level flag: 被動路徑（auth callback）只查一次，主動操作（connect/disconnect）不受限
+    private var hasCheckedConnectionThisSession = false
+
+    /// 重置 session flag（登出時呼叫）
+    func resetSessionCheck() {
+        hasCheckedConnectionThisSession = false
+    }
+
     private func loadConnectionStatus() {
         // 從 UserDefaults 讀取連接狀態
         isConnected = UserDefaults.standard.bool(forKey: "strava_connected")
@@ -132,7 +140,16 @@ class StravaManager: NSObject, ObservableObject {
         connectionError = nil
     }
     
-    /// 檢查 Strava 連線狀態
+    /// 被動路徑：session 內只查一次（供 AuthenticationService 等被動觸發用）
+    func checkConnectionStatusIfNeeded() async {
+        if hasCheckedConnectionThisSession {
+            print("🔍 [跳過] Strava checkConnectionStatus - 本次 session 已檢查過")
+            return
+        }
+        await checkConnectionStatus()
+    }
+
+    /// 主動路徑：強制查詢（連接/斷開操作後、用戶手動刷新時使用）
     func checkConnectionStatus() async {
         print("🔍 [開始] checkConnectionStatus() - 當前 needsReconnection: \(needsReconnection)")
 
@@ -240,10 +257,11 @@ class StravaManager: NSObject, ObservableObject {
                 }
             }
 
+            self.hasCheckedConnectionThisSession = true
             print("🔍 [結束] checkConnectionStatus() - 最終 needsReconnection: \(self.needsReconnection)")
         }.value
     }
-    
+
     /// 清除重新連接提示
     func clearReconnectionMessage() {
         needsReconnection = false
@@ -260,7 +278,13 @@ class StravaManager: NSObject, ObservableObject {
         if forceReplace {
             stateDict["force_replace"] = true
         }
-        let stateData = try! JSONSerialization.data(withJSONObject: stateDict)
+        guard let stateData = try? JSONSerialization.data(withJSONObject: stateDict) else {
+            Logger.firebase("Strava buildState JSON 序列化失敗", level: .error, labels: [
+                "module": "StravaManager",
+                "action": "buildState"
+            ])
+            return Data(generateState().utf8).base64EncodedString()
+        }
         return stateData.base64EncodedString()
     }
 
@@ -515,7 +539,7 @@ class StravaManager: NSObject, ObservableObject {
     private func generateCodeVerifier() -> String {
         let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
         let length = 128 // 使用最大長度以提高安全性
-        let verifier = String((0..<length).map { _ in characters.randomElement()! })
+        let verifier = String((0..<length).compactMap { _ in characters.randomElement() })
         return verifier
     }
 
@@ -602,7 +626,16 @@ class StravaManager: NSObject, ObservableObject {
         safariViewController?.modalPresentationStyle = .pageSheet
         
         print("🔧 StravaManager: 準備在頂層視圖控制器上顯示 Safari 視圖")
-        topViewController.present(safariViewController!, animated: true) {
+        guard let safariVC = safariViewController else {
+            Logger.firebase("Strava safariViewController 為 nil", level: .error, labels: [
+                "module": "StravaManager",
+                "action": "presentSafariViewController"
+            ])
+            connectionError = "無法顯示授權頁面"
+            isConnecting = false
+            return
+        }
+        topViewController.present(safariVC, animated: true) {
             print("✅ StravaManager: Safari 視圖已顯示")
         }
     }

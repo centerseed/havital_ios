@@ -107,6 +107,9 @@ protocol WorkoutRepository {
 
     // MARK: - Cache Management
 
+    /// 無效化背景刷新 cooldown（收到推播時呼叫，讓下次存取觸發 API 刷新）
+    func invalidateRefreshCooldown()
+
     /// 清除所有緩存
     func clearCache() async
 

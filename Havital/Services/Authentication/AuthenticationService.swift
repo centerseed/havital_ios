@@ -560,7 +560,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
         checkOnboardingStatus(user: user)
         UserService.shared.syncUserPreferences(with: user)
 
-        // 在用戶資料完全載入後檢查 Garmin 和 Strava 連線狀態
+        // 在用戶資料完全載入後檢查 Garmin 和 Strava 連線狀態（被動路徑，session 內只查一次）
         await checkGarminConnectionAfterUserData()
         await checkStravaConnectionAfterUserData()
 
@@ -759,7 +759,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
                 // 同步用戶偏好
                 UserService.shared.syncUserPreferences(with: user)
 
-                // 在用戶資料載入完成後檢查 Garmin 和 Strava 連線狀態
+                // 在用戶資料載入完成後檢查 Garmin 和 Strava 連線狀態（被動路徑，session 內只查一次）
                 Task {
                     await self?.checkGarminConnectionAfterUserData()
                     await self?.checkStravaConnectionAfterUserData()
@@ -814,6 +814,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
             UserDefaults.standard.synchronize()
         }
         
+        // 重置 connection check session flags，下次登入重新檢查
+        await GarminManager.shared.resetSessionCheck()
+        await StravaManager.shared.resetSessionCheck()
+
         // 使用 CacheEventBus 統一清除所有快取
         CacheEventBus.shared.invalidateCache(for: .userLogout)
 
@@ -914,7 +918,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
         // 如果用戶偏好設定為 Garmin，檢查後端的 Garmin 連接狀態
         if UserPreferencesManager.shared.dataSourcePreference == .garmin {
             print("🔍 用戶偏好為 Garmin，檢查連接狀態...")
-            await GarminManager.shared.checkConnectionStatus()
+            await GarminManager.shared.checkConnectionStatusIfNeeded()
             
             // checkConnectionStatus 完成後，檢查是否需要顯示不一致警告
             await MainActor.run {
@@ -945,7 +949,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
         // 如果用戶偏好設定為 Strava，檢查後端的 Strava 連接狀態
         if UserPreferencesManager.shared.dataSourcePreference == .strava {
             print("🔍 用戶偏好為 Strava，檢查連接狀態...")
-            await StravaManager.shared.checkConnectionStatus()
+            await StravaManager.shared.checkConnectionStatusIfNeeded()
 
             // checkConnectionStatus 完成後，檢查連接狀態
             await MainActor.run {
