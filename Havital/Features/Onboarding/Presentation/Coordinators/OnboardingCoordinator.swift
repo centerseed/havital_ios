@@ -195,17 +195,15 @@ class OnboardingCoordinator: ObservableObject {
                 CacheEventBus.shared.publish(.onboardingCompleted)
             }
 
+        } catch is CancellationError {
+            isCompleting = false
         } catch let onboardingError as OnboardingError {
-            await MainActor.run {
-                self.error = onboardingError.localizedDescription
-                self.isCompleting = false
-            }
+            self.error = onboardingError.localizedDescription
+            self.isCompleting = false
             print("[OnboardingCoordinator] ❌ OnboardingError: \(onboardingError.localizedDescription)")
         } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
-                self.isCompleting = false
-            }
+            self.error = error.localizedDescription
+            self.isCompleting = false
             print("[OnboardingCoordinator] ❌ 完成 onboarding 失敗: \(error.localizedDescription)")
         }
     }

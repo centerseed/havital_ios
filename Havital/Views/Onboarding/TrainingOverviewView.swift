@@ -296,7 +296,17 @@ struct TrainingOverviewView: View {
     private func stageCardV2(_ stage: TrainingStageV2, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
         HStack(alignment: .top, spacing: 12) {
             // Left timeline (circle + connection line)
-            VStack(spacing: 0) {
+            ZStack(alignment: .top) {
+                // Dashed connection line (behind the circle, fills full height)
+                if !isLast, let nextColor = nextStageColor {
+                    VStack(spacing: 0) {
+                        // Offset to start below circle center
+                        Color.clear.frame(height: 10)
+                        DashedTimelineLine(color: nextColor)
+                    }
+                }
+
+                // Circle on top
                 Circle()
                     .fill(stageColor(for: stageIndex))
                     .frame(width: 20, height: 20)
@@ -305,20 +315,6 @@ struct TrainingOverviewView: View {
                             .stroke(Color.white, lineWidth: 3)
                     )
                     .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
-
-                if !isLast, let nextColor = nextStageColor {
-                    VStack(spacing: 2) {
-                        ForEach(0..<8, id: \.self) { _ in
-                            Rectangle()
-                                .fill(nextColor.opacity(0.6))
-                                .frame(width: 3, height: 6)
-                        }
-                        Image(systemName: "arrowtriangle.down.fill")
-                            .font(AppFont.captionSmall())
-                            .foregroundColor(nextColor.opacity(0.6))
-                    }
-                    .padding(.top, 4)
-                }
             }
             .frame(width: 20)
 
@@ -356,7 +352,7 @@ struct TrainingOverviewView: View {
                 }
             }
         }
-        .padding(.bottom, isLast ? 0 : 8)
+        .padding(.bottom, isLast ? 0 : 0)
     }
 
     // MARK: - Helper for V2 Week Range
@@ -461,7 +457,16 @@ struct TrainingOverviewView: View {
     private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
         HStack(alignment: .top, spacing: 12) {
             // Left timeline (circle + connection line)
-            VStack(spacing: 0) {
+            ZStack(alignment: .top) {
+                // Dashed connection line (behind the circle, fills full height)
+                if !isLast, let nextColor = nextStageColor {
+                    VStack(spacing: 0) {
+                        Color.clear.frame(height: 10)
+                        DashedTimelineLine(color: nextColor)
+                    }
+                }
+
+                // Circle on top
                 Circle()
                     .fill(stageColor(for: stageIndex))
                     .frame(width: 20, height: 20)
@@ -470,20 +475,6 @@ struct TrainingOverviewView: View {
                             .stroke(Color.white, lineWidth: 3)
                     )
                     .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
-
-                if !isLast, let nextColor = nextStageColor {
-                    VStack(spacing: 2) {
-                        ForEach(0..<8) { _ in
-                            Rectangle()
-                                .fill(nextColor.opacity(0.6))
-                                .frame(width: 3, height: 6)
-                        }
-                        Image(systemName: "arrowtriangle.down.fill")
-                            .font(AppFont.captionSmall())
-                            .foregroundColor(nextColor.opacity(0.6))
-                    }
-                    .padding(.top, 4)
-                }
             }
             .frame(width: 20)
 
@@ -510,7 +501,7 @@ struct TrainingOverviewView: View {
                 }
             }
         }
-        .padding(.bottom, isLast ? 0 : 8)
+        .padding(.bottom, isLast ? 0 : 0)
     }
 
     // MARK: - Highlight Card
@@ -605,6 +596,37 @@ struct TrainingOverviewView: View {
             Color(red: 0.6, green: 0.4, blue: 0.9)
         ]
         return colors[index % colors.count]
+    }
+}
+
+// MARK: - Dashed Timeline Line
+/// A dashed vertical line with an arrow at the bottom, fills available height
+private struct DashedTimelineLine: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let totalHeight = geometry.size.height
+            let arrowHeight: CGFloat = 10
+            let lineHeight = max(0, totalHeight - arrowHeight)
+
+            VStack(spacing: 0) {
+                // Dashed line
+                Path { path in
+                    path.move(to: CGPoint(x: 1.5, y: 0))
+                    path.addLine(to: CGPoint(x: 1.5, y: lineHeight))
+                }
+                .stroke(color.opacity(0.6), style: StrokeStyle(lineWidth: 3, dash: [6, 3]))
+                .frame(width: 3, height: lineHeight)
+
+                // Arrow
+                Image(systemName: "arrowtriangle.down.fill")
+                    .font(.system(size: 8))
+                    .foregroundColor(color.opacity(0.6))
+                    .frame(height: arrowHeight)
+            }
+        }
+        .frame(width: 3)
     }
 }
 

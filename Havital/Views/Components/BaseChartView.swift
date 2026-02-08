@@ -106,7 +106,10 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
                                     return
                                 }
                                 
-                                let date = proxy.value(atX: x, as: Date.self)!
+                                guard let date = proxy.value(atX: x, as: Date.self) else {
+                                    viewModel.selectedPoint = nil
+                                    return
+                                }
                                 viewModel.selectedPoint = viewModel.findClosestPoint(to: date)
                             }
                             .onEnded { _ in

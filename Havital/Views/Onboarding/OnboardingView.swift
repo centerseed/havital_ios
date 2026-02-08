@@ -84,15 +84,12 @@ class OnboardingViewModel: ObservableObject {
         return nameChanged || distanceChanged || timeChanged || dateChanged
     }
 
-    /// 創建或更新目標，返回目標 ID（用於 V2 流程）
     @MainActor
-    func createTarget() async -> String? { // 返回 target ID 或 nil
+    func createTarget() async -> Bool { // 返回 Bool 表示是否成功
         isLoading = true
         error = nil
 
         do {
-            var resultTargetId: String
-
             // 如果選擇了先前的目標且有改動，則更新；否則創建新目標
             if let selectedTargetId = selectedTargetKey, hasSelectedTargetBeenModified() {
                 // 更新已選擇的目標
@@ -109,13 +106,11 @@ class OnboardingViewModel: ObservableObject {
                 )
 
                 _ = try await targetRepository.updateTarget(id: selectedTargetId, target: updatedTarget)
-                resultTargetId = selectedTargetId
-                print("✅ 目標已更新: \(updatedTarget.name), ID: \(resultTargetId)")
+                print("✅ 目標已更新: \(updatedTarget.name)")
             } else if selectedTargetKey == nil {
                 // 創建新的主要目標
-                let newTargetId = UUID().uuidString
                 let target = Target(
-                    id: newTargetId,
+                    id: UUID().uuidString,
                     type: "race_run",
                     name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
                     distanceKm: Int(Double(selectedDistance) ?? 42.195),
@@ -127,13 +122,11 @@ class OnboardingViewModel: ObservableObject {
                 )
 
                 let createdTarget = try await targetRepository.createTarget(target)
-                resultTargetId = createdTarget.id
-                print("✅ 新目標創建成功: \(target.name), ID: \(resultTargetId)")
+                selectedTargetKey = createdTarget.id
+                print("✅ 新目標創建成功: \(createdTarget.name), id: \(createdTarget.id)")
             } else {
-                // 選擇了目標但沒有改動，直接使用已選擇的目標 ID
-                resultTargetId = selectedTargetKey!
-                print("✅ 使用先前的目標賽事，不需要創建或更新, ID: \(resultTargetId)")
-                Logger.debug("[OnboardingView] 📋 Using existing target without modification")
+                // 選擇了目標但沒有改動，直接跳過
+                print("✅ 使用先前的目標賽事，不需要創建或更新")
             }
 
             // ⚠️ TEMPORARILY DISABLED: 自動刪除舊賽事功能已暫時停用
@@ -166,11 +159,14 @@ class OnboardingViewModel: ObservableObject {
 
             print(NSLocalizedString("onboarding.target_created", comment: "Training goal created"))
             isLoading = false
-            return resultTargetId
+            return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
-            return nil
+            return false
         }
     }
 
@@ -192,6 +188,8 @@ class OnboardingViewModel: ObservableObject {
                 self.availableTargets = futureMainTargets
                 print("[OnboardingViewModel] 成功載入 \(futureMainTargets.count) 個未來主要目標")
             }
+        } catch is CancellationError {
+            // Ignore cancellation
         } catch {
             print("[OnboardingViewModel] 載入目標失敗: \(error.localizedDescription)")
             // 不顯示錯誤，因為新用戶可能沒有目標
@@ -236,7 +234,6 @@ class OnboardingViewModel: ObservableObject {
 
 struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
-    @StateObject private var featureViewModel = OnboardingFeatureViewModel()
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     @State private var showTimeWarning = false
@@ -399,8 +396,8 @@ struct OnboardingView: View {
             VStack {
                 Button(action: {
                     Task {
-                        if let targetId = await viewModel.createTarget() {
-                            handleNavigationAfterTargetCreation(targetId: targetId)
+                        if await viewModel.createTarget() {
+                            handleNavigationAfterTargetCreation()
                         }
                     }
                 }) {
@@ -441,8 +438,8 @@ struct OnboardingView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     Task {
-                        if let targetId = await viewModel.createTarget() {
-                            handleNavigationAfterTargetCreation(targetId: targetId)
+                        if await viewModel.createTarget() {
+                            handleNavigationAfterTargetCreation()
                         }
                     }
                 }) {
@@ -468,85 +465,29 @@ struct OnboardingView: View {
             Task {
                 await viewModel.loadAvailableTargets()
             }
-
-            // ⭐ 載入 V2 target types 並設置 race_run 類型
-            Task {
-                Logger.debug("[OnboardingView] 🔄 onAppear: Loading V2 target types...")
-                await featureViewModel.loadTargetTypes()
-
-                // 找到 race_run 目標類型並設置
-                if let raceRunType = featureViewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
-                    featureViewModel.selectedTargetTypeV2 = raceRunType
-                    Logger.info("[OnboardingView] ✅ onAppear: Set selectedTargetTypeV2 to: \(raceRunType.id)")
-                } else {
-                    Logger.error("[OnboardingView] ❌ onAppear: Failed to find race_run target type, available: \(featureViewModel.availableTargetTypes.map { $0.id })")
-                }
-            }
         }
     }
 
     // MARK: - 導航邏輯處理
     /// 根據訓練週數判斷導航目標
-    private func handleNavigationAfterTargetCreation(targetId: String) {
-        Logger.debug("[OnboardingView] 🚀 handleNavigationAfterTargetCreation called with targetId: \(targetId)")
-
-        // ⭐ V2 流程關鍵：保存 targetId、targetTypeId 和 trainingWeeks 到 coordinator
-        coordinator.selectedTargetId = targetId
-        coordinator.selectedTargetTypeId = "race_run"
-        coordinator.trainingWeeks = viewModel.trainingWeeks
-        Logger.info("[OnboardingView] ✅ Saved to coordinator: targetId=\(targetId), targetTypeId=race_run, trainingWeeks=\(viewModel.trainingWeeks)")
-
+    private func handleNavigationAfterTargetCreation() {
         let targetDistance = Double(viewModel.selectedDistance) ?? 42.195
         let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(for: targetDistance)
         let trainingWeeks = viewModel.trainingWeeks
 
-        Logger.debug("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks), selectedTargetTypeV2=\(featureViewModel.selectedTargetTypeV2?.id ?? "nil")")
-        print("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks)")
+        // 將 target ID 傳遞給 coordinator，供 V2 流程使用
+        coordinator.selectedTargetId = viewModel.selectedTargetKey
+
+        print("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks), targetId=\(viewModel.selectedTargetKey ?? "nil")")
 
         if trainingWeeks < 2 {
             // 時間過短（<2週），顯示警告
             showTimeWarning = true
         } else if trainingWeeks >= standardWeeks {
-            // 時間充足，檢查方法論後導航
+            // 時間充足，直接進入訓練日數設定
             coordinator.selectedStartStage = nil
             UserDefaults.standard.removeObject(forKey: "selectedStartStage")
-
-            // ⭐ 新增：賽事目標完成後檢查方法論
-            Task {
-                Logger.debug("[OnboardingView] 🎯 Navigation after target creation - selectedTargetTypeV2: \(featureViewModel.selectedTargetTypeV2?.id ?? "nil")")
-
-                // 確保有 target type（如果沒有，重新載入）
-                if featureViewModel.selectedTargetTypeV2 == nil {
-                    Logger.debug("[OnboardingView] ⚠️ selectedTargetTypeV2 is nil, loading target types...")
-                    await featureViewModel.loadTargetTypes()
-
-                    if let raceRunType = featureViewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
-                        featureViewModel.selectedTargetTypeV2 = raceRunType
-                        Logger.debug("[OnboardingView] ✅ Loaded and set selectedTargetTypeV2 to: \(raceRunType.id)")
-                    }
-                }
-
-                if let targetType = featureViewModel.selectedTargetTypeV2 {
-                    Logger.debug("[OnboardingView] 📥 Loading methodologies for: \(targetType.id)")
-                    await featureViewModel.loadMethodologiesForTargetType(targetType.id)
-
-                    await MainActor.run {
-                        let methodCount = featureViewModel.availableMethodologies.count
-                        Logger.debug("[OnboardingView] 📊 Loaded \(methodCount) methodologies")
-
-                        if methodCount > 1 {
-                            Logger.info("[OnboardingView] ✅ Navigating to methodologySelection")
-                            coordinator.navigate(to: .methodologySelection)
-                        } else {
-                            Logger.info("[OnboardingView] ⏭️ Skipping methodology selection (count=\(methodCount)), navigating to trainingDays")
-                            coordinator.navigate(to: .trainingDays)
-                        }
-                    }
-                } else {
-                    Logger.error("[OnboardingView] ❌ Failed to load targetType, navigating to trainingDays")
-                    coordinator.navigate(to: .trainingDays)
-                }
-            }
+            coordinator.navigate(to: .trainingDays)
         } else {
             // 時間緊張，導航到階段選擇
             coordinator.weeksRemaining = trainingWeeks

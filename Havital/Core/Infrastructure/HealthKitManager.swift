@@ -23,21 +23,22 @@ class HealthKitManager: ObservableObject, TaskManageable {
         }
 
         // 定義需要讀取的數據類型
-        var typesToRead: Set<HKObjectType> = [
-            HKObjectType.workoutType(),
-            HKObjectType.quantityType(forIdentifier: .heartRate)!,
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKObjectType.quantityType(forIdentifier: .stepCount)!,
-            HKObjectType.quantityType(forIdentifier: .runningSpeed)!,
-            HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,
-            HKObjectType.quantityType(forIdentifier: .runningGroundContactTime)!,
-            HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation)!,
-            HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-            HKObjectType.quantityType(forIdentifier: .vo2Max)!
+        var typesToRead: Set<HKObjectType> = [HKObjectType.workoutType()]
+
+        let quantityIdentifiers: [HKQuantityTypeIdentifier] = [
+            .heartRate, .distanceWalkingRunning, .stepCount,
+            .runningSpeed, .runningStrideLength, .runningGroundContactTime,
+            .runningVerticalOscillation, .restingHeartRate, .activeEnergyBurned,
+            .heartRateVariabilitySDNN, .vo2Max
         ]
+        for id in quantityIdentifiers {
+            if let type = HKObjectType.quantityType(forIdentifier: id) {
+                typesToRead.insert(type)
+            }
+        }
+        if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
+            typesToRead.insert(sleepType)
+        }
 
         // iOS 18+ 新增：Effort Score 類型
         if #available(iOS 18.0, *) {
@@ -52,11 +53,13 @@ class HealthKitManager: ObservableObject, TaskManageable {
         }
         
         // 定義需要寫入的數據類型
-        let typesToShare: Set<HKSampleType> = [
-            HKObjectType.workoutType(),
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKObjectType.quantityType(forIdentifier: .heartRate)!
-        ]
+        var typesToShare: Set<HKSampleType> = [HKObjectType.workoutType()]
+        if let distanceType = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning) {
+            typesToShare.insert(distanceType)
+        }
+        if let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) {
+            typesToShare.insert(heartRateType)
+        }
         
         return try await withCheckedThrowingContinuation { continuation in
             healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
@@ -214,8 +217,10 @@ class HealthKitManager: ObservableObject, TaskManageable {
         }
         
         // 分析數據的整體特性
-        let firstPoint = sortedStepCount.first!
-        let lastPoint = sortedStepCount.last!
+        guard let firstPoint = sortedStepCount.first,
+              let lastPoint = sortedStepCount.last else {
+            return cadenceData
+        }
         let totalTime = lastPoint.0.timeIntervalSince(firstPoint.0)
         
         let allSteps = sortedStepCount.map { $0.1 }
@@ -376,8 +381,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
         if !cadenceData.isEmpty {
             let cadenceValues = cadenceData.map { $0.1 }
             let averageCadence = cadenceValues.reduce(0, +) / Double(cadenceValues.count)
-            let minCadence = cadenceValues.min()!
-            let maxCadence = cadenceValues.max()!
+            let minCadence = cadenceValues.min() ?? 0
+            let maxCadence = cadenceValues.max() ?? 0
             
             print("📊 [Cadence] ========== 計算結果統計 ==========")
             print("📊 [Cadence] 有效步頻數據點: \(cadenceData.count)")
@@ -554,7 +559,9 @@ class HealthKitManager: ObservableObject, TaskManageable {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZoneManager.shared.getCurrentTimeZone()
         let startOfDay = calendar.startOfDay(for: date)
-        let endTime = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: startOfDay)!
+        guard let endTime = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: startOfDay) else {
+            return nil
+        }
         
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
             throw HealthError.notAvailable
@@ -646,7 +653,10 @@ class HealthKitManager: ObservableObject, TaskManageable {
     func fetchWorkouts(completion: @escaping ([HKWorkout]) -> Void) {
         let calendar = Calendar.current
         let now = Date()
-        let startDate = calendar.date(byAdding: .month, value: -3, to: now)!
+        guard let startDate = calendar.date(byAdding: .month, value: -3, to: now) else {
+            completion([])
+            return
+        }
         
         Task {
             do {
@@ -848,11 +858,11 @@ class HealthKitManager: ObservableObject, TaskManageable {
     
     private func calculateStableSleepHeartRate(_ rates: [Double]) -> Double {
         guard !rates.isEmpty else { return 0 }
-        
+
         let sortedRates = rates.sorted()
-        let q1Index = Int(Double(sortedRates.count) * 0.25)
-        let q3Index = Int(Double(sortedRates.count) * 0.75)
-        
+        let q1Index = min(Int(Double(sortedRates.count) * 0.25), sortedRates.count - 1)
+        let q3Index = min(Int(Double(sortedRates.count) * 0.75), sortedRates.count - 1)
+
         let q1 = sortedRates[q1Index]
         let q3 = sortedRates[q3Index]
         let iqr = q3 - q1
@@ -879,7 +889,9 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
         let calendar = Calendar.current
         let now = Date()
-        let startDate = calendar.date(byAdding: .month, value: -1, to: now)!
+        guard let startDate = calendar.date(byAdding: .month, value: -1, to: now) else {
+            return 60.0
+        }
 
         return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: startDate, end: now, options: .strictEndDate)
@@ -1056,8 +1068,10 @@ class HealthKitManager: ObservableObject, TaskManageable {
     func fetchWeeklyHeartRateAnalysis() async throws -> WeeklyHeartRateAnalysis {
         let calendar = Calendar.current
         let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: endDate))!
-        
+        guard let startDate = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: endDate)) else {
+            return WeeklyHeartRateAnalysis(zoneDistribution: [:], moderateActivityTime: 0, vigorousActivityTime: 0)
+        }
+
         // 獲取這段時間內的所有運動
         let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
             let predicate = HKQuery.predicateForSamples(
@@ -1197,8 +1211,10 @@ class HealthKitManager: ObservableObject, TaskManageable {
             
             let calendar = Calendar.current
             let now = Date()
-            let startDate = calendar.date(byAdding: .day, value: -7, to: now)!
-            
+            guard let startDate = calendar.date(byAdding: .day, value: -7, to: now) else {
+                return WeeklyHeartRateAnalysis(zoneDistribution: [:], moderateActivityTime: 0, vigorousActivityTime: 0)
+            }
+
             // 獲取過去一週的跑步鍛煉
             let workouts = try await fetchWorkoutsForDateRange(start: startDate, end: now)
             
@@ -1463,7 +1479,9 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     // 提取距離資訊
                     if let distanceQuantity = eventMetadata[HKMetadataKeyLapLength] as? HKQuantity {
                         distance = distanceQuantity.doubleValue(for: .meter())
-                        metadataDict["lap_length"] = String(distance!)
+                        if let dist = distance {
+                            metadataDict["lap_length"] = String(dist)
+                        }
                     }
 
                     // 提取其他可能的 metadata

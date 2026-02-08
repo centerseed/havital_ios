@@ -113,7 +113,7 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// 刪除訓練日
     func removeDay(at index: Int) {
-        guard index < editingDays.count else { return }
+        guard index >= 0 && index < editingDays.count else { return }
         editingDays.remove(at: index)
     }
 

@@ -93,4 +93,24 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         print("📲 收到新的 FCM token: \(fcmToken)")
         syncFCMTokenToBackend(fcmToken)
     }
-} 
+
+    // MARK: - Remote Notification Handling
+
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        let notificationType = userInfo["type"] as? String ?? ""
+        print("📬 收到遠端推播: type=\(notificationType)")
+
+        // workout_processed 推播 → 無效化 cooldown，讓下次存取觸發 API 刷新
+        if notificationType == "workout_processed" {
+            let workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
+            workoutRepository.invalidateRefreshCooldown()
+            print("🔄 已重置 workout cooldown，下次存取將刷新資料")
+            completionHandler(.newData)
+            return
+        }
+
+        completionHandler(.noData)
+    }
+}

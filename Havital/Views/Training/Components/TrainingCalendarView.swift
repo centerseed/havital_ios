@@ -185,7 +185,7 @@ struct TrainingCalendarView: View {
     @StateObject private var viewModel = TrainingCalendarViewModel()
 
     @State private var selectedMonth = Date()
-    @State private var workoutsByDate: [Date: DayWorkoutInfo] = [:]  // 日期 -> 訓練資訊
+    @State private var workoutsByDate: [TimeInterval: DayWorkoutInfo] = [:]  // 日期 -> 訓練資訊
 
     private var monthName: String {
         let formatter = DateFormatter()
@@ -372,7 +372,7 @@ struct TrainingCalendarView: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
                 ForEach(daysInMonth, id: \.self) { date in
                     if let date = date {
-                        DayCell(date: date, workoutInfo: workoutsByDate[normalizeDate(date)])
+                        DayCell(date: date, workoutInfo: workoutsByDate[normalizeDate(date).timeIntervalSince1970])
                     } else {
                         EmptyDayCell()
                     }
@@ -426,13 +426,13 @@ struct TrainingCalendarView: View {
         }
 
         // 按日期分組並計算總距離和主要運動類型
-        var grouped: [Date: DayWorkoutInfo] = [:]
+        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
         for workout in monthWorkouts {
-            let date = normalizeDate(workout.startDate)
+            let key = normalizeDate(workout.startDate).timeIntervalSince1970
             let distance = (workout.distance ?? 0) / 1000.0  // 轉換為公里
             let duration = workout.duration
 
-            if var existing = grouped[date] {
+            if var existing = grouped[key] {
                 existing.totalDistance += distance
                 existing.totalDuration += duration
                 existing.workoutCount += 1
@@ -441,9 +441,9 @@ struct TrainingCalendarView: View {
                     existing.primaryType = workout.activityType
                     existing.primaryDistance = distance
                 }
-                grouped[date] = existing
+                grouped[key] = existing
             } else {
-                grouped[date] = DayWorkoutInfo(
+                grouped[key] = DayWorkoutInfo(
                     totalDistance: distance,
                     totalDuration: duration,
                     primaryType: workout.activityType,

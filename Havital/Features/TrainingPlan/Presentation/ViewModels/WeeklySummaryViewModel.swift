@@ -302,8 +302,8 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
         let today = Date()
 
         // 計算上週一
-        let lastMonday = calendar.date(byAdding: .weekOfYear, value: -1, to: today)!
-        let lastSunday = calendar.date(byAdding: .day, value: 6, to: lastMonday)!
+        guard let lastMonday = calendar.date(byAdding: .weekOfYear, value: -1, to: today),
+              let lastSunday = calendar.date(byAdding: .day, value: 6, to: lastMonday) else { return "" }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"
@@ -317,9 +317,9 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
         let today = Date()
 
         // 計算兩週前的週一
-        let twoWeeksAgoMonday = calendar.date(byAdding: .weekOfYear, value: -2, to: today)!
-        let lastSunday = calendar.date(byAdding: .weekOfYear, value: -1, to: today)!
-        let actualLastSunday = calendar.date(byAdding: .day, value: 6, to: lastSunday)!
+        guard let twoWeeksAgoMonday = calendar.date(byAdding: .weekOfYear, value: -2, to: today),
+              let lastSunday = calendar.date(byAdding: .weekOfYear, value: -1, to: today),
+              let actualLastSunday = calendar.date(byAdding: .day, value: 6, to: lastSunday) else { return "" }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"

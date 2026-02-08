@@ -310,7 +310,7 @@ class HRVManager: ObservableObject, DataManageable {
     
     private func getDateRange(for timeRange: HRVTimeRange) -> (start: Date, end: Date) {
         let now = Date()
-        let startDate = Calendar.current.date(byAdding: .day, value: -timeRange.days, to: now)!
+        let startDate = Calendar.current.date(byAdding: .day, value: -timeRange.days, to: now) ?? now
         return (start: startDate, end: now)
     }
     

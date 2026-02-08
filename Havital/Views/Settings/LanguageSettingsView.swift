@@ -174,7 +174,14 @@ struct LanguageSettingsView: View {
     
     private func updateBackendPreferences() async throws {
         // Create request to update preferences
-        var request = URLRequest(url: URL(string: "\(APIConfig.baseURL)/user/preferences")!)
+        guard let url = URL(string: "\(APIConfig.baseURL)/user/preferences") else {
+            Logger.firebase("無效的 URL", level: .error, labels: [
+                "module": "LanguageSettingsView",
+                "action": "updateBackendPreferences"
+            ])
+            return
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
