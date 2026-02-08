@@ -1702,7 +1702,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
         // HKMetadataKeyWeatherTemperature 是 iOS 15+ 的官方 key
         if #available(iOS 15.0, *) {
             print("🌡️ [Temperature] 檢查官方 key: HKMetadataKeyWeatherTemperature")
-            if let tempQuantity = metadata[HKMetadataKeyWeatherTemperature] as? HKQuantity {
+            if let tempQuantity = metadata[HKMetadataKeyWeatherTemperature] as? HKQuantity,
+               tempQuantity.is(compatibleWith: .degreeCelsius()) {
                 let tempCelsius = tempQuantity.doubleValue(for: .degreeCelsius())
                 print("🌡️ [Temperature] ✅ 從 metadata 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
                 return tempCelsius
@@ -1725,7 +1726,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
             if let tempValue = metadata[key] as? Double {
                 print("🌡️ [Temperature] ✅ 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempValue))°C")
                 return tempValue
-            } else if let tempQuantity = metadata[key] as? HKQuantity {
+            } else if let tempQuantity = metadata[key] as? HKQuantity,
+                      tempQuantity.is(compatibleWith: .degreeCelsius()) {
                 let tempCelsius = tempQuantity.doubleValue(for: .degreeCelsius())
                 print("🌡️ [Temperature] ✅ 從自定義 key '\(key)' 獲取溫度: \(String(format: "%.1f", tempCelsius))°C")
                 return tempCelsius
@@ -1790,7 +1792,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
         if #available(iOS 15.0, *) {
             print("💧 [Humidity] 檢查官方 key: HKMetadataKeyWeatherHumidity")
-            if let humidityQuantity = metadata[HKMetadataKeyWeatherHumidity] as? HKQuantity {
+            if let humidityQuantity = metadata[HKMetadataKeyWeatherHumidity] as? HKQuantity,
+               humidityQuantity.is(compatibleWith: .percent()) {
                 let humidity = humidityQuantity.doubleValue(for: .percent())
                 print("💧 [Humidity] ✅ 從 metadata 獲取濕度: \(String(format: "%.1f", humidity))%%")
                 return humidity
@@ -1812,7 +1815,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
             if let humidityValue = metadata[key] as? Double {
                 print("💧 [Humidity] ✅ 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidityValue))%%")
                 return humidityValue
-            } else if let humidityQuantity = metadata[key] as? HKQuantity {
+            } else if let humidityQuantity = metadata[key] as? HKQuantity,
+                      humidityQuantity.is(compatibleWith: .percent()) {
                 let humidity = humidityQuantity.doubleValue(for: .percent())
                 print("💧 [Humidity] ✅ 從自定義 key '\(key)' 獲取濕度: \(String(format: "%.1f", humidity))%%")
                 return humidity
@@ -1914,9 +1918,15 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 }
 
                 // Effort score uses appleEffortScore unit (iOS 18+)
-                let value = sample.quantity.doubleValue(for: .appleEffortScore())
-                print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
-                continuation.resume(returning: value)
+                let unit = HKUnit.appleEffortScore()
+                if sample.quantity.is(compatibleWith: unit) {
+                    let value = sample.quantity.doubleValue(for: unit)
+                    print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
+                    continuation.resume(returning: value)
+                } else {
+                    print("🎯 [EffortScore] ⚠️ quantity 與 appleEffortScore unit 不相容，跳過")
+                    continuation.resume(returning: nil)
+                }
             }
 
             self.healthStore.execute(query)
