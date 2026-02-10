@@ -187,7 +187,7 @@ struct TimelineItemViewV2: View {
                         Divider()
 
                         // 訓練目標描述
-                        if let desc = day.trainingDetails?.description, !desc.isEmpty {
+                        if let desc = day.primaryDescription, !desc.isEmpty {
                             Text(desc)
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
@@ -202,8 +202,8 @@ struct TimelineItemViewV2: View {
                         }
 
                         // 訓練詳情
-                        if let details = day.trainingDetails {
-                            TrainingDetailsViewV2(day: day, details: details)
+                        if day.session != nil {
+                            TrainingDetailsViewV2(day: day)
                         }
 
                         // 已完成的訓練記錄
@@ -345,7 +345,7 @@ struct TimelineItemViewV2: View {
             return .red
         case .rest:
             return .gray
-        case .crossTraining, .strength, .fartlek:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return .purple
         }
     }
@@ -391,109 +391,472 @@ struct TimelineItemViewV2: View {
     }
 }
 
-/// 訓練詳情視圖
-private struct TrainingDetailsViewV2: View {
-    let day: DayDetail
-    let details: TrainingDetails
+// MARK: - V2 Training Details Components
+
+/// 原子級 badge pill 元件
+private struct DataBadge: View {
+    let icon: String?
+    let text: String
+    let color: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // ✨ 暖身段（V2 新功能）
-            if let warmup = details.warmup {
-                WarmupCooldownView(
-                    segment: warmup,
-                    type: .warmup
-                )
+        HStack(spacing: 2) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.white)
+            }
+            Text(text)
+                .font(AppFont.caption())
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 3)
+        .background(color)
+        .cornerRadius(4)
+    }
+}
+
+/// 暖身/緩和統一元件 — 輕量 inline 文字行
+private struct PhaseRow: View {
+    let segment: RunSegment
+    let isWarmup: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(isWarmup ? "🔥" : "❄️")
+                .font(AppFont.caption())
+
+            Text(isWarmup ? "暖身" : "緩和")
+                .font(AppFont.caption())
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+
+            detailItems
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isWarmup ? Color.orange.opacity(0.06) : Color.blue.opacity(0.06))
+        )
+    }
+
+    @ViewBuilder
+    private var detailItems: some View {
+        let items = buildDetailStrings()
+        if !items.isEmpty {
+            ForEach(items.indices, id: \.self) { idx in
+                if idx > 0 || true {
+                    Text("·")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                }
+                Text(items[idx])
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func buildDetailStrings() -> [String] {
+        var items: [String] = []
+        if let km = segment.distanceKm {
+            items.append(String(format: "%.1fkm", km))
+        } else if let m = segment.distanceM {
+            items.append("\(m)m")
+        }
+        if let pace = segment.pace {
+            items.append(pace)
+        }
+        if let hr = segment.heartRateRange, hr.isValid, let text = hr.displayText {
+            items.append("HR \(text)")
+        }
+        return items
+    }
+}
+
+/// 簡單跑步 — 文字行風格
+private struct SimpleRunBadgesView: View {
+    let activity: RunActivity
+    let dayType: DayType
+
+    private var shouldHidePace: Bool {
+        dayType == .easyRun || dayType == .easy || dayType == .recovery_run || dayType == .lsd
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            // 距離（加粗主資訊）
+            if let km = activity.distanceKm {
+                Text(String(format: "%.1f km", km))
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
             }
 
-            // 主訓練詳情
-            HStack(spacing: 6) {
-                // 距離
-                if let distance = details.distanceKm {
-                    HStack(spacing: 2) {
-                        Image(systemName: "figure.run")
-                            .font(AppFont.captionSmall())
-                            .foregroundColor(.white)
-                        Text(String(format: "%.1fkm", distance))
-                            .font(AppFont.caption())
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(Color.blue)
-                    .cornerRadius(4)
-                } else if let totalDistance = details.totalDistanceKm {
-                    HStack(spacing: 2) {
-                        Image(systemName: "figure.run")
-                            .font(AppFont.captionSmall())
-                            .foregroundColor(.white)
-                        Text(String(format: "%.1fkm", totalDistance))
-                            .font(AppFont.caption())
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(Color.blue)
-                    .cornerRadius(4)
+            // 配速
+            if let pace = activity.pace, !shouldHidePace {
+                Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                Text(pace)
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            // 時間
+            if let mins = activity.durationMinutes {
+                Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                Text("\(mins) 分鐘")
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            // 心率
+            if let hr = activity.heartRateRange, hr.isValid, let text = hr.displayText {
+                Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                Text("HR \(text)")
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+    }
+}
+
+/// 間歇訓練區塊 — 結構化卡片風格（accent bar + 文字表格）
+private struct IntervalBlockView: View {
+    let interval: IntervalBlock
+    let runType: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Header: 訓練名稱 + 組數
+            HStack {
+                Text(runTypeDisplayName)
+                    .font(AppFont.caption())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                Text("\(interval.repeats) 組")
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            // Work + Recovery 結構化區域
+            VStack(spacing: 0) {
+                // Work row — 橘色 accent bar
+                IntervalRow(
+                    accentColor: .orange,
+                    label: workLabel,
+                    distance: workDistanceText,
+                    pace: interval.workPace,
+                    duration: interval.workDurationMinutes
+                )
+
+                // Recovery row — 灰綠色 accent bar
+                IntervalRow(
+                    accentColor: recoveryColor,
+                    label: recoveryLabel,
+                    distance: recoveryDistanceText,
+                    pace: interval.recoveryPace,
+                    duration: interval.recoveryDurationMinutes
+                )
+            }
+            .background(Color(.quaternarySystemFill))
+            .cornerRadius(8)
+        }
+    }
+
+    private var workDistanceText: String? {
+        if let km = interval.workDistanceKm {
+            return String(format: "%.1fkm", km)
+        } else if let m = interval.workDistanceM {
+            return "\(m)m"
+        }
+        return nil
+    }
+
+    private var recoveryDistanceText: String? {
+        if let km = interval.recoveryDistanceKm {
+            return String(format: "%.1fkm", km)
+        } else if let m = interval.recoveryDistanceM {
+            return "\(m)m"
+        }
+        return nil
+    }
+
+    private var runTypeDisplayName: String {
+        switch runType.lowercased() {
+        case "interval": return "間歇訓練"
+        case "fartlek": return "法特雷克"
+        case "strides": return "大步跑"
+        case "hill_repeats": return "山坡重複跑"
+        case "cruise_intervals": return "巡航間歇"
+        case "short_interval": return "短間歇"
+        case "long_interval": return "長間歇"
+        case "norwegian_4x4": return "挪威 4×4"
+        case "yasso_800": return "Yasso 800"
+        default: return "間歇訓練"
+        }
+    }
+
+    private var workLabel: String {
+        switch runType.lowercased() {
+        case "hill_repeats": return "上坡衝刺"
+        case "strides": return "加速跑"
+        default: return "衝刺"
+        }
+    }
+
+    private var recoveryLabel: String {
+        let hasMovement = interval.recoveryDistanceKm != nil
+            || interval.recoveryDistanceM != nil
+            || interval.recoveryPace != nil
+        return hasMovement ? "恢復跑" : "休息"
+    }
+
+    private var recoveryColor: Color {
+        let hasMovement = interval.recoveryDistanceKm != nil
+            || interval.recoveryDistanceM != nil
+            || interval.recoveryPace != nil
+        return hasMovement ? .mint : .gray
+    }
+}
+
+/// 間歇訓練中的單行（衝刺/恢復）— 左側 accent bar
+private struct IntervalRow: View {
+    let accentColor: Color
+    let label: String
+    let distance: String?
+    let pace: String?
+    let duration: Int?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // 左側 accent bar
+            RoundedRectangle(cornerRadius: 2)
+                .fill(accentColor)
+                .frame(width: 4)
+
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(AppFont.caption())
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .frame(minWidth: 40, alignment: .leading)
+
+                if let distance = distance {
+                    Text(distance)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
                 }
 
-                // 配速（根據訓練類型決定是否顯示）
-                if let pace = details.pace, !shouldHidePace() {
-                    HStack(spacing: 2) {
-                        Image(systemName: "speedometer")
-                            .font(AppFont.captionSmall())
-                            .foregroundColor(.white)
-                        Text(pace)
-                            .font(AppFont.caption())
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(Color.orange)
-                    .cornerRadius(4)
+                if let pace = pace {
+                    Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                    Text(pace)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
                 }
 
-                // 心率區間
-                if let hr = details.heartRateRange, let displayText = hr.displayText {
-                    HStack(spacing: 2) {
-                        Image(systemName: "heart.fill")
-                            .font(AppFont.captionSmall())
-                            .foregroundColor(.white)
-                        Text(displayText)
-                            .font(AppFont.caption())
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(Color.red)
-                    .cornerRadius(4)
+                if let mins = duration {
+                    Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                    Text("\(mins) 分鐘")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
             }
+            .padding(.leading, 8)
+            .padding(.vertical, 6)
+        }
+    }
+}
 
-            // ✨ 力量訓練動作清單（V2 新功能）
-            if let exercises = details.exercises, !exercises.isEmpty {
-                ExercisesListView(exercises: exercises)
-            }
+/// 分段訓練（progression, combination）— accent bar + 文字行
+private struct SegmentsView: View {
+    let segments: [RunSegment]
 
-            // ✨ 緩和段（V2 新功能）
-            if let cooldown = details.cooldown {
-                WarmupCooldownView(
-                    segment: cooldown,
-                    type: .cooldown
-                )
-            }
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(segments.indices, id: \.self) { idx in
+                let seg = segments[idx]
+                HStack(spacing: 0) {
+                    // 左側 accent bar — 依段落序號遞進色彩
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(segmentColor(index: idx, total: segments.count))
+                        .frame(width: 3)
 
-            // ✨ 補充訓練（V2 新功能）
-            if let supplementary = details.supplementary, !supplementary.isEmpty {
-                SupplementaryTrainingView(activities: supplementary)
+                    HStack(spacing: 4) {
+                        Text("第\(idx + 1)段")
+                            .font(AppFont.caption())
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .frame(minWidth: 36, alignment: .leading)
+
+                        if let km = seg.distanceKm {
+                            Text(String(format: "%.1fkm", km))
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        } else if let m = seg.distanceM {
+                            Text("\(m)m")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+
+                        if let pace = seg.pace {
+                            Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                            Text(pace)
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+
+                        if let mins = seg.durationMinutes {
+                            Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                            Text("\(mins) 分鐘")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+
+                        if let hr = seg.heartRateRange, hr.isValid, let text = hr.displayText {
+                            Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                            Text("HR \(text)")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.leading, 8)
+                    .padding(.vertical, 5)
+                }
             }
         }
-        .padding(.top, 4)
+        .background(Color(.quaternarySystemFill))
+        .cornerRadius(8)
     }
 
-    private func shouldHidePace() -> Bool {
-        return day.type == .easyRun || day.type == .easy || day.type == .recovery_run || day.type == .lsd
+    /// 依段落索引產生漸進色（橘 → 紅）
+    private func segmentColor(index: Int, total: Int) -> Color {
+        if total <= 1 { return .orange }
+        let fraction = Double(index) / Double(total - 1)
+        // 從橘色漸進到紅色
+        return fraction < 0.5 ? .orange : .red
+    }
+}
+
+/// 力量訓練內容 — 文字行風格
+private struct StrengthContentView: View {
+    let activity: StrengthActivity
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Text("\(activity.durationMinutes) 分鐘")
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+
+            if !activity.exercises.isEmpty {
+                ExercisesListView(exercises: activity.exercises)
+            }
+        }
+    }
+}
+
+/// 交叉訓練內容 — 文字行風格
+private struct CrossContentView: View {
+    let activity: CrossActivity
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("\(activity.durationMinutes) 分鐘")
+                .font(AppFont.bodySmall())
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+
+            if let km = activity.distanceKm {
+                Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                Text(String(format: "%.1f km", km))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+    }
+}
+
+/// 跑步活動內容分流（interval / segments / simple）
+private struct RunActivityContentView: View {
+    let activity: RunActivity
+    let dayType: DayType
+
+    var body: some View {
+        if let interval = activity.interval {
+            IntervalBlockView(interval: interval, runType: activity.runType)
+        } else if let segments = activity.segments, !segments.isEmpty {
+            SegmentsView(segments: segments)
+        } else {
+            SimpleRunBadgesView(activity: activity, dayType: dayType)
+        }
+    }
+}
+
+/// 主活動分流（run / strength / cross）
+private struct MainActivityView: View {
+    let primary: PrimaryActivity
+    let dayType: DayType
+
+    var body: some View {
+        switch primary {
+        case .run(let runActivity):
+            RunActivityContentView(activity: runActivity, dayType: dayType)
+        case .strength(let strengthActivity):
+            StrengthContentView(activity: strengthActivity)
+        case .cross(let crossActivity):
+            CrossContentView(activity: crossActivity)
+        }
+    }
+}
+
+/// 訓練詳情視圖 — 直接讀取 V2 entity
+private struct TrainingDetailsViewV2: View {
+    let day: DayDetail
+
+    var body: some View {
+        if let session = day.session {
+            VStack(alignment: .leading, spacing: 8) {
+                // 暖身
+                if let warmup = session.warmup {
+                    PhaseRow(segment: warmup, isWarmup: true)
+                }
+
+                // 主活動
+                MainActivityView(primary: session.primary, dayType: day.type)
+
+                // 緩和（與主訓練之間有明確視覺斷點）
+                if let cooldown = session.cooldown {
+                    VStack(spacing: 0) {
+                        Divider()
+                            .padding(.vertical, 4)
+                        PhaseRow(segment: cooldown, isWarmup: false)
+                    }
+                    .padding(.top, 4)
+                }
+
+                // 補充訓練
+                if let supplementary = session.supplementary, !supplementary.isEmpty {
+                    SupplementaryTrainingView(activities: supplementary)
+                }
+            }
+            .padding(.top, 4)
+        }
     }
 }

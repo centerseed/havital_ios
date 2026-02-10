@@ -462,7 +462,7 @@ struct TrainingEditSheetV2: View {
             return .purple
         case .rest:
             return .gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .swimming, .elliptical, .rowing:
             return .purple
         }
     }

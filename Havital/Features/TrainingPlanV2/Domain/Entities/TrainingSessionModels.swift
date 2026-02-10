@@ -231,6 +231,16 @@ extension DayDetail {
         return dayIndex
     }
 
+    /// 主活動描述（直接取自 V2 session.primary）
+    var primaryDescription: String? {
+        guard let session = session else { return nil }
+        switch session.primary {
+        case .run(let a): return a.description
+        case .strength(let a): return a.description
+        case .cross(let a): return a.description
+        }
+    }
+
     /// V1 兼容: 從 category 和 session 推斷 DayType
     var type: DayType {
         // 休息日

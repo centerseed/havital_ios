@@ -246,6 +246,7 @@ struct TrainingSessionDTO: Codable, Equatable {
 }
 
 // MARK: - DayDetailDTO
+/// V2 API 扁平結構：primary/warmup/cooldown 直接在 day 層級
 
 struct DayDetailDTO: Codable, Equatable {
     let dayIndex: Int
@@ -253,7 +254,10 @@ struct DayDetailDTO: Codable, Equatable {
     let reason: String
     let tips: String?
     let category: String
-    let session: TrainingSessionDTO?
+    let primary: PrimaryActivityDTO?
+    let warmup: RunSegmentDTO?
+    let cooldown: RunSegmentDTO?
+    let supplementary: [SupplementaryActivityDTO]?
 
     enum CodingKeys: String, CodingKey {
         case dayIndex = "day_index"
@@ -261,6 +265,9 @@ struct DayDetailDTO: Codable, Equatable {
         case reason
         case tips
         case category
-        case session
+        case primary
+        case warmup
+        case cooldown
+        case supplementary
     }
 }

@@ -462,6 +462,8 @@
 "activity.type.strength_training" = "Strength Training";
 "activity.type.yoga" = "Yoga";
 "activity.type.pilates" = "Pilates";
+"activity.type.elliptical" = "Elliptical";
+"activity.type.rowing" = "Rowing";
 "activity.type.other" = "Other";
 
 // MARK: - Training Record
@@ -2136,4 +2138,13 @@
 "onboarding.recommended" = "Recommended";
 "onboarding.cross_training_enabled" = "Cross-training enabled";
 
->>>>>>> dev
+// MARK: - Weekly Summary V2
+"training.week_summary_title" = "Week %d Summary";
+"training.completion" = "Completion";
+"training.sessions" = "sessions";
+"training.analysis" = "Analysis";
+"training.heart_rate" = "Heart Rate";
+"training.trend" = "Trend";
+"training.total" = "Total";
+"training.vs_plan" = "vs Plan";
+"training.intensity_distribution" = "Intensity Distribution";

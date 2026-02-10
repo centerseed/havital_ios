@@ -462,6 +462,8 @@
 "activity.type.strength_training" = "筋力トレーニング";
 "activity.type.yoga" = "ヨガ";
 "activity.type.pilates" = "ピラティス";
+"activity.type.elliptical" = "エリプティカル";
+"activity.type.rowing" = "ローイング";
 "activity.type.other" = "その他";
 
 // MARK: - Training Record
@@ -2125,4 +2127,13 @@
 "workoutsyncdebug.text_7" = "作成されたテストワークアウト ID: %@";
 "workoutsyncdebug.text_8" = "テストデータ管理";
 "workoutsyncdebug.text_9" = "テストデータを削除";
->>>>>>> dev
+// MARK: - Weekly Summary V2
+"training.week_summary_title" = "第%d週サマリー";
+"training.completion" = "達成度";
+"training.sessions" = "セッション";
+"training.analysis" = "分析";
+"training.heart_rate" = "心拍数";
+"training.trend" = "トレンド";
+"training.total" = "合計";
+"training.vs_plan" = "計画との比較";
+"training.intensity_distribution" = "強度配分";

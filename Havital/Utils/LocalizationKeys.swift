@@ -703,6 +703,8 @@ enum GaitAnalysisChart {
         static let strengthTraining = "activity.type.strength_training"
         static let yoga = "activity.type.yoga"
         static let pilates = "activity.type.pilates"
+        static let elliptical = "activity.type.elliptical"
+        static let rowing = "activity.type.rowing"
         static let other = "activity.type.other"
     }
     

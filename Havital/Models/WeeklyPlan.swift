@@ -114,6 +114,76 @@ extension WeeklyPlan {
     }
 }
 
+// MARK: - V3 中繼解碼 structs (private)
+private struct V3RunActivity: Decodable {
+    let run_type: String
+    let distance_km: Double?
+    let pace: String?
+    let heart_rate_range: HeartRateRange?
+    let segments: [V3RunSegment]?
+    let interval: V3IntervalBlock?
+    let description: String?
+    let duration_minutes: Int?
+}
+
+private struct V3IntervalBlock: Decodable {
+    let repeats: Int
+    let work_distance_km: Double?
+    let work_distance_m: Int?
+    let work_duration_minutes: Int?
+    let work_pace: String?
+    let work_description: String?
+    let recovery_distance_km: Double?
+    let recovery_distance_m: Int?
+    let recovery_duration_minutes: Int?
+    let recovery_duration_seconds: Int?
+    let recovery_pace: String?
+    let recovery_description: String?
+    let variant: String?
+}
+
+private struct V3RunSegment: Decodable {
+    let distance_km: Double?
+    let pace: String?
+    let description: String?
+    let heart_rate_range: HeartRateRange?
+}
+
+private struct V3StrengthActivity: Decodable {
+    let strength_type: String?
+    let exercises: [V3Exercise]?
+    let duration_minutes: Int?
+    let description: String?
+}
+
+private struct V3Exercise: Decodable {
+    let name: String?
+    let sets: Int?
+    let reps: Int?
+    let duration_seconds: Int?
+    let description: String?
+}
+
+private struct V3CrossActivity: Decodable {
+    let cross_type: String?
+    let duration_minutes: Int?
+    let distance_km: Double?
+    let description: String?
+}
+
+/// V3 warmup/cooldown 中繼解碼（snake_case JSON → RunSegmentV2）
+private struct V3WarmupCooldown: Decodable {
+    let distance_km: Double?
+    let distance_m: Int?
+    let duration_minutes: Int?
+    let pace: String?
+    let description: String?
+
+    func toRunSegment() -> RunSegmentV2 {
+        return RunSegmentV2(distanceKm: distance_km, distanceM: distance_m, durationMinutes: duration_minutes, pace: pace, heartRateRange: nil, intensity: nil, description: description)
+    }
+}
+
 struct TrainingDay: Codable, Identifiable, Equatable {
     var id: String { dayIndex }
     let dayIndex: String
@@ -148,6 +218,8 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         case tips
         case trainingType = "training_type"
         case trainingDetails = "training_details"
+        // V3 keys
+        case category, primary, warmup, cooldown
     }
 
     init(from decoder: Decoder) throws {
@@ -166,8 +238,152 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         dayTarget = try container.decode(String.self, forKey: .dayTarget)
         reason = try container.decodeIfPresent(String.self, forKey: .reason)
         tips = try container.decodeIfPresent(String.self, forKey: .tips)
-        trainingType = try container.decode(String.self, forKey: .trainingType)
-        trainingDetails = try container.decodeIfPresent(TrainingDetails.self, forKey: .trainingDetails)
+
+        // V3 偵測：category 欄位存在 → V3 模式
+        if let category = try container.decodeIfPresent(String.self, forKey: .category) {
+            // 解碼 warmup/cooldown（V3 在 day 層級，snake_case）
+            let v3Warmup = try container.decodeIfPresent(V3WarmupCooldown.self, forKey: .warmup)?.toRunSegment()
+            let v3Cooldown = try container.decodeIfPresent(V3WarmupCooldown.self, forKey: .cooldown)?.toRunSegment()
+
+            switch category {
+            case "run":
+                let run = try container.decode(V3RunActivity.self, forKey: .primary)
+                let mapped = TrainingDay.mapV3Run(run, warmup: v3Warmup, cooldown: v3Cooldown)
+                trainingType = mapped.type
+                trainingDetails = mapped.details
+            case "strength":
+                let strength = try container.decodeIfPresent(V3StrengthActivity.self, forKey: .primary)
+                trainingType = "strength"
+                let exercises: [ExerciseV2]? = strength?.exercises?.compactMap { ex -> ExerciseV2? in
+                    guard let name = ex.name else { return nil }
+                    return ExerciseV2(name: name, sets: ex.sets, reps: ex.reps != nil ? "\(ex.reps!)" : nil, durationSeconds: ex.duration_seconds, weightKg: nil, restSeconds: nil, description: ex.description ?? "")
+                }
+                trainingDetails = TrainingDetails(
+                    description: strength?.description,
+                    distanceKm: nil, totalDistanceKm: nil,
+                    timeMinutes: strength?.duration_minutes != nil ? Double(strength!.duration_minutes!) : nil,
+                    pace: nil, work: nil, recovery: nil, repeats: nil,
+                    heartRateRange: nil, segments: nil,
+                    warmup: nil, cooldown: nil,
+                    exercises: exercises,
+                    supplementary: nil
+                )
+            case "cross":
+                let cross = try container.decodeIfPresent(V3CrossActivity.self, forKey: .primary)
+                let crossType = cross?.cross_type ?? "cross_training"
+                switch crossType {
+                case "cycling": trainingType = "cycling"
+                case "yoga": trainingType = "yoga"
+                case "hiking": trainingType = "hiking"
+                case "swimming": trainingType = "swimming"
+                case "elliptical": trainingType = "elliptical"
+                case "rowing": trainingType = "rowing"
+                default: trainingType = "cross_training"
+                }
+                trainingDetails = TrainingDetails(
+                    description: cross?.description,
+                    distanceKm: cross?.distance_km, totalDistanceKm: nil,
+                    timeMinutes: cross?.duration_minutes != nil ? Double(cross!.duration_minutes!) : nil,
+                    pace: nil, work: nil, recovery: nil, repeats: nil,
+                    heartRateRange: nil, segments: nil,
+                    warmup: nil, cooldown: nil, exercises: nil, supplementary: nil
+                )
+            case "rest":
+                trainingType = "rest"
+                trainingDetails = nil
+            default:
+                trainingType = "rest"
+                trainingDetails = nil
+            }
+        } else {
+            // V2 模式（向下相容）
+            trainingType = try container.decode(String.self, forKey: .trainingType)
+            trainingDetails = try container.decodeIfPresent(TrainingDetails.self, forKey: .trainingDetails)
+        }
+    }
+
+    /// V3 RunActivity → (trainingType, trainingDetails) 映射
+    private static func mapV3Run(_ run: V3RunActivity, warmup: RunSegmentV2?, cooldown: RunSegmentV2?) -> (type: String, details: TrainingDetails?) {
+        let runType = run.run_type
+
+        // 判斷 trainingType
+        let mappedType: String
+        switch runType {
+        case "interval":
+            if let variant = run.interval?.variant {
+                mappedType = variant  // variant 直接映射到舊 DayType rawValue
+            } else {
+                mappedType = "interval"
+            }
+        case "fartlek":
+            mappedType = "fartlek"
+        default:
+            // easy, lsd, tempo, threshold, race_pace, progression, race 等直接對應
+            mappedType = runType
+        }
+
+        // 間歇類型（interval/fartlek with interval block）
+        if let iv = run.interval {
+            let work = WorkoutSegment(
+                description: iv.work_description,
+                distanceKm: iv.work_distance_km,
+                distanceM: iv.work_distance_m != nil ? Double(iv.work_distance_m!) : nil,
+                timeMinutes: iv.work_duration_minutes != nil ? Double(iv.work_duration_minutes!) : nil,
+                timeSeconds: nil,
+                pace: iv.work_pace
+            )
+            let recovery = WorkoutSegment(
+                description: iv.recovery_description,
+                distanceKm: iv.recovery_distance_km,
+                distanceM: iv.recovery_distance_m != nil ? Double(iv.recovery_distance_m!) : nil,
+                timeMinutes: iv.recovery_duration_minutes != nil ? Double(iv.recovery_duration_minutes!) : nil,
+                timeSeconds: iv.recovery_duration_seconds,
+                pace: iv.recovery_pace
+            )
+            let details = TrainingDetails(
+                description: run.description,
+                distanceKm: run.distance_km, totalDistanceKm: nil,
+                timeMinutes: nil, pace: nil,
+                work: work, recovery: recovery, repeats: iv.repeats,
+                heartRateRange: run.heart_rate_range, segments: nil,
+                warmup: warmup, cooldown: cooldown, exercises: nil, supplementary: nil
+            )
+            return (mappedType, details)
+        }
+
+        // 分段類型（有 segments）
+        if let segs = run.segments, !segs.isEmpty {
+            let progressionSegments = segs.map { seg in
+                ProgressionSegment(
+                    distanceKm: seg.distance_km,
+                    pace: seg.pace,
+                    description: seg.description,
+                    heartRateRange: seg.heart_rate_range
+                )
+            }
+            let totalDist = segs.compactMap { $0.distance_km }.reduce(0, +)
+            let details = TrainingDetails(
+                description: run.description,
+                distanceKm: nil, totalDistanceKm: totalDist > 0 ? totalDist : run.distance_km,
+                timeMinutes: nil, pace: nil,
+                work: nil, recovery: nil, repeats: nil,
+                heartRateRange: run.heart_rate_range, segments: progressionSegments,
+                warmup: warmup, cooldown: cooldown, exercises: nil, supplementary: nil
+            )
+            return (mappedType, details)
+        }
+
+        // 簡單跑步類型
+        let details = TrainingDetails(
+            description: run.description,
+            distanceKm: run.distance_km, totalDistanceKm: nil,
+            timeMinutes: run.duration_minutes != nil ? Double(run.duration_minutes!) : nil,
+            pace: run.pace,
+            work: nil, recovery: nil, repeats: nil,
+            heartRateRange: run.heart_rate_range, segments: nil,
+            warmup: warmup, cooldown: cooldown, exercises: nil, supplementary: nil
+        )
+        return (mappedType, details)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -369,13 +585,21 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         goals: TrainingGoals(pace: nil, distanceKm: nil, heartRateRange: nil, heartRate: nil, times: nil)
                     )
                     return [item]
-            case .crossTraining, .hiking, .strength, .yoga, .cycling:
+            case .crossTraining, .hiking, .strength, .yoga, .cycling, .swimming, .elliptical, .rowing:
                 let description = details.description ?? ""
-                let activityName = type == .crossTraining ? L10n.Training.TrainingType.crossTraining.localized :
-                                 type == .hiking ? L10n.Training.TrainingType.hiking.localized :
-                                 type == .strength ? L10n.Training.TrainingType.strength.localized :
-                                 type == .yoga ? L10n.Training.TrainingType.yoga.localized :
-                                 L10n.Training.TrainingType.cycling.localized
+                let activityName: String = {
+                    switch type {
+                    case .crossTraining: return L10n.Training.TrainingType.crossTraining.localized
+                    case .hiking: return L10n.Training.TrainingType.hiking.localized
+                    case .strength: return L10n.Training.TrainingType.strength.localized
+                    case .yoga: return L10n.Training.TrainingType.yoga.localized
+                    case .cycling: return L10n.Training.TrainingType.cycling.localized
+                    case .swimming: return L10n.ActivityType.swimming.localized
+                    case .elliptical: return L10n.ActivityType.elliptical.localized
+                    case .rowing: return L10n.ActivityType.rowing.localized
+                    default: return L10n.Training.TrainingType.crossTraining.localized
+                    }
+                }()
                 let item = WeeklyTrainingItem(
                         name: activityName,
                         runDetails: description,
@@ -427,7 +651,25 @@ struct TrainingDetails: Codable, Equatable {
     let cooldown: RunSegmentV2?         // 緩和段
     let exercises: [ExerciseV2]?        // 力量訓練動作清單
     let supplementary: [SupplementaryActivityV2]?  // 補充訓練
-    
+
+    /// 明確的 memberwise init（供 V3 解碼映射使用）
+    init(description: String?, distanceKm: Double?, totalDistanceKm: Double?, timeMinutes: Double?, pace: String?, work: WorkoutSegment?, recovery: WorkoutSegment?, repeats: Int?, heartRateRange: HeartRateRange?, segments: [ProgressionSegment]?, warmup: RunSegmentV2? = nil, cooldown: RunSegmentV2? = nil, exercises: [ExerciseV2]? = nil, supplementary: [SupplementaryActivityV2]? = nil) {
+        self.description = description
+        self.distanceKm = distanceKm
+        self.totalDistanceKm = totalDistanceKm
+        self.timeMinutes = timeMinutes
+        self.pace = pace
+        self.work = work
+        self.recovery = recovery
+        self.repeats = repeats
+        self.heartRateRange = heartRateRange
+        self.segments = segments
+        self.warmup = warmup
+        self.cooldown = cooldown
+        self.exercises = exercises
+        self.supplementary = supplementary
+    }
+
     static func == (lhs: TrainingDetails, rhs: TrainingDetails) -> Bool {
         return lhs.description == rhs.description &&
                lhs.distanceKm == rhs.distanceKm &&
@@ -607,6 +849,11 @@ enum DayType: String, Codable {
 
     // 新增比賽配速訓練
     case racePace = "race_pace"                 // 比賽配速跑
+
+    // V3 交叉訓練新增類型
+    case swimming = "swimming"
+    case elliptical = "elliptical"
+    case rowing = "rowing"
 }
 
 struct WeeklyTrainingItem: Identifiable {

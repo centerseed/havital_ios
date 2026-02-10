@@ -238,7 +238,7 @@ struct TodayTrainingContent: View {
             return .red
         case .rest:
             return .gray
-        case .crossTraining, .strength, .fartlek:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return .purple
         }
     }

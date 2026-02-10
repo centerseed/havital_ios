@@ -567,20 +567,22 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             }
         }
         
-        // 請求通知授權
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                
-                if granted {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: NSError(domain: "NotificationAuthorization", code: -1, userInfo: [NSLocalizedDescriptionKey: "通知授權被拒絕"]))
-                }
+        // 請求通知授權（非必要，失敗不影響 HealthKit Observer）
+        do {
+            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
+            if !granted {
+                Logger.firebase(
+                    "通知授權被拒絕，同步功能仍正常運作",
+                    level: .warn,
+                    labels: ["module": "WorkoutBackgroundManager", "action": "notification_denied"]
+                )
             }
+        } catch {
+            Logger.firebase(
+                "請求通知授權失敗: \(error.localizedDescription)",
+                level: .warn,
+                labels: ["module": "WorkoutBackgroundManager", "action": "notification_auth_error"]
+            )
         }
     }
     

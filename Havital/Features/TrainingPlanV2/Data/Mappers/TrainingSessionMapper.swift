@@ -242,13 +242,23 @@ enum TrainingSessionMapper {
     // MARK: - DayDetail
 
     static func toEntity(from dto: DayDetailDTO) -> DayDetail {
+        // DTO 扁平結構 → Entity session 結構
+        let session: TrainingSession? = dto.primary.map { primary in
+            TrainingSession(
+                warmup: dto.warmup.map { toEntity(from: $0) },
+                primary: toEntity(from: primary),
+                cooldown: dto.cooldown.map { toEntity(from: $0) },
+                supplementary: dto.supplementary?.map { toEntity(from: $0) }
+            )
+        }
+
         return DayDetail(
             dayIndex: dto.dayIndex,
             dayTarget: dto.dayTarget,
             reason: dto.reason,
             tips: dto.tips,
             category: TrainingCategory(rawValue: dto.category) ?? .rest,
-            session: dto.session.map { toEntity(from: $0) }
+            session: session
         )
     }
 
@@ -259,7 +269,10 @@ enum TrainingSessionMapper {
             reason: entity.reason,
             tips: entity.tips,
             category: entity.category.rawValue,
-            session: entity.session.map { toDTO(from: $0) }
+            primary: entity.session.map { toDTO(from: $0.primary) },
+            warmup: entity.session?.warmup.map { toDTO(from: $0) },
+            cooldown: entity.session?.cooldown.map { toDTO(from: $0) },
+            supplementary: entity.session?.supplementary?.map { toDTO(from: $0) }
         )
     }
 }
