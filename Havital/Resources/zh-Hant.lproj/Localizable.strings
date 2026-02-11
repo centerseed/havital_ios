@@ -237,6 +237,7 @@
 "profile.personal_info" = "個人資訊";
 "profile.training_info" = "訓練資訊";
 "profile.heart_rate_info" = "心率資訊";
+"profile.pace_zones" = "配速區間";
 "profile.data_sources" = "數據來源";
 "profile.settings" = "設定";
 "profile.name" = "姓名";
@@ -1925,13 +1926,13 @@
 "distance.5k" = "5 公里";
 "distance.10k" = "10 公里";
 "distance.half_marathon" = "半程馬拉松";
-"distance.half_marathon_short" = "半馬";
+"distance.half_marathon_short" = "21km";
 "distance.full_marathon" = "全程馬拉松";
-"distance.full_marathon_short" = "全馬";
+"distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
 "my_achievement.personal_best.title" = "個人最佳成績";
-"my_achievement.personal_best.explanation" = "顯示你在不同距離的最佳完賽時間和配速";
+"my_achievement.personal_best.explanation" = "顯示你在不同距離的最佳移動時間（排除暫停、使用滑動窗口找最快連續段落）";
 "my_achievement.personal_best.no_data" = "暫無個人最佳成績\n完成第一次訓練後即可查看";
 "my_achievement.personal_best.first_place" = "第一名";
 "my_achievement.personal_best.second_place" = "第二名";

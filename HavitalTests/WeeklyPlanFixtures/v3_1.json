@@ -1,0 +1,106 @@
+{
+  "id": "test_v3_002_1",
+  "purpose": "V3 格式測試 - variant 和 cross types",
+  "week_of_plan": 2,
+  "total_weeks": 12,
+  "total_distance_km": 40,
+  "total_distance_reason": "恢復週",
+  "design_reason": ["測試 V3 variant 和交叉訓練"],
+  "days": [
+    {
+      "day_index": 1,
+      "category": "run",
+      "primary": {
+        "run_type": "interval",
+        "interval": {
+          "repeats": 6,
+          "work_distance_m": 100,
+          "work_distance_km": 0.1,
+          "work_pace": "3:30",
+          "work_description": "大步跑衝刺",
+          "recovery_duration_seconds": 60,
+          "recovery_description": "原地站立休息",
+          "variant": "strides"
+        },
+        "description": "6x100m 大步跑"
+      },
+      "day_target": "改善跑步效率",
+      "reason": "短距離快速跑強化跑姿"
+    },
+    {
+      "day_index": 2,
+      "category": "cross",
+      "primary": {
+        "cross_type": "swimming",
+        "duration_minutes": 45,
+        "description": "游泳交叉訓練"
+      },
+      "day_target": "主動恢復",
+      "reason": "低衝擊全身運動"
+    },
+    {
+      "day_index": 3,
+      "category": "run",
+      "primary": {
+        "run_type": "progression",
+        "segments": [
+          {"distance_km": 3.0, "pace": "5:45", "description": "慢跑段"},
+          {"distance_km": 3.0, "pace": "5:15", "description": "中等配速"},
+          {"distance_km": 2.0, "pace": "4:50", "description": "快跑段"}
+        ],
+        "description": "漸速跑 8km"
+      },
+      "day_target": "培養變速能力",
+      "reason": "漸進提速訓練"
+    },
+    {
+      "day_index": 4,
+      "category": "rest",
+      "day_target": "休息",
+      "reason": "身體恢復"
+    },
+    {
+      "day_index": 5,
+      "category": "run",
+      "primary": {
+        "run_type": "fartlek",
+        "interval": {
+          "repeats": 8,
+          "work_distance_km": 0.4,
+          "work_pace": "4:40",
+          "work_description": "快跑段",
+          "recovery_distance_km": 0.4,
+          "recovery_pace": "5:50",
+          "recovery_description": "慢跑恢復"
+        },
+        "description": "法特雷克變速跑"
+      },
+      "day_target": "變速訓練",
+      "reason": "模擬比賽變速"
+    },
+    {
+      "day_index": 6,
+      "category": "cross",
+      "primary": {
+        "cross_type": "yoga",
+        "duration_minutes": 60,
+        "description": "瑜伽伸展放鬆"
+      },
+      "day_target": "柔軟度訓練",
+      "reason": "改善柔軟度與恢復"
+    },
+    {
+      "day_index": 7,
+      "category": "run",
+      "primary": {
+        "run_type": "race_pace",
+        "distance_km": 10.0,
+        "pace": "5:00",
+        "heart_rate_range": {"min": 155, "max": 170},
+        "description": "比賽配速練習"
+      },
+      "day_target": "比賽模擬",
+      "reason": "熟悉目標配速"
+    }
+  ]
+}

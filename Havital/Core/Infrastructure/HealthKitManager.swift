@@ -1,6 +1,17 @@
 import Foundation
 import HealthKit
 
+// MARK: - HKQuantity Safe Access
+
+extension HKQuantity {
+    /// 安全取值：檢查 unit 相容性 + NaN/Inf，不相容或無效值回傳 nil
+    func safeDoubleValue(for unit: HKUnit) -> Double? {
+        guard self.is(compatibleWith: unit) else { return nil }
+        let value = self.doubleValue(for: unit)
+        return value.isFinite ? value : nil
+    }
+}
+
 // Typealias to reference domain entity HeartRateZone (distinguishes from HealthKitManager.HeartRateZone)
 private typealias DomainHeartRateZone = HeartRateZone
 
@@ -475,8 +486,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                             return offset >= 0 && offset <= workout.duration
                         }
 
-                        let dataPoints = filteredSamples.map { sample -> (Date, Double) in
-                            let value = sample.quantity.doubleValue(for: unit)
+                        let dataPoints = filteredSamples.compactMap { sample -> (Date, Double)? in
+                            guard let value = sample.quantity.safeDoubleValue(for: unit) else { return nil }
                             return (sample.startDate, value)
                         }
 
@@ -584,7 +595,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 
                 let rates = samples?.compactMap { sample -> Double? in
                     guard let heartRateSample = sample as? HKQuantitySample else { return nil }
-                    return heartRateSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                    return heartRateSample.quantity.safeDoubleValue(for: HKUnit.count().unitDivided(by: .minute()))
                 } ?? []
                 
                 continuation.resume(returning: rates)
@@ -703,8 +714,9 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 print(" HRV raw samples count: \(rawSamples.count), sources: \(sources)")
 
                 let hrvValues = samples?.compactMap { sample -> (Date, Double)? in
-                    guard let hrvSample = sample as? HKQuantitySample else { return nil }
-                    return (hrvSample.startDate, hrvSample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli)))
+                    guard let hrvSample = sample as? HKQuantitySample,
+                          let value = hrvSample.quantity.safeDoubleValue(for: HKUnit.secondUnit(with: .milli)) else { return nil }
+                    return (hrvSample.startDate, value)
                 } ?? []
                 
                 continuation.resume(returning: hrvValues)
@@ -773,12 +785,12 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 
                 let heartRates = samples?.compactMap { sample -> Double? in
                     guard let heartRateSample = sample as? HKQuantitySample else { return nil }
-                    return heartRateSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                    return heartRateSample.quantity.safeDoubleValue(for: HKUnit.count().unitDivided(by: .minute()))
                 } ?? []
-                
+
                 continuation.resume(returning: heartRates)
             }
-            
+
             healthStore.execute(query)
         }
     }
@@ -812,8 +824,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     return
                 }
                 
-                let speeds = runningSpeedSamples.map { sample -> (Date, Double) in
-                    let speed = sample.quantity.doubleValue(for: HKUnit.meter().unitDivided(by: HKUnit.second()))
+                let speeds = runningSpeedSamples.compactMap { sample -> (Date, Double)? in
+                    guard let speed = sample.quantity.safeDoubleValue(for: HKUnit.meter().unitDivided(by: HKUnit.second())) else { return nil }
                     return (sample.startDate, speed)
                 }
                 
@@ -845,8 +857,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     return
                 }
                 
-                let heartRates = heartRateSamples.map { sample in
-                    sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                let heartRates = heartRateSamples.compactMap { sample in
+                    sample.quantity.safeDoubleValue(for: HKUnit.count().unitDivided(by: .minute()))
                 }
                 
                 continuation.resume(returning: heartRates)
@@ -872,6 +884,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
         
         // 過濾離群值並計算平均值
         let stableHeartRates = sortedRates.filter { $0 >= lowerBound && $0 <= upperBound }
+        guard !stableHeartRates.isEmpty else { return sortedRates.reduce(0.0, +) / Double(sortedRates.count) }
         return stableHeartRates.reduce(0.0, +) / Double(stableHeartRates.count)
     }
     
@@ -909,8 +922,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     return
                 }
 
-                if let sample = samples?.first as? HKQuantitySample {
-                    let restingHR = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                if let sample = samples?.first as? HKQuantitySample,
+                   let restingHR = sample.quantity.safeDoubleValue(for: HKUnit(from: "count/min")) {
                     continuation.resume(returning: restingHR)
                 } else {
                     continuation.resume(returning: 60.0)
@@ -952,8 +965,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     return
                 }
 
-                let results = samples.map { sample -> (Date, Double) in
-                    let value = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                let results = samples.compactMap { sample -> (Date, Double)? in
+                    guard let value = sample.quantity.safeDoubleValue(for: HKUnit(from: "count/min")) else { return nil }
                     return (sample.startDate, value)
                 }
 
@@ -1329,19 +1342,19 @@ class HealthKitManager: ObservableObject, TaskManageable {
                         var avgHeartRate: Double = 0
 
                         if let distanceStats = statistics[HKQuantityType(.distanceWalkingRunning)] {
-                            distance = distanceStats.sumQuantity()?.doubleValue(for: .meter()) ?? 0
+                            distance = distanceStats.sumQuantity()?.safeDoubleValue(for: .meter()) ?? 0
                         }
 
                         if let speedStats = statistics[HKQuantityType(.runningSpeed)] {
-                            avgSpeed = speedStats.averageQuantity()?.doubleValue(for: .meter().unitDivided(by: .second())) ?? 0
+                            avgSpeed = speedStats.averageQuantity()?.safeDoubleValue(for: .meter().unitDivided(by: .second())) ?? 0
                         }
 
                         if let hrStats = statistics[HKQuantityType(.heartRate)] {
-                            avgHeartRate = hrStats.averageQuantity()?.doubleValue(for: .count().unitDivided(by: .minute())) ?? 0
+                            avgHeartRate = hrStats.averageQuantity()?.safeDoubleValue(for: .count().unitDivided(by: .minute())) ?? 0
                         }
 
                         // 計算配速（秒/公里）
-                        let avgPace = avgSpeed > 0 ? 1000.0 / avgSpeed : 0
+                        let avgPace: Double? = avgSpeed > 0 ? 1000.0 / avgSpeed : nil
 
                         // 提取 metadata
                         var metadataDict: [String: String]? = nil
@@ -1388,7 +1401,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
             // 如果從 workout activities 提取到分段資料，檢查是否有缺失
             if !lapsFromActivities.isEmpty {
                 // 🔍 檢查是否有缺失的距離（如開放目標訓練）
-                let totalWorkoutDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+                let totalWorkoutDistance = workout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0
                 let totalWorkoutDuration = workout.duration
                 let recordedDistance = lapsFromActivities.reduce(0.0, { $0 + ($1.totalDistanceM ?? 0) })
                 let recordedDuration = lapsFromActivities.reduce(0.0, { $0 + Double($1.totalTimeS ?? 0) })
@@ -1399,11 +1412,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 print("📊 [Activities] 總距離: \(String(format: "%.2f", totalWorkoutDistance))m, 已記錄: \(String(format: "%.2f", recordedDistance))m, 缺失: \(String(format: "%.2f", missingDistance))m")
                 print("📊 [Activities] 總時長: \(String(format: "%.1f", totalWorkoutDuration))s, 已記錄: \(String(format: "%.1f", recordedDuration))s, 缺失: \(String(format: "%.1f", missingDuration))s")
 
-                // 補充條件：避免補充太短的分段
-                // 1. 距離 > 500m 且時長 > 60s（正常的開放目標訓練）
-                // 2. 或者缺失比例 > 10%（顯著的數據缺失）
-                let missingDistanceRatio = totalWorkoutDistance > 0 ? (missingDistance / totalWorkoutDistance) : 0
-                let shouldSupplement = (missingDistance > 500 && missingDuration > 60) || (missingDistanceRatio > 0.10)
+                // 補充條件：缺失距離 > 500m 且時長 > 60s，且缺失值為正數
+                let shouldSupplement = missingDistance > 500 && missingDuration > 60
 
                 if shouldSupplement {
                     print("⚠️ [Activities] 檢測到缺失的分段數據，自動補充...")
@@ -1411,7 +1421,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     let lastActivity = lapsFromActivities.last
                     let supplementalStartOffset = Double((lastActivity?.startTimeOffsetS ?? 0) + (lastActivity?.totalTimeS ?? 0))
                     let supplementalLapNumber = lapsFromActivities.count + 1
-                    let supplementalPace = missingDuration / (missingDistance / 1000.0)
+                    let supplementalPace = missingDistance > 0 ? missingDuration / (missingDistance / 1000.0) : nil
 
                     // 計算補充 lap 的平均心率
                     let supplementalStartTime = workout.startDate.addingTimeInterval(supplementalStartOffset)
@@ -1464,10 +1474,6 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
             var laps: [LapData] = []
 
-            // 累積計算每圈的開始時間偏移
-            var cumulativeOffset: TimeInterval = 0
-            print("🔍 [LapData] 開始計算累積偏移 - 初始值: \(cumulativeOffset)秒")
-
             for (index, event) in sortedEvents.enumerated() {
                 // 嘗試從 metadata 獲取距離資訊
                 var distance: Double? = nil
@@ -1478,7 +1484,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
                     // 提取距離資訊
                     if let distanceQuantity = eventMetadata[HKMetadataKeyLapLength] as? HKQuantity {
-                        distance = distanceQuantity.doubleValue(for: .meter())
+                        distance = distanceQuantity.safeDoubleValue(for: .meter())
                         if let dist = distance {
                             metadataDict["lap_length"] = String(dist)
                         }
@@ -1504,21 +1510,16 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     continue
                 }
 
-                let lapNumber = laps.count + 1  // 使用實際加入的圈數
+                let lapNumber = laps.count + 1
                 let duration = event.dateInterval.duration
 
-                // 使用累積偏移作為該圈的開始時間
-                let startTimeOffset = cumulativeOffset
+                // 使用 Apple 提供的絕對時間戳計算偏移，而非手動累加
+                let startTimeOffset = event.dateInterval.start.timeIntervalSince(workout.startDate)
 
-                print("🔍 [LapData] 第 \(lapNumber) 圈 BEFORE - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒, 本圈時長: \(String(format: "%.0f", duration))秒")
+                print("🔍 [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 時長: \(String(format: "%.0f", duration))秒")
 
-                // 更新累積偏移，為下一圈做準備
-                cumulativeOffset += duration
-
-                print("🔍 [LapData] 第 \(lapNumber) 圈 AFTER  - 累積偏移: \(String(format: "%.0f", cumulativeOffset))秒")
-
-                // 計算平均配速
-                let averagePace = duration / (lapDistance / 1000.0)
+                // 計算平均配速（防護除以零）
+                let averagePace = (lapDistance > 0 && duration > 0) ? duration / (lapDistance / 1000.0) : nil
 
                 // 確定分圈類型
                 let lapType: String
@@ -1554,11 +1555,11 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
                 laps.append(lapData)
 
-                print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 持續: \(String(format: "%.0f", duration))秒, 距離: \(lapDistance)米, 配速: \(String(format: "%.0f", averagePace))秒/公里, 心率: \(averageHeartRate?.description ?? "N/A")bpm")
+                print("🏃‍♂️ [LapData] 第 \(lapNumber) 圈 - 偏移: \(String(format: "%.0f", startTimeOffset))秒, 持續: \(String(format: "%.0f", duration))秒, 距離: \(lapDistance)米, 配速: \(averagePace.map { String(format: "%.0f", $0) } ?? "N/A")秒/公里, 心率: \(averageHeartRate?.description ?? "N/A")bpm")
             }
 
             // 🔍 檢查是否有缺失的距離（如開放目標訓練）
-            let totalWorkoutDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+            let totalWorkoutDistance = workout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0
             let totalWorkoutDuration = workout.duration
             let recordedDistance = laps.reduce(0.0) { $0 + ($1.totalDistanceM ?? 0) }
             let recordedDuration = laps.reduce(0.0) { $0 + Double($1.totalTimeS ?? 0) }
@@ -1569,18 +1570,17 @@ class HealthKitManager: ObservableObject, TaskManageable {
             print("📊 [LapData] 總距離: \(String(format: "%.2f", totalWorkoutDistance))m, 已記錄: \(String(format: "%.2f", recordedDistance))m, 缺失: \(String(format: "%.2f", missingDistance))m")
             print("📊 [LapData] 總時長: \(String(format: "%.1f", totalWorkoutDuration))s, 已記錄: \(String(format: "%.1f", recordedDuration))s, 缺失: \(String(format: "%.1f", missingDuration))s")
 
-            // 補充條件：避免補充太短的 lap
-            // 1. 距離 > 500m 且時長 > 60s（正常的開放目標訓練）
-            // 2. 或者缺失比例 > 10%（顯著的數據缺失）
-            let missingDistanceRatio = totalWorkoutDistance > 0 ? (missingDistance / totalWorkoutDistance) : 0
-            let shouldSupplement = (missingDistance > 500 && missingDuration > 60) || (missingDistanceRatio > 0.10)
+            // 補充條件：缺失距離 > 500m 且時長 > 60s，且缺失值為正數（避免 GPS 漂移導致負值）
+            let shouldSupplement = missingDistance > 500 && missingDuration > 60
 
             if shouldSupplement {
                 print("⚠️ [LapData] 檢測到缺失的分圈數據，自動補充...")
 
                 let supplementalLapNumber = laps.count + 1
-                let supplementalStartOffset = cumulativeOffset
-                let supplementalPace = missingDuration / (missingDistance / 1000.0)
+                // 使用最後一圈的結束時間作為補充圈的開始
+                let lastLapEnd = laps.last.map { TimeInterval($0.startTimeOffsetS + ($0.totalTimeS ?? 0)) } ?? 0
+                let supplementalStartOffset = lastLapEnd
+                let supplementalPace = missingDistance > 0 ? missingDuration / (missingDistance / 1000.0) : nil
 
                 // 計算補充 lap 的平均心率
                 let supplementalStartTime = workout.startDate.addingTimeInterval(supplementalStartOffset)
@@ -1603,7 +1603,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
                 )
 
                 laps.append(supplementalLap)
-                print("✅ [LapData] 補充第 \(supplementalLapNumber) 圈 - 偏移: \(String(format: "%.0f", supplementalStartOffset))秒, 持續: \(String(format: "%.0f", missingDuration))秒, 距離: \(String(format: "%.2f", missingDistance))m, 配速: \(String(format: "%.0f", supplementalPace))秒/公里")
+                print("✅ [LapData] 補充第 \(supplementalLapNumber) 圈 - 偏移: \(String(format: "%.0f", supplementalStartOffset))秒, 持續: \(String(format: "%.0f", missingDuration))秒, 距離: \(String(format: "%.2f", missingDistance))m, 配速: \(supplementalPace.map { String(format: "%.0f", $0) } ?? "N/A")秒/公里")
             }
 
             print("✅ [LapData] 成功提取 \(laps.count) 圈資料（含補充）")
@@ -1667,8 +1667,8 @@ class HealthKitManager: ObservableObject, TaskManageable {
                         return
                     }
 
-                    let dataPoints = quantitySamples.map { sample -> (Date, Double) in
-                        let value = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                    let dataPoints = quantitySamples.compactMap { sample -> (Date, Double)? in
+                        guard let value = sample.quantity.safeDoubleValue(for: HKUnit(from: "count/min")) else { return nil }
                         return (sample.startDate, value)
                     }
 
@@ -1831,7 +1831,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
     func fetchCaloriesData(for workout: HKWorkout) async throws -> Double {
         // 直接從workout獲取總卡路里
-        let totalCalories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+        let totalCalories = workout.totalEnergyBurned?.safeDoubleValue(for: .kilocalorie()) ?? 0
         return totalCalories
     }
     
@@ -1900,7 +1900,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
             ) { _, samples, error in
                 if let error = error {
                     // Use standardized isCancellationError extension for consistency
-                    if error.isCancellationError {
+                    if (error as Error).isCancellationError {
                         print("🎯 [EffortScore] ℹ️ Effort Score 查詢被取消，忽略錯誤")
                         continuation.resume(returning: nil)
                         return
@@ -1917,15 +1917,30 @@ class HealthKitManager: ObservableObject, TaskManageable {
                     return
                 }
 
-                // Effort score uses appleEffortScore unit (iOS 18+)
+                // Effort score uses appleEffortScore unit (iOS 17+)
+                // doubleValue(for:) throws NSException (not Swift Error) on unit mismatch,
+                // which cannot be caught in Swift. Parse from description as safe fallback.
                 let unit = HKUnit.appleEffortScore()
                 if sample.quantity.is(compatibleWith: unit) {
-                    let value = sample.quantity.doubleValue(for: unit)
-                    print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
-                    continuation.resume(returning: value)
+                    // Extract value from quantity description to avoid NSException crash
+                    let description = sample.quantity.description // e.g. "7.2 appleEffortScore"
+                    if let value = Double(description.components(separatedBy: " ").first ?? "") {
+                        print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
+                        continuation.resume(returning: value)
+                    } else {
+                        print("🎯 [EffortScore] ⚠️ 無法從 description 解析值: \(description)")
+                        continuation.resume(returning: nil)
+                    }
                 } else {
-                    print("🎯 [EffortScore] ⚠️ quantity 與 appleEffortScore unit 不相容，跳過")
-                    continuation.resume(returning: nil)
+                    // Also try parsing from description as fallback
+                    let description = sample.quantity.description
+                    if let value = Double(description.components(separatedBy: " ").first ?? "") {
+                        print("🎯 [EffortScore] ✅ 從 description fallback 獲取 \(identifier) 值: \(String(format: "%.1f", value))")
+                        continuation.resume(returning: value)
+                    } else {
+                        print("🎯 [EffortScore] ⚠️ quantity 與 appleEffortScore unit 不相容，跳過: \(description)")
+                        continuation.resume(returning: nil)
+                    }
                 }
             }
 

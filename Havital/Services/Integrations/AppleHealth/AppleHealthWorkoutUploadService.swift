@@ -43,7 +43,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     func makeWorkoutId(for workout: HKWorkout) -> String {
         let type  = getWorkoutTypeString(workout.workoutActivityType)
         let start = Int(workout.startDate.timeIntervalSince1970)
-        let distM = Int(workout.totalDistance?.doubleValue(for: .meter()) ?? 0)
+        let distM = Int(workout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0)
         return "\(type)_\(start)_\(distM)"
     }
 
@@ -79,7 +79,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
 
         // 優先級 3: 總距離 > 0
-        if let distance = requiredData.workout.totalDistance?.doubleValue(for: .meter()),
+        if let distance = requiredData.workout.totalDistance?.safeDoubleValue(for: .meter()),
            distance > 0 {
             print("✅ [驗證] 優先級 3 - 總距離可用 (\(String(format: "%.0f", distance)) m)")
             return true
@@ -119,7 +119,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
 
         // 檢查是否有總距離（即使沒有分圈也有距離）
-        if let totalDistance = workout.totalDistance?.doubleValue(for: .meter()), totalDistance > 0 {
+        if let totalDistance = workout.totalDistance?.safeDoubleValue(for: .meter()), totalDistance > 0 {
             print("⚠️ [驗證] 有總距離但無 GPS 速度樣本，可推算平均速度，跳過速度重試")
             return false
         }
@@ -161,8 +161,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     retryHeartRate: Bool = false,
                                     source: String = "apple_health",
                                     device: String? = nil) async throws -> UploadResult {
-        // 選擇檢查：確保當前資料來源是 Apple Health
-        guard UserPreferencesManager.shared.dataSourcePreference == .appleHealth else {
+        // 選擇檢查：確保當前資料來源是 Apple Health（多來源判定）
+        let prefsDS = UserPreferencesManager.shared.dataSourcePreference
+        let appStateDS = await MainActor.run { AppStateManager.shared.userDataSource }
+        guard prefsDS == .appleHealth || appStateDS == .appleHealth else {
+            Logger.firebase(
+                "上傳跳過：資料來源非 Apple Health",
+                level: .warn,
+                labels: ["module": "AppleHealthUpload", "action": "upload_skipped_datasource", "cloud_logging": "true"],
+                jsonPayload: ["prefs": prefsDS.rawValue, "appState": appStateDS.rawValue]
+            )
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
         
@@ -175,10 +183,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
         // 檢查基本數據（時間和距離）
         let duration = workout.duration
-        let _ = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+        let _ = workout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0
         
         // 基本數據驗證：必須有有效的持續時間
         guard duration > 0 else {
+            Logger.firebase(
+                "上傳跳過：運動持續時間為 0",
+                level: .warn,
+                labels: ["module": "AppleHealthUpload", "action": "upload_skipped_zero_duration", "cloud_logging": "true"],
+                jsonPayload: ["workoutType": "\(workout.workoutActivityType.rawValue)"]
+            )
             throw WorkoutV2ServiceError.invalidWorkoutData
         }
 
@@ -214,21 +228,27 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
             // 第二次驗證：放寬限制（只要有心率就可以上傳）
             if !retryRequiredData.isAllRequiredDataAvailable(relaxed: true) {
-                print("❌ [Upload] 第二次數據驗證失敗（放寬限制後）- 運動ID: \(workoutId)")
+                print("⚠️ [Upload] 第二次數據驗證失敗（放寬限制後）- 運動ID: \(workoutId)，但仍然嘗試上傳")
 
-                var missingData: [String] = []
-
-                // 放寬限制後，只檢查心率
                 if retryRequiredData.heartRateData.count < 2 {
-                    print("   ❌ 心率數據不足 (\(retryRequiredData.heartRateData.count) < 2) [必需]")
-                    missingData.append("heart_rate")
+                    print("   ⚠️ 心率數據不足 (\(retryRequiredData.heartRateData.count) < 2)，仍嘗試上傳")
                 }
 
-                // 記錄上傳失敗
-                let failureReason = "缺少必要數據（放寬限制後）: \(missingData.joined(separator: ", "))"
-                workoutUploadTracker.markWorkoutAsFailed(workout, reason: failureReason, apiVersion: .v2)
+                // 記錄缺少數據但不阻止上傳
+                Logger.firebase(
+                    "Workout 數據不足但仍嘗試上傳",
+                    level: .warn,
+                    labels: ["module": "AppleHealthUpload", "action": "upload_missing_data", "cloud_logging": "true"],
+                    jsonPayload: [
+                        "workoutId": workoutId,
+                        "heartRateCount": retryRequiredData.heartRateData.count,
+                        "speedCount": retryRequiredData.speedData.count,
+                        "cadenceCount": retryRequiredData.cadenceData.count,
+                        "hasLaps": (retryRequiredData.lapData?.count ?? 0) > 0
+                    ]
+                )
 
-                throw WorkoutV2ServiceError.invalidWorkoutData
+                finalRequiredData = retryRequiredData
             } else {
                 print("✅ [Upload] 第二次驗證通過（放寬限制）- 運動ID: \(workoutId)")
                 finalRequiredData = retryRequiredData
@@ -354,9 +374,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                         throw WorkoutV2ServiceError.invalidWorkoutData
                     }
 
-                    // 返回第一個完成的任務結果
-                    let result = try await group.next()!
-                    group.cancelAll()  // 取消另一個任務
+                    // 返回第一個完成的任務結果（安全處理 nil）
+                    guard let result = try await group.next() else {
+                        group.cancelAll()
+                        throw WorkoutV2ServiceError.invalidWorkoutData
+                    }
+                    group.cancelAll()
                     return result
                 }
 
@@ -374,6 +397,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     print("⏰ [批次上傳] \(workoutId) 超時或被取消，跳過")
                 } else {
                     print("❌ [批次上傳] \(workoutId) 上傳失敗: \(errorMsg)")
+                    Logger.firebase(
+                        "Workout 上傳失敗",
+                        level: .error,
+                        labels: ["module": "AppleHealthUpload", "action": "batch_upload_failed", "cloud_logging": "true"],
+                        jsonPayload: ["workoutId": workoutId, "error": errorMsg]
+                    )
                 }
 
                 failedList.append(FailedWorkout(workout: w, error: error))
@@ -700,7 +729,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             startDate: workout.startDate.timeIntervalSince1970,
             endDate: workout.endDate.timeIntervalSince1970,
             duration: workout.duration,
-            distance: workout.totalDistance?.doubleValue(for: .meter()) ?? 0,
+            distance: workout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0,
             heartRates: heartRates.map { HeartRateData(time: $0.time.timeIntervalSince1970, value: $0.value) },
             speeds: speeds.map { SpeedData(time: $0.time.timeIntervalSince1970, value: $0.value) },
             strideLengths: strideLengths?.map { StrideData(time: $0.time.timeIntervalSince1970, value: $0.value) },
@@ -1312,7 +1341,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             }
 
             // 優先級 3: 總距離 > 0
-            if let distance = workout.totalDistance?.doubleValue(for: .meter()),
+            if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()),
                distance > 0 {
                 return true
             }
@@ -1365,7 +1394,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     let lapDistances = laps.compactMap { $0.totalDistanceM }.reduce(0, +)
                     print("     - 分圈距離: \(String(format: "%.0f", lapDistances)) m")
                 }
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                     print("     - 總距離: \(String(format: "%.0f", distance)) m")
                 }
                 print("     - 可靠速度來源: \(checkReliableSpeedData() ? "✅" : "❌")")
@@ -1378,7 +1407,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 print("   ℹ️  第三方設備運動：只需心率（詳細數據在原平台）")
                 print("     - 速度: \(speedData.count) 筆 (可選)")
                 print("     - 步頻: \(cadenceData.count) 筆 (可選)")
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                     print("     - 總距離: \(String(format: "%.0f", distance)) m (可選)")
                 }
             } else {

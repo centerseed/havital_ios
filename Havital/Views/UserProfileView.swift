@@ -40,6 +40,7 @@ struct UserProfileView: View {
             weeklyDistanceSection
             dataSourceSection
             heartRateSection
+            paceZoneSection
             trainingDaysSection
             settingsSection
             logoutSection
@@ -67,12 +68,14 @@ struct UserProfileView: View {
         }
         .refreshable {
             viewModel.fetchUserProfile()
+            viewModel.loadVDOT()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnRefresh") {
                 await viewModel.loadHeartRateZones()
             }.value
         }
         .task {
             viewModel.fetchUserProfile()
+            viewModel.loadVDOT()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnAppear") {
                 await viewModel.loadHeartRateZones()
             }.value
@@ -303,6 +306,35 @@ struct UserProfileView: View {
                 } else {
                     heartRateZonesView
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var paceZoneSection: some View {
+        if viewModel.currentVDOT > 0 {
+            Section(header: Text(NSLocalizedString("profile.pace_zones", comment: "Pace Zones"))) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(PaceCalculator.PaceZone.allCases, id: \.self) { zone in
+                        HStack {
+                            Circle()
+                                .fill(viewModel.paceZoneColor(for: zone))
+                                .frame(width: 10, height: 10)
+
+                            Text(zone.displayName)
+                                .font(AppFont.bodySmall())
+
+                            Spacer()
+
+                            if let paceRange = PaceCalculator.getPaceRange(for: viewModel.paceZoneType(zone), vdot: viewModel.currentVDOT) {
+                                Text("\(paceRange.min) - \(paceRange.max)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
             }
         }
     }

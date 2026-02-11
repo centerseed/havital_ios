@@ -237,6 +237,7 @@
 "profile.personal_info" = "個人情報";
 "profile.training_info" = "トレーニング情報";
 "profile.heart_rate_info" = "心拍数情報";
+"profile.pace_zones" = "ペースゾーン";
 "profile.data_sources" = "データソース";
 "profile.settings" = "設定";
 "profile.name" = "名前";
@@ -1908,13 +1909,13 @@
 "distance.5k" = "5 キロ";
 "distance.10k" = "10 キロ";
 "distance.half_marathon" = "ハーフマラソン";
-"distance.half_marathon_short" = "ハーフ";
+"distance.half_marathon_short" = "21km";
 "distance.full_marathon" = "フルマラソン";
-"distance.full_marathon_short" = "フル";
+"distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
 "my_achievement.personal_best.title" = "パーソナルベスト";
-"my_achievement.personal_best.explanation" = "各距離のベストタイムとペースを表示";
+"my_achievement.personal_best.explanation" = "各距離のベスト移動タイムを表示(停止時間を除外、スライディングウィンドウで最速の連続区間を検出)";
 "my_achievement.personal_best.no_data" = "パーソナルベスト記録なし\n最初のトレーニングを完了すると表示されます";
 "my_achievement.personal_best.first_place" = "1位";
 "my_achievement.personal_best.second_place" = "2位";

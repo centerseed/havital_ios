@@ -157,6 +157,7 @@ class WorkoutListTestMockRepository: WorkoutRepository {
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2 { return workout }
     func updateTrainingNotes(id: String, notes: String) async throws {}
     func deleteWorkout(id: String) async throws {}
+    func invalidateRefreshCooldown() {}
     func clearCache() async {}
     func preloadData() async {}
 
