@@ -225,117 +225,100 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         case failure(message: String)
     }
     
-    /// 重新上傳 Apple Health 的運動記錄（包含心率檢查）
-    func reuploadWorkoutWithHeartRateCheck() async -> ReuploadResult {
-        // 檢查是否為 Apple Health 資料來源
-        let provider = workout.provider.lowercased()
-        guard provider.contains("apple") || provider.contains("health") || provider == "apple_health" else {
-            print("⚠️ 只有 Apple Health 資料才能重新上傳")
-            return .failure(message: "只有 Apple Health 資料才能重新上傳")
-        }
-        
-        print("🔄 開始重新上傳運動記錄（含心率檢查）- ID: \(workout.id)")
-        
-        // 首先檢查心率數據
+    /// 從 HealthKit 查找匹配的運動記錄
+    private func findMatchingHKWorkout() async -> HKWorkout? {
         let healthStore = HKHealthStore()
         let workoutType = HKObjectType.workoutType()
-        
-        // 建立時間範圍查詢
+
         let startTime = workout.startDate.addingTimeInterval(-60)
         let endTime = workout.endDate.addingTimeInterval(60)
         let predicate = HKQuery.predicateForSamples(withStart: startTime, end: endTime, options: .strictStartDate)
-        
+
+        let targetDuration = TimeInterval(self.workout.durationSeconds)
+        let targetDistance = self.workout.distanceMeters ?? 0
+
         return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: workoutType,
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-            ) { [weak self] _, samples, error in
-                guard let self = self else {
-                    continuation.resume(returning: .failure(message: "ViewModel 已被釋放"))
-                    return
-                }
-                
+            ) { _, samples, error in
                 if let error = error {
                     print("❌ 查詢 HealthKit 運動記錄失敗: \(error.localizedDescription)")
-                    continuation.resume(returning: .failure(message: "查詢 HealthKit 運動記錄失敗"))
+                    continuation.resume(returning: nil)
                     return
                 }
-                
+
                 guard let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
                     print("❌ 找不到對應的 HealthKit 運動記錄")
-                    continuation.resume(returning: .failure(message: "找不到對應的 HealthKit 運動記錄"))
+                    continuation.resume(returning: nil)
                     return
                 }
-                
-                // 找到最匹配的運動
-                let targetDuration = TimeInterval(self.workout.durationSeconds)
-                let targetDistance = self.workout.distanceMeters ?? 0
-                
+
                 let matchingWorkout = workouts.first { hkWorkout in
                     let durationDiff = abs(hkWorkout.duration - targetDuration)
-                    let distance = hkWorkout.totalDistance?.doubleValue(for: .meter()) ?? 0
+                    let distance = hkWorkout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0
                     let distanceDiff = abs(distance - targetDistance)
-                    
                     return durationDiff <= 5 && distanceDiff <= 50
                 } ?? workouts.first
-                
-                guard let hkWorkout = matchingWorkout else {
-                    print("❌ 找不到匹配的 HealthKit 運動記錄")
-                    continuation.resume(returning: .failure(message: "找不到匹配的運動記錄"))
-                    return
-                }
-                
-                // 檢查心率數據
-                Task {
-                    do {
-                        let healthKitManager = HealthKitManager()
-                        let heartRateData = try await healthKitManager.fetchHeartRateData(for: hkWorkout, forceRefresh: true, retryAttempt: 0)
-                        
-                        print("🔍 心率數據檢查: \(heartRateData.count) 筆")
-                        
-                        // 如果心率數據少於2點，詢問用戶是否繼續
-                        if heartRateData.count < 2 {
-                            print("⚠️ 心率數據不足: \(heartRateData.count) < 2 筆")
-                            continuation.resume(returning: .insufficientHeartRate(count: heartRateData.count))
-                            return
-                        }
-                        
-                        // 心率數據足夠，繼續上傳
-                        let uploadService = AppleHealthWorkoutUploadService.shared
-                        let result = try await uploadService.uploadWorkout(
-                            hkWorkout,
-                            force: true,
-                            retryHeartRate: true,
-                            source: "apple_health"
-                        )
-                        
-                        switch result {
-                        case .success(let hasHeartRate):
-                            print("✅ 運動記錄重新上傳成功，心率資料: \(hasHeartRate ? "有" : "無")")
 
-                            // ✅ Clean Architecture: 發布 CacheEventBus 事件通知其他模組
-                            await MainActor.run {
-                                CacheEventBus.shared.publish(.dataChanged(.workouts))
-                            }
-                            Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (心率檢查上傳)")
-
-                            continuation.resume(returning: .success(hasHeartRate: hasHeartRate))
-
-                        case .failure(let error):
-                            print("❌ 運動記錄重新上傳失敗: \(error.localizedDescription)")
-                            continuation.resume(returning: .failure(message: "重新上傳失敗: \(error.localizedDescription)"))
-                        }
-
-                    } catch {
-                        print("❌ 重新上傳過程發生錯誤: \(error.localizedDescription)")
-                        continuation.resume(returning: .failure(message: "重新上傳過程發生錯誤: \(error.localizedDescription)"))
-                    }
-                }
+                continuation.resume(returning: matchingWorkout)
             }
-            
+
             healthStore.execute(query)
+        }
+    }
+
+    /// 重新上傳 Apple Health 的運動記錄（包含心率檢查）
+    func reuploadWorkoutWithHeartRateCheck() async -> ReuploadResult {
+        let provider = workout.provider.lowercased()
+        guard provider.contains("apple") || provider.contains("health") || provider == "apple_health" else {
+            print("⚠️ 只有 Apple Health 資料才能重新上傳")
+            return .failure(message: "只有 Apple Health 資料才能重新上傳")
+        }
+
+        print("🔄 開始重新上傳運動記錄（含心率檢查）- ID: \(workout.id)")
+
+        guard let hkWorkout = await findMatchingHKWorkout() else {
+            return .failure(message: "找不到匹配的 HealthKit 運動記錄")
+        }
+
+        do {
+            let healthKitManager = HealthKitManager()
+            let heartRateData = try await healthKitManager.fetchHeartRateData(for: hkWorkout, forceRefresh: true, retryAttempt: 0)
+
+            print("🔍 心率數據檢查: \(heartRateData.count) 筆")
+
+            if heartRateData.count < 2 {
+                print("⚠️ 心率數據不足: \(heartRateData.count) < 2 筆")
+                return .insufficientHeartRate(count: heartRateData.count)
+            }
+
+            let uploadService = AppleHealthWorkoutUploadService.shared
+            let result = try await uploadService.uploadWorkout(
+                hkWorkout,
+                force: true,
+                retryHeartRate: true,
+                source: "apple_health"
+            )
+
+            switch result {
+            case .success(let hasHeartRate):
+                print("✅ 運動記錄重新上傳成功，心率資料: \(hasHeartRate ? "有" : "無")")
+                await MainActor.run {
+                    CacheEventBus.shared.publish(.dataChanged(.workouts))
+                }
+                Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (心率檢查上傳)")
+                return .success(hasHeartRate: hasHeartRate)
+
+            case .failure(let error):
+                print("❌ 運動記錄重新上傳失敗: \(error.localizedDescription)")
+                return .failure(message: "重新上傳失敗: \(error.localizedDescription)")
+            }
+        } catch {
+            print("❌ 重新上傳過程發生錯誤: \(error.localizedDescription)")
+            return .failure(message: "重新上傳過程發生錯誤: \(error.localizedDescription)")
         }
     }
     
@@ -346,105 +329,46 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     
     /// 重新上傳 Apple Health 的運動記錄
     func reuploadWorkout() async -> Bool {
-        // 檢查是否為 Apple Health 資料來源
         let provider = workout.provider.lowercased()
         guard provider.contains("apple") || provider.contains("health") || provider == "apple_health" else {
             print("⚠️ 只有 Apple Health 資料才能重新上傳")
             return false
         }
-        
+
         print("🔄 開始重新上傳運動記錄 - ID: \(workout.id)")
-        
-        // 使用運動的開始時間和持續時間來查找對應的 HealthKit 運動
-        let healthStore = HKHealthStore()
-        let workoutType = HKObjectType.workoutType()
-        
-        // 建立時間範圍查詢（前後各 1 分鐘的容錯）
-        let startTime = workout.startDate.addingTimeInterval(-60)
-        let endTime = workout.endDate.addingTimeInterval(60)
-        let predicate = HKQuery.predicateForSamples(withStart: startTime, end: endTime, options: .strictStartDate)
-        
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: workoutType,
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-            ) { [weak self] _, samples, error in
-                guard let self = self else {
-                    continuation.resume(returning: false)
-                    return
-                }
-                
-                if let error = error {
-                    print("❌ 查詢 HealthKit 運動記錄失敗: \(error.localizedDescription)")
-                    continuation.resume(returning: false)
-                    return
-                }
-                
-                guard let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
-                    print("❌ 找不到對應的 HealthKit 運動記錄")
-                    continuation.resume(returning: false)
-                    return
-                }
-                
-                // 找到最匹配的運動（根據持續時間和距離）
-                let targetDuration = TimeInterval(self.workout.durationSeconds)
-                let targetDistance = self.workout.distanceMeters ?? 0
-                
-                let matchingWorkout = workouts.first { hkWorkout in
-                    let durationDiff = abs(hkWorkout.duration - targetDuration)
-                    let distance = hkWorkout.totalDistance?.doubleValue(for: .meter()) ?? 0
-                    let distanceDiff = abs(distance - targetDistance)
-                    
-                    // 允許 5 秒的時間差和 50 米的距離差
-                    return durationDiff <= 5 && distanceDiff <= 50
-                } ?? workouts.first // 如果沒有完全匹配的，使用第一個
-                
-                guard let hkWorkout = matchingWorkout else {
-                    print("❌ 找不到匹配的 HealthKit 運動記錄")
-                    continuation.resume(returning: false)
-                    return
-                }
-                
-                print("✅ 找到匹配的 HealthKit 運動記錄: \(hkWorkout.uuid)")
-                
-                // 使用 AppleHealthWorkoutUploadService 重新上傳
-                Task {
-                    do {
-                        let uploadService = AppleHealthWorkoutUploadService.shared
-                        let result = try await uploadService.uploadWorkout(
-                            hkWorkout,
-                            force: true,           // 強制重新上傳
-                            retryHeartRate: true,  // 重試獲取心率資料
-                            source: "apple_health"
-                        )
-                        
-                        // 檢查上傳結果
-                        switch result {
-                        case .success(let hasHeartRate):
-                            print("✅ 運動記錄重新上傳成功，心率資料: \(hasHeartRate ? "有" : "無")")
 
-                            // ✅ Clean Architecture: 發布 CacheEventBus 事件通知其他模組
-                            await MainActor.run {
-                                CacheEventBus.shared.publish(.dataChanged(.workouts))
-                            }
-                            Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (重新上傳)")
+        guard let hkWorkout = await findMatchingHKWorkout() else {
+            print("❌ 找不到匹配的 HealthKit 運動記錄")
+            return false
+        }
 
-                            continuation.resume(returning: true)
-                            
-                        case .failure(let error):
-                            print("❌ 運動記錄重新上傳失敗: \(error.localizedDescription)")
-                            continuation.resume(returning: false)
-                        }
-                    } catch {
-                        print("❌ 重新上傳過程發生錯誤: \(error.localizedDescription)")
-                        continuation.resume(returning: false)
-                    }
+        print("✅ 找到匹配的 HealthKit 運動記錄: \(hkWorkout.uuid)")
+
+        do {
+            let uploadService = AppleHealthWorkoutUploadService.shared
+            let result = try await uploadService.uploadWorkout(
+                hkWorkout,
+                force: true,
+                retryHeartRate: true,
+                source: "apple_health"
+            )
+
+            switch result {
+            case .success(let hasHeartRate):
+                print("✅ 運動記錄重新上傳成功，心率資料: \(hasHeartRate ? "有" : "無")")
+                await MainActor.run {
+                    CacheEventBus.shared.publish(.dataChanged(.workouts))
                 }
+                Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (重新上傳)")
+                return true
+
+            case .failure(let error):
+                print("❌ 運動記錄重新上傳失敗: \(error.localizedDescription)")
+                return false
             }
-            
-            healthStore.execute(query)
+        } catch {
+            print("❌ 重新上傳過程發生錯誤: \(error.localizedDescription)")
+            return false
         }
     }
     

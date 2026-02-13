@@ -1919,22 +1919,22 @@ class HealthKitManager: ObservableObject, TaskManageable {
 
                 // Effort score uses appleEffortScore unit (iOS 17+)
                 // doubleValue(for:) throws NSException (not Swift Error) on unit mismatch,
-                // which cannot be caught in Swift. Parse from description as safe fallback.
+                // which cannot be caught in Swift. Only use doubleValue when compatible.
                 let unit = HKUnit.appleEffortScore()
                 if sample.quantity.is(compatibleWith: unit) {
-                    // Extract value from quantity description to avoid NSException crash
-                    let description = sample.quantity.description // e.g. "7.2 appleEffortScore"
-                    if let value = Double(description.components(separatedBy: " ").first ?? "") {
+                    // compatible 時 doubleValue(for:) 不會 crash
+                    let value = sample.quantity.doubleValue(for: unit)
+                    if value.isFinite {
                         print("🎯 [EffortScore] ✅ 獲取到 \(identifier) 值: \(String(format: "%.1f", value))")
                         continuation.resume(returning: value)
                     } else {
-                        print("🎯 [EffortScore] ⚠️ 無法從 description 解析值: \(description)")
+                        print("🎯 [EffortScore] ⚠️ doubleValue 返回非有限值: \(value)")
                         continuation.resume(returning: nil)
                     }
                 } else {
-                    // Also try parsing from description as fallback
+                    // unit 不相容時 fallback 到 description parsing
                     let description = sample.quantity.description
-                    if let value = Double(description.components(separatedBy: " ").first ?? "") {
+                    if let value = Double(description.components(separatedBy: " ").first ?? ""), value.isFinite {
                         print("🎯 [EffortScore] ✅ 從 description fallback 獲取 \(identifier) 值: \(String(format: "%.1f", value))")
                         continuation.resume(returning: value)
                     } else {

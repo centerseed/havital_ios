@@ -474,8 +474,6 @@
 "record.distance" = "Distance";
 "record.duration" = "Duration";
 "record.pace" = "Pace";
-"record.avg_heart_rate" = "Avg Heart Rate";
-"record.max_heart_rate" = "Max Heart Rate";
 "record.heart_rate" = "Heart Rate";
 "record.calories" = "Calories";
 "record.elevation" = "Elevation";
@@ -653,8 +651,6 @@
 
 // MARK: - Workout Details
 "workout.details" = "Workout Details";
-"workout.share_card" = "Share Achievement";
-"workout.share_screenshot" = "Share Screenshot";
 "workout.start_time" = "Start Time";
 "workout.reupload_success" = "Workout successfully re-uploaded!";
 "workout.upload_success_insufficient_hr" = "Workout uploaded but insufficient heart rate data.";
@@ -1931,10 +1927,8 @@
 "my_achievement.celebration.new_record" = "New Record!";
 "my_achievement.celebration.improved" = "Improved by";
 
-<<<<<<< HEAD
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "Effort Score";
-=======
 
 // MARK: - Backfilled Translations
 "edit_schedule.addSegment" = "Add Segment";
@@ -2126,4 +2120,3 @@
 "workoutsyncdebug.text_7" = "Created Test Workout ID: %@";
 "workoutsyncdebug.text_8" = "Test Data Management";
 "workoutsyncdebug.text_9" = "Delete Test Data";
->>>>>>> dev

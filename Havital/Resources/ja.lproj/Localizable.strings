@@ -474,8 +474,6 @@
 "record.distance" = "距離";
 "record.duration" = "時間";
 "record.pace" = "ペース";
-"record.avg_heart_rate" = "平均心拍数";
-"record.max_heart_rate" = "最大心拍数";
 "record.heart_rate" = "心拍数";
 "record.calories" = "カロリー";
 "record.elevation" = "標高";
@@ -653,8 +651,6 @@
 // MARK: - Workout Details
 "workout.details" = "ワークアウト詳細";
 "workout.start_time" = "開始時刻";
-"workout.share_card" = "成果を共有";
-"workout.share_screenshot" = "スクリーンショットを共有";
 "workout.reupload_success" = "ワークアウトが正常に再アップロードされました！";
 "workout.upload_success_insufficient_hr" = "ワークアウトがアップロードされましたが、心拍数データが不十分です。";
 "workout.reupload_error" = "再アップロード中にエラーが発生しました：";
@@ -1041,7 +1037,7 @@
 "sync.processing_garmin_initializing" = "Garminデータを処理中...\n処理を初期化中...";
 "sync.preparing_strava" = "Stravaとの同期を準備中...";
 "sync.strava_triggered" = "Stravaとの同期を開始しました...";
-"sync.processing_strava_progress" = "Stravaデータを処理中、%d件의 記録を同期しました...";
+"sync.processing_strava_progress" = "Stravaデータを処理中、%d件の記録を同期しました...";
 "sync.strava_sync_failed" = "Stravaとの同期に失敗しました: %@";
 
 // MARK: - Weekly Volume & Intensity Strings
@@ -1927,11 +1923,9 @@
 "my_achievement.celebration.new_record" = "新記録！";
 "my_achievement.celebration.improved" = "改善";
 
-<<<<<<< HEAD
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "努力スコア";
 "date.minutes_ago" = "%d分前";
-=======
 
 // MARK: - Backfilled Translations
 "edit_schedule.addSegment" = "セグメントを追加";
@@ -2126,4 +2120,3 @@
 "workoutsyncdebug.text_7" = "作成されたテストワークアウト ID: %@";
 "workoutsyncdebug.text_8" = "テストデータ管理";
 "workoutsyncdebug.text_9" = "テストデータを削除";
->>>>>>> dev

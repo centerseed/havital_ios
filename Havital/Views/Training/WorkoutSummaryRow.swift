@@ -68,7 +68,7 @@ struct WorkoutSummaryRow: View {
                 
                 // 配速、距離和平均心率
                 HStack(spacing: 12) {
-                    if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                    if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                         HStack(spacing: 2) {
                             Image(systemName: "ruler")
                                 .font(AppFont.captionSmall())
@@ -79,7 +79,7 @@ struct WorkoutSummaryRow: View {
                         }
                     }
                     
-                    if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                    if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                         let paceInSeconds = workout.duration / distance * 1000
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
@@ -173,7 +173,7 @@ struct CollapsedWorkoutSummary: View {
                 if let workout = workouts.first {
                     // 配速、距離和時長
                     HStack(spacing: 12) {
-                        if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                        if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                             HStack(spacing: 2) {
                                 Image(systemName: "ruler")
                                     .font(AppFont.captionSmall())
@@ -184,7 +184,7 @@ struct CollapsedWorkoutSummary: View {
                             }
                         }
                         
-                        if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                        if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                             let paceInSeconds = workout.duration / distance * 1000
                             HStack(spacing: 2) {
                                 Image(systemName: "speedometer")

@@ -5,7 +5,7 @@ struct ViewModelUtils {
     /// 計算總距離 (公里)
     static func calculateTotalDistance(_ workouts: [HKWorkout]) -> Double {
         workouts.reduce(0) { total, workout in
-            if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+            if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                 return total + (distance / 1000)
             }
             return total

@@ -518,7 +518,7 @@ struct WorkoutSyncDebugView: View {
         
         // 格式化距離（如果有）
         var distanceString = ""
-        if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+        if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
             if distance >= 1000 {
                 distanceString = String(format: "%.2f 公里", distance / 1000)
             } else {
@@ -763,7 +763,7 @@ struct WorkoutSyncDebugView: View {
             
             // 修正的距離格式化代碼
             let distanceStr: String
-            if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+            if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                 if distance >= 1000 {
                     distanceStr = String(format: "%.2f km", distance/1000)
                 } else {
@@ -985,7 +985,7 @@ struct WorkoutSyncDebugView: View {
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                 
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                     HStack {
                         Image(systemName: "figure.walk")
                         Text(formattedDistance(distance))
