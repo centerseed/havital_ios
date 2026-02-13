@@ -166,14 +166,9 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             return cached
         }
 
-        // Cache miss - generate plan
-        Logger.debug("[TrainingPlanV2Repo] Cache miss for week \(weekOfTraining), generating plan")
-        return try await generateWeeklyPlan(
-            weekOfTraining: weekOfTraining,
-            forceGenerate: nil,
-            promptVersion: nil,
-            methodology: nil
-        )
+        // Cache miss - 不自動生成，讓使用者手動觸發
+        Logger.debug("[TrainingPlanV2Repo] Cache miss for week \(weekOfTraining), no cached plan available")
+        throw DomainError.notFound("週課表尚未生成")
     }
 
     func refreshWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2 {

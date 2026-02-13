@@ -183,9 +183,7 @@ class MockWorkoutRepository: WorkoutRepository {
         }
     }
 
-    func invalidateRefreshCooldown() {
-        // Mock implementation
-    }
+    func invalidateRefreshCooldown() {}
 
     func clearCache() async {
         clearCacheCallCount += 1

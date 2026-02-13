@@ -237,6 +237,7 @@
 "profile.personal_info" = "Personal Info";
 "profile.training_info" = "Training Info";
 "profile.heart_rate_info" = "Heart Rate Info";
+"profile.pace_zones" = "Pace Zones";
 "profile.data_sources" = "Data Sources";
 "profile.settings" = "Settings";
 "profile.name" = "Name";
@@ -269,6 +270,11 @@
 // MARK: - Training Plan
 "training.plan_title" = "Training Plan";
 "training.weekly_plan" = "Weekly Plan";
+"training.no_weekly_plan_title" = "Weekly Plan Not Generated";
+"training.no_weekly_plan_description" = "Tap the button below to generate this week's training plan";
+"training.generate_weekly_plan" = "Generate Weekly Plan";
+"training.generating_weekly_plan" = "Generating Weekly Plan...";
+"training.generating_weekly_plan_description" = "AI is planning your training for this week, please wait";
 "training.daily_training" = "Daily Training";
 "training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
@@ -475,8 +481,6 @@
 "record.distance" = "Distance";
 "record.duration" = "Duration";
 "record.pace" = "Pace";
-"record.avg_heart_rate" = "Avg Heart Rate";
-"record.max_heart_rate" = "Max Heart Rate";
 "record.heart_rate" = "Heart Rate";
 "record.calories" = "Calories";
 "record.elevation" = "Elevation";
@@ -654,8 +658,6 @@
 
 // MARK: - Workout Details
 "workout.details" = "Workout Details";
-"workout.share_card" = "Share Achievement";
-"workout.share_screenshot" = "Share Screenshot";
 "workout.start_time" = "Start Time";
 "workout.reupload_success" = "Workout successfully re-uploaded!";
 "workout.upload_success_insufficient_hr" = "Workout uploaded but insufficient heart rate data.";
@@ -1914,13 +1916,13 @@
 "distance.5k" = "5 km";
 "distance.10k" = "10 km";
 "distance.half_marathon" = "Half Marathon";
-"distance.half_marathon_short" = "Half";
+"distance.half_marathon_short" = "21km";
 "distance.full_marathon" = "Full Marathon";
-"distance.full_marathon_short" = "Full";
+"distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
 "my_achievement.personal_best.title" = "Personal Best";
-"my_achievement.personal_best.explanation" = "Displays your best finish times and pace at different distances";
+"my_achievement.personal_best.explanation" = "Displays your best moving time at different distances (excludes pauses, uses sliding window for fastest continuous segment)";
 "my_achievement.personal_best.no_data" = "No Personal Best records yet\nComplete your first workout to see results";
 "my_achievement.personal_best.first_place" = "1st Place";
 "my_achievement.personal_best.second_place" = "2nd Place";
@@ -1932,10 +1934,8 @@
 "my_achievement.celebration.new_record" = "New Record!";
 "my_achievement.celebration.improved" = "Improved by";
 
-<<<<<<< HEAD
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "Effort Score";
-=======
 
 // MARK: - Backfilled Translations
 "edit_schedule.addSegment" = "Add Segment";
@@ -2148,3 +2148,4 @@
 "training.total" = "Total";
 "training.vs_plan" = "vs Plan";
 "training.intensity_distribution" = "Intensity Distribution";
+

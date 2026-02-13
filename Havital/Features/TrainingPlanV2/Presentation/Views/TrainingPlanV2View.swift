@@ -35,6 +35,16 @@ struct TrainingPlanV2View: View {
                         // 3️⃣ 週時間軸
                         WeekTimelineViewV2(viewModel: viewModel, plan: weeklyPlan)
 
+                    case .noWeeklyPlan:
+                        GenerateWeeklyPlanPromptView {
+                            Task {
+                                await viewModel.generateCurrentWeekPlan()
+                            }
+                        }
+
+                    case .generating:
+                        GeneratingWeeklyPlanView()
+
                     case .noPlan:
                         NoPlanPromptView()
 
@@ -236,6 +246,63 @@ private struct PlaceholderWeekTimelineView: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+    }
+}
+
+/// 產生週課表提示視圖
+private struct GenerateWeeklyPlanPromptView: View {
+    let generateAction: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 60))
+                .foregroundColor(.blue)
+                .padding(.top, 40)
+
+            Text(NSLocalizedString("training.no_weekly_plan_title", comment: "週課表尚未產生"))
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            Text(NSLocalizedString("training.no_weekly_plan_description", comment: "點擊下方按鈕產生本週課表"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button(action: generateAction) {
+                Text(NSLocalizedString("training.generate_weekly_plan", comment: "產生週課表"))
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 32)
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
+        }
+        .padding()
+    }
+}
+
+/// 正在生成週課表視圖
+private struct GeneratingWeeklyPlanView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .padding(.top, 40)
+
+            Text(NSLocalizedString("training.generating_weekly_plan", comment: "正在產生週課表..."))
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            Text(NSLocalizedString("training.generating_weekly_plan_description", comment: "AI 正在為您規劃本週訓練，請稍候"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding()
     }
 }
 

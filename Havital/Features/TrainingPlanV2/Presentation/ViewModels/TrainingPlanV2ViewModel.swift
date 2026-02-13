@@ -249,8 +249,51 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 await self.backgroundRefreshWeeklyPlan(week: self.currentWeek)
             }
 
+        } catch let error as DomainError {
+            if case .notFound = error {
+                Logger.debug("[TrainingPlanV2VM] 週課表尚未生成，等待使用者手動觸發")
+                await MainActor.run {
+                    self.planStatus = .noWeeklyPlan
+                }
+            } else {
+                Logger.error("[TrainingPlanV2VM] ❌ 週課表載入失敗: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.planStatus = .error(error)
+                }
+            }
         } catch {
             Logger.error("[TrainingPlanV2VM] ❌ 週課表載入失敗: \(error.localizedDescription)")
+            await MainActor.run {
+                self.planStatus = .error(error)
+            }
+        }
+    }
+
+    /// 使用者手動產生當前週課表
+    func generateCurrentWeekPlan() async {
+        Logger.debug("[TrainingPlanV2VM] 使用者觸發產生第 \(selectedWeek) 週課表...")
+
+        planStatus = .generating
+
+        do {
+            let plan = try await repository.generateWeeklyPlan(
+                weekOfTraining: selectedWeek,
+                forceGenerate: nil,
+                promptVersion: nil,
+                methodology: nil
+            )
+
+            await MainActor.run {
+                self.weeklyPlan = plan
+                self.planStatus = .ready(plan)
+            }
+
+            // 載入本週訓練記錄
+            await loadWorkoutsForCurrentWeek()
+
+            Logger.debug("[TrainingPlanV2VM] ✅ 週課表產生成功: week=\(selectedWeek)")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
             await MainActor.run {
                 self.planStatus = .error(error)
             }
@@ -456,6 +499,18 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
             Logger.debug("[TrainingPlanV2VM] ✅ 切換完成")
 
+        } catch let error as DomainError {
+            if case .notFound = error {
+                Logger.debug("[TrainingPlanV2VM] 第 \(week) 週課表尚未生成")
+                await MainActor.run {
+                    self.planStatus = .noWeeklyPlan
+                }
+            } else {
+                Logger.error("[TrainingPlanV2VM] ❌ 切換失敗: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.planStatus = .error(error)
+                }
+            }
         } catch {
             Logger.error("[TrainingPlanV2VM] ❌ 切換失敗: \(error.localizedDescription)")
             await MainActor.run {
@@ -647,15 +702,19 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 /// 訓練計畫狀態 V2（UI 使用）
 enum PlanStatusV2: Equatable {
     case loading
-    case noPlan        // 無計畫（顯示 Onboarding 提示）
+    case noPlan            // 無計畫（顯示 Onboarding 提示）
+    case noWeeklyPlan      // 有 Overview 但無週課表（顯示「產生週課表」按鈕）
+    case generating        // 正在生成週課表
     case ready(WeeklyPlanV2)  // 有計畫，顯示課表
-    case completed     // 訓練完成
-    case error(Error)  // 錯誤狀態
+    case completed         // 訓練完成
+    case error(Error)      // 錯誤狀態
 
     static func == (lhs: PlanStatusV2, rhs: PlanStatusV2) -> Bool {
         switch (lhs, rhs) {
         case (.loading, .loading),
              (.noPlan, .noPlan),
+             (.noWeeklyPlan, .noWeeklyPlan),
+             (.generating, .generating),
              (.completed, .completed):
             return true
         case (.ready(let lhsPlan), .ready(let rhsPlan)):

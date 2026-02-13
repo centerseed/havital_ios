@@ -395,45 +395,57 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     // MARK: - HealthKit Observer Management
     
     private func setupHealthKitObservers() async {
-        let healthStore = HKHealthStore()
-        
+        let healthStore = healthKitManager.healthStore
+
         // 監聽 HRV 數據
         if let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) {
-            let hrvQuery = HKObserverQuery(sampleType: hrvType, predicate: nil) { [weak self] _, _, _ in
-                Task {
-                    // HRV 數據通常在早晨可用，延遲處理
-                    try? await Task.sleep(nanoseconds: 30 * 60 * 1_000_000_000) // 30分鐘
-                    await self?.handleHealthDataUpdate(.hrv)
+            let hrvQuery = HKObserverQuery(sampleType: hrvType, predicate: nil) { [weak self] _, completionHandler, _ in
+                guard let self = self else {
+                    completionHandler()
+                    return
                 }
+                // 取消先前的 debounce task，再建立新的（防抖）
+                let taskId = TaskID("hrv_observer_debounce")
+                Task {
+                    await self.taskRegistry.cancelTask(id: taskId)
+                    let debounceTask = Task<Void, Never> {
+                        try? await Task.sleep(nanoseconds: 30 * 60 * 1_000_000_000) // 30分鐘
+                        guard !Task.isCancelled else { return }
+                        await self.handleHealthDataUpdate(.hrv)
+                    }
+                    _ = await self.taskRegistry.registerTask(id: taskId, task: debounceTask)
+                }
+                completionHandler()
             }
-            
+
             healthStore.execute(hrvQuery)
             healthStore.enableBackgroundDelivery(for: hrvType, frequency: .immediate) { _, _ in }
             healthKitObservers.append(hrvQuery)
         }
-        
+
         // 監聽靜息心率數據
         if let rhrType = HKObjectType.quantityType(forIdentifier: .restingHeartRate) {
-            let rhrQuery = HKObserverQuery(sampleType: rhrType, predicate: nil) { [weak self] _, _, _ in
+            let rhrQuery = HKObserverQuery(sampleType: rhrType, predicate: nil) { [weak self] _, completionHandler, _ in
                 Task {
                     await self?.handleHealthDataUpdate(.restingHeartRate)
                 }
+                completionHandler()
             }
-            
+
             healthStore.execute(rhrQuery)
             healthStore.enableBackgroundDelivery(for: rhrType, frequency: .immediate) { _, _ in }
             healthKitObservers.append(rhrQuery)
         }
-        
+
         // 更新觀察的數據類型
         await MainActor.run {
             self.observedDataTypes = [.hrv, .restingHeartRate]
         }
     }
-    
+
     private func stopHealthKitObservers() {
-        let healthStore = HKHealthStore()
-        
+        let healthStore = healthKitManager.healthStore
+
         for observer in healthKitObservers {
             healthStore.stop(observer)
         }

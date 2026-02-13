@@ -118,90 +118,113 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 設置觀察者來監聯新的健身記錄 - 修正版
     func setupWorkoutObserver() async {
-        // 檢查當前數據來源設定
+        // 🔧 多來源判定：避免單一 cache 損壞導致誤判
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
-        print("當前數據來源設定: \(dataSourcePreference.displayName)")
+        let appStateDataSource = await MainActor.run { AppStateManager.shared.userDataSource }
+        let isAppleHealthUser = dataSourcePreference == .appleHealth || appStateDataSource == .appleHealth
+
+        print("當前數據來源設定: prefs=\(dataSourcePreference.rawValue), appState=\(appStateDataSource.rawValue)")
 
         // 📊 Firebase 日誌：記錄 Observer 設置開始
         Logger.firebase(
             "設置 Workout Observer",
             level: .info,
-            labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer"],
+            labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer", "cloud_logging": "true"],
             jsonPayload: [
-                "dataSource": dataSourcePreference.rawValue,
+                "dataSource_userPrefs": dataSourcePreference.rawValue,
+                "dataSource_appState": appStateDataSource.rawValue,
+                "isAppleHealthUser": isAppleHealthUser,
                 "isObservingWorkouts": isObservingWorkouts
             ]
         )
 
         // 只有 Apple Health 用戶才需要啟動 HealthKit 觀察者
-        guard dataSourcePreference == .appleHealth else {
-            print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 觀察者設置")
+        guard isAppleHealthUser else {
+            print("數據來源非 Apple Health，跳過 HealthKit 觀察者設置")
             Logger.firebase(
                 "Observer 設置跳過：非 Apple Health",
                 level: .info,
-                labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_skipped"],
-                jsonPayload: ["reason": "non_apple_health", "actualDataSource": dataSourcePreference.rawValue]
+                labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_skipped", "cloud_logging": "true"],
+                jsonPayload: [
+                    "dataSource_userPrefs": dataSourcePreference.rawValue,
+                    "dataSource_appState": appStateDataSource.rawValue
+                ]
             )
             stopObservingWorkouts() // 確保停止任何現有的觀察者
             return
         }
 
+        // 1a. 請求 HealthKit 授權（核心功能）
+        var healthKitAuthorized = true
         do {
-            // 1. 請求授權
-            try await requestAuthorizations()
-
-            // 2. 啟用健康資料更新背景傳遞
-            let status = await withCheckedContinuation { continuation in
-                healthStore.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .immediate) { success, error in
-                    if let error = error {
-                        print("設置背景傳遞失敗: \(error.localizedDescription)")
-                        continuation.resume(returning: false)
-                        return
-                    }
-                    continuation.resume(returning: success)
-                }
-            }
-
-            if status {
-                // 3. 啟動觀察者查詢
-                startObservingWorkouts()
-                print("已成功設置背景健身記錄觀察器")
-
-                // 📊 Firebase 日誌：Observer 設置成功
-                Logger.firebase(
-                    "Workout Observer 設置成功",
-                    level: .info,
-                    labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_success"]
-                )
-
-                // 運行一次上傳邏輯，處理已存在但尚未上傳的記錄
-                await checkAndUploadPendingWorkouts()
-
-                // 檢查是否需要重試獲取心率資料
-
-                // 設置後台刷新確保即使觀察者不觸發也能定期檢查
-                setupBackgroundRefresh()
-
-                // 標記為非首次登入同步
-                isFirstLoginSync = false
-            } else {
-                print("無法設置背景健身記錄觀察器")
-                Logger.firebase(
-                    "Workout Observer 設置失敗",
-                    level: .error,
-                    labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_failed"],
-                    jsonPayload: ["reason": "background_delivery_failed"]
-                )
-            }
+            try await requestHealthKitAuthorizationCore()
         } catch {
-            print("設置健身記錄觀察器時出錯: \(error.localizedDescription)")
+            healthKitAuthorized = false
+            print("⚠️ HealthKit 授權請求失敗: \(error.localizedDescription)，仍嘗試設置 Observer")
             Logger.firebase(
-                "Workout Observer 設置異常",
+                "HealthKit 授權失敗 - Observer 可能無法收到更新，用戶需到 設定 > 健康 開啟授權",
                 level: .error,
-                labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_error"],
+                labels: ["module": "WorkoutBackgroundManager", "action": "healthkit_auth_failed", "cloud_logging": "true"],
                 jsonPayload: ["error": error.localizedDescription]
             )
         }
+
+        // 1b. 請求通知授權（非核心，不影響 Observer）
+        await requestNotificationAuthorization()
+
+        // 2. 診斷：檢查 HealthKit 授權狀態（write 類型可檢查，read 類型永遠 notDetermined）
+        let workoutWriteStatus = healthStore.authorizationStatus(for: HKObjectType.workoutType())
+        Logger.firebase(
+            "HealthKit 授權狀態診斷",
+            level: .info,
+            labels: ["module": "WorkoutBackgroundManager", "action": "auth_status_check", "cloud_logging": "true"],
+            jsonPayload: [
+                "healthKitAuthorized": healthKitAuthorized,
+                "workoutWriteStatus": "\(workoutWriteStatus.rawValue)",
+                "isHealthDataAvailable": HKHealthStore.isHealthDataAvailable()
+            ]
+        )
+
+        // 3. 啟用健康資料更新背景傳遞
+        let bgDeliveryStatus = await withCheckedContinuation { continuation in
+            healthStore.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .immediate) { success, error in
+                if let error = error {
+                    print("設置背景傳遞失敗: \(error.localizedDescription)")
+                    continuation.resume(returning: false)
+                    return
+                }
+                continuation.resume(returning: success)
+            }
+        }
+
+        if !bgDeliveryStatus {
+            Logger.firebase(
+                "Workout Observer 背景傳遞設置失敗",
+                level: .error,
+                labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_failed", "cloud_logging": "true"],
+                jsonPayload: ["reason": "background_delivery_failed"]
+            )
+        }
+
+        // 4. 無論背景傳遞是否成功，都啟動觀察者（前台時仍可運作）
+        startObservingWorkouts()
+        print("已設置健身記錄觀察器（背景傳遞: \(bgDeliveryStatus ? "成功" : "失敗")）")
+
+        Logger.firebase(
+            "Workout Observer 設置完成",
+            level: .info,
+            labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_success", "cloud_logging": "true"],
+            jsonPayload: ["backgroundDelivery": bgDeliveryStatus]
+        )
+
+        // 5. 運行一次上傳邏輯，處理已存在但尚未上傳的記錄
+        await checkAndUploadPendingWorkouts()
+
+        // 6. 設置後台刷新
+        setupBackgroundRefresh()
+
+        // 標記為非首次登入同步
+        isFirstLoginSync = false
     }
     
     // 停用觀察者（當切換到 Garmin 數據來源時）
@@ -234,7 +257,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     // 請求 HealthKit 授權
     func requestHealthKitAuthorization() async {
         do {
-            try await requestAuthorizations()
+            try await requestHealthKitAuthorizationCore()
             print("成功請求 HealthKit 授權")
         } catch {
             print("請求 HealthKit 授權失敗: \(error.localizedDescription)")
@@ -243,45 +266,65 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 檢查並上傳待處理的健身記錄 - 加強版檢查
     func checkAndUploadPendingWorkouts() async {
-        // 🚨 關鍵修復：加強數據源檢查，避免競態條件
+        // 收集所有狀態用於診斷
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
+        let appStateDataSource = await MainActor.run { AppStateManager.shared.userDataSource }
         let hasCompletedOnboarding = await AuthenticationViewModel.shared.hasCompletedOnboarding
+        let isAuthenticated = await AuthenticationViewModel.shared.isAuthenticated
 
-        // 📊 Firebase 日誌：記錄上傳檢查開始的狀態
+        // 📊 Firebase 日誌：記錄上傳檢查開始的完整狀態
         Logger.firebase(
             "Workout 上傳檢查開始",
             level: .info,
-            labels: ["module": "WorkoutBackgroundManager", "action": "check_upload"],
+            labels: ["module": "WorkoutBackgroundManager", "action": "check_upload", "cloud_logging": "true"],
             jsonPayload: [
-                "dataSource": dataSourcePreference.rawValue,
+                "dataSource_userPrefs": dataSourcePreference.rawValue,
+                "dataSource_appState": appStateDataSource.rawValue,
                 "hasCompletedOnboarding": hasCompletedOnboarding,
+                "isAuthenticated": isAuthenticated,
                 "isCurrentlyProcessing": isCurrentlyProcessing,
-                "lastUploadCheckTime": lastUploadCheckTime?.timeIntervalSince1970 ?? 0,
-                "cooldownSeconds": uploadCheckCooldown
+                "lastUploadCheckTime": lastUploadCheckTime?.timeIntervalSince1970 ?? 0
             ]
         )
 
-        // 嚴格檢查：只有明確設定為 Apple Health 且用戶已完成 onboarding 才上傳
-        guard dataSourcePreference == .appleHealth else {
-            print("⚠️ 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據上傳")
+        // 🔧 數據源判定：任一來源顯示 appleHealth 就視為 Apple Health 用戶
+        // 避免 UserPreferencesManager cache 損壞導致回傳 .unbound
+        let isAppleHealthUser = dataSourcePreference == .appleHealth || appStateDataSource == .appleHealth
+        guard isAppleHealthUser else {
+            print("⚠️ 數據來源非 Apple Health（prefs: \(dataSourcePreference.rawValue), appState: \(appStateDataSource.rawValue)），跳過上傳")
             Logger.firebase(
                 "Workout 上傳跳過：非 Apple Health",
                 level: .warn,
-                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped"],
-                jsonPayload: ["reason": "non_apple_health", "actualDataSource": dataSourcePreference.rawValue]
+                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped", "cloud_logging": "true"],
+                jsonPayload: [
+                    "reason": "non_apple_health",
+                    "dataSource_userPrefs": dataSourcePreference.rawValue,
+                    "dataSource_appState": appStateDataSource.rawValue
+                ]
             )
             return
         }
 
-        // 額外檢查：確保用戶已完成 onboarding，避免初始化時的競態條件
-        // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+        // 認證守衛：未登入不應上傳（避免無效 API 調用）
+        guard isAuthenticated else {
+            print("⚠️ 用戶未登入，跳過 HealthKit 數據上傳")
+            Logger.firebase(
+                "Workout 上傳跳過：未登入",
+                level: .warn,
+                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped", "cloud_logging": "true"],
+                jsonPayload: ["reason": "not_authenticated", "hasCompletedOnboarding": hasCompletedOnboarding]
+            )
+            return
+        }
+
+        // Onboarding 守衛：未完成 onboarding 的用戶可能缺少 profile 資料（體重、身高等）
         guard hasCompletedOnboarding else {
             print("⚠️ 用戶尚未完成 onboarding，跳過 HealthKit 數據上傳")
             Logger.firebase(
                 "Workout 上傳跳過：Onboarding 未完成",
                 level: .warn,
-                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped"],
-                jsonPayload: ["reason": "onboarding_not_completed"]
+                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_skipped", "cloud_logging": "true"],
+                jsonPayload: ["reason": "onboarding_not_completed", "isAuthenticated": isAuthenticated]
             )
             return
         }
@@ -291,14 +334,12 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         if let lastTime = lastUploadCheckTime,
            now.timeIntervalSince(lastTime) < uploadCheckCooldown {
             print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
-            // 冷卻時間跳過不記錄到 Firebase（太頻繁）
             return
         }
 
         // 防止並發執行
         guard !isCurrentlyProcessing else {
             print("🔄 已有上傳任務在進行中，跳過重複調用")
-            // 並發跳過不記錄到 Firebase（太頻繁）
             return
         }
         
@@ -334,12 +375,38 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         }
         
         do {
-            
+
             // 獲取最近的健身記錄
             let workouts = try await fetchRecentWorkouts()
-            
+
+            // 診斷 log：幫助追蹤授權和數據問題
+            let uploadedCount = workouts.filter { workoutUploadTracker.isWorkoutUploaded($0, apiVersion: .v2) }.count
+            Logger.firebase(
+                "HealthKit Workout 查詢結果",
+                level: .info,
+                labels: ["module": "WorkoutBackgroundManager", "action": "fetch_workouts_result", "cloud_logging": "true"],
+                jsonPayload: [
+                    "totalFound": workouts.count,
+                    "alreadyUploaded": uploadedCount,
+                    "notUploaded": workouts.count - uploadedCount
+                ]
+            )
+
+            if workouts.isEmpty {
+                // 重要診斷：空結果可能是授權問題
+                Logger.firebase(
+                    "⚠️ HealthKit 返回 0 筆 workout - 可能是授權問題",
+                    level: .warn,
+                    labels: ["module": "WorkoutBackgroundManager", "action": "fetch_workouts_empty", "cloud_logging": "true"],
+                    jsonPayload: [
+                        "isHealthDataAvailable": HKHealthStore.isHealthDataAvailable(),
+                        "suggestion": "用戶可能需要到 設定 > 健康 > 資料取用權限 開啟 Paceriz 的授權"
+                    ]
+                )
+            }
+
             // 分離真正的新運動和需要心率重試的運動
-            let trulyNewWorkouts = workouts.filter { 
+            let trulyNewWorkouts = workouts.filter {
                 !workoutUploadTracker.isWorkoutUploaded($0, apiVersion: .v2)
             }
             
@@ -420,6 +487,12 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             }
         } catch {
             print("檢查待上傳健身記錄時出錯: \(error.localizedDescription)")
+            Logger.firebase(
+                "檢查待上傳健身記錄失敗",
+                level: .error,
+                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_error", "cloud_logging": "true"],
+                jsonPayload: ["error": error.localizedDescription]
+            )
         }
         
         // 結束同步
@@ -543,22 +616,23 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         return timeElapsed > notificationCooldown
     }
     
-    // 請求所需的授權（HealthKit 和 通知）
-    private func requestAuthorizations() async throws {
-        // 請求 HealthKit 授權
+    // 請求 HealthKit 授權（核心功能，失敗會 throw）
+    private func requestHealthKitAuthorizationCore() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let typesToRead: Set<HKObjectType> = [
-                HKObjectType.workoutType(),
-                HKObjectType.quantityType(forIdentifier: .heartRate)!,
-                HKObjectType.quantityType(forIdentifier: .runningSpeed)!
-            ]
-            
+            var typesToRead: Set<HKObjectType> = [HKObjectType.workoutType()]
+            if let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) {
+                typesToRead.insert(hrType)
+            }
+            if let speedType = HKObjectType.quantityType(forIdentifier: .runningSpeed) {
+                typesToRead.insert(speedType)
+            }
+
             healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
                 if let error = error {
                     continuation.resume(throwing: error)
                     return
                 }
-                
+
                 if success {
                     continuation.resume()
                 } else {
@@ -566,8 +640,10 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
                 }
             }
         }
-        
-        // 請求通知授權（非必要，失敗不影響 HealthKit Observer）
+    }
+
+    // 請求通知授權（非核心，失敗不影響 HealthKit Observer）
+    private func requestNotificationAuthorization() async {
         do {
             let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
             if !granted {
@@ -732,7 +808,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     private func fetchRecentWorkouts() async throws -> [HKWorkout] {
         let calendar = Calendar.current
         let now = Date()
-        let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
+        let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: now) ?? now.addingTimeInterval(-30 * 24 * 3600)
         
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
             let predicate = HKQuery.predicateForSamples(withStart: oneMonthAgo, end: now, options: .strictStartDate)

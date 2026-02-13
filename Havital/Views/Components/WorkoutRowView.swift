@@ -53,7 +53,7 @@ struct WorkoutRowView: View {
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     
-                    if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                    if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                         Text(distance >= 1000 ?
                              String(format: "%.2f km", distance / 1000) :
                              String(format: "%.0f m", distance))
@@ -84,7 +84,7 @@ struct WorkoutRowView: View {
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     
-                    if let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) {
+                    if let calories = workout.totalEnergyBurned?.safeDoubleValue(for: .kilocalorie()) {
                         Text(String(format: "%.0f kcal", calories))
                             .font(AppFont.bodySmall())
                     } else {

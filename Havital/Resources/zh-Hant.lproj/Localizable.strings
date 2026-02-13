@@ -237,6 +237,7 @@
 "profile.personal_info" = "個人資訊";
 "profile.training_info" = "訓練資訊";
 "profile.heart_rate_info" = "心率資訊";
+"profile.pace_zones" = "配速區間";
 "profile.data_sources" = "數據來源";
 "profile.settings" = "設定";
 "profile.name" = "姓名";
@@ -269,6 +270,11 @@
 // MARK: - Training Plan
 "training.plan_title" = "訓練計劃";
 "training.weekly_plan" = "本週計劃";
+"training.no_weekly_plan_title" = "週課表尚未產生";
+"training.no_weekly_plan_description" = "點擊下方按鈕產生本週課表";
+"training.generate_weekly_plan" = "產生週課表";
+"training.generating_weekly_plan" = "正在產生週課表...";
+"training.generating_weekly_plan_description" = "AI 正在為您規劃本週訓練，請稍候";
 "training.daily_training" = "每日訓練";
 "training.design_reason" = "設計原因";
 "training.weekly_volume" = "週跑量";
@@ -475,8 +481,6 @@
 "record.distance" = "距離";
 "record.duration" = "時間";
 "record.pace" = "配速";
-"record.avg_heart_rate" = "平均心率";
-"record.max_heart_rate" = "最高心率";
 "record.heart_rate" = "心率";
 "record.calories" = "卡路里";
 "record.elevation" = "爬升";
@@ -663,6 +667,7 @@
 "workout.activity_type" = "活動類型";
 "workout.resync_data" = "重新同步資料";
 "workout.force_reupload_description" = "強制重新上傳這筆訓練紀錄，包含重新嘗試抓取心率資料";
+"workout.effort_score" = "努力評分";
 
 // MARK: - Record Additional
 "record.avg_heart_rate" = "平均心率";
@@ -1927,13 +1932,13 @@
 "distance.5k" = "5 公里";
 "distance.10k" = "10 公里";
 "distance.half_marathon" = "半程馬拉松";
-"distance.half_marathon_short" = "半馬";
+"distance.half_marathon_short" = "21km";
 "distance.full_marathon" = "全程馬拉松";
-"distance.full_marathon_short" = "全馬";
+"distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
 "my_achievement.personal_best.title" = "個人最佳成績";
-"my_achievement.personal_best.explanation" = "顯示你在不同距離的最佳完賽時間和配速";
+"my_achievement.personal_best.explanation" = "顯示你在不同距離的最佳移動時間（排除暫停、使用滑動窗口找最快連續段落）";
 "my_achievement.personal_best.no_data" = "暫無個人最佳成績\n完成第一次訓練後即可查看";
 "my_achievement.personal_best.first_place" = "第一名";
 "my_achievement.personal_best.second_place" = "第二名";
@@ -2015,8 +2020,8 @@
 "dailytrainingcard.text_1" = "輕鬆跑";
 "dailytrainingcard.text_2" = "× %@";
 "dailytrainingcard.text_3" = "%@ 分鐘";
-"datasync.text_0" = "sync.timeout_warning_title";
-"datasync.text_1" = "sync.timeout_warning_message";
+"datasync.text_0" = "同步逾時";
+"datasync.text_1" = "數據同期所需時間比預期更長。請檢查您的連線狀況。";
 "debugfailedworkouts.text_0" = "失敗統計";
 "debugfailedworkouts.text_1" = "顯示失敗的運動上傳記錄";
 "debugfailedworkouts.text_10" = "複製日期格式";
@@ -2031,7 +2036,7 @@
 "debugfailedworkouts.text_9" = "其他功能";
 "editabledailycard.text_0" = "🇳🇴 挪威4x4";
 "editabledailycard.text_1" = "%d 組";
-"editabledailycard.text_10" = "edit_schedule.training_type";
+"editabledailycard.text_10" = "訓練類型";
 "editabledailycard.text_2" = "衝刺";
 "editabledailycard.text_3" = "@ %@";
 "editabledailycard.text_4" = "恢復";
@@ -2042,18 +2047,18 @@
 "editabledailycard.text_9" = "%d ×";
 "editschedule.text_0" = "配速:";
 "editschedule.text_1" = "距離:";
-"garminattribution.compact" = "Compact";
-"garminattribution.no_device_model" = "No Device Model";
-"garminattribution.secondary" = "Secondary";
-"garminattribution.social" = "Social";
-"garminattribution.title_level" = "Title Level";
+"garminattribution.compact" = "簡潔";
+"garminattribution.no_device_model" = "無裝置型號";
+"garminattribution.secondary" = "次要";
+"garminattribution.social" = "社交";
+"garminattribution.title_level" = "標題層級";
 "garminreconnectionalert.text_0" = "主要內容";
 "generatenextweekbutton.text_0" = "返回本週（第%@週）";
 "generatenextweekbutton.text_1" = "返回本週";
 "heartratezoneinfo.bpm" = "%@ bpm";
 "hrvtrendchart.hrv" = "診斷 HRV 問題";
 "login.demo_mode" = "查看示範 / Demo Mode";
-"login.for_apple_review" = "For Apple Review";
+"login.for_apple_review" = "Apple 審核用";
 "misc.reset" = "重置";
 "misc.syncing" = "同步中...";
 "myachievement.text_0" = "體適能指數 & 訓練壓力平衡";
@@ -2089,12 +2094,12 @@
 "sideinfooverlay.text_0" = "距離 (km)";
 "sideinfooverlay.text_1" = "總計時間";
 "sideinfooverlay.text_2" = "平均配速";
-"stravaattribution.compact" = "Compact";
-"stravaattribution.secondary" = "Secondary";
-"stravaattribution.title_level" = "Title Level";
-"todayfocuscard.text_0" = "training.today_training";
-"todayfocuscard.text_1" = "training.no_training_today";
-"todayfocuscard.text_2" = "training.completed_workouts";
+"stravaattribution.compact" = "簡潔";
+"stravaattribution.secondary" = "次要";
+"stravaattribution.title_level" = "標題層級";
+"todayfocuscard.text_0" = "今天的訓練";
+"todayfocuscard.text_1" = "今天無訓練";
+"todayfocuscard.text_2" = "已完成訓練";
 "topinfooverlay.text_0" = "距離 (km)";
 "topinfooverlay.text_1" = "總計時間";
 "topinfooverlay.text_2" = "平均配速";
@@ -2108,7 +2113,7 @@
 "trainingdetaileditor.text_7" = "選擇休息時間";
 "trainingoverview.text_0" = "%@ /km";
 "trainingplanoverview.text_0" = "• %@";
-"trainingplanviewmodel.text_0" = "training.week_out_of_range";
+"trainingplanviewmodel.text_0" = "週次超出範圍";
 "trainingprogress.text_0" = "載入中...";
 "trainingreadiness.tsb" = "TSB";
 "userprofile.onboarding" = "重新開始完整 Onboarding";
@@ -2118,7 +2123,7 @@
 "weektimeline.text_1" = "%d × 組";
 "weektimeline.text_10" = "第%d段";
 "weektimeline.text_11" = "已完成訓練";
-"weektimeline.text_12" = "training.more_workouts";
+"weektimeline.text_12" = "更多訓練";
 "weektimeline.text_2" = "衝刺段";
 "weektimeline.text_3" = "恢復段";
 "weektimeline.text_4" = "原地休息";
