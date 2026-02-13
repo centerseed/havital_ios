@@ -72,10 +72,22 @@ protocol TrainingPlanV2Repository {
         methodology: String?
     ) async throws -> WeeklyPlanV2
 
-    /// 獲取週課表（支援緩存）
+    /// 獲取週課表（支援緩存，cache miss 時從 API 讀取）
     /// - Parameter weekOfTraining: 訓練週次
     /// - Returns: 週課表實體
     func getWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2
+
+    /// 透過 planId 從 API 讀取週課表
+    /// - Parameter planId: 週課表 ID
+    /// - Returns: 週課表實體
+    func fetchWeeklyPlan(planId: String) async throws -> WeeklyPlanV2
+
+    /// 更新週課表（合併更新）
+    /// - Parameters:
+    ///   - planId: 週課表 ID
+    ///   - updates: 要更新的欄位
+    /// - Returns: 更新後的週課表
+    func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2
 
     /// 強制刷新週課表
     /// - Parameter weekOfTraining: 訓練週次

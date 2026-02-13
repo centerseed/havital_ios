@@ -1,20 +1,45 @@
 import SwiftUI
 
+// MARK: - Layout Constants
+
+private enum Layout {
+    static let sectionSpacing: CGFloat = 16
+    static let contentSpacing: CGFloat = 12
+    static let itemSpacing: CGFloat = 8
+    static let iconSpacing: CGFloat = 6
+    static let cardPadding: CGFloat = 16
+    static let subCardPadding: CGFloat = 12
+}
+
 /// V2 週訓練摘要畫面
 /// 顯示完成度、訓練分析、亮點、下週調整建議
 struct WeeklySummaryV2View: View {
     @ObservedObject var viewModel: TrainingPlanV2ViewModel
     let weekOfPlan: Int
+    var onGenerateNextWeek: (() -> Void)?
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: Layout.sectionSpacing) {
                 switch viewModel.weeklySummary {
                 case .loaded(let summary):
                     CompletionSectionV2(completion: summary.trainingCompletion)
                     AnalysisSectionV2(analysis: summary.trainingAnalysis)
                     HighlightsSectionV2(highlights: summary.weeklyHighlights)
                     AdjustmentsSectionV2(adjustments: summary.nextWeekAdjustments)
+
+                    if let onGenerateNextWeek {
+                        Button(action: onGenerateNextWeek) {
+                            Text(NSLocalizedString("training.generate_next_week_plan", comment: "產生下週課表"))
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                        }
+                        .padding(.top, 8)
+                    }
 
                 case .loading:
                     loadingPlaceholder
@@ -40,7 +65,7 @@ struct WeeklySummaryV2View: View {
     // MARK: - Loading Placeholder
 
     private var loadingPlaceholder: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Layout.contentSpacing) {
             ProgressView()
                 .padding(.top, 60)
             Text(NSLocalizedString("common.loading", comment: "載入中..."))
@@ -52,7 +77,7 @@ struct WeeklySummaryV2View: View {
     // MARK: - Error View
 
     private func errorView(_ error: DomainError) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Layout.contentSpacing) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 48))
                 .foregroundColor(.orange)
@@ -83,7 +108,7 @@ struct WeeklySummaryV2View: View {
     // MARK: - Empty View
 
     private var emptyView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Layout.contentSpacing) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
@@ -108,16 +133,21 @@ struct WeeklySummaryV2View: View {
 private struct CompletionSectionV2: View {
     let completion: TrainingCompletionV2
 
+    /// API returns percentage as 0-100+ (e.g. 12.0 = 12%, 105.0 = 105%)
+    private var normalizedPercentage: Double {
+        completion.percentage / 100.0
+    }
+
     private var progressColor: Color {
-        if completion.percentage >= 0.9 { return .green }
-        if completion.percentage >= 0.7 { return .orange }
+        if normalizedPercentage >= 0.9 { return .green }
+        if normalizedPercentage >= 0.7 { return .orange }
         return .red
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Layout.contentSpacing) {
             // 標題
-            HStack(spacing: 8) {
+            HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.blue)
                     .font(.headline)
@@ -127,7 +157,7 @@ private struct CompletionSectionV2: View {
                 Spacer()
             }
 
-            HStack(spacing: 24) {
+            HStack(spacing: 20) {
                 // 圓形進度
                 ZStack {
                     Circle()
@@ -135,20 +165,20 @@ private struct CompletionSectionV2: View {
                         .frame(width: 100, height: 100)
 
                     Circle()
-                        .trim(from: 0, to: min(completion.percentage, 1.0))
+                        .trim(from: 0, to: min(normalizedPercentage, 1.0))
                         .stroke(progressColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                         .frame(width: 100, height: 100)
                         .rotationEffect(.degrees(-90))
 
-                    Text("\(Int(completion.percentage * 100))%")
+                    Text("\(Int(completion.percentage))%")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.primary)
                 }
 
                 // 統計數字
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                     // 公里數
-                    HStack(spacing: 4) {
+                    HStack(spacing: Layout.iconSpacing) {
                         Image(systemName: "figure.run")
                             .foregroundColor(.blue)
                             .font(.subheadline)
@@ -158,7 +188,7 @@ private struct CompletionSectionV2: View {
                     }
 
                     // 場次
-                    HStack(spacing: 4) {
+                    HStack(spacing: Layout.iconSpacing) {
                         Image(systemName: "calendar.badge.checkmark")
                             .foregroundColor(.green)
                             .font(.subheadline)
@@ -175,7 +205,7 @@ private struct CompletionSectionV2: View {
                 }
             }
         }
-        .padding()
+        .padding(Layout.cardPadding)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.tertiarySystemBackground))
@@ -191,8 +221,8 @@ private struct AnalysisSectionV2: View {
     let analysis: TrainingAnalysisV2
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: Layout.contentSpacing) {
+            HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "chart.bar.fill")
                     .foregroundColor(.purple)
                     .font(.headline)
@@ -202,7 +232,7 @@ private struct AnalysisSectionV2: View {
                 Spacer()
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: Layout.contentSpacing) {
                 // 心率分析
                 if let hr = analysis.heartRate {
                     AnalysisCardV2(
@@ -247,21 +277,30 @@ private struct AnalysisSectionV2: View {
 
                 // 強度分配
                 if let intensity = analysis.intensityDistribution {
-                    intensityDistributionCard(intensity)
+                    IntensityDistributionCardV2(intensity: intensity)
                 }
             }
         }
-        .padding()
+        .padding(Layout.cardPadding)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
     }
+}
 
-    private func intensityDistributionCard(_ intensity: IntensityDistributionAnalysisV2) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+/// 強度分配卡片
+private struct IntensityDistributionCardV2: View {
+    let intensity: IntensityDistributionAnalysisV2
+
+    private var totalPercentage: Double {
+        intensity.easyPercentage + intensity.moderatePercentage + intensity.hardPercentage
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Layout.itemSpacing) {
+            HStack(spacing: Layout.iconSpacing) {
                 Image(systemName: "flame.fill")
                     .foregroundColor(.orange)
                     .font(.subheadline)
@@ -271,29 +310,31 @@ private struct AnalysisSectionV2: View {
                     .foregroundColor(.primary)
             }
 
-            // 強度條
-            HStack(spacing: 0) {
-                if intensity.easyPercentage > 0 {
-                    Rectangle()
-                        .fill(Color.green)
-                        .frame(width: max(CGFloat(intensity.easyPercentage) * 2, 4))
+            // 強度條 - 使用 GeometryReader 自適應寬度
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    if intensity.easyPercentage > 0 {
+                        Rectangle()
+                            .fill(Color.green)
+                            .frame(width: barWidth(for: intensity.easyPercentage, in: geometry.size.width))
+                    }
+                    if intensity.moderatePercentage > 0 {
+                        Rectangle()
+                            .fill(Color.orange)
+                            .frame(width: barWidth(for: intensity.moderatePercentage, in: geometry.size.width))
+                    }
+                    if intensity.hardPercentage > 0 {
+                        Rectangle()
+                            .fill(Color.red)
+                            .frame(width: barWidth(for: intensity.hardPercentage, in: geometry.size.width))
+                    }
                 }
-                if intensity.moderatePercentage > 0 {
-                    Rectangle()
-                        .fill(Color.orange)
-                        .frame(width: max(CGFloat(intensity.moderatePercentage) * 2, 4))
-                }
-                if intensity.hardPercentage > 0 {
-                    Rectangle()
-                        .fill(Color.red)
-                        .frame(width: max(CGFloat(intensity.hardPercentage) * 2, 4))
-                }
+                .cornerRadius(4)
             }
             .frame(height: 8)
-            .cornerRadius(4)
 
             // 標籤
-            HStack(spacing: 12) {
+            HStack(spacing: Layout.contentSpacing) {
                 Label(String(format: "%.0f%%", intensity.easyPercentage), systemImage: "circle.fill")
                     .font(.caption)
                     .foregroundColor(.green)
@@ -311,9 +352,14 @@ private struct AnalysisSectionV2: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(12)
+        .padding(Layout.subCardPadding)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(8)
+    }
+
+    private func barWidth(for percentage: Double, in totalWidth: CGFloat) -> CGFloat {
+        guard totalPercentage > 0 else { return 0 }
+        return max(totalWidth * CGFloat(percentage / totalPercentage), 4)
     }
 }
 
@@ -326,8 +372,8 @@ private struct AnalysisCardV2: View {
     let evaluation: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: Layout.itemSpacing) {
+            HStack(spacing: Layout.iconSpacing) {
                 Image(systemName: icon)
                     .foregroundColor(iconColor)
                     .font(.subheadline)
@@ -356,7 +402,7 @@ private struct AnalysisCardV2: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(12)
+        .padding(Layout.subCardPadding)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(8)
     }
@@ -369,8 +415,8 @@ private struct HighlightsSectionV2: View {
     let highlights: WeeklyHighlightsV2
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: Layout.contentSpacing) {
+            HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
                     .font(.headline)
@@ -391,7 +437,7 @@ private struct HighlightsSectionV2: View {
 
             // 成就
             if !highlights.achievements.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                     Text(NSLocalizedString("training.achievements", comment: "成就"))
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -407,7 +453,7 @@ private struct HighlightsSectionV2: View {
 
             // 待改善
             if !highlights.areasForImprovement.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                     Text(NSLocalizedString("training.areas_for_improvement", comment: "待改善"))
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -421,7 +467,7 @@ private struct HighlightsSectionV2: View {
                 }
             }
         }
-        .padding()
+        .padding(Layout.cardPadding)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.tertiarySystemBackground))
@@ -430,9 +476,9 @@ private struct HighlightsSectionV2: View {
     }
 
     private func bulletList(items: [String], icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Layout.itemSpacing) {
             ForEach(items, id: \.self) { item in
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: Layout.itemSpacing) {
                     Image(systemName: icon)
                         .foregroundColor(color)
                         .font(.caption)
@@ -454,8 +500,8 @@ private struct AdjustmentsSectionV2: View {
     let adjustments: NextWeekAdjustmentsV2
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: Layout.contentSpacing) {
+            HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .foregroundColor(.blue)
                     .font(.headline)
@@ -476,7 +522,7 @@ private struct AdjustmentsSectionV2: View {
                 AdjustmentItemCardV2(item: item)
             }
         }
-        .padding()
+        .padding(Layout.cardPadding)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.tertiarySystemBackground))
@@ -508,21 +554,15 @@ private struct AdjustmentItemCardV2: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: Layout.itemSpacing) {
+            // 第一行：icon + Spacer + priority badge
+            HStack {
                 Image(systemName: categoryIcon)
                     .foregroundColor(priorityColor)
                     .font(.subheadline)
 
-                Text(item.content)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-
                 Spacer()
 
-                // 優先級標記
                 Text(item.priority.uppercased())
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.white)
@@ -532,12 +572,20 @@ private struct AdjustmentItemCardV2: View {
                     .cornerRadius(4)
             }
 
+            // 第二行：content text
+            Text(item.content)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // 第三行：reason
             Text(item.reason)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
+        .padding(Layout.subCardPadding)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(8)
     }

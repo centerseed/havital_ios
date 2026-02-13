@@ -273,6 +273,8 @@
 "training.no_weekly_plan_title" = "週課表尚未產生";
 "training.no_weekly_plan_description" = "點擊下方按鈕產生本週課表";
 "training.generate_weekly_plan" = "產生週課表";
+"training.get_weekly_summary" = "取得週回顧";
+"training.generate_next_week_plan" = "產生下週課表";
 "training.generating_weekly_plan" = "正在產生週課表...";
 "training.generating_weekly_plan_description" = "AI 正在為您規劃本週訓練，請稍候";
 "training.daily_training" = "每日訓練";
@@ -2200,3 +2202,11 @@
 "training.total" = "總計";
 "training.vs_plan" = "對比計畫";
 "training.intensity_distribution" = "強度分配";
+"training.average" = "平均";
+"training.max" = "最高";
+"training.highlights" = "本週亮點";
+"training.achievements" = "成就";
+"training.areas_for_improvement" = "待改善";
+"training.next_week_adjustments" = "下週調整建議";
+"training.no_weekly_summary" = "尚無週摘要";
+"training.no_weekly_summary_hint" = "本週摘要將在訓練結束後自動產生";

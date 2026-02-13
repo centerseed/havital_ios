@@ -52,6 +52,12 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 週摘要狀態
     @Published var weeklySummary: ViewState<WeeklySummaryV2> = .loading
 
+    /// 是否顯示週摘要 sheet
+    @Published var showWeeklySummary = false
+
+    /// 是否正在產生週摘要（用於 noWeeklyPlan 狀態的 loading）
+    @Published var isGeneratingSummary = false
+
     // MARK: - Computed Properties
 
     /// 是否正在載入
@@ -609,6 +615,26 @@ final class TrainingPlanV2ViewModel: ObservableObject {
         }
     }
 
+    /// 產生週摘要並顯示 sheet（用於 noWeeklyPlan 流程）
+    /// Week 2+ 必須先產生 summary，才能產生下週課表
+    func createWeeklySummaryAndShow(week: Int) async {
+        Logger.debug("[TrainingPlanV2VM] 產生第 \(week) 週摘要並顯示...")
+
+        isGeneratingSummary = true
+
+        do {
+            let summary = try await repository.generateWeeklySummary(weekOfPlan: week, forceUpdate: false)
+            weeklySummary = .loaded(summary)
+            isGeneratingSummary = false
+            showWeeklySummary = true
+            Logger.info("[TrainingPlanV2VM] ✅ 週摘要產生成功，顯示 sheet")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
+            isGeneratingSummary = false
+            networkError = error
+        }
+    }
+
     // MARK: - Debug Actions
 
     /// 在任何時間產生週回顧（Debug）
@@ -634,36 +660,29 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
     /// 刪除當前週課表（Debug）
     func debugDeleteCurrentWeekPlan() async {
-        guard let planId = weeklyPlan?.id else {
+        guard let plan = weeklyPlan else {
             Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] No weekly plan to delete")
-            await MainActor.run {
-                self.networkError = NSError(domain: "TrainingPlanV2", code: -1, userInfo: [NSLocalizedDescriptionKey: "無週課表可刪除"])
-            }
+            networkError = NSError(domain: "TrainingPlanV2", code: -1, userInfo: [NSLocalizedDescriptionKey: "無週課表可刪除"])
             return
         }
 
+        let planId = plan.effectivePlanId
         Logger.debug("[TrainingPlanV2VM] 🗑️ [DEBUG] Deleting weekly plan: \(planId)")
 
         do {
             try await repository.deleteWeeklyPlan(planId: planId)
 
-            await MainActor.run {
-                self.weeklyPlan = nil
-                self.planStatus = .loading
-                self.successToast = "✅ [DEBUG] 週課表已刪除"
-            }
-
-            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly plan deleted: \(planId)")
-
             // 清除本地快取
             await repository.clearWeeklyPlanCache(weekOfTraining: currentWeek)
 
+            self.weeklyPlan = nil
+            self.planStatus = .noWeeklyPlan
+            self.successToast = "✅ [DEBUG] 週課表已刪除"
+
+            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly plan deleted: \(planId)")
         } catch {
             Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] Failed to delete weekly plan: \(error.localizedDescription)")
-
-            await MainActor.run {
-                self.networkError = error
-            }
+            networkError = error
         }
     }
 
@@ -678,14 +697,13 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
             try await repository.deleteWeeklySummary(summaryId: summaryId)
 
-            await MainActor.run {
-                self.successToast = "✅ [DEBUG] 週回顧已刪除"
-            }
-
-            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
-
             // 清除本地快取
             await repository.clearWeeklySummaryCache(weekOfPlan: currentWeek)
+
+            self.weeklySummary = .empty
+            self.successToast = "✅ [DEBUG] 週回顧已刪除"
+
+            Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
 
         } catch {
             Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] Failed to delete weekly summary: \(error.localizedDescription)")

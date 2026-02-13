@@ -6,7 +6,6 @@ struct TrainingPlanV2View: View {
     @StateObject private var viewModel: TrainingPlanV2ViewModel
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
-    @State private var showWeeklySummary = false
 
     // MARK: - Initialization
 
@@ -36,9 +35,16 @@ struct TrainingPlanV2View: View {
                         WeekTimelineViewV2(viewModel: viewModel, plan: weeklyPlan)
 
                     case .noWeeklyPlan:
-                        GenerateWeeklyPlanPromptView {
+                        GenerateWeeklyPlanPromptView(
+                            isWeekOne: viewModel.currentWeek == 1,
+                            isGeneratingSummary: viewModel.isGeneratingSummary
+                        ) {
                             Task {
-                                await viewModel.generateCurrentWeekPlan()
+                                if viewModel.currentWeek == 1 {
+                                    await viewModel.generateCurrentWeekPlan()
+                                } else {
+                                    await viewModel.createWeeklySummaryAndShow(week: viewModel.currentWeek)
+                                }
                             }
                         }
 
@@ -93,7 +99,7 @@ struct TrainingPlanV2View: View {
                             Label("訓練計畫概覽", systemImage: "doc.text.below.ecg")
                         }
 
-                        Button(action: { showWeeklySummary = true }) {
+                        Button(action: { viewModel.showWeeklySummary = true }) {
                             Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
                         }
 
@@ -152,16 +158,25 @@ struct TrainingPlanV2View: View {
                     UserProfileView()
                 }
             }
-            .sheet(isPresented: $showWeeklySummary) {
+            .sheet(isPresented: $viewModel.showWeeklySummary) {
                 NavigationStack {
-                    WeeklySummaryV2View(viewModel: viewModel, weekOfPlan: viewModel.selectedWeek)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button(NSLocalizedString("common.close", comment: "Close")) {
-                                    showWeeklySummary = false
-                                }
+                    WeeklySummaryV2View(
+                        viewModel: viewModel,
+                        weekOfPlan: viewModel.selectedWeek,
+                        onGenerateNextWeek: viewModel.planStatus == .noWeeklyPlan ? {
+                            viewModel.showWeeklySummary = false
+                            Task {
+                                await viewModel.generateCurrentWeekPlan()
+                            }
+                        } : nil
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(NSLocalizedString("common.close", comment: "Close")) {
+                                viewModel.showWeeklySummary = false
                             }
                         }
+                    }
                 }
             }
         }
@@ -251,6 +266,8 @@ private struct PlaceholderWeekTimelineView: View {
 
 /// 產生週課表提示視圖
 private struct GenerateWeeklyPlanPromptView: View {
+    let isWeekOne: Bool
+    let isGeneratingSummary: Bool
     let generateAction: () -> Void
 
     var body: some View {
@@ -271,14 +288,24 @@ private struct GenerateWeeklyPlanPromptView: View {
                 .padding(.horizontal)
 
             Button(action: generateAction) {
-                Text(NSLocalizedString("training.generate_weekly_plan", comment: "產生週課表"))
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 32)
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                if isGeneratingSummary {
+                    ProgressView()
+                        .tint(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 32)
+                } else {
+                    Text(isWeekOne
+                        ? NSLocalizedString("training.generate_weekly_plan", comment: "產生週課表")
+                        : NSLocalizedString("training.get_weekly_summary", comment: "取得週回顧"))
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 32)
+                }
             }
+            .background(Color.blue)
+            .cornerRadius(10)
+            .disabled(isGeneratingSummary)
         }
         .padding()
     }

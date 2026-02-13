@@ -273,6 +273,8 @@
 "training.no_weekly_plan_title" = "Weekly Plan Not Generated";
 "training.no_weekly_plan_description" = "Tap the button below to generate this week's training plan";
 "training.generate_weekly_plan" = "Generate Weekly Plan";
+"training.get_weekly_summary" = "Get Weekly Summary";
+"training.generate_next_week_plan" = "Generate Next Week's Plan";
 "training.generating_weekly_plan" = "Generating Weekly Plan...";
 "training.generating_weekly_plan_description" = "AI is planning your training for this week, please wait";
 "training.daily_training" = "Daily Training";
@@ -2148,4 +2150,12 @@
 "training.total" = "Total";
 "training.vs_plan" = "vs Plan";
 "training.intensity_distribution" = "Intensity Distribution";
+"training.average" = "Average";
+"training.max" = "Max";
+"training.highlights" = "Weekly Highlights";
+"training.achievements" = "Achievements";
+"training.areas_for_improvement" = "Areas for Improvement";
+"training.next_week_adjustments" = "Next Week Adjustments";
+"training.no_weekly_summary" = "No Weekly Summary";
+"training.no_weekly_summary_hint" = "Weekly summary will be generated automatically after training";
 

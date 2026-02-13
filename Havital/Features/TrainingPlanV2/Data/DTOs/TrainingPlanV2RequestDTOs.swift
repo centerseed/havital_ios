@@ -66,6 +66,20 @@ struct GenerateWeeklyPlanRequest: Codable {
     }
 }
 
+/// Request DTO for updating weekly plan (merge update)
+/// PUT /v2/plan/weekly/:plan_id
+struct UpdateWeeklyPlanRequest: Codable {
+    let days: [DayDetailDTO]?
+    let purpose: String?
+    let totalDistanceKm: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case days
+        case purpose
+        case totalDistanceKm = "total_distance_km"
+    }
+}
+
 // MARK: - Weekly Summary Requests
 
 /// Request DTO for generating weekly summary

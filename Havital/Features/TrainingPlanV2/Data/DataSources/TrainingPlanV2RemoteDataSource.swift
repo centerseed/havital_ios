@@ -14,6 +14,8 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
 
     // Weekly Plan
     func generateWeeklyPlan(weekOfTraining: Int, forceGenerate: Bool?, promptVersion: String?, methodology: String?) async throws -> WeeklyPlanV2DTO
+    func getWeeklyPlan(planId: String) async throws -> WeeklyPlanV2DTO
+    func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2DTO
     func deleteWeeklyPlan(planId: String) async throws
 
     // Weekly Summary
@@ -201,6 +203,28 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
         )
 
         Logger.info("[TrainingPlanV2RemoteDS] Weekly plan generated: \(weeklyPlan.id)")
+        return weeklyPlan
+    }
+
+    /// 讀取指定週課表
+    /// - Parameter planId: 週課表 ID
+    /// - Returns: Weekly Plan DTO
+    func getWeeklyPlan(planId: String) async throws -> WeeklyPlanV2DTO {
+        Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly plan: \(planId)")
+        let weeklyPlan = try await apiHelper.get(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)")
+        Logger.info("[TrainingPlanV2RemoteDS] Weekly plan fetched: \(weeklyPlan.id)")
+        return weeklyPlan
+    }
+
+    /// 更新週課表（合併更新）
+    /// - Parameters:
+    ///   - planId: 週課表 ID
+    ///   - updates: 要更新的欄位
+    /// - Returns: Updated Weekly Plan DTO
+    func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2DTO {
+        Logger.debug("[TrainingPlanV2RemoteDS] Updating weekly plan: \(planId)")
+        let weeklyPlan = try await apiHelper.put(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)", body: updates)
+        Logger.info("[TrainingPlanV2RemoteDS] Weekly plan updated: \(weeklyPlan.id)")
         return weeklyPlan
     }
 

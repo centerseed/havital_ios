@@ -273,6 +273,8 @@
 "training.no_weekly_plan_title" = "週間スケジュール未作成";
 "training.no_weekly_plan_description" = "下のボタンをタップして今週のスケジュールを作成";
 "training.generate_weekly_plan" = "スケジュールを作成";
+"training.get_weekly_summary" = "週間レビューを取得";
+"training.generate_next_week_plan" = "来週のスケジュールを作成";
 "training.generating_weekly_plan" = "スケジュール作成中...";
 "training.generating_weekly_plan_description" = "AIが今週のトレーニングを計画しています、しばらくお待ちください";
 "training.daily_training" = "日々のトレーニング";
@@ -2137,4 +2139,12 @@
 "training.total" = "合計";
 "training.vs_plan" = "計画との比較";
 "training.intensity_distribution" = "強度配分";
+"training.average" = "平均";
+"training.max" = "最大";
+"training.highlights" = "今週のハイライト";
+"training.achievements" = "達成";
+"training.areas_for_improvement" = "改善点";
+"training.next_week_adjustments" = "来週の調整提案";
+"training.no_weekly_summary" = "週間サマリーなし";
+"training.no_weekly_summary_hint" = "週間サマリーはトレーニング終了後に自動生成されます";
 
