@@ -42,9 +42,11 @@ struct CreateOverviewForNonRaceRequest: Codable {
 /// PUT /v2/plan/overview/:id
 struct UpdateOverviewRequest: Codable {
     let startFromStage: String?
+    let methodologyId: String?
 
     enum CodingKeys: String, CodingKey {
         case startFromStage = "start_from_stage"
+        case methodologyId = "methodology_id"
     }
 }
 

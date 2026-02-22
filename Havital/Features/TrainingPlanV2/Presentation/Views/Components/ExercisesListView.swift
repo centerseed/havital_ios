@@ -11,7 +11,7 @@ struct ExercisesListView: View {
             HStack(spacing: 4) {
                 Text("💪")
                     .font(.caption)
-                Text("訓練動作")
+                Text(NSLocalizedString("training.exercises", comment: "Exercises"))
                     .font(.caption)
                     .fontWeight(.semibold)
             }
@@ -53,19 +53,19 @@ private struct ExerciseRowView: View {
             // 組數/次數/時長/重量
             HStack(spacing: 6) {
                 if let sets = exercise.sets {
-                    Text("\(sets)組")
+                    Text("\(sets)" + NSLocalizedString("training.sets_unit", comment: "Sets"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
 
                 if let reps = exercise.reps, !reps.isEmpty {
-                    Text("\(reps)次")
+                    Text("\(reps)" + NSLocalizedString("training.reps_unit", comment: "Reps"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
 
                 if let duration = exercise.durationSeconds {
-                    Text("\(duration)秒")
+                    Text("\(duration)" + NSLocalizedString("training.seconds_unit", comment: "Seconds"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -80,8 +80,8 @@ private struct ExerciseRowView: View {
         .padding(.vertical, 2)
 
         // 動作描述（如果有）
-        if !exercise.description.isEmpty {
-            Text(exercise.description)
+        if let desc = exercise.description, !desc.isEmpty {
+            Text(desc)
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .padding(.leading, 26)

@@ -6,6 +6,7 @@ struct WeekOverviewCardV2: View {
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlanV2
     @State private var showWeekTargetDetail = false
+    @State private var showTrainingCalendar = false
 
     // ✅ 直接從 WeeklyPlanV2 Entity 提取總跑量（V1 欄位）
     private var targetDistance: Double {
@@ -95,7 +96,7 @@ struct WeekOverviewCardV2: View {
 
                 Spacer()
 
-                // 右側：本週目標按鈕
+                // 右側：本週目標和訓練日曆按鈕
                 VStack(alignment: .leading, spacing: 10) {
                     Button(action: {
                         showWeekTargetDetail = true
@@ -106,6 +107,30 @@ struct WeekOverviewCardV2: View {
                                 .font(.subheadline)
 
                             Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    // 訓練日曆
+                    Button(action: {
+                        showTrainingCalendar = true
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar")
+                                .foregroundColor(.green)
+                                .font(.subheadline)
+
+                            Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 
@@ -163,6 +188,11 @@ struct WeekOverviewCardV2: View {
                     purpose: plan.purpose,  // ✅ 直接使用 V1 欄位
                     designReason: designReason
                 )
+            }
+        }
+        .sheet(isPresented: $showTrainingCalendar) {
+            NavigationView {
+                TrainingCalendarView()
             }
         }
     }

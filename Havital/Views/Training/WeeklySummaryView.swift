@@ -1,3 +1,5 @@
+// [V1 DEPRECATED] V1 週回顧視圖，未來將隨 V1 移除。
+// V2 對應: Features/TrainingPlanV2/Presentation/Views/WeeklySummaryV2View.swift
 import SwiftUI
 
 struct WeeklySummaryView: View {

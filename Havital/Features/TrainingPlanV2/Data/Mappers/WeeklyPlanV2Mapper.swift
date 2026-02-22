@@ -12,10 +12,16 @@ enum WeeklyPlanV2Mapper {
     /// - Parameter dto: API 響應的 DTO
     /// - Returns: Domain Layer 業務實體
     static func toEntity(from dto: WeeklyPlanV2DTO) -> WeeklyPlanV2 {
+        // 組合 ID：planId > id > overviewId_N
+        let resolvedId = dto.planId
+            ?? dto.id
+            ?? dto.overviewId.map { "\($0)_\(dto.weekOfTraining ?? dto.weekOfPlan ?? 0)" }
+            ?? UUID().uuidString
+
         return WeeklyPlanV2(
-            planId: dto.planId,
+            planId: dto.planId ?? resolvedId,
             weekOfTraining: dto.weekOfTraining,
-            id: dto.id,
+            id: resolvedId,
             purpose: dto.purpose,
             weekOfPlan: dto.weekOfPlan,
             totalWeeks: dto.totalWeeks,
@@ -41,6 +47,7 @@ enum WeeklyPlanV2Mapper {
     static func toDTO(from entity: WeeklyPlanV2) -> WeeklyPlanV2DTO {
         return WeeklyPlanV2DTO(
             planId: entity.planId,
+            overviewId: nil,
             weekOfTraining: entity.weekOfTraining,
             id: entity.id,
             purpose: entity.purpose,
@@ -56,6 +63,9 @@ enum WeeklyPlanV2Mapper {
             trainingLoadAnalysis: entity.trainingLoadAnalysis,
             personalizedRecommendations: entity.personalizedRecommendations,
             realTimeAdjustments: entity.realTimeAdjustments,
+            stageId: nil,
+            methodologyId: nil,
+            dataVersion: nil,
             apiVersion: entity.apiVersion
         )
     }

@@ -176,6 +176,8 @@ class CacheEventBus {
             return ["workouts_v2", "workout_cache", "UnifiedWorkoutManager"]
         case .trainingPlan:
             return ["training_plan", "weekly_summary", "TrainingPlanManager"] // 訓練計劃影響週總結
+        case .trainingPlanV2:
+            return ["training_plan_v2", "weekly_plan_v2"]
         case .weeklySummary:
             return ["weekly_summary", "WeeklySummaryManager"]
         case .targets:

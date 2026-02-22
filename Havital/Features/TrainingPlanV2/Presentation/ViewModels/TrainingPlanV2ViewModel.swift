@@ -6,7 +6,7 @@ import Combine
 /// V2 版本的訓練計畫 ViewModel
 /// 負責協調 PlanOverview、WeeklyPlan 和訓練記錄的載入
 @MainActor
-final class TrainingPlanV2ViewModel: ObservableObject {
+final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
 
     // MARK: - Dependencies
 
@@ -14,10 +14,17 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     private let workoutRepository: WorkoutRepository
     private let versionRouter: TrainingVersionRouter
 
+    // MARK: - TaskManageable
+
+    nonisolated let taskRegistry = TaskRegistry()
+
     // MARK: - Published State
 
     /// 計畫狀態（統一管理 UI 狀態）
     @Published var planStatus: PlanStatusV2 = .loading
+
+    /// Plan Status API 回應（儲存後端計算的狀態資訊）
+    @Published var planStatusResponse: PlanStatusV2Response?
 
     /// Plan Overview 資料
     @Published var planOverview: PlanOverviewV2?
@@ -49,6 +56,9 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 成功提示訊息
     @Published var successToast: String?
 
+    /// 所有週的摘要列表（用於顯示各週是否有課表/回顧）
+    @Published var weeklySummaries: [WeeklySummaryItem] = []
+
     /// 週摘要狀態
     @Published var weeklySummary: ViewState<WeeklySummaryV2> = .loading
 
@@ -57,6 +67,15 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
     /// 是否正在產生週摘要（用於 noWeeklyPlan 狀態的 loading）
     @Published var isGeneratingSummary = false
+
+    /// 是否顯示 loading 動畫（全屏）
+    @Published var isLoadingAnimation = false
+
+    /// 是否正在載入週摘要（用於決定 loading 動畫類型）
+    @Published var isLoadingWeeklySummary = false
+
+    /// 可用方法論列表（用於方法論切換 UI）
+    @Published var availableMethodologies: [MethodologyV2] = []
 
     // MARK: - Computed Properties
 
@@ -114,6 +133,10 @@ final class TrainingPlanV2ViewModel: ObservableObject {
         )
     }
 
+    deinit {
+        cancelAllTasks()
+    }
+
     // MARK: - Setup
 
     /// 設置事件訂閱
@@ -152,7 +175,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
     // MARK: - Public Methods - Initialization
 
-    /// 初始化載入所有資料
+    /// 初始化載入所有資料（整合 status API）
     func initialize() async {
         // 防止重複初始化
         guard !isInitializing else {
@@ -163,29 +186,127 @@ final class TrainingPlanV2ViewModel: ObservableObject {
         isInitializing = true
         defer { isInitializing = false }
 
-        Logger.debug("[TrainingPlanV2VM] 🚀 開始初始化...")
+        Logger.debug("[TrainingPlanV2VM] 🚀 開始初始化（整合 status API）...")
 
         planStatus = .loading
 
-        // Step 1: 載入 Plan Overview（雙軌快取）
-        await loadPlanOverview()
+        // ⭐ Step 1: 載入 Plan Status（決定後續流程）
+        await loadPlanStatus()
+        selectedWeek = currentWeek  // 初始化時跟隨 currentWeek
 
-        guard planOverview != nil else {
-            Logger.error("[TrainingPlanV2VM] ❌ Plan Overview 載入失敗，無法繼續")
+        guard let status = planStatusResponse else {
+            Logger.error("[TrainingPlanV2VM] ❌ Plan Status 載入失敗，無法繼續")
             planStatus = .noPlan
             return
         }
 
-        // Step 2: 載入當前週課表（雙軌快取）
-        await loadCurrentWeekPlan()
+        // ⭐ Step 2: 載入 Plan Overview（所有 nextAction 都需要）
+        await loadPlanOverview()
 
-        // Step 3: 載入本週訓練記錄
-        await loadWorkoutsForCurrentWeek()
+        guard planOverview != nil else {
+            Logger.error("[TrainingPlanV2VM] ❌ Plan Overview 載入失敗")
+            planStatus = .noPlan
+            return
+        }
+
+        // ⭐ Step 3: 根據 nextAction 決定下一步
+        await handleNextAction(status.nextAction, planId: status.currentWeekPlanId)
 
         Logger.debug("[TrainingPlanV2VM] ✅ 初始化完成")
     }
 
     // MARK: - Data Loading
+
+    /// ⭐ 載入 Plan Status
+    private func loadPlanStatus() async {
+        Logger.debug("[TrainingPlanV2VM] 載入 Plan Status...")
+
+        do {
+            let status = try await repository.getPlanStatus()
+
+            await MainActor.run {
+                self.planStatusResponse = status
+                self.currentWeek = status.currentWeek  // 使用後端計算的週數
+                // 不再覆蓋 selectedWeek — 由呼叫方決定
+            }
+
+            Logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Logger.info("📊 PLAN STATUS API 回應")
+            Logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Logger.info("🔢 當前週數: \(status.currentWeek) / \(status.totalWeeks)")
+            Logger.info("🎯 下一步動作: \(status.nextAction)")
+            Logger.info("⭐️ 可產生下週課表: \(status.canGenerateNextWeek ? "YES ✅" : "NO ❌")")
+            Logger.info("📝 當前週 Plan ID: \(status.currentWeekPlanId ?? "無")")
+            Logger.info("📋 上週 Summary ID: \(status.previousWeekSummaryId ?? "無")")
+            if let nextWeekInfo = status.nextWeekInfo {
+                Logger.info("📅 下週資訊:")
+                Logger.info("   - 週數: \(nextWeekInfo.weekNumber)")
+                Logger.info("   - 已有課表: \(nextWeekInfo.hasPlan ? "是" : "否")")
+                Logger.info("   - 可產生: \(nextWeekInfo.canGenerate ? "是" : "否")")
+            }
+            Logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] Plan Status 載入被取消，忽略")
+        } catch let error as DomainError {
+            if case .notFound = error {
+                Logger.debug("[TrainingPlanV2VM] 無活躍計畫")
+                await MainActor.run {
+                    self.planStatus = .noPlan
+                }
+            } else {
+                Logger.error("[TrainingPlanV2VM] ❌ Plan Status 載入失敗: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.networkError = error
+                }
+            }
+        } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
+            Logger.error("[TrainingPlanV2VM] ❌ Plan Status 載入失敗: \(error.localizedDescription)")
+            await MainActor.run {
+                self.networkError = error
+            }
+        }
+    }
+
+    /// ⭐ 根據 nextAction 執行對應動作
+    private func handleNextAction(_ nextAction: String, planId: String?) async {
+        Logger.debug("[TrainingPlanV2VM] 處理 nextAction: \(nextAction)")
+
+        switch nextAction {
+        case "view_plan":
+            // 載入當前週課表
+            await loadCurrentWeekPlan()
+            await loadWorkoutsForCurrentWeek()
+
+        case "create_plan":
+            // 顯示「產生週課表」按鈕
+            await MainActor.run {
+                self.planStatus = .noWeeklyPlan
+            }
+            Logger.debug("[TrainingPlanV2VM] 等待使用者產生第 \(currentWeek) 週課表")
+
+        case "create_summary":
+            // ⭐ 顯示「產生週回顧」按鈕
+            await MainActor.run {
+                self.planStatus = .needsWeeklySummary
+            }
+            Logger.debug("[TrainingPlanV2VM] 需先產生第 \(currentWeek - 1) 週回顧")
+
+        case "training_completed":
+            // 訓練完成
+            await MainActor.run {
+                self.planStatus = .completed
+            }
+            Logger.debug("[TrainingPlanV2VM] 訓練計畫已完成")
+
+        default:
+            Logger.error("[TrainingPlanV2VM] ⚠️ 未知的 nextAction: \(nextAction)")
+            await MainActor.run {
+                self.planStatus = .noPlan
+            }
+        }
+    }
 
     /// 載入 Plan Overview（雙軌快取）
     private func loadPlanOverview() async {
@@ -198,7 +319,8 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             await MainActor.run {
                 self.planOverview = overview
                 self.trainingPlanName = overview.targetName ?? "訓練計畫"
-                self.calculateCurrentWeek(from: overview)
+                // ❌ 移除前端週數計算，完全信任後端 Status API 的 currentWeek
+                // self.calculateCurrentWeek(from: overview)
             }
 
             Logger.debug("[TrainingPlanV2VM] ✅ Plan Overview 載入成功: \(overview.id)")
@@ -208,7 +330,10 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 await self.backgroundRefreshOverview()
             }
 
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] Plan Overview 載入被取消，忽略")
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
             Logger.error("[TrainingPlanV2VM] ❌ Plan Overview 載入失敗: \(error.localizedDescription)")
             await MainActor.run {
                 self.networkError = error
@@ -227,7 +352,8 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 if self.planOverview?.id != freshOverview.id {
                     self.planOverview = freshOverview
                     self.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
-                    self.calculateCurrentWeek(from: freshOverview)
+                    // ❌ 移除前端週數計算，完全信任後端 Status API 的 currentWeek
+                    // self.calculateCurrentWeek(from: freshOverview)
                 }
             }
         } catch {
@@ -241,7 +367,12 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
         do {
             // Track A: 立即返回快取
-            let plan = try await repository.getWeeklyPlan(weekOfTraining: currentWeek)
+            guard let overviewId = planOverview?.id else {
+                Logger.error("[TrainingPlanV2VM] ❌ 無法載入週課表：Plan Overview 為 nil")
+                self.planStatus = .noWeeklyPlan
+                return
+            }
+            let plan = try await repository.getWeeklyPlan(weekOfTraining: currentWeek, overviewId: overviewId)
 
             await MainActor.run {
                 self.weeklyPlan = plan
@@ -255,6 +386,8 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 await self.backgroundRefreshWeeklyPlan(week: self.currentWeek)
             }
 
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週課表載入被取消，忽略")
         } catch let error as DomainError {
             if case .notFound = error {
                 Logger.debug("[TrainingPlanV2VM] 週課表尚未生成，等待使用者手動觸發")
@@ -268,6 +401,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 }
             }
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
             Logger.error("[TrainingPlanV2VM] ❌ 週課表載入失敗: \(error.localizedDescription)")
             await MainActor.run {
                 self.planStatus = .error(error)
@@ -279,7 +413,9 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     func generateCurrentWeekPlan() async {
         Logger.debug("[TrainingPlanV2VM] 使用者觸發產生第 \(selectedWeek) 週課表...")
 
-        planStatus = .generating
+        // ✅ 全屏 loading 動畫（與 V1 一致）
+        isLoadingWeeklySummary = false
+        isLoadingAnimation = true
 
         do {
             let plan = try await repository.generateWeeklyPlan(
@@ -290,6 +426,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             )
 
             await MainActor.run {
+                self.isLoadingAnimation = false
                 self.weeklyPlan = plan
                 self.planStatus = .ready(plan)
             }
@@ -298,9 +435,86 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             await loadWorkoutsForCurrentWeek()
 
             Logger.debug("[TrainingPlanV2VM] ✅ 週課表產生成功: week=\(selectedWeek)")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週課表產生被取消，忽略")
+            await MainActor.run { self.isLoadingAnimation = false }
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled {
+                await MainActor.run { self.isLoadingAnimation = false }
+                return
+            }
             Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
             await MainActor.run {
+                self.isLoadingAnimation = false
+                self.planStatus = .error(error)
+            }
+        }
+    }
+
+    /// 產生下週課表（完全照搬 V1 流程）
+    func generateNextWeekPlan() async {
+        guard let nextWeekInfo = planStatusResponse?.nextWeekInfo else {
+            Logger.error("[TrainingPlanV2VM] ❌ 無法產生下週課表：缺少 nextWeekInfo")
+            return
+        }
+
+        Logger.debug("[TrainingPlanV2VM] 🚀 產生第 \(nextWeekInfo.weekNumber) 週課表（照搬 V1 流程）")
+
+        // ✅ 檢查是否需要先產生當前週回顧
+        if nextWeekInfo.requiresCurrentWeekSummary == true {
+            Logger.debug("[TrainingPlanV2VM] 需要先產生週回顧，再從回顧 sheet 產生下週課表")
+            await createWeeklySummaryAndShow(week: currentWeek)
+            return
+        }
+
+        // ✅ 無需週回顧，直接產生下週課表
+        Logger.debug("[TrainingPlanV2VM] 本週回顧已完成，直接產生第 \(nextWeekInfo.weekNumber) 週課表")
+        await generateWeeklyPlanDirectly(weekNumber: nextWeekInfo.weekNumber)
+    }
+
+    /// 直接產生週課表（不檢查週回顧）
+    func generateWeeklyPlanDirectly(weekNumber: Int) async {
+        Logger.debug("[TrainingPlanV2VM] 開始產生第 \(weekNumber) 週課表...")
+
+        // ✅ 全屏 loading 動畫（與 V1 一致）
+        isLoadingWeeklySummary = false
+        isLoadingAnimation = true
+
+        do {
+            let plan = try await repository.generateWeeklyPlan(
+                weekOfTraining: weekNumber,
+                forceGenerate: nil,
+                promptVersion: nil,
+                methodology: nil
+            )
+
+            // 切換到新產生的週
+            await MainActor.run {
+                self.isLoadingAnimation = false
+                self.currentWeek = weekNumber
+                self.selectedWeek = weekNumber
+                self.weeklyPlan = plan
+                self.planStatus = .ready(plan)
+                self.successToast = "第 \(weekNumber) 週課表已產生"
+            }
+
+            // 重新載入 Plan Status（更新狀態）
+            await loadPlanStatus()
+            // 載入本週訓練記錄
+            await loadWorkoutsForCurrentWeek()
+
+            Logger.debug("[TrainingPlanV2VM] ✅ 週課表產生成功: week=\(weekNumber)")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週課表產生被取消，忽略")
+            await MainActor.run { self.isLoadingAnimation = false }
+        } catch {
+            if (error as NSError).code == NSURLErrorCancelled {
+                await MainActor.run { self.isLoadingAnimation = false }
+                return
+            }
+            Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
+            await MainActor.run {
+                self.isLoadingAnimation = false
                 self.planStatus = .error(error)
             }
         }
@@ -309,7 +523,11 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     /// 背景刷新週課表（Track B）
     private func backgroundRefreshWeeklyPlan(week: Int) async {
         do {
-            let freshPlan = try await repository.refreshWeeklyPlan(weekOfTraining: week)
+            guard let overviewId = planOverview?.id else {
+                Logger.debug("[TrainingPlanV2VM] ⚠️ Background refresh skipped: no overview")
+                return
+            }
+            let freshPlan = try await repository.refreshWeeklyPlan(weekOfTraining: week, overviewId: overviewId)
             Logger.debug("[TrainingPlanV2VM] ✅ Background refresh: Weekly plan updated")
 
             await MainActor.run {
@@ -446,10 +664,8 @@ final class TrainingPlanV2ViewModel: ObservableObject {
     }
 
     /// 計算當前訓練週數（根據 Plan 建立時間）
+    /// ⚠️ 注意：V2 應該完全依賴後端 Status API 的 currentWeek，此方法僅作為降級方案
     private func calculateCurrentWeek(from overview: PlanOverviewV2) {
-        let calendar = Calendar.current
-        let now = Date()
-
         guard let startDate = overview.createdAt else {
             Logger.error("[TrainingPlanV2VM] ❌ Plan Overview createdAt 為 nil，無法計算訓練週數")
             currentWeek = 1
@@ -457,19 +673,23 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             return
         }
 
-        guard let weekDiff = calendar.dateComponents([.weekOfYear], from: startDate, to: now).weekOfYear else {
-            Logger.error("[TrainingPlanV2VM] ❌ 無法計算訓練週數")
+        // ✅ 使用與 V1 相同的週數計算邏輯（週一到週一的天數差距）
+        let formatter = ISO8601DateFormatter()
+        let createdAtString = formatter.string(from: startDate)
+
+        guard let calculatedWeek = WeekDateService.currentTrainingWeek(createdAt: createdAtString) else {
+            Logger.error("[TrainingPlanV2VM] ❌ WeekDateService 計算週數失敗")
             currentWeek = 1
             selectedWeek = 1
             return
         }
 
-        let calculatedWeek = min(max(weekDiff + 1, 1), overview.totalWeeks)
+        let finalWeek = min(calculatedWeek, overview.totalWeeks)
 
-        currentWeek = calculatedWeek
-        selectedWeek = calculatedWeek
+        currentWeek = finalWeek
+        selectedWeek = finalWeek
 
-        Logger.debug("[TrainingPlanV2VM] 當前訓練週數: \(calculatedWeek) / \(overview.totalWeeks)")
+        Logger.debug("[TrainingPlanV2VM] 當前訓練週數（前端計算）: \(finalWeek) / \(overview.totalWeeks)")
     }
 
     // MARK: - User Actions
@@ -494,7 +714,12 @@ final class TrainingPlanV2ViewModel: ObservableObject {
         planStatus = .loading
 
         do {
-            let plan = try await repository.getWeeklyPlan(weekOfTraining: week)
+            guard let overviewId = planOverview?.id else {
+                Logger.error("[TrainingPlanV2VM] ❌ 無法切換週次：Plan Overview 為 nil")
+                self.planStatus = .noWeeklyPlan
+                return
+            }
+            let plan = try await repository.getWeeklyPlan(weekOfTraining: week, overviewId: overviewId)
 
             await MainActor.run {
                 self.weeklyPlan = plan
@@ -505,6 +730,8 @@ final class TrainingPlanV2ViewModel: ObservableObject {
 
             Logger.debug("[TrainingPlanV2VM] ✅ 切換完成")
 
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 切換週次被取消，忽略")
         } catch let error as DomainError {
             if case .notFound = error {
                 Logger.debug("[TrainingPlanV2VM] 第 \(week) 週課表尚未生成")
@@ -518,6 +745,7 @@ final class TrainingPlanV2ViewModel: ObservableObject {
                 }
             }
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
             Logger.error("[TrainingPlanV2VM] ❌ 切換失敗: \(error.localizedDescription)")
             await MainActor.run {
                 self.planStatus = .error(error)
@@ -584,7 +812,10 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             let summary = try await repository.getWeeklySummary(weekOfPlan: weekOfPlan)
             weeklySummary = .loaded(summary)
             Logger.debug("[TrainingPlanV2VM] ✅ 週摘要載入成功: \(summary.id)")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週摘要載入被取消，忽略")
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
             Logger.error("[TrainingPlanV2VM] ❌ 週摘要載入失敗: \(error.localizedDescription)")
             if let domainError = error as? DomainError {
                 weeklySummary = .error(domainError)
@@ -605,7 +836,10 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             weeklySummary = .loaded(summary)
             successToast = "週回顧已產生"
             Logger.info("[TrainingPlanV2VM] ✅ 週摘要產生成功: \(summary.id)")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週摘要產生被取消，忽略")
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
             Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
             if let domainError = error as? DomainError {
                 weeklySummary = .error(domainError)
@@ -615,37 +849,218 @@ final class TrainingPlanV2ViewModel: ObservableObject {
         }
     }
 
-    /// 產生週摘要並顯示 sheet（用於 noWeeklyPlan 流程）
+    /// 產生週摘要並顯示 sheet（用於 needsWeeklySummary 流程）
     /// Week 2+ 必須先產生 summary，才能產生下週課表
     func createWeeklySummaryAndShow(week: Int) async {
         Logger.debug("[TrainingPlanV2VM] 產生第 \(week) 週摘要並顯示...")
 
+        // ✅ 觸發全屏 loading 動畫（與 V1 一致）
         isGeneratingSummary = true
+        isLoadingWeeklySummary = true
+        isLoadingAnimation = true
 
         do {
             let summary = try await repository.generateWeeklySummary(weekOfPlan: week, forceUpdate: false)
-            weeklySummary = .loaded(summary)
+
+            isLoadingAnimation = false
+            isLoadingWeeklySummary = false
             isGeneratingSummary = false
+            weeklySummary = .loaded(summary)
             showWeeklySummary = true
+
+            // ✅ 重新載入 Plan Status，讓 nextWeekInfo 更新為下週資訊
+            await loadPlanStatus()
+
             Logger.info("[TrainingPlanV2VM] ✅ 週摘要產生成功，顯示 sheet")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週摘要產生被取消，忽略")
+            isLoadingAnimation = false
+            isLoadingWeeklySummary = false
+            isGeneratingSummary = false
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled {
+                isLoadingAnimation = false
+                isLoadingWeeklySummary = false
+                isGeneratingSummary = false
+                return
+            }
             Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
+            isLoadingAnimation = false
+            isLoadingWeeklySummary = false
             isGeneratingSummary = false
             networkError = error
+        }
+    }
+
+    /// 獲取所有週摘要列表（共用 V1 endpoint，用於判斷各週是否有課表/回顧）
+    func fetchWeeklySummaries() async {
+        Logger.debug("[TrainingPlanV2VM] fetchWeeklySummaries...")
+        do {
+            let items = try await repository.getWeeklySummaries()
+            await MainActor.run {
+                self.weeklySummaries = items
+            }
+            Logger.info("[TrainingPlanV2VM] ✅ fetchWeeklySummaries: \(items.count) items")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ⚠️ fetchWeeklySummaries failed (non-critical): \(error)")
+        }
+    }
+
+    /// 查看歷史週回顧（從 Toolbar Menu 觸發）
+    /// 用於查看已產生的歷史週回顧，不會重新產生
+    func viewHistoricalSummary(week: Int) async {
+        Logger.debug("[TrainingPlanV2VM] 查看第 \(week) 週的歷史回顧...")
+
+        do {
+            let summary = try await repository.getWeeklySummary(weekOfPlan: week)
+            await MainActor.run {
+                self.weeklySummary = .loaded(summary)
+                self.showWeeklySummary = true
+            }
+            Logger.info("[TrainingPlanV2VM] ✅ 歷史週回顧載入成功，顯示 sheet")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 歷史週回顧載入被取消，忽略")
+        } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
+            Logger.error("[TrainingPlanV2VM] ❌ 歷史週回顧載入失敗: \(error.localizedDescription)")
+            await MainActor.run {
+                self.networkError = error
+            }
+        }
+    }
+
+    // MARK: - Update Overview
+
+    /// 更新訓練計畫概覽（當賽事目標有重要變更時）
+    func updateOverview(startFromStage: String? = nil) async {
+        Logger.debug("[TrainingPlanV2VM] 更新訓練計畫概覽... startFromStage=\(startFromStage ?? "nil")")
+
+        guard let overviewId = planOverview?.id else {
+            Logger.error("[TrainingPlanV2VM] ❌ 無法更新：overview ID 為 nil")
+            networkError = NSError(domain: "", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "無法更新訓練計劃"
+            ])
+            return
+        }
+
+        // 顯示 loading 狀態
+        await MainActor.run {
+            self.isLoadingAnimation = true
+            self.isLoadingWeeklySummary = false
+        }
+
+        do {
+            // 調用 Repository 更新 overview
+            let updatedOverview = try await repository.updateOverview(
+                overviewId: overviewId,
+                startFromStage: startFromStage,
+                methodologyId: nil
+            )
+
+            await MainActor.run {
+                self.planOverview = updatedOverview
+                self.isLoadingAnimation = false
+                self.successToast = NSLocalizedString("training.plan_regenerated", comment: "訓練計劃已根據最新目標重新產生")
+            }
+
+            // 清除快取並重新載入當前週課表
+            await repository.clearCache()
+            await loadPlanStatus()
+
+            Logger.info("[TrainingPlanV2VM] ✅ 訓練計劃概覽已更新")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 更新被取消，忽略")
+            await MainActor.run { self.isLoadingAnimation = false }
+        } catch {
+            if (error as NSError).code == NSURLErrorCancelled {
+                await MainActor.run { self.isLoadingAnimation = false }
+                return
+            }
+            Logger.error("[TrainingPlanV2VM] ❌ 更新訓練計劃概覽失敗: \(error.localizedDescription)")
+            await MainActor.run {
+                self.isLoadingAnimation = false
+                self.networkError = error
+            }
+        }
+    }
+
+    // MARK: - Methodology
+
+    /// 載入可用方法論列表
+    func loadMethodologies() async {
+        Logger.debug("[TrainingPlanV2VM] 載入可用方法論列表...")
+        do {
+            let targetType = planOverview?.targetType
+        let methodologies = try await repository.getMethodologies(targetType: targetType)
+            await MainActor.run {
+                self.availableMethodologies = methodologies
+            }
+            Logger.info("[TrainingPlanV2VM] ✅ 載入 \(methodologies.count) 個方法論")
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ❌ 載入方法論失敗: \(error.localizedDescription)")
+        }
+    }
+
+    /// 切換方法論
+    func changeMethodology(methodologyId: String, startFromStage: String? = nil) async {
+        Logger.debug("[TrainingPlanV2VM] 切換方法論: \(methodologyId), 起始階段: \(startFromStage ?? "nil")")
+
+        guard let overviewId = planOverview?.id else {
+            Logger.error("[TrainingPlanV2VM] ❌ 無法切換方法論：overview ID 為 nil")
+            return
+        }
+
+        do {
+            let updatedOverview = try await repository.updateOverview(
+                overviewId: overviewId,
+                startFromStage: startFromStage,
+                methodologyId: methodologyId
+            )
+
+            await MainActor.run {
+                self.planOverview = updatedOverview
+                self.successToast = NSLocalizedString("training.methodology_changed", comment: "方法論已更換")
+            }
+
+            // 清除快取並重新載入
+            await repository.clearCache()
+            await loadPlanStatus()
+
+            Logger.info("[TrainingPlanV2VM] ✅ 方法論已切換至: \(methodologyId)")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 切換方法論被取消，忽略")
+        } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
+            Logger.error("[TrainingPlanV2VM] ❌ 切換方法論失敗: \(error.localizedDescription)")
+            await MainActor.run {
+                self.networkError = error
+            }
         }
     }
 
     // MARK: - Debug Actions
 
     /// 在任何時間產生週回顧（Debug）
+    /// ⚠️ 週回顧應該產生「上週」的回顧，即 currentWeek - 1
     func debugGenerateWeeklySummary() async {
-        Logger.debug("[TrainingPlanV2VM] 🐛 [DEBUG] Generating weekly summary for week \(currentWeek)")
+        let weekToSummarize = max(1, currentWeek - 1)  // 產生上週的回顧
+        Logger.debug("[TrainingPlanV2VM] 🐛 [DEBUG] Generating weekly summary for week \(weekToSummarize) (current week: \(currentWeek))")
+
+        // ✅ 顯示全屏 loading 動畫
+        await MainActor.run {
+            self.isLoadingWeeklySummary = true
+            self.isLoadingAnimation = true
+        }
 
         do {
-            let summary = try await repository.generateWeeklySummary(weekOfPlan: currentWeek, forceUpdate: true)
+            let summary = try await repository.generateWeeklySummary(weekOfPlan: weekToSummarize, forceUpdate: true)
 
             await MainActor.run {
-                self.successToast = "✅ [DEBUG] 週回顧已產生: week \(currentWeek)"
+                self.isLoadingAnimation = false
+                self.isLoadingWeeklySummary = false
+                self.weeklySummary = .loaded(summary)
+                self.showWeeklySummary = true
+                self.successToast = "✅ [DEBUG] 週回顧已產生: week \(weekToSummarize)"
             }
 
             Logger.info("[TrainingPlanV2VM] ✅ [DEBUG] Weekly summary generated: \(summary.id)")
@@ -653,6 +1068,8 @@ final class TrainingPlanV2ViewModel: ObservableObject {
             Logger.error("[TrainingPlanV2VM] ❌ [DEBUG] Failed to generate weekly summary: \(error.localizedDescription)")
 
             await MainActor.run {
+                self.isLoadingAnimation = false
+                self.isLoadingWeeklySummary = false
                 self.networkError = error
             }
         }
@@ -722,7 +1139,7 @@ enum PlanStatusV2: Equatable {
     case loading
     case noPlan            // 無計畫（顯示 Onboarding 提示）
     case noWeeklyPlan      // 有 Overview 但無週課表（顯示「產生週課表」按鈕）
-    case generating        // 正在生成週課表
+    case needsWeeklySummary // 需要先產生週回顧才能產生下週課表（顯示「產生週回顧」按鈕）
     case ready(WeeklyPlanV2)  // 有計畫，顯示課表
     case completed         // 訓練完成
     case error(Error)      // 錯誤狀態
@@ -732,7 +1149,7 @@ enum PlanStatusV2: Equatable {
         case (.loading, .loading),
              (.noPlan, .noPlan),
              (.noWeeklyPlan, .noWeeklyPlan),
-             (.generating, .generating),
+             (.needsWeeklySummary, .needsWeeklySummary),
              (.completed, .completed):
             return true
         case (.ready(let lhsPlan), .ready(let rhsPlan)):

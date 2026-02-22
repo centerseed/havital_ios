@@ -100,15 +100,20 @@ final class TrainingPlanRepositoryIntegrationTests: IntegrationTestBase {
              print("✅ Created new training plan: \(overview.id)")
          }
 
-         // 確保 Week 1 計劃存在
-         let planId = "\(overview.id)_1"
+         // ✅ 修復：獲取 status 以確保當前週的計劃存在
+         let status = try await repository.getPlanStatus()
+         let currentWeek = status.currentWeek
+         print("📊 Current week from status: \(currentWeek)")
+
+         // 確保當前週的計劃存在（而不是固定 Week 1）
+         let planId = "\(overview.id)_\(currentWeek)"
          do {
              _ = try await repository.getWeeklyPlan(planId: planId)
-             print("ℹ️ Found existing weekly plan: \(planId)")
+             print("ℹ️ Found existing weekly plan for week \(currentWeek): \(planId)")
          } catch {
-             print("ℹ️ No week 1 plan found, creating one...")
-             let newPlan = try await repository.createWeeklyPlan(week: 1, startFromStage: nil, isBeginner: true)
-             print("✅ Created weekly plan: \(newPlan.id)")
+             print("ℹ️ No week \(currentWeek) plan found, creating one...")
+             let newPlan = try await repository.createWeeklyPlan(week: currentWeek, startFromStage: nil, isBeginner: true)
+             print("✅ Created weekly plan for week \(currentWeek): \(newPlan.id)")
          }
     }
 

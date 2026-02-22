@@ -733,6 +733,10 @@
 "training.stages_summary" = "%d 個階段，共 %d 週";
 "training.updating_plan" = "更新訓練計畫中...";
 "training.plan_regenerated" = "訓練計畫已根據最新目標重新產生";
+"training.methodology_changed" = "方法論已成功更換";
+"training.change_methodology" = "更換方法論";
+"training.select_methodology" = "選擇方法論";
+"training.current_methodology" = "目前方法論";
 "training.update_failed" = "訓練計畫更新失敗：%@";
 
 // MARK: - Onboarding Strings
@@ -2193,7 +2197,7 @@
 "onboarding.approach_summary" = "訓練方針";
 
 // MARK: - Weekly Summary V2
-"training.week_summary_title" = "第 %d 週摘要";
+"training.week_summary_title" = "第 %d 週回顧";
 "training.completion" = "訓練完成度";
 "training.sessions" = "場";
 "training.analysis" = "訓練分析";
@@ -2208,5 +2212,133 @@
 "training.achievements" = "成就";
 "training.areas_for_improvement" = "待改善";
 "training.next_week_adjustments" = "下週調整建議";
-"training.no_weekly_summary" = "尚無週摘要";
-"training.no_weekly_summary_hint" = "本週摘要將在訓練結束後自動產生";
+"training.no_weekly_summary" = "尚無週回顧";
+"training.no_weekly_summary_hint" = "本週回顧將在訓練結束後自動產生";
+"training.accept_adjustments_and_generate" = "接受調整並產生下週課表";
+"training.tab_results" = "本週成績";
+"training.tab_analysis" = "數據分析";
+"training.tab_next_week" = "下週計劃";
+"training.areas_for_improvement_title" = "待改善";
+
+// MARK: - Training Plan V2 Navigation
+"training_plan.back_to_current_week" = "返回本週 (Week %d)";
+"training_plan.current_week" = "本週";
+"training_plan.not_current_week" = "非本週";
+"training.weekly_summary" = "週回顧";
+"training.user_profile" = "個人資料";
+"training.plan_overview" = "訓練計畫概覽";
+"training.contact_paceriz" = "聯絡 Paceriz";
+"training.switch_week" = "切換週數";
+"training.current_week_label" = "本週";
+
+// MARK: - Training Plan V2 Status Messages
+"training.no_plan_title" = "尚未建立訓練計畫";
+"training.no_plan_description" = "請前往 Onboarding 建立您的訓練計畫";
+"training.need_weekly_summary_title" = "需要產生週回顧";
+"training.need_weekly_summary_description" = "請先產生第 %d 週的週回顧，才能繼續產生下週課表";
+"training.generate_week_summary" = "產生第 %d 週回顧";
+"training.completed_title" = "恭喜！訓練計畫已完成";
+"training.completed_description" = "準備開始新的訓練計畫嗎？";
+"training.loading_failed" = "載入失敗";
+
+// MARK: - Generate Next Week
+"training.ready_for_next_week_title" = "🎯 準備好下週訓練了嗎？";
+"training.generate_week_n_plan" = "產生第 %d 週課表";
+"training.need_complete_current_summary" = "需要先完成本週回顧";
+"training.current_summary_completed" = "本週回顧已完成";
+"training.confirm_training_complete" = "確認訓練完成";
+"training.confirm_training_complete_message" = "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。";
+
+// MARK: - Plan Overview V2
+"training.race_info" = "賽事資訊";
+"training.target_info" = "目標資訊";
+"training.training_plan" = "訓練計畫";
+"training.target_race" = "目標賽事";
+"training.training_target" = "訓練目標";
+"training.my_training_target" = "我的訓練目標";
+"training.race_date" = "賽事日期";
+"training.race_distance" = "賽事距離";
+"training.target_pace" = "目標配速";
+"training.target_time" = "目標時間";
+"training.training_weeks" = "訓練週數";
+"training.race_evaluation" = "賽事評估";
+"training.methodology" = "訓練方法論";
+"training.philosophy" = "訓練哲學";
+"training.training_strategy" = "訓練策略";
+"training.updating_overview" = "正在更新訓練計畫...";
+"training.training_focus" = "訓練重點";
+"training.weekly_km_target" = "週跑量目標";
+"training.key_workouts" = "關鍵訓練";
+"training.key_milestones" = "重要里程碑";
+
+// MARK: - Workout Type Mappings
+"training.workout_type.short_interval" = "短間歇";
+"training.workout_type.long_interval" = "長間歇";
+"training.workout_type.threshold" = "門檻跑";
+"training.workout_type.tempo" = "節奏跑";
+"training.workout_type.fartlek" = "法特雷克";
+"training.workout_type.norwegian_4x4" = "挪威 4x4";
+"training.workout_type.race_pace" = "配速跑";
+"training.workout_type.long_run" = "長距離";
+
+// MARK: - Week Timeline V2
+"training.completed_workouts" = "已完成訓練";
+"training.more_workouts" = "更多訓練";
+"training.warmup" = "暖身";
+"training.cooldown" = "緩和";
+
+// MARK: - Interval Training Types
+"training.interval_type.interval" = "間歇訓練";
+"training.interval_type.fartlek" = "法特雷克";
+"training.interval_type.strides" = "大步跑";
+"training.interval_type.hill_repeats" = "山坡重複跑";
+"training.interval_type.cruise_intervals" = "巡航間歇";
+"training.interval_type.short_interval" = "短間歇";
+"training.interval_type.long_interval" = "長間歇";
+"training.interval_type.norwegian_4x4" = "挪威 4×4";
+"training.interval_type.yasso_800" = "Yasso 800";
+
+// MARK: - Interval Training Labels
+"training.interval.work_label.hill_repeats" = "上坡衝刺";
+"training.interval.work_label.strides" = "加速跑";
+"training.interval.work_label.default" = "衝刺";
+"training.interval.recovery_run" = "恢復跑";
+"training.interval.rest" = "休息";
+"training.interval.repeats" = "%d 組";
+"training.segment_n" = "第%d段";
+
+// MARK: - Exercises and Units
+"training.exercises" = "訓練動作";
+"training.sets_unit" = "組";
+"training.reps_unit" = "次";
+"training.seconds_unit" = "秒";
+"training.minutes_unit" = "分鐘";
+
+// MARK: - Supplementary Training
+"training.supplementary" = "補充訓練";
+
+// MARK: - Strength Training Types
+"training.strength_type.core_stability" = "核心穩定訓練";
+"training.strength_type.glutes_hip" = "臀部與髖部訓練";
+"training.strength_type.lower_strength" = "下肢力量訓練";
+"training.strength_type.upper_strength" = "上肢力量訓練";
+"training.strength_type.full_body" = "全身力量訓練";
+"training.strength_type.plyometric" = "增強式訓練";
+"training.strength_type.mobility" = "活動度訓練";
+
+// MARK: - Cross Training Types
+"training.cross_type.cycling" = "自行車";
+"training.cross_type.swimming" = "游泳";
+"training.cross_type.yoga" = "瑜伽";
+"training.cross_type.hiking" = "健行";
+"training.cross_type.elliptical" = "橢圓機";
+"training.cross_type.rowing" = "划船";
+
+
+// WeeklySummaryV2 Progressive Disclosure
+"training.no_highlights" = "無亮點資料";
+"training.highlights_count" = "%d 個亮點";
+"training.achievements_count" = "%d 項成就";
+"training.avg_heart_rate_preview" = "平均心率 %.0f bpm";
+"training.avg_pace_preview" = "平均配速 %@";
+"training.view_analysis" = "查看數據分析";

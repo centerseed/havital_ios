@@ -21,6 +21,7 @@ struct RunSegmentDTO: Codable, Equatable {
     let distanceKm: Double?
     let distanceM: Int?
     let durationMinutes: Int?
+    let durationSeconds: Int?
     let pace: String?
     let heartRateRange: HeartRateRangeDTO?
     let intensity: String?
@@ -30,6 +31,7 @@ struct RunSegmentDTO: Codable, Equatable {
         case distanceKm = "distance_km"
         case distanceM = "distance_m"
         case durationMinutes = "duration_minutes"
+        case durationSeconds = "duration_seconds"
         case pace
         case heartRateRange = "heart_rate_range"
         case intensity
@@ -51,6 +53,7 @@ struct IntervalBlockDTO: Codable, Equatable {
     let recoveryDurationMinutes: Int?
     let recoveryPace: String?
     let recoveryDescription: String?
+    let recoveryDurationSeconds: Int?
     let variant: String?
 
     enum CodingKeys: String, CodingKey {
@@ -65,6 +68,7 @@ struct IntervalBlockDTO: Codable, Equatable {
         case recoveryDurationMinutes = "recovery_duration_minutes"
         case recoveryPace = "recovery_pace"
         case recoveryDescription = "recovery_description"
+        case recoveryDurationSeconds = "recovery_duration_seconds"
         case variant
     }
 }
@@ -79,7 +83,8 @@ struct RunActivityDTO: Codable, Equatable {
     let heartRateRange: HeartRateRangeDTO?
     let interval: IntervalBlockDTO?
     let segments: [RunSegmentDTO]?
-    let description: String
+    let description: String?
+    let targetIntensity: String?
 
     enum CodingKeys: String, CodingKey {
         case runType = "run_type"
@@ -90,6 +95,7 @@ struct RunActivityDTO: Codable, Equatable {
         case interval
         case segments
         case description
+        case targetIntensity = "target_intensity"
     }
 }
 
@@ -98,16 +104,18 @@ struct RunActivityDTO: Codable, Equatable {
 struct ExerciseDTO: Codable, Equatable {
     let name: String
     let sets: Int?
-    let reps: String?
+    let reps: Int?
+    let repsRange: String?
     let durationSeconds: Int?
     let weightKg: Double?
     let restSeconds: Int?
-    let description: String
+    let description: String?
 
     enum CodingKeys: String, CodingKey {
         case name
         case sets
         case reps
+        case repsRange = "reps_range"
         case durationSeconds = "duration_seconds"
         case weightKg = "weight_kg"
         case restSeconds = "rest_seconds"
@@ -120,8 +128,8 @@ struct ExerciseDTO: Codable, Equatable {
 struct StrengthActivityDTO: Codable, Equatable {
     let strengthType: String
     let exercises: [ExerciseDTO]
-    let durationMinutes: Int
-    let description: String
+    let durationMinutes: Int?
+    let description: String?
 
     enum CodingKeys: String, CodingKey {
         case strengthType = "strength_type"
@@ -138,7 +146,7 @@ struct CrossActivityDTO: Codable, Equatable {
     let durationMinutes: Int
     let distanceKm: Double?
     let intensity: String?
-    let description: String
+    let description: String?
 
     enum CodingKeys: String, CodingKey {
         case crossType = "cross_type"
@@ -203,12 +211,18 @@ enum PrimaryActivityDTO: Codable, Equatable {
 
 enum SupplementaryActivityDTO: Codable, Equatable {
     case strength(StrengthActivityDTO)
+    case cross(CrossActivityDTO)
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
         if let strengthActivity = try? container.decode(StrengthActivityDTO.self) {
             self = .strength(strengthActivity)
+            return
+        }
+
+        if let crossActivity = try? container.decode(CrossActivityDTO.self) {
+            self = .cross(crossActivity)
             return
         }
 
@@ -224,6 +238,8 @@ enum SupplementaryActivityDTO: Codable, Equatable {
         var container = encoder.singleValueContainer()
         switch self {
         case .strength(let activity):
+            try container.encode(activity)
+        case .cross(let activity):
             try container.encode(activity)
         }
     }
@@ -245,15 +261,24 @@ struct TrainingSessionDTO: Codable, Equatable {
     }
 }
 
+// MARK: - SessionWrapperDTO
+/// API 回傳的 session 包裝物件，內含 primary activity
+
+struct SessionWrapperDTO: Codable, Equatable {
+    let primary: PrimaryActivityDTO?
+}
+
 // MARK: - DayDetailDTO
-/// V2 API 扁平結構：primary/warmup/cooldown 直接在 day 層級
+/// V2 API 支援兩種結構：
+/// 1. 扁平結構：primary/warmup/cooldown 直接在 day 層級
+/// 2. 包裝結構：session.primary + warmup/cooldown 在 day 層級
 
 struct DayDetailDTO: Codable, Equatable {
     let dayIndex: Int
     let dayTarget: String
     let reason: String
     let tips: String?
-    let category: String
+    let category: String?
     let primary: PrimaryActivityDTO?
     let warmup: RunSegmentDTO?
     let cooldown: RunSegmentDTO?
@@ -266,8 +291,55 @@ struct DayDetailDTO: Codable, Equatable {
         case tips
         case category
         case primary
+        case session
         case warmup
         case cooldown
         case supplementary
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        dayIndex = try container.decode(Int.self, forKey: .dayIndex)
+        dayTarget = try container.decode(String.self, forKey: .dayTarget)
+        reason = try container.decode(String.self, forKey: .reason)
+        tips = try container.decodeIfPresent(String.self, forKey: .tips)
+        category = try container.decodeIfPresent(String.self, forKey: .category)
+        warmup = try container.decodeIfPresent(RunSegmentDTO.self, forKey: .warmup)
+        cooldown = try container.decodeIfPresent(RunSegmentDTO.self, forKey: .cooldown)
+        supplementary = try container.decodeIfPresent([SupplementaryActivityDTO].self, forKey: .supplementary)
+
+        // 優先嘗試扁平結構的 primary，再嘗試 session.primary
+        if let directPrimary = try container.decodeIfPresent(PrimaryActivityDTO.self, forKey: .primary) {
+            primary = directPrimary
+        } else if let sessionWrapper = try container.decodeIfPresent(SessionWrapperDTO.self, forKey: .session) {
+            primary = sessionWrapper.primary
+        } else {
+            primary = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(dayIndex, forKey: .dayIndex)
+        try container.encode(dayTarget, forKey: .dayTarget)
+        try container.encode(reason, forKey: .reason)
+        try container.encodeIfPresent(tips, forKey: .tips)
+        try container.encodeIfPresent(category, forKey: .category)
+        try container.encodeIfPresent(primary, forKey: .primary)
+        try container.encodeIfPresent(warmup, forKey: .warmup)
+        try container.encodeIfPresent(cooldown, forKey: .cooldown)
+        try container.encodeIfPresent(supplementary, forKey: .supplementary)
+    }
+
+    init(dayIndex: Int, dayTarget: String, reason: String, tips: String?, category: String?, primary: PrimaryActivityDTO?, warmup: RunSegmentDTO?, cooldown: RunSegmentDTO?, supplementary: [SupplementaryActivityDTO]?) {
+        self.dayIndex = dayIndex
+        self.dayTarget = dayTarget
+        self.reason = reason
+        self.tips = tips
+        self.category = category
+        self.primary = primary
+        self.warmup = warmup
+        self.cooldown = cooldown
+        self.supplementary = supplementary
     }
 }

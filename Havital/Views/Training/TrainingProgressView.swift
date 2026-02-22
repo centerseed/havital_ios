@@ -1,3 +1,5 @@
+// [V1 DEPRECATED] V1 訓練進度視圖，未來將隨 V1 移除。
+// V2 對應: Features/TrainingPlanV2/Presentation/Views/TrainingProgressViewV2.swift
 import SwiftUI
 
 struct TrainingProgressView: View {
@@ -123,7 +125,7 @@ struct TrainingProgressView: View {
                    let currentStage = getCurrentStage(from: overview, currentWeek: currentWeek) {
                     HStack(alignment: .center, spacing: 12) {
                         Circle()
-                            .fill(getStageColor(stageIndex: currentStage.index))
+                            .fill(getStageColor(stageId: currentStage.stageId))
                             .frame(width: 12, height: 12)
 
                         Text(L10n.Training.currentStage.localized(with: currentStage.stageName))
@@ -235,7 +237,7 @@ struct TrainingProgressView: View {
             } label: {
                 HStack {
                     Circle()
-                        .fill(getStageColor(stageIndex: index))
+                        .fill(getStageColor(stageId: stage.stageId))
                         .frame(width: 16, height: 16)
                     
                     Text(stage.stageName)
@@ -255,7 +257,7 @@ struct TrainingProgressView: View {
                 }
                 .padding(.vertical, 12)
                 .padding(.horizontal, 16)
-                .background(isCurrentStage ? getStageColor(stageIndex: index).opacity(0.1) : Color.clear)
+                .background(isCurrentStage ? getStageColor(stageId: stage.stageId).opacity(0.1) : Color.clear)
                 .cornerRadius(8)
             }
             .buttonStyle(PlainButtonStyle())
@@ -284,7 +286,7 @@ struct TrainingProgressView: View {
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isCurrentStage ? getStageColor(stageIndex: index) : Color.clear, lineWidth: 1)
+                .stroke(isCurrentStage ? getStageColor(stageId: stage.stageId) : Color.clear, lineWidth: 1)
         )
         .padding(.bottom, 8)
     }
@@ -500,20 +502,26 @@ struct TrainingProgressView: View {
     }
     
     // 獲取當前階段
-    private func getCurrentStage(from overview: TrainingPlanOverview, currentWeek: Int) -> (index: Int, stageName: String, weekStart: Int, weekEnd: Int)? {
-        for (index, stage) in overview.trainingStageDescription.enumerated() {
+    private func getCurrentStage(from overview: TrainingPlanOverview, currentWeek: Int) -> (stageId: String, stageName: String, weekStart: Int, weekEnd: Int)? {
+        for stage in overview.trainingStageDescription {
             let endWeek = stage.weekEnd ?? stage.weekStart
             if currentWeek >= stage.weekStart && currentWeek <= endWeek {
-                return (index, stage.stageName, stage.weekStart, endWeek)
+                return (stage.stageId, stage.stageName, stage.weekStart, endWeek)
             }
         }
         return nil
     }
-    
+
     // 獲取階段顏色
-    private func getStageColor(stageIndex: Int) -> Color {
-        let colors: [Color] = [.blue, .green, .orange, .purple, .pink]
-        return colors[stageIndex % colors.count]
+    private func getStageColor(stageId: String) -> Color {
+        switch stageId {
+        case "conversion": return .teal
+        case "base":       return .blue
+        case "build":      return .green
+        case "peak":       return .orange
+        case "taper":      return .purple
+        default:           return .gray
+        }
     }
 
     // 自動展開當前週期對應的階段

@@ -28,9 +28,10 @@ struct RunSegment: Codable, Equatable {
     let distanceKm: Double?
     let distanceM: Int?
     let durationMinutes: Int?
+    let durationSeconds: Int?
     let pace: String?
     let heartRateRange: HeartRateRangeV2?
-    let intensity: String?  // "easy", "moderate", "hard", "max"
+    let intensity: String?
     let description: String?
 }
 
@@ -49,21 +50,23 @@ struct IntervalBlock: Codable, Equatable {
     let recoveryDurationMinutes: Int?
     let recoveryPace: String?
     let recoveryDescription: String?
-    let variant: String?  // "short_interval", "long_interval", "strides", etc.
+    let recoveryDurationSeconds: Int?
+    let variant: String?
 }
 
 // MARK: - RunActivity (跑步活動)
 
 /// 跑步活動
 struct RunActivity: Codable, Equatable {
-    let runType: String  // "easy", "lsd", "tempo", "interval", etc.
+    let runType: String
     let distanceKm: Double?
     let durationMinutes: Int?
     let pace: String?
     let heartRateRange: HeartRateRangeV2?
-    let interval: IntervalBlock?  // interval/fartlek 類型使用
-    let segments: [RunSegment]?   // progression 類型使用
-    let description: String
+    let interval: IntervalBlock?
+    let segments: [RunSegment]?
+    let description: String?
+    let targetIntensity: String?
 }
 
 // MARK: - Exercise (單個動作)
@@ -72,32 +75,32 @@ struct RunActivity: Codable, Equatable {
 struct Exercise: Codable, Equatable {
     let name: String
     let sets: Int?
-    let reps: String?  // 如 "8-12"
-    let durationSeconds: Int?  // 如 plank 持續時間
+    let reps: String?
+    let durationSeconds: Int?
     let weightKg: Double?
     let restSeconds: Int?
-    let description: String
+    let description: String?
 }
 
 // MARK: - StrengthActivity (力量訓練)
 
 /// 力量訓練活動
 struct StrengthActivity: Codable, Equatable {
-    let strengthType: String  // "core_stability", "glutes_hip", "lower_strength", etc.
+    let strengthType: String
     let exercises: [Exercise]
-    let durationMinutes: Int
-    let description: String
+    let durationMinutes: Int?
+    let description: String?
 }
 
 // MARK: - CrossActivity (交叉訓練)
 
 /// 交叉訓練活動
 struct CrossActivity: Codable, Equatable {
-    let crossType: String  // "cycling", "swimming", "yoga", etc.
+    let crossType: String
     let durationMinutes: Int
     let distanceKm: Double?
-    let intensity: String?  // "easy", "moderate", "hard"
-    let description: String
+    let intensity: String?
+    let description: String?
 }
 
 // MARK: - Primary Activity (Union Type)
@@ -175,10 +178,16 @@ struct TrainingSession: Codable, Equatable {
 /// 未來可能擴展其他類型
 enum SupplementaryActivity: Codable, Equatable {
     case strength(StrengthActivity)
+    case cross(CrossActivity)
 
     init(from decoder: Decoder) throws {
         if let strengthActivity = try? StrengthActivity(from: decoder) {
             self = .strength(strengthActivity)
+            return
+        }
+
+        if let crossActivity = try? CrossActivity(from: decoder) {
+            self = .cross(crossActivity)
             return
         }
 
@@ -194,6 +203,8 @@ enum SupplementaryActivity: Codable, Equatable {
         switch self {
         case .strength(let activity):
             try activity.encode(to: encoder)
+        case .cross(let activity):
+            try activity.encode(to: encoder)
         }
     }
 }
@@ -206,7 +217,7 @@ struct DayDetail: Codable, Identifiable, Equatable {
     let dayTarget: String
     let reason: String
     let tips: String?
-    let category: TrainingCategory  // "run", "strength", "cross", "rest"
+    let category: TrainingCategory?  // ✅ 改為可選，API 可能返回 null
     let session: TrainingSession?  // rest 日為 nil
 
     var id: Int { dayIndex }
@@ -243,8 +254,8 @@ extension DayDetail {
 
     /// V1 兼容: 從 category 和 session 推斷 DayType
     var type: DayType {
-        // 休息日
-        if category == .rest {
+        // ✅ 處理 category 為 nil 或 .rest 的情況
+        if category == nil || category == .rest {
             return .rest
         }
 
@@ -289,6 +300,19 @@ extension DayDetail {
         case "threshold":
             return .threshold
         case "interval":
+            // 後端會將 norwegian_4x4、yasso_800 等正規化為 "interval"，原始類型存於 interval.variant
+            if let variant = activity.interval?.variant {
+                switch variant.lowercased() {
+                case "norwegian_4x4": return .norwegian4x4
+                case "yasso_800": return .yasso800
+                case "strides": return .strides
+                case "hill_repeats": return .hillRepeats
+                case "cruise_intervals": return .cruiseIntervals
+                case "short_interval": return .shortInterval
+                case "long_interval": return .longInterval
+                default: break
+                }
+            }
             return .interval
         case "progression":
             return .progression
@@ -495,7 +519,7 @@ extension DayDetail {
             description: activity.description,
             distanceKm: nil,
             totalDistanceKm: nil,
-            timeMinutes: Double(activity.durationMinutes),
+            timeMinutes: activity.durationMinutes.map { Double($0) },
             pace: nil,
             work: nil,
             recovery: nil,
@@ -504,7 +528,7 @@ extension DayDetail {
             segments: nil,
             warmup: nil,
             cooldown: nil,
-            exercises: activity.exercises,  // ✨ 保留 exercises 陣列
+            exercises: activity.exercises,
             supplementary: nil
         )
     }

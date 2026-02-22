@@ -8,16 +8,19 @@ struct WeeklyPlanV2DTO: Codable {
 
     // MARK: - V2 新增元數據
 
-    /// 週課表 ID（格式: {overview_id}_week_{week_number}）
+    /// 週課表 ID（格式: {overview_id}_{week_number}）
     let planId: String?
+
+    /// Overview ID（後端回傳，用於組合 planId）
+    let overviewId: String?
 
     /// 訓練週次（V2 新增，與 weekOfPlan 可能重複）
     let weekOfTraining: Int?
 
     // MARK: - V1 核心欄位（完整兼容 WeeklyTrainingPlan）
 
-    /// 週課表 ID（V1 欄位）
-    let id: String
+    /// 週課表 ID（V1 欄位，部分 API 可能不回傳）
+    let id: String?
 
     /// 當週訓練目的
     let purpose: String
@@ -62,6 +65,15 @@ struct WeeklyPlanV2DTO: Codable {
     /// 實時調整建議（v2.3+ 預留，目前為 null）
     let realTimeAdjustments: [String: AnyCodableValue]?
 
+    /// 階段 ID
+    let stageId: String?
+
+    /// 方法論 ID
+    let methodologyId: String?
+
+    /// 資料版本
+    let dataVersion: String?
+
     /// API 版本（默認 "2.0"）
     let apiVersion: String?
 
@@ -69,6 +81,7 @@ struct WeeklyPlanV2DTO: Codable {
 
     enum CodingKeys: String, CodingKey {
         case planId = "plan_id"
+        case overviewId = "overview_id"
         case weekOfTraining = "week_of_training"
         case id
         case purpose
@@ -84,6 +97,9 @@ struct WeeklyPlanV2DTO: Codable {
         case trainingLoadAnalysis = "training_load_analysis"
         case personalizedRecommendations = "personalized_recommendations"
         case realTimeAdjustments = "real_time_adjustments"
+        case stageId = "stage_id"
+        case methodologyId = "methodology_id"
+        case dataVersion = "data_version"
         case apiVersion = "_api_version"
     }
 }

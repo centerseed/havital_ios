@@ -6,11 +6,14 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
     func getTargetTypes() async throws -> [TargetTypeV2]
     func getMethodologies(targetType: String?) async throws -> [MethodologyV2]
 
+    // Plan Status
+    func getPlanStatus() async throws -> PlanStatusV2Response
+
     // Plan Overview
     func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2DTO
     func createOverviewForNonRace(targetType: String, trainingWeeks: Int, availableDays: Int?, methodologyId: String?, startFromStage: String?) async throws -> PlanOverviewV2DTO
     func getOverview() async throws -> PlanOverviewV2DTO
-    func updateOverview(overviewId: String, startFromStage: String?) async throws -> PlanOverviewV2DTO
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO
 
     // Weekly Plan
     func generateWeeklyPlan(weekOfTraining: Int, forceGenerate: Bool?, promptVersion: String?, methodology: String?) async throws -> WeeklyPlanV2DTO
@@ -19,6 +22,7 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
     func deleteWeeklyPlan(planId: String) async throws
 
     // Weekly Summary
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem]
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2DTO
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO
     func deleteWeeklySummary(summaryId: String) async throws
@@ -45,6 +49,23 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             parser: parser,
             moduleName: "TrainingPlanV2RemoteDS"
         )
+    }
+
+    // MARK: - Plan Status API
+
+    /// 獲取計畫狀態（決定 UI 應顯示什麼）
+    /// API: GET /v2/plan/status
+    /// - Returns: Plan Status Response
+    func getPlanStatus() async throws -> PlanStatusV2Response {
+        Logger.debug("[TrainingPlanV2RemoteDS] Fetching plan status from /v2/plan/status")
+
+        let response = try await apiHelper.get(
+            PlanStatusV2Response.self,
+            path: "/v2/plan/status"
+        )
+
+        Logger.info("[TrainingPlanV2RemoteDS] ✅ Plan status fetched: currentWeek=\(response.currentWeek), nextAction=\(response.nextAction)")
+        return response
     }
 
     // MARK: - Target Types & Methodologies APIs
@@ -157,10 +178,10 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     ///   - overviewId: 概覽 ID
     ///   - startFromStage: 起始階段（可選）
     /// - Returns: Updated Plan Overview DTO
-    func updateOverview(overviewId: String, startFromStage: String?) async throws -> PlanOverviewV2DTO {
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Updating overview: \(overviewId)")
 
-        let request = UpdateOverviewRequest(startFromStage: startFromStage)
+        let request = UpdateOverviewRequest(startFromStage: startFromStage, methodologyId: methodologyId)
 
         let overview = try await apiHelper.put(
             PlanOverviewV2DTO.self,
@@ -267,6 +288,12 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly summary for week \(weekOfPlan)")
         return try await apiHelper.get(WeeklySummaryV2DTO.self, path: "/v2/summary/weekly?week_of_plan=\(weekOfPlan)")
+    }
+
+    /// 獲取所有週摘要列表（共用 V1 endpoint）
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
+        Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly summaries list")
+        return try await apiHelper.get([WeeklySummaryItem].self, path: "/summary/weekly/")
     }
 
     /// 刪除週摘要 (Debug)

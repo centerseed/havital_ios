@@ -4,8 +4,14 @@ import SwiftUI
 /// 設計原則：與 V1 保持一致的 UI/UX，使用 V2 的資料模型
 struct TrainingPlanV2View: View {
     @StateObject private var viewModel: TrainingPlanV2ViewModel
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
+    @State private var showEditSchedule = false
+    @State private var showContactPaceriz = false
+    @State private var showFeedbackReport = false
+    @State private var showWeekSelector = false
+    @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
 
     // MARK: - Initialization
 
@@ -40,22 +46,28 @@ struct TrainingPlanV2View: View {
                             isGeneratingSummary: viewModel.isGeneratingSummary
                         ) {
                             Task {
-                                if viewModel.currentWeek == 1 {
-                                    await viewModel.generateCurrentWeekPlan()
-                                } else {
-                                    await viewModel.createWeeklySummaryAndShow(week: viewModel.currentWeek)
-                                }
+                                await viewModel.generateCurrentWeekPlan()
                             }
                         }
 
-                    case .generating:
-                        GeneratingWeeklyPlanView()
+                    case .needsWeeklySummary:
+                        GenerateWeeklySummaryPromptView(
+                            weekToSummarize: viewModel.currentWeek - 1,
+                            isGenerating: viewModel.isGeneratingSummary
+                        ) {
+                            Task {
+                                // 產生上週回顧後，自動顯示 sheet
+                                await viewModel.createWeeklySummaryAndShow(week: viewModel.currentWeek - 1)
+                            }
+                        }
 
                     case .noPlan:
                         NoPlanPromptView()
 
                     case .completed:
-                        TrainingCompletedView()
+                        TrainingCompletedView(onSetNewGoal: {
+                            authViewModel.startReonboarding()
+                        })
 
                     case .loading:
                         ProgressView()
@@ -68,10 +80,40 @@ struct TrainingPlanV2View: View {
                             }
                         })
                     }
+
+                    // 🆕 產生下週課表按鈕（週六日顯示，或 DEV 環境可提前產生）
+                    if let nextWeekInfo = viewModel.planStatusResponse?.nextWeekInfo,
+                       nextWeekInfo.canGenerate && !nextWeekInfo.hasPlan,
+                       viewModel.selectedWeek == viewModel.currentWeek {
+                        GenerateNextWeekButtonV2(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
+                            .transition(.opacity)
+                    }
                 }
                 .padding(.horizontal)
             }
             .background(Color(UIColor.systemGroupedBackground))
+            .safeAreaInset(edge: .bottom) {
+                if viewModel.selectedWeek != viewModel.currentWeek {
+                    Button {
+                        Task { await viewModel.switchToWeek(viewModel.currentWeek) }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.uturn.backward")
+                            Text(String(format: NSLocalizedString("training_plan.back_to_current_week", comment: "返回本週 (Week %d)"), viewModel.currentWeek))
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .cornerRadius(20)
+                    }
+                    .padding(.bottom, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+                }
+            }
             .refreshable {
                 await viewModel.refreshWeeklyPlan()
             }
@@ -92,23 +134,34 @@ struct TrainingPlanV2View: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: { showUserProfile = true }) {
-                            Label("個人資料", systemImage: "person.circle")
+                            Label(NSLocalizedString("training.user_profile", comment: "User Profile"), systemImage: "person.circle")
                         }
 
                         Button(action: { showPlanOverview = true }) {
-                            Label("訓練計畫概覽", systemImage: "doc.text.below.ecg")
+                            Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
 
                         Button(action: { viewModel.showWeeklySummary = true }) {
                             Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
                         }
 
+                        // 編輯週課表（只在有課表時顯示）
+                        if case .ready = viewModel.planStatus {
+                            Button(action: { showEditSchedule = true }) {
+                                Label(NSLocalizedString("training.edit_schedule", comment: "編輯週課表"), systemImage: "pencil")
+                            }
+                        }
+
+                        Button(action: { showWeekSelector = true }) {
+                            Label(NSLocalizedString("training.switch_week", comment: "切換週數"), systemImage: "list.number")
+                        }
+
                         Divider()
 
                         Button(action: {
-                            // TODO: 實作聯絡功能
+                            showContactPaceriz = true
                         }) {
-                            Label("聯絡 Paceriz", systemImage: "envelope.circle")
+                            Label(NSLocalizedString("training.contact_paceriz", comment: "Contact Paceriz"), systemImage: "envelope.circle")
                         }
 
                         // Debug 選單
@@ -149,25 +202,72 @@ struct TrainingPlanV2View: View {
                     }
                 }
             }
-            // TODO: 實作 PlanOverviewSheet
-            // .sheet(isPresented: $showPlanOverview) {
-            //     PlanOverviewSheet(viewModel: viewModel)
-            // }
+            .sheet(isPresented: $showPlanOverview) {
+                PlanOverviewSheetV2(viewModel: viewModel)
+            }
+            // ✅ 全屏 Loading 動畫
+            .sheet(isPresented: $viewModel.isLoadingAnimation) {
+                if viewModel.isLoadingWeeklySummary {
+                    LoadingAnimationView(type: .generateReview, totalDuration: 30.0)
+                        .ignoresSafeArea()
+                } else {
+                    LoadingAnimationView(type: .generatePlan, totalDuration: 30.0)
+                        .ignoresSafeArea()
+                }
+            }
             .sheet(isPresented: $showUserProfile) {
                 NavigationView {
                     UserProfileView()
                 }
             }
+            .sheet(isPresented: $showEditSchedule) {
+                if case .ready(let weeklyPlan) = viewModel.planStatus {
+                    let startDate: Date = {
+                        if let overview = viewModel.planOverview, let createdAt = overview.createdAt {
+                            let formatter = ISO8601DateFormatter()
+                            let str = formatter.string(from: createdAt)
+                            return WeekDateService.weekDateInfo(
+                                createdAt: str,
+                                weekNumber: viewModel.selectedWeek
+                            )?.startDate ?? Date()
+                        }
+                        return Date()
+                    }()
+                    EditScheduleViewV2(
+                        editViewModel: EditScheduleV2ViewModel(weeklyPlan: weeklyPlan, startDate: startDate),
+                        planViewModel: viewModel
+                    )
+                }
+            }
             .sheet(isPresented: $viewModel.showWeeklySummary) {
                 NavigationStack {
+                    // ⚠️ 週回顧應該顯示「已產生的週」，通常是 currentWeek - 1（上週）
+                    // 如果 weeklySummary 已載入，從 summary 中取得週數；否則預設為 currentWeek - 1
+                    let weekToShow: Int = {
+                        if case .loaded(let summary) = viewModel.weeklySummary {
+                            return summary.weekOfTraining
+                        }
+                        return max(1, viewModel.currentWeek - 1)
+                    }()
+
+                    // ✅ V1 邏輯：只要訓練未完成，就顯示「產生下週課表」按鈕
+                    let isTrainingCompleted = viewModel.planStatus == .completed ||
+                        viewModel.planStatusResponse?.nextAction == "training_completed"
+
                     WeeklySummaryV2View(
                         viewModel: viewModel,
-                        weekOfPlan: viewModel.selectedWeek,
-                        onGenerateNextWeek: viewModel.planStatus == .noWeeklyPlan ? {
+                        weekOfPlan: weekToShow,
+                        onGenerateNextWeek: isTrainingCompleted ? nil : {
                             viewModel.showWeeklySummary = false
                             Task {
-                                await viewModel.generateCurrentWeekPlan()
+                                if let nextWeek = viewModel.planStatusResponse?.nextWeekInfo?.weekNumber {
+                                    await viewModel.generateWeeklyPlanDirectly(weekNumber: nextWeek)
+                                }
                             }
+                        },
+                        onSetNewGoal: isTrainingCompleted ? {
+                            viewModel.showWeeklySummary = false
+                            authViewModel.startReonboarding()
                         } : nil
                     )
                     .toolbar {
@@ -178,6 +278,53 @@ struct TrainingPlanV2View: View {
                         }
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showWeekSelector) {
+            WeekSelectorSheetV2(viewModel: viewModel, isPresented: $showWeekSelector)
+        }
+        .confirmationDialog(
+            NSLocalizedString("contact.paceriz", comment: "Contact Paceriz"),
+            isPresented: $showContactPaceriz,
+            titleVisibility: .visible
+        ) {
+            Button(NSLocalizedString("feedback.title", comment: "Feedback")) {
+                if userProfileViewModel.userData == nil {
+                    userProfileViewModel.fetchUserProfile()
+                }
+                showFeedbackReport = true
+            }
+
+            if isChineseLanguage {
+                Button("FB 粉絲團") {
+                    if let url = URL(string: "https://www.facebook.com/profile.php?id=61574822777267") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+
+                Button("Threads") {
+                    if let url = URL(string: "https://www.threads.net/@paceriz_official") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } else {
+                Button(NSLocalizedString("contact.contact_support", value: "Contact Support", comment: "Contact Support")) {
+                    let email = "contact@paceriz.com"
+                    if let url = URL(string: "mailto:\(email)") {
+                        if UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }
+            }
+
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+        }
+        .sheet(isPresented: $showFeedbackReport) {
+            if let userData = userProfileViewModel.userData {
+                FeedbackReportView(userEmail: userData.email ?? "")
+            } else {
+                FeedbackReportView(userEmail: "")
             }
         }
         .task {
@@ -227,6 +374,13 @@ struct TrainingPlanV2View: View {
                 .animation(.easeInOut, value: viewModel.networkError as? NSError)
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    private var isChineseLanguage: Bool {
+        guard let lang = Bundle.main.preferredLocalizations.first else { return false }
+        return lang.hasPrefix("zh")
     }
 }
 
@@ -311,28 +465,6 @@ private struct GenerateWeeklyPlanPromptView: View {
     }
 }
 
-/// 正在生成週課表視圖
-private struct GeneratingWeeklyPlanView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .padding(.top, 40)
-
-            Text(NSLocalizedString("training.generating_weekly_plan", comment: "正在產生週課表..."))
-                .font(.headline)
-                .foregroundColor(.primary)
-
-            Text(NSLocalizedString("training.generating_weekly_plan_description", comment: "AI 正在為您規劃本週訓練，請稍候"))
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-        .padding()
-    }
-}
-
 /// 無計畫提示視圖
 private struct NoPlanPromptView: View {
     var body: some View {
@@ -342,11 +474,11 @@ private struct NoPlanPromptView: View {
                 .foregroundColor(.secondary)
                 .padding(.top, 40)
 
-            Text("尚未建立訓練計畫")
+            Text(NSLocalizedString("training.no_plan_title", comment: "No Plan Title"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            Text("請前往 Onboarding 建立您的訓練計畫")
+            Text(NSLocalizedString("training.no_plan_description", comment: "No Plan Description"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -356,8 +488,55 @@ private struct NoPlanPromptView: View {
     }
 }
 
+/// ⭐ 產生週回顧提示視圖
+private struct GenerateWeeklySummaryPromptView: View {
+    let weekToSummarize: Int
+    let isGenerating: Bool
+    let generateAction: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "chart.bar.doc.horizontal")
+                .font(.system(size: 60))
+                .foregroundColor(.blue)
+                .padding(.top, 40)
+
+            Text(NSLocalizedString("training.need_weekly_summary_title", comment: "Need Weekly Summary"))
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            Text(String(format: NSLocalizedString("training.need_weekly_summary_description", comment: "Need Summary Description"), weekToSummarize))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button(action: generateAction) {
+                if isGenerating {
+                    ProgressView()
+                        .tint(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 32)
+                } else {
+                    Text(String(format: NSLocalizedString("training.generate_week_summary", comment: "Generate Week Summary"), weekToSummarize))
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 32)
+                }
+            }
+            .background(Color.blue)
+            .cornerRadius(10)
+            .disabled(isGenerating)
+        }
+        .padding()
+    }
+}
+
 /// 訓練完成提示視圖
 private struct TrainingCompletedView: View {
+    var onSetNewGoal: (() -> Void)?
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
@@ -365,17 +544,98 @@ private struct TrainingCompletedView: View {
                 .foregroundColor(.green)
                 .padding(.top, 40)
 
-            Text("恭喜!訓練計畫已完成")
+            Text(NSLocalizedString("training.completed_title", comment: "Training Completed"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            Text("準備開始新的訓練計畫嗎?")
+            Text(NSLocalizedString("training.completed_description", comment: "Ready for New Plan"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+
+            if let onSetNewGoal {
+                Button(action: onSetNewGoal) {
+                    HStack {
+                        Image(systemName: "target")
+                        Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .padding(.top, 8)
+            }
         }
         .padding()
+    }
+}
+
+/// 產生下週課表按鈕（V2 版本，照搬 V1 流程）
+private struct GenerateNextWeekButtonV2: View {
+    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    let nextWeekInfo: NextWeekInfoV2
+    @State private var showConfirmation = false
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // 標題
+            Text(NSLocalizedString("training.ready_for_next_week_title", comment: "Ready for Next Week"))
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            // 按鈕
+            Button {
+                Logger.debug("🖱️ [GenerateNextWeekButtonV2] 按鈕被點擊，顯示確認對話框")
+                showConfirmation = true
+            } label: {
+                VStack(spacing: 8) {
+                    Text(String(format: NSLocalizedString("training.generate_week_n_plan", comment: "Generate Week N Plan"), nextWeekInfo.weekNumber))
+                        .font(.headline)
+
+                    // 提示文字
+                    if nextWeekInfo.requiresCurrentWeekSummary == true {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lightbulb.fill")
+                            Text(NSLocalizedString("training.need_complete_current_summary", comment: "Need Complete Summary"))
+                        }
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text(NSLocalizedString("training.current_summary_completed", comment: "Summary Completed"))
+                        }
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .disabled(viewModel.planStatus == .loading)
+            .alert(NSLocalizedString("training.confirm_training_complete", comment: "Confirm Training Complete"), isPresented: $showConfirmation) {
+                Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {
+                    Logger.debug("❌ [GenerateNextWeekButtonV2] 用戶取消產生課表")
+                }
+                Button(NSLocalizedString("common.confirm", comment: "Confirm")) {
+                    Logger.debug("✅ [GenerateNextWeekButtonV2] 用戶確認產生課表")
+                    Task {
+                        await viewModel.generateNextWeekPlan()
+                    }
+                }
+            } message: {
+                Text(NSLocalizedString("training.confirm_training_complete_message", comment: "Confirm Training Complete Message"))
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
     }
 }
 
@@ -391,7 +651,7 @@ private struct ErrorView: View {
                 .foregroundColor(.orange)
                 .padding(.top, 40)
 
-            Text("載入失敗")
+            Text(NSLocalizedString("training.loading_failed", comment: "Loading Failed"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -402,7 +662,7 @@ private struct ErrorView: View {
                 .padding(.horizontal)
 
             Button(action: retryAction) {
-                Text("重試")
+                Text(NSLocalizedString("common.retry", comment: "Retry"))
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding(.vertical, 12)
@@ -412,6 +672,59 @@ private struct ErrorView: View {
             }
         }
         .padding()
+    }
+}
+
+// MARK: - Week Selector Sheet V2
+
+/// 簡易週選擇器（V2 版本）
+private struct WeekSelectorSheetV2: View {
+    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        NavigationStack {
+            List(1...max(viewModel.totalWeeks, 1), id: \.self) { week in
+                Button {
+                    Task {
+                        await viewModel.switchToWeek(week)
+                        isPresented = false
+                    }
+                } label: {
+                    HStack {
+                        Text(String(format: NSLocalizedString("training.week_number", comment: "第 %d 週"), week))
+                            .font(.body)
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        if week == viewModel.currentWeek {
+                            Text(NSLocalizedString("training.current_week_label", comment: "本週"))
+                                .font(.caption)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.blue)
+                                .cornerRadius(8)
+                        }
+
+                        if week == viewModel.selectedWeek {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+            .navigationTitle(NSLocalizedString("training.switch_week", comment: "切換週數"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.close", comment: "Close")) {
+                        isPresented = false
+                    }
+                }
+            }
+        }
     }
 }
 

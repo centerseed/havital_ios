@@ -1,3 +1,5 @@
+// [V1 DEPRECATED] 此文件為 V1 訓練計畫視圖，未來將隨 V1 移除。
+// V2 對應: Features/TrainingPlanV2/Presentation/Views/TrainingPlanV2View.swift
 import SwiftUI
 import HealthKit
 import Combine

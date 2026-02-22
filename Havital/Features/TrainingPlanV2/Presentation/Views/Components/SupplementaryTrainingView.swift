@@ -11,7 +11,7 @@ struct SupplementaryTrainingView: View {
             HStack(spacing: 4) {
                 Text("➕")
                     .font(.caption)
-                Text("補充訓練")
+                Text(NSLocalizedString("training.supplementary", comment: "Supplementary"))
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
@@ -39,6 +39,8 @@ private struct SupplementaryActivityItemView: View {
             switch activity {
             case .strength(let strengthActivity):
                 StrengthActivityView(activity: strengthActivity)
+            case .cross(let crossActivity):
+                CrossSupplementaryView(activity: crossActivity)
             }
         }
     }
@@ -58,14 +60,16 @@ private struct StrengthActivityView: View {
 
                 Spacer()
 
-                Text("\(activity.durationMinutes)分鐘")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if let mins = activity.durationMinutes {
+                    Text("\(mins)" + NSLocalizedString("training.minutes_unit", comment: "Minutes"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             // 描述
-            if !activity.description.isEmpty {
-                Text(activity.description)
+            if let desc = activity.description, !desc.isEmpty {
+                Text(desc)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -80,19 +84,65 @@ private struct StrengthActivityView: View {
     private func strengthTypeDisplayName(_ type: String) -> String {
         switch type {
         case "core_stability":
-            return "核心穩定訓練"
+            return NSLocalizedString("training.strength_type.core_stability", comment: "Core Stability")
         case "glutes_hip":
-            return "臀部與髖部訓練"
+            return NSLocalizedString("training.strength_type.glutes_hip", comment: "Glutes Hip")
         case "lower_strength":
-            return "下肢力量訓練"
+            return NSLocalizedString("training.strength_type.lower_strength", comment: "Lower Strength")
         case "upper_strength":
-            return "上肢力量訓練"
+            return NSLocalizedString("training.strength_type.upper_strength", comment: "Upper Strength")
         case "full_body":
-            return "全身力量訓練"
+            return NSLocalizedString("training.strength_type.full_body", comment: "Full Body")
         case "plyometric":
-            return "增強式訓練"
+            return NSLocalizedString("training.strength_type.plyometric", comment: "Plyometric")
         case "mobility":
-            return "活動度訓練"
+            return NSLocalizedString("training.strength_type.mobility", comment: "Mobility")
+        default:
+            return type.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+}
+
+/// 交叉訓練補充視圖
+private struct CrossSupplementaryView: View {
+    let activity: CrossActivity
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(crossTypeDisplayName(activity.crossType))
+                    .font(.caption)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text("\(activity.durationMinutes) " + NSLocalizedString("training.minutes_unit", comment: "Minutes"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if let desc = activity.description, !desc.isEmpty {
+                Text(desc)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func crossTypeDisplayName(_ type: String) -> String {
+        switch type {
+        case "cycling":
+            return NSLocalizedString("training.cross_type.cycling", comment: "Cycling")
+        case "swimming":
+            return NSLocalizedString("training.cross_type.swimming", comment: "Swimming")
+        case "yoga":
+            return NSLocalizedString("training.cross_type.yoga", comment: "Yoga")
+        case "hiking":
+            return NSLocalizedString("training.cross_type.hiking", comment: "Hiking")
+        case "elliptical":
+            return NSLocalizedString("training.cross_type.elliptical", comment: "Elliptical")
+        case "rowing":
+            return NSLocalizedString("training.cross_type.rowing", comment: "Rowing")
         default:
             return type.replacingOccurrences(of: "_", with: " ").capitalized
         }

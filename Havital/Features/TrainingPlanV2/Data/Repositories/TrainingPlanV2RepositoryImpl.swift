@@ -22,6 +22,21 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         self.localDataSource = localDataSource
     }
 
+    // MARK: - Plan Status
+
+    func getPlanStatus() async throws -> PlanStatusV2Response {
+        Logger.debug("[TrainingPlanV2Repo] Getting plan status")
+
+        do {
+            let response = try await remoteDataSource.getPlanStatus()
+            Logger.info("[TrainingPlanV2Repo] ✅ Plan status: week \(response.currentWeek)/\(response.totalWeeks), nextAction=\(response.nextAction)")
+            return response
+        } catch {
+            // 將錯誤轉換為 DomainError
+            throw error.toDomainError()
+        }
+    }
+
     // MARK: - Target Types & Methodologies
 
     func getTargetTypes() async throws -> [TargetTypeV2] {
@@ -111,12 +126,13 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         return try await fetchAndCacheOverview()
     }
 
-    func updateOverview(overviewId: String, startFromStage: String?) async throws -> PlanOverviewV2 {
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2 {
         Logger.debug("[TrainingPlanV2Repo] Updating overview: \(overviewId)")
 
         let dto = try await remoteDataSource.updateOverview(
             overviewId: overviewId,
-            startFromStage: startFromStage
+            startFromStage: startFromStage,
+            methodologyId: methodologyId
         )
 
         let entity = PlanOverviewV2Mapper.toEntity(from: dto)
@@ -155,8 +171,8 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         return entity
     }
 
-    func getWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2 {
-        Logger.debug("[TrainingPlanV2Repo] getWeeklyPlan for week \(weekOfTraining)")
+    func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
+        Logger.debug("[TrainingPlanV2Repo] getWeeklyPlan for week \(weekOfTraining), overviewId: \(overviewId)")
 
         // Track A: Check local cache
         if let cached = localDataSource.getWeeklyPlan(week: weekOfTraining),
@@ -165,15 +181,10 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             return cached
         }
 
-        // Cache miss - 嘗試從快取中取得 planId 來呼叫 GET API
-        if let cached = localDataSource.getWeeklyPlan(week: weekOfTraining) {
-            Logger.debug("[TrainingPlanV2Repo] Cache expired, refreshing from API: \(cached.effectivePlanId)")
-            return try await fetchAndCacheWeeklyPlan(planId: cached.effectivePlanId, week: weekOfTraining)
-        }
-
-        // 完全沒有快取 — 讓使用者手動觸發產生
-        Logger.debug("[TrainingPlanV2Repo] Cache miss for week \(weekOfTraining), no cached plan available")
-        throw DomainError.notFound("週課表尚未生成")
+        // Cache miss 或過期 — 用 overviewId 組出正確的 planId 呼叫 GET API
+        let planId = "\(overviewId)_\(weekOfTraining)"
+        Logger.debug("[TrainingPlanV2Repo] Fetching from API with planId: \(planId)")
+        return try await fetchAndCacheWeeklyPlan(planId: planId, week: weekOfTraining)
     }
 
     func fetchWeeklyPlan(planId: String) async throws -> WeeklyPlanV2 {
@@ -200,20 +211,11 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         return entity
     }
 
-    func refreshWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2 {
+    func refreshWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         Logger.debug("[TrainingPlanV2Repo] Force refresh weekly plan for week \(weekOfTraining)")
 
-        // 先嘗試用 GET（如果有 planId），否則用 POST
-        if let cached = localDataSource.getWeeklyPlan(week: weekOfTraining) {
-            return try await fetchAndCacheWeeklyPlan(planId: cached.effectivePlanId, week: weekOfTraining)
-        }
-
-        return try await generateWeeklyPlan(
-            weekOfTraining: weekOfTraining,
-            forceGenerate: true,
-            promptVersion: nil,
-            methodology: nil
-        )
+        let planId = "\(overviewId)_\(weekOfTraining)"
+        return try await fetchAndCacheWeeklyPlan(planId: planId, week: weekOfTraining)
     }
 
     func deleteWeeklyPlan(planId: String) async throws {
@@ -239,6 +241,15 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
         Logger.info("[TrainingPlanV2Repo] Weekly summary generated and cached: week \(weekOfPlan)")
         return entity
+    }
+
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
+        Logger.debug("[TrainingPlanV2Repo] getWeeklySummaries")
+        do {
+            return try await remoteDataSource.getWeeklySummaries()
+        } catch {
+            throw error.toDomainError()
+        }
     }
 
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
@@ -322,10 +333,15 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     // MARK: - Private Helpers
 
     private func fetchAndCacheOverview() async throws -> PlanOverviewV2 {
-        let dto = try await remoteDataSource.getOverview()
-        let entity = PlanOverviewV2Mapper.toEntity(from: dto)
-        localDataSource.saveOverview(entity)
-        return entity
+        do {
+            let dto = try await remoteDataSource.getOverview()
+            let entity = PlanOverviewV2Mapper.toEntity(from: dto)
+            localDataSource.saveOverview(entity)
+            return entity
+        } catch {
+            // 將 HTTPError 轉換為 DomainError
+            throw error.toDomainError()
+        }
     }
 
     private func refreshOverviewInBackground() async {
@@ -338,10 +354,15 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     }
 
     private func fetchAndCacheWeeklyPlan(planId: String, week: Int) async throws -> WeeklyPlanV2 {
-        let dto = try await remoteDataSource.getWeeklyPlan(planId: planId)
-        let entity = WeeklyPlanV2Mapper.toEntity(from: dto)
-        localDataSource.saveWeeklyPlan(entity, week: week)
-        return entity
+        do {
+            let dto = try await remoteDataSource.getWeeklyPlan(planId: planId)
+            let entity = WeeklyPlanV2Mapper.toEntity(from: dto)
+            localDataSource.saveWeeklyPlan(entity, week: week)
+            return entity
+        } catch {
+            // 將 HTTPError 轉換為 DomainError，確保 ViewModel 能正確處理 404
+            throw error.toDomainError()
+        }
     }
 
     private func refreshWeeklyPlanInBackground(week: Int) async {

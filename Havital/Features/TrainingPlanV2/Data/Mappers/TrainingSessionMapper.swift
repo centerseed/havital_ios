@@ -28,6 +28,7 @@ enum TrainingSessionMapper {
             distanceKm: dto.distanceKm,
             distanceM: dto.distanceM,
             durationMinutes: dto.durationMinutes,
+            durationSeconds: dto.durationSeconds,
             pace: dto.pace,
             heartRateRange: dto.heartRateRange.map { toEntity(from: $0) },
             intensity: dto.intensity,
@@ -40,6 +41,7 @@ enum TrainingSessionMapper {
             distanceKm: entity.distanceKm,
             distanceM: entity.distanceM,
             durationMinutes: entity.durationMinutes,
+            durationSeconds: entity.durationSeconds,
             pace: entity.pace,
             heartRateRange: entity.heartRateRange.map { toDTO(from: $0) },
             intensity: entity.intensity,
@@ -62,6 +64,7 @@ enum TrainingSessionMapper {
             recoveryDurationMinutes: dto.recoveryDurationMinutes,
             recoveryPace: dto.recoveryPace,
             recoveryDescription: dto.recoveryDescription,
+            recoveryDurationSeconds: dto.recoveryDurationSeconds,
             variant: dto.variant
         )
     }
@@ -79,6 +82,7 @@ enum TrainingSessionMapper {
             recoveryDurationMinutes: entity.recoveryDurationMinutes,
             recoveryPace: entity.recoveryPace,
             recoveryDescription: entity.recoveryDescription,
+            recoveryDurationSeconds: entity.recoveryDurationSeconds,
             variant: entity.variant
         )
     }
@@ -94,7 +98,8 @@ enum TrainingSessionMapper {
             heartRateRange: dto.heartRateRange.map { toEntity(from: $0) },
             interval: dto.interval.map { toEntity(from: $0) },
             segments: dto.segments?.map { toEntity(from: $0) },
-            description: dto.description
+            description: dto.description,
+            targetIntensity: dto.targetIntensity
         )
     }
 
@@ -107,17 +112,20 @@ enum TrainingSessionMapper {
             heartRateRange: entity.heartRateRange.map { toDTO(from: $0) },
             interval: entity.interval.map { toDTO(from: $0) },
             segments: entity.segments?.map { toDTO(from: $0) },
-            description: entity.description
+            description: entity.description,
+            targetIntensity: entity.targetIntensity
         )
     }
 
     // MARK: - Exercise
 
     static func toEntity(from dto: ExerciseDTO) -> Exercise {
+        // DTO reps (Int?) + repsRange (String?) → Entity reps (String?)
+        let repsString: String? = dto.repsRange ?? dto.reps.map { String($0) }
         return Exercise(
             name: dto.name,
             sets: dto.sets,
-            reps: dto.reps,
+            reps: repsString,
             durationSeconds: dto.durationSeconds,
             weightKg: dto.weightKg,
             restSeconds: dto.restSeconds,
@@ -126,10 +134,14 @@ enum TrainingSessionMapper {
     }
 
     static func toDTO(from entity: Exercise) -> ExerciseDTO {
+        // Entity reps (String?) → DTO reps (Int?) + repsRange (String?)
+        let repsInt = entity.reps.flatMap { Int($0) }
+        let repsRange: String? = (repsInt == nil) ? entity.reps : nil
         return ExerciseDTO(
             name: entity.name,
             sets: entity.sets,
-            reps: entity.reps,
+            reps: repsInt,
+            repsRange: repsRange,
             durationSeconds: entity.durationSeconds,
             weightKg: entity.weightKg,
             restSeconds: entity.restSeconds,
@@ -209,6 +221,8 @@ enum TrainingSessionMapper {
         switch dto {
         case .strength(let strengthDTO):
             return .strength(toEntity(from: strengthDTO))
+        case .cross(let crossDTO):
+            return .cross(toEntity(from: crossDTO))
         }
     }
 
@@ -216,6 +230,8 @@ enum TrainingSessionMapper {
         switch entity {
         case .strength(let strengthActivity):
             return .strength(toDTO(from: strengthActivity))
+        case .cross(let crossActivity):
+            return .cross(toDTO(from: crossActivity))
         }
     }
 
@@ -257,7 +273,7 @@ enum TrainingSessionMapper {
             dayTarget: dto.dayTarget,
             reason: dto.reason,
             tips: dto.tips,
-            category: TrainingCategory(rawValue: dto.category) ?? .rest,
+            category: dto.category.flatMap { TrainingCategory(rawValue: $0) },  // ✅ 處理可選值
             session: session
         )
     }
@@ -268,7 +284,7 @@ enum TrainingSessionMapper {
             dayTarget: entity.dayTarget,
             reason: entity.reason,
             tips: entity.tips,
-            category: entity.category.rawValue,
+            category: entity.category?.rawValue,  // ✅ 處理可選值
             primary: entity.session.map { toDTO(from: $0.primary) },
             warmup: entity.session?.warmup.map { toDTO(from: $0) },
             cooldown: entity.session?.cooldown.map { toDTO(from: $0) },

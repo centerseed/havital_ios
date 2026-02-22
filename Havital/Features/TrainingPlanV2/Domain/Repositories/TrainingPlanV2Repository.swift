@@ -5,6 +5,12 @@ import Foundation
 /// Domain Layer - 只定義介面，不涉及實作細節
 protocol TrainingPlanV2Repository {
 
+    // MARK: - Plan Status
+
+    /// 獲取計畫狀態（決定 UI 應顯示什麼）
+    /// - Returns: Plan Status Response
+    func getPlanStatus() async throws -> PlanStatusV2Response
+
     // MARK: - Target Types & Methodologies
 
     /// 獲取支援的目標類型
@@ -54,7 +60,7 @@ protocol TrainingPlanV2Repository {
     ///   - overviewId: 概覽 ID
     ///   - startFromStage: 起始階段（可選）
     /// - Returns: 更新後的計畫概覽
-    func updateOverview(overviewId: String, startFromStage: String?) async throws -> PlanOverviewV2
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2
 
     // MARK: - Weekly Plan
 
@@ -73,9 +79,11 @@ protocol TrainingPlanV2Repository {
     ) async throws -> WeeklyPlanV2
 
     /// 獲取週課表（支援緩存，cache miss 時從 API 讀取）
-    /// - Parameter weekOfTraining: 訓練週次
+    /// - Parameters:
+    ///   - weekOfTraining: 訓練週次
+    ///   - overviewId: 概覽 ID，用於組合 planId（格式: {overviewId}_{week}）
     /// - Returns: 週課表實體
-    func getWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2
+    func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2
 
     /// 透過 planId 從 API 讀取週課表
     /// - Parameter planId: 週課表 ID
@@ -90,9 +98,11 @@ protocol TrainingPlanV2Repository {
     func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2
 
     /// 強制刷新週課表
-    /// - Parameter weekOfTraining: 訓練週次
+    /// - Parameters:
+    ///   - weekOfTraining: 訓練週次
+    ///   - overviewId: 概覽 ID，用於組合 planId
     /// - Returns: 最新的週課表
-    func refreshWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2
+    func refreshWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2
 
     /// 刪除週課表 (Debug)
     /// - Parameter planId: 週課表 ID
@@ -106,6 +116,9 @@ protocol TrainingPlanV2Repository {
     ///   - forceUpdate: 強制更新（可選，預設 false）
     /// - Returns: 週摘要實體
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2
+
+    /// 獲取所有週摘要列表（批次，用於顯示週進度狀態）
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem]
 
     /// 獲取週摘要（支援緩存）
     /// - Parameter weekOfPlan: 訓練週次

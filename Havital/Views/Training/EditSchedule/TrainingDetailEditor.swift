@@ -338,16 +338,16 @@ struct EditableSegment: Identifiable, Equatable {
 struct TrainingEditSheetV2: View {
     let originalDay: MutableTrainingDay
     let onSave: (MutableTrainingDay) -> Void
-    let viewModel: TrainingPlanViewModel
+    let paceHelper: PaceCalculationHelper
 
     @StateObject private var editState: TrainingDayEditState
     @Environment(\.dismiss) private var dismiss
     @State private var showingPaceTable = false
 
-    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, viewModel: TrainingPlanViewModel) {
+    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, paceHelper: PaceCalculationHelper) {
         self.originalDay = day
         self.onSave = onSave
-        self.viewModel = viewModel
+        self.paceHelper = paceHelper
         self._editState = StateObject(wrappedValue: TrainingDayEditState(from: day))
     }
 
@@ -376,7 +376,7 @@ struct TrainingEditSheetV2: View {
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
-                        if let _ = viewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
+                        if let _ = paceHelper.currentVDOT, !paceHelper.calculatedPaces.isEmpty {
                             Button {
                                 showingPaceTable = true
                             } label: {
@@ -392,8 +392,8 @@ struct TrainingEditSheetV2: View {
                 }
             }
             .sheet(isPresented: $showingPaceTable) {
-                if let vdot = viewModel.currentVDOT {
-                    PaceTableView(vdot: vdot, calculatedPaces: viewModel.calculatedPaces)
+                if let vdot = paceHelper.currentVDOT {
+                    PaceTableView(vdot: vdot, calculatedPaces: paceHelper.calculatedPaces)
                 }
             }
         }
@@ -420,26 +420,26 @@ struct TrainingEditSheetV2: View {
     private var editorSection: some View {
         switch editState.type {
         case .easyRun, .easy, .recovery_run, .lsd:
-            EasyRunEditorV2(editState: editState, viewModel: viewModel)
+            EasyRunEditorV2(editState: editState, paceHelper: paceHelper)
         case .tempo, .threshold, .racePace:
             // 節奏/閾值/比賽配速跑 - 需要配速和距離
-            TempoEditorV2(editState: editState, viewModel: viewModel)
+            TempoEditorV2(editState: editState, paceHelper: paceHelper)
         case .norwegian4x4:
             // 挪威4x4 專屬編輯器
-            Norwegian4x4EditorV2(editState: editState, viewModel: viewModel)
+            Norwegian4x4EditorV2(editState: editState, paceHelper: paceHelper)
         case .yasso800:
             // 亞索800 專屬編輯器
-            Yasso800EditorV2(editState: editState, viewModel: viewModel)
+            Yasso800EditorV2(editState: editState, paceHelper: paceHelper)
         case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
             // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇）
-            IntervalEditorV2(editState: editState, viewModel: viewModel)
+            IntervalEditorV2(editState: editState, paceHelper: paceHelper)
         case .combination, .progression, .fartlek, .fastFinish:
             // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
-            CombinationEditorV2(editState: editState, viewModel: viewModel)
+            CombinationEditorV2(editState: editState, paceHelper: paceHelper)
         case .longRun:
-            LongRunEditorV2(editState: editState, viewModel: viewModel)
+            LongRunEditorV2(editState: editState, paceHelper: paceHelper)
         default:
-            SimpleEditorV2(editState: editState, viewModel: viewModel)
+            SimpleEditorV2(editState: editState, paceHelper: paceHelper)
         }
     }
 
@@ -478,7 +478,7 @@ struct TrainingEditSheetV2: View {
 
 struct EasyRunEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -487,10 +487,10 @@ struct EasyRunEditorV2: View {
                 .foregroundColor(.green)
 
             // 建議配速
-            if let suggestedPace = viewModel.getSuggestedPace(for: editState.trainingType) {
+            if let suggestedPace = paceHelper.getSuggestedPace(for: editState.trainingType) {
                 SuggestedPaceViewV2(
                     pace: suggestedPace,
-                    paceRange: viewModel.getPaceRange(for: editState.trainingType),
+                    paceRange: paceHelper.getPaceRange(for: editState.trainingType),
                     onApply: { editState.pace = suggestedPace }
                 )
             }
@@ -513,7 +513,7 @@ struct EasyRunEditorV2: View {
 
 struct TempoEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -522,10 +522,10 @@ struct TempoEditorV2: View {
                 .foregroundColor(.orange)
 
             // 建議配速
-            if let suggestedPace = viewModel.getSuggestedPace(for: editState.trainingType) {
+            if let suggestedPace = paceHelper.getSuggestedPace(for: editState.trainingType) {
                 SuggestedPaceViewV2(
                     pace: suggestedPace,
-                    paceRange: viewModel.getPaceRange(for: editState.trainingType),
+                    paceRange: paceHelper.getPaceRange(for: editState.trainingType),
                     onApply: { editState.pace = suggestedPace }
                 )
             }
@@ -544,7 +544,7 @@ struct TempoEditorV2: View {
         .cornerRadius(12)
         .onAppear {
             // 自動填充建議配速
-            if editState.pace.isEmpty, let suggested = viewModel.getSuggestedPace(for: editState.trainingType) {
+            if editState.pace.isEmpty, let suggested = paceHelper.getSuggestedPace(for: editState.trainingType) {
                 editState.pace = suggested
             }
         }
@@ -555,7 +555,7 @@ struct TempoEditorV2: View {
 
 struct IntervalEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     @State private var selectedTemplate: Int? = nil
 
@@ -594,10 +594,10 @@ struct IntervalEditorV2: View {
             }
 
             // 建議配速
-            if let suggestedPace = viewModel.getSuggestedPace(for: editState.trainingType) {
+            if let suggestedPace = paceHelper.getSuggestedPace(for: editState.trainingType) {
                 SuggestedPaceViewV2(
                     pace: suggestedPace,
-                    paceRange: viewModel.getPaceRange(for: editState.trainingType),
+                    paceRange: paceHelper.getPaceRange(for: editState.trainingType),
                     onApply: { editState.workPace = suggestedPace }
                 )
             }
@@ -657,7 +657,7 @@ struct IntervalEditorV2: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
         .onAppear {
-            if editState.workPace.isEmpty, let suggested = viewModel.getSuggestedPace(for: editState.trainingType) {
+            if editState.workPace.isEmpty, let suggested = paceHelper.getSuggestedPace(for: editState.trainingType) {
                 editState.workPace = suggested
             }
         }
@@ -670,7 +670,7 @@ struct IntervalEditorV2: View {
         editState.workDistance = Double(template.distanceM) / 1000.0
         editState.isRestInPlace = true
 
-        if let suggested = viewModel.getSuggestedPace(for: editState.trainingType) {
+        if let suggested = paceHelper.getSuggestedPace(for: editState.trainingType) {
             editState.workPace = suggested
         }
 
@@ -682,7 +682,7 @@ struct IntervalEditorV2: View {
 
 struct Norwegian4x4EditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -706,7 +706,7 @@ struct Norwegian4x4EditorV2: View {
             .cornerRadius(8)
 
             // 建議配速（使用 92% VO2max）
-            if let vdot = viewModel.currentVDOT {
+            if let vdot = paceHelper.currentVDOT {
                 let suggestedPace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
                 SuggestedPaceViewV2(
                     pace: suggestedPace,
@@ -785,11 +785,11 @@ struct Norwegian4x4EditorV2: View {
                 editState.recoveryTimeMinutes = 3.0
             }
             // 設置 92% VO2max 配速
-            if editState.workPace.isEmpty, let vdot = viewModel.currentVDOT {
+            if editState.workPace.isEmpty, let vdot = paceHelper.currentVDOT {
                 editState.workPace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
             }
             // 設置恢復跑配速
-            if editState.recoveryPace.isEmpty, let vdot = viewModel.currentVDOT {
+            if editState.recoveryPace.isEmpty, let vdot = paceHelper.currentVDOT {
                 editState.recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "7:00"
             }
         }
@@ -800,7 +800,7 @@ struct Norwegian4x4EditorV2: View {
 
 struct Yasso800EditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -820,10 +820,10 @@ struct Yasso800EditorV2: View {
             .cornerRadius(8)
 
             // 建議配速（間歇配速）
-            if let suggestedPace = viewModel.getSuggestedPace(for: "interval") {
+            if let suggestedPace = paceHelper.getSuggestedPace(for: "interval") {
                 SuggestedPaceViewV2(
                     pace: suggestedPace,
-                    paceRange: viewModel.getPaceRange(for: "interval"),
+                    paceRange: paceHelper.getPaceRange(for: "interval"),
                     onApply: { editState.workPace = suggestedPace }
                 )
             }
@@ -901,7 +901,7 @@ struct Yasso800EditorV2: View {
                 editState.recoveryTimeMinutes = 3.0
             }
             // 設置間歇配速
-            if editState.workPace.isEmpty, let suggested = viewModel.getSuggestedPace(for: "interval") {
+            if editState.workPace.isEmpty, let suggested = paceHelper.getSuggestedPace(for: "interval") {
                 editState.workPace = suggested
             }
         }
@@ -984,7 +984,7 @@ struct WorkTimeWheelPicker: View {
 
 struct CombinationEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1004,7 +1004,7 @@ struct CombinationEditorV2: View {
 
             // 新增分段按鈕
             Button {
-                let defaultPace = viewModel.getSuggestedPace(for: "easy") ?? "6:00"
+                let defaultPace = paceHelper.getSuggestedPace(for: "easy") ?? "6:00"
                 editState.addSegment(defaultPace: defaultPace)
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             } label: {
@@ -1100,7 +1100,7 @@ struct SegmentEditorRowV2: View {
 
 struct LongRunEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1124,7 +1124,7 @@ struct LongRunEditorV2: View {
 
 struct SimpleEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject var paceHelper: PaceCalculationHelper
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

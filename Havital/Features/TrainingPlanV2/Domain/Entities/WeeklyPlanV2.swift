@@ -8,7 +8,7 @@ struct WeeklyPlanV2: Codable, Equatable {
 
     // MARK: - V2 新增元數據
 
-    /// 週課表 ID（格式: {overview_id}_week_{week_number}）
+    /// 週課表 ID（格式: {overview_id}_{week_number}）
     let planId: String?
 
     /// 訓練週次（V2 新增）

@@ -184,10 +184,10 @@ class OnboardingCoordinator: ObservableObject {
 
             // 清理 UI 狀態
             if output.wasReonboarding {
-                // Re-onboarding 模式：直接關閉 sheet
-                // ✅ 簡化：直接設置狀態，不需要事件系統
-                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet")
+                // Re-onboarding 模式：關閉 sheet 並通知所有訂閱者刷新資料
+                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
                 AuthenticationViewModel.shared.isReonboardingMode = false
+                CacheEventBus.shared.publish(.onboardingCompleted)
             } else {
                 // 新用戶 onboarding：重置所有狀態並發布事件
                 reset()

@@ -66,6 +66,17 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
     }
 
+    /// V2 支援：從 DayDetail 初始化（使用 V1 兼容層）
+    init(from day: DayDetail) {
+        self.dayIndex = "\(day.dayIndex)"
+        self.dayTarget = day.dayTarget
+        self.reason = day.reason
+        self.tips = day.tips
+        self.trainingType = day.type.rawValue
+        // 使用 DayDetail 的 V1 兼容層 trainingDetails computed property
+        self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
+    }
+
     /// 轉換回 TrainingDay
     func toTrainingDay() -> TrainingDay {
         return TrainingDay(

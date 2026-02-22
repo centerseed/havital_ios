@@ -43,12 +43,6 @@ struct WeekTimelineViewV2: View {
                 }
             )
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.tertiarySystemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
         .sheet(item: $selectedWorkout) { workout in
             NavigationStack {
                 WorkoutDetailViewV2(workout: workout)
@@ -187,8 +181,8 @@ struct TimelineItemViewV2: View {
                         Divider()
 
                         // 訓練目標描述
-                        if let desc = day.primaryDescription, !desc.isEmpty {
-                            Text(desc)
+                        if !day.reason.isEmpty {
+                            Text(day.reason)
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                                 .lineLimit(nil)
@@ -212,7 +206,7 @@ struct TimelineItemViewV2: View {
                                 .padding(.vertical, 4)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("已完成訓練")
+                                Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
                                     .font(AppFont.captionSmall())
                                     .fontWeight(.semibold)
                                     .foregroundColor(.green)
@@ -246,7 +240,7 @@ struct TimelineItemViewV2: View {
                                 }
 
                                 if workouts.count > 2 {
-                                    Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
+                                    Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
                                         .font(AppFont.captionSmall())
                                         .foregroundColor(.blue)
                                 }
@@ -288,7 +282,7 @@ struct TimelineItemViewV2: View {
                         }
 
                         if workouts.count > 2 {
-                            Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
+                            Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
                                 .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
                         }
@@ -427,7 +421,9 @@ private struct PhaseRow: View {
             Text(isWarmup ? "🔥" : "❄️")
                 .font(AppFont.caption())
 
-            Text(isWarmup ? "暖身" : "緩和")
+            Text(isWarmup
+                ? NSLocalizedString("training.warmup", comment: "Warmup")
+                : NSLocalizedString("training.cooldown", comment: "Cooldown"))
                 .font(AppFont.caption())
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
@@ -541,7 +537,7 @@ private struct IntervalBlockView: View {
 
                 Spacer()
 
-                Text("\(interval.repeats) 組")
+                Text(String(format: NSLocalizedString("training.interval.repeats", comment: "Repeats"), interval.repeats))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
@@ -591,24 +587,37 @@ private struct IntervalBlockView: View {
 
     private var runTypeDisplayName: String {
         switch runType.lowercased() {
-        case "interval": return "間歇訓練"
-        case "fartlek": return "法特雷克"
-        case "strides": return "大步跑"
-        case "hill_repeats": return "山坡重複跑"
-        case "cruise_intervals": return "巡航間歇"
-        case "short_interval": return "短間歇"
-        case "long_interval": return "長間歇"
-        case "norwegian_4x4": return "挪威 4×4"
-        case "yasso_800": return "Yasso 800"
-        default: return "間歇訓練"
+        case "interval":
+            return NSLocalizedString("training.interval_type.interval", comment: "Interval")
+        case "fartlek":
+            return NSLocalizedString("training.interval_type.fartlek", comment: "Fartlek")
+        case "strides":
+            return NSLocalizedString("training.interval_type.strides", comment: "Strides")
+        case "hill_repeats":
+            return NSLocalizedString("training.interval_type.hill_repeats", comment: "Hill Repeats")
+        case "cruise_intervals":
+            return NSLocalizedString("training.interval_type.cruise_intervals", comment: "Cruise Intervals")
+        case "short_interval":
+            return NSLocalizedString("training.interval_type.short_interval", comment: "Short Interval")
+        case "long_interval":
+            return NSLocalizedString("training.interval_type.long_interval", comment: "Long Interval")
+        case "norwegian_4x4":
+            return NSLocalizedString("training.interval_type.norwegian_4x4", comment: "Norwegian 4x4")
+        case "yasso_800":
+            return NSLocalizedString("training.interval_type.yasso_800", comment: "Yasso 800")
+        default:
+            return NSLocalizedString("training.interval_type.interval", comment: "Interval")
         }
     }
 
     private var workLabel: String {
         switch runType.lowercased() {
-        case "hill_repeats": return "上坡衝刺"
-        case "strides": return "加速跑"
-        default: return "衝刺"
+        case "hill_repeats":
+            return NSLocalizedString("training.interval.work_label.hill_repeats", comment: "Hill Sprint")
+        case "strides":
+            return NSLocalizedString("training.interval.work_label.strides", comment: "Acceleration")
+        default:
+            return NSLocalizedString("training.interval.work_label.default", comment: "Sprint")
         }
     }
 
@@ -616,7 +625,9 @@ private struct IntervalBlockView: View {
         let hasMovement = interval.recoveryDistanceKm != nil
             || interval.recoveryDistanceM != nil
             || interval.recoveryPace != nil
-        return hasMovement ? "恢復跑" : "休息"
+        return hasMovement
+            ? NSLocalizedString("training.interval.recovery_run", comment: "Recovery Run")
+            : NSLocalizedString("training.interval.rest", comment: "Rest")
     }
 
     private var recoveryColor: Color {
@@ -692,7 +703,7 @@ private struct SegmentsView: View {
                         .frame(width: 3)
 
                     HStack(spacing: 4) {
-                        Text("第\(idx + 1)段")
+                        Text(String(format: NSLocalizedString("training.segment_n", comment: "Segment N"), idx + 1))
                             .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
@@ -755,12 +766,14 @@ private struct StrengthContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                Text("\(activity.durationMinutes) 分鐘")
-                    .font(AppFont.bodySmall())
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                Spacer()
+            if let mins = activity.durationMinutes {
+                HStack(spacing: 4) {
+                    Text("\(mins) 分鐘")
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
             }
 
             if !activity.exercises.isEmpty {
@@ -841,14 +854,9 @@ private struct TrainingDetailsViewV2: View {
                 // 主活動
                 MainActivityView(primary: session.primary, dayType: day.type)
 
-                // 緩和（與主訓練之間有明確視覺斷點）
+                // 緩和
                 if let cooldown = session.cooldown {
-                    VStack(spacing: 0) {
-                        Divider()
-                            .padding(.vertical, 4)
-                        PhaseRow(segment: cooldown, isWarmup: false)
-                    }
-                    .padding(.top, 4)
+                    PhaseRow(segment: cooldown, isWarmup: false)
                 }
 
                 // 補充訓練

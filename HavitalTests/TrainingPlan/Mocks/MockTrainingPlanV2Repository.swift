@@ -6,6 +6,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     // MARK: - Call Tracking
 
+    var getPlanStatusCallCount = 0
     var getTargetTypesCallCount = 0
     var getMethodologiesCallCount = 0
     var createOverviewForRaceCallCount = 0
@@ -15,6 +16,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var updateOverviewCallCount = 0
     var generateWeeklyPlanCallCount = 0
     var getWeeklyPlanCallCount = 0
+    var fetchWeeklyPlanCallCount = 0
+    var updateWeeklyPlanCallCount = 0
     var refreshWeeklyPlanCallCount = 0
     var deleteWeeklyPlanCallCount = 0
     var generateWeeklySummaryCallCount = 0
@@ -25,6 +28,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     // MARK: - Return Values
 
+    var planStatusToReturn: PlanStatusV2Response?
     var targetTypesToReturn: [TargetTypeV2] = []
     var methodologiesToReturn: [MethodologyV2] = []
     var overviewToReturn: PlanOverviewV2?
@@ -35,6 +39,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     // MARK: - Reset
 
     func reset() {
+        getPlanStatusCallCount = 0
         getTargetTypesCallCount = 0
         getMethodologiesCallCount = 0
         createOverviewForRaceCallCount = 0
@@ -44,6 +49,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         updateOverviewCallCount = 0
         generateWeeklyPlanCallCount = 0
         getWeeklyPlanCallCount = 0
+        fetchWeeklyPlanCallCount = 0
+        updateWeeklyPlanCallCount = 0
         refreshWeeklyPlanCallCount = 0
         deleteWeeklyPlanCallCount = 0
         generateWeeklySummaryCallCount = 0
@@ -55,6 +62,15 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     }
 
     // MARK: - Protocol Methods
+
+    func getPlanStatus() async throws -> PlanStatusV2Response {
+        getPlanStatusCallCount += 1
+        if let error = errorToThrow { throw error }
+        guard let status = planStatusToReturn else {
+            throw TrainingPlanV2Error.unknown("No mock plan status set")
+        }
+        return status
+    }
 
     func getTargetTypes() async throws -> [TargetTypeV2] {
         getTargetTypesCallCount += 1
@@ -104,7 +120,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return overview
     }
 
-    func updateOverview(overviewId: String, startFromStage: String?) async throws -> PlanOverviewV2 {
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2 {
         updateOverviewCallCount += 1
         if let error = errorToThrow { throw error }
         guard let overview = overviewToReturn else {
@@ -122,7 +138,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return plan
     }
 
-    func getWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2 {
+    func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         getWeeklyPlanCallCount += 1
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
@@ -131,7 +147,25 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return plan
     }
 
-    func refreshWeeklyPlan(weekOfTraining: Int) async throws -> WeeklyPlanV2 {
+    func fetchWeeklyPlan(planId: String) async throws -> WeeklyPlanV2 {
+        fetchWeeklyPlanCallCount += 1
+        if let error = errorToThrow { throw error }
+        guard let plan = weeklyPlanV2ToReturn else {
+            throw TrainingPlanV2Error.weeklyPlanNotFound(week: 0)
+        }
+        return plan
+    }
+
+    func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2 {
+        updateWeeklyPlanCallCount += 1
+        if let error = errorToThrow { throw error }
+        guard let plan = weeklyPlanV2ToReturn else {
+            throw TrainingPlanV2Error.weeklyPlanNotFound(week: 0)
+        }
+        return plan
+    }
+
+    func refreshWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         refreshWeeklyPlanCallCount += 1
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
@@ -152,6 +186,11 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
             throw TrainingPlanV2Error.weeklySummaryGenerationFailed(week: weekOfPlan, reason: "No mock summary set")
         }
         return summary
+    }
+
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
+        if let error = errorToThrow { throw error }
+        return []
     }
 
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {

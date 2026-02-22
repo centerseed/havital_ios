@@ -157,16 +157,16 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(nextStep, .goalType)
     }
     
-    func testDetermineNextStep_HasHistory_ReturnsRaceSetup() {
-        // Given
+    func testDetermineNextStep_HasHistory_ReturnsGoalType() {
+        // Given: V2 Flow - Always go to Goal Type first
         UserDefaults.standard.set(true, forKey: "onboarding_hasPersonalBest")
         sut.weeklyDistance = 20
-        
+
         // When
         let nextStep = sut.determineNextStepAfterWeeklyDistance()
-        
-        // Then
-        XCTAssertEqual(nextStep, .raceSetup)
+
+        // Then: V2 Flow 總是先進入 Goal Type 選擇
+        XCTAssertEqual(nextStep, .goalType)
     }
     
     // MARK: - Goal Type Tests

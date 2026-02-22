@@ -26,8 +26,10 @@ struct WarmupCooldownView: View {
 
         var label: String {
             switch self {
-            case .warmup: return "暖身"
-            case .cooldown: return "緩和"
+            case .warmup:
+                return NSLocalizedString("training.warmup", comment: "Warmup")
+            case .cooldown:
+                return NSLocalizedString("training.cooldown", comment: "Cooldown")
             }
         }
     }
@@ -113,6 +115,7 @@ struct WarmupCooldownView: View {
             distanceKm: 2.0,
             distanceM: nil,
             durationMinutes: 15,
+            durationSeconds: nil,
             pace: "6:30",
             heartRateRange: HeartRateRangeV2(min: 120, max: 140),
             intensity: "easy",
@@ -129,6 +132,7 @@ struct WarmupCooldownView: View {
             distanceKm: 1.0,
             distanceM: nil,
             durationMinutes: 8,
+            durationSeconds: nil,
             pace: "6:30",
             heartRateRange: nil,
             intensity: nil,
@@ -145,6 +149,7 @@ struct WarmupCooldownView: View {
             distanceKm: nil,
             distanceM: 800,
             durationMinutes: 6,
+            durationSeconds: nil,
             pace: "6:00",
             heartRateRange: nil,
             intensity: "moderate",

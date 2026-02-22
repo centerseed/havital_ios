@@ -180,7 +180,7 @@ private struct V3WarmupCooldown: Decodable {
     let description: String?
 
     func toRunSegment() -> RunSegmentV2 {
-        return RunSegmentV2(distanceKm: distance_km, distanceM: distance_m, durationMinutes: duration_minutes, pace: pace, heartRateRange: nil, intensity: nil, description: description)
+        return RunSegmentV2(distanceKm: distance_km, distanceM: distance_m, durationMinutes: duration_minutes, durationSeconds: nil, pace: pace, heartRateRange: nil, intensity: nil, description: description)
     }
 }
 
