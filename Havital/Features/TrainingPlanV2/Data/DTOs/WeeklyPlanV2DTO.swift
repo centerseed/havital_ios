@@ -100,7 +100,7 @@ struct WeeklyPlanV2DTO: Codable {
         case stageId = "stage_id"
         case methodologyId = "methodology_id"
         case dataVersion = "data_version"
-        case apiVersion = "_api_version"
+        case apiVersion = "api_version"
     }
 }
 

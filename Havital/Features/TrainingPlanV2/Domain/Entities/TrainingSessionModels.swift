@@ -61,6 +61,7 @@ struct RunActivity: Codable, Equatable {
     let runType: String
     let distanceKm: Double?
     let durationMinutes: Int?
+    let durationSeconds: Int?
     let pace: String?
     let heartRateRange: HeartRateRangeV2?
     let interval: IntervalBlock?

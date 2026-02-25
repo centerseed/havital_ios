@@ -79,6 +79,7 @@ struct RunActivityDTO: Codable, Equatable {
     let runType: String
     let distanceKm: Double?
     let durationMinutes: Int?
+    let durationSeconds: Int?
     let pace: String?
     let heartRateRange: HeartRateRangeDTO?
     let interval: IntervalBlockDTO?
@@ -90,6 +91,7 @@ struct RunActivityDTO: Codable, Equatable {
         case runType = "run_type"
         case distanceKm = "distance_km"
         case durationMinutes = "duration_minutes"
+        case durationSeconds = "duration_seconds"
         case pace
         case heartRateRange = "heart_rate_range"
         case interval
