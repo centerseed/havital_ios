@@ -362,10 +362,13 @@ final class OnboardingFeatureViewModel: ObservableObject {
         targetType: TargetTypeV2,
         trainingWeeks: Int?,
         targetId: String?,
-        startFromStage: String? = nil
+        startFromStage: String? = nil,
+        methodologyId: String? = nil
     ) async -> PlanOverviewV2? {
         isLoading = true
         error = nil
+
+        let resolvedMethodologyId = methodologyId ?? selectedMethodology?.id
 
         do {
             let overview: PlanOverviewV2
@@ -380,7 +383,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
                 overview = try await trainingPlanV2Repository.createOverviewForRace(
                     targetId: targetId,
-                    startFromStage: startFromStage
+                    startFromStage: startFromStage,
+                    methodologyId: resolvedMethodologyId
                 )
             } else {
                 // 非賽事模式：需要 trainingWeeks
@@ -394,7 +398,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     targetType: targetType.id,
                     trainingWeeks: trainingWeeks,
                     availableDays: selectedWeekdays.count > 0 ? selectedWeekdays.count : nil,
-                    methodologyId: selectedMethodology?.id,
+                    methodologyId: resolvedMethodologyId,
                     startFromStage: startFromStage
                 )
             }

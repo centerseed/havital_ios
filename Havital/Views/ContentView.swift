@@ -170,6 +170,8 @@ struct ContentView: View {
                     Text(L10n.Tab.performanceData.localized)
                 }
         }
+        .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .alert(L10n.Error.healthPermission.localized, isPresented: $appViewModel.showHealthKitAlert) {
             Button(L10n.Common.settings.localized, role: .none) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {

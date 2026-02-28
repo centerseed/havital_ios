@@ -29,7 +29,7 @@ protocol TrainingPlanV2Repository {
     ///   - targetId: 目標 ID（必填）
     ///   - startFromStage: 起始階段（可選，預設 "base"）
     /// - Returns: 新建立的計畫概覽
-    func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2
 
     /// 創建訓練計畫概覽（非賽事模式）
     /// - Parameters:

@@ -62,6 +62,7 @@ struct TrainingDaysSetupView: View {
                             }
                         }
                         .foregroundColor(.primary)
+                        .accessibilityIdentifier("TrainingDay_\(weekday)")
                     }
                 }
 
@@ -79,6 +80,7 @@ struct TrainingDaysSetupView: View {
                             Text(getWeekdayName(weekday)).tag(weekday)
                         }
                     }
+                    .accessibilityIdentifier("LongRunDay_Picker")
                     .disabled(viewModel.selectedWeekdays.isEmpty)
                     .onAppear {
                         // Prefer Saturday, then Sunday for long run day
@@ -139,6 +141,7 @@ struct TrainingDaysSetupView: View {
                     }
                     .disabled(viewModel.isLoading || !canSavePreferences)
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("TrainingDays_SaveButton")
                 }
             }
             .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))
@@ -169,7 +172,8 @@ struct TrainingDaysSetupView: View {
             Logger.debug("[TrainingDaysSetupView] isV2Flow: \(isV2Flow), availableDays: \(viewModel.selectedWeekdays.count)")
 
             if isV2Flow {
-                // V2 流程：保存訓練日偏好，然後呼叫 POST /v2/plan/overview
+                // V2 流程：只保存訓練日偏好，overview 建立延遲到用戶最終確認時
+                // （避免在這一步就設定 training_version: "v2"，讓用戶有機會返回）
                 let saveSuccess = await viewModel.saveTrainingDaysPreferencesOnly()
                 guard saveSuccess else {
                     Logger.error("[TrainingDaysSetupView] V2: Failed to save training days")
@@ -216,7 +220,8 @@ struct TrainingDaysSetupView: View {
             targetType: targetType,
             trainingWeeks: coordinator.trainingWeeks,
             targetId: coordinator.selectedTargetId,
-            startFromStage: startFromStage
+            startFromStage: startFromStage,
+            methodologyId: coordinator.selectedMethodologyId
         )
 
         if let overview = overview {

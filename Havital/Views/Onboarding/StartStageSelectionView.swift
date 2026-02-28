@@ -96,6 +96,7 @@ struct StartStageSelectionView: View {
                             isRecommended: true,
                             isSelected: selectedStage == recommendation.recommendedStage
                         )
+                        .accessibilityIdentifier("StartStage_\(recommendation.recommendedStage.apiIdentifier)")
                         .contentShape(Rectangle())
                         .onTapGesture {
                             selectedStage = recommendation.recommendedStage
@@ -113,6 +114,7 @@ struct StartStageSelectionView: View {
                                     alternative: alternative,
                                     isSelected: selectedStage == alternative.stage
                                 )
+                                .accessibilityIdentifier("StartStage_\(alternative.stage.apiIdentifier)")
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectedStage = alternative.stage
@@ -188,6 +190,7 @@ struct StartStageSelectionView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                 }
+                .accessibilityIdentifier("StartStage_NextButton")
                 .padding()
                 .background(Color.accentColor)
                 .foregroundColor(.white)

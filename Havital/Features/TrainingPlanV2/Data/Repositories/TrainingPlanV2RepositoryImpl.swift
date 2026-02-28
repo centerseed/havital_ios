@@ -62,12 +62,13 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     // MARK: - Plan Overview
 
-    func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2 {
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2 {
         Logger.debug("[TrainingPlanV2Repo] Creating overview for race: \(targetId)")
 
         let dto = try await remoteDataSource.createOverviewForRace(
             targetId: targetId,
-            startFromStage: startFromStage
+            startFromStage: startFromStage,
+            methodologyId: methodologyId
         )
 
         let entity = PlanOverviewV2Mapper.toEntity(from: dto)

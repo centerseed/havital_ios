@@ -185,6 +185,21 @@ final class AuthenticationViewModel: ObservableObject {
             // Close the re-onboarding sheet
             self.isReonboardingMode = false
         }
+
+        // ✅ Subscribe to userLogout event (BUG-01 fix)
+        // UserProfileFeatureViewModel publishes .userLogout; we respond by clearing auth state.
+        // Required for Demo mode where Firebase Auth state listener doesn't fire on signOut.
+        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[AuthViewModel] Received userLogout event, clearing auth state")
+
+            await MainActor.run {
+                self.isAuthenticated = false
+                self.currentUser = nil
+                self.hasCompletedOnboarding = false
+            }
+        }
     }
 
     // MARK: - User Data Management

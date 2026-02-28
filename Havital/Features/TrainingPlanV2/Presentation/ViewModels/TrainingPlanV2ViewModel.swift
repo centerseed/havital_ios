@@ -427,8 +427,10 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
 
             await MainActor.run {
                 self.isLoadingAnimation = false
+                self.currentWeek = selectedWeek
                 self.weeklyPlan = plan
                 self.planStatus = .ready(plan)
+                self.successToast = "第 \(selectedWeek) 週課表已產生"
             }
 
             // 載入本週訓練記錄
@@ -500,6 +502,12 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
 
             // 重新載入 Plan Status（更新狀態）
             await loadPlanStatus()
+
+            // Fix BUG-05: loadPlanStatus 可能用後端值覆蓋 currentWeek，重設 selectedWeek 確保顯示新產生的週
+            await MainActor.run {
+                self.selectedWeek = weekNumber
+            }
+
             // 載入本週訓練記錄
             await loadWorkoutsForCurrentWeek()
 

@@ -208,6 +208,7 @@ struct TrainingWeeksSetupView: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityIdentifier("TrainingWeeks_\(weeks)")
     }
 
     // MARK: - Custom Picker Section
@@ -270,6 +271,7 @@ struct TrainingWeeksSetupView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
+            .accessibilityIdentifier("TrainingWeeks_NextButton")
             .padding(.horizontal)
             .padding(.vertical, 16)
         }

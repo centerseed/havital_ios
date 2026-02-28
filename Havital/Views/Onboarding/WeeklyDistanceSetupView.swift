@@ -54,6 +54,7 @@ struct WeeklyDistanceSetupView: View {
                         in: minimumWeeklyDistance...sliderMaxDistance,
                         step: 1
                     )
+                    .accessibilityIdentifier("WeeklyDistance_Slider")
 
                     HStack {
                         Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), minimumWeeklyDistance))
@@ -107,6 +108,7 @@ struct WeeklyDistanceSetupView: View {
                         Text(NSLocalizedString("onboarding.next_step", comment: "Next Step"))
                     }
                     .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("WeeklyDistance_ContinueButton")
                 }
             }
         }

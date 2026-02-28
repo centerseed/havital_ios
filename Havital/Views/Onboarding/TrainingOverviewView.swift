@@ -187,6 +187,7 @@ struct TrainingOverviewView: View {
                 Text("\(overview.totalWeeks) \(NSLocalizedString("common.weeks", comment: "weeks"))")
                     .foregroundColor(.secondary)
             }
+            .accessibilityIdentifier("TrainingOverview_WeeksLabel")
 
             // Target Type / Race Date
             if overview.isRaceRunTarget, let raceDate = overview.raceDateValue {
@@ -223,6 +224,7 @@ struct TrainingOverviewView: View {
                     Text(methodology.name)
                         .foregroundColor(.secondary)
                 }
+                .accessibilityIdentifier("TrainingOverview_MethodologyLabel")
             }
         }
         .padding()
@@ -572,6 +574,7 @@ struct TrainingOverviewView: View {
                     .cornerRadius(12)
             }
             .disabled(coordinator.isCompleting || !hasOverview)
+            .accessibilityIdentifier("TrainingOverview_GenerateButton")
             .padding(.horizontal)
             .padding(.bottom, 20)
             .background(Color(.systemBackground))

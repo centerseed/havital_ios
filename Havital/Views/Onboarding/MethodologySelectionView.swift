@@ -66,6 +66,7 @@ struct MethodologySelectionView: View {
                                 ) {
                                     viewModel.selectedMethodology = methodology
                                 }
+                                .accessibilityIdentifier("Methodology_\(methodology.id)")
                             }
                         }
                         .padding(.horizontal)
@@ -88,6 +89,7 @@ struct MethodologySelectionView: View {
                         .cornerRadius(12)
                 }
                 .disabled(viewModel.selectedMethodology == nil)
+                .accessibilityIdentifier("Methodology_NextButton")
                 .padding(.horizontal)
                 .padding(.bottom)
             }

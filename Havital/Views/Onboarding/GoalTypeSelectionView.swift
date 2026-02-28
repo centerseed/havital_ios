@@ -73,6 +73,7 @@ struct GoalTypeSelectionView: View {
                             ) {
                                 viewModel.selectedGoalType = .v2(targetType)
                             }
+                            .accessibilityIdentifier("GoalType_\(targetType.id)")
                             .padding(.horizontal)
                         }
                     } else {
@@ -126,6 +127,7 @@ struct GoalTypeSelectionView: View {
                     }
                 }
                 .disabled(viewModel.selectedGoalType == nil || viewModel.isLoading)
+                .accessibilityIdentifier("GoalType_NextButton")
                 .padding()
                 .background(viewModel.selectedGoalType == nil ? Color.gray : Color.accentColor)
                 .foregroundColor(.white)

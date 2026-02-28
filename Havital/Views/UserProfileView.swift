@@ -713,7 +713,7 @@ struct UserProfileView: View {
                     
                     Spacer()
                     
-                    Text("\(Int(zone.range.lowerBound))-\(Int(zone.range.upperBound))")
+                    Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded()))")
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }

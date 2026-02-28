@@ -29,6 +29,7 @@ struct PersonalBestView: View {
                     footer: Text(NSLocalizedString("onboarding.personal_best_description", comment: "Personal Best Description"))
                 ) {
                     Toggle(NSLocalizedString("onboarding.has_personal_best", comment: "Has Personal Best"), isOn: $viewModel.hasPersonalBest)
+                    .accessibilityIdentifier("PersonalBest_HasPBToggle")
 
                     // Show quick select list if user has existing PBs
                     if viewModel.hasPersonalBest && !viewModel.availablePersonalBests.isEmpty {
@@ -198,6 +199,7 @@ struct PersonalBestView: View {
                     }
                 }
                 .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && totalTimeInSeconds == 0))
+                .accessibilityIdentifier("PersonalBest_ContinueButton")
             }
         }
         .task {

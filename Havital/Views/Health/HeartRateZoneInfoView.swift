@@ -343,6 +343,7 @@ struct HeartRateZoneInfoView: View {
                         }
                     }
                     .disabled(isSaving)
+                    .accessibilityIdentifier("HeartRateZone_ContinueButton")
                 }
             }
         } else {

@@ -27,6 +27,9 @@ struct TrainingPlanV2View: View {
 
     var body: some View {
         NavigationStack {
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
                     switch viewModel.planStatus {
@@ -91,7 +94,6 @@ struct TrainingPlanV2View: View {
                 }
                 .padding(.horizontal)
             }
-            .background(Color(UIColor.systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
                 if viewModel.selectedWeek != viewModel.currentWeek {
                     Button {
@@ -117,6 +119,8 @@ struct TrainingPlanV2View: View {
             .refreshable {
                 await viewModel.refreshWeeklyPlan()
             }
+            .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -279,6 +283,7 @@ struct TrainingPlanV2View: View {
                     }
                 }
             }
+        } // ZStack
         }
         .sheet(isPresented: $showWeekSelector) {
             WeekSelectorSheetV2(viewModel: viewModel, isPresented: $showWeekSelector)

@@ -13,10 +13,12 @@ import Foundation
 struct CreateOverviewForRaceRequest: Codable {
     let targetId: String
     let startFromStage: String?
+    let methodologyId: String?
 
     enum CodingKeys: String, CodingKey {
         case targetId = "target_id"
         case startFromStage = "start_from_stage"
+        case methodologyId = "methodology_id"
     }
 }
 

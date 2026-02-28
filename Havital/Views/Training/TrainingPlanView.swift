@@ -199,6 +199,8 @@ struct TrainingPlanView: View {
                     await viewModel.refreshWeeklyPlan(isManualRefresh: true)
                 }.value
             }
+            .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .foregroundColor(.primary)

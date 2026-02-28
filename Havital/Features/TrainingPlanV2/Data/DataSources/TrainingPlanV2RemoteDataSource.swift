@@ -10,7 +10,7 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
     func getPlanStatus() async throws -> PlanStatusV2Response
 
     // Plan Overview
-    func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2DTO
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO
     func createOverviewForNonRace(targetType: String, trainingWeeks: Int, availableDays: Int?, methodologyId: String?, startFromStage: String?) async throws -> PlanOverviewV2DTO
     func getOverview() async throws -> PlanOverviewV2DTO
     func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO
@@ -113,12 +113,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     ///   - targetId: 目標 ID
     ///   - startFromStage: 起始階段（可選）
     /// - Returns: Plan Overview DTO
-    func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2DTO {
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Creating overview for race: \(targetId)")
 
         let request = CreateOverviewForRaceRequest(
             targetId: targetId,
-            startFromStage: startFromStage
+            startFromStage: startFromStage,
+            methodologyId: methodologyId
         )
 
         let overview = try await apiHelper.post(

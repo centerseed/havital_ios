@@ -508,6 +508,10 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         try await authService.signOut()
         await userRepository.clearCache()
 
+        // Publish userLogout event so AuthenticationViewModel updates isAuthenticated
+        // This is required for Demo mode where Firebase listener doesn't fire on signOut
+        CacheEventBus.shared.publish(.userLogout)
+
         // Clear state
         profileState = .loading
         preferencesState = .loading

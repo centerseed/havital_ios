@@ -162,7 +162,7 @@ final class CompleteOnboardingUseCase {
         Logger.debug("[CompleteOnboardingUseCase] V2 Overview already created in TrainingDaysSetupView, generating first week plan...")
 
         // Generate first week's plan
-        let weeklyPlan = try await createFirstWeekPlanV2()
+        let weeklyPlan = try await createFirstWeekPlanV2(methodologyId: input.methodologyId)
         Logger.debug("[CompleteOnboardingUseCase] V2 weekly plan created: \(weeklyPlan.id)")
 
         return Output(
@@ -211,7 +211,8 @@ final class CompleteOnboardingUseCase {
                 Logger.debug("[CompleteOnboardingUseCase] Creating race_run overview with targetId: \(targetId)")
                 return try await trainingPlanV2Repository.createOverviewForRace(
                     targetId: targetId,
-                    startFromStage: input.startFromStage
+                    startFromStage: input.startFromStage,
+                    methodologyId: input.methodologyId
                 )
             } else {
                 // Non-race mode: beginner or maintenance
@@ -235,7 +236,7 @@ final class CompleteOnboardingUseCase {
     }
 
     /// Create the first week's training plan (V2)
-    private func createFirstWeekPlanV2() async throws -> WeeklyPlanV2 {
+    private func createFirstWeekPlanV2(methodologyId: String?) async throws -> WeeklyPlanV2 {
         Logger.debug("[CompleteOnboardingUseCase] Creating V2 first week plan...")
 
         do {
@@ -244,7 +245,7 @@ final class CompleteOnboardingUseCase {
                 weekOfTraining: 1,
                 forceGenerate: false,
                 promptVersion: nil,
-                methodology: nil // Use methodology from overview
+                methodology: methodologyId
             )
 
             Logger.debug("[CompleteOnboardingUseCase] V2 First week plan created: \(weeklyPlan.id)")

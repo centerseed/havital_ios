@@ -49,6 +49,7 @@ struct RaceDistanceTimeEditorSheet: View {
                             }
                         }
                         .pickerStyle(.inline)
+                        .accessibilityIdentifier("RaceSetup_DistancePicker")
                     }
 
                     // 目標完賽時間
@@ -123,6 +124,7 @@ struct RaceDistanceTimeEditorSheet: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("RaceSetup_DoneButton")
                 }
             }
         }

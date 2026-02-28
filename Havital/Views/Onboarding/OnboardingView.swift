@@ -411,6 +411,7 @@ struct OnboardingView: View {
                     }
                 }
                 .disabled(viewModel.isLoading)
+                .accessibilityIdentifier("RaceSetup_SaveButton")
                 .padding()
                 .background(Color.accentColor)
                 .foregroundColor(.white)
