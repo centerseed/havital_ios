@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "xcodebuildmcp": {
+      "command": "/Users/wubaizong/bin/xcodebuildmcp",
+      "args": []
+    },
+    "ios-simulator": {
+      "command": "npx",
+      "args": ["-y", "ios-simulator-mcp"]
+    }
+  }
+}
