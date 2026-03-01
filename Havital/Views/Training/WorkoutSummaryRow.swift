@@ -33,7 +33,7 @@ struct WorkoutSummaryRow: View {
                 
                 Image(systemName: workoutIconName)
                     .foregroundColor(.blue)
-                    .font(.system(size: 16))
+                    .font(AppFont.body())
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -41,26 +41,26 @@ struct WorkoutSummaryRow: View {
                 if workout.workoutActivityType == .running {
                     if isLoadingVDOT {
                         Text(L10n.Performance.VDOT.calculatingVdot.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.white)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else if let vdot = dynamicVDOT {
                         Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：\(String(format: "%.1f", vdot))")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.primary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
@@ -68,25 +68,25 @@ struct WorkoutSummaryRow: View {
                 
                 // 配速、距離和平均心率
                 HStack(spacing: 12) {
-                    if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                    if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                         HStack(spacing: 2) {
                             Image(systemName: "ruler")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
-                            Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
-                                .font(.caption)
+                            Text("\(viewModel.formatDistance(distance/1000, unit: L10n.Unit.km.localized))")
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
                     
-                    if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                    if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                         let paceInSeconds = workout.duration / distance * 1000
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.green)
-                            Text("\(viewModel.formatPace(paceInSeconds))")
-                                .font(.caption)
+                            Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
@@ -94,15 +94,15 @@ struct WorkoutSummaryRow: View {
                     // 新增：顯示平均心率
                     if isLoadingHeartRate {
                         Text(L10n.WorkoutSummaryRow.calculatingHeartRate.localized)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.gray)
                     } else if let avgHR = averageHeartRate {
                         HStack(spacing: 2) {
                             Image(systemName: "heart.fill")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.red)
                             Text("\(Int(avgHR.rounded()))")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
@@ -110,10 +110,10 @@ struct WorkoutSummaryRow: View {
                     // 訓練時長
                     HStack(spacing: 2) {
                         Image(systemName: "fitness.timer.fill")
-                            .font(.system(size: 10))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.gray)
                         Text(WorkoutUtils.formatDurationSimple(workout.duration))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.gray)
                     }
                    
@@ -173,25 +173,25 @@ struct CollapsedWorkoutSummary: View {
                 if let workout = workouts.first {
                     // 配速、距離和時長
                     HStack(spacing: 12) {
-                        if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                        if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                             HStack(spacing: 2) {
                                 Image(systemName: "ruler")
-                                    .font(.system(size: 10))
+                                    .font(AppFont.captionSmall())
                                     .foregroundColor(.blue)
                                 Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
                         
-                        if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                        if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                             let paceInSeconds = workout.duration / distance * 1000
                             HStack(spacing: 2) {
                                 Image(systemName: "speedometer")
-                                    .font(.system(size: 10))
+                                    .font(AppFont.captionSmall())
                                     .foregroundColor(.green)
-                                Text("\(viewModel.formatPace(paceInSeconds))")
-                                    .font(.caption)
+                                Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                                    .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
@@ -199,10 +199,10 @@ struct CollapsedWorkoutSummary: View {
                         // 訓練時長 (同 WorkoutSummaryRow)
                         HStack(spacing: 2) {
                             Image(systemName: "fitness.timer.fill")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.gray)
                             Text(WorkoutUtils.formatDurationSimple(workout.duration))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
@@ -270,7 +270,7 @@ struct WorkoutV2SummaryRow: View {
                 
                 Image(systemName: workoutIconName)
                     .foregroundColor(.blue)
-                    .font(.system(size: 16))
+                    .font(AppFont.body())
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -278,20 +278,20 @@ struct WorkoutV2SummaryRow: View {
                 if workout.activityType == "running" {
                     if let vdot = workout.dynamicVdot {
                         Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：\(String(format: "%.1f", vdot))")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     Text("\(L10n.Performance.VDOT.dynamicVdot.localized)：--")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.primary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
@@ -302,10 +302,10 @@ struct WorkoutV2SummaryRow: View {
                     if let distance = workout.distance {
                         HStack(spacing: 2) {
                             Image(systemName: "ruler")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
                             Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
@@ -314,10 +314,10 @@ struct WorkoutV2SummaryRow: View {
                         let paceInSeconds = workout.duration / distance * 1000
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.green)
-                            Text("\(viewModel.formatPace(paceInSeconds))")
-                                .font(.caption)
+                            Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
@@ -326,10 +326,10 @@ struct WorkoutV2SummaryRow: View {
                     if shouldShowHeartRate, let avgHR = workout.basicMetrics?.avgHeartRateBpm {
                         HStack(spacing: 2) {
                             Image(systemName: "heart.fill")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.red)
                             Text("\(avgHR)")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
@@ -337,10 +337,10 @@ struct WorkoutV2SummaryRow: View {
                     // 訓練時長
                     HStack(spacing: 2) {
                         Image(systemName: "fitness.timer.fill")
-                            .font(.system(size: 10))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.gray)
                         Text(WorkoutUtils.formatDurationSimple(workout.duration))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.gray)
                     }
                    
@@ -381,10 +381,10 @@ struct CollapsedWorkoutV2Summary: View {
                         if let distance = workout.distance {
                             HStack(spacing: 2) {
                                 Image(systemName: "ruler")
-                                    .font(.system(size: 10))
+                                    .font(AppFont.captionSmall())
                                     .foregroundColor(.blue)
                                 Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
@@ -393,10 +393,10 @@ struct CollapsedWorkoutV2Summary: View {
                             let paceInSeconds = workout.duration / distance * 1000
                             HStack(spacing: 2) {
                                 Image(systemName: "speedometer")
-                                    .font(.system(size: 10))
+                                    .font(AppFont.captionSmall())
                                     .foregroundColor(.green)
-                                Text("\(viewModel.formatPace(paceInSeconds))")
-                                    .font(.caption)
+                                Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                                    .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
@@ -404,10 +404,10 @@ struct CollapsedWorkoutV2Summary: View {
                         // 訓練時長
                         HStack(spacing: 2) {
                             Image(systemName: "fitness.timer.fill")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.gray)
                             Text(WorkoutUtils.formatDurationSimple(workout.duration))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }

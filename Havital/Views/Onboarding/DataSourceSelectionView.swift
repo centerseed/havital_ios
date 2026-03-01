@@ -5,113 +5,104 @@ struct DataSourceSelectionView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
-    
+
     @State private var selectedDataSource: DataSourceType?
     @State private var isProcessing = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToNextStep = false
     @State private var showGarminAlreadyBoundAlert = false
     @State private var showStravaAlreadyBoundAlert = false
-    
+
     var body: some View {
-        NavigationView {
-            ZStack {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // 標題區塊
-                        VStack(spacing: 16) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 80, height: 80)
-                                .foregroundColor(.accentColor)
-                            
-                            Text(L10n.Onboarding.chooseDataSource.localized)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .multilineTextAlignment(.center)
-                            
-                            Text(L10n.Onboarding.selectPlatformDescription.localized)
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.top, 20)
+        ZStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // 標題區塊
+                    VStack(spacing: 16) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .foregroundColor(.accentColor)
                         
-                        // 數據源選項
-                        VStack(spacing: 16) {
-                            // Apple Health 選項
-                            dataSourceCard(
-                                type: .appleHealth,
-                                icon: "heart.fill",
-                                title: "Apple Health",
-                                subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
-                                description: L10n.Onboarding.appleHealthDescription.localized
-                            )
-
-                            // Garmin 選項（總是顯示）
-                            dataSourceCard(
-                                type: .garmin,
-                                icon: "clock.arrow.circlepath",
-                                title: "Garmin Connect™",
-                                subtitle: L10n.Onboarding.garminSubtitle.localized,
-                                description: L10n.Onboarding.garminDescription.localized
-                            )
-
-                            // Strava 選項
-                            dataSourceCard(
-                                type: .strava,
-                                icon: "figure.run",
-                                title: "Strava",
-                                subtitle: L10n.Onboarding.stravaSubtitle.localized,
-                                description: L10n.Onboarding.stravaDescription.localized
-                            )
-                        }
-                        .padding(.horizontal)
+                        Text(L10n.Onboarding.chooseDataSource.localized)
+                            .font(AppFont.title2())
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
                         
-                        Spacer()
-                        
-                        // 繼續按鈕
-                        Button(action: {
-                            handleDataSourceSelection()
-                        }) {
-                            HStack {
-                                if isProcessing {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .scaleEffect(0.8)
-                                }
-                                Text(isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized)
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
-                            .cornerRadius(10)
-                        }
-                        .disabled(selectedDataSource == nil || isProcessing)
-                        .padding(.horizontal, 40)
-                        .padding(.bottom, 30)
+                        Text(L10n.Onboarding.selectPlatformDescription.localized)
+                            .font(AppFont.body())
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .padding()
+                    .padding(.top, 20)
+                    
+                    // 數據源選項
+                    VStack(spacing: 16) {
+                        // Apple Health 選項
+                        dataSourceCard(
+                            type: .appleHealth,
+                            icon: "heart.fill",
+                            title: "Apple Health",
+                            subtitle: L10n.Onboarding.appleHealthSubtitle.localized,
+                            description: L10n.Onboarding.appleHealthDescription.localized
+                        )
+
+                        // Garmin 選項
+                        dataSourceCard(
+                            type: .garmin,
+                            icon: "clock.arrow.circlepath",
+                            title: "Garmin Connect™",
+                            subtitle: L10n.Onboarding.garminSubtitle.localized,
+                            description: L10n.Onboarding.garminDescription.localized
+                        )
+
+                        // Strava 選項
+                        dataSourceCard(
+                            type: .strava,
+                            icon: "figure.run",
+                            title: "Strava",
+                            subtitle: L10n.Onboarding.stravaSubtitle.localized,
+                            description: L10n.Onboarding.stravaDescription.localized
+                        )
+                    }
+                    .padding(.horizontal)
+
+                    Spacer()
+
+                    // 繼續按鈕
+                    Button(action: {
+                        handleDataSourceSelection()
+                    }) {
+                        HStack {
+                            if isProcessing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            }
+                            Text(isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized)
+                                .font(AppFont.headline())
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(selectedDataSource != nil ? Color.accentColor : Color.gray)
+                        .cornerRadius(10)
+                    }
+                    .accessibilityIdentifier("OnboardingContinueButton")
+                    .disabled(selectedDataSource == nil || isProcessing)
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 30)
                 }
-                
-                // 隱藏的 NavigationLink - 導航到心率設定
-                NavigationLink(
-                    destination: HeartRateZoneInfoView(mode: .onboarding(targetDistance: 0))
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $navigateToNextStep
-                ) {
-                    EmptyView()
-                }
+                .padding()
             }
-            .navigationBarHidden(true)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .navigationBarHidden(true)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .alert(L10n.Onboarding.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
             Button(L10n.Onboarding.iUnderstand.localized, role: .cancel) {
                 garminManager.garminAlreadyBoundMessage = nil
@@ -137,9 +128,6 @@ struct DataSourceSelectionView: View {
         } message: {
             Text(errorMessage)
         }
-        .onAppear {
-            // 等待用戶選擇數據源
-        }
     }
     
     @ViewBuilder
@@ -164,17 +152,17 @@ struct DataSourceSelectionView: View {
                             .frame(width: 30)
                     } else {
                         Image(systemName: icon)
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .foregroundColor(selectedDataSource == type ? .accentColor : .secondary)
                             .frame(width: 30)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.primary)
                         Text(subtitle)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                     
@@ -184,16 +172,16 @@ struct DataSourceSelectionView: View {
                     if selectedDataSource == type {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.accentColor)
-                            .font(.title2)
+                            .font(AppFont.title2())
                     } else {
                         Image(systemName: "circle")
                             .foregroundColor(.secondary)
-                            .font(.title2)
+                            .font(AppFont.title2())
                     }
                 }
                 
                 Text(description)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
             }
@@ -201,12 +189,14 @@ struct DataSourceSelectionView: View {
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(selectedDataSource == type ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(selectedDataSource == type ? Color.accentColor : Color.clear, lineWidth: 2)
-                    )
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selectedDataSource == type ? Color.accentColor : Color(.systemGray3), lineWidth: selectedDataSource == type ? 2.5 : 1.5)
             )
         }
+        .accessibilityIdentifier("DataSourceOption_\(type)")
         .buttonStyle(PlainButtonStyle())
     }
     
@@ -231,7 +221,7 @@ struct DataSourceSelectionView: View {
                 
                 await MainActor.run {
                     isProcessing = false
-                    navigateToNextStep = true
+                    coordinator.navigate(to: .heartRateZone)
                 }
                 
             } catch {
@@ -250,16 +240,13 @@ struct DataSourceSelectionView: View {
             "action": "appleHealthSelection",
             "step": "start"
         ])
-        
+
         // 請求 HealthKit 權限
         try await healthKitManager.requestAuthorization()
-        
-        // 設置數據源偏好
-        userPreferenceManager.dataSourcePreference = .appleHealth
-        
-        // 同步到後端
-        try await UserService.shared.updateDataSource(DataSourceType.appleHealth.rawValue)
-        
+
+        // ✅ Clean Architecture: 使用 ViewModel 更新並同步數據源
+        try await viewModel.updateAndSyncDataSource(.appleHealth)
+
         Logger.firebase("Apple Health 權限請求成功", level: .info, labels: [
             "module": "DataSourceSelectionView",
             "action": "appleHealthSelection",
@@ -274,8 +261,9 @@ struct DataSourceSelectionView: View {
             "step": "start"
         ])
 
-        // 設置數據源偏好為 Garmin（僅本地設定，不同步到後端）
-        userPreferenceManager.dataSourcePreference = .garmin
+        // ✅ Clean Architecture: 設置數據源偏好為 Garmin（僅本地設定）
+        // OAuth 流程完成後會自動同步到後端
+        await viewModel.updateDataSource(.garmin)
 
         // 開始 Garmin OAuth 流程（不等待完成）
         await garminManager.startConnection()
@@ -289,7 +277,7 @@ struct DataSourceSelectionView: View {
         // 不等待 OAuth 完成，直接繼續到下一步
         // OAuth 流程會在後台進行，用戶可以稍後在設置中完成連接
     }
-    
+
     private func handleStravaSelection() async {
         Logger.firebase("開始 Strava OAuth 流程", level: .info, labels: [
             "module": "DataSourceSelectionView",
@@ -297,8 +285,9 @@ struct DataSourceSelectionView: View {
             "step": "start"
         ])
 
-        // 設置數據源偏好為 Strava（僅本地設定，不同步到後端）
-        userPreferenceManager.dataSourcePreference = .strava
+        // ✅ Clean Architecture: 設置數據源偏好為 Strava（僅本地設定）
+        // OAuth 流程完成後會自動同步到後端
+        await viewModel.updateDataSource(.strava)
 
         // 開始 Strava OAuth 流程（不等待完成）
         await stravaManager.startConnection()
@@ -318,4 +307,4 @@ struct DataSourceSelectionView_Previews: PreviewProvider {
     static var previews: some View {
         DataSourceSelectionView()
     }
-} 
+}

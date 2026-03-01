@@ -22,87 +22,58 @@ struct TopInfoOverlay: View {
                 VStack(spacing: 0) {
                     // 主標題區域（如果標題為空字串則不顯示）
                     if !data.achievementTitle.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "figure.run")
-                                .font(.system(size: 42, weight: .bold))
-                                .foregroundColor(.white)
-
-                            Text(data.achievementTitle)
-                                .font(.system(size: 48, weight: .semibold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                                .onTapGesture {
-                                    onEditTitle?()
-                                }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 42)
-                        .padding(.vertical, 20)
+                        Text(data.achievementTitle)
+                            .font(AppFont.title2())
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 42)
+                            .padding(.vertical, 20)
+                            .onTapGesture {
+                                onEditTitle?()
+                            }
                     }
 
-                    // 核心數據區域（水平排列，簡潔樣式）
-                    HStack(spacing: 24) {
+                    // 核心數據區域（水平排列，參考 Garmin 設計）
+                    HStack(alignment: .top, spacing: 24) {
                         // 距離
                         if let distance = data.workout.distanceMeters {
-                            HStack(spacing: 9) {
-                                Image(systemName: "figure.run")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.9))
-                                Text(String(format: "%.1f km", distance / 1000))
-                                    .font(.system(size: 42))
+                            VStack(spacing: 6) {
+                                Text(String(format: "%.2f", distance / 1000))
+                                    .font(AppFont.dataLarge())
                                     .foregroundColor(.white)
+                                Text("距離 (km)")
+                                    .font(AppFont.dataSmall())
+                                    .foregroundColor(.white.opacity(0.8))
                             }
+                        }
+
+                        // 總計時間
+                        VStack(spacing: 6) {
+                            Text(data.workout.formattedDuration)
+                                .font(AppFont.dataLarge())
+                                .foregroundColor(.white)
+                            Text("總計時間")
+                                .font(AppFont.dataSmall())
+                                .foregroundColor(.white.opacity(0.8))
                         }
 
                         // 配速（優先使用 avgPaceSPerKm，否則從 avgSpeedMPerS 計算）
                         if let paceText = getPaceText() {
-                            HStack(spacing: 9) {
-                                Image(systemName: "speedometer")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.9))
+                            VStack(spacing: 6) {
                                 Text(paceText)
-                                    .font(.system(size: 42))
+                                    .font(AppFont.dataLarge())
                                     .foregroundColor(.white)
-                            }
-                        }
-
-                        // 平均心率
-                        if let avgHR = data.workout.basicMetrics?.avgHeartRateBpm {
-                            HStack(spacing: 9) {
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.9))
-                                Text("\(Int(avgHR))")
-                                    .font(.system(size: 42))
-                                    .foregroundColor(.white)
+                                Text("平均配速")
+                                    .font(AppFont.dataSmall())
+                                    .foregroundColor(.white.opacity(0.8))
                             }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 42)
-                    .padding(.vertical, 18)
-
-                    // AI 評語區域（如果簡評為空字串則不顯示）
-                    if !data.encouragementText.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "bubble.left.fill")
-                                .font(.system(size: 36))
-                                .foregroundColor(.white.opacity(0.9))
-
-                            Text(data.encouragementText)
-                                .font(.system(size: 42, weight: .regular))
-                                .foregroundColor(.white.opacity(0.95))
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.8)
-                                .onTapGesture {
-                                    onEditEncouragement?()
-                                }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 42)
-                        .padding(.vertical, 20)
-                    }
+                    .padding(.vertical, 24)
                 }
 
                 Spacer()
@@ -169,7 +140,7 @@ struct TopInfoOverlay: View {
         case "tempo": return "節奏跑"
         case "threshold": return "乳酸閾值跑"
         case "interval": return "間歇訓練"
-        case "fartlek": return "法特萊克"
+        case "fartlek": return "法特雷克"
         case "hill_training": return "爬坡訓練"
         case "race": return "比賽"
         default: return type

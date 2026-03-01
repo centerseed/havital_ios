@@ -3,13 +3,12 @@ import SwiftUI
 /// 簡化的心率區間編輯視圖，使用心率儲備計算法
 struct HRRHeartRateZoneEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: String = ""
     @State private var restingHeartRate: String = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    
-    private let userPreferenceManager = UserPreferenceManager.shared
     
     var body: some View {
         NavigationView {
@@ -26,10 +25,10 @@ struct HRRHeartRateZoneEditorView: View {
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                                    .font(.headline)
+                                    .font(AppFont.headline())
 
                                 Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -45,12 +44,12 @@ struct HRRHeartRateZoneEditorView: View {
 
                                 Text("bpm")
                                     .foregroundColor(.secondary)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                             }
                         }
                     }
                     .onAppear {
-                        if let maxHR = userPreferenceManager.maxHeartRate, maxHR > 0 {
+                        if let maxHR = viewModel.maxHeartRate, maxHR > 0 {
                             maxHeartRate = "\(maxHR)"
                         } else {
                             maxHeartRate = "190"
@@ -63,10 +62,10 @@ struct HRRHeartRateZoneEditorView: View {
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
-                                    .font(.headline)
+                                    .font(AppFont.headline())
 
                                 Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -82,12 +81,12 @@ struct HRRHeartRateZoneEditorView: View {
 
                                 Text("bpm")
                                     .foregroundColor(.secondary)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                             }
                         }
                     }
                     .onAppear {
-                        if let restingHR = userPreferenceManager.restingHeartRate, restingHR > 0 {
+                        if let restingHR = viewModel.restingHeartRate, restingHR > 0 {
                             restingHeartRate = "\(restingHR)"
                         } else {
                             restingHeartRate = "60"
@@ -99,17 +98,18 @@ struct HRRHeartRateZoneEditorView: View {
                 if let maxHR = Int(maxHeartRate), let restingHR = Int(restingHeartRate),
                     maxHR > restingHR, maxHR > 0, restingHR > 0 {
                     Section(header: Text(NSLocalizedString("hr_zone.preview", comment: "Heart Rate Zone Preview"))) {
-                        let zones = HeartRateZonesManager.shared.calculateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+                        // Use HeartRateZone entity directly instead of deprecated HeartRateZonesManager
+                        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
                         
                         ForEach(zones, id: \.zone) { zone in
                             HStack {
                                 Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                 
                                 Spacer()
                                 
                                 Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -175,26 +175,23 @@ struct HRRHeartRateZoneEditorView: View {
         isLoading = true
         
         // 更新本地數據
-        userPreferenceManager.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
+        viewModel.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
         
-        // 發送到後端 API
+        // 發送到後端 API (using ViewModel → Repository)
         Task {
-            do {
-                let userData = [
-                    "max_hr": maxHR,
-                    "relaxing_hr": restingHR
-                ] as [String : Any]
-                
-                try await UserService.shared.updateUserData(userData)
-                
-                await MainActor.run {
-                    isLoading = false
+            let userData = [
+                "max_hr": maxHR,
+                "relaxing_hr": restingHR
+            ] as [String : Any]
+
+            let success = await viewModel.updateUserProfile(userData)
+
+            await MainActor.run {
+                isLoading = false
+                if success {
                     dismiss()
-                }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
+                } else {
+                    alertMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "Failed to save heart rate zones")
                     showingAlert = true
                 }
             }

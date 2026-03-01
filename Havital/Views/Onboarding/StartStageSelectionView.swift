@@ -11,16 +11,16 @@ import SwiftUI
 struct StartStageSelectionView: View {
     let weeksRemaining: Int
     let targetDistanceKm: Double
-    let onStageSelected: (TrainingStagePhase?) -> Void
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
+    @StateObject private var viewModel = OnboardingFeatureViewModel()
 
     @State private var selectedStage: TrainingStagePhase?
     @State private var recommendation: StartStageRecommendation
     @Environment(\.dismiss) private var dismiss
 
-    init(weeksRemaining: Int, targetDistanceKm: Double, onStageSelected: @escaping (TrainingStagePhase?) -> Void) {
+    init(weeksRemaining: Int, targetDistanceKm: Double) {
         self.weeksRemaining = weeksRemaining
         self.targetDistanceKm = targetDistanceKm
-        self.onStageSelected = onStageSelected
 
         // 初始化推薦結果
         let rec = TrainingPlanCalculator.recommendStartStage(
@@ -41,29 +41,32 @@ struct StartStageSelectionView: View {
                             Image(systemName: "clock.fill")
                                 .foregroundColor(.orange)
                             Text(NSLocalizedString("start_stage.time_notice_title", comment: "訓練時間提醒"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                         }
 
                         Text(String(format: NSLocalizedString("start_stage.time_notice", comment: "你的賽事在 %d 週後"),
                                    weeksRemaining))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
 
                         // 訓練習慣提醒（重要）
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(.blue)
-                                .font(.system(size: 14))
+                        // 只在有基礎期選項時顯示（即有足夠週數時）
+                        if hasBaseStageOption {
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundColor(.blue)
+                                    .font(AppFont.bodySmall())
 
-                            Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
                     }
                     .padding(.vertical, 8)
                 }
@@ -74,7 +77,7 @@ struct StartStageSelectionView: View {
                         // 推薦標籤
                         HStack {
                             Text(NSLocalizedString("start_stage.recommendation", comment: "推薦起始階段"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 12)
@@ -137,7 +140,49 @@ struct StartStageSelectionView: View {
             // 底部繼續按鈕
             VStack {
                 Button(action: {
-                    onStageSelected(selectedStage)
+                    coordinator.selectedStartStage = selectedStage?.apiIdentifier
+                    if let stage = selectedStage {
+                        UserDefaults.standard.set(stage.apiIdentifier, forKey: "selectedStartStage")
+                    } else {
+                        UserDefaults.standard.removeObject(forKey: "selectedStartStage")
+                    }
+
+                    // ⭐ 新增：檢查方法論後導航
+                    Task {
+                        Logger.debug("[StartStageSelectionView] 🎯 Button clicked - selectedTargetTypeV2: \(viewModel.selectedTargetTypeV2?.id ?? "nil")")
+
+                        // 確保有 target type（如果沒有，重新載入）
+                        if viewModel.selectedTargetTypeV2 == nil {
+                            Logger.debug("[StartStageSelectionView] ⚠️ selectedTargetTypeV2 is nil, loading target types...")
+                            await viewModel.loadTargetTypes()
+
+                            if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
+                                viewModel.selectedTargetTypeV2 = raceRunType
+                                Logger.debug("[StartStageSelectionView] ✅ Loaded and set selectedTargetTypeV2 to: \(raceRunType.id)")
+                            }
+                        }
+
+                        if let targetType = viewModel.selectedTargetTypeV2 {
+                            Logger.debug("[StartStageSelectionView] 📥 Loading methodologies for: \(targetType.id)")
+                            await viewModel.loadMethodologiesForTargetType(targetType.id)
+
+                            await MainActor.run {
+                                let methodCount = viewModel.availableMethodologies.count
+                                Logger.debug("[StartStageSelectionView] 📊 Loaded \(methodCount) methodologies")
+
+                                if methodCount > 1 {
+                                    Logger.info("[StartStageSelectionView] ✅ Navigating to methodologySelection")
+                                    coordinator.navigate(to: .methodologySelection)
+                                } else {
+                                    Logger.info("[StartStageSelectionView] ⏭️ Skipping methodology selection (count=\(methodCount)), navigating to trainingDays")
+                                    coordinator.navigate(to: .trainingDays)
+                                }
+                            }
+                        } else {
+                            Logger.error("[StartStageSelectionView] ❌ Failed to load targetType, navigating to trainingDays")
+                            coordinator.navigate(to: .trainingDays)
+                        }
+                    }
                 }) {
                     Text(NSLocalizedString("start_stage.continue", comment: "繼續"))
                         .fontWeight(.semibold)
@@ -154,13 +199,22 @@ struct StartStageSelectionView: View {
         }
         .navigationTitle(NSLocalizedString("start_stage.title", comment: "訓練計劃起始階段"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(NSLocalizedString("onboarding.back", comment: "返回")) {
-                    dismiss()
-                }
+        .task {
+            // ⭐ 載入 V2 target types 並設置 race_run 類型
+            await viewModel.loadTargetTypes()
+
+            // 找到 race_run 目標類型並設置
+            if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
+                viewModel.selectedTargetTypeV2 = raceRunType
+                Logger.debug("[StartStageSelectionView] ✅ Set selectedTargetTypeV2 to: \(raceRunType.id)")
             }
         }
+    }
+
+    /// 判斷是否有基礎期選項可用（用於條件顯示提醒訊息）
+    private var hasBaseStageOption: Bool {
+        // 基礎期選項只在有足夠週數時提供（≥6週）
+        return recommendation.alternatives.contains { $0.stage == .base }
     }
 }
 
@@ -177,7 +231,7 @@ struct StageOptionCard: View {
             // 階段名稱
             HStack {
                 Text(stageName)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.bold)
 
                 Spacer()
@@ -185,23 +239,23 @@ struct StageOptionCard: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.accentColor)
-                        .font(.title3)
+                        .font(AppFont.title3())
                 }
             }
 
             // 推薦理由
             Text(reason)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             // 風險等級標籤
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption())
                 Text(String(format: NSLocalizedString("start_stage.risk_level", comment: "風險等級: %@"),
                            riskLevel.displayName))
-                    .font(.caption)
+                    .font(AppFont.caption())
             }
             .foregroundColor(riskLevelColor)
             .padding(.horizontal, 10)
@@ -236,7 +290,7 @@ struct StageAlternativeCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(alternative.stageName)
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Spacer()
 
@@ -247,11 +301,11 @@ struct StageAlternativeCard: View {
             }
 
             Text(alternative.suitableFor)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.primary)
 
             Text(alternative.description)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -354,13 +408,13 @@ struct StageDistributionRow: View {
                 .frame(width: 10, height: 10)
 
             Text(stageName)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             Spacer()
 
             Text(String(format: NSLocalizedString("start_stage.weeks_count", comment: "%d 週"), weeks))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
     }
@@ -372,10 +426,7 @@ struct StartStageSelectionView_Previews: PreviewProvider {
         NavigationView {
             StartStageSelectionView(
                 weeksRemaining: 8,
-                targetDistanceKm: 21.1,
-                onStageSelected: { stage in
-                    print("Selected stage: \(stage?.displayName ?? "nil")")
-                }
+                targetDistanceKm: 21.1
             )
         }
     }

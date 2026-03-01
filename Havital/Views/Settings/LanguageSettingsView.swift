@@ -2,7 +2,9 @@ import SwiftUI
 
 struct LanguageSettingsView: View {
     @StateObject private var languageManager = LanguageManager.shared
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedLanguage: SupportedLanguage
@@ -16,7 +18,7 @@ struct LanguageSettingsView: View {
     init() {
         _selectedLanguage = State(initialValue: LanguageManager.shared.currentLanguage)
         // Note: Unit preference initialization removed until backend supports imperial units
-        // _selectedUnit = State(initialValue: UserPreferenceManager.shared.unitPreference)
+        // _selectedUnit = State(initialValue: UserPreferencesManager.shared.unitPreference)
     }
     
     var body: some View {
@@ -172,13 +174,21 @@ struct LanguageSettingsView: View {
     
     private func updateBackendPreferences() async throws {
         // Create request to update preferences
-        var request = URLRequest(url: URL(string: "\(APIConfig.baseURL)/user/preferences")!)
+        guard let url = URL(string: "\(APIConfig.baseURL)/user/preferences") else {
+            Logger.firebase("無效的 URL", level: .error, labels: [
+                "module": "LanguageSettingsView",
+                "action": "updateBackendPreferences"
+            ])
+            return
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         // Add authentication token if available
         do {
-            let token = try await AuthenticationService.shared.getIdToken()
+            // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+            let token = try await authViewModel.getIdToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         } catch {
             Logger.firebase("Failed to get auth token: \(error.localizedDescription)", level: .warn)

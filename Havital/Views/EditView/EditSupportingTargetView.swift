@@ -117,7 +117,7 @@ struct EditSupportingTargetView: View {
     let sampleTarget = Target(
         id: "preview-id",
         type: "race_run",
-        name: "支援半馬",
+        name: NSLocalizedString("editsupportingtarget.text_0", comment: ""),
         distanceKm: 21,
         targetTime: 7200, // 2小時
         targetPace: "5:40",

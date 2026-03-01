@@ -12,7 +12,7 @@ struct SectionTitleWithInfo: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
             
             Button {
@@ -104,9 +104,18 @@ struct MyAchievementView: View {
     @State private var isGeneratingScreenshot = false
     @State private var refreshRotation: Double = 0
 
+    // Personal Best v2 慶祝動畫相關
+    @State private var showCelebration = false
+    @State private var celebrationUpdate: PersonalBestUpdate?
+
+    // 從快取讀取當前用戶資料（Clean Architecture）
+    private var cachedUser: User? {
+        UserProfileLocalDataSource().getUserProfile()
+    }
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     // 格式化更新時間
@@ -135,7 +144,7 @@ struct MyAchievementView: View {
                             // Last updated time
                             if let updateTime = formattedUpdateTime {
                                 Text(updateTime)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                             }
 
@@ -147,7 +156,7 @@ struct MyAchievementView: View {
                             }) {
                                 Image(systemName: "arrow.clockwise")
                                     .foregroundColor(trainingReadinessManager.isLoading ? .gray : .blue)
-                                    .font(.system(size: 16))
+                                    .font(AppFont.body())
                                     .rotationEffect(.degrees(refreshRotation))
                             }
                             .disabled(trainingReadinessManager.isLoading)
@@ -173,6 +182,11 @@ struct MyAchievementView: View {
                     }
                     .cardStyle()
                     .padding(.horizontal)
+
+                    // Personal Best v2 Card - 個人最佳成績
+                    PersonalBestCardView(
+                        personalBestData: cachedUser?.personalBestV2?["race_run"]
+                    )
 
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
                     TrainingLoadChartSection()
@@ -208,6 +222,25 @@ struct MyAchievementView: View {
                 // Load training readiness data when view appears
                 TrackedTask("MyAchievementView: loadData") {
                     await trainingReadinessManager.loadData()
+                }
+
+                // Check for pending Personal Best celebration
+                checkForCelebration()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .personalBestDidUpdate)) { notification in
+                if let update = notification.object as? PersonalBestUpdate {
+                    celebrationUpdate = update
+                    showCelebration = true
+                }
+            }
+            .overlay {
+                if showCelebration, let update = celebrationUpdate {
+                    PersonalBestCelebrationView(update: update) {
+                        showCelebration = false
+                        PersonalBestCelebrationStorage.markCelebrationAsShown()
+                    }
+                    .transition(.opacity)
+                    .zIndex(999)
                 }
             }
             .toolbar {
@@ -293,6 +326,20 @@ struct MyAchievementView: View {
             }
         }
     }
+
+    // MARK: - Personal Best Celebration
+
+    /// 檢查是否有待顯示的慶祝動畫
+    private func checkForCelebration() {
+        if let pendingUpdate = PersonalBestCelebrationStorage.getPendingCelebrationUpdate() {
+            celebrationUpdate = pendingUpdate
+
+            // 延遲顯示，避免與頁面載入動畫衝突
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showCelebration = true
+            }
+        }
+    }
 }
 
 // MARK: - Chart Tab Enums
@@ -333,7 +380,7 @@ struct CombinedHeartRateChartSection: View {
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     var body: some View {
@@ -355,12 +402,12 @@ struct CombinedHeartRateChartSection: View {
                             ProgressView()
                                 .scaleEffect(0.8)
                             Text(NSLocalizedString("performance.updating", comment: "Updating..."))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         } else {
                             // Garmin Attribution for main chart data
                             ConditionalGarminAttributionView(
-                                dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                                dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                                 deviceModel: nil,
                                 displayStyle: .titleLevel
                             )
@@ -399,12 +446,11 @@ struct CombinedHeartRateChartSection: View {
 
     @ViewBuilder
     private var hrvChartContent: some View {
-        let _ = print("🔍 [CombinedHeartRateChartSection] 顯示 HRV 圖表，數據來源: \(dataSourcePreference)")
+        // 移除高頻日誌：此方法在每次 UI 重新渲染時都會被調用
 
         switch dataSourcePreference {
         case .appleHealth:
             // Apple Health: 直接使用 HealthKit 數據（與靜息心率保持一致）
-            let _ = print("🔍 [CombinedHeartRateChartSection] Apple Health 用戶，使用 HRVTrendChartView 直接讀取 HealthKit")
             HRVTrendChartView()
                 .environmentObject(healthKitManager)
 
@@ -452,7 +498,7 @@ struct RestingHeartRateChartSection: View {
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     var body: some View {
@@ -799,12 +845,12 @@ struct SharedHealthDataChartView: View {
                     // Title and Garmin Attribution for empty state
                     HStack {
                         Text(chartTitle)
-                            .font(.headline)
+                            .font(AppFont.headline())
                         
                         Spacer()
                         
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -897,7 +943,7 @@ struct SharedHealthDataChartView: View {
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatDateForDisplay(date))
-                                .font(.caption)
+                                .font(AppFont.caption())
                         }
                         AxisGridLine()
                         AxisTick()
@@ -1207,9 +1253,9 @@ struct APIBasedRestingHeartRateChartView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundColor(.orange)
                     Text(NSLocalizedString("performance.load_failed", comment: "Load failed"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Text(error)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -1273,11 +1319,11 @@ struct EmptyDataSourceView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "questionmark.circle")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.gray)
             
             Text(message)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -1294,7 +1340,7 @@ struct TrainingLoadChartSection: View {
 
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
-        UserPreferenceManager.shared.dataSourcePreference
+        UserPreferencesManager.shared.dataSourcePreference
     }
 
     var body: some View {
@@ -1323,7 +1369,7 @@ struct TrainingLoadChartSection: View {
                     }) {
                         Image(systemName: "arrow.clockwise")
                             .foregroundColor(.blue)
-                            .font(.system(size: 16))
+                            .font(AppFont.body())
                     }
                 }
                 .padding(.horizontal)
@@ -1397,7 +1443,7 @@ struct TrainingLoadChartView: View {
                     // Title for empty state
                     HStack {
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -1448,14 +1494,14 @@ struct TrainingLoadChartView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("體適能指數 & 訓練壓力平衡")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
 
                     if isLoadingChartData {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text("同步中...")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     }
                 }
@@ -1567,8 +1613,8 @@ struct TrainingLoadChartView: View {
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
                 }
                 .chartForegroundStyleScale([
-                    "體適能指數": .blue,
-                    "TSB": .green
+                    NSLocalizedString("myachievement.text_10", comment: ""): .blue,
+                    NSLocalizedString("trainingreadiness.tsb", comment: ""): .green
                 ])
                 .frame(height: 200)
                 .chartYAxis {
@@ -1577,7 +1623,7 @@ struct TrainingLoadChartView: View {
                         AxisValueLabel {
                             if let doubleValue = value.as(Double.self) {
                                 Text(String(format: "%.0f", doubleValue))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.blue)
                             }
                         }
@@ -1592,7 +1638,7 @@ struct TrainingLoadChartView: View {
                         if let date = value.as(Date.self) {
                             AxisValueLabel {
                                 Text(formatWeekForDisplay(date))
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                             }
                             AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
                             AxisTick()
@@ -1602,8 +1648,8 @@ struct TrainingLoadChartView: View {
 
                 // TSB 狀態說明
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("TSB 狀態指標")
-                        .font(.caption)
+                    Text(NSLocalizedString("myachievement.tsb", comment: ""))
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
                         .padding(.top, 8)
@@ -1614,8 +1660,8 @@ struct TrainingLoadChartView: View {
                             Rectangle()
                                 .fill(Color.red.opacity(0.3))
                                 .frame(width: 12, height: 12)
-                            Text("疲勞累積")
-                                .font(.caption2)
+                            Text(NSLocalizedString("myachievement.text_3", comment: ""))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -1624,8 +1670,8 @@ struct TrainingLoadChartView: View {
                             Rectangle()
                                 .fill(Color.green.opacity(0.3))
                                 .frame(width: 12, height: 12)
-                            Text("平衡狀態")
-                                .font(.caption2)
+                            Text(NSLocalizedString("myachievement.text_4", comment: ""))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -1634,8 +1680,8 @@ struct TrainingLoadChartView: View {
                             Rectangle()
                                 .fill(Color.blue.opacity(0.3))
                                 .frame(width: 12, height: 12)
-                            Text("最佳狀態")
-                                .font(.caption2)
+                            Text(NSLocalizedString("myachievement.text_5", comment: ""))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -1918,7 +1964,7 @@ struct FitnessIndexChartView: View {
     var body: some View {
         VStack {
             if isLoadingChartData {
-                ProgressView("載入訓練指數數據...")
+                ProgressView(NSLocalizedString("trainingprogress.text_0", comment: ""))
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else if let error = chartError {
                 EmptyStateView(
@@ -1934,7 +1980,7 @@ struct FitnessIndexChartView: View {
                 VStack {
                     HStack {
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -1957,7 +2003,7 @@ struct FitnessIndexChartView: View {
                     VStack {
                         EmptyStateView(
                             type: .loadingFailed,
-                            customMessage: "訓練指數數據不足"
+                            customMessage: NSLocalizedString("performancechart.text_0", comment: "")
                         )
                     }
                     .frame(maxWidth: .infinity, minHeight: 100)
@@ -1986,8 +2032,8 @@ struct FitnessIndexChartView: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("同步中...")
-                        .font(.caption)
+                    Text(NSLocalizedString("misc.syncing", comment: ""))
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 8)
@@ -2093,7 +2139,7 @@ struct FitnessIndexChartView: View {
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text(String(format: "%.0f", doubleValue))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.blue)
                         }
                     }
@@ -2107,7 +2153,7 @@ struct FitnessIndexChartView: View {
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatWeekForDisplay(date))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                         }
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
                         AxisTick()
@@ -2118,7 +2164,7 @@ struct FitnessIndexChartView: View {
             // 圓點標記說明和CTL區間說明
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.MyAchievement.markerExplanation.localized)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
@@ -2129,7 +2175,7 @@ struct FitnessIndexChartView: View {
                             .fill(Color.blue)
                             .frame(width: 12, height: 12)
                         Text(L10n.MyAchievement.hasTraining.localized)
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2138,7 +2184,7 @@ struct FitnessIndexChartView: View {
                             .stroke(Color.blue, lineWidth: 2)
                             .frame(width: 12, height: 12)
                         Text(L10n.MyAchievement.restDay.localized)
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2153,8 +2199,8 @@ struct FitnessIndexChartView: View {
                             Rectangle()
                                 .fill(Color.green.opacity(0.4))
                                 .frame(width: 12, height: 12)
-                            Text("合理訓練負荷區域")
-                                .font(.caption2)
+                            Text(NSLocalizedString("myachievement.text_6", comment: ""))
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.secondary)
                         }
 
@@ -2284,7 +2330,7 @@ struct FitnessIndexChartView: View {
                 isLoadingChartData = false
 
                 if cachedHealthData.isEmpty {
-                    chartError = "無法載入訓練指數數據"
+                    chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "")
                 }
             }
 
@@ -2302,7 +2348,7 @@ struct FitnessIndexChartView: View {
                     isLoadingChartData = false
 
                     if freshData.isEmpty {
-                        chartError = "無法載入訓練指數數據"
+                        chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "")
                     }
                 }
             }
@@ -2328,7 +2374,7 @@ struct TSBChartView: View {
     var body: some View {
         VStack {
             if isLoadingChartData {
-                ProgressView("載入TSB數據...")
+                ProgressView(NSLocalizedString("trainingprogress.text_0", comment: ""))
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else if let error = chartError {
                 EmptyStateView(
@@ -2344,7 +2390,7 @@ struct TSBChartView: View {
                 VStack {
                     HStack {
                         ConditionalGarminAttributionView(
-                            dataProvider: UserPreferenceManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
+                            dataProvider: UserPreferencesManager.shared.dataSourcePreference == .garmin ? "Garmin" : nil,
                             deviceModel: nil,
                             displayStyle: .titleLevel
                         )
@@ -2367,7 +2413,7 @@ struct TSBChartView: View {
                     VStack {
                         EmptyStateView(
                             type: .loadingFailed,
-                            customMessage: "TSB數據不足"
+                            customMessage: NSLocalizedString("performancechart.text_0", comment: "")
                         )
                     }
                     .frame(maxWidth: .infinity, minHeight: 100)
@@ -2396,8 +2442,8 @@ struct TSBChartView: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("同步中...")
-                        .font(.caption)
+                    Text(NSLocalizedString("misc.syncing", comment: ""))
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 8)
@@ -2472,7 +2518,7 @@ struct TSBChartView: View {
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text(String(format: "%.0f", doubleValue))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.green)
                         }
                     }
@@ -2486,7 +2532,7 @@ struct TSBChartView: View {
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(formatWeekForDisplay(date))
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                         }
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
                         AxisTick()
@@ -2496,8 +2542,8 @@ struct TSBChartView: View {
 
             // TSB 狀態說明
             VStack(alignment: .leading, spacing: 4) {
-                Text("TSB 狀態指標")
-                    .font(.caption)
+                Text(NSLocalizedString("myachievement.tsb", comment: ""))
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
@@ -2507,8 +2553,8 @@ struct TSBChartView: View {
                         Rectangle()
                             .fill(Color.red.opacity(0.3))
                             .frame(width: 12, height: 12)
-                        Text("疲勞狀態")
-                            .font(.caption2)
+                        Text(NSLocalizedString("myachievement.text_4", comment: ""))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2516,8 +2562,8 @@ struct TSBChartView: View {
                         Rectangle()
                             .fill(Color.green.opacity(0.3))
                             .frame(width: 12, height: 12)
-                        Text("平衡狀態")
-                            .font(.caption2)
+                        Text(NSLocalizedString("myachievement.text_4", comment: ""))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2525,8 +2571,8 @@ struct TSBChartView: View {
                         Rectangle()
                             .fill(Color.blue.opacity(0.3))
                             .frame(width: 12, height: 12)
-                        Text("最佳狀態")
-                            .font(.caption2)
+                        Text(NSLocalizedString("myachievement.text_5", comment: ""))
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2606,7 +2652,7 @@ struct TSBChartView: View {
                 isLoadingChartData = false
 
                 if cachedHealthData.isEmpty {
-                    chartError = "無法載入TSB數據"
+                    chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "")
                 }
             }
 
@@ -2624,7 +2670,7 @@ struct TSBChartView: View {
                     isLoadingChartData = false
 
                     if freshData.isEmpty {
-                        chartError = "無法載入TSB數據"
+                        chartError = NSLocalizedString("performance.cannot_load_chart_data", comment: "")
                     }
                 }
             }
@@ -2647,12 +2693,12 @@ struct TrainingLoadDetailExplanationView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("訓練負荷詳細說明")
+                        Text(NSLocalizedString("trainingload.text_0", comment: ""))
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("了解您的體適能指數和訓練壓力平衡，幫助您優化訓練計劃")
-                            .font(.subheadline)
+                        Text(NSLocalizedString("trainingload.text_1", comment: ""))
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
 
@@ -2663,26 +2709,26 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "chart.line.uptrend.xyaxis")
                                 .foregroundColor(.blue)
-                                .font(.title2)
-                            Text("體適能指數 (Fitness Index)")
-                                .font(.title2)
+                                .font(AppFont.title2())
+                            Text(NSLocalizedString("trainingload.text_2", comment: ""))
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
-                        Text("體適能指數反映您**相對於自己過往表現**的運動能力水平。這個數值會根據您最近的訓練強度、頻率和持續時間動態調整，重點在於觀察**趨勢變化**。")
-                            .font(.body)
+                        Text(NSLocalizedString("trainingload.text_3", comment: ""))
+                            .font(AppFont.body())
 
                         // 體適能指數趨勢說明
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("如何解讀趨勢：")
-                                .font(.headline)
+                            Text(NSLocalizedString("trainingload.text_4", comment: ""))
+                                .font(AppFont.headline())
                                 .padding(.top, 8)
 
-                            fitnessRangeView(range: "↗️", description: "持續上升 - 體適能向上提升，但要注意疲勞的累積", color: .green, icon: "arrow.up.circle.fill")
-                            fitnessRangeView(range: "➡️", description: "穩定維持 - 體能保持良好狀態", color: .blue, icon: "minus.circle.fill")
-                            fitnessRangeView(range: "↘️", description: "下降趨勢 - 通常為減量期，關注TSB和HRV恢復", color: .orange, icon: "arrow.down.circle.fill")
-                            Text("💡 重點：關注線條的**走向**比單一數值更重要")
-                                .font(.subheadline)
+                            fitnessRangeView(range: "↗️", description: NSLocalizedString("trainingload.text_5", comment: ""), color: .green, icon: "arrow.up.circle.fill")
+                            fitnessRangeView(range: "➡️", description: NSLocalizedString("trainingload.text_6", comment: ""), color: .blue, icon: "minus.circle.fill")
+                            fitnessRangeView(range: "↘️", description: NSLocalizedString("trainingload.text_7", comment: ""), color: .orange, icon: "arrow.down.circle.fill")
+                            Text(NSLocalizedString("trainingload.text_8", comment: ""))
+                                .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
                                 .padding(.top, 4)
                         }
@@ -2696,43 +2742,43 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "gauge.medium")
                                 .foregroundColor(.green)
-                                .font(.title2)
-                            Text("訓練壓力平衡 (TSB)")
-                                .font(.title2)
+                                .font(AppFont.title2())
+                            Text(NSLocalizedString("trainingload.text_9", comment: ""))
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
-                        Text("TSB 反映您當前的訓練疲勞與恢復狀態之間的平衡。這個指標幫助您了解何時需要休息，何時可以增加訓練強度。")
-                            .font(.body)
+                        Text(NSLocalizedString("trainingload.text_10", comment: ""))
+                            .font(AppFont.body())
 
                         // TSB 狀態說明
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("TSB 狀態解讀：")
-                                .font(.headline)
+                            Text(NSLocalizedString("trainingload.text_11", comment: ""))
+                                .font(AppFont.headline())
                                 .padding(.top, 8)
 
                             tsbStatusView(
-                                range: "+1 以上",
-                                title: "最佳狀態",
-                                description: "身體已充分恢復，適合進行高強度訓練或比賽",
+                                range: NSLocalizedString("trainingload.text_12", comment: ""),
+                                title: NSLocalizedString("myachievement.text_5", comment: ""),
+                                description: NSLocalizedString("trainingload.text_13", comment: ""),
                                 color: .blue,
                                 icon: "star.circle.fill",
                                 backgroundColor: Color.blue.opacity(0.1)
                             )
 
                             tsbStatusView(
-                                range: "-4 到 +1",
-                                title: "平衡狀態",
-                                description: "訓練與恢復達到良好平衡，可維持規律訓練",
+                                range: NSLocalizedString("trainingload.text_14", comment: ""),
+                                title: NSLocalizedString("myachievement.text_4", comment: ""),
+                                description: NSLocalizedString("trainingload.text_15", comment: ""),
                                 color: .green,
                                 icon: "checkmark.circle.fill",
                                 backgroundColor: Color.green.opacity(0.1)
                             )
 
                             tsbStatusView(
-                                range: "-4 以下",
-                                title: "疲勞狀態",
-                                description: "體能消耗較大，建議降低訓練強度或增加休息",
+                                range: NSLocalizedString("trainingload.text_16", comment: ""),
+                                title: NSLocalizedString("myachievement.text_3", comment: ""),
+                                description: NSLocalizedString("trainingload.text_17", comment: ""),
                                 color: .orange,
                                 icon: "exclamationmark.triangle.fill",
                                 backgroundColor: Color.orange.opacity(0.1)
@@ -2748,28 +2794,28 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "chart.xyaxis.line")
                                 .foregroundColor(.purple)
-                                .font(.title2)
-                            Text("圖表解讀指南")
-                                .font(.title2)
+                                .font(AppFont.title2())
+                            Text(NSLocalizedString("trainingload.text_18", comment: ""))
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
                             chartLegendView(
                                 color: .blue,
-                                title: "藍色線條 - 體適能指數",
-                                description: "顯示您相對於過往表現的體能變化趨勢。重點觀察線條走向：上升代表進步，平穩代表維持，下降提醒調整訓練。"
+                                title: NSLocalizedString("trainingload.text_19", comment: ""),
+                                description: NSLocalizedString("trainingload.text_20", comment: "")
                             )
 
                             chartLegendView(
                                 color: .green,
-                                title: "綠色線條 - TSB 值",
-                                description: "顯示您的疲勞恢復狀態。觀察這條線的變化，可以幫助您決定訓練強度。"
+                                title: NSLocalizedString("trainingload.text_21", comment: ""),
+                                description: NSLocalizedString("trainingload.text_22", comment: "")
                             )
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(L10n.MyAchievement.dotExplanation.localized)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(.medium)
 
                                 HStack(alignment: .center, spacing: 8) {
@@ -2777,7 +2823,7 @@ struct TrainingLoadDetailExplanationView: View {
                                         .fill(Color.blue)
                                         .frame(width: 12, height: 12)
                                     Text(L10n.MyAchievement.solidDot.localized)
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
 
@@ -2786,7 +2832,7 @@ struct TrainingLoadDetailExplanationView: View {
                                         .stroke(Color.blue, lineWidth: 2)
                                         .frame(width: 12, height: 12)
                                     Text(L10n.MyAchievement.hollowDot.localized)
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -2800,9 +2846,9 @@ struct TrainingLoadDetailExplanationView: View {
                         HStack {
                             Image(systemName: "lightbulb.fill")
                                 .foregroundColor(.yellow)
-                                .font(.title2)
-                            Text("實用建議")
-                                .font(.title2)
+                                .font(AppFont.title2())
+                            Text(NSLocalizedString("trainingload.text_23", comment: ""))
+                                .font(AppFont.title2())
                                 .fontWeight(.semibold)
                         }
 
@@ -2810,29 +2856,29 @@ struct TrainingLoadDetailExplanationView: View {
                             suggestionView(
                                 icon: "arrow.up.circle.fill",
                                 iconColor: .green,
-                                title: "ATL在合理負荷區域內 + TSB值偏高",
-                                suggestion: "體能提升且恢復良好，可適當增加訓練強度，但需監控疲勞累積"
+                                title: NSLocalizedString("trainingload.text_24", comment: ""),
+                                suggestion: NSLocalizedString("trainingload.text_25", comment: "")
                             )
 
                             suggestionView(
                                 icon: "checkmark.circle.fill",
                                 iconColor: .blue,
-                                title: "ATL在合理區域 + TSB平衡",
-                                suggestion: "理想的訓練狀態，維持當前節奏並觀察長期趨勢"
+                                title: NSLocalizedString("trainingload.text_26", comment: ""),
+                                suggestion: NSLocalizedString("trainingload.text_27", comment: "")
                             )
 
                             suggestionView(
                                 icon: "arrow.down.circle.fill",
                                 iconColor: .orange,
-                                title: "ATL超出合理負荷區域",
-                                suggestion: "訓練負荷過高，建議適度減量，關注TSB回升和HRV改善趨勢"
+                                title: NSLocalizedString("trainingload.text_28", comment: ""),
+                                suggestion: NSLocalizedString("trainingload.text_29", comment: "")
                             )
 
                             suggestionView(
                                 icon: "exclamationmark.triangle.fill",
                                 iconColor: .red,
-                                title: "持續疲勞狀態 (TSB <-4)",
-                                suggestion: "建議進入恢復期，降低訓練量直到TSB和HRV顯示恢復跡象"
+                                title: NSLocalizedString("trainingload.text_30", comment: ""),
+                                suggestion: NSLocalizedString("trainingload.text_31", comment: "")
                             )
                         }
                         .padding(.leading, 12)
@@ -2842,24 +2888,24 @@ struct TrainingLoadDetailExplanationView: View {
 
                     // 注意事項
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("重要提醒")
-                            .font(.headline)
+                        Text(NSLocalizedString("trainingload.text_32", comment: ""))
+                            .font(AppFont.headline())
                             .foregroundColor(.secondary)
 
-                        Text("• 訓練負荷數據需要至少 2-3 週的運動記錄才能提供準確的趨勢分析")
-                            .font(.caption)
+                        Text(NSLocalizedString("trainingload.text_33", comment: ""))
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
-                        Text("• 體適能指數下降不一定是壞事，可能代表正在進行有計畫的減量或恢復期")
-                            .font(.caption)
+                        Text(NSLocalizedString("trainingload.text_34", comment: ""))
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
-                        Text("• 建議同時觀察 TSB 和 HRV 趨勢，綜合判斷身體的恢復狀態")
-                            .font(.caption)
+                        Text(NSLocalizedString("trainingload.text_35", comment: ""))
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
-                        Text("• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴")
-                            .font(.caption)
+                        Text(NSLocalizedString("trainingload.text_36", comment: ""))
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 16)
@@ -2870,7 +2916,7 @@ struct TrainingLoadDetailExplanationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button(NSLocalizedString("common.done", comment: "")) {
                         dismiss()
                     }
                 }
@@ -2886,12 +2932,12 @@ struct TrainingLoadDetailExplanationView: View {
                 .frame(width: 20)
 
             Text(range)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
                 .frame(width: 40, alignment: .leading)
 
             Text(description)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
     }
@@ -2912,17 +2958,17 @@ struct TrainingLoadDetailExplanationView: View {
                     .frame(width: 20)
 
                 Text(range)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                     .frame(width: 60, alignment: .leading)
 
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
             }
 
             Text(description)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .padding(.leading, 32)
         }
@@ -2941,10 +2987,10 @@ struct TrainingLoadDetailExplanationView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 Text(description)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }
@@ -2959,10 +3005,10 @@ struct TrainingLoadDetailExplanationView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 Text(suggestion)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }

@@ -14,13 +14,13 @@ struct InfoButtonView: View {
             HStack {
                 Image(systemName: iconName)
                     .foregroundColor(color)
-                    .font(.system(size: 16))
+                    .font(AppFont.body())
                 Text(title)
-                    .font(.system(size: 14))
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12))
+                    .font(AppFont.caption())
                     .foregroundColor(.gray)
             }
             .padding(.vertical, 8)

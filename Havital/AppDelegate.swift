@@ -3,6 +3,20 @@ import FirebaseMessaging
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
+    // MARK: - Clean Architecture Dependencies
+    private let userProfileRepository: UserProfileRepository
+    private let authSessionRepository: AuthSessionRepository
+
+    // 防止重複上傳相同的 FCM token
+    private var lastUploadedFCMToken: String?
+
+    override init() {
+        // 初始化 Repository (在 super.init() 之前)
+        self.userProfileRepository = DependencyContainer.shared.resolve()
+        self.authSessionRepository = DependencyContainer.shared.resolve()
+        super.init()
+    }
+
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // 設定 Firebase Messaging 代理
@@ -37,21 +51,37 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     }
     
     private func syncFCMTokenToBackend(_ fcmToken: String) {
-        print("🔍 DEBUG: 嘗試上傳 FCM token: \(fcmToken.prefix(20))...")
-        print("🔍 DEBUG: 用戶認證狀態: \(AuthenticationService.shared.isAuthenticated)")
+        // 防止重複上傳相同的 token
+        guard fcmToken != lastUploadedFCMToken else {
+            print("🔍 DEBUG: FCM token 未變更，跳過上傳")
+            return
+        }
 
-        guard AuthenticationService.shared.isAuthenticated else {
+        print("🔍 DEBUG: 嘗試上傳 FCM token: \(fcmToken.prefix(20))...")
+
+        // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
+        let isAuthenticated = authSessionRepository.isAuthenticated()
+        print("🔍 DEBUG: 用戶認證狀態: \(isAuthenticated)")
+
+        guard isAuthenticated else {
             print("使用者尚未登入，暫不上傳 FCM token")
             return
         }
+
+        // ✅ CRITICAL FIX: 在開始上傳前就標記，防止重複調用
+        // 如果上傳失敗，會在 catch 中清除，下次重試
+        lastUploadedFCMToken = fcmToken
+
         Task {
             await TrackedTask("AppDelegate: syncFCMTokenToBackend") {
                 do {
-                    try await UserService.shared.updateUserData(["fcm_token": fcmToken])
-                    print("✅ FCM token 已成功上傳到後端: \(fcmToken.prefix(20))...")
+                    // ✅ 優化：FCM token 更新不需要返回完整的 User，丟棄返回值
+                    _ = try await self.userProfileRepository.updateUserProfile(["fcm_token": fcmToken])
+                    print("✅ 已於登入後同步 FCM token 到後端")
                 } catch {
+                    // ⚠️ 上傳失敗，清除標記，下次重試
+                    self.lastUploadedFCMToken = nil
                     print("❌ 上傳 FCM token 失敗: \(error.localizedDescription)")
-                    print("❌ 詳細錯誤: \(error)")
                 }
             }.value
         }
@@ -63,4 +93,24 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         print("📲 收到新的 FCM token: \(fcmToken)")
         syncFCMTokenToBackend(fcmToken)
     }
-} 
+
+    // MARK: - Remote Notification Handling
+
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        let notificationType = userInfo["type"] as? String ?? ""
+        print("📬 收到遠端推播: type=\(notificationType)")
+
+        // workout_processed 推播 → 無效化 cooldown，讓下次存取觸發 API 刷新
+        if notificationType == "workout_processed" {
+            let workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
+            workoutRepository.invalidateRefreshCooldown()
+            print("🔄 已重置 workout cooldown，下次存取將刷新資料")
+            completionHandler(.newData)
+            return
+        }
+
+        completionHandler(.noData)
+    }
+}

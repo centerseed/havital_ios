@@ -11,7 +11,7 @@ struct CalendarSyncSetupView: View {
 
     // ✅ 獲取用戶設定的時區
     private var userTimeZone: TimeZone {
-        if let timezoneId = UserPreferenceManager.shared.timezonePreference,
+        if let timezoneId = UserPreferencesManager.shared.timezonePreference,
            let timezone = TimeZone(identifier: timezoneId) {
             return timezone
         }
@@ -38,7 +38,7 @@ struct CalendarSyncSetupView: View {
                     if selectedPreference == .specificTime {
                         VStack(alignment: .leading, spacing: 24) {
                             Text(L10n.CalendarSyncSetup.trainingTime.localized)
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .padding(.horizontal)
                             
                             VStack(spacing: 16) {

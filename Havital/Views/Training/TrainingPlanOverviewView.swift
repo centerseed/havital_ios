@@ -17,14 +17,14 @@ struct TrainingPlanOverviewView: View {
                 if let overview = planOverview["training_plan_overview"] as? [String] {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.TrainingPlanOverview.title.localized)
-                            .font(.headline)
-                            .font(.system(size: 16))
+                            .font(AppFont.headline())
+                            .font(AppFont.body())
 
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(overview, id: \.self) { item in
                                 Text("• \(item)")
-                                    .font(.body)
-                                    .font(.system(size: 14))
+                                    .font(AppFont.body())
+                                    .font(AppFont.bodySmall())
                             }
                         }
                     }
@@ -35,11 +35,11 @@ struct TrainingPlanOverviewView: View {
                 } else if let overview = planOverview["training_plan_overview"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.TrainingPlanOverview.title.localized)
-                            .font(.headline)
-                            .font(.system(size: 16))
+                            .font(AppFont.headline())
+                            .font(AppFont.body())
                         Text(overview)
-                            .font(.body)
-                            .font(.system(size: 14))
+                            .font(AppFont.body())
+                            .font(AppFont.bodySmall())
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
@@ -51,11 +51,11 @@ struct TrainingPlanOverviewView: View {
                 if let evaluation = planOverview["target_evaluate"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.TrainingPlanOverview.targetEvaluation.localized)
-                            .font(.headline)
-                            .font(.system(size: 16))
+                            .font(AppFont.headline())
+                            .font(AppFont.body())
                         Text(evaluation)
-                            .font(.body)
-                            .font(.system(size: 14))
+                            .font(AppFont.body())
+                            .font(AppFont.bodySmall())
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
@@ -67,11 +67,11 @@ struct TrainingPlanOverviewView: View {
                 if let trainingHighlight = planOverview["training_highlight"] as? String {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.TrainingPlanOverview.trainingMethod.localized)
-                            .font(.headline)
-                            .font(.system(size: 16))
+                            .font(AppFont.headline())
+                            .font(AppFont.body())
                         Text(trainingHighlight)
-                            .font(.body)
-                            .font(.system(size: 14))
+                            .font(AppFont.body())
+                            .font(AppFont.bodySmall())
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
@@ -83,8 +83,8 @@ struct TrainingPlanOverviewView: View {
                 if let stages = planOverview["training_stages"] as? [[String: Any]] {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.TrainingPlanOverview.trainingStages.localized)
-                            .font(.headline)
-                            .font(.system(size: 16))
+                            .font(AppFont.headline())
+                            .font(AppFont.body())
                         
                         ForEach(stages.indices, id: \.self) { index in
                             let stage = stages[index]
@@ -94,11 +94,11 @@ struct TrainingPlanOverviewView: View {
                                let weekEnd = stage["week_end"] as? Int {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text("\(stageName) (\(L10n.TrainingPlanOverview.weekRange.localized(with: weekStart, weekEnd)))")
-                                        .font(.subheadline)
+                                        .font(AppFont.bodySmall())
                                         .fontWeight(.medium)
                                     Text(description)
-                                        .font(.body)
-                                        .font(.system(size: 14))
+                                        .font(AppFont.body())
+                                        .font(AppFont.bodySmall())
                                 }
                                 .padding(.bottom, 10)
                             }
@@ -121,7 +121,7 @@ struct TrainingPlanOverviewView: View {
                     }
                 }) {
                     HStack {
-                        Text(L10n.TrainingPlanOverview.generatePlan.localized(with: UserPreferenceManager.shared.weekOfTraining ?? 1))
+                        Text(L10n.TrainingPlanOverview.generatePlan.localized(with: UserPreferencesManager.shared.weekOfTraining ?? 1))
                             .fontWeight(.semibold)
                         if isGeneratingPlan {
                             ProgressView()

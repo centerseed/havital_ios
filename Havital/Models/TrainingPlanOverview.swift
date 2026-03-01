@@ -7,7 +7,8 @@ struct TrainingStage: Codable {
     let trainingFocus: String
     let weekStart: Int
     let weekEnd: Int?
-    
+    let targetPace: String?  // 新增：該階段的目標配速，如 "5:25-5:40/km"
+
     enum CodingKeys: String, CodingKey {
         case stageName = "stage_name"
         case stageId = "stage_id"
@@ -15,6 +16,7 @@ struct TrainingStage: Codable {
         case trainingFocus = "training_focus"
         case weekStart = "week_start"
         case weekEnd = "week_end"
+        case targetPace = "target_pace"
     }
 }
 

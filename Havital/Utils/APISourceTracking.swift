@@ -174,3 +174,43 @@ func TrackedTask<T>(_ source: String, _ operation: @escaping () async throws -> 
         await viewModel.loadData()
     }.tracked(from: "TrainingPlanView: loadData")
 */
+
+// MARK: - 方案 6：Task Extension (最推薦) ⭐⭐⭐
+
+extension Task where Failure == Never {
+    /// 為 Task 添加 API 來源追蹤（無錯誤版本）
+    ///
+    /// 使用範例：
+    /// ```swift
+    /// Task {
+    ///     await viewModel.loadData()
+    /// }.tracked(from: "TrainingPlanView: loadData")
+    /// ```
+    @discardableResult
+    func tracked(from source: String) -> Task<Success, Failure> {
+        Task {
+            await APICallTracker.$currentSource.withValue(source) {
+                await self.value
+            }
+        }
+    }
+}
+
+extension Task where Failure == Error {
+    /// 為 Task 添加 API 來源追蹤（可拋出錯誤版本）
+    ///
+    /// 使用範例：
+    /// ```swift
+    /// Task {
+    ///     try await viewModel.fetchData()
+    /// }.tracked(from: "TrainingPlanView: fetchData")
+    /// ```
+    @discardableResult
+    func tracked(from source: String) -> Task<Success, Failure> {
+        Task {
+            try await APICallTracker.$currentSource.withValue(source) {
+                try await self.value
+            }
+        }
+    }
+}

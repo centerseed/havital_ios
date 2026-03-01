@@ -8,17 +8,19 @@ enum HeartRateViewMode {
 
 struct HeartRateZoneInfoView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: Int = 190
     @State private var restingHeartRate: Int = 60
-    @State private var zones: [HeartRateZonesManager.HeartRateZone] = []
+    @State private var zones: [HeartRateZone] = []
     @State private var isLoading = true
     @State private var isEditing = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
+    @State private var navigateToBackfillPrompt = false
 
-    private let userPreferenceManager = UserPreferenceManager.shared
+    private let backfillCoordinator = OnboardingBackfillCoordinator.shared
     private let mode: HeartRateViewMode
 
     // MARK: - Initializers
@@ -41,31 +43,39 @@ struct HeartRateZoneInfoView: View {
         return nil
     }
 
+    @ObservedObject private var onboardingCoordinator = OnboardingCoordinator.shared
+
     var body: some View {
-        NavigationView {
-            contentView
-                .navigationTitle(navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    toolbarContent
-                }
-                .toolbar {
-                    if isOnboardingMode {
-                        ToolbarItem(placement: .bottomBar) {
-                            skipButton
+        contentView
+            .navigationTitle(navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(isOnboardingMode)
+            .toolbar {
+                // Onboarding 模式：顯示自訂返回按鈕
+                if isOnboardingMode {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            onboardingCoordinator.goBack()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                Text(NSLocalizedString("common.back", comment: "Back"))
+                            }
                         }
                     }
                 }
-                .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
-                    Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
-                } message: {
-                    Text(alertMessage)
-                }
-                .task {
-                    await loadZoneData()
-                }
-                .background(navigationLinkView)
-        }
+            }
+            .toolbar {
+                toolbarContent
+            }
+            .alert(NSLocalizedString("common.confirm", comment: "Confirm"), isPresented: $showingAlert) {
+                Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
+            .task {
+                await loadZoneData()
+            }
     }
 
     // MARK: - View Components
@@ -116,7 +126,7 @@ struct HeartRateZoneInfoView: View {
     private var editToggleHeader: some View {
         HStack {
             Text(NSLocalizedString("hr_zone.current_settings", comment: "Current Settings"))
-                .font(.headline)
+                .font(AppFont.headline())
 
             Spacer()
 
@@ -160,10 +170,10 @@ struct HeartRateZoneInfoView: View {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -182,13 +192,13 @@ struct HeartRateZoneInfoView: View {
 
                     Text("bpm")
                         .foregroundColor(.secondary)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                 }
             }
 
             // 添加 220-年齡 公式提示
             Text(NSLocalizedString("hr_zone.max_hr_formula_hint", comment: "Tip: You can estimate your max heart rate using the formula: 220 - age"))
-                .font(.caption2)
+                .font(AppFont.captionSmall())
                 .foregroundColor(.secondary.opacity(0.8))
                 .italic()
         }
@@ -201,10 +211,10 @@ struct HeartRateZoneInfoView: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -223,7 +233,7 @@ struct HeartRateZoneInfoView: View {
 
                 Text("bpm")
                     .foregroundColor(.secondary)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
             }
         }
         .padding(.horizontal)
@@ -234,20 +244,20 @@ struct HeartRateZoneInfoView: View {
     private var displayModeContent: some View {
         HStack {
             Text(NSLocalizedString("hr_zone.max_heart_rate_display", comment: "Max Heart Rate"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
             Spacer()
             Text("\(maxHeartRate) bpm")
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal)
 
         HStack {
             Text(NSLocalizedString("hr_zone.resting_heart_rate_display", comment: "Resting Heart Rate"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
             Spacer()
             Text("\(restingHeartRate) bpm")
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal)
@@ -257,7 +267,7 @@ struct HeartRateZoneInfoView: View {
     private var heartRateZoneDetailsView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(NSLocalizedString("hr_zone.details", comment: "Heart Rate Zone Details"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .padding(.horizontal)
 
             if isLoading {
@@ -273,27 +283,27 @@ struct HeartRateZoneInfoView: View {
     }
 
     @ViewBuilder
-    private func zoneDetailRow(zone: HeartRateZonesManager.HeartRateZone) -> some View {
+    private func zoneDetailRow(zone: HeartRateZone) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
 
                 Spacer()
 
                 Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.primary)
                     .fontWeight(.medium)
             }
 
             Text(zone.description)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             Text(String(format: NSLocalizedString("hr_zone.benefit", comment: "Benefit"), zone.benefit))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)
@@ -312,25 +322,28 @@ struct HeartRateZoneInfoView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         if isOnboardingMode {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("common.back", comment: "Back"))
-                }
-            }
-
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    Task { await saveHeartRateZones() }
-                }) {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text(NSLocalizedString("onboarding.next", comment: "Next"))
+                HStack(spacing: 16) {
+                    // 略過按鈕
+                    Button(action: {
+                        onboardingCoordinator.navigate(to: .personalBest)
+                    }) {
+                        Text(NSLocalizedString("onboarding.skip", comment: "Skip"))
+                            .foregroundColor(.secondary)
                     }
+
+                    // 下一步按鈕
+                    Button(action: {
+                        Task { await saveHeartRateZones() }
+                    }) {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text(NSLocalizedString("onboarding.next", comment: "Next"))
+                        }
+                    }
+                    .disabled(isSaving)
                 }
-                .disabled(isSaving)
             }
         } else {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -344,32 +357,8 @@ struct HeartRateZoneInfoView: View {
         }
     }
 
-    @ViewBuilder
-    private var skipButton: some View {
-        Button(action: {
-            navigateToPersonalBest = true
-        }) {
-            Text(NSLocalizedString("onboarding.skip_heart_rate", comment: "Skip (Use Default Values)"))
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var navigationLinkView: some View {
-        if isOnboardingMode, let distance = targetDistance {
-            NavigationLink(
-                destination: PersonalBestView(targetDistance: distance)
-                    .navigationBarBackButtonHidden(true),
-                isActive: $navigateToPersonalBest
-            ) {
-                EmptyView()
-            }
-            .hidden()
-        }
-    }
-
     // MARK: - Private Functions
+    @MainActor
     private func loadZoneData() async {
         isLoading = true
 
@@ -377,7 +366,8 @@ struct HeartRateZoneInfoView: View {
         loadCurrentValues()
 
         if !isOnboardingMode {
-            zones = HeartRateZonesManager.shared.getHeartRateZones()
+            // Use HeartRateZone entity directly instead of deprecated HeartRateZonesManager
+            zones = HeartRateZone.calculateZones(maxHR: maxHeartRate, restingHR: restingHeartRate)
         }
 
         if isOnboardingMode {
@@ -388,19 +378,20 @@ struct HeartRateZoneInfoView: View {
     }
 
     private func loadCurrentValues() {
-        if let maxHR = userPreferenceManager.maxHeartRate {
+        if let maxHR = viewModel.maxHeartRate {
             maxHeartRate = maxHR
         } else {
             maxHeartRate = 190
         }
 
-        if let restingHR = userPreferenceManager.restingHeartRate {
+        if let restingHR = viewModel.restingHeartRate {
             restingHeartRate = restingHR
         } else {
             restingHeartRate = 60
         }
     }
 
+    @MainActor
     private func saveHeartRateZones() async {
         if maxHeartRate <= restingHeartRate {
             alertMessage = NSLocalizedString("hr_zone.max_greater_than_resting", comment: "Max greater than resting")
@@ -422,7 +413,7 @@ struct HeartRateZoneInfoView: View {
 
         isSaving = true
 
-        userPreferenceManager.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
+        viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
 
         do {
             let userData = [
@@ -430,27 +421,22 @@ struct HeartRateZoneInfoView: View {
                 "relaxing_hr": restingHeartRate
             ] as [String : Any]
 
-            try await UserService.shared.updateUserData(userData)
+            _ = await viewModel.updateUserProfile(userData)
 
-            await MainActor.run {
-                isSaving = false
-                if isOnboardingMode {
-                    navigateToPersonalBest = true
-                } else {
-                    isEditing = false
-                }
-            }
+            isSaving = false
 
-            if !isOnboardingMode {
+            if isOnboardingMode {
+                // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
+                onboardingCoordinator.navigate(to: .personalBest)
+            } else {
+                isEditing = false
                 await loadZoneData()
             }
 
         } catch {
-            await MainActor.run {
-                isSaving = false
-                alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
-                showingAlert = true
-            }
+            isSaving = false
+            alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
+            showingAlert = true
         }
     }
 

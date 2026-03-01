@@ -11,7 +11,7 @@ struct GenerateNextWeekButton: View {
         VStack(spacing: 16) {
             // 標題
             Text(NSLocalizedString("training.ready_for_next_week", comment: "🎯 準備好下週訓練了嗎？"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             // 按鈕
@@ -22,7 +22,7 @@ struct GenerateNextWeekButton: View {
             } label: {
                 VStack(spacing: 8) {
                     Text(String(format: NSLocalizedString("training.generate_week_plan", comment: "產生第%d週課表"), nextWeekInfo.weekNumber))
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     // 提示文字
                     if nextWeekInfo.requiresCurrentWeekSummary {
@@ -30,14 +30,14 @@ struct GenerateNextWeekButton: View {
                             Image(systemName: "lightbulb.fill")
                             Text(NSLocalizedString("training.need_complete_review", comment: "需要先完成本週回顧"))
                         }
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.white.opacity(0.8))
                     } else {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                             Text(NSLocalizedString("training.review_completed", comment: "本週回顧已完成"))
                         }
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.white.opacity(0.8))
                     }
                 }
@@ -59,7 +59,7 @@ struct GenerateNextWeekButton: View {
                     Logger.debug("✅ [GenerateNextWeekButton] 用戶確認產生課表")
                     Task {
                         await viewModel.generateNextWeekPlan(nextWeekInfo: nextWeekInfo)
-                    }
+                    }.tracked(from: "GenerateNextWeekButton: generateNextWeekPlan")
                 }
             } message: {
                 Text(NSLocalizedString("training.confirm_training_completed_message", comment: "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。"))
@@ -80,13 +80,13 @@ struct ReturnToCurrentWeekButton: View {
         Button {
             Task {
                 await viewModel.fetchWeekPlan(week: viewModel.currentWeek)
-            }
+            }.tracked(from: "ReturnToCurrentWeekButton: fetchWeekPlan")
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.left.circle.fill")
-                    .font(.body)
+                    .font(AppFont.body())
                 Text("返回本週（第\(viewModel.currentWeek)週）")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
             }
             .foregroundColor(.blue)
             .padding(.vertical, 8)
@@ -104,11 +104,11 @@ struct SuccessToast: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .foregroundColor(.green)
 
                 Text(message)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
             }
 
@@ -116,7 +116,7 @@ struct SuccessToast: View {
                 Button("返回本週") {
                     isPresented = false
                 }
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.blue)
                 .padding(.top, 4)
             }
@@ -139,7 +139,7 @@ struct InfoToast: View {
                 .tint(.blue)
 
             Text(message)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.primary)
         }
         .padding(.horizontal, 20)

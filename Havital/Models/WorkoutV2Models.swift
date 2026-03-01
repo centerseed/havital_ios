@@ -178,26 +178,28 @@ struct SafeDouble: Codable {
         
         // Try to decode as Double first
         if let doubleValue = try? container.decode(Double.self) {
-            _internal = doubleValue
+            _internal = doubleValue.isFinite ? doubleValue : nil
             return
         }
-        
+
         // Try to decode as String and convert
         if let stringValue = try? container.decode(String.self),
-           let doubleValue = Double(stringValue) {
+           let doubleValue = Double(stringValue),
+           doubleValue.isFinite {
             _internal = doubleValue
             return
         }
-        
+
         // Try to decode as Int and convert
         if let intValue = try? container.decode(Int.self) {
             _internal = Double(intValue)
             return
         }
-        
+
         // Try to decode as Decimal and convert
         if let decimalValue = try? container.decode(Decimal.self) {
-            _internal = NSDecimalNumber(decimal: decimalValue).doubleValue
+            let doubleValue = NSDecimalNumber(decimal: decimalValue).doubleValue
+            _internal = doubleValue.isFinite ? doubleValue : nil
             return
         }
         
@@ -236,16 +238,22 @@ struct SafeInt: Codable {
         }
         
         // Try to decode as Double and convert
-        if let doubleValue = try? container.decode(Double.self) {
+        if let doubleValue = try? container.decode(Double.self), doubleValue.isFinite {
             _internal = Int(doubleValue)
             return
         }
-        
+
         // Try to decode as String and convert
-        if let stringValue = try? container.decode(String.self),
-           let intValue = Int(stringValue) {
-            _internal = intValue
-            return
+        if let stringValue = try? container.decode(String.self) {
+            // 先嘗試直接轉 Int，再嘗試透過 Double 轉換（處理 "3.14" 這種情況）
+            if let intValue = Int(stringValue) {
+                _internal = intValue
+                return
+            }
+            if let doubleValue = Double(stringValue), doubleValue.isFinite {
+                _internal = Int(doubleValue)
+                return
+            }
         }
         
         _internal = nil
@@ -423,6 +431,7 @@ struct WorkoutV2Detail: Codable {
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
     let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+    let trainingNotes: String?  // 訓練心得 (optional,向後兼容)
 
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -450,6 +459,7 @@ struct WorkoutV2Detail: Codable {
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
         case shareCardContent = "share_card_content"
+        case trainingNotes = "training_notes"
     }
 }
 
@@ -861,7 +871,28 @@ struct LapData: Codable, Identifiable {
         case _avgHeartRateBpm = "avg_heart_rate_bpm"
         case metadata = "metadata"
     }
-    
+
+    /// 直接建構 LapData（用於從 Apple Health 建立，不經過 JSON round-trip）
+    init(
+        lapNumber: Int,
+        startTimeOffsetS: Int,
+        totalTimeS: Int? = nil,
+        totalDistanceM: Double? = nil,
+        avgSpeedMPerS: Double? = nil,
+        avgPaceSPerKm: Double? = nil,
+        avgHeartRateBpm: Int? = nil,
+        metadata: [String: String]? = nil
+    ) {
+        self.lapNumber = lapNumber
+        self._startTimeOffsetS = SafeInt(value: startTimeOffsetS)
+        self._totalTimeS = totalTimeS.map { SafeInt(value: $0) }
+        self._totalDistanceM = totalDistanceM.map { SafeDouble(value: $0) }
+        self._avgSpeedMPerS = avgSpeedMPerS.map { SafeDouble(value: $0) }
+        self._avgPaceSPerKm = avgPaceSPerKm.map { SafeDouble(value: $0) }
+        self._avgHeartRateBpm = avgHeartRateBpm.map { SafeInt(value: $0) }
+        self.metadata = metadata
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -1000,6 +1031,16 @@ struct ZoneDistribution: Codable {
         case _anaerobic = "anaerobic"
         case _easy = "easy"
     }
+
+    // Manual init for mapping
+    init(marathon: Double? = nil, threshold: Double? = nil, recovery: Double? = nil, interval: Double? = nil, anaerobic: Double? = nil, easy: Double? = nil) {
+        self._marathon = marathon.map { SafeDouble(value: $0) }
+        self._threshold = threshold.map { SafeDouble(value: $0) }
+        self._recovery = recovery.map { SafeDouble(value: $0) }
+        self._interval = interval.map { SafeDouble(value: $0) }
+        self._anaerobic = anaerobic.map { SafeDouble(value: $0) }
+        self._easy = easy.map { SafeDouble(value: $0) }
+    }
 }
 
 struct APIIntensityMinutes: Codable {
@@ -1016,6 +1057,13 @@ struct APIIntensityMinutes: Codable {
         case _low = "low"
         case _medium = "medium"
         case _high = "high"
+    }
+
+    // Manual init for mapping
+    init(low: Double? = nil, medium: Double? = nil, high: Double? = nil) {
+        self._low = low.map { SafeDouble(value: $0) }
+        self._medium = medium.map { SafeDouble(value: $0) }
+        self._high = high.map { SafeDouble(value: $0) }
     }
 }
 
@@ -1371,13 +1419,13 @@ extension WorkoutV2 {
     }
 }
 
-// MARK: - Apple Health Lap Data Upload Helper Extension
+// MARK: - Apple Health Lap Data Helper Extension
 
 extension LapData {
     /// 從 Apple Health 分圈事件創建 LapData（用於上傳）
     static func fromAppleHealth(
         lapNumber: Int,
-        startTimeOffset: TimeInterval,  // 相對於運動開始時間的偏移秒數
+        startTimeOffset: TimeInterval,
         duration: TimeInterval,
         distance: Double?,
         averagePace: Double?,
@@ -1385,49 +1433,56 @@ extension LapData {
         type: String,
         metadata: [String: String]?
     ) -> LapData {
-        // 將 Apple Health 格式轉換為後端 API 格式
-        let startOffset = Int(startTimeOffset)  // 相對偏移，不是絕對時間戳
-        let totalTime = Int(duration)
-        let avgSpeed = distance.map { $0 / duration }
-        let avgHR = averageHeartRate.map { Int($0) }
+        let safeOffset = startTimeOffset.isFinite ? Int(startTimeOffset) : 0
+        let safeDuration = duration.isFinite ? Int(duration) : nil
+        let safeDistance = distance?.isFinite == true ? distance : nil
+        let safeSpeed: Double? = if let d = safeDistance, duration > 0 { d / duration } else { nil }
+        let safePace = averagePace?.isFinite == true ? averagePace : nil
+        let safeHR = averageHeartRate.flatMap { $0.isFinite ? Int($0) : nil }
 
-        // 構建 JSON 字典，只包含非 nil 值
-        var jsonDict: [String: Any] = [
-            "lap_number": lapNumber,
-            "start_time_offset_s": startOffset
-        ]
-
-        if let time = totalTime as Int? {
-            jsonDict["total_time_s"] = time
-        }
-
-        if let dist = distance {
-            jsonDict["total_distance_m"] = dist
-        }
-
-        if let speed = avgSpeed {
-            jsonDict["avg_speed_m_per_s"] = speed
-        }
-
-        if let pace = averagePace {
-            jsonDict["avg_pace_s_per_km"] = pace
-        }
-
-        if let hr = avgHR {
-            jsonDict["avg_heart_rate_bpm"] = hr
-        }
-
-        if let meta = metadata {
-            jsonDict["metadata"] = meta
-        }
-
-        // 創建 JSON 數據並解碼
-        if let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict),
-           let lapData = try? JSONDecoder().decode(LapData.self, from: jsonData) {
-            return lapData
-        }
-
-        // 備用方案：使用預設值
-        fatalError("Failed to create LapData from Apple Health data")
+        return LapData(
+            lapNumber: lapNumber,
+            startTimeOffsetS: safeOffset,
+            totalTimeS: safeDuration,
+            totalDistanceM: safeDistance,
+            avgSpeedMPerS: safeSpeed,
+            avgPaceSPerKm: safePace,
+            avgHeartRateBpm: safeHR,
+            metadata: metadata
+        )
     }
 }
+
+// MARK: - Equatable Extensions
+
+extension SafeDouble: Equatable {}
+extension SafeInt: Equatable {}
+
+extension V2BasicMetrics: Equatable {}
+extension V2AdvancedMetrics: Equatable {}
+extension V2IntensityMinutes: Equatable {}
+extension V2PaceZoneSpeed: Equatable {}
+extension V2ZoneDistribution: Equatable {}
+extension V2TimeSeries: Equatable {}
+extension V2RouteData: Equatable {}
+extension V2DeviceInfo: Equatable {}
+extension V2Environment: Equatable {}
+extension V2Metadata: Equatable {}
+
+extension APIIntensityMinutes: Equatable {}
+extension ZoneDistribution: Equatable {}
+extension BasicMetrics: Equatable {}
+extension AdvancedMetrics: Equatable {}
+
+extension DailyPlanSummary: Equatable {}
+extension AISummary: Equatable {}
+extension ShareCardContent: Equatable {}
+extension LapData: Equatable {}
+
+extension WorkoutV2: Equatable {}
+extension WorkoutV2Detail: Equatable {}
+
+// MARK: - More Equatable Extensions (DailyPlan)
+extension DailyPlanSegment: Equatable {}
+extension DailyTrainingDetails: Equatable {}
+extension DailySummaryHeartRateRange: Equatable {}

@@ -23,7 +23,7 @@ struct HeartRateDebugHelper {
             Logger.debug("[HeartRateDebug] UserDefaults.heart_rate_prompt_next_remind_date: nil")
         }
 
-        let manager = UserPreferenceManager.shared
+        let manager = UserPreferencesManager.shared
         Logger.debug("[HeartRateDebug] Manager.maxHeartRate: \(manager.maxHeartRate ?? 0)")
         Logger.debug("[HeartRateDebug] Manager.restingHeartRate: \(manager.restingHeartRate ?? 0)")
         Logger.debug("[HeartRateDebug] Manager.doNotShowHeartRatePrompt: \(manager.doNotShowHeartRatePrompt)")
@@ -42,7 +42,7 @@ struct HeartRateDebugHelper {
         UserDefaults.standard.removeObject(forKey: "heart_rate_prompt_next_remind_date")
         UserDefaults.standard.removeObject(forKey: "heart_rate_zones")
 
-        let manager = UserPreferenceManager.shared
+        let manager = UserPreferencesManager.shared
         manager.maxHeartRate = nil
         manager.restingHeartRate = nil
         manager.doNotShowHeartRatePrompt = false
@@ -57,7 +57,7 @@ struct HeartRateDebugHelper {
     static func simulateRemindMeTomorrow() {
         Logger.debug("[HeartRateDebug] ⏰ 模擬「明天再提醒」（1分鐘後過期）")
         let oneMinuteLater = Date().addingTimeInterval(60)
-        UserPreferenceManager.shared.heartRatePromptNextRemindDate = oneMinuteLater
+        UserPreferencesManager.shared.heartRatePromptNextRemindDate = oneMinuteLater
         Logger.debug("[HeartRateDebug] ✅ 下次提醒時間設為：\(oneMinuteLater)")
     }
 }

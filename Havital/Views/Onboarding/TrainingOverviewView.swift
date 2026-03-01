@@ -1,133 +1,79 @@
+//
+//  TrainingOverviewView.swift
+//  Havital
+//
+//  Training Overview onboarding step
+//  Refactored to use OnboardingFeatureViewModel (Clean Architecture)
+//
+
 import SwiftUI
 
 // MARK: - Mode Enum
 enum TrainingOverviewMode {
-    case preview   // 從 TrainingDaysSetupView 預覽，需要生成第一週計劃
-    case final     // 從 TrainingDaysSetupView 生成計劃後最終展示
-}
-
-// MARK: - ViewModel
-@MainActor
-class TrainingOverviewViewModel: ObservableObject {
-    @Published var trainingOverview: TrainingPlanOverview?
-    @Published var targetPace: String = "6:00"
-    @Published var raceDate: Date = Date()
-    @Published var isLoading = false
-    @Published var error: String?
-    @Published var isTargetEvaluateExpanded = false
-    @Published var isHighlightExpanded = false  // 計劃亮點收折狀態
-    @Published var isGeneratingPlan = false
-    @Published var navigateToMainApp = false
-
-    let mode: TrainingOverviewMode
-    let isBeginner: Bool
-
-    init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
-        self.mode = mode
-        self.trainingOverview = trainingOverview
-        self.isBeginner = isBeginner
-    }
-
-    func loadTrainingOverview() async {
-        // 如果是 preview 模式且已經有 overview，則不需要載入
-        if mode == .preview && trainingOverview != nil {
-            print("[TrainingOverviewViewModel] Preview 模式，使用傳入的 overview")
-            return
-        }
-
-        isLoading = true
-        error = nil
-
-        do {
-            // 獲取訓練總覽
-            let overview = try await TrainingPlanService.shared.getTrainingPlanOverview()
-
-            // TODO: 獲取目標配速和賽事日期（從 Target 或其他來源）
-            // 暫時使用模擬數據
-
-            await MainActor.run {
-                self.trainingOverview = overview
-                self.isLoading = false
-            }
-        } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
-                self.isLoading = false
-            }
-        }
-    }
-
-    func completeOnboarding(dismiss: DismissAction) async {
-        isGeneratingPlan = true
-        error = nil
-
-        do {
-            // 如果是 preview 模式，需要調用 createWeeklyPlan API
-            if mode == .preview {
-                print("[TrainingOverviewViewModel] Preview 模式，調用 createWeeklyPlan，isBeginner: \(self.isBeginner)")
-                let _ = try await TrainingPlanService.shared.createWeeklyPlan(startFromStage: nil, isBeginner: self.isBeginner)
-                print("[TrainingOverviewViewModel] 第一週計劃生成成功")
-            } else {
-                print("[TrainingOverviewViewModel] Final 模式，第一週計劃已生成，直接完成 onboarding")
-            }
-
-            // 標記 onboarding 完成
-            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-            print("[TrainingOverviewViewModel] 已設置 hasCompletedOnboarding = true")
-
-            await MainActor.run {
-                self.isGeneratingPlan = false
-                // 設置完成標誌，讓 AuthenticationService 觸發導航
-                AuthenticationService.shared.hasCompletedOnboarding = true
-                print("[TrainingOverviewViewModel] Onboarding 完成")
-
-                // 關閉畫面（如果在 sheet 中會關閉 sheet，在 NavigationView 中會返回）
-                dismiss()
-            }
-        } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
-                self.isGeneratingPlan = false
-            }
-        }
-    }
+    case preview   // From TrainingDaysSetupView preview, needs to generate first week plan
+    case final     // From TrainingDaysSetupView after plan generation
 }
 
 // MARK: - View
 struct TrainingOverviewView: View {
-    @StateObject private var viewModel: TrainingOverviewViewModel
+    @StateObject private var viewModel: OnboardingFeatureViewModel
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @Environment(\.dismiss) private var dismiss
 
+    // UI State
+    @State private var targetPace: String = "6:00"
+    @State private var isTargetEvaluateExpanded = false
+    @State private var isHighlightExpanded = false
+
+    let mode: TrainingOverviewMode
+    let initialOverview: TrainingPlanOverview?
+
+    /// 判斷是否為 V2 流程
+    private var isV2Flow: Bool {
+        return coordinator.selectedTargetTypeId != nil
+    }
+
+    /// V2 Overview（優先從 coordinator 獲取）
+    private var overviewV2: PlanOverviewV2? {
+        return coordinator.trainingPlanOverviewV2 ?? viewModel.trainingOverviewV2
+    }
+
+    /// V1 Overview（優先從 coordinator 獲取）
+    private var overviewV1: TrainingPlanOverview? {
+        return viewModel.trainingOverview ?? coordinator.trainingPlanOverview
+    }
+
+    /// 是否有可顯示的 Overview
+    private var hasOverview: Bool {
+        return isV2Flow ? overviewV2 != nil : overviewV1 != nil
+    }
+
     init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
-        _viewModel = StateObject(wrappedValue: TrainingOverviewViewModel(mode: mode, trainingOverview: trainingOverview, isBeginner: isBeginner))
+        self.mode = mode
+        self.initialOverview = trainingOverview
+        _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
     }
 
     var body: some View {
         ZStack {
-            // 主要內容區域
+            // Main content area
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Summary Section
-                    summarySection
-
-                    // Target Evaluate (折疊)
-                    if let overview = viewModel.trainingOverview,
-                       !overview.targetEvaluate.isEmpty {
-                        targetEvaluateSection(overview.targetEvaluate)
+                    if isV2Flow {
+                        // V2 Flow Content
+                        v2ContentSection
+                    } else {
+                        // V1 Flow Content
+                        v1ContentSection
                     }
 
-                    // Training Timeline
-                    if let overview = viewModel.trainingOverview {
-                        timelineSection(overview)
-                    }
-
-                    // 底部留白，避免被按鈕遮蔽
+                    // Bottom padding to avoid button overlay
                     Color.clear.frame(height: 100)
                 }
                 .padding()
             }
 
-            // 底部固定按鈕
+            // Bottom fixed button
             VStack {
                 Spacer()
                 generateButton
@@ -135,41 +81,294 @@ struct TrainingOverviewView: View {
         }
         .navigationTitle(NSLocalizedString("onboarding.training_overview_title", comment: "Training Overview"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("common.back", comment: "Back"))
+        .task {
+            // Set isBeginner from coordinator
+            viewModel.isBeginner = coordinator.isBeginner
+
+            if isV2Flow {
+                // V2 流程：Overview 已經在 TrainingDaysSetupView 中創建
+                // 從 coordinator 獲取，更新 targetPace
+                if let overview = overviewV2 {
+                    targetPace = overview.targetPace ?? "6:00"
+                    Logger.debug("[TrainingOverviewView] V2 flow: Using overview from coordinator: \(overview.id)")
+                } else {
+                    Logger.warn("[TrainingOverviewView] V2 flow: No overview found in coordinator")
+                }
+            } else {
+                // V1 流程：使用原有邏輯
+                if let overview = initialOverview {
+                    viewModel.trainingOverview = overview
+                    await loadTargetPace()
+                } else {
+                    await viewModel.loadTrainingOverview()
+                    await loadTargetPace()
                 }
             }
         }
-        .task {
-            await viewModel.loadTrainingOverview()
-        }
-        .fullScreenCover(isPresented: $viewModel.isGeneratingPlan) {
+        .fullScreenCover(isPresented: $coordinator.isCompleting) {
             LoadingAnimationView(messages: [
-                NSLocalizedString("onboarding.analyzing_preferences", comment: "正在分析您的訓練偏好"),
-                NSLocalizedString("onboarding.calculating_intensity", comment: "計算最佳訓練強度中"),
-                NSLocalizedString("onboarding.almost_ready", comment: "就要完成了！正在為您準備專屬課表")
+                NSLocalizedString("onboarding.analyzing_preferences", comment: "Analyzing your training preferences"),
+                NSLocalizedString("onboarding.calculating_intensity", comment: "Calculating optimal training intensity"),
+                NSLocalizedString("onboarding.almost_ready", comment: "Almost ready! Preparing your personalized schedule")
             ], totalDuration: 20)
         }
-        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: .constant(viewModel.error != nil)) {
+        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: .constant(coordinator.error != nil)) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {
-                viewModel.error = nil
+                coordinator.error = nil
             }
         } message: {
-            if let error = viewModel.error {
+            if let error = coordinator.error {
                 Text(error)
             }
         }
     }
 
-    // MARK: - Summary Section
+    // MARK: - Load Target Pace
+    private func loadTargetPace() async {
+        targetPace = await viewModel.loadTargetPace()
+    }
+
+    // MARK: - V1 Content Section
+    @ViewBuilder
+    private var v1ContentSection: some View {
+        // Summary Section
+        summarySection
+
+        // Target Evaluate (collapsible)
+        if let overview = overviewV1,
+           !overview.targetEvaluate.isEmpty {
+            targetEvaluateSection(overview.targetEvaluate)
+        }
+
+        // Training Timeline
+        if let overview = overviewV1 {
+            timelineSection(overview)
+        }
+    }
+
+    // MARK: - V2 Content Section
+    @ViewBuilder
+    private var v2ContentSection: some View {
+        if let overview = overviewV2 {
+            // Summary Section - V2
+            summarySectionV2(overview)
+
+            // Target Evaluate (collapsible)
+            if !overview.targetEvaluate.isEmpty {
+                targetEvaluateSection(overview.targetEvaluate)
+            }
+
+            // Approach Summary (類似 V1 的 Training Highlight)
+            if !overview.approachSummary.isEmpty {
+                approachSummarySection(overview.approachSummary)
+            }
+
+            // Training Timeline - V2
+            timelineSectionV2(overview)
+        } else {
+            // Loading state
+            VStack(spacing: 16) {
+                ProgressView()
+                Text(NSLocalizedString("common.loading", comment: "Loading..."))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    // MARK: - Summary Section V2
+    @ViewBuilder
+    private func summarySectionV2(_ overview: PlanOverviewV2) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Total Weeks
+            HStack {
+                Label(NSLocalizedString("onboarding.total_weeks", comment: "Total Weeks"), systemImage: "calendar")
+                Spacer()
+                Text("\(overview.totalWeeks) \(NSLocalizedString("common.weeks", comment: "weeks"))")
+                    .foregroundColor(.secondary)
+            }
+
+            // Target Type / Race Date
+            if overview.isRaceRunTarget, let raceDate = overview.raceDateValue {
+                HStack {
+                    Label(NSLocalizedString("onboarding.race_date", comment: "Race Date"), systemImage: "flag.checkered")
+                    Spacer()
+                    Text(raceDate, style: .date)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                HStack {
+                    Label(NSLocalizedString("onboarding.target_type", comment: "Target Type"), systemImage: "target")
+                    Spacer()
+                    Text(overview.targetDescription ?? overview.targetType)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Target Pace (if available)
+            if let pace = overview.targetPace {
+                HStack {
+                    Label(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"), systemImage: "speedometer")
+                    Spacer()
+                    Text("\(pace) /km")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Methodology (if available)
+            if let methodology = overview.methodologyOverview {
+                HStack {
+                    Label(NSLocalizedString("onboarding.methodology", comment: "Methodology"), systemImage: "book.closed")
+                    Spacer()
+                    Text(methodology.name)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+    }
+
+    // MARK: - Approach Summary Section (V2)
+    @ViewBuilder
+    private func approachSummarySection(_ summary: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.orange)
+                Text(NSLocalizedString("onboarding.approach_summary", comment: "Training Approach"))
+                    .font(AppFont.headline())
+                Spacer()
+                Button(action: {
+                    withAnimation {
+                        isHighlightExpanded.toggle()
+                    }
+                }) {
+                    Image(systemName: isHighlightExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Text(summary)
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
+                .lineLimit(isHighlightExpanded ? nil : 3)
+                .animation(.easeInOut, value: isHighlightExpanded)
+        }
+        .padding()
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.orange.opacity(0.1), Color.yellow.opacity(0.05)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .cornerRadius(12)
+    }
+
+    // MARK: - Timeline Section V2
+    @ViewBuilder
+    private func timelineSectionV2(_ overview: PlanOverviewV2) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(NSLocalizedString("onboarding.training_timeline", comment: "Training Timeline"))
+                .font(AppFont.headline())
+                .padding(.bottom, 16)
+
+            // Stage cards - V2
+            ForEach(Array(overview.trainingStages.enumerated()), id: \.offset) { index, stage in
+                stageCardV2(
+                    stage,
+                    stageIndex: index,
+                    isLast: index == overview.trainingStages.count - 1,
+                    nextStageColor: index < overview.trainingStages.count - 1 ? stageColor(for: index + 1) : nil
+                )
+            }
+        }
+    }
+
+    // MARK: - Stage Card V2
+    @ViewBuilder
+    private func stageCardV2(_ stage: TrainingStageV2, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Left timeline (circle + connection line)
+            ZStack(alignment: .top) {
+                // Dashed connection line (behind the circle, fills full height)
+                if !isLast, let nextColor = nextStageColor {
+                    VStack(spacing: 0) {
+                        // Offset to start below circle center
+                        Color.clear.frame(height: 10)
+                        DashedTimelineLine(color: nextColor)
+                    }
+                }
+
+                // Circle on top
+                Circle()
+                    .fill(stageColor(for: stageIndex))
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                    )
+                    .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
+            }
+            .frame(width: 20)
+
+            // Right content
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(stage.stageName)
+                        .font(AppFont.headline())
+                    Spacer()
+                    Text(weekRangeTextV2(stage))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+                }
+
+                // Weekly distance range
+                Text("\(Int(stage.targetWeeklyKmRange.low))-\(Int(stage.targetWeeklyKmRange.high)) \(NSLocalizedString("unit.km", comment: "km"))/\(NSLocalizedString("common.week_unit", comment: "week"))")
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(stageColor(for: stageIndex))
+
+                // Training Focus (brief)
+                if !stage.trainingFocus.isEmpty {
+                    Text(stage.trainingFocus)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.top, 2)
+                }
+
+                // Stage Description (detailed)
+                if !stage.stageDescription.isEmpty {
+                    Text(stage.stageDescription)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
+            }
+        }
+        .padding(.bottom, isLast ? 0 : 0)
+    }
+
+    // MARK: - Helper for V2 Week Range
+    private func weekRangeTextV2(_ stage: TrainingStageV2) -> String {
+        if stage.weekStart == stage.weekEnd {
+            return String(format: NSLocalizedString("onboarding.week_single", comment: "Week %d"), stage.weekStart)
+        } else {
+            return String(format: NSLocalizedString("onboarding.week_range", comment: "Week %d-%d"), stage.weekStart, stage.weekEnd)
+        }
+    }
+
+    // MARK: - Summary Section (V1)
     @ViewBuilder
     private var summarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let overview = viewModel.trainingOverview {
+            if let overview = overviewV1 {
                 HStack {
                     Label(NSLocalizedString("onboarding.total_weeks", comment: "Total Weeks"), systemImage: "calendar")
                     Spacer()
@@ -181,14 +380,14 @@ struct TrainingOverviewView: View {
             HStack {
                 Label(NSLocalizedString("onboarding.race_date", comment: "Race Date"), systemImage: "flag.checkered")
                 Spacer()
-                Text(viewModel.raceDate, style: .date)
+                Text(Date(), style: .date)
                     .foregroundColor(.secondary)
             }
 
             HStack {
                 Label(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"), systemImage: "speedometer")
                 Spacer()
-                Text("\(viewModel.targetPace) /km")
+                Text("\(targetPace) /km")
                     .foregroundColor(.secondary)
             }
         }
@@ -203,23 +402,23 @@ struct TrainingOverviewView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(NSLocalizedString("onboarding.target_evaluate", comment: "Target Evaluation"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Spacer()
                 Button(action: {
                     withAnimation {
-                        viewModel.isTargetEvaluateExpanded.toggle()
+                        isTargetEvaluateExpanded.toggle()
                     }
                 }) {
-                    Image(systemName: viewModel.isTargetEvaluateExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: isTargetEvaluateExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.secondary)
                 }
             }
 
             Text(text)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
-                .lineLimit(viewModel.isTargetEvaluateExpanded ? nil : 2)
-                .animation(.easeInOut, value: viewModel.isTargetEvaluateExpanded)
+                .lineLimit(isTargetEvaluateExpanded ? nil : 2)
+                .animation(.easeInOut, value: isTargetEvaluateExpanded)
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -231,20 +430,20 @@ struct TrainingOverviewView: View {
     private func timelineSection(_ overview: TrainingPlanOverview) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(NSLocalizedString("onboarding.training_timeline", comment: "Training Timeline"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .padding(.bottom, 16)
 
-            // Training Highlight 卡片（移到最上方）
+            // Training Highlight card (at top)
             if !overview.trainingHighlight.isEmpty {
                 highlightCard(overview.trainingHighlight)
                     .padding(.bottom, 16)
             }
 
-            // 階段卡片
+            // Stage cards
             ForEach(Array(overview.trainingStageDescription.enumerated()), id: \.offset) { index, stage in
                 stageCard(
                     stage,
-                    targetPace: viewModel.targetPace,
+                    targetPace: stage.targetPace ?? targetPace,
                     stageIndex: index,
                     isLast: index == overview.trainingStageDescription.count - 1,
                     nextStageColor: index < overview.trainingStageDescription.count - 1 ? stageColor(for: index) : nil
@@ -257,9 +456,17 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // 左側時間軸（圓點 + 連接線）
-            VStack(spacing: 0) {
-                // 圓點
+            // Left timeline (circle + connection line)
+            ZStack(alignment: .top) {
+                // Dashed connection line (behind the circle, fills full height)
+                if !isLast, let nextColor = nextStageColor {
+                    VStack(spacing: 0) {
+                        Color.clear.frame(height: 10)
+                        DashedTimelineLine(color: nextColor)
+                    }
+                }
+
+                // Circle on top
                 Circle()
                     .fill(stageColor(for: stageIndex))
                     .frame(width: 20, height: 20)
@@ -268,51 +475,33 @@ struct TrainingOverviewView: View {
                             .stroke(Color.white, lineWidth: 3)
                     )
                     .shadow(color: stageColor(for: stageIndex).opacity(0.3), radius: 4, x: 0, y: 2)
-
-                // 連接線（如果不是最後一個階段）
-                if !isLast, let nextColor = nextStageColor {
-                    VStack(spacing: 2) {
-                        ForEach(0..<8) { _ in
-                            Rectangle()
-                                .fill(nextColor.opacity(0.6))
-                                .frame(width: 3, height: 6)
-                        }
-                        Image(systemName: "arrowtriangle.down.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(nextColor.opacity(0.6))
-                    }
-                    .padding(.top, 4)
-                }
             }
             .frame(width: 20)
 
-            // 右側內容（無背景卡片）
+            // Right content
             VStack(alignment: .leading, spacing: 4) {
-                // 階段名稱 + 週數範圍（同一行）
                 HStack {
                     Text(stage.stageName)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Spacer()
                     Text(weekRangeText(stage))
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
 
-                // Target Pace（彩色加粗）
-                Text("\(targetPace) /km")
-                    .font(.subheadline)
+                Text(targetPace)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(stageColor(for: stageIndex))
 
-                // Training Focus（小字灰色）
                 if !stage.trainingFocus.isEmpty {
                     Text(stage.trainingFocus)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
         }
-        .padding(.bottom, isLast ? 0 : 8)
+        .padding(.bottom, isLast ? 0 : 0)
     }
 
     // MARK: - Highlight Card
@@ -323,23 +512,23 @@ struct TrainingOverviewView: View {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
                 Text(NSLocalizedString("onboarding.training_highlight", comment: "Training Highlight"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Spacer()
                 Button(action: {
                     withAnimation {
-                        viewModel.isHighlightExpanded.toggle()
+                        isHighlightExpanded.toggle()
                     }
                 }) {
-                    Image(systemName: viewModel.isHighlightExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: isHighlightExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.secondary)
                 }
             }
 
             Text(highlight)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
-                .lineLimit(viewModel.isHighlightExpanded ? nil : 2)
-                .animation(.easeInOut, value: viewModel.isHighlightExpanded)
+                .lineLimit(isHighlightExpanded ? nil : 2)
+                .animation(.easeInOut, value: isHighlightExpanded)
         }
         .padding()
         .background(
@@ -360,7 +549,6 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private var generateButton: some View {
         VStack(spacing: 0) {
-            // 漸變遮罩效果
             LinearGradient(
                 gradient: Gradient(colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)]),
                 startPoint: .top,
@@ -370,12 +558,12 @@ struct TrainingOverviewView: View {
 
             Button(action: {
                 Task {
-                    await viewModel.completeOnboarding(dismiss: dismiss)
+                    await coordinator.completeOnboarding()
                 }
             }) {
-                Text(viewModel.mode == .preview ?
-                     NSLocalizedString("onboarding.confirm_generate_first_week", comment: "確認並生成第一週計劃") :
-                     NSLocalizedString("onboarding.generate_first_week", comment: "生成第一週計劃"))
+                Text(mode == .preview
+                    ? NSLocalizedString("onboarding.confirm_generate_first_week", comment: "Confirm and generate first week plan")
+                    : NSLocalizedString("onboarding.generate_first_week", comment: "Generate first week plan"))
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -383,7 +571,7 @@ struct TrainingOverviewView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
-            .disabled(viewModel.isGeneratingPlan || viewModel.trainingOverview == nil)
+            .disabled(coordinator.isCompleting || !hasOverview)
             .padding(.horizontal)
             .padding(.bottom, 20)
             .background(Color(.systemBackground))
@@ -399,16 +587,46 @@ struct TrainingOverviewView: View {
         }
     }
 
-    /// 根據階段索引返回對應的顏色
     private func stageColor(for index: Int) -> Color {
         let colors: [Color] = [
-            Color(red: 0.2, green: 0.7, blue: 0.9),   // 淺藍色 - 第一階段
-            Color(red: 0.4, green: 0.8, blue: 0.4),   // 綠色 - 第二階段
-            Color(red: 1.0, green: 0.6, blue: 0.2),   // 橘色 - 第三階段
-            Color(red: 0.9, green: 0.3, blue: 0.5),   // 粉紅色 - 第四階段
-            Color(red: 0.6, green: 0.4, blue: 0.9)    // 紫色 - 第五階段
+            Color(red: 0.2, green: 0.7, blue: 0.9),
+            Color(red: 0.4, green: 0.8, blue: 0.4),
+            Color(red: 1.0, green: 0.6, blue: 0.2),
+            Color(red: 0.9, green: 0.3, blue: 0.5),
+            Color(red: 0.6, green: 0.4, blue: 0.9)
         ]
         return colors[index % colors.count]
+    }
+}
+
+// MARK: - Dashed Timeline Line
+/// A dashed vertical line with an arrow at the bottom, fills available height
+private struct DashedTimelineLine: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let totalHeight = geometry.size.height
+            let arrowHeight: CGFloat = 10
+            let lineHeight = max(0, totalHeight - arrowHeight)
+
+            VStack(spacing: 0) {
+                // Dashed line
+                Path { path in
+                    path.move(to: CGPoint(x: 1.5, y: 0))
+                    path.addLine(to: CGPoint(x: 1.5, y: lineHeight))
+                }
+                .stroke(color.opacity(0.6), style: StrokeStyle(lineWidth: 3, dash: [6, 3]))
+                .frame(width: 3, height: lineHeight)
+
+                // Arrow
+                Image(systemName: "arrowtriangle.down.fill")
+                    .font(.system(size: 8))
+                    .foregroundColor(color.opacity(0.6))
+                    .frame(height: arrowHeight)
+            }
+        }
+        .frame(width: 3)
     }
 }
 
@@ -420,39 +638,41 @@ struct TrainingOverviewView_Previews: PreviewProvider {
         }
     }
 
-    /// 模擬訓練總覽數據
     static var mockTrainingOverview: TrainingPlanOverview {
         TrainingPlanOverview(
             id: "mock_overview_123",
             mainRaceId: "mock_race_456",
-            targetEvaluate: "根據您目前的跑步經驗和設定的目標，這是一個具有挑戰性但可達成的目標。建議在訓練過程中注意身體狀況，適度調整訓練強度。如果感到過度疲勞，請適當休息，避免受傷。保持規律的訓練和充足的恢復時間，將有助於您逐步提升跑步能力，最終達成目標。",
+            targetEvaluate: "Based on your running experience and set goals, this is a challenging but achievable target.",
             totalWeeks: 12,
-            trainingHighlight: "本計畫將直接進入強化期，著重於提升您的速度耐力與比賽配速適應能力。透過間歇跑、節奏跑、速度耐力提升等多元化的訓練方式，循序漸進地增強您的心肺功能與肌肉耐力。在訓練後期，我們會安排充分的減量與恢復期，讓您的身體在比賽日達到最佳狀態。",
-            trainingPlanName: "半程馬拉松訓練計劃",
+            trainingHighlight: "This plan will focus on enhancing your speed endurance and race pace adaptation.",
+            trainingPlanName: "Half Marathon Training Plan",
             trainingStageDescription: [
                 TrainingStage(
-                    stageName: "速度與耐力強化",
+                    stageName: "Speed & Endurance",
                     stageId: "stage_1",
-                    stageDescription: "建立跑步基礎，提升心肺功能",
-                    trainingFocus: "間歇跑、節奏跑、速度耐力提升",
+                    stageDescription: "Build running base, improve cardio",
+                    trainingFocus: "Interval runs, tempo runs, speed endurance",
                     weekStart: 1,
-                    weekEnd: 4
+                    weekEnd: 4,
+                    targetPace: "5:40-6:00/km"
                 ),
                 TrainingStage(
-                    stageName: "比賽配速適應",
+                    stageName: "Race Pace Adaptation",
                     stageId: "stage_2",
-                    stageDescription: "熟悉目標配速，建立比賽節奏感",
-                    trainingFocus: "目標配速跑、長間歇、比賽策略模擬",
+                    stageDescription: "Familiarize with target pace",
+                    trainingFocus: "Target pace runs, long intervals",
                     weekStart: 5,
-                    weekEnd: 8
+                    weekEnd: 8,
+                    targetPace: "5:25-5:40/km"
                 ),
                 TrainingStage(
-                    stageName: "賽前減量與恢復",
+                    stageName: "Taper & Recovery",
                     stageId: "stage_3",
-                    stageDescription: "降低訓練量，讓身體充分恢復",
-                    trainingFocus: "輕量跑、短距離配速刺激、充分休息",
+                    stageDescription: "Reduce training load for recovery",
+                    trainingFocus: "Easy runs, short pace stimulation",
                     weekStart: 9,
-                    weekEnd: 12
+                    weekEnd: 12,
+                    targetPace: "6:00-6:30/km"
                 )
             ],
             createdAt: "2025-01-15T10:30:00Z"

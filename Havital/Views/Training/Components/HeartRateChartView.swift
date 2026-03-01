@@ -57,7 +57,7 @@ struct HeartRateChartView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(L10n.HeartRateChart.title.localized)
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Spacer()
 
@@ -134,7 +134,7 @@ struct HeartRateChartView: View {
                         if let heartRate = value.as(Double.self) {
                             AxisValueLabel {
                                 Text("\(Int(heartRate))")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                         }
                     }
@@ -147,7 +147,7 @@ struct HeartRateChartView: View {
                                 Text(
                                     "\(Calendar.current.component(.hour, from: date)):\(String(format: "%02d", Calendar.current.component(.minute, from: date)))"
                                 )
-                                .font(.caption)
+                                .font(AppFont.caption())
                             }
                         }
                     }

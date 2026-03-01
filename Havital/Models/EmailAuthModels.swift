@@ -39,3 +39,24 @@ struct ResendData: Codable {
     let email: String
     let message: String
 }
+
+/// Demo 登入回傳資料
+struct DemoLoginResponse: Codable {
+    let success: Bool
+    let data: DemoLoginData
+}
+
+struct DemoLoginData: Codable {
+    let token: String
+    let idToken: String
+    let refreshToken: String
+    let expiresIn: String
+    let user: DemoUser
+    let isDemo: Bool
+}
+
+struct DemoUser: Codable {
+    let uid: String
+    let email: String
+    let displayName: String
+}

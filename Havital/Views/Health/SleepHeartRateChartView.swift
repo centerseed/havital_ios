@@ -7,7 +7,6 @@ import Charts
 struct SleepHeartRateChartView: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @StateObject private var viewModel: SleepHeartRateViewModel
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
 
     init() {
         _viewModel = StateObject(wrappedValue: SleepHeartRateViewModel())
@@ -45,7 +44,7 @@ struct SleepHeartRateChartView: View {
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
                                     Text(formatDate(date))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                 }
                                 AxisGridLine()
                                 AxisTick()
@@ -57,7 +56,7 @@ struct SleepHeartRateChartView: View {
                             AxisValueLabel {
                                 if let heartRate = value.as(Double.self) {
                                     Text("\(Int(heartRate))")
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                 }
                             }
                             AxisGridLine()

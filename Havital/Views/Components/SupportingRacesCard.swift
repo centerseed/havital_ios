@@ -48,7 +48,7 @@ struct SupportingRacesCard: View {
                     if !past.isEmpty {
                         Divider()
                         Text(L10n.SupportingRacesCard.pastRaces.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                             .padding(.vertical, 4)
                         ForEach(past, id: \.id) { target in
@@ -76,7 +76,7 @@ struct SupportingRaceRow: View {
                 // 第一行：賽事名稱 + 編輯按鈕
                 HStack {
                     Text(target.name)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -84,7 +84,7 @@ struct SupportingRaceRow: View {
                     Spacer()
 
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.gray)
                 }
 
@@ -93,17 +93,17 @@ struct SupportingRaceRow: View {
                     // 賽事日期
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         Text(formatDate(target.raceDate))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
 
                     // 距離
                     HStack(spacing: 4) {
                         Text("\(target.distanceKm)" + L10n.SupportingRacesCard.kmUnit.localized)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -114,7 +114,7 @@ struct SupportingRaceRow: View {
                     // 配速
                     HStack(spacing: 4) {
                         Text(target.targetPace + L10n.SupportingRacesCard.paceUnit.localized)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -130,10 +130,10 @@ struct SupportingRaceRow: View {
                     if daysRemaining <= 30 {
                         HStack(spacing: 4) {
                             Image(systemName: "clock.fill")
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(daysRemaining <= 7 ? .red : .orange)
                             Text(L10n.SupportingRacesCard.daysRemaining.localized(with: daysRemaining))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(daysRemaining <= 7 ? .red : .orange)
                         }
                     }

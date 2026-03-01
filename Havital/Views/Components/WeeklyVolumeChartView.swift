@@ -20,7 +20,7 @@ struct WeeklyVolumeChartView: View {
             if showTitle {
                 HStack {
                     Text(NSLocalizedString("weekly_volume.trend", comment: "Weekly Volume Trend"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
 
                     Button {
@@ -37,7 +37,7 @@ struct WeeklyVolumeChartView: View {
                         ProgressView()
                             .scaleEffect(0.8)
                         Text(NSLocalizedString("weekly_volume.loading", comment: "Loading..."))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -49,7 +49,7 @@ struct WeeklyVolumeChartView: View {
                         ProgressView()
                             .scaleEffect(0.8)
                         Text(NSLocalizedString("weekly_volume.loading", comment: "Loading..."))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -82,17 +82,17 @@ struct WeeklyVolumeChartView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(weekStart)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         if let distance = volume.distanceKm, distance > 0 {
                             Text(String(format: NSLocalizedString("weekly_volume.kilometers", comment: "Kilometers"), distance))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                         } else {
                             Text(NSLocalizedString("weekly_volume.no_running_records", comment: "No running records"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                         }
@@ -155,7 +155,7 @@ struct WeeklyVolumeChartView: View {
                 .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
 
                 Text("\(Int(maxDistance * Double(4 - i) / 4))km")
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
                     .foregroundColor(.secondary)
                     .position(x: -20, y: y)
             }
@@ -184,7 +184,7 @@ struct WeeklyVolumeChartView: View {
 
                 // Date label
                 Text(formatDate(item.date))
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
                     .foregroundColor(.secondary)
                     .position(x: xPosition + barWidth/2, y: chartHeight + 15)
             }
@@ -195,7 +195,7 @@ struct WeeklyVolumeChartView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM/dd"
         // 使用用户设置的时区，如果未设置则使用设备当前时区
-        if let userTimezone = UserPreferenceManager.shared.timezonePreference {
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference {
             formatter.timeZone = TimeZone(identifier: userTimezone)
         } else {
             formatter.timeZone = TimeZone.current

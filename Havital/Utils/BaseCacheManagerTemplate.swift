@@ -117,7 +117,20 @@ class BaseCacheManagerTemplate<DataType: Codable>: BaseCacheManager {
     func isExpired() -> Bool {
         return shouldRefresh(customTTL: nil)
     }
-    
+
+    /// 覆寫基類的 shouldRefresh 方法，使用 CacheContainer 的時間戳來判斷過期
+    func shouldRefresh(customTTL: TimeInterval? = nil) -> Bool {
+        let ttl = customTTL ?? defaultTTL
+
+        guard let timestamp = getCacheTimestamp() else {
+            // 沒有緩存或無法讀取時間戳，認為已過期
+            return true
+        }
+
+        // 檢查距離上次保存的時間是否超過 TTL
+        return Date().timeIntervalSince(timestamp) > ttl
+    }
+
     // MARK: - Enhanced Cache Management
     
     /// 檢查快取年齡

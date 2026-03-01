@@ -45,7 +45,7 @@ struct GarminAttributionView: View {
             // Device name on the right (without "Garmin" prefix)
             if let deviceModel = deviceModel {
                 Text(deviceModel)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
             }
         }
@@ -63,7 +63,7 @@ struct GarminAttributionView: View {
             // Device name on the right (without "Garmin" prefix)
             if let deviceModel = deviceModel {
                 Text(deviceModel)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }
@@ -128,25 +128,25 @@ struct ConditionalGarminAttributionView: View {
     VStack(spacing: 20) {
         VStack(alignment: .leading, spacing: 8) {
             Text("Title Level")
-                .font(.headline)
+                .font(AppFont.headline())
             GarminAttributionView(deviceModel: "Forerunner 955", displayStyle: .titleLevel)
         }
         
         VStack(alignment: .leading, spacing: 8) {
             Text("Secondary")
-                .font(.headline)
+                .font(AppFont.headline())
             GarminAttributionView(deviceModel: "Forerunner 955", displayStyle: .secondary)
         }
         
         VStack(alignment: .leading, spacing: 8) {
             Text("Compact")
-                .font(.headline)
+                .font(AppFont.headline())
             GarminAttributionView(deviceModel: "Forerunner 955", displayStyle: .compact)
         }
         
         VStack(alignment: .leading, spacing: 8) {
             Text("Social")
-                .font(.headline)
+                .font(AppFont.headline())
             GarminAttributionView(deviceModel: "Forerunner 955", displayStyle: .social)
         }
         .padding()
@@ -154,7 +154,7 @@ struct ConditionalGarminAttributionView: View {
         
         VStack(alignment: .leading, spacing: 8) {
             Text("No Device Model")
-                .font(.headline)
+                .font(AppFont.headline())
             GarminAttributionView(displayStyle: .secondary)
         }
     }

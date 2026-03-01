@@ -115,7 +115,7 @@ struct WorkoutSyncDebugView: View {
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("同步狀態")
-                .font(.headline)
+                .font(AppFont.headline())
             
             HStack {
                 VStack(alignment: .leading, spacing: 8) {
@@ -147,15 +147,15 @@ struct WorkoutSyncDebugView: View {
     private var testFunctionsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("測試功能")
-                .font(.headline)
+                .font(AppFont.headline())
             
             HStack(spacing: 12) {
                 Button(action: createTestWorkout) {
                     VStack {
                         Image(systemName: "figure.run")
-                            .font(.title2)
+                            .font(AppFont.title2())
                         Text("創建測試健身記錄")
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -165,9 +165,9 @@ struct WorkoutSyncDebugView: View {
                 Button(action: triggerManualUpload) {
                     VStack {
                         Image(systemName: "arrow.up.circle")
-                            .font(.title2)
+                            .font(AppFont.title2())
                         Text("手動檢查並上傳")
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -179,9 +179,9 @@ struct WorkoutSyncDebugView: View {
                 Button(action: testNotifications) {
                     VStack {
                         Image(systemName: "bell")
-                            .font(.title2)
+                            .font(AppFont.title2())
                         Text("測試通知")
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -191,9 +191,9 @@ struct WorkoutSyncDebugView: View {
                 Button(action: clearUploadHistory) {
                     VStack {
                         Image(systemName: "trash")
-                            .font(.title2)
+                            .font(AppFont.title2())
                         Text("清除上傳歷史")
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -204,7 +204,7 @@ struct WorkoutSyncDebugView: View {
             
             if testWorkoutCreated {
                 Text("已創建測試健身記錄 ID: \(workoutID)")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.green)
                     .padding(.top, 4)
             }
@@ -218,7 +218,7 @@ struct WorkoutSyncDebugView: View {
     private var testDataManagementCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("測試數據管理")
-                .font(.headline)
+                .font(AppFont.headline())
             
             VStack(spacing: 10) {
                 Button(action: {
@@ -256,7 +256,7 @@ struct WorkoutSyncDebugView: View {
             }
             
             Text("刪除功能會移除 HealthKit 中的健身記錄。請謹慎操作，刪除後無法恢復。")
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
         .padding()
@@ -268,7 +268,7 @@ struct WorkoutSyncDebugView: View {
     private var observerSetupCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("HealthKit 觀察者設置")
-                .font(.headline)
+                .font(AppFont.headline())
             
             Button("測試觀察者設置") {
                 testObserverSetup()
@@ -278,7 +278,7 @@ struct WorkoutSyncDebugView: View {
             
             if showObserverSetupResult {
                 Text(observerSetupMessage)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .padding(.top, 4)
                     .foregroundColor(observerSetupMessage.contains("成功") ? .green : .red)
             }
@@ -293,7 +293,7 @@ struct WorkoutSyncDebugView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("操作日誌")
-                    .font(.headline)
+                    .font(AppFont.headline())
                 
                 Spacer()
                 
@@ -301,7 +301,7 @@ struct WorkoutSyncDebugView: View {
                     logMessages.removeAll()
                 }) {
                     Image(systemName: "trash")
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
                 .buttonStyle(.plain)
             }
@@ -310,7 +310,7 @@ struct WorkoutSyncDebugView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(logMessages, id: \.self) { message in
                         Text(message)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }
@@ -328,12 +328,12 @@ struct WorkoutSyncDebugView: View {
     private func statusRow(title: String, value: String) -> some View {
         HStack {
             Text(title)
-                .font(.body)
+                .font(AppFont.body())
             
             Spacer()
             
             Text(value)
-                .font(.body)
+                .font(AppFont.body())
                 .fontWeight(.medium)
         }
     }
@@ -518,7 +518,7 @@ struct WorkoutSyncDebugView: View {
         
         // 格式化距離（如果有）
         var distanceString = ""
-        if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+        if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
             if distance >= 1000 {
                 distanceString = String(format: "%.2f 公里", distance / 1000)
             } else {
@@ -763,7 +763,7 @@ struct WorkoutSyncDebugView: View {
             
             // 修正的距離格式化代碼
             let distanceStr: String
-            if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+            if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                 if distance >= 1000 {
                     distanceStr = String(format: "%.2f km", distance/1000)
                 } else {
@@ -933,7 +933,7 @@ struct WorkoutSyncDebugView: View {
                             .padding(.horizontal)
                             
                             Text("警告：此操作將從您的健康數據中永久刪除這些健身記錄")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
@@ -974,18 +974,18 @@ struct WorkoutSyncDebugView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(workout.workoutActivityType.name)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     Spacer()
                     Text(formattedDuration)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 
                 Text(formattedDate)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                 
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()), distance > 0 {
+                if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                     HStack {
                         Image(systemName: "figure.walk")
                         Text(formattedDistance(distance))
@@ -997,7 +997,7 @@ struct WorkoutSyncDebugView: View {
                             Text(pace)
                         }
                     }
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                 }
             }

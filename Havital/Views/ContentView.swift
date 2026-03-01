@@ -2,11 +2,18 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var authService: AuthenticationService
+    // Clean Architecture: Use AuthenticationViewModel
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @ObservedObject private var appStateManager = AppStateManager.shared
 
+    // 訓練版本路由狀態
+    @State private var trainingVersion: String = "v1"
+    @State private var isCheckingVersion: Bool = true
+
     var body: some View {
+        // 移除高頻日誌：body 每次重新評估都會觸發
+
         Group {
             // 如果 App 正在初始化，顯示載入畫面
             if appStateManager.shouldShowLoadingScreen {
@@ -23,9 +30,9 @@ struct ContentView: View {
                     }
             }
             // 如果用戶未認證，顯示登入畫面
-            else if !authService.isAuthenticated {
+            else if !authViewModel.isAuthenticated {
                 LoginView()
-                    .environmentObject(authService)
+                    .environmentObject(authViewModel)
                     .onAppear {
                         Logger.firebase(
                             "顯示登入畫面",
@@ -33,20 +40,21 @@ struct ContentView: View {
                             labels: [
                                 "module": "ContentView",
                                 "action": "show_login_view",
-                                "user_id": authService.user?.uid ?? "none"
+                                "user_id": authViewModel.currentUser?.uid ?? "none"
                             ],
                             jsonPayload: [
-                                "is_authenticated": authService.isAuthenticated,
-                                "has_completed_onboarding": authService.hasCompletedOnboarding
+                                "is_authenticated": authViewModel.isAuthenticated,
+                                "has_completed_onboarding": authViewModel.hasCompletedOnboarding
                             ]
                         )
                     }
             }
             // 如果用戶未完成引導，顯示引導畫面
-            else if !authService.hasCompletedOnboarding && !authService.isReonboardingMode {
-                // 首次使用，顯示完整 onboarding 流程
-                OnboardingIntroView()
-                    .environmentObject(authService)
+            else if !authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
+                // 首次使用，顯示完整 onboarding 流程（使用新的統一容器）
+                OnboardingContainerView(isReonboarding: false)
+                    .environmentObject(authViewModel)
+                    .environmentObject(FeatureFlagManager.shared)
                     .onAppear {
                         Logger.firebase(
                             "顯示 Onboarding 畫面",
@@ -54,12 +62,12 @@ struct ContentView: View {
                             labels: [
                                 "module": "ContentView",
                                 "action": "show_onboarding_view",
-                                "user_id": authService.user?.uid ?? "unknown"
+                                "user_id": authViewModel.currentUser?.uid ?? "unknown"
                             ],
                             jsonPayload: [
-                                "is_authenticated": authService.isAuthenticated,
-                                "has_completed_onboarding": authService.hasCompletedOnboarding,
-                                "is_reonboarding_mode": authService.isReonboardingMode
+                                "is_authenticated": authViewModel.isAuthenticated,
+                                "has_completed_onboarding": authViewModel.hasCompletedOnboarding,
+                                "is_reonboarding_mode": authViewModel.isReonboardingMode
                             ]
                         )
                     }
@@ -74,69 +82,59 @@ struct ContentView: View {
                             labels: [
                                 "module": "ContentView",
                                 "action": "show_main_content",
-                                "user_id": authService.user?.uid ?? "unknown"
+                                "user_id": authViewModel.currentUser?.uid ?? "unknown"
                             ],
                             jsonPayload: [
-                                "is_authenticated": authService.isAuthenticated,
-                                "has_completed_onboarding": authService.hasCompletedOnboarding
+                                "is_authenticated": authViewModel.isAuthenticated,
+                                "has_completed_onboarding": authViewModel.hasCompletedOnboarding
                             ]
                         )
+
+                        // 檢查訓練版本
+                        checkTrainingVersion()
                     }
                     .sheet(isPresented: Binding(
-                        get: { authService.isReonboardingMode },
+                        get: { authViewModel.isReonboardingMode },
                         set: { newValue in
                             if !newValue {
-                                // 當 sheet 關閉時，重置 reonboarding 模式並恢復 onboarding 狀態
-                                authService.isReonboardingMode = false
-                                authService.hasCompletedOnboarding = true
-                                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                                // 當 sheet 關閉時，確保模式已關閉並重置狀態
+                                authViewModel.isReonboardingMode = false
+                                OnboardingCoordinator.shared.reset()
                             }
                         }
                     )) {
-                        NavigationView {
-                            PersonalBestView(targetDistance: 0)
-                                .environmentObject(authService)
-                        }
-                        .navigationViewStyle(StackNavigationViewStyle())
-                        .onAppear {
-                            Logger.firebase(
-                                "顯示重新設定目標畫面 (Sheet) - 從最佳成績開始",
-                                level: .info,
-                                labels: [
-                                    "module": "ContentView",
-                                    "action": "show_reonboarding_sheet",
-                                    "user_id": authService.user?.uid ?? "unknown"
-                                ]
-                            )
-                        }
+                        // Re-onboarding 使用 OnboardingContainerView，從 personalBest 步驟開始
+                        OnboardingContainerView(isReonboarding: true)
+                            .environmentObject(authViewModel)
+                            .environmentObject(FeatureFlagManager.shared)
                     }
             }
         }
-        .onChange(of: authService.hasCompletedOnboarding) { newValue in
+        .onChange(of: authViewModel.hasCompletedOnboarding) { newValue in
             Logger.firebase(
                 "hasCompletedOnboarding 狀態變更",
                 level: .info,
                 labels: [
                     "module": "ContentView",
                     "action": "onboarding_status_changed",
-                    "user_id": authService.user?.uid ?? "unknown"
+                    "user_id": authViewModel.currentUser?.uid ?? "unknown"
                 ],
                 jsonPayload: [
                     "new_value": newValue,
-                    "is_authenticated": authService.isAuthenticated
+                    "is_authenticated": authViewModel.isAuthenticated
                 ]
             )
             // 完成或重置 onboarding 時自動關閉 modal
             // 移除 fullScreenCover 相關邏輯
         }
-        .onChange(of: authService.isReonboardingMode) { newValue in
+        .onChange(of: authViewModel.isReonboardingMode) { newValue in
             Logger.firebase(
                 "isReonboardingMode 狀態變更",
                 level: .info,
                 labels: [
                     "module": "ContentView",
                     "action": "reonboarding_mode_changed",
-                    "user_id": authService.user?.uid ?? "unknown"
+                    "user_id": authViewModel.currentUser?.uid ?? "unknown"
                 ],
                 jsonPayload: [
                     "new_value": newValue
@@ -151,8 +149,8 @@ struct ContentView: View {
     private func mainAppContent() -> some View {
         // 從 HavitalApp.swift 遷移過來的 TabView
         TabView {
-            TrainingPlanView()
-                // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
+            // 根據訓練版本顯示對應的訓練計劃視圖
+            trainingPlanTab()
                 .tabItem {
                     Image(systemName: "figure.run")
                     Text(L10n.Tab.trainingPlan.localized)
@@ -210,7 +208,46 @@ struct ContentView: View {
     }
 
 
-    
+
+    // MARK: - Training Version Routing
+
+    /// 訓練計劃 Tab - 根據版本動態選擇 V1 或 V2
+    @ViewBuilder
+    private func trainingPlanTab() -> some View {
+        if isCheckingVersion {
+            // 正在檢查版本時顯示載入指示器
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if trainingVersion == "v2" {
+            // V2 版本
+            TrainingPlanV2View()
+        } else {
+            // V1 版本（預設）
+            TrainingPlanView()
+        }
+    }
+
+    /// 檢查訓練版本
+    private func checkTrainingVersion() {
+        Task {
+            let container = DependencyContainer.shared
+
+            // 確保 TrainingVersionRouter 已註冊
+            if !container.isRegistered(TrainingVersionRouter.self) {
+                container.registerTrainingVersionRouter()
+            }
+
+            let router: TrainingVersionRouter = container.resolve()
+            let version = await router.getTrainingVersion()
+
+            await MainActor.run {
+                self.trainingVersion = version
+                self.isCheckingVersion = false
+                Logger.debug("[ContentView] Training version detected: \(version)")
+            }
+        }
+    }
+
     // 輔助屬性，用於避免在 SwiftUI Previews 中自動彈出 Onboarding
     private var isInPreview: Bool {
         return ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
@@ -220,16 +257,16 @@ struct ContentView: View {
 // Preview
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        // 建立一個模擬的 AuthenticationService 供預覽使用
-        let authService = AuthenticationService.shared
+        // Clean Architecture: Use AuthenticationViewModel for preview
+        let authViewModel = AuthenticationViewModel.shared
         let appViewModel = AppViewModel() // 建立一個 AppViewModel 實例供預覽
-        // 你可以根據需要設定 authService 和 appViewModel 的狀態來預覽不同場景
-        // authService.isAuthenticated = true
-        // authService.hasCompletedOnboarding = false
+        // 你可以根據需要設定 authViewModel 和 appViewModel 的狀態來預覽不同場景
+        // authViewModel.isAuthenticated = true
+        // authViewModel.hasCompletedOnboarding = false
         // appViewModel.showHealthKitAlert = true // 範例
-        
+
         return ContentView()
-            .environmentObject(authService)
+            .environmentObject(authViewModel)
             .environmentObject(appViewModel) // 注入 AppViewModel
     }
 }

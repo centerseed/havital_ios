@@ -71,7 +71,7 @@ struct LoadingAnimationView: View {
                 
                 // 輪播訊息
                 Text(messages[messageIndex])
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                     .transition(.opacity)
                     .id(messageIndex)

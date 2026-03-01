@@ -6,9 +6,17 @@ class EditTrainingDaysViewModel: ObservableObject {
     @Published var selectedLongRunDay: Int
     @Published var error: String?
 
-    init(initialWeekdays: Set<Int>, initialLongRunDay: Int) {
+    // MARK: - Dependencies (Clean Architecture)
+    private let userRepository: UserProfileRepository
+
+    init(
+        initialWeekdays: Set<Int>,
+        initialLongRunDay: Int,
+        userRepository: UserProfileRepository = DependencyContainer.shared.resolve()
+    ) {
         self.selectedWeekdays = initialWeekdays
         self.selectedLongRunDay = initialLongRunDay
+        self.userRepository = userRepository
     }
 
     func updatePreferences() async {
@@ -19,7 +27,7 @@ class EditTrainingDaysViewModel: ObservableObject {
                     "prefer_week_days": apiWeekdays,
                     "prefer_week_days_longrun": [self.selectedLongRunDay]
                 ]
-                try await UserService.shared.updateUserData(preferences)
+                _ = try await self.userRepository.updateUserProfile(preferences)
             } catch let err {
                 await MainActor.run {
                     self.error = err.localizedDescription

@@ -23,6 +23,9 @@
 "common.confirm" = "確認";
 "common.loading" = "読み込み中...";
 "common.retry" = "再試行";
+"common.time" = "時間";
+"common.pace" = "ペース";
+"common.date" = "日付";
 "common.refresh" = "更新";
 "common.settings" = "設定";
 "common.logout" = "ログアウト";
@@ -192,7 +195,6 @@
 // MARK: - Onboarding
 "onboarding.welcome" = "Pacerizへようこそ";
 "onboarding.set_goal" = "トレーニング目標を設定";
-"onboarding.race_distance" = "レース距離";
 "onboarding.target_time" = "目標完走時間";
 "onboarding.training_days" = "トレーニング日";
 "onboarding.weekly_volume" = "週間走行距離";
@@ -235,6 +237,7 @@
 "profile.personal_info" = "個人情報";
 "profile.training_info" = "トレーニング情報";
 "profile.heart_rate_info" = "心拍数情報";
+"profile.pace_zones" = "ペースゾーン";
 "profile.data_sources" = "データソース";
 "profile.settings" = "設定";
 "profile.name" = "名前";
@@ -267,6 +270,13 @@
 // MARK: - Training Plan
 "training.plan_title" = "トレーニング計画";
 "training.weekly_plan" = "週間計画";
+"training.no_weekly_plan_title" = "週間スケジュール未作成";
+"training.no_weekly_plan_description" = "下のボタンをタップして今週のスケジュールを作成";
+"training.generate_weekly_plan" = "スケジュールを作成";
+"training.get_weekly_summary" = "週間レビューを取得";
+"training.generate_next_week_plan" = "来週のスケジュールを作成";
+"training.generating_weekly_plan" = "スケジュール作成中...";
+"training.generating_weekly_plan_description" = "AIが今週のトレーニングを計画しています、しばらくお待ちください";
 "training.daily_training" = "日々のトレーニング";
 "training.design_reason" = "今週のトレーニング計画設計理由";
 "training.weekly_volume" = "週間走行距離";
@@ -358,6 +368,18 @@
 "training.type.yoga" = "ヨガ";
 "training.type.cycling" = "サイクリング";
 "training.type.rest_day" = "休息日";
+// 新しいインターバルトレーニングタイプ
+"training.type.strides" = "ストライド";
+"training.type.hill_repeats" = "坂道リピート";
+"training.type.cruise_intervals" = "クルーズインターバル";
+"training.type.short_interval" = "ショートインターバル";
+"training.type.long_interval" = "ロングインターバル";
+"training.type.norwegian_4x4" = "ノルウェー4x4";
+"training.type.yasso_800" = "ヤッソ800";
+// 新しいコンビネーショントレーニングタイプ（fartlek は既存）
+"training.type.fast_finish" = "ファストフィニッシュラン";
+// 新しいレースペーストレーニング
+"training.type.race_pace" = "レースペース走";
 
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "快適なペースでトレーニング";
@@ -424,6 +446,15 @@
 "workout.detail.intensity_medium" = "中";
 "workout.detail.intensity_high" = "高";
 "workout.detail.minutes" = "分";
+"workout.detail.training_notes_title" = "トレーニングメモ";
+"workout.detail.training_notes_add" = "追加";
+"workout.detail.training_notes_edit" = "編集";
+"workout.detail.training_notes_save" = "保存";
+"workout.detail.training_notes_cancel" = "キャンセル";
+"workout.detail.training_notes_saving" = "保存中...";
+"workout.detail.training_notes_placeholder" = "まだトレーニングメモがありません。「追加」をタップして感想を記録しましょう。";
+"workout.detail.training_notes_save_error" = "トレーニングメモの保存に失敗しました。後でもう一度お試しください。";
+"workout.detail.training_notes_editor_title" = "トレーニングメモを編集";
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";
@@ -439,6 +470,8 @@
 "activity.type.strength_training" = "筋力トレーニング";
 "activity.type.yoga" = "ヨガ";
 "activity.type.pilates" = "ピラティス";
+"activity.type.elliptical" = "エリプティカル";
+"activity.type.rowing" = "ローイング";
 "activity.type.other" = "その他";
 
 // MARK: - Training Record
@@ -714,6 +747,7 @@
 "onboarding.start_setup" = "セットアップ開始";
 "onboarding.your_running_goal" = "あなたのランニング目標";
 "onboarding.goal_description" = "特定のレースがない場合は、「初回5K完走」や「10Kスピード向上」などの挑戦目標を設定できます。";
+"onboarding.or_select_existing_target" = "以前に設定した目標レース";
 "onboarding.goal_name_placeholder" = "目標名（例：台北マラソンまたはマイ5Kチャレンジ）";
 "onboarding.goal_date" = "目標日";
 "onboarding.weeks_until_race" = "レースまでの週数：%d";
@@ -725,6 +759,10 @@
 "onboarding.minutes" = "分";
 "onboarding.average_pace" = "平均ペース：%@ /km";
 "onboarding.next_step" = "次のステップ";
+"onboarding.distance_and_target_time" = "距離と目標タイム";
+"onboarding.distance_time_hint" = "タップしてレース距離と目標完走時間を編集";
+"onboarding.edit_distance_time" = "距離とタイムを編集";
+"onboarding.common_times_reference" = "参考タイム";
 "onboarding.set_training_goal" = "トレーニング目標を設定";
 "onboarding.back" = "戻る";
 "onboarding.my_training_goal" = "私のトレーニング目標";
@@ -748,7 +786,7 @@
 "onboarding.target_pace" = "目標ペース";
 "onboarding.target_evaluate" = "目標評価";
 "onboarding.training_timeline" = "トレーニングタイムライン";
-"onboarding.training_focus" = "トレーニング重点";
+"onboarding.training_focus_title" = "トレーニング重点";
 "onboarding.training_highlight" = "トレーニングハイライト";
 "onboarding.generate_first_week" = "第1週のプランを生成";
 "onboarding.confirm_generate_first_week" = "確認して第1週のプランを生成";
@@ -782,6 +820,22 @@
 "onboarding.skip_personal_best" = "個人ベストをスキップ";
 "onboarding.skip_personal_best_message" = "問題ありません！Pacerizはトレーニングの進捗に基づいて強度を調整します。";
 "onboarding.personal_best_title_nav" = "個人ベスト";
+"onboarding.select_existing_pb" = "または既存の記録から選択";
+ 
+// MARK: - Backfill Prompt
+"onboarding.backfill_prompt.title" = "最近のトレーニングデータを同期しますか？";
+"onboarding.backfill_prompt.subtitle" = "%@ から過去 14 日間のデータを取得します";
+"onboarding.backfill_prompt.what_is_backfill" = "データ同期とは？";
+"onboarding.backfill_prompt.backfill_description" = "過去 14 日間のランニング記録を同期し、Vita がより正確なトレーニング計画を作成できるようにします。";
+"onboarding.backfill_prompt.why_it_helps" = "なぜこれが重要なのですか？";
+"onboarding.backfill_prompt.benefit1_title" = "より適切なトレーニング提案";
+"onboarding.backfill_prompt.benefit1_description" = "あなたの履歴に基づいた個別の計画を作成します。";
+"onboarding.backfill_prompt.benefit2_title" = "完全な進捗追跡";
+"onboarding.backfill_prompt.benefit2_description" = "あなたの全トレーニングの道のりと成長を確認できます。";
+"onboarding.backfill_prompt.benefit3_title" = "正確なフィットネス評価";
+"onboarding.backfill_prompt.benefit3_description" = "ランニング状態を分析し、過度なトレーニングを防ぎます。";
+"onboarding.backfill_prompt.confirm_button" = "はい、データを取得します";
+"onboarding.backfill_prompt.skip_button" = "今はスキップ";
 "onboarding.next" = "次へ";
 
 // MARK: - Training Days Setup
@@ -794,7 +848,7 @@
 "onboarding.long_run_day_description_beginner" = "この日は少し長めの距離で体を徐々に慣らします。心配しないで、段階的に進めます";
 "onboarding.select_long_run_day" = "ロングラン日を選択";
 "onboarding.long_run_day_must_be_training_day" = "ロングラン日は選択したトレーニング日の一つでなければなりません。";
-"onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、土曜日をロングラン日に設定することをお勧めします。";
+"onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、週末をロングラン日に設定することをお勧めします。";
 "onboarding.save_preferences_preview" = "トレーニング計画概要を生成";
 "onboarding.complete_setup_view_schedule" = "設定を完了して第1週のスケジュールを表示";
 
@@ -832,12 +886,10 @@
 "onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
 "onboarding.target_distance_label" = "目標距離：%.1f km";
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
-"onboarding.weekly_volume_label" = "週間量：%.0f km";
+"onboarding.weekly_volume_label" = "推定週間量：%.0f km";
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "あなたの週間ランニング量";
 "onboarding.skip" = "スキップ";
-"onboarding.back" = "戻る";
-"onboarding.next_step" = "次へ";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "今日";
@@ -929,6 +981,23 @@
 "hr_zone.max_heart_rate_display" = "最大心拍数";
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
 
+// MARK: - Heart Rate Zone Names & Details
+"hr_zone.easy" = "リカバリー";
+"hr_zone.easy.description" = "リカバリーとウォームアップ";
+"hr_zone.easy.benefit" = "アクティブリカバリー";
+"hr_zone.aerobic" = "有氧";
+"hr_zone.aerobic.description" = "マラソンペース訓練";
+"hr_zone.aerobic.benefit" = "有氧能力を改善";
+"hr_zone.threshold" = "マラソン";
+"hr_zone.threshold.description" = "乳酸閾値訓練";
+"hr_zone.threshold.benefit" = "乳酸閾値を上げる";
+"hr_zone.vo2max" = "閾値";
+"hr_zone.vo2max.description" = "インターバルトレーニング";
+"hr_zone.vo2max.benefit" = "VO2マックスを改善";
+"hr_zone.max" = "無酸素";
+"hr_zone.max.description" = "スピードワーク";
+"hr_zone.max.benefit" = "最大努力";
+
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "一般的なトレーニング日を選択";
 "training_days.long_run_day_weekend" = "ロングラン日（週末推奨）";
@@ -954,6 +1023,8 @@
 "sync.retry" = "再試行";
 "sync.skip" = "スキップ";
 "sync.error_records_failed" = "%d件の記録の処理に失敗";
+"sync.timeout_warning_title" = "同期に時間がかかっています";
+"sync.timeout_warning_message" = "スキップして続行できます。同期はバックグラウンドで完了します。";
 "sync.checking_health_auth" = "Apple Health認証を確認中...";
 "sync.getting_30_day_records" = "過去30日間のワークアウト記録を取得中...";
 "sync.no_health_records" = "過去30日間のApple Healthワークアウト記録が見つかりません。iPhoneまたはApple Watchがワークアウトデータを記録していることを確認してください。";
@@ -973,6 +1044,10 @@
 "sync.garmin_sync_failed" = "Garmin同期に失敗：%@";
 "sync.processing_garmin_progress" = "Garminデータを処理中...\n進捗：%d/%d（%d%%）";
 "sync.processing_garmin_initializing" = "Garminデータを処理中...\n処理を初期化中...";
+"sync.preparing_strava" = "Stravaとの同期を準備中...";
+"sync.strava_triggered" = "Stravaとの同期を開始しました...";
+"sync.processing_strava_progress" = "Stravaデータを処理中、%d件の記録を同期しました...";
+"sync.strava_sync_failed" = "Stravaとの同期に失敗しました: %@";
 
 // MARK: - Weekly Volume & Intensity Strings
 "weekly_volume.trend" = "週間走行距離トレンド";
@@ -1088,6 +1163,70 @@
 "training_type_info.rest.why_run" = "休息はトレーニング計画の中で最も見落とされやすいのに、最も重要な部分です。完全な休息日は筋肉修復、神経系の回復、エネルギー貯蔵の補充を可能にします。";
 "training_type_info.rest.logic" = "トレーニング負荷がない場合、体は深い修復を行います。筋肉タンパク質合成が増加し、疲労毒素が消失し、ホルモンと免疫系のバランスが再調整される——これが「休息を通じて強くなる」プロセスです。";
 "training_type_info.rest.role" = "毎週1～2日の完全休息日をスケジュールします。通常、ハードトレーニング後に配置します。十分な休息日は過度なトレーニングを防ぎ、長期的なパフォーマンスと健康を維持します。";
+
+// MARK: - 新しいインターバルトレーニングタイプ情報
+"training_type_info.strides.title" = "ストライド";
+"training_type_info.strides.how_to_run" = "短距離（約80-100メートル）の加速走。イージーペースから始め、徐々にスプリント近くまで加速し、減速して止まります。リラックスして、良いフォームに集中。";
+"training_type_info.strides.why_run" = "ストライドはランニングエコノミーと神経筋協調性を向上させます。脚がより速い回転に慣れ、レース前のウォームアップにも最適。";
+"training_type_info.strides.logic" = "神経筋トレーニングで、短時間の高速度刺激により筋繊維の動員効率と脚の協調性を改善。距離が短く完全回復するため、著しい疲労は生じません。";
+"training_type_info.strides.role" = "通常、イージーラン後または高強度トレーニング前のウォームアップとして。週2-3回、各4-8本実施。";
+
+"training_type_info.hill_repeats.title" = "坂道リピート";
+"training_type_info.hill_repeats.how_to_run" = "5-10%の勾配の坂道を見つけ、安定したがチャレンジングなペースで駆け上がり、ジョグまたは歩いて下坂で回復。脚の推進力と体の前傾に集中。";
+"training_type_info.hill_repeats.why_run" = "坂道ランは「偽装されたウェイトトレーニング」。脚の筋力を強化し、フォームを改善し、平地スプリントより怪我のリスクを低減。";
+"training_type_info.hill_repeats.logic" = "上り坂はより大きな筋力出力が必要で、大臀筋、大腿四頭筋、ふくらはぎを効果的にトレーニング。平地スプリントより関節への衝撃は少なく、筋肉負荷は大きい。";
+"training_type_info.hill_repeats.role" = "通常、ベース期または筋力発達期に週1回配置。有酸素基礎と高強度インターバルをつなぐ重要な移行トレーニング。";
+
+"training_type_info.cruise_intervals.title" = "クルーズインターバル";
+"training_type_info.cruise_intervals.how_to_run" = "閾値ペース（20-30分維持できる最速ペース）でインターバルを行い、各組間に短い回復（1-2分のジョグ）。";
+"training_type_info.cruise_intervals.why_run" = "クルーズインターバルは閾値強度でより多くのボリュームを蓄積できます。短い回復により、この重要な強度ゾーンでより長い時間を過ごせます。";
+"training_type_info.cruise_intervals.logic" = "閾値トレーニングの変形で、乳酸閾値付近に長時間体を置きます。インターバル構造により、良いフォームを維持しながらより高い総ボリュームが可能。";
+"training_type_info.cruise_intervals.role" = "通常、レース準備期に閾値走の上級版として使用。ハーフマラソン・フルマラソンのパフォーマンス向上に重要。";
+
+// MARK: - 新しいコンビネーショントレーニングタイプ情報
+"training_type_info.fartlek.title" = "ファルトレク";
+"training_type_info.fartlek.how_to_run" = "「ファルトレク」はスウェーデン語で「速度遊び」。走りながら自由にペースを変える—次の街灯までスプリント、公園の入口でスローダウン。固定構造なし、感覚で走る。";
+"training_type_info.fartlek.why_run" = "ファルトレクはトレーニングを楽しくしながら、ペース変化への適応を訓練。単調さを打破し、レース時のペース変動をシミュレート。";
+"training_type_info.fartlek.logic" = "非構造化の混合強度トレーニングで、有酸素・無酸素システムの両方を刺激。自由な形式は精神的疲労を減らし、楽しみながらトレーニング効果を得られます。";
+"training_type_info.fartlek.role" = "構造化インターバルの代替、または回復週の軽い変速走として。どのトレーニング段階にも適合、特に気分転換が必要な時に。";
+
+"training_type_info.fast_finish.title" = "ファストフィニッシュ走";
+"training_type_info.fast_finish.how_to_run" = "最初の70%はイージーペース、最後の30%でテンポペースまたはそれ以上に加速。終了時にはチャレンジを感じながらも完走できるべき。";
+"training_type_info.fast_finish.why_run" = "ファストフィニッシュランは疲労時にペースを維持・加速する訓練—まさにレース後半の挑戦。「疲れても加速する」感覚を体に覚えさせます。";
+"training_type_info.fast_finish.logic" = "グリコーゲン枯渇、筋肉疲労状態での高強度走により、脂肪代謝能力と疲労耐性を向上。フォームと集中力の維持も訓練。";
+"training_type_info.fast_finish.role" = "通常、レース準備期の週末ロングランで実施。レース後半をシミュレートする重要なトレーニングで、自信構築に有効。";
+
+// MARK: - 新しいレースペーストレーニング情報
+"training_type_info.race_pace.title" = "レースペース走";
+"training_type_info.race_pace.how_to_run" = "目標レースペースで走る。安定したリズムの維持に集中し、このスピードでの呼吸、ケイデンス、体の感覚に慣れる。";
+"training_type_info.race_pace.why_run" = "レースペース走は体と脳に目標速度を記憶させます。レース当日、時計を見なくても自然にこのペースで走れるようになります。";
+"training_type_info.race_pace.logic" = "目標ペースを繰り返し練習することで、神経筋記憶とペース知覚能力を構築。現在のフィットネスで目標達成可能かの評価にも役立ちます。";
+"training_type_info.race_pace.role" = "通常、レース4-8週前から配置し、距離は徐々に増加。最も重要なレース特化トレーニングの一つ。";
+
+// MARK: - 新しいVO2max向上トレーニング情報
+"training_type_info.norwegian_4x4.title" = "ノルウェー4×4";
+"training_type_info.norwegian_4x4.how_to_run" = "4分間の高強度走を4セット行い（92% 最大心拍数）、各セット間に3分間のイージーラン回復を挟む。VO₂max ペースを安定して維持します。「非常に大変だけれど全セット完走できる」という感覚が目安です。";
+"training_type_info.norwegian_4x4.why_run" = "ノルウェー4×4はVO₂maxを向上させる最も効率的なトレーニング方法です。科学的研究では、このプロトコルが短期間で有酸素能力を約7%向上させることが示されており、レース前の重要なワークアウトです。";
+"training_type_info.norwegian_4x4.logic" = "VO₂max強度（92% 最大心拍数、95-100% VO₂max）で実施し、有酸素系と無酸素系の両方を最高レベルまで刺激します。4分間は心肺に十分な負荷をかけるのに長く、3分間の回復により全セット完了できます。この設計により最大強度でのトレーニング量が大きく蓄積されます。";
+"training_type_info.norwegian_4x4.role" = "通常、ビルドアップ期またはレース準備期に使用し、最大週1回に制限。イージーランと組み合わせ、十分な回復を確保してください。連続した週の実施には不向きで、回復週とのバランスが必要です。";
+
+"training_type_info.short_interval.title" = "短間隔走";
+"training_type_info.short_interval.how_to_run" = "短距離（400-600m）の高強度走を6-10本実施し、各本間に1-2分のイージーラン回復を挟む。全力でスプリントし、呼吸をしっかり上げます。";
+"training_type_info.short_interval.why_run" = "短間隔走はスピードと爆発力を鍛えます。短距離により全力を維持でき、十分な回復時間によって全本完走を支援。特に5Kレース準備に有効です。";
+"training_type_info.short_interval.logic" = "高強度間隔トレーニング(HIIT)の一種で、VO₂maxと神経筋反応を刺激します。短距離は最高速度と走行ケイデンス向上に特に効果的であり、加速能力も鍛えられます。";
+"training_type_info.short_interval.role" = "通常、基礎スピード開発期または5K準備期に使用。最大週1回、イージーランと休息日と組み合わせます。連続実施は受傷リスク増加につながります。";
+
+"training_type_info.long_interval.title" = "長間隔走";
+"training_type_info.long_interval.how_to_run" = "より長い距離（1200-2000m）の高強度走を4-6本実施し、各本間に2-3分のイージーラン回復を挟む。短間隔走より若干遅いペースですが、高強度を維持します。";
+"training_type_info.long_interval.why_run" = "長間隔走は短間隔走と持続走の橋渡し。VO₂maxを刺激しながら長時間高ペース維持でき、ハーフマラソンと10Kレース準備に特に適しています。";
+"training_type_info.long_interval.logic" = "短間隔走より強度がやや低い高強度間隔トレーニング。より長い継続努力により、疲労下での高ペース維持に体を適応させ、乳酸耐性も向上させます。";
+"training_type_info.long_interval.role" = "通常、上級スピード開発期またはハーフマラソン/10K準備期に使用。最大週1回、通常は短間隔走後に実施。十分な回復が必要です。";
+
+"training_type_info.yasso_800.title" = "ヤッソ800";
+"training_type_info.yasso_800.how_to_run" = "800mの高強度走を8-10本実施し、各本間に2-3分のジョギング回復を挟みます（800mの所要時間に相当）。例えば800mを3分で走れば、回復も約3分です。";
+"training_type_info.yasso_800.why_run" = "ヤッソ800はマラソンパフォーマンスを直接予測する独特の能力を持っています。米国の有名コーチ、Bart Yasso の理論によれば、800mで出せる時間（分秒）がマラソン予想完走時間（時間分）に対応しています。";
+"training_type_info.yasso_800.logic" = "800m距離はスピードと耐久力を完璧にバランスさせます。間隔設計はVO₂maxと乳酸緩衝能力を刺激。等時回復により疲労しながらペース維持能力を開発し、真のマラソン特化トレーニングです。";
+"training_type_info.yasso_800.role" = "マラソン準備期に特に有用で、週1回実施。マラソン練習の中で最も予測的なワークアウト。他の距離レース準備期でのスピード向上にも一般的に使用されます。";
 
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "月曜日";
@@ -1316,6 +1455,10 @@
 "feedback.error.description_required" = "説明が必要です";
 "feedback.success_title" = "成功";
 "feedback.success_message" = "フィードバックをありがとうございます！";
+
+// MARK: - Contact
+"contact.paceriz" = "Pacerizに連絡";
+"contact.contact_support" = "サポートに連絡";
 "common.submit" = "送信";
 
 // MARK: - Workout Detail
@@ -1461,7 +1604,11 @@
 "edit_schedule.delete" = "削除";
 "edit_schedule.close" = "閉じる";
 "edit_schedule.cannot_edit" = "編集できません";
-"edit_schedule.addSegment" = "セグメントを追加";
+"edit_schedule.add_segment" = "セグメントを追加";
+"edit_schedule.total_distance" = "合計距離";
+"edit_schedule.edit_training" = "トレーニングを編集";
+"edit_schedule.rest_in_place" = "その場で休息";
+"edit_schedule.save_failed" = "保存に失敗しました";
 "edit_schedule.reorder_title" = "順序を変更";
 "edit_schedule.reorder_days" = "スケジュールを並べ替え";
 
@@ -1483,6 +1630,11 @@
 "edit_schedule.combination_settings" = "コンビネーションラン設定";
 "edit_schedule.long_run_settings" = "ロングラン設定";
 "edit_schedule.training_settings" = "トレーニング設定";
+"edit_schedule.norwegian_4x4_settings" = "ノルウェー4x4トレーニング";
+"edit_schedule.norwegian_4x4_description" = "4分間の高強度インターバル4セット（92% VO2max）、セット間3分休憩。VO2max向上に特化。";
+"edit_schedule.yasso_800_settings" = "ヤッソ800トレーニング";
+"edit_schedule.yasso_800_description" = "800mリピートトレーニング。マラソンタイム予測とVO2max向上に効果的。目標タイムはマラソン目標と連動。";
+"edit_schedule.rest_time" = "休憩時間";
 
 "edit_schedule.suggested_pace" = "推奨ペース: %@";
 "edit_schedule.sprint_suggested_pace" = "スプリント推奨ペース: %@";
@@ -1498,6 +1650,9 @@
 
 "edit_schedule.repeats" = "繰り返し回数";
 "edit_schedule.repeats_placeholder" = "例: 6";
+"edit_schedule.time" = "時間";
+"edit_schedule.select_time" = "時間を選択";
+"edit_schedule.time_selection" = "時間選択";
 "edit_schedule.sprint_segment" = "スプリントセグメント";
 "edit_schedule.recovery_segment" = "リカバリーセグメント";
 "edit_schedule.segment" = "セグメント %d";
@@ -1509,6 +1664,10 @@
 "edit_schedule.interval_distance_selection" = "インターバル距離選択";
 "edit_schedule.select_training_type" = "トレーニングタイプを選択";
 "edit_schedule.training_type_selection" = "トレーニングタイプ選択";
+"edit_schedule.select_distance" = "距離を選択";
+"edit_schedule.distance_selection" = "距離選択";
+"edit_schedule.select_repeats" = "繰り返し回数を選択";
+"edit_schedule.repeats_selection" = "繰り返し回数選択";
 
 // Pace Table
 "edit_schedule.pace_table_description" = "ランニング能力に基づいて計算されたトレーニングペースの推奨。各ゾーンは最速 - 最遅ペース範囲を表示";
@@ -1702,6 +1861,7 @@
 "edit_schedule.category_easy" = "イージートレーニング";
 "edit_schedule.category_intensity" = "強度トレーニング";
 "edit_schedule.category_long" = "長距離";
+"edit_schedule.category_other" = "その他";
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "トレーニング編集";
@@ -1746,3 +1906,245 @@
 "share_card.format" = "フォーマット";
 "share_card.edit_title" = "タイトルを編集";
 "share_card.edit_ai_review" = "AI評価を編集";
+"edit_schedule.distance_meters" = "距離(m)";
+
+// MARK: - Distance Labels
+"distance.mile" = "1.6 キロ";
+"distance.3k" = "3 キロ";
+"distance.5k" = "5 キロ";
+"distance.10k" = "10 キロ";
+"distance.half_marathon" = "ハーフマラソン";
+"distance.half_marathon_short" = "21km";
+"distance.full_marathon" = "フルマラソン";
+"distance.full_marathon_short" = "42km";
+
+// MARK: - My Achievement - Personal Best
+"my_achievement.personal_best.title" = "パーソナルベスト";
+"my_achievement.personal_best.explanation" = "各距離のベスト移動タイムを表示(停止時間を除外、スライディングウィンドウで最速の連続区間を検出)";
+"my_achievement.personal_best.no_data" = "パーソナルベスト記録なし\n最初のトレーニングを完了すると表示されます";
+"my_achievement.personal_best.first_place" = "1位";
+"my_achievement.personal_best.second_place" = "2位";
+"my_achievement.personal_best.third_place" = "3位";
+"my_achievement.personal_best.detail_explanation" = "この距離の歴代ベスト記録、完走タイム、ペース、トレーニング日を表示しています。";
+"my_achievement.personal_best.top_records" = "歴代ベスト記録";
+
+// MARK: - My Achievement - Celebration
+"my_achievement.celebration.new_record" = "新記録！";
+"my_achievement.celebration.improved" = "改善";
+
+// MARK: - Workout - Effort Score (iOS 18+)
+"workout.effort_score" = "努力スコア";
+"date.minutes_ago" = "%d分前";
+
+// MARK: - Backfilled Translations
+"edit_schedule.addSegment" = "セグメントを追加";
+"edit_schedule.cannot_edit_completed" = "トレーニング記録のあるスケジュールは編集できません";
+"edit_schedule.drag_to_swap" = "長押ししてドラッグで入れ替え";
+"edit_schedule.heart_rate" = "心拍数";
+"intensity.high_zh" = "高強度";
+"intensity.low_zh" = "低強度";
+"intensity.medium_zh" = "中強度";
+"my_achievement.balanced" = "バランス";
+"my_achievement.chart_guide" = "チャートガイド";
+"my_achievement.complete" = "完了";
+"my_achievement.fatigue" = "披露";
+"my_achievement.fitness_index" = "フィットネス指数 (Fitness Index)";
+"my_achievement.fitness_index_description" = "フィットネス指数は、**ご自身の過去のパフォーマンスと比較した**現在の運動能力レベルを反映します。この数値は、最近のトレーニングの強度、頻度、継続時間に基づいて動員的に調整されます。**トレンドの変化**に注目することが重要です。";
+"my_achievement.how_to_interpret" = "トレンドの解釈方法:";
+"my_achievement.important_reminder" = "重要なリマインダー";
+"my_achievement.key_point" = "💡 ポイント: 単一の数値よりも、ラインの**方向性**に注目することが重要です。";
+"my_achievement.optimal" = "最適な状態";
+"my_achievement.practical_tips" = "実用的なヒント";
+"my_achievement.reasonable_training_load" = "適正なトレーニング負荷範囲";
+"my_achievement.reminder1" = "• 正確なトレンド分析には、少なくとも2〜3週間の運動記録が必要です。";
+"my_achievement.reminder2" = "• フィットネス指数の低下は必ずしも悪いことではありません。計画的なテーパリングや回復期間を反映している場合があります。";
+"my_achievement.reminder3" = "• TSBとHRVの両方のトレンドを同時に観察して、身体全体の回復状態を判断することをお勧めします。";
+"my_achievement.reminder4" = "• 体調が優れない場合は、休息を優先してください。データは参考用であり、完全に依存しないでください。";
+"my_achievement.syncing" = "同期中...";
+"my_achievement.training_load_subtitle" = "フィットネス指数とトレーニング・ストレス・バランス（TSB）を理解して、トレーニング計画の最適化に役立てましょう";
+"my_achievement.tsb" = "トレーニング・ストレス・バランス (TSB)";
+"my_achievement.tsb_interpretation" = "TSB ステータスの解釈:";
+"onboarding.goal_assessment" = "目標評価";
+"onboarding.training_plan_preview" = "トレーニングプランのプレビュー";
+"progress.weekly_volume_zh" = "週間走行距離";
+"share_card.choose_photo" = "写真を選択";
+"share_card.generate" = "シェアカードを作成";
+"start_stage.base_disabled_reason" = "時間が足りないため、基礎期をスキップして直接高強度トレーニングに入ることをお勧めします";
+"start_stage.build_disabled_reason" = "時間が足りないため、強化期トレーニングを完全に実行することができません";
+"start_stage.not_supported" = "この段階からの開始はサポートされていません";
+"training_plan.weekly_volume_load_zh" = "週間走行距離と強度";
+"training_type_info.norwegian_4x4.how_to_run" = "4分間の高強度ランを4セット行い、セット間に3分間の休息を挟みます。安定したVO₂maxペース（最大心拍数の92％）を維持し、全力に近いながらもコントロールしたペースで走ります。「非常にきついが、全セット完遂できる」強度を目指してください。";
+
+
+// MARK: - Hardcoded String Localization
+"bottominfooverlay.text_0" = "距離 (km)";
+"bottominfooverlay.text_1" = "合計時間";
+"bottominfooverlay.text_2" = "平均ペース";
+"circularprogress.text_0" = "/ %d";
+"clickablecircularprogress.text_0" = "/ %d";
+"dailytrainingcard.text_0" = "第%dセグメント";
+"dailytrainingcard.text_1" = "イージーラン";
+"dailytrainingcard.text_2" = "× %@";
+"dailytrainingcard.text_3" = "%@ 分";
+"datasync.text_0" = "同期タイムアウト";
+"datasync.text_1" = "データの同期に時間がかかっています。接続を確認してください。";
+"debugfailedworkouts.text_0" = "失敗統計";
+"debugfailedworkouts.text_1" = "失敗したアップロード記録を表示";
+"debugfailedworkouts.text_10" = "日付形式をコピー";
+"debugfailedworkouts.text_12" = "デバッグ - 失敗したワークアウト";
+"debugfailedworkouts.text_2" = "総失敗数";
+"debugfailedworkouts.text_3" = "永久失敗 (最大試行回数到達)";
+"debugfailedworkouts.text_4" = "日付で検索";
+"debugfailedworkouts.text_5" = "この日付の失敗記録を検索";
+"debugfailedworkouts.text_6" = "全記録";
+"debugfailedworkouts.text_7" = "全失敗記録をプリント";
+"debugfailedworkouts.text_8" = "全失敗記録を消去";
+"debugfailedworkouts.text_9" = "その他の機能";
+"editabledailycard.text_0" = "🇳🇴 ノルウェー4x4";
+"editabledailycard.text_1" = "%d セット";
+"editabledailycard.text_10" = "トレーニングタイプ";
+"editabledailycard.text_2" = "スプリント";
+"editabledailycard.text_3" = "@ %@";
+"editabledailycard.text_4" = "リカバリー";
+"editabledailycard.text_5" = "ヤッソ800";
+"editabledailycard.text_6" = "インターバルトレーニング";
+"editabledailycard.text_7" = "リカバリーセグメント";
+"editabledailycard.text_8" = "@%@";
+"editabledailycard.text_9" = "%d ×";
+"editschedule.text_0" = "ペース:";
+"editschedule.text_1" = "距離:";
+"garminattribution.compact" = "コンパクト";
+"garminattribution.no_device_model" = "デバイスモデルなし";
+"garminattribution.secondary" = "セカンダリ";
+"garminattribution.social" = "ソーシャル";
+"garminattribution.title_level" = "タイトルレベル";
+"garminreconnectionalert.text_0" = "主な内容";
+"generatenextweekbutton.text_0" = "今週に戻る（第%@週）";
+"generatenextweekbutton.text_1" = "今週に戻る";
+"heartratezoneinfo.bpm" = "%@ bpm";
+"hrvtrendchart.hrv" = "HRVの問題を診断";
+"login.demo_mode" = "デモモードを表示";
+"login.for_apple_review" = "Apple審査用";
+"misc.reset" = "リセット";
+"misc.syncing" = "同期中...";
+"myachievement.text_0" = "フィットネス指数 & トレーニング・ストレス・バランス";
+"myachievement.text_10" = "フィットネス指数";
+"myachievement.text_11" = "フィットネス指数は、**ご自身の過去のパフォーマンスと比較した**現在の運動能力レベルを反映します。この数値は最近の強度、頻度、期間に基づいて動的に調整されます。**トレンドの変化**に注目してください。";
+"myachievement.text_12" = "トレンドの解釈方法:";
+"myachievement.text_13" = "💡 ポイント: 単一の数値よりも、ラインの**方向性**に注目することが重要です";
+"myachievement.text_14" = "トレーニング・ストレス・バランス (TSB)";
+"myachievement.text_17" = "チャートガイド";
+"myachievement.text_18" = "実用的なヒント";
+"myachievement.text_19" = "重要なリマインダー";
+"myachievement.text_20" = "• 正確なトレンド分析には、少なくとも2〜3週間の記録が必要です";
+"myachievement.text_21" = "• 指数の低下は必ずしも悪いことではありません。計画的な調整や回復期を反映している場合があります";
+"myachievement.text_23" = "• 体調が優れない場合は休息を優先してください。データは参考用です";
+"myachievement.text_3" = "疲労蓄積";
+"myachievement.text_4" = "バランス状態";
+"myachievement.text_5" = "最適状態";
+"myachievement.text_6" = "適正なトレーニング負荷範囲";
+"myachievement.text_7" = "疲労状態";
+"myachievement.text_8" = "トレーニング負荷の詳細";
+"myachievement.text_9" = "フィットネス指数とトレーニング・ストレス・バランスを理解し、トレーニング計画を最適化しましょう";
+"myachievement.tsb" = "TSB ステータスの解釈:";
+"myachievement.tsb_hrv" = "• TSBとHRVのトレンドを同時に観察して、総合的な回復状態を判断することをお勧めします";
+"onboarding.text_0" = "%@km";
+"onboardingintro.text_0" = "**%@**";
+"performancechart.text_0" = "トレーニングデータが不足しています";
+"performancechart.text_1" = "最近3ヶ月のパフォーマンス";
+"performancechart.text_2" = "トレーニング日";
+"personalbest.text_0" = "または既存の自己ベストを選択";
+"personalbest.text_1" = "%@km";
+"sharecardtutorialoverlay.text_0" = "シェアカードガイド";
+"sharecardtutorialoverlay.text_1" = "編集を開始";
+"sideinfooverlay.text_0" = "距離 (km)";
+"sideinfooverlay.text_1" = "合計時間";
+"sideinfooverlay.text_2" = "平均ペース";
+"stravaattribution.compact" = "コンパクト";
+"stravaattribution.secondary" = "セカンダリ";
+"stravaattribution.title_level" = "タイトルレベル";
+"todayfocuscard.text_0" = "今日のトレーニング";
+"todayfocuscard.text_1" = "今日のトレーニングはありません";
+"todayfocuscard.text_2" = "完了したワークアウト";
+"topinfooverlay.text_0" = "距離 (km)";
+"topinfooverlay.text_1" = "合計時間";
+"topinfooverlay.text_2" = "平均ペース";
+"trainingcalendar.text_1" = "×%@";
+"trainingdetaileditor.400m" = "400m ジョギングリカバリー";
+"trainingdetaileditor.800m" = "800m";
+"trainingdetaileditor.text_0" = "🇳🇴";
+"trainingdetaileditor.text_1" = "リカバリーラン";
+"trainingdetaileditor.text_4" = "%d ×";
+"trainingdetaileditor.text_6" = "ワーク時間を選択";
+"trainingdetaileditor.text_7" = "休息時間を選択";
+"trainingoverview.text_0" = "%@ /km";
+"trainingplanoverview.text_0" = "• %@";
+"trainingplanviewmodel.text_0" = "週が範囲外です";
+"trainingprogress.text_0" = "読み込み中...";
+"trainingreadiness.tsb" = "TSB";
+"userprofile.onboarding" = "オンボーディングを最初からやり直す";
+"userprofile.text_0" = "🧪 開発者テスト";
+"weekprogressheader.text_0" = "第 %d / %d 週";
+"weektimeline.text_0" = "インターバルトレーニング";
+"weektimeline.text_1" = "%d × セット";
+"weektimeline.text_10" = "第%dセグメント";
+"weektimeline.text_11" = "完了したトレーニング";
+"weektimeline.text_12" = "もっと見る";
+"weektimeline.text_2" = "スプリントセグメント";
+"weektimeline.text_3" = "リカバリーセグメント";
+"weektimeline.text_4" = "その場で休息";
+"weektimeline.text_5" = "%@ 分";
+"weektimeline.text_6" = "🇳🇴 ノルウェー4x4";
+"weektimeline.text_7" = "%d セット";
+"weektimeline.text_8" = "スプリント";
+"weektimeline.text_9" = "ヤッソ800";
+"workoutsharecardsheet.text_1" = "タイトルをカスタマイズして自分らしくシェア！";
+"workoutsharecardsheet.text_12" = "シェアカードを作成";
+"workoutsharecardsheet.text_2" = "感想やモチベーションをアップする言葉を追加！";
+"workoutsharecardsheet.text_3" = "ピンチでズーム、ドラッグで位置調整";
+"workoutsharecardsheet.text_4" = "シェアカードを作成中...";
+"workoutsharecardsheet.text_5" = "追加したテキスト (%d)";
+"workoutsharecardsheet.text_6" = "ボトムレイアウト";
+"workoutsharecardsheet.text_7" = "トップレイアウト";
+"workoutsharecardsheet.text_8" = "サイドレイアウト";
+"workoutsharecardsheet.text_9" = "自動選択";
+"workoutsyncdebug.healthkit" = "HealthKitから%d件のワークアウトが永久に削除されます。この操作は取り消せません。";
+"workoutsyncdebug.text_0" = "削除方法を選択してください。範囲削除では指定期間内の全記録が削除されます。";
+"workoutsyncdebug.text_1" = "同期ステータス";
+"workoutsyncdebug.text_10" = "ワークアウトを検索";
+"workoutsyncdebug.text_13" = "操作ログ";
+"workoutsyncdebug.text_14" = "期間を選択";
+"workoutsyncdebug.text_15" = "選択された期間にワークアウトは見つかりませんでした";
+"workoutsyncdebug.text_16" = "全記録を削除 (%d)";
+"workoutsyncdebug.text_17" = "警告：ヘルスケアデータからこれらのワークアウトが永久に削除されます";
+"workoutsyncdebug.text_19" = "期間指定で削除";
+"workoutsyncdebug.text_2" = "テスト機能";
+"workoutsyncdebug.text_20" = "ステータスを更新";
+"workoutsyncdebug.text_21" = "テストオブザーバー設定";
+"workoutsyncdebug.text_23" = "見つかったワークアウト";
+"workoutsyncdebug.text_3" = "テストワークアウトを作成";
+"workoutsyncdebug.text_4" = "手動チェック & アップロード";
+"workoutsyncdebug.text_5" = "テスト通知";
+"workoutsyncdebug.text_6" = "アップロード履歴を消去";
+"workoutsyncdebug.text_7" = "作成されたテストワークアウト ID: %@";
+"workoutsyncdebug.text_8" = "テストデータ管理";
+"workoutsyncdebug.text_9" = "テストデータを削除";
+// MARK: - Weekly Summary V2
+"training.week_summary_title" = "第%d週サマリー";
+"training.completion" = "達成度";
+"training.sessions" = "セッション";
+"training.analysis" = "分析";
+"training.heart_rate" = "心拍数";
+"training.trend" = "トレンド";
+"training.total" = "合計";
+"training.vs_plan" = "計画との比較";
+"training.intensity_distribution" = "強度配分";
+"training.average" = "平均";
+"training.max" = "最大";
+"training.highlights" = "今週のハイライト";
+"training.achievements" = "達成";
+"training.areas_for_improvement" = "改善点";
+"training.next_week_adjustments" = "来週の調整提案";
+"training.no_weekly_summary" = "週間サマリーなし";
+"training.no_weekly_summary_hint" = "週間サマリーはトレーニング終了後に自動生成されます";
+

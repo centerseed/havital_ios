@@ -82,6 +82,22 @@ struct PaceCalculator {
         return paces[zone]
     }
 
+    /// 根據自訂 VO2max 百分比計算配速
+    /// - Parameters:
+    ///   - percentage: VO2max 百分比（例如 0.92 代表 92%）
+    ///   - vdot: VDOT 值
+    /// - Returns: 配速字串，格式為 mm:ss
+    ///
+    /// 使用範例：
+    /// - 挪威4x4訓練：92% VO2max → `getPaceForPercentage(0.92, vdot: vdot)`
+    /// - 閾值跑上限：88% VO2max → `getPaceForPercentage(0.88, vdot: vdot)`
+    static func getPaceForPercentage(_ percentage: Double, vdot: Double) -> String {
+        let adjustedVDOT = vdot * 1.05
+        let velocity = calculateVelocity(vdot: adjustedVDOT, percentage: percentage)
+        let pace = 1000.0 / velocity
+        return formatPace(pace)
+    }
+
     /// 獲取訓練類型對應的配速區間範圍（下限和上限）
     /// - Parameters:
     ///   - trainingType: 訓練類型

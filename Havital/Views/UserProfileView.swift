@@ -3,10 +3,11 @@ import FirebaseAuth
 import HealthKit
 
 struct UserProfileView: View {
-    @StateObject private var viewModel = UserProfileViewModel()
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
+    // Clean Architecture: Use AuthenticationViewModel from environment
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     @Environment(\.dismiss) private var dismiss
@@ -27,7 +28,6 @@ struct UserProfileView: View {
     @State private var showStravaAlreadyBoundAlert = false
     @State private var showLanguageSettings = false
     @State private var showTimezoneSettings = false
-    @State private var showFeedbackReport = false
     @State private var showDebugFailedWorkouts = false
 
     private var appVersion: String {
@@ -40,6 +40,7 @@ struct UserProfileView: View {
             weeklyDistanceSection
             dataSourceSection
             heartRateSection
+            paceZoneSection
             trainingDaysSection
             settingsSection
             logoutSection
@@ -67,18 +68,22 @@ struct UserProfileView: View {
         }
         .refreshable {
             viewModel.fetchUserProfile()
+            viewModel.loadVDOT()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnRefresh") {
                 await viewModel.loadHeartRateZones()
             }.value
         }
         .task {
             viewModel.fetchUserProfile()
+            viewModel.loadVDOT()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnAppear") {
                 await viewModel.loadHeartRateZones()
             }.value
         }
         .sheet(isPresented: $showZoneEditor) {
-            HeartRateZoneInfoView()
+            NavigationStack {
+                HeartRateZoneInfoView()
+            }
         }
         // 新增週跑量編輯器
         .sheet(isPresented: $showWeeklyDistanceEditor) {
@@ -125,14 +130,7 @@ struct UserProfileView: View {
             LanguageSettingsView()
         }
         .sheet(isPresented: $showTimezoneSettings) {
-            TimezoneSettingsView()
-        }
-        .sheet(isPresented: $showFeedbackReport) {
-            if let userData = viewModel.userData {
-                FeedbackReportView(userEmail: userData.email ?? "")
-            } else {
-                FeedbackReportView(userEmail: "")
-            }
+            TimezoneSettingsView(currentTimezone: viewModel.timezonePreference)
         }
         .sheet(isPresented: $showDebugFailedWorkouts) {
             DebugFailedWorkoutsView()
@@ -144,7 +142,8 @@ struct UserProfileView: View {
             titleVisibility: .visible
         ) {
             Button(NSLocalizedString("common.confirm", comment: "Confirm"), role: .destructive) {
-                AuthenticationService.shared.startReonboarding() // 改為呼叫新的方法
+                // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+                authViewModel.startReonboarding()
             }
             Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
         } message: {
@@ -196,18 +195,18 @@ struct UserProfileView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(userData.displayName ?? NSLocalizedString("profile.name", comment: "Name"))
-                    .font(.title2).bold()
+                    .font(AppFont.title2()).bold()
                 
                 // 檢查是否為 Apple 登入且 email 為空或匿名
                 if let providerData = Auth.auth().currentUser?.providerData.first,
                    providerData.providerID == "apple.com" &&
                    (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
                     Text(L10n.ProfileView.appleUser.localized)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 } else {
                     Text(userData.email ?? Auth.auth().currentUser?.email ?? "")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
             }
@@ -259,7 +258,7 @@ struct UserProfileView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }
@@ -294,7 +293,7 @@ struct UserProfileView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
 
@@ -312,6 +311,35 @@ struct UserProfileView: View {
     }
 
     @ViewBuilder
+    private var paceZoneSection: some View {
+        if viewModel.currentVDOT > 0 {
+            Section(header: Text(NSLocalizedString("profile.pace_zones", comment: "Pace Zones"))) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(PaceCalculator.PaceZone.allCases, id: \.self) { zone in
+                        HStack {
+                            Circle()
+                                .fill(viewModel.paceZoneColor(for: zone))
+                                .frame(width: 10, height: 10)
+
+                            Text(zone.displayName)
+                                .font(AppFont.bodySmall())
+
+                            Spacer()
+
+                            if let paceRange = PaceCalculator.getPaceRange(for: viewModel.paceZoneType(zone), vdot: viewModel.currentVDOT) {
+                                Text("\(paceRange.min) - \(paceRange.max)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var trainingDaysSection: some View {
         if let userData = viewModel.userData {
             Section(header: Text(NSLocalizedString("onboarding.training_days", comment: "Training Days"))) {
@@ -322,7 +350,7 @@ struct UserProfileView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }
@@ -341,7 +369,7 @@ struct UserProfileView: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
             }
 
@@ -352,30 +380,74 @@ struct UserProfileView: View {
                     Image(systemName: "clock")
                     Text(NSLocalizedString("settings.timezone", comment: "Timezone"))
                     Spacer()
-                    if let timezone = userPreferenceManager.timezonePreference {
-                        Text(UserPreferenceManager.getTimezoneDisplayName(for: timezone))
-                            .font(.caption)
+                    if let timezone = viewModel.timezonePreference {
+                        Text(TimezoneOption.getDisplayName(for: timezone))
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
-                        .font(.caption)
-                }
-            }
-
-            Button(action: {
-                showFeedbackReport = true
-            }) {
-                HStack {
-                    Image(systemName: "exclamationmark.bubble")
-                    Text(NSLocalizedString("feedback.title", comment: "Feedback"))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var contactSection: some View {
+        Section(header: Text(NSLocalizedString("profile.contact", value: "Contact", comment: "Contact"))) {
+            if isChineseLanguage {
+                // Facebook
+                Link(destination: URL(string: "https://www.facebook.com/profile.php?id=61574822777267")!) {
+                    HStack {
+                        Image(systemName: "hand.thumbsup.fill")
+                            .foregroundColor(.blue)
+                        Text("FB 粉絲團")
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Threads
+                Link(destination: URL(string: "https://www.threads.net/@paceriz_official")!) {
+                    HStack {
+                        Image(systemName: "at")
+                            .foregroundColor(.primary)
+                        Text("Threads")
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                // Email
+                Button(action: {
+                    let email = "contact@paceriz.com"
+                    if let url = URL(string: "mailto:\(email)") {
+                        if UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "envelope.fill")
+                        Text(NSLocalizedString("contact.contact_support", value: "Contact Support", comment: "Contact Support"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var isChineseLanguage: Bool {
+        guard let lang = Bundle.main.preferredLocalizations.first else { return false }
+        return lang.hasPrefix("zh")
     }
 
     @ViewBuilder
@@ -393,7 +465,7 @@ struct UserProfileView: View {
             Button(role: .destructive) {
                 Task {
                     do {
-                        try await AuthenticationService.shared.signOut()
+                        try await viewModel.signOut()
                         dismiss()
                     } catch {
                         print("登出失敗: \(error)")
@@ -439,21 +511,72 @@ struct UserProfileView: View {
     #if DEBUG
     @ViewBuilder
     private var developerSection: some View {
-        Section(header: Text("🧪 開發者測試")) {
+        Section(header: Text(NSLocalizedString("userprofile.text_0", comment: ""))) {
+            // Training Version Debug Info
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                    Text("Training Version Debug")
+                        .font(.headline)
+                }
+
+                if let userData = viewModel.userData {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("User.trainingVersion:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(userData.trainingVersion ?? "nil (default: v1)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(userData.trainingVersion == "v2" ? .green : .orange)
+                        }
+
+                        Button {
+                            Task {
+                                let router: TrainingVersionRouter = DependencyContainer.shared.resolve()
+                                let version = await router.getTrainingVersion()
+                                let isV2 = await router.isV2User()
+                                print("🔍 [Debug] TrainingVersionRouter Results:")
+                                print("   - getTrainingVersion(): \(version)")
+                                print("   - isV2User(): \(isV2)")
+                                print("   - User.trainingVersion: \(userData.trainingVersion ?? "nil")")
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.circle")
+                                Text("Test Version Router")
+                                    .font(.caption)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.vertical, 4)
+
+            Divider()
+
             // 重新開始完整 Onboarding 流程
             Button {
                 // 清除 onboarding 完成標記
                 UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-                AuthenticationService.shared.hasCompletedOnboarding = false
+                // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+                authViewModel.hasCompletedOnboarding = false
 
                 // 清除可能存在的重新 onboarding 標記
-                AuthenticationService.shared.isReonboardingMode = false
+                authViewModel.isReonboardingMode = false
 
                 print("✅ 已清除 onboarding 完成標記，應用將返回 OnboardingIntroView")
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise.circle")
-                    Text("重新開始完整 Onboarding")
+                    Text(NSLocalizedString("userprofile.onboarding", comment: ""))
                 }
             }
             .foregroundColor(.purple)
@@ -522,6 +645,57 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.orange)
+
+            Divider()
+
+            Button {
+                Task {
+                    do {
+                        // 從 DependencyContainer 取得 Repository
+                        let repository: TrainingPlanV2Repository = DependencyContainer.shared.resolve()
+
+                        // 先取得 Overview 以計算當前週數
+                        print("🔧 [Debug] 正在取得當前週數...")
+                        let overview = try await repository.getOverview()
+
+                        // 計算當前週數（與 TrainingPlanV2ViewModel 相同邏輯）
+                        let calendar = Calendar.current
+                        let now = Date()
+                        guard let startDate = overview.createdAt else {
+                            print("❌ [Debug] Overview createdAt 為 nil")
+                            return
+                        }
+
+                        guard let weekDiff = calendar.dateComponents([.weekOfYear], from: startDate, to: now).weekOfYear else {
+                            print("❌ [Debug] 無法計算週數差異")
+                            return
+                        }
+
+                        let currentWeek = min(max(weekDiff + 1, 1), overview.totalWeeks)
+
+                        print("🔧 [Debug] 開始產生第 \(currentWeek) 週回顧（強制更新）")
+
+                        let summary = try await repository.generateWeeklySummary(
+                            weekOfPlan: currentWeek,
+                            forceUpdate: true
+                        )
+
+                        print("✅ [Debug] 週回顧產生成功！")
+                        print("   - 週數: 第 \(currentWeek) 週 / 共 \(overview.totalWeeks) 週")
+                        print("   - ID: \(summary.id)")
+                        print("   - 完成度: \(Int(summary.trainingCompletion.percentage * 100))%")
+                        print("   - 完成場次: \(summary.trainingCompletion.completedSessions)/\(summary.trainingCompletion.plannedSessions)")
+                    } catch {
+                        print("❌ [Debug] 產生週回顧失敗: \(error.localizedDescription)")
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                    Text("🐛 產生當週回顧（強制）")
+                }
+            }
+            .foregroundColor(.purple)
         }
     }
     #endif
@@ -535,12 +709,12 @@ struct UserProfileView: View {
                         .frame(width: 10, height: 10)
                     
                     Text(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone") + " \(zone.zone): \(zone.name)")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                     
                     Spacer()
                     
                     Text("\(Int(zone.range.lowerBound))-\(Int(zone.range.upperBound))")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -553,14 +727,14 @@ struct UserProfileView: View {
             // Regular training days
             HStack {
                 Text(NSLocalizedString("onboarding.training_days", comment: "Training Days") + ":")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                 
                 Spacer()
                 
                 ForEach(userData.preferWeekDays?.filter { !(userData.preferWeekDaysLongrun?.contains($0) ?? false) }.sorted() ?? [], id: \.self) { day in
                     Text(viewModel.weekdayShortName(for: day))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .frame(width: 24, height: 24)
                         .background(Color.green.opacity(0.2))
@@ -573,14 +747,14 @@ struct UserProfileView: View {
             if !(userData.preferWeekDaysLongrun?.isEmpty ?? false) {
                 HStack {
                     Text(NSLocalizedString("training.type.long", comment: "Long Run") + ":")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     
                     Spacer()
                     
                     ForEach(userData.preferWeekDaysLongrun?.sorted() ?? [], id: \.self) { day in
                         Text(viewModel.weekdayShortName(for: day))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .frame(width: 24, height: 24)
                             .background(Color.blue.opacity(0.2))
@@ -597,7 +771,7 @@ struct UserProfileView: View {
             Image(systemName: "exclamationmark.triangle")
                 .foregroundColor(.red)
             Text(NSLocalizedString("error.unknown", comment: "Unknown Error") + ": \(error.localizedDescription)")
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.red)
         }
         .padding()
@@ -607,16 +781,16 @@ struct UserProfileView: View {
         Section(header: Text(NSLocalizedString("profile.data_sources", comment: "Data Sources"))) {
             VStack(spacing: 12) {
                 // 當沒有選擇數據源時顯示提示
-                if userPreferenceManager.dataSourcePreference == .unbound {
+                if viewModel.currentDataSource == .unbound {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(NSLocalizedString("datasource.not_connected", comment: "Not Connected"))
-                                .font(.subheadline)
+                                .font(AppFont.bodySmall())
                                 .fontWeight(.medium)
                             Text(NSLocalizedString("datasource.select_primary_message", comment: "Please select a primary data source to sync your training records"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -675,7 +849,7 @@ struct UserProfileView: View {
             }
         } message: {
             if let pendingType = pendingDataSourceType {
-                let currentDataSource = userPreferenceManager.dataSourcePreference
+                let currentDataSource = viewModel.currentDataSource
 
                 switch (currentDataSource, pendingType) {
                 case (.unbound, .garmin):
@@ -712,11 +886,11 @@ struct UserProfileView: View {
         title: String,
         subtitle: String
     ) -> some View {
-        let isCurrentSource = userPreferenceManager.dataSourcePreference == type
+        let isCurrentSource = viewModel.currentDataSource == type
         let isGarminConnecting = type == .garmin && garminManager.isConnecting
         let isStravaConnecting = type == .strava && stravaManager.isConnecting
         let isConnecting = isGarminConnecting || isStravaConnecting
-        let isUnbound = userPreferenceManager.dataSourcePreference == .unbound
+        let isUnbound = viewModel.currentDataSource == .unbound
         
         Button(action: {
             // 防止重複觸發
@@ -762,10 +936,10 @@ struct UserProfileView: View {
                     if type != .strava {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(title)
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                             Text(subtitle)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -777,9 +951,9 @@ struct UserProfileView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
-                                .font(.caption)
+                                .font(AppFont.caption())
                             Text(NSLocalizedString("datasource.connected", comment: "Connected"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.green)
                         }
                         .padding(.horizontal, 8)
@@ -805,7 +979,7 @@ struct UserProfileView: View {
                 // Strava subtitle 獨立顯示在下一行
                 if type == .strava {
                     Text(subtitle)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.leading, 8)
                 }
@@ -814,11 +988,11 @@ struct UserProfileView: View {
                 HStack {
                     if isCurrentSource {
                         Text(NSLocalizedString("datasource.currently_active", comment: "Currently active data source"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.green)
                     } else {
                         Text(isUnbound ? NSLocalizedString("datasource.connect", comment: "Connect") : NSLocalizedString("datasource.switch_to_this", comment: "Switch to this data source"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
                     }
                     Spacer()
@@ -839,11 +1013,11 @@ struct UserProfileView: View {
             switch newDataSource {
             case .unbound:
                 // 切換到尚未綁定狀態
-                userPreferenceManager.dataSourcePreference = .unbound
+                viewModel.currentDataSource = .unbound
                 
                 // 同步到後端
                 do {
-                    try await UserService.shared.updateDataSource(newDataSource.rawValue)
+                    try await viewModel.updateAndSyncDataSource(newDataSource)
                     print("數據源設定已同步到後端: \(newDataSource.displayName)")
                 } catch {
                     print("同步數據源設定到後端失敗: \(error.localizedDescription)")
@@ -876,6 +1050,8 @@ struct UserProfileView: View {
                         // 本地斷開Strava連接（remote: false 避免重複調用）
                         await stravaManager.disconnect(remote: false)
 
+                    } catch is CancellationError {
+                        print("Strava解除綁定已取消")
                     } catch {
                         print("❌ Strava解除綁定失敗: \(error.localizedDescription)")
                         // 即使解除綁定失敗，也繼續本地斷開連接
@@ -899,12 +1075,12 @@ struct UserProfileView: View {
                     // 即使權限請求失敗，也繼續切換數據源
                 }
                 
-                userPreferenceManager.dataSourcePreference = .appleHealth
+                viewModel.currentDataSource = .appleHealth
 
                 // 同步到後端
                 print("🔄 開始同步數據源到後端: \(newDataSource.rawValue)")
                 do {
-                    try await UserService.shared.updateDataSource(newDataSource.rawValue)
+                    try await viewModel.updateAndSyncDataSource(newDataSource)
                     print("✅ 數據源設定已同步到後端: \(newDataSource.displayName)")
 
                     Logger.firebase("切換到Apple Health成功", level: .info, labels: [
@@ -915,6 +1091,8 @@ struct UserProfileView: View {
 
                     // 切換完成，不再顯示同步畫面
                     print("Apple Health 數據源切換完成")
+                } catch is CancellationError {
+                    print("同步數據源設定已取消")
                 } catch {
                     print("❌ 同步數據源設定到後端失敗: \(error.localizedDescription)")
 
@@ -944,7 +1122,7 @@ struct UserProfileView: View {
                     }
                 }
 
-                if userPreferenceManager.dataSourcePreference == .appleHealth {
+                if viewModel.currentDataSource == .appleHealth {
                     // 如果當前是Apple Health，無需特殊斷開，直接切換即可
                     print("從Apple Health切換到Garmin")
                 }
@@ -992,7 +1170,7 @@ struct UserProfileView: View {
                     }
                 }
 
-                if userPreferenceManager.dataSourcePreference == .appleHealth {
+                if viewModel.currentDataSource == .appleHealth {
                     // 如果當前是Apple Health，無需特殊斷開，直接切換即可
                     print("從Apple Health切換到Strava")
                 }

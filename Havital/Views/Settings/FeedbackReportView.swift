@@ -243,7 +243,7 @@ struct FeedbackReportView: View {
                         Spacer()
                         Text(viewModel.userEmail)
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
 
                     HStack {
@@ -252,7 +252,7 @@ struct FeedbackReportView: View {
                         Spacer()
                         Text(viewModel.appVersion)
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
 
                     HStack {
@@ -261,7 +261,7 @@ struct FeedbackReportView: View {
                         Spacer()
                         Text(viewModel.deviceInfo)
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
 
@@ -270,7 +270,7 @@ struct FeedbackReportView: View {
                     Section {
                         Text(error)
                             .foregroundColor(.red)
-                            .font(.caption)
+                            .font(AppFont.caption())
                     }
                 }
             }

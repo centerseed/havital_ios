@@ -1,9 +1,1154 @@
 import SwiftUI
 
-// MARK: - Wheel Picker Input Components
+// MARK: - 編輯狀態管理（ObservableObject 作為唯一資料源）
 
-/// 距離選擇輸入欄位
-struct DistancePickerField: View {
+/// 訓練日編輯狀態 - 使用 class 確保 reference semantics
+final class TrainingDayEditState: ObservableObject {
+    // 基本資訊
+    @Published var dayIndex: String
+    @Published var dayTarget: String
+    @Published var trainingType: String
+
+    // 通用欄位
+    @Published var distance: Double
+    @Published var pace: String
+
+    // 間歇跑欄位
+    @Published var repeats: Int
+    @Published var workPace: String
+    @Published var workDistance: Double
+    @Published var workTimeMinutes: Double  // 時間制間歇的工作段時間（分鐘）- 用於挪威4x4等
+    @Published var isTimeBased: Bool  // 是否為時間制間歇（vs 距離制）
+    @Published var recoveryPace: String
+    @Published var recoveryDistance: Double
+    @Published var recoveryTimeMinutes: Double  // 原地休息的時間（分鐘，支援 0.5 增量）
+    @Published var isRestInPlace: Bool
+
+    // 組合跑欄位
+    @Published var segments: [EditableSegment]
+
+    // 描述
+    @Published var description: String?
+
+    init(from day: MutableTrainingDay) {
+        self.dayIndex = day.dayIndex
+        self.dayTarget = day.dayTarget
+        self.trainingType = day.trainingType
+        self.description = day.trainingDetails?.description
+
+        let details = day.trainingDetails
+
+        // 通用欄位
+        self.distance = details?.distanceKm ?? details?.totalDistanceKm ?? 5.0
+        self.pace = details?.pace ?? ""
+
+        // 間歇跑欄位
+        self.repeats = details?.repeats ?? 4
+        self.workPace = details?.work?.pace ?? ""
+        self.workDistance = details?.work?.distanceKm ?? 0.4
+        self.workTimeMinutes = details?.work?.timeMinutes ?? 4.0
+        // 判斷是否為時間制間歇：有 timeMinutes 且 distanceKm 為空或 0
+        let workHasTime = details?.work?.timeMinutes != nil && details!.work!.timeMinutes! > 0
+        let workHasDistance = details?.work?.distanceKm != nil && details!.work!.distanceKm! > 0
+        self.isTimeBased = workHasTime && !workHasDistance
+
+        // 判斷是否為原地休息：有 timeMinutes 或 timeSeconds，但沒有 distanceKm（或為 0）
+        let recovery = details?.recovery
+        let hasTimeMinutes = recovery?.timeMinutes != nil && recovery!.timeMinutes! > 0
+        let hasTimeSeconds = recovery?.timeSeconds != nil && recovery!.timeSeconds! > 0
+        let hasTime = hasTimeMinutes || hasTimeSeconds  // 有時間就視為有時間
+        let hasDistance = recovery?.distanceKm != nil && recovery!.distanceKm! > 0
+        let isRest = hasTime && !hasDistance
+        self.isRestInPlace = isRest
+
+        // 恢復段參數：優先用 timeSeconds（精確值），沒有則用 timeMinutes
+        self.recoveryPace = recovery?.pace ?? "6:00"
+        self.recoveryDistance = recovery?.distanceKm ?? 0.2
+        if let seconds = recovery?.timeSeconds {
+            // 優先用秒數，轉換為分鐘（精確值）
+            self.recoveryTimeMinutes = Double(seconds) / 60.0
+        } else {
+            // 備選用分鐘
+            self.recoveryTimeMinutes = recovery?.timeMinutes ?? 2.0
+        }
+
+        // 組合跑欄位
+        if let segs = details?.segments {
+            self.segments = segs.map { EditableSegment(from: $0) }
+        } else {
+            self.segments = [EditableSegment(pace: "6:00", distance: 2.0)]
+        }
+    }
+
+    var type: DayType {
+        DayType(rawValue: trainingType) ?? .rest
+    }
+
+    var totalSegmentDistance: Double {
+        segments.reduce(0) { $0 + $1.distance }
+    }
+
+    /// 轉換回 MutableTrainingDay
+    func toMutableTrainingDay(originalDay: MutableTrainingDay) -> MutableTrainingDay {
+        var result = originalDay
+        result.dayIndex = dayIndex
+        result.dayTarget = dayTarget
+        result.trainingType = trainingType
+
+        // 根據訓練類型建立 trainingDetails
+        switch type {
+        case .rest:
+            result.trainingDetails = nil
+
+        case .easyRun, .easy, .recovery_run, .lsd:
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: distance,
+                pace: pace.isEmpty ? nil : pace
+            )
+
+        case .tempo, .threshold, .longRun, .racePace:
+            // 節奏/閾值/長跑/比賽配速跑
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: distance,
+                pace: pace.isEmpty ? nil : pace
+            )
+
+        // 間歇訓練類型（包含新增的大步跑、山坡重複跑、巡航間歇）
+        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+            let work = MutableWorkoutSegment(
+                description: nil,
+                distanceKm: workDistance,
+                distanceM: workDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                timeMinutes: nil,
+                pace: workPace.isEmpty ? nil : workPace,
+                heartRateRange: nil
+            )
+
+            // 原地休息：只設置 timeSeconds
+            // 主動恢復：設置 distanceKm 和 pace
+            let recovery: MutableWorkoutSegment
+            if isRestInPlace {
+                // 從分鐘轉換為秒數（只發送秒數給後端）
+                let timeSeconds = Int(round(recoveryTimeMinutes * 60))
+                recovery = MutableWorkoutSegment(
+                    description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
+                    distanceKm: nil,
+                    distanceM: nil,
+                    timeMinutes: nil,      // 不發送給後端
+                    timeSeconds: timeSeconds,  // 精確秒數
+                    pace: nil,
+                    heartRateRange: nil
+                )
+            } else {
+                recovery = MutableWorkoutSegment(
+                    description: nil,
+                    distanceKm: recoveryDistance,
+                    distanceM: recoveryDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                    timeMinutes: nil,
+                    pace: recoveryPace.isEmpty ? nil : recoveryPace,
+                    heartRateRange: nil
+                )
+                Logger.debug("[原地休息] 保存間歇跑 - 主動恢復: distanceKm=\(recoveryDistance), distanceM=\(recoveryDistance * 1000), pace=\(recoveryPace)")
+            }
+
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                work: work,
+                recovery: recovery,
+                repeats: repeats
+            )
+
+        // 時間制間歇訓練：挪威4x4、亞索800
+        case .norwegian4x4, .yasso800:
+            // 時間制間歇：使用 timeMinutes 而非 distanceKm
+            let work: MutableWorkoutSegment
+            if isTimeBased {
+                work = MutableWorkoutSegment(
+                    description: type == .norwegian4x4 ? "高強度跑（92% VO2max）" : "亞索800",
+                    distanceKm: nil,
+                    distanceM: nil,
+                    timeMinutes: workTimeMinutes,
+                    pace: workPace.isEmpty ? nil : workPace,
+                    heartRateRange: nil
+                )
+            } else {
+                work = MutableWorkoutSegment(
+                    description: nil,
+                    distanceKm: workDistance,
+                    distanceM: workDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                    timeMinutes: nil,
+                    pace: workPace.isEmpty ? nil : workPace,
+                    heartRateRange: nil
+                )
+            }
+
+            // 原地休息：只設置 timeSeconds
+            // 恢復跑：挪威4x4 使用 timeMinutes + pace，亞索800 使用 distanceKm + pace
+            let recovery: MutableWorkoutSegment
+            if isRestInPlace {
+                // 從分鐘轉換為秒數（只發送秒數給後端）
+                let timeSeconds = Int(round(recoveryTimeMinutes * 60))
+                recovery = MutableWorkoutSegment(
+                    description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
+                    distanceKm: nil,
+                    distanceM: nil,
+                    timeMinutes: nil,      // 不發送給後端
+                    timeSeconds: timeSeconds,  // 精確秒數
+                    pace: nil,
+                    heartRateRange: nil
+                )
+            } else if type == .norwegian4x4 {
+                // 挪威4x4：時間制恢復跑，同時設置 timeSeconds
+                let timeSeconds = Int(round(recoveryTimeMinutes * 60))
+                let recoveryDistanceM = calculateDistanceMeters(pace: recoveryPace, timeMinutes: recoveryTimeMinutes)
+                let recoveryDistanceKm = recoveryDistanceM.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
+                recovery = MutableWorkoutSegment(
+                    description: "恢復跑\(formatRecoveryTime(recoveryTimeMinutes))",
+                    distanceKm: recoveryDistanceKm,
+                    distanceM: recoveryDistanceM,
+                    timeMinutes: recoveryTimeMinutes,
+                    timeSeconds: timeSeconds,  // 同時設置秒數
+                    pace: recoveryPace.isEmpty ? nil : recoveryPace,
+                    heartRateRange: nil
+                )
+                Logger.debug("[恢復跑] 保存挪威4x4 - 恢復跑: timeMinutes=\(recoveryTimeMinutes), timeSeconds=\(timeSeconds), distanceKm=\(recoveryDistanceKm ?? 0), distanceM=\(recoveryDistanceM ?? 0), pace=\(recoveryPace)")
+            } else {
+                // 亞索800 等：距離制恢復跑
+                recovery = MutableWorkoutSegment(
+                    description: nil,
+                    distanceKm: recoveryDistance,
+                    distanceM: recoveryDistance * 1000,  // 確保 distanceM 與 distanceKm 一致
+                    timeMinutes: nil,
+                    pace: recoveryPace.isEmpty ? nil : recoveryPace,
+                    heartRateRange: nil
+                )
+                Logger.debug("[恢復跑] 保存亞索800 - 恢復跑: distanceKm=\(recoveryDistance), distanceM=\(recoveryDistance * 1000), pace=\(recoveryPace)")
+            }
+
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                work: work,
+                recovery: recovery,
+                repeats: repeats
+            )
+
+        // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
+        case .combination, .progression, .fartlek, .fastFinish:
+            let mutableSegments = segments.map { seg in
+                MutableProgressionSegment(
+                    distanceKm: seg.distance,
+                    pace: seg.pace.isEmpty ? nil : seg.pace,
+                    description: seg.description
+                )
+            }
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                totalDistanceKm: totalSegmentDistance,
+                segments: mutableSegments
+            )
+
+        default:
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: distance
+            )
+        }
+
+        return result
+    }
+
+    func addSegment(defaultPace: String) {
+        segments.append(EditableSegment(pace: defaultPace, distance: 2.0))
+    }
+
+    func removeSegment(at index: Int) {
+        guard segments.count > 1, index < segments.count else { return }
+        segments.remove(at: index)
+    }
+
+    // MARK: - Helper Functions
+
+    /// 根據配速和時間計算距離（公尺），四捨五入到指定單位
+    private func calculateDistanceMeters(pace: String, timeMinutes: Double, roundTo: Double = 100.0) -> Double? {
+        guard let distanceKm = calculateDistanceFromPace(pace: pace, timeMinutes: timeMinutes) else {
+            return nil
+        }
+        let meters = distanceKm * 1000.0
+        return round(meters / roundTo) * roundTo
+    }
+
+    /// 根據配速和時間計算距離（公里）
+    private func calculateDistanceFromPace(pace: String, timeMinutes: Double) -> Double? {
+        // 解析配速格式 "mm:ss"
+        let components = pace.split(separator: ":")
+        guard components.count == 2,
+              let minutes = Double(components[0]),
+              let seconds = Double(components[1]) else {
+            return nil
+        }
+
+        let paceInMinutes = minutes + seconds / 60.0
+        guard paceInMinutes > 0 else { return nil }
+
+        // 距離 = 時間 / 配速
+        return timeMinutes / paceInMinutes
+    }
+
+    /// 格式化恢復時間顯示（支援 1 秒精度）
+    /// - Parameter minutes: 時間（分鐘，例如 2.5 表示 2 分 30 秒）
+    /// - Returns: 格式化字串，例如 "2分30秒" 或 "3分鐘" 或 "45秒"
+    func formatRecoveryTime(_ minutes: Double) -> String {
+        let totalSeconds = Int(round(minutes * 60))
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+
+        if mins == 0 {
+            return "\(secs)秒"
+        } else if secs == 0 {
+            return "\(mins)分鐘"
+        } else {
+            return "\(mins)分\(secs)秒"
+        }
+    }
+}
+
+struct EditableSegment: Identifiable, Equatable {
+    let id = UUID()
+    var pace: String
+    var distance: Double
+    var description: String?
+
+    init(pace: String, distance: Double, description: String? = nil) {
+        self.pace = pace
+        self.distance = distance
+        self.description = description
+    }
+
+    init(from segment: MutableProgressionSegment) {
+        self.pace = segment.pace ?? ""
+        self.distance = segment.distanceKm ?? 2.0
+        self.description = segment.description
+    }
+}
+
+// MARK: - 主編輯頁面
+
+struct TrainingEditSheetV2: View {
+    let originalDay: MutableTrainingDay
+    let onSave: (MutableTrainingDay) -> Void
+    let paceHelper: PaceCalculationHelper
+
+    @StateObject private var editState: TrainingDayEditState
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingPaceTable = false
+
+    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, paceHelper: PaceCalculationHelper) {
+        self.originalDay = day
+        self.onSave = onSave
+        self.paceHelper = paceHelper
+        self._editState = StateObject(wrappedValue: TrainingDayEditState(from: day))
+    }
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 標題區域
+                    headerSection
+
+                    // 根據類型顯示編輯器
+                    editorSection
+
+                    Spacer(minLength: 40)
+                }
+                .padding()
+            }
+            .navigationTitle(L10n.EditSchedule.editTraining.localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(L10n.EditSchedule.cancel.localized) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 12) {
+                        if let _ = paceHelper.currentVDOT, !paceHelper.calculatedPaces.isEmpty {
+                            Button {
+                                showingPaceTable = true
+                            } label: {
+                                Image(systemName: "speedometer")
+                            }
+                        }
+
+                        Button(L10n.EditSchedule.save.localized) {
+                            saveAndDismiss()
+                        }
+                        .fontWeight(.semibold)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingPaceTable) {
+                if let vdot = paceHelper.currentVDOT {
+                    PaceTableView(vdot: vdot, calculatedPaces: paceHelper.calculatedPaces)
+                }
+            }
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(editState.type.localizedName)
+                .font(AppFont.title2())
+                .fontWeight(.bold)
+                .foregroundColor(typeColor)
+
+            Text(editState.dayTarget)
+                .font(AppFont.body())
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+
+    @ViewBuilder
+    private var editorSection: some View {
+        switch editState.type {
+        case .easyRun, .easy, .recovery_run, .lsd:
+            EasyRunEditorV2(editState: editState, paceHelper: paceHelper)
+        case .tempo, .threshold, .racePace:
+            // 節奏/閾值/比賽配速跑 - 需要配速和距離
+            TempoEditorV2(editState: editState, paceHelper: paceHelper)
+        case .norwegian4x4:
+            // 挪威4x4 專屬編輯器
+            Norwegian4x4EditorV2(editState: editState, paceHelper: paceHelper)
+        case .yasso800:
+            // 亞索800 專屬編輯器
+            Yasso800EditorV2(editState: editState, paceHelper: paceHelper)
+        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+            // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇）
+            IntervalEditorV2(editState: editState, paceHelper: paceHelper)
+        case .combination, .progression, .fartlek, .fastFinish:
+            // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
+            CombinationEditorV2(editState: editState, paceHelper: paceHelper)
+        case .longRun:
+            LongRunEditorV2(editState: editState, paceHelper: paceHelper)
+        default:
+            SimpleEditorV2(editState: editState, paceHelper: paceHelper)
+        }
+    }
+
+    private var typeColor: Color {
+        switch editState.type {
+        case .easyRun, .easy, .recovery_run, .yoga, .lsd:
+            return .green
+        case .interval, .tempo, .progression, .threshold, .combination,
+             .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+            // 間歇/強度訓練類型
+            return .orange
+        case .longRun, .hiking, .cycling, .fastFinish:
+            // 長跑類型（包含快結尾長跑）
+            return .blue
+        case .race, .racePace:
+            // 比賽/比賽配速訓練
+            return .red
+        case .fartlek:
+            // 法特雷克 - 較自由的變速跑
+            return .purple
+        case .rest:
+            return .gray
+        case .crossTraining, .strength, .swimming, .elliptical, .rowing:
+            return .purple
+        }
+    }
+
+    private func saveAndDismiss() {
+        let updatedDay = editState.toMutableTrainingDay(originalDay: originalDay)
+        onSave(updatedDay)
+        dismiss()
+    }
+}
+
+// MARK: - 輕鬆跑編輯器
+
+struct EasyRunEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.EditSchedule.easyRunSettings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.green)
+
+            // 建議配速
+            if let suggestedPace = paceHelper.getSuggestedPace(for: editState.trainingType) {
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: paceHelper.getPaceRange(for: editState.trainingType),
+                    onApply: { editState.pace = suggestedPace }
+                )
+            }
+
+            // 距離選擇
+            DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
+
+            // 描述
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - 節奏跑編輯器
+
+struct TempoEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.EditSchedule.tempoRunSettings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.orange)
+
+            // 建議配速
+            if let suggestedPace = paceHelper.getSuggestedPace(for: editState.trainingType) {
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: paceHelper.getPaceRange(for: editState.trainingType),
+                    onApply: { editState.pace = suggestedPace }
+                )
+            }
+
+            HStack(spacing: 16) {
+                PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.pace, referenceDistance: editState.distance)
+                DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
+            }
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            // 自動填充建議配速
+            if editState.pace.isEmpty, let suggested = paceHelper.getSuggestedPace(for: editState.trainingType) {
+                editState.pace = suggested
+            }
+        }
+    }
+}
+
+// MARK: - 間歇跑編輯器
+
+struct IntervalEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    @State private var selectedTemplate: Int? = nil
+
+    private let templates = [
+        (name: "400m × 8", repeats: 8, distanceM: 400),
+        (name: "400m × 10", repeats: 10, distanceM: 400),
+        (name: "800m × 5", repeats: 5, distanceM: 800),
+        (name: "800m × 6", repeats: 6, distanceM: 800),
+        (name: "1000m × 4", repeats: 4, distanceM: 1000),
+        (name: "1000m × 5", repeats: 5, distanceM: 1000),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.EditSchedule.intervalSettings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.orange)
+
+            // 快速選擇模板
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(templates.indices, id: \.self) { index in
+                        Button {
+                            applyTemplate(index)
+                        } label: {
+                            Text(templates[index].name)
+                                .font(AppFont.caption())
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(selectedTemplate == index ? Color.orange : Color.orange.opacity(0.15))
+                                .foregroundColor(selectedTemplate == index ? .white : .orange)
+                                .cornerRadius(16)
+                        }
+                    }
+                }
+            }
+
+            // 建議配速
+            if let suggestedPace = paceHelper.getSuggestedPace(for: editState.trainingType) {
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: paceHelper.getPaceRange(for: editState.trainingType),
+                    onApply: { editState.workPace = suggestedPace }
+                )
+            }
+
+            // 重複次數
+            RepeatsPickerFieldV2(title: L10n.EditSchedule.repeats.localized, repeats: $editState.repeats)
+
+            // 衝刺段
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.red).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.sprintSegment.localized)
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                }
+
+                HStack(spacing: 16) {
+                    PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.workPace, referenceDistance: editState.workDistance)
+                    IntervalDistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distanceKm: $editState.workDistance)
+                }
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+
+            // 恢復段
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.recoverySegment.localized)
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                }
+
+                Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $editState.isRestInPlace)
+
+                if editState.isRestInPlace {
+                    // 原地休息：顯示時間選擇器
+                    RestTimePickerFieldV2(title: "休息時間", timeMinutes: $editState.recoveryTimeMinutes)
+                } else {
+                    // 主動恢復：顯示配速和距離
+                    HStack(spacing: 16) {
+                        PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.recoveryPace, referenceDistance: editState.recoveryDistance)
+                        IntervalDistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distanceKm: $editState.recoveryDistance)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            if editState.workPace.isEmpty, let suggested = paceHelper.getSuggestedPace(for: editState.trainingType) {
+                editState.workPace = suggested
+            }
+        }
+    }
+
+    private func applyTemplate(_ index: Int) {
+        let template = templates[index]
+        selectedTemplate = index
+        editState.repeats = template.repeats
+        editState.workDistance = Double(template.distanceM) / 1000.0
+        editState.isRestInPlace = true
+
+        if let suggested = paceHelper.getSuggestedPace(for: editState.trainingType) {
+            editState.workPace = suggested
+        }
+
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+}
+
+// MARK: - 挪威4x4 專屬編輯器
+
+struct Norwegian4x4EditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 標題：挪威4x4訓練設定（不是通用的「間歇訓練設定」）
+            HStack {
+                Text("🇳🇴")
+                    .font(AppFont.title2())
+                Text(L10n.EditSchedule.norwegian4x4Settings.localized)
+                    .font(AppFont.headline())
+                    .foregroundColor(.orange)
+            }
+
+            // 訓練說明
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.EditSchedule.norwegian4x4Description.localized)
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+
+            // 建議配速（使用 92% VO2max）
+            if let vdot = paceHelper.currentVDOT {
+                let suggestedPace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: nil,
+                    onApply: { editState.workPace = suggestedPace }
+                )
+            }
+
+            // 重複次數（固定為 4 組，但可調整）
+            RepeatsPickerFieldV2(title: L10n.EditSchedule.repeats.localized, repeats: $editState.repeats)
+
+            // 工作段（時間制：4 分鐘）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.red).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.sprintSegment.localized)
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                }
+
+                HStack(spacing: 16) {
+                    PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.workPace, referenceDistance: nil)
+                    WorkTimePickerFieldV2(title: L10n.EditSchedule.time.localized, timeMinutes: $editState.workTimeMinutes)
+                }
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+
+            // 恢復段（恢復跑 3 分鐘，60-70% 最大心率）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.recoverySegment.localized)
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("恢復跑")
+                        .font(AppFont.caption())
+                        .foregroundColor(.mint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.mint.opacity(0.2))
+                        .cornerRadius(4)
+                }
+
+                HStack(spacing: 16) {
+                    // 恢復跑時間
+                    RestTimePickerFieldV2(title: L10n.EditSchedule.time.localized, timeMinutes: $editState.recoveryTimeMinutes)
+                    // 恢復跑配速
+                    PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.recoveryPace, referenceDistance: nil)
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            // 初始化挪威4x4預設值
+            editState.isTimeBased = true
+            editState.isRestInPlace = false  // 挪威4x4 使用恢復跑，不是原地休息
+            if editState.repeats == 0 || editState.repeats == 4 {
+                editState.repeats = 4
+            }
+            if editState.workTimeMinutes == 0 {
+                editState.workTimeMinutes = 4.0
+            }
+            if editState.recoveryTimeMinutes == 0 {
+                editState.recoveryTimeMinutes = 3.0
+            }
+            // 設置 92% VO2max 配速
+            if editState.workPace.isEmpty, let vdot = paceHelper.currentVDOT {
+                editState.workPace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
+            }
+            // 設置恢復跑配速
+            if editState.recoveryPace.isEmpty, let vdot = paceHelper.currentVDOT {
+                editState.recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "7:00"
+            }
+        }
+    }
+}
+
+// MARK: - 亞索800 專屬編輯器
+
+struct Yasso800EditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 標題：亞索800訓練設定
+            Text(L10n.EditSchedule.yasso800Settings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.orange)
+
+            // 訓練說明
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.EditSchedule.yasso800Description.localized)
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+
+            // 建議配速（間歇配速）
+            if let suggestedPace = paceHelper.getSuggestedPace(for: "interval") {
+                SuggestedPaceViewV2(
+                    pace: suggestedPace,
+                    paceRange: paceHelper.getPaceRange(for: "interval"),
+                    onApply: { editState.workPace = suggestedPace }
+                )
+            }
+
+            // 重複次數（通常 10 組）
+            RepeatsPickerFieldV2(title: L10n.EditSchedule.repeats.localized, repeats: $editState.repeats)
+
+            // 工作段（固定 800m）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.red).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.sprintSegment.localized)
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("800m")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(4)
+                }
+
+                PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $editState.workPace, referenceDistance: 0.8)
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+
+            // 恢復段（400m 慢跑或原地休息）
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Text(L10n.EditSchedule.recoverySegment.localized)
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                }
+
+                Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $editState.isRestInPlace)
+
+                if editState.isRestInPlace {
+                    RestTimePickerFieldV2(title: L10n.EditSchedule.restTime.localized, timeMinutes: $editState.recoveryTimeMinutes)
+                } else {
+                    HStack {
+                        Text("400m 慢跑恢復")
+                            .font(AppFont.bodySmall())
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            // 初始化亞索800預設值
+            editState.isTimeBased = false
+            editState.workDistance = 0.8  // 800m
+            if editState.repeats == 0 {
+                editState.repeats = 10
+            }
+            if editState.recoveryDistance == 0 {
+                editState.recoveryDistance = 0.4  // 400m
+            }
+            if editState.recoveryTimeMinutes == 0 {
+                editState.recoveryTimeMinutes = 3.0
+            }
+            // 設置間歇配速
+            if editState.workPace.isEmpty, let suggested = paceHelper.getSuggestedPace(for: "interval") {
+                editState.workPace = suggested
+            }
+        }
+    }
+}
+
+// MARK: - 工作段時間選擇器（用於時間制間歇）
+
+struct WorkTimePickerFieldV2: View {
+    let title: String
+    @Binding var timeMinutes: Double
+    @State private var showingPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(AppFont.bodySmall())
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text(String(format: "%.0f 分鐘", timeMinutes))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(AppFont.caption())
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                WorkTimeWheelPicker(selectedTimeMinutes: $timeMinutes)
+                    .presentationDetents([.height(320)])
+            }
+        }
+    }
+}
+
+struct WorkTimeWheelPicker: View {
+    @Binding var selectedTimeMinutes: Double
+    @Environment(\.dismiss) private var dismiss
+
+    private let timeOptions: [Double] = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20]
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Picker("工作時間", selection: $selectedTimeMinutes) {
+                    ForEach(timeOptions, id: \.self) { minutes in
+                        Text("\(Int(minutes)) 分鐘").tag(minutes)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 200)
+            }
+            .navigationTitle("選擇工作時間")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 組合跑編輯器
+
+struct CombinationEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.EditSchedule.combinationSettings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.orange)
+
+            // 分段列表
+            ForEach(editState.segments.indices, id: \.self) { index in
+                SegmentEditorRowV2(
+                    index: index,
+                    segment: $editState.segments[index],
+                    canDelete: editState.segments.count > 1,
+                    onDelete: { editState.removeSegment(at: index) }
+                )
+            }
+
+            // 新增分段按鈕
+            Button {
+                let defaultPace = paceHelper.getSuggestedPace(for: "easy") ?? "6:00"
+                editState.addSegment(defaultPace: defaultPace)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text(L10n.EditSchedule.addSegment.localized)
+                }
+                .foregroundColor(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.orange.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                )
+            }
+
+            // 總距離
+            HStack {
+                Text(L10n.EditSchedule.totalDistance.localized)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(String(format: "%.1f km", editState.totalSegmentDistance))
+                    .font(AppFont.title3())
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+            }
+            .padding()
+            .background(Color(.tertiarySystemBackground))
+            .cornerRadius(8)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
+struct SegmentEditorRowV2: View {
+    let index: Int
+    @Binding var segment: EditableSegment
+    let canDelete: Bool
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(String(format: L10n.EditSchedule.segment.localized, index + 1))
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+
+                if let desc = segment.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.15))
+                        .cornerRadius(6)
+                }
+
+                Spacer()
+
+                if canDelete {
+                    Button { onDelete() } label: {
+                        Image(systemName: "trash")
+                            .font(AppFont.bodySmall())
+                            .foregroundColor(.red)
+                            .padding(8)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(6)
+                    }
+                }
+            }
+
+            HStack(spacing: 16) {
+                PacePickerFieldV2(title: L10n.EditSchedule.pace.localized, pace: $segment.pace, referenceDistance: segment.distance)
+                DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $segment.distance)
+            }
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - 長跑編輯器
+
+struct LongRunEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.EditSchedule.longRunSettings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.blue)
+
+            DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - 簡單訓練編輯器
+
+struct SimpleEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @ObservedObject var paceHelper: PaceCalculationHelper
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.EditSchedule.trainingSettings.localized)
+                .font(AppFont.headline())
+                .foregroundColor(.blue)
+
+            if editState.type != .rest {
+                DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
+            }
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Picker 欄位元件 (V2 版本，直接使用 @Binding)
+
+struct DistancePickerFieldV2: View {
     let title: String
     @Binding var distance: Double
     @State private var showingPicker = false
@@ -11,7 +1156,7 @@ struct DistancePickerField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -22,7 +1167,7 @@ struct DistancePickerField: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -42,8 +1187,7 @@ struct DistancePickerField: View {
     }
 }
 
-/// 配速選擇輸入欄位
-struct PacePickerField: View {
+struct PacePickerFieldV2: View {
     let title: String
     @Binding var pace: String
     var referenceDistance: Double? = nil
@@ -52,7 +1196,7 @@ struct PacePickerField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -63,7 +1207,7 @@ struct PacePickerField: View {
                         .foregroundColor(pace.isEmpty ? .secondary : .primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -83,8 +1227,7 @@ struct PacePickerField: View {
     }
 }
 
-/// 重複次數選擇輸入欄位
-struct RepeatsPickerField: View {
+struct RepeatsPickerFieldV2: View {
     let title: String
     @Binding var repeats: Int
     @State private var showingPicker = false
@@ -92,7 +1235,7 @@ struct RepeatsPickerField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -103,7 +1246,7 @@ struct RepeatsPickerField: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -123,8 +1266,7 @@ struct RepeatsPickerField: View {
     }
 }
 
-/// 間歇距離選擇輸入欄位（公尺格式）
-struct IntervalDistancePickerField: View {
+struct IntervalDistancePickerFieldV2: View {
     let title: String
     @Binding var distanceKm: Double
     @State private var showingPicker = false
@@ -137,7 +1279,7 @@ struct IntervalDistancePickerField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             Button {
@@ -148,7 +1290,7 @@ struct IntervalDistancePickerField: View {
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 12)
@@ -168,873 +1310,259 @@ struct IntervalDistancePickerField: View {
     }
 }
 
-// MARK: - 詳細訓練編輯器
+struct RestTimePickerFieldV2: View {
+    let title: String
+    @Binding var timeMinutes: Double
+    @State private var showingPicker = false
 
-struct TrainingDetailEditor: View {
-    let day: MutableTrainingDay
-    let onSave: (MutableTrainingDay) -> Void
-    @ObservedObject var viewModel: TrainingPlanViewModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(AppFont.bodySmall())
+                .fontWeight(.medium)
+
+            Button {
+                showingPicker = true
+            } label: {
+                HStack {
+                    Text(formatTime(timeMinutes))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(AppFont.caption())
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .sheet(isPresented: $showingPicker) {
+                RestTimeWheelPicker(selectedTimeMinutes: $timeMinutes)
+                    .presentationDetents([.height(420)])
+            }
+        }
+    }
+
+    /// 格式化時間顯示（支援 1 秒精度）
+    private func formatTime(_ minutes: Double) -> String {
+        let totalSeconds = Int(round(minutes * 60))
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+
+        if mins == 0 {
+            return "\(secs) 秒"
+        } else if secs == 0 {
+            return "\(mins) 分鐘"
+        } else {
+            return "\(mins) 分 \(secs) 秒"
+        }
+    }
+}
+
+struct RestTimeWheelPicker: View {
+    @Binding var selectedTimeMinutes: Double
     @Environment(\.dismiss) private var dismiss
 
-    @State private var editedDay: MutableTrainingDay
-    @State private var showingSaveAlert = false
-    @State private var showingPaceTable = false
+    // 內部狀態：分鐘和秒分開管理
+    @State private var minutes: Int = 0
+    @State private var seconds: Int = 0
 
-    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, viewModel: TrainingPlanViewModel) {
-        self.day = day
-        self.onSave = onSave
-        self.viewModel = viewModel
-        self._editedDay = State(initialValue: day)
-    }
-    
+    // 可選範圍：0-10 分鐘，0-59 秒
+    private let minuteOptions = Array(0...10)
+    private let secondOptions = Array(0..<60)
+
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // 訓練類型標題
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(editedDay.type.localizedName)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(getTypeColor())
-                        
-                        Text(editedDay.dayTarget)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    
-                    // 根據訓練類型顯示相應的編輯界面
-                    Group {
-                        switch editedDay.type {
-                        case .easyRun, .easy, .recovery_run, .lsd:
-                            EasyRunDetailEditor(day: $editedDay, viewModel: viewModel)
-                        case .interval:
-                            IntervalDetailEditor(day: $editedDay, viewModel: viewModel)
-                        case .tempo, .threshold:
-                            TempoRunDetailEditor(day: $editedDay, viewModel: viewModel)
-                        case .progression, .combination:
-                            CombinationDetailEditor(day: $editedDay, viewModel: viewModel)
-                        case .longRun:
-                            LongRunDetailEditor(day: $editedDay, viewModel: viewModel)
-                        default:
-                            SimpleTrainingDetailEditor(day: $editedDay, viewModel: viewModel)
+            VStack(spacing: 16) {
+                // 當前選擇時間顯示
+                Text(formatTime(Double(minutes) + Double(seconds) / 60.0))
+                    .font(AppFont.title1())
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.top, 8)
+
+                // 雙輪選擇器
+                HStack(spacing: 0) {
+                    // 分鐘選擇器
+                    Picker("分鐘", selection: $minutes) {
+                        ForEach(minuteOptions, id: \.self) { min in
+                            Text("\(min)").tag(min)
                         }
                     }
-                    
-                    Spacer()
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                    .clipped()
+
+                    Text("分")
+                        .font(AppFont.body())
+                        .foregroundColor(.secondary)
+                        .frame(width: 30)
+
+                    // 秒選擇器
+                    Picker("秒", selection: $seconds) {
+                        ForEach(secondOptions, id: \.self) { sec in
+                            Text(String(format: "%02d", sec)).tag(sec)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                    .clipped()
+
+                    Text("秒")
+                        .font(AppFont.body())
+                        .foregroundColor(.secondary)
+                        .frame(width: 30)
                 }
-                .padding()
+                .frame(height: 180)
+
+                // 快速選擇按鈕
+                VStack(spacing: 8) {
+                    Text("快速選擇")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 12) {
+                        QuickSelectButton(label: "30秒", action: { setTime(0, 30) })
+                        QuickSelectButton(label: "1分", action: { setTime(1, 0) })
+                        QuickSelectButton(label: "1分30秒", action: { setTime(1, 30) })
+                        QuickSelectButton(label: "2分", action: { setTime(2, 0) })
+                        QuickSelectButton(label: "3分", action: { setTime(3, 0) })
+                    }
+                }
+                .padding(.horizontal)
+
+                Spacer()
             }
-            .navigationTitle(L10n.EditSchedule.editTraining.localized)
+            .navigationTitle("選擇休息時間")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(L10n.EditSchedule.cancel.localized) {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        // 更新 binding 值
+                        selectedTimeMinutes = Double(minutes) + Double(seconds) / 60.0
                         dismiss()
                     }
-                }
-
-                // 配速表按鈕
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        if let vdot = viewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
-                            Button {
-                                showingPaceTable = true
-                            } label: {
-                                Image(systemName: "speedometer")
-                                    .font(.body)
-                            }
-                        }
-
-                        Button(L10n.EditSchedule.save.localized) {
-                            onSave(editedDay)
-                            dismiss()
-                        }
-                    }
+                    .fontWeight(.semibold)
                 }
             }
-            .sheet(isPresented: $showingPaceTable) {
-                if let vdot = viewModel.currentVDOT {
-                    PaceTableView(vdot: vdot, calculatedPaces: viewModel.calculatedPaces)
-                }
-            }
-        }
-    }
-    
-    private func getTypeColor() -> Color {
-        switch editedDay.type {
-        case .easyRun, .easy, .recovery_run, .yoga, .lsd:
-            return Color.green
-        case .interval, .tempo, .progression, .threshold, .combination:
-            return Color.orange
-        case .longRun, .hiking, .cycling:
-            return Color.blue
-        case .race:
-            return Color.red
-        case .rest:
-            return Color.gray
-        case .crossTraining, .strength:
-            return Color.purple
-        }
-    }
-}
-
-// MARK: - Easy Run Detail Editor
-
-struct EasyRunDetailEditor: View {
-    @Binding var day: MutableTrainingDay
-    @ObservedObject var viewModel: TrainingPlanViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.EditSchedule.easyRunSettings.localized)
-                .font(.headline)
-                .foregroundColor(.green)
-
-            // 顯示建議配速提示和配速區間
-            if let suggestedPace = getSuggestedPace() {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-
-                        Text(String(format: L10n.EditSchedule.suggestedPace.localized, suggestedPace))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button(L10n.EditSchedule.apply.localized) {
-                            applyPaceField(suggestedPace)
-                        }
-                        .font(.caption)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
-
-                    // 配速區間範圍
-                    if let paceRange = getPaceRange() {
-                        HStack(spacing: 4) {
-                            Image(systemName: "gauge.medium")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-
-                            Text(String(format: L10n.EditSchedule.paceRange.localized, paceRange.max, paceRange.min))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            Spacer()
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.yellow.opacity(0.1))
-                .cornerRadius(8)
-            }
-
-            DistancePickerField(
-                title: L10n.EditSchedule.distance.localized,
-                distance: Binding(
-                    get: { day.trainingDetails?.distanceKm ?? 5.0 },
-                    set: { newValue in
-                        if day.trainingDetails != nil {
-                            day.trainingDetails?.distanceKm = newValue
-                        }
-                    }
-                )
-            )
-
-            if let details = day.trainingDetails, let desc = details.description {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.description.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(desc)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-        .onAppear {
-            // 自動填充建議配速（如果配速為空）
-            if day.trainingDetails?.pace == nil || day.trainingDetails?.pace?.isEmpty == true {
-                if let suggestedPace = getSuggestedPace() {
-                    applyPaceField(suggestedPace)
-                }
+            .onAppear {
+                // 初始化分鐘和秒的狀態
+                let totalSeconds = Int(round(selectedTimeMinutes * 60))
+                minutes = totalSeconds / 60
+                seconds = totalSeconds % 60
             }
         }
     }
 
-    private func getSuggestedPace() -> String? {
-        return viewModel.getSuggestedPace(for: day.trainingType)
+    private func setTime(_ mins: Int, _ secs: Int) {
+        minutes = mins
+        seconds = secs
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    private func getPaceRange() -> (min: String, max: String)? {
-        return viewModel.getPaceRange(for: day.trainingType)
-    }
+    /// 格式化時間顯示（支援 1 秒精度）
+    private func formatTime(_ totalMinutes: Double) -> String {
+        let totalSeconds = Int(round(totalMinutes * 60))
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
 
-    private func applyPaceField(_ pace: String) {
-        if day.trainingDetails == nil {
-            day.trainingDetails = MutableTrainingDetails(pace: pace)
+        if mins == 0 {
+            return "\(secs) 秒"
+        } else if secs == 0 {
+            return "\(mins) 分鐘"
         } else {
-            day.trainingDetails?.pace = pace
+            return "\(mins) 分 \(secs) 秒"
         }
     }
 }
 
-// MARK: - Tempo Run Detail Editor
-
-struct TempoRunDetailEditor: View {
-    @Binding var day: MutableTrainingDay
-    @ObservedObject var viewModel: TrainingPlanViewModel
+// MARK: - 快速選擇按鈕元件
+private struct QuickSelectButton: View {
+    let label: String
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.EditSchedule.tempoRunSettings.localized)
-                .font(.headline)
-                .foregroundColor(.orange)
-
-            // 顯示建議配速提示和配速區間
-            if let suggestedPace = getSuggestedPace() {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-
-                        Text(String(format: L10n.EditSchedule.suggestedPace.localized, suggestedPace))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button(L10n.EditSchedule.apply.localized) {
-                            applyPace(suggestedPace)
-                        }
-                        .font(.caption)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
-
-                    // 配速區間範圍
-                    if let paceRange = getPaceRange() {
-                        HStack(spacing: 4) {
-                            Image(systemName: "gauge.medium")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-
-                            Text(String(format: L10n.EditSchedule.paceRange.localized, paceRange.max, paceRange.min))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            Spacer()
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.yellow.opacity(0.1))
-                .cornerRadius(8)
-            }
-
-            HStack(spacing: 16) {
-                DistancePickerField(
-                    title: L10n.EditSchedule.distance.localized,
-                    distance: Binding(
-                        get: { day.trainingDetails?.distanceKm ?? 5.0 },
-                        set: { newValue in
-                            if day.trainingDetails != nil {
-                                day.trainingDetails?.distanceKm = newValue
-                            }
-                        }
-                    )
-                )
-
-                PacePickerField(
-                    title: L10n.EditSchedule.pace.localized,
-                    pace: Binding(
-                        get: { day.trainingDetails?.pace ?? "" },
-                        set: { newValue in
-                            if day.trainingDetails != nil {
-                                day.trainingDetails?.pace = newValue.isEmpty ? nil : newValue
-                            }
-                        }
-                    ),
-                    referenceDistance: day.trainingDetails?.distanceKm
-                )
-            }
-
-            if let details = day.trainingDetails, let desc = details.description {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.description.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(desc)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                }
-            }
+        Button(action: action) {
+            Text(label)
+                .font(AppFont.caption())
+                .fontWeight(.medium)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.15))
+                .foregroundColor(.blue)
+                .cornerRadius(16)
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-        .onAppear {
-            // 自動填充建議配速（如果配速為空）
-            if day.trainingDetails?.pace == nil || day.trainingDetails?.pace?.isEmpty == true {
-                if let suggestedPace = getSuggestedPace() {
-                    applyPace(suggestedPace)
-                }
-            }
-        }
-    }
-
-    private func applyPace(_ pace: String) {
-        if day.trainingDetails != nil {
-            day.trainingDetails?.pace = pace
-        }
-    }
-
-    private func getSuggestedPace() -> String? {
-        return viewModel.getSuggestedPace(for: day.trainingType)
-    }
-
-    private func getPaceRange() -> (min: String, max: String)? {
-        return viewModel.getPaceRange(for: day.trainingType)
     }
 }
 
-// MARK: - Interval Detail Editor
+// MARK: - 共用元件
 
-struct IntervalDetailEditor: View {
-    @Binding var day: MutableTrainingDay
-    @ObservedObject var viewModel: TrainingPlanViewModel
-
-    @State private var isRestInPlace: Bool = false
-    @State private var selectedTemplateIndex: Int? = nil
-
-    // 常用間歇訓練模板
-    private struct IntervalTemplate: Identifiable {
-        let id = UUID()
-        let name: String
-        let repeats: Int
-        let distanceM: Int
-        let description: String
-    }
-
-    private let templates: [IntervalTemplate] = [
-        IntervalTemplate(name: "400m × 8", repeats: 8, distanceM: 400, description: NSLocalizedString("interval.template.400x8", comment: "適合提升速度耐力")),
-        IntervalTemplate(name: "400m × 10", repeats: 10, distanceM: 400, description: NSLocalizedString("interval.template.400x10", comment: "進階速度耐力訓練")),
-        IntervalTemplate(name: "800m × 5", repeats: 5, distanceM: 800, description: NSLocalizedString("interval.template.800x5", comment: "中距離間歇訓練")),
-        IntervalTemplate(name: "1000m × 4", repeats: 4, distanceM: 1000, description: NSLocalizedString("interval.template.1000x4", comment: "提升有氧閾值")),
-        IntervalTemplate(name: "200m × 12", repeats: 12, distanceM: 200, description: NSLocalizedString("interval.template.200x12", comment: "短距離速度訓練"))
-    ]
+struct SuggestedPaceViewV2: View {
+    let pace: String
+    let paceRange: (min: String, max: String)?
+    let onApply: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.EditSchedule.intervalSettings.localized)
-                .font(.headline)
-                .foregroundColor(.orange)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.yellow)
+                    .font(AppFont.caption())
 
-            // 快速模板選擇
-            VStack(alignment: .leading, spacing: 8) {
-                Text(NSLocalizedString("edit_schedule.quick_templates", comment: "快速選擇"))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                Text(String(format: L10n.EditSchedule.suggestedPace.localized, pace))
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(templates.indices, id: \.self) { index in
-                            Button {
-                                applyTemplate(templates[index])
-                                selectedTemplateIndex = index
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(templates[index].name)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                    Text(templates[index].description)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(selectedTemplateIndex == index ? Color.orange.opacity(0.2) : Color(.tertiarySystemBackground))
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(selectedTemplateIndex == index ? Color.orange : Color.clear, lineWidth: 1.5)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                }
-            }
-
-            // 顯示建議配速提示和配速區間
-            if let suggestedPace = getSuggestedPace() {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-
-                        Text(String(format: L10n.EditSchedule.sprintSuggestedPace.localized, suggestedPace))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button(L10n.EditSchedule.apply.localized) {
-                            applySprintPace(suggestedPace)
-                        }
-                        .font(.caption)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
-
-                    // 配速區間範圍
-                    if let paceRange = getPaceRange() {
-                        HStack(spacing: 4) {
-                            Image(systemName: "gauge.medium")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            Text(String(format: L10n.EditSchedule.intervalPaceRange.localized, paceRange.max, paceRange.min))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            Spacer()
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.yellow.opacity(0.1))
-                .cornerRadius(8)
-            }
-
-            // 重複次數
-            RepeatsPickerField(
-                title: L10n.EditSchedule.repeats.localized,
-                repeats: Binding(
-                    get: { day.trainingDetails?.repeats ?? 4 },
-                    set: { newValue in
-                        day.trainingDetails?.repeats = newValue
-                    }
-                )
-            )
-
-            // 衝刺段設定
-            VStack(alignment: .leading, spacing: 12) {
-                Text(L10n.EditSchedule.sprintSegment.localized)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.red)
-
-                HStack(spacing: 16) {
-                    IntervalDistancePickerField(
-                        title: L10n.EditSchedule.distance.localized,
-                        distanceKm: Binding(
-                            get: { day.trainingDetails?.work?.distanceKm ?? 0.4 },
-                            set: { newValue in
-                                ensureWorkSegment()
-                                day.trainingDetails?.work?.distanceKm = newValue
-                            }
-                        )
-                    )
-
-                    PacePickerField(
-                        title: L10n.EditSchedule.pace.localized,
-                        pace: Binding(
-                            get: { day.trainingDetails?.work?.pace ?? "" },
-                            set: { newValue in
-                                ensureWorkSegment()
-                                day.trainingDetails?.work?.pace = newValue.isEmpty ? nil : newValue
-                            }
-                        )
-                    )
-                }
-            }
-            .padding()
-            .background(Color.red.opacity(0.1))
-            .cornerRadius(8)
-
-            // 恢復段設定
-            VStack(alignment: .leading, spacing: 12) {
-                Text(L10n.EditSchedule.recoverySegment.localized)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.blue)
-
-                Toggle(L10n.EditSchedule.restInPlace.localized, isOn: $isRestInPlace)
-                    .toggleStyle(SwitchToggleStyle(tint: .blue))
-                    .onChange(of: isRestInPlace) { oldValue, newValue in
-                        updateRestInPlace(newValue)
-                    }
-
-                if !isRestInPlace {
-                    HStack(spacing: 16) {
-                        IntervalDistancePickerField(
-                            title: L10n.EditSchedule.distance.localized,
-                            distanceKm: Binding(
-                                get: { day.trainingDetails?.recovery?.distanceKm ?? 0.2 },
-                                set: { newValue in
-                                    ensureRecoverySegment()
-                                    day.trainingDetails?.recovery?.distanceKm = newValue
-                                }
-                            )
-                        )
-
-                        PacePickerField(
-                            title: L10n.EditSchedule.pace.localized,
-                            pace: Binding(
-                                get: { day.trainingDetails?.recovery?.pace ?? "" },
-                                set: { newValue in
-                                    ensureRecoverySegment()
-                                    day.trainingDetails?.recovery?.pace = newValue.isEmpty ? nil : newValue
-                                }
-                            )
-                        )
-                    }
-                }
-            }
-            .padding()
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(8)
-
-            if let details = day.trainingDetails, let desc = details.description {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.description.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(desc)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-        .onAppear {
-            loadIntervalData()
-        }
-    }
-
-    private func loadIntervalData() {
-        guard let details = day.trainingDetails else { return }
-
-        // 檢查是否為原地休息
-        if let recovery = details.recovery {
-            isRestInPlace = recovery.distanceKm == nil && recovery.pace == nil
-        } else {
-            isRestInPlace = true
-        }
-
-        // 自動填充建議配速（如果配速為空）
-        if details.work?.pace == nil || details.work?.pace?.isEmpty == true {
-            if let suggestedPace = getSuggestedPace() {
-                applySprintPace(suggestedPace)
-            }
-        }
-    }
-
-    private func ensureWorkSegment() {
-        if day.trainingDetails?.work == nil {
-            day.trainingDetails?.work = MutableWorkoutSegment(
-                description: nil, distanceKm: 0.4, distanceM: nil,
-                timeMinutes: nil, pace: nil, heartRateRange: nil
-            )
-        }
-    }
-
-    private func ensureRecoverySegment() {
-        if day.trainingDetails?.recovery == nil {
-            day.trainingDetails?.recovery = MutableWorkoutSegment(
-                description: nil, distanceKm: 0.2, distanceM: nil,
-                timeMinutes: nil, pace: "6:00", heartRateRange: nil
-            )
-        }
-    }
-
-    private func applySprintPace(_ pace: String) {
-        ensureWorkSegment()
-        day.trainingDetails?.work?.pace = pace
-    }
-
-    private func updateRestInPlace(_ isRest: Bool) {
-        if isRest {
-            // 原地休息：清除距離和配速
-            day.trainingDetails?.recovery = MutableWorkoutSegment(
-                description: nil, distanceKm: nil, distanceM: nil,
-                timeMinutes: nil, pace: nil, heartRateRange: nil
-            )
-        } else {
-            // 跑步恢復：直接設定新的 segment 以確保值被正確設定
-            day.trainingDetails?.recovery = MutableWorkoutSegment(
-                description: nil, distanceKm: 0.2, distanceM: nil,
-                timeMinutes: nil, pace: "6:00", heartRateRange: nil
-            )
-        }
-    }
-
-    /// 應用間歇訓練模板
-    private func applyTemplate(_ template: IntervalTemplate) {
-        isRestInPlace = true
-
-        // 獲取建議配速
-        let suggestedPace = getSuggestedPace() ?? "4:30"
-
-        // 更新 day 資料
-        day.trainingDetails?.repeats = template.repeats
-        day.trainingDetails?.work = MutableWorkoutSegment(
-            description: nil,
-            distanceKm: Double(template.distanceM) / 1000.0,
-            distanceM: nil,
-            timeMinutes: nil,
-            pace: suggestedPace,
-            heartRateRange: nil
-        )
-        day.trainingDetails?.recovery = MutableWorkoutSegment(
-            description: nil,
-            distanceKm: nil,
-            distanceM: nil,
-            timeMinutes: nil,
-            pace: nil,
-            heartRateRange: nil
-        )
-
-        // 觸發震動回饋
-        let impact = UIImpactFeedbackGenerator(style: .light)
-        impact.impactOccurred()
-    }
-
-    private func getSuggestedPace() -> String? {
-        return viewModel.getSuggestedPace(for: day.trainingType)
-    }
-
-    private func getPaceRange() -> (min: String, max: String)? {
-        return viewModel.getPaceRange(for: day.trainingType)
-    }
-}
-
-// MARK: - Combination Detail Editor
-
-struct CombinationDetailEditor: View {
-    @Binding var day: MutableTrainingDay
-    @ObservedObject var viewModel: TrainingPlanViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.EditSchedule.combinationSettings.localized)
-                .font(.headline)
-                .foregroundColor(.orange)
-
-            if let segments = day.trainingDetails?.segments {
-                ForEach(segments.indices, id: \.self) { index in
-                    CombinationSegmentEditor(
-                        segmentIndex: index,
-                        segment: Binding(
-                            get: { day.trainingDetails?.segments?[index] ?? MutableProgressionSegment(distanceKm: nil, pace: nil, description: nil, heartRateRange: nil) },
-                            set: { newValue in
-                                day.trainingDetails?.segments?[index] = newValue
-                                updateTotalDistance()
-                            }
-                        )
-                    )
-                }
-            }
-
-            if let details = day.trainingDetails, let desc = details.description {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.description.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(desc)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-    }
-
-    private func updateTotalDistance() {
-        guard let segments = day.trainingDetails?.segments else { return }
-        let totalDistance = segments.compactMap { $0.distanceKm }.reduce(0, +)
-        if totalDistance > 0 {
-            day.trainingDetails?.totalDistanceKm = totalDistance
-        }
-    }
-}
-
-/// 組合訓練單一段落編輯器
-struct CombinationSegmentEditor: View {
-    let segmentIndex: Int
-    @Binding var segment: MutableProgressionSegment
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(String(format: L10n.EditSchedule.segment.localized, segmentIndex + 1))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.orange)
 
                 Spacer()
 
-                // 段落描述標籤（僅顯示，不可編輯）
-                if let desc = segment.description, !desc.isEmpty {
-                    Text(desc)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.gray.opacity(0.15))
-                        .cornerRadius(6)
+                Button(L10n.EditSchedule.apply.localized) {
+                    onApply()
                 }
+                .font(AppFont.caption())
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
             }
 
-            HStack(spacing: 16) {
-                DistancePickerField(
-                    title: L10n.EditSchedule.distance.localized,
-                    distance: Binding(
-                        get: { segment.distanceKm ?? 2.0 },
-                        set: { newValue in segment.distanceKm = newValue }
-                    )
-                )
+            if let range = paceRange {
+                HStack(spacing: 4) {
+                    Image(systemName: "gauge.medium")
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.secondary)
 
-                PacePickerField(
-                    title: L10n.EditSchedule.pace.localized,
-                    pace: Binding(
-                        get: { segment.pace ?? "" },
-                        set: { newValue in segment.pace = newValue.isEmpty ? nil : newValue }
-                    ),
-                    referenceDistance: segment.distanceKm
-                )
+                    Text(String(format: L10n.EditSchedule.paceRange.localized, range.max, range.min))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
             }
         }
         .padding()
-        .background(Color.orange.opacity(0.1))
+        .background(Color.yellow.opacity(0.1))
         .cornerRadius(8)
     }
 }
 
-// MARK: - Long Run Detail Editor
-
-struct LongRunDetailEditor: View {
-    @Binding var day: MutableTrainingDay
-    @ObservedObject var viewModel: TrainingPlanViewModel
+struct DescriptionViewV2: View {
+    let description: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.EditSchedule.longRunSettings.localized)
-                .font(.headline)
-                .foregroundColor(.blue)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.EditSchedule.description.localized)
+                .font(AppFont.bodySmall())
+                .fontWeight(.medium)
 
-            DistancePickerField(
-                title: L10n.EditSchedule.distance.localized,
-                distance: Binding(
-                    get: { day.trainingDetails?.distanceKm ?? 15.0 },
-                    set: { newValue in
-                        if day.trainingDetails != nil {
-                            day.trainingDetails?.distanceKm = newValue
-                        }
-                    }
-                )
-            )
-
-            if let details = day.trainingDetails, let desc = details.description {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.description.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(desc)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                }
-            }
+            Text(description)
+                .font(AppFont.body())
+                .foregroundColor(.secondary)
+                .padding()
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(8)
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - Simple Training Detail Editor
-
-struct SimpleTrainingDetailEditor: View {
-    @Binding var day: MutableTrainingDay
-    @ObservedObject var viewModel: TrainingPlanViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.EditSchedule.trainingSettings.localized)
-                .font(.headline)
-                .foregroundColor(.blue)
-
-            if day.type != .rest {
-                DistancePickerField(
-                    title: L10n.EditSchedule.distance.localized,
-                    distance: Binding(
-                        get: { day.trainingDetails?.distanceKm ?? 5.0 },
-                        set: { newValue in
-                            if day.trainingDetails != nil {
-                                day.trainingDetails?.distanceKm = newValue
-                            }
-                        }
-                    )
-                )
-            }
-
-            if let details = day.trainingDetails, let desc = details.description {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.EditSchedule.description.localized)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(desc)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
     }
 }

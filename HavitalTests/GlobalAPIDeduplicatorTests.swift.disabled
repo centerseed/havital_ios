@@ -1,0 +1,329 @@
+import XCTest
+@testable import paceriz_dev
+
+/// 测试 GlobalAPIDeduplicator 的并发去重功能
+@available(iOS 13.0, *)
+final class GlobalAPIDeduplicatorTests: XCTestCase {
+
+    var deduplicator: GlobalAPIDeduplicator!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        // 每个测试使用新的 deduplicator 实例（通过清理来模拟）
+        deduplicator = GlobalAPIDeduplicator.shared
+        await deduplicator.cancelAllRequests()
+    }
+
+    override func tearDown() async throws {
+        await deduplicator.cancelAllRequests()
+        try await super.tearDown()
+    }
+
+    // MARK: - Basic Deduplication Tests
+
+    /// 测试基本的去重功能：相同 key 的并发请求只执行一次
+    func testBasicDeduplication() async throws {
+        var executionCount = 0
+        let expectation = XCTestExpectation(description: "Both requests complete")
+        expectation.expectedFulfillmentCount = 2
+
+        // 模拟一个慢速 API 调用
+        let slowOperation: () async throws -> String = {
+            executionCount += 1
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 秒
+            return "success"
+        }
+
+        // 并发执行两个相同 key 的请求
+        async let result1 = deduplicator.deduplicate(key: "test_key", operation: slowOperation)
+        async let result2 = deduplicator.deduplicate(key: "test_key", operation: slowOperation)
+
+        Task {
+            _ = try await result1
+            expectation.fulfill()
+        }
+
+        Task {
+            _ = try await result2
+            expectation.fulfill()
+        }
+
+        await fulfillment(of: [expectation], timeout: 2.0)
+
+        // 验证：虽然发起了两个请求，但 operation 只执行了一次
+        XCTAssertEqual(executionCount, 1, "Operation should only execute once for duplicate keys")
+    }
+
+    /// 测试不同 key 的请求不会被去重
+    func testDifferentKeysExecuteSeparately() async throws {
+        var executionCount = 0
+
+        let operation: () async throws -> String = {
+            executionCount += 1
+            return "success"
+        }
+
+        // 使用不同的 key
+        async let result1 = deduplicator.deduplicate(key: "key1", operation: operation)
+        async let result2 = deduplicator.deduplicate(key: "key2", operation: operation)
+
+        let _ = try await [result1, result2]
+
+        // 验证：不同 key 的请求应该各自执行
+        XCTAssertEqual(executionCount, 2, "Different keys should execute separately")
+    }
+
+    // MARK: - Type Safety Tests
+
+    /// 测试类型转换错误：相同 key 但返回类型不同应该抛出错误
+    func testTypeMismatchThrowsError() async throws {
+        // 第一个请求返回 String
+        async let result1 = deduplicator.deduplicate(key: "type_test") {
+            return "string_value"
+        }
+
+        // 第二个请求期望返回 Int（但会复用第一个请求的结果）
+        async let result2: Int = deduplicator.deduplicate(key: "type_test") {
+            return 42 // 这个不会执行，因为第一个请求已经在进行
+        }
+
+        // 第一个请求应该成功
+        let stringResult = try await result1
+        XCTAssertEqual(stringResult, "string_value")
+
+        // 第二个请求应该抛出类型不匹配错误
+        do {
+            _ = try await result2
+            XCTFail("Should throw type mismatch error")
+        } catch let error as GlobalAPIDeduplicator.DeduplicationError {
+            if case .typeMismatch(let key) = error {
+                XCTAssertEqual(key, "type_test")
+            } else {
+                XCTFail("Wrong error type: \(error)")
+            }
+        }
+    }
+
+    // MARK: - Cleanup Tests
+
+    /// 测试请求完成后自动清理
+    func testAutomaticCleanupAfterCompletion() async throws {
+        let key = "cleanup_test"
+
+        // 第一次执行
+        let result1 = try await deduplicator.deduplicate(key: key) {
+            return "first"
+        }
+        XCTAssertEqual(result1, "first")
+
+        // 等待一小段时间确保清理完成
+        try await Task.sleep(nanoseconds: 50_000_000) // 0.05 秒
+
+        // 第二次执行相同 key（应该是新的请求，因为第一次已清理）
+        var secondExecuted = false
+        let result2 = try await deduplicator.deduplicate(key: key) {
+            secondExecuted = true
+            return "second"
+        }
+
+        XCTAssertEqual(result2, "second")
+        XCTAssertTrue(secondExecuted, "Second request should execute after cleanup")
+    }
+
+    /// 测试手动取消请求
+    func testManualCancellation() async throws {
+        let key = "cancel_test"
+
+        // 启动一个长时间运行的请求
+        Task {
+            do {
+                _ = try await deduplicator.deduplicate(key: key) {
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 秒
+                    return "should_be_cancelled"
+                }
+                XCTFail("Request should be cancelled")
+            } catch {
+                // 预期被取消
+            }
+        }
+
+        // 等待一小段时间确保请求启动
+        try await Task.sleep(nanoseconds: 50_000_000) // 0.05 秒
+
+        // 取消请求
+        await deduplicator.cancelRequest(key: key)
+
+        // 等待确保取消完成
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 秒
+
+        // 验证：取消后，新请求应该能够执行
+        var newRequestExecuted = false
+        _ = try await deduplicator.deduplicate(key: key) {
+            newRequestExecuted = true
+            return "new_request"
+        }
+
+        XCTAssertTrue(newRequestExecuted, "New request should execute after cancellation")
+    }
+
+    /// 测试取消所有请求
+    func testCancelAllRequests() async throws {
+        let expectation1 = XCTestExpectation(description: "Request 1 cancelled")
+        let expectation2 = XCTestExpectation(description: "Request 2 cancelled")
+
+        // 启动多个长时间运行的请求
+        Task {
+            do {
+                _ = try await deduplicator.deduplicate(key: "key1") {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    return "key1_result"
+                }
+                XCTFail("Request 1 should be cancelled")
+            } catch {
+                expectation1.fulfill()
+            }
+        }
+
+        Task {
+            do {
+                _ = try await deduplicator.deduplicate(key: "key2") {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    return "key2_result"
+                }
+                XCTFail("Request 2 should be cancelled")
+            } catch {
+                expectation2.fulfill()
+            }
+        }
+
+        // 等待请求启动
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        // 取消所有请求
+        await deduplicator.cancelAllRequests()
+
+        await fulfillment(of: [expectation1, expectation2], timeout: 2.0)
+    }
+
+    // MARK: - Performance Tests
+
+    /// 测试高并发场景下的去重性能
+    func testHighConcurrencyDeduplication() async throws {
+        var executionCount = 0
+        let concurrentRequestCount = 100
+        let expectation = XCTestExpectation(description: "All requests complete")
+        expectation.expectedFulfillmentCount = concurrentRequestCount
+
+        let operation: () async throws -> Int = {
+            executionCount += 1
+            try await Task.sleep(nanoseconds: 10_000_000) // 0.01 秒
+            return executionCount
+        }
+
+        // 并发发起 100 个相同 key 的请求
+        for _ in 0..<concurrentRequestCount {
+            Task {
+                _ = try? await deduplicator.deduplicate(key: "high_concurrency", operation: operation)
+                expectation.fulfill()
+            }
+        }
+
+        await fulfillment(of: [expectation], timeout: 5.0)
+
+        // 验证：100 个请求只执行了一次
+        XCTAssertEqual(executionCount, 1, "100 concurrent requests should only execute once")
+    }
+
+    // MARK: - Key Generation Tests
+
+    /// 测试 key 生成器
+    func testKeyGeneration() async throws {
+        // 测试基本 key 生成
+        let key1 = await deduplicator.generateKey(
+            endpoint: "/user/profile",
+            method: "GET",
+            parameters: nil
+        )
+        XCTAssertEqual(key1, "GET:/user/profile")
+
+        // 测试带参数的 key 生成
+        let key2 = await deduplicator.generateKey(
+            endpoint: "/user/workouts",
+            method: "GET",
+            parameters: ["limit": "10", "offset": "0"]
+        )
+        XCTAssertTrue(key2.contains("GET:/user/workouts"))
+        XCTAssertTrue(key2.contains("limit") || key2.contains("10"))
+
+        // 测试不同参数顺序生成相同的 key
+        let key3 = await deduplicator.generateKey(
+            endpoint: "/user/workouts",
+            method: "GET",
+            parameters: ["offset": "0", "limit": "10"]
+        )
+        XCTAssertEqual(key2, key3, "Parameters order should not affect key")
+    }
+
+    // MARK: - Error Propagation Tests
+
+    /// 测试错误传播：operation 抛出的错误应该正确传播
+    func testErrorPropagation() async throws {
+        enum TestError: Error, Equatable {
+            case customError
+        }
+
+        let failingOperation: () async throws -> String = {
+            throw TestError.customError
+        }
+
+        // 第一个请求应该抛出错误
+        do {
+            _ = try await deduplicator.deduplicate(key: "error_test", operation: failingOperation)
+            XCTFail("Should throw error")
+        } catch let error as TestError {
+            XCTAssertEqual(error, TestError.customError)
+        }
+
+        // 等待清理
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        // 第二个请求也应该能够执行（因为第一个已失败并清理）
+        do {
+            _ = try await deduplicator.deduplicate(key: "error_test", operation: failingOperation)
+            XCTFail("Should throw error")
+        } catch let error as TestError {
+            XCTAssertEqual(error, TestError.customError)
+        }
+    }
+
+    // MARK: - Pending Request Count Tests
+
+    /// 测试获取待处理请求数量
+    func testPendingRequestCount() async throws {
+        // 初始应该为 0
+        let initialCount = await deduplicator.getPendingRequestCount()
+        XCTAssertEqual(initialCount, 0)
+
+        // 启动一个长时间运行的请求
+        Task {
+            _ = try? await deduplicator.deduplicate(key: "pending_test") {
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 秒
+                return "result"
+            }
+        }
+
+        // 等待请求启动
+        try await Task.sleep(nanoseconds: 50_000_000) // 0.05 秒
+
+        // 应该有 1 个待处理请求
+        let countDuringExecution = await deduplicator.getPendingRequestCount()
+        XCTAssertEqual(countDuringExecution, 1)
+
+        // 等待请求完成
+        try await Task.sleep(nanoseconds: 600_000_000) // 0.6 秒
+
+        // 应该回到 0
+        let finalCount = await deduplicator.getPendingRequestCount()
+        XCTAssertEqual(finalCount, 0)
+    }
+}

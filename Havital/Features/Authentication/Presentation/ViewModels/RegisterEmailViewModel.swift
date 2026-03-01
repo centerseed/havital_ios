@@ -1,0 +1,31 @@
+import Foundation
+import Combine
+import SwiftUI
+
+@MainActor
+class RegisterEmailViewModel: ObservableObject, @preconcurrency TaskManageable {
+    let taskRegistry = TaskRegistry()
+
+    @Published var email = ""
+    @Published var password = ""
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var successMessage: String?
+
+    func register() async {
+        errorMessage = nil
+        successMessage = nil
+        isLoading = true
+        do {
+            let data = try await EmailAuthService.shared.register(email: email, password: password)
+            successMessage = data.message
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    deinit {
+        cancelAllTasks()
+    }
+}

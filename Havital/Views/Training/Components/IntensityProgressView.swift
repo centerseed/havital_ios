@@ -103,7 +103,7 @@ struct IntensityProgressView: View {
                 
                 if state.showIcon {
                     Image(systemName: "info.circle.fill") // 使用 fill 版本更明顯
-                        .font(.system(size: 12))
+                        .font(AppFont.caption())
                         .foregroundColor(.gray) // PDD 建議中性提示
                 }
             }

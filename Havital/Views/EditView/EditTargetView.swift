@@ -75,20 +75,25 @@ struct EditTargetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button(L10n.Common.cancel.localized) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("儲存") {
+                    Button(L10n.Common.save.localized) {
                         Task {
                             if let hasSignificantChange = await targetModel.updateTarget() {
                                 // 無論是否有重要變更，都發送通知並關閉視圖
+                                Logger.debug("[🐛 TARGET_UPDATE] ② 發送通知: hasSignificantChange = \(hasSignificantChange)")
                                 NotificationCenter.default.post(
-                                    name: .targetUpdated, 
-                                    object: nil, 
-                                    userInfo: ["hasSignificantChange": hasSignificantChange]
+                                    name: .targetUpdated,
+                                    object: nil,
+                                    userInfo: [
+                                        "hasSignificantChange": hasSignificantChange,
+                                        "remainingWeeks": targetModel.remainingWeeks,
+                                        "distanceKm": Double(targetModel.selectedDistance) ?? 42.195
+                                    ]
                                 )
                                 dismiss()
                             }
@@ -112,12 +117,16 @@ class EditTargetViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     private let targetId: String
-    
+
+    // MARK: - Dependencies (Clean Architecture)
+    private let targetRepository: TargetRepository
+
     // 儲存原始值用於變更檢測
     private let originalDistance: String
     private let originalTargetTime: Int
     private let originalTrainingWeeks: Int
     private let originalTimezone: String  // 🔧 保存原始時區
+    private let originalRaceDate: Int  // 保存原始賽事日期（Unix timestamp）
     
     // 移動到類別層級的可用距離選項
     var availableDistances: [String: String] {
@@ -157,13 +166,26 @@ class EditTargetViewModel: ObservableObject {
         return String(format: "%d:%02d", paceMinutes, paceRemainingSeconds)
     }
     
-    init(target: Target) {
+    init(
+        target: Target,
+        targetRepository: TargetRepository = DependencyContainer.shared.resolve()
+    ) {
         self.targetId = target.id
+        self.targetRepository = targetRepository
 
         // 先初始化原始值
         self.originalTargetTime = target.targetTime
         self.originalTrainingWeeks = target.trainingWeeks
         self.originalTimezone = target.timezone  // 🔧 保存原始時區
+        self.originalRaceDate = target.raceDate  // 保存原始賽事日期
+
+        // 🔍 記錄初始化時的原始值
+        Logger.debug("""
+        [🐛 TARGET_UPDATE] 初始化 EditTargetVM:
+          - Target.trainingWeeks: \(target.trainingWeeks)
+          - Target.raceDate: \(target.raceDate)
+          - Target.name: \(target.name)
+        """)
 
         // 初始化當前值
         self.raceName = target.name
@@ -209,17 +231,30 @@ class EditTargetViewModel: ObservableObject {
                 timezone: originalTimezone  // 🔧 保持原始時區設定
             )
             
-            // 更新目標賽事
-            _ = try await TargetService.shared.updateTarget(id: targetId, target: target)
+            // 更新目標賽事 (using TargetRepository)
+            _ = try await targetRepository.updateTarget(id: targetId, target: target)
             
-            // 檢查是否有重要變更（距離、完賽時間或訓練週數）
+            // 檢查是否有重要變更（距離、完賽時間、訓練週數、或賽事日期跨週）
             let currentTargetTime = targetHours * 3600 + targetMinutes * 60
             let currentTrainingWeeks = remainingWeeks
+            let raceDateChangedWeek = Self.isInDifferentWeek(
+                date1: Date(timeIntervalSince1970: TimeInterval(originalRaceDate)),
+                date2: raceDate
+            )
             let hasSignificantChange = (selectedDistance != originalDistance) ||
                                      (currentTargetTime != originalTargetTime) ||
-                                     (currentTrainingWeeks != originalTrainingWeeks)
-            
-            print("賽事目標已更新，重要變更: \(hasSignificantChange)")
+                                     (currentTrainingWeeks != originalTrainingWeeks) ||
+                                     raceDateChangedWeek
+
+            // 🔍 詳細日誌
+            Logger.debug("""
+            [🐛 TARGET_UPDATE] ① 檢測變更:
+              距離: \(originalDistance) → \(selectedDistance) = \(selectedDistance != originalDistance ? "變更✅" : "不變❌")
+              時間: \(originalTargetTime)s → \(currentTargetTime)s = \(currentTargetTime != originalTargetTime ? "變更✅" : "不變❌")
+              週數: \(originalTrainingWeeks) → \(currentTrainingWeeks) = \(currentTrainingWeeks != originalTrainingWeeks ? "變更✅" : "不變❌")
+              賽事日期跨週: \(raceDateChangedWeek ? "變更✅" : "不變❌")
+              🎯 hasSignificantChange = \(hasSignificantChange)
+            """)
             isLoading = false
             return hasSignificantChange
         } catch {
@@ -228,5 +263,17 @@ class EditTargetViewModel: ObservableObject {
             isLoading = false
             return nil
         }
+    }
+
+    /// 判斷兩個日期是否位於不同的訓練週（以週一為週起始）
+    private static func isInDifferentWeek(date1: Date, date2: Date) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZoneManager.shared.getCurrentTimeZone()
+        calendar.firstWeekday = 2  // 週一為一週開始
+
+        let week1 = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date1)
+        let week2 = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date2)
+        return week1.yearForWeekOfYear != week2.yearForWeekOfYear ||
+               week1.weekOfYear != week2.weekOfYear
     }
 }

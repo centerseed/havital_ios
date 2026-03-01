@@ -22,7 +22,7 @@ struct PerformanceChartView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("近三個月訓練表現")
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .padding(.horizontal)
                         
                         // 圖例
@@ -32,14 +32,14 @@ struct PerformanceChartView: View {
                                     .fill(Color.orange)
                                     .frame(width: 8, height: 8)
                                 Text("訓練日")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                             HStack(spacing: 4) {
                                 Circle()
                                     .fill(Color.blue)
                                     .frame(width: 8, height: 8)
                                 Text(L10n.Training.TrainingType.restDay.localized)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                         }
                         .padding(.horizontal)
@@ -79,14 +79,14 @@ struct PerformanceChartView: View {
                         if let selectedPoint = selectedPoint {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(selectedPoint.date.formatted(.dateTime.year().month().day()))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                 if selectedPoint.hasWorkout {
                                     Text(selectedPoint.workoutName ?? "未知運動")
-                                        .font(.subheadline)
+                                        .font(AppFont.bodySmall())
                                         .foregroundColor(.orange)
                                 }
                                 Text(String(format: "表現指數: %.1f", selectedPoint.performance))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 4)
@@ -124,10 +124,10 @@ struct PerformanceChartView: View {
             components.hour = 23
             components.minute = 59
             components.second = 59
-            let endDate = calendar.date(from: components)!
-            
+            guard let endDate = calendar.date(from: components) else { return }
+
             // 開始時間為一個月前的00:00:00
-            let startDate = calendar.date(byAdding: .month, value: -1, to: calendar.startOfDay(for: endDate))!
+            guard let startDate = calendar.date(byAdding: .month, value: -1, to: calendar.startOfDay(for: endDate)) else { return }
             
             print("查詢範圍 - 開始: \(startDate), 結束: \(endDate)")
             
@@ -232,7 +232,8 @@ struct PerformanceChartView: View {
                 }
                 
                 // 移至下一天
-                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
+                guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
+                currentDate = nextDate
             }
             
             print("所有訓練數據處理完成，共有 \(points.count) 個數據點")

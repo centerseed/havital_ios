@@ -5,8 +5,9 @@ struct TrainingPlanOverviewDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    // 🆕 使用 TargetManager（雙軌緩存架構）
-    @StateObject private var targetManager = TargetManager.shared
+    // 🆕 使用 Clean Architecture ViewModels
+    @StateObject private var targetViewModel = TargetFeatureViewModel()
+    @StateObject private var trainingPlanViewModel = TrainingPlanViewModel()
 
     @State private var showEditSheet = false
     @State private var showEditSupportingSheet = false
@@ -34,7 +35,7 @@ struct TrainingPlanOverviewDetailView: View {
 
     // 給支援賽事排序 - 按照日期由近到遠（最快要比的在上面）
     private var sortedSupportingTargets: [Target] {
-        return targetManager.supportingTargets.sorted { $0.raceDate < $1.raceDate }
+        return targetViewModel.supportingTargets.sorted { $0.raceDate < $1.raceDate }
     }
 
     var body: some View {
@@ -54,88 +55,11 @@ struct TrainingPlanOverviewDetailView: View {
 
                 // 📄 Tab 內容
                 TabView(selection: $selectedTab) {
-                    // Tab 0: 賽事資訊
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            // 🎯 目標賽事
-                            if let target = targetManager.mainTarget {
-                                TargetRaceCard(target: target, onEditTap: {
-                                    showEditSheet = true
-                                })
-                            }
+                    raceInfoTab
+                        .tag(0)
 
-                            // 🏁 支援賽事
-                            SupportingRacesCard(
-                                supportingTargets: sortedSupportingTargets,
-                                onAddTap: {
-                                    showAddSupportingSheet = true
-                                },
-                                onEditTap: { target in
-                                    selectedSupportingTarget = target
-                                    showEditSupportingSheet = true
-                                }
-                            )
-                        }
-                        .padding(.vertical)
-                        .padding(.horizontal)
-                        .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
-                    }
-                    .tag(0)
-
-                    // Tab 1: 訓練總覽
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            // 📊 目標評估（默認收起）
-                            CollapsibleOverviewCard(
-                                title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"),
-                                systemImage: "target",
-                                isExpanded: $isGoalEvalExpanded,
-                                summary: String(overview.targetEvaluate.prefix(50)) + "..."
-                            ) {
-                                Text(overview.targetEvaluate)
-                                    .font(.body)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            // ✨ 訓練重點（默認收起）
-                            CollapsibleOverviewCard(
-                                title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"),
-                                systemImage: "sparkles",
-                                isExpanded: $isHighlightExpanded,
-                                summary: String(overview.trainingHighlight.prefix(50)) + "..."
-                            ) {
-                                Text(overview.trainingHighlight)
-                                    .font(.body)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            // 📈 訓練階段（默認展開）
-                            CollapsibleOverviewCard(
-                                title: NSLocalizedString("training.training_stages", comment: "Training Stages"),
-                                systemImage: "chart.bar.fill",
-                                isExpanded: $isStagesExpanded,
-                                summary: String(format: NSLocalizedString("training.stages_summary", comment: "%d stages, %d weeks total"),
-                                              overview.trainingStageDescription.count,
-                                              overview.totalWeeks)
-                            ) {
-                                VStack(spacing: 12) {
-                                    ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
-                                        let stage = overview.trainingStageDescription[index]
-                                        TrainingStageCard(stage: stage, index: index)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.vertical)
-                        .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
-                    }
-                    .tag(1)
+                    trainingOverviewTab
+                        .tag(1)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
@@ -146,10 +70,10 @@ struct TrainingPlanOverviewDetailView: View {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
                         Text(overview.trainingPlanName)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .fontWeight(.semibold)
                         Text(String(format: NSLocalizedString("training.total_weeks", comment: "Total weeks: %d weeks"), overview.totalWeeks))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -162,37 +86,37 @@ struct TrainingPlanOverviewDetailView: View {
             }
             .presentationDetents([.large])
             .onAppear {
-                // 🆕 使用 TargetManager 的雙軌緩存載入
+                // 🆕 使用 TargetFeatureViewModel 的雙軌緩存載入
                 Task {
-                    await targetManager.loadTargets()
-                    Logger.debug("TrainingPlanOverviewDetailView: 已透過 TargetManager 載入賽事資料")
-                }
+                    await targetViewModel.loadTargets()
+                    Logger.debug("TrainingPlanOverviewDetailView: 已透過 TargetFeatureViewModel 載入賽事資料")
+                }.tracked(from: "TrainingPlanOverviewDetailView: onAppear_loadTargets")
             }
             .sheet(isPresented: $showEditSheet, onDismiss: {
                 // 編輯視圖關閉後的處理邏輯會在通知中處理
                 // 這裡不需要做任何事情，避免重複處理
             }) {
-                if let target = targetManager.mainTarget {
+                if let target = targetViewModel.mainTarget {
                     EditTargetView(target: target)
                 }
             }
             .sheet(isPresented: $showEditSupportingSheet, onDismiss: {
-                // 🆕 編輯支援賽事關閉後使用 TargetManager 強制刷新
+                // 🆕 編輯支援賽事關閉後使用 TargetFeatureViewModel 強制刷新
                 Task {
-                    await targetManager.forceRefresh()
+                    await targetViewModel.forceRefresh()
                     Logger.debug("編輯支援賽事後已刷新資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: editSupportingSheet_onDismiss")
             }) {
                 if let target = selectedSupportingTarget {
                     EditSupportingTargetView(target: target)
                 }
             }
             .sheet(isPresented: $showAddSupportingSheet, onDismiss: {
-                // 🆕 添加支援賽事關閉後使用 TargetManager 強制刷新
+                // 🆕 添加支援賽事關閉後使用 TargetFeatureViewModel 強制刷新
                 Task {
-                    await targetManager.forceRefresh()
+                    await targetViewModel.forceRefresh()
                     Logger.debug("添加支援賽事後已刷新資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: addSupportingSheet_onDismiss")
             }) {
                 AddSupportingTargetView()
             }
@@ -202,10 +126,10 @@ struct TrainingPlanOverviewDetailView: View {
                    let hasSignificantChange = userInfo["hasSignificantChange"] as? Bool {
                     Logger.debug("接收到賽事編輯通知，重要變更: \(hasSignificantChange)")
 
-                    // 🆕 使用 TargetManager 重新載入賽事資料以顯示最新名稱
+                    // 🆕 使用 TargetFeatureViewModel 重新載入賽事資料以顯示最新名稱
                     Task {
-                        await targetManager.forceRefresh()
-                    }
+                        await targetViewModel.forceRefresh()
+                    }.tracked(from: "TrainingPlanOverviewDetailView: targetUpdated_notification")
 
                     // 只有在有重要變更時才更新訓練計劃概覽
                     if hasSignificantChange {
@@ -217,11 +141,11 @@ struct TrainingPlanOverviewDetailView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
-                // 🆕 當支援賽事更新時，使用 TargetManager 重新載入
+                // 🆕 當支援賽事更新時，使用 TargetFeatureViewModel 重新載入
                 Task {
-                    await targetManager.forceRefresh()
+                    await targetViewModel.forceRefresh()
                     Logger.debug("支援賽事更新後已刷新資料")
-                }
+                }.tracked(from: "TrainingPlanOverviewDetailView: supportingTargetUpdated_notification")
             }
 
 
@@ -236,7 +160,7 @@ struct TrainingPlanOverviewDetailView: View {
                             .scaleEffect(1.5)
 
                         Text(NSLocalizedString("training.updating_plan", comment: "Updating training plan..."))
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.white)
                     }
                     .padding(24)
@@ -255,10 +179,10 @@ struct TrainingPlanOverviewDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: isUpdateSuccessful ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                             .foregroundColor(isUpdateSuccessful ? .green : .red)
-                            .font(.title2)
+                            .font(AppFont.title2())
 
                         Text(updateStatusMessage)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.primary)
 
                         Spacer()
@@ -285,9 +209,95 @@ struct TrainingPlanOverviewDetailView: View {
         }
     }
 
+    // MARK: - Sub Views
+
+    private var raceInfoTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 🎯 目標賽事
+                if let target = targetViewModel.mainTarget {
+                    TargetRaceCard(target: target, onEditTap: {
+                        showEditSheet = true
+                    })
+                }
+
+                // 🏁 支援賽事
+                SupportingRacesCard(
+                    supportingTargets: sortedSupportingTargets,
+                    onAddTap: {
+                        showAddSupportingSheet = true
+                    },
+                    onEditTap: { target in
+                        selectedSupportingTarget = target
+                        showEditSupportingSheet = true
+                    }
+                )
+            }
+            .padding(.vertical)
+            .padding(.horizontal)
+            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
+        }
+    }
+
+    private var trainingOverviewTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 📊 目標評估（默認收起）
+                CollapsibleOverviewCard(
+                    title: NSLocalizedString("training.goal_assessment", comment: "Goal Assessment"),
+                    systemImage: "target",
+                    isExpanded: $isGoalEvalExpanded,
+                    summary: String(overview.targetEvaluate.prefix(50)) + "..."
+                ) {
+                    Text(overview.targetEvaluate)
+                        .font(AppFont.body())
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // ✨ 訓練重點（默認收起）
+                CollapsibleOverviewCard(
+                    title: NSLocalizedString("training.plan_highlights", comment: "Plan Highlights"),
+                    systemImage: "sparkles",
+                    isExpanded: $isHighlightExpanded,
+                    summary: String(overview.trainingHighlight.prefix(50)) + "..."
+                ) {
+                    Text(overview.trainingHighlight)
+                        .font(AppFont.body())
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // 📈 訓練階段（默認展開）
+                CollapsibleOverviewCard(
+                    title: NSLocalizedString("training.training_stages", comment: "Training Stages"),
+                    systemImage: "chart.bar.fill",
+                    isExpanded: $isStagesExpanded,
+                    summary: String(format: NSLocalizedString("training.stages_summary", comment: "%d stages, %d weeks total"),
+                                  overview.trainingStageDescription.count,
+                                  overview.totalWeeks)
+                ) {
+                    VStack(spacing: 12) {
+                        ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
+                            let stage = overview.trainingStageDescription[index]
+                            TrainingStageCard(stage: stage, index: index)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical)
+            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground))
+        }
+    }
+
     // ❌ 已移除 loadTargetRace() - 現在使用 TargetManager.loadTargets()
     // ❌ 已移除 loadSupportingTargets() - 現在使用 TargetManager.loadTargets()
 
+    // 🆕 使用 Clean Architecture 更新訓練計畫概覽
     private func updateTrainingPlanOverview() {
         // 顯示更新中狀態
         isUpdatingOverview = true
@@ -295,11 +305,8 @@ struct TrainingPlanOverviewDetailView: View {
 
         Task {
             do {
-                // 更新訓練計劃概覽
-                let updatedOverview = try await TrainingPlanService.shared.updateTrainingPlanOverview(overviewId: overview.id)
-
-                // 保存更新後的概覽到本地存儲
-                TrainingPlanStorage.saveTrainingPlanOverview(updatedOverview)
+                // 🆕 透過 TrainingPlanViewModel 調用 Repository（Clean Architecture）
+                let updatedOverview = try await trainingPlanViewModel.updateOverview(overviewId: overview.id)
 
                 await MainActor.run {
                     self.overview = updatedOverview
@@ -309,12 +316,6 @@ struct TrainingPlanOverviewDetailView: View {
                     self.isUpdateSuccessful = true
                     self.hasTargetSaved = false  // 在更新完成後重置狀態
 
-                    // 發送通知通知主畫面重新載入
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("TrainingOverviewUpdated"),
-                        object: updatedOverview
-                    )
-
                     // 5秒後自動隱藏成功提示
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         if self.isUpdateSuccessful {
@@ -322,6 +323,8 @@ struct TrainingPlanOverviewDetailView: View {
                         }
                     }
                 }
+
+                Logger.debug("TrainingPlanOverviewDetailView: 已透過 Clean Architecture 更新訓練計畫概覽")
             } catch {
                 await MainActor.run {
                     self.isUpdatingOverview = false
@@ -329,9 +332,9 @@ struct TrainingPlanOverviewDetailView: View {
                     self.updateStatusMessage = String(format: NSLocalizedString("training.update_failed", comment: "Failed to update training plan: %@"), error.localizedDescription)
                     self.isUpdateSuccessful = false
                 }
-                print("更新訓練計劃概覽失敗: \(error)")
+                Logger.error("更新訓練計劃概覽失敗: \(error)")
             }
-        }
+        }.tracked(from: "TrainingPlanOverviewDetailView: updateTrainingPlanOverview")
     }
 
     // ❌ 已移除 fetchAndSyncTargets() - 現在使用 TargetManager.forceRefresh()
@@ -357,7 +360,7 @@ struct CollapsibleOverviewCard<Content: View>: View {
                 HStack {
                     Label {
                         Text(title)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
                     } icon: {
@@ -368,7 +371,7 @@ struct CollapsibleOverviewCard<Content: View>: View {
                     Spacer()
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 16)
@@ -383,7 +386,7 @@ struct CollapsibleOverviewCard<Content: View>: View {
                     Divider()
                         .padding(.horizontal, 16)
                     Text(summary)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .padding(.horizontal, 16)
@@ -420,7 +423,7 @@ struct SectionHeader: View {
     var body: some View {
         Label {
             Text(title)
-                .font(.title3)
+                .font(AppFont.title3())
                 .fontWeight(.bold)
         } icon: {
             Image(systemName: systemImage)
@@ -468,7 +471,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於提升耐力基礎和適應性，以及建立穩定的訓練習慣。以較低強度的有氧訓練為主，逐步增加每週里程。",
                     trainingFocus: "耐力訓練",
                     weekStart: 1,
-                    weekEnd: 4
+                    weekEnd: 4,
+                    targetPace: "6:30-7:00/km"
                 ),
                 TrainingStage(
                     stageName: "強度發展期",
@@ -476,7 +480,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於提升速度與節奏感，通過各種間歇訓練，提升心肺功能和乳酸閾值。",
                     trainingFocus: "速度和節奏訓練",
                     weekStart: 5,
-                    weekEnd: 8
+                    weekEnd: 8,
+                    targetPace: "5:50-6:10/km"
                 ),
                 TrainingStage(
                     stageName: "比賽準備期",
@@ -484,7 +489,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於模擬比賽條件，熟悉比賽配速，以及精神和身體狀態的調整優化。",
                     trainingFocus: "配速穩定性與耐力",
                     weekStart: 9,
-                    weekEnd: 14
+                    weekEnd: 14,
+                    targetPace: "5:25-5:40/km"
                 ),
                 TrainingStage(
                     stageName: "賽前調整期",
@@ -492,7 +498,8 @@ struct TrainingPlanOverviewDetailView_Previews: PreviewProvider {
                     stageDescription: "本階段的訓練重點在於保持狀態，同時降低訓練量，讓身體充分恢復以應對比賽。",
                     trainingFocus: "保持狀態與恢復",
                     weekStart: 15,
-                    weekEnd: 16
+                    weekEnd: 16,
+                    targetPace: "6:00-6:30/km"
                 )
             ], createdAt: ""
         ))

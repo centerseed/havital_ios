@@ -6,18 +6,53 @@ struct WeekOverviewCardPreviewView: View {
     let fileNames: [String]
     @State private var selectedIndex = 0
     
-    // 建立一個 Preview 專用的 ViewModel
+    // 建立一個 Preview 專用的 ViewModel（使用便利初始化器）
     class PreviewViewModel: TrainingPlanViewModel {
-        override init() {
-            super.init()
+        override init(
+            repository: TrainingPlanRepository,
+            workoutRepository: WorkoutRepository,
+            loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
+            aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
+            weeklyPlanVM: WeeklyPlanViewModel? = nil,
+            summaryVM: WeeklySummaryViewModel? = nil
+        ) {
+            super.init(
+                repository: repository,
+                workoutRepository: workoutRepository,
+                loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
+                aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
+                weeklyPlanVM: weeklyPlanVM,
+                summaryVM: summaryVM
+            )
+        }
+
+        convenience init() {
+            let container = DependencyContainer.shared
+            if !container.isRegistered(TrainingPlanRepository.self) {
+                container.registerTrainingPlanModule()
+            }
+            if !container.isRegistered(WorkoutRepository.self) {
+                container.registerWorkoutModule()
+            }
+            let repository: TrainingPlanRepository = container.resolve()
+            let workoutRepository: WorkoutRepository = container.resolve()
+            let loadUseCase = container.makeLoadWeeklyWorkoutsUseCase()
+            let aggregateUseCase = container.makeAggregateWorkoutMetricsUseCase()
+            self.init(
+                repository: repository,
+                workoutRepository: workoutRepository,
+                loadWeeklyWorkoutsUseCase: loadUseCase,
+                aggregateWorkoutMetricsUseCase: aggregateUseCase
+            )
+
             // 設定一些預覽用的數據
             currentWeekDistance = 25.5
-            
+
             // 設定週摘要預覽數據
             let dateFormatter = ISO8601DateFormatter()
             let today = Date()
             let calendar = Calendar.current
-            
+
             weeklySummaries = [
                 WeeklySummaryItem(
                     weekIndex: 1,
@@ -71,13 +106,15 @@ struct WeekOverviewCardPreviewView: View {
                     // 使用 Preview 專用的 ViewModel
                     let viewModel = {
                         let vm = PreviewViewModel()
-                        vm.weeklyPlan = weeklyPlans[selectedIndex]
+                        // 設置週計畫狀態
+                        vm.weeklyPlanVM.state = .loaded(weeklyPlans[selectedIndex])
+                        
                         // 設定訓練計劃概覽（用於計算當前週數）
                         let dateFormatter = ISO8601DateFormatter()
                         let today = Date()
                         let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: today) ?? today
                         
-                        vm.trainingOverview = TrainingPlanOverview(
+                        let overview = TrainingPlanOverview(
                             id: "preview_overview",
                             mainRaceId: "race_123",
                             targetEvaluate: "完成半程馬拉松",
@@ -91,7 +128,8 @@ struct WeekOverviewCardPreviewView: View {
                                     stageDescription: "建立有氧基礎",
                                     trainingFocus: "有氧耐力",
                                     weekStart: 1,
-                                    weekEnd: 4
+                                    weekEnd: 4,
+                                    targetPace: "6:30-7:00/km"
                                 ),
                                 TrainingStage(
                                     stageName: "進階期",
@@ -99,7 +137,8 @@ struct WeekOverviewCardPreviewView: View {
                                     stageDescription: "提升速度與肌力",
                                     trainingFocus: "間歇訓練",
                                     weekStart: 5,
-                                    weekEnd: 8
+                                    weekEnd: 8,
+                                    targetPace: "5:50-6:10/km"
                                 ),
                                 TrainingStage(
                                     stageName: "比賽期",
@@ -107,11 +146,13 @@ struct WeekOverviewCardPreviewView: View {
                                     stageDescription: "調整與準備比賽",
                                     trainingFocus: "比賽配速",
                                     weekStart: 9,
-                                    weekEnd: 12
+                                    weekEnd: 12,
+                                    targetPace: "5:25-5:40/km"
                                 )
                             ],
                             createdAt: dateFormatter.string(from: twoWeeksAgo)
                         )
+                        vm.weeklyPlanVM.overviewState = .loaded(overview)
                         return vm
                     }()
                     

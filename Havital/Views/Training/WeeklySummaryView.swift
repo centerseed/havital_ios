@@ -1,3 +1,5 @@
+// [V1 DEPRECATED] V1 週回顧視圖，未來將隨 V1 移除。
+// V2 對應: Features/TrainingPlanV2/Presentation/Views/WeeklySummaryV2View.swift
 import SwiftUI
 
 struct WeeklySummaryView: View {
@@ -13,34 +15,6 @@ struct WeeklySummaryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 標題與分享按鈕
-                HStack {
-                    if let weekNumber = weekNumber {
-                        Text(L10n.Training.Review.weekReview.localized(with: weekNumber))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                    } else {
-                        Text(L10n.Training.Review.lastWeekReview.localized)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        shareWeeklySummary()
-                    } label: {
-                        if isGeneratingScreenshot {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.title3)
-                        }
-                    }
-                    .disabled(isGeneratingScreenshot)
-                }
-                
                 // 訓練完成度部分
                 completionSection
                 
@@ -72,7 +46,7 @@ struct WeeklySummaryView: View {
                 if let onSetNewGoal = onSetNewGoal {
                     VStack(spacing: 16) {
                         Text(NSLocalizedString("training.cycle_completed_message", comment: "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
@@ -97,10 +71,36 @@ struct WeeklySummaryView: View {
             .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    shareWeeklySummary()
+                } label: {
+                    if isGeneratingScreenshot {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isGeneratingScreenshot)
+            }
+        }
         .sheet(isPresented: $showShareSheet) {
             if let shareImage = shareImage {
                 ActivityViewController(activityItems: [shareImage])
             }
+        }
+    }
+
+    // 計算導航標題
+    private var navigationTitle: String {
+        if let weekNumber = weekNumber {
+            return L10n.Training.Review.weekReview.localized(with: weekNumber)
+        } else {
+            return L10n.Training.Review.lastWeekReview.localized
         }
     }
     
@@ -108,7 +108,7 @@ struct WeeklySummaryView: View {
     private var completionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.Review.trainingCompletion.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             HStack(spacing: 20) {
                 ZStack {
@@ -125,7 +125,7 @@ struct WeeklySummaryView: View {
                     
                     VStack {
                         Text("\(Int(summary.trainingCompletion.percentage))%")
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
                     }
                 }
@@ -133,7 +133,7 @@ struct WeeklySummaryView: View {
                 
                 VStack(alignment: .leading) {
                     Text(summary.trainingCompletion.evaluation)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .multilineTextAlignment(.leading)
                 }
             }
@@ -147,26 +147,26 @@ struct WeeklySummaryView: View {
     private var analysisSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.Review.trainingAnalysis.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             // 心率分析
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.Training.Review.heartRatePerformance.localized, systemImage: "heart.fill")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.red)
                 
                 HStack {
-                    Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
-                        .font(.caption)
+                    Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) \(L10n.Unit.bpm.localized)")
+                        .font(AppFont.caption())
                     
                     Spacer()
                     
-                    Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
-                        .font(.caption)
+                    Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) \(L10n.Unit.bpm.localized)")
+                        .font(AppFont.caption())
                 }
                 
                 Text(summary.trainingAnalysis.heartRate.evaluation ?? "")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -176,21 +176,21 @@ struct WeeklySummaryView: View {
             // 配速分析
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.Training.Review.pacePerformance.localized, systemImage: "speedometer")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.green)
                 
                 HStack {
-                    Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) /km")
-                        .font(.caption)
+                    Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) \(L10n.SupportingRacesCard.paceUnit.localized)")
+                        .font(AppFont.caption())
                     
                     Spacer()
                     
                     Text("\(L10n.Training.Review.trend.localized): \(summary.trainingAnalysis.pace.trend)")
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
                 
                 Text(summary.trainingAnalysis.pace.evaluation ?? "")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -200,21 +200,21 @@ struct WeeklySummaryView: View {
             // 距離分析
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.Training.Review.distancePerformance.localized, systemImage: "figure.run")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.blue)
                 
                 HStack {
-                    Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
-                        .font(.caption)
+                    Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) \(L10n.Unit.km.localized)")
+                        .font(AppFont.caption())
                     
                     Spacer()
                     
                     Text("\(summary.trainingAnalysis.distance.comparisonToPlan)")
-                        .font(.caption)
+                        .font(AppFont.caption())
                 }
                 
                 Text(summary.trainingAnalysis.distance.evaluation ?? "")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -230,21 +230,21 @@ struct WeeklySummaryView: View {
     private var suggestionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.Review.nextWeekFocus.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             Text(summary.nextWeekSuggestions.focus)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .padding(.bottom, 4)
             
             ForEach(summary.nextWeekSuggestions.recommendations, id: \.self) { recommendation in
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.blue)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .padding(.top, 2)
                     
                     Text(recommendation)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 2)
@@ -279,13 +279,13 @@ struct WeeklySummaryView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     if let weekNumber = weekNumber {
                         Text(L10n.Training.Review.weekReview.localized(with: weekNumber))
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text(L10n.Training.Review.lastWeekReview.localized)
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
@@ -321,7 +321,7 @@ struct WeeklySummaryView: View {
     private var screenshotCompletionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.Review.trainingCompletion.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             
@@ -340,7 +340,7 @@ struct WeeklySummaryView: View {
                     
                     VStack {
                         Text("\(Int(summary.trainingCompletion.percentage))%")
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
                             .lineLimit(nil)
                     }
@@ -349,7 +349,7 @@ struct WeeklySummaryView: View {
                 
                 VStack(alignment: .leading) {
                     Text(summary.trainingCompletion.evaluation)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .multilineTextAlignment(.leading)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
@@ -365,31 +365,31 @@ struct WeeklySummaryView: View {
     private var screenshotAnalysisSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.Review.trainingAnalysis.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             
             // 心率分析
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.Training.Review.heartRatePerformance.localized, systemImage: "heart.fill")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.red)
                     .lineLimit(nil)
                 
                 HStack {
                     Text("\(L10n.Training.Review.average.localized): \(Int(summary.trainingAnalysis.heartRate.average ?? 0)) bpm")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .lineLimit(nil)
                     
                     Spacer()
                     
                     Text("\(L10n.Training.Review.maximum.localized): \(Int(summary.trainingAnalysis.heartRate.max ?? 0)) bpm")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .lineLimit(nil)
                 }
                 
                 Text(summary.trainingAnalysis.heartRate.evaluation ?? "")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -401,24 +401,24 @@ struct WeeklySummaryView: View {
             // 配速分析
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.Training.Review.pacePerformance.localized, systemImage: "speedometer")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.green)
                     .lineLimit(nil)
                 
                 HStack {
                     Text("\(L10n.Training.Review.average.localized): \(summary.trainingAnalysis.pace.average) /km")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .lineLimit(nil)
                     
                     Spacer()
                     
                     Text("\(L10n.Training.Review.trend.localized): \(summary.trainingAnalysis.pace.trend)")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .lineLimit(nil)
                 }
                 
                 Text(summary.trainingAnalysis.pace.evaluation ?? "")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -430,24 +430,24 @@ struct WeeklySummaryView: View {
             // 距離分析
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.Training.Review.distancePerformance.localized, systemImage: "figure.run")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.blue)
                     .lineLimit(nil)
                 
                 HStack {
                     Text("\(L10n.Training.Review.totalDistance.localized): \(String(format: "%.1f", summary.trainingAnalysis.distance.total ?? 0)) km" ?? "")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .lineLimit(nil)
                     
                     Spacer()
                     
                     Text("\(summary.trainingAnalysis.distance.comparisonToPlan)")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .lineLimit(nil)
                 }
                 
                 Text(summary.trainingAnalysis.distance.evaluation ?? "")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -465,12 +465,12 @@ struct WeeklySummaryView: View {
     private var screenshotSuggestionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Training.Review.nextWeekFocus.localized)
-                .font(.headline)
+                .font(AppFont.headline())
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             
             Text(summary.nextWeekSuggestions.focus)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .padding(.bottom, 4)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
@@ -479,11 +479,11 @@ struct WeeklySummaryView: View {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.blue)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .padding(.top, 2)
                     
                     Text(recommendation)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
@@ -505,10 +505,10 @@ struct WeeklySummaryLoadingView: View {
                 .scaleEffect(1.5)
             
             Text(L10n.Training.Review.analyzingData.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             Text(L10n.Training.Review.loadingMessage.localized)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -528,14 +528,14 @@ struct WeeklySummaryErrorView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.orange)
             
             Text(L10n.Training.Review.loadingError.localized)
-                .font(.headline)
+                .font(AppFont.headline())
             
             Text(error.localizedDescription)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)

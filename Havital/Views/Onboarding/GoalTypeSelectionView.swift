@@ -1,48 +1,28 @@
+//
+//  GoalTypeSelectionView.swift
+//  Havital
+//
+//  Goal Type selection onboarding step
+//  Refactored to use OnboardingFeatureViewModel (Clean Architecture)
+//
+
 import SwiftUI
 
 // MARK: - Goal Type Enum
-enum GoalType {
-    case specificRace  // 有具體賽事目標
-    case beginner5k    // 新手，想先能跑5km
-}
+enum GoalType: Equatable {
+    case v2(TargetTypeV2)  // V2 dynamic target types from API
+    case specificRace      // V1 legacy: Has specific race goal
+    case beginner5k        // V1 legacy: Beginner, wants to run 5km first
 
-// MARK: - ViewModel
-@MainActor
-class GoalTypeSelectionViewModel: ObservableObject {
-    @Published var selectedGoalType: GoalType?
-    @Published var isLoading = false
-    @Published var error: String?
-    @Published var navigateToRaceSetup = false
-    @Published var navigateToTrainingDays = false
-
-    /// 創建新手 5km 目標
-    func createBeginner5kGoal() async -> Bool {
-        isLoading = true
-        error = nil
-
-        do {
-            // 創建一個 4 週的 5km 訓練目標（約一個月）
-            let raceDate = Calendar.current.date(byAdding: .weekOfYear, value: 4, to: Date()) ?? Date()
-            let target = Target(
-                id: UUID().uuidString,
-                type: "race_run",
-                name: NSLocalizedString("onboarding.beginner_5k_goal", comment: "能跑 5 公里"),
-                distanceKm: 5,
-                targetTime: 40 * 60, // 預設目標 40 分鐘
-                targetPace: "8:00", // 配速 8:00/km
-                raceDate: Int(raceDate.timeIntervalSince1970),
-                isMainRace: true,
-                trainingWeeks: 4  // 改為 4 週
-            )
-
-            try await UserService.shared.createTarget(target)
-            print("✅ 新手 5km 目標創建成功")
-
-            isLoading = false
+    static func == (lhs: GoalType, rhs: GoalType) -> Bool {
+        switch (lhs, rhs) {
+        case (.v2(let lhsType), .v2(let rhsType)):
+            return lhsType.id == rhsType.id
+        case (.specificRace, .specificRace):
             return true
-        } catch {
-            self.error = error.localizedDescription
-            isLoading = false
+        case (.beginner5k, .beginner5k):
+            return true
+        default:
             return false
         }
     }
@@ -50,61 +30,86 @@ class GoalTypeSelectionViewModel: ObservableObject {
 
 // MARK: - View
 struct GoalTypeSelectionView: View {
-    @StateObject private var viewModel = GoalTypeSelectionViewModel()
-    @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: OnboardingFeatureViewModel
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
+
+    init() {
+        _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
+        Logger.info("🎯 [GoalTypeSelectionView] Initialized")
+    }
 
     var body: some View {
+        let _ = Logger.debug("🎯 [GoalTypeSelectionView] body rendered - isLoading: \(viewModel.isLoadingTargetTypes), targetTypes: \(viewModel.availableTargetTypes.count), error: \(viewModel.error ?? "none")")
+
         VStack(spacing: 0) {
-            // 主要內容區域
+            // Main content area
             ScrollView {
                 VStack(spacing: 24) {
-                    // 標題和說明
+                    // Title and description
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(NSLocalizedString("onboarding.goal_type_title", comment: "選擇你的訓練目標"))
-                            .font(.title2)
+                        Text(NSLocalizedString("onboarding.goal_type_title", comment: "Choose your training goal"))
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
 
-                        Text(NSLocalizedString("onboarding.goal_type_description", comment: "根據你的跑步經驗和目標，我們會為你制定合適的訓練計劃"))
-                            .font(.subheadline)
+                        Text(NSLocalizedString("onboarding.goal_type_description", comment: "We'll create a suitable training plan based on your experience and goals"))
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal)
                     .padding(.top, 20)
 
-                    // 選項 1: 有具體賽事目標
-                    GoalTypeCard(
-                        icon: "flag.checkered",
-                        title: NSLocalizedString("onboarding.goal_type_specific_race", comment: "我有具體賽事目標"),
-                        description: NSLocalizedString("onboarding.goal_type_specific_race_desc", comment: "設定賽事日期、距離和目標時間"),
-                        isSelected: viewModel.selectedGoalType == .specificRace
-                    ) {
-                        viewModel.selectedGoalType = .specificRace
-                    }
-                    .padding(.horizontal)
+                    // Loading indicator
+                    if viewModel.isLoadingTargetTypes {
+                        ProgressView()
+                            .padding()
+                    } else if !viewModel.availableTargetTypes.isEmpty {
+                        // V2 Dynamic Goal Type Cards
+                        ForEach(viewModel.availableTargetTypes) { targetType in
+                            GoalTypeCard(
+                                icon: iconForTargetType(targetType),
+                                title: targetType.name,
+                                description: targetType.description,
+                                isSelected: viewModel.selectedGoalType == .v2(targetType)
+                            ) {
+                                viewModel.selectedGoalType = .v2(targetType)
+                            }
+                            .padding(.horizontal)
+                        }
+                    } else {
+                        // Fallback: V1 Legacy Options (如果 API 載入失敗或返回空)
+                        GoalTypeCard(
+                            icon: "flag.checkered",
+                            title: NSLocalizedString("onboarding.goal_type_specific_race", comment: "I have a specific race goal"),
+                            description: NSLocalizedString("onboarding.goal_type_specific_race_desc", comment: "Set race date, distance and target time"),
+                            isSelected: viewModel.selectedGoalType == .specificRace
+                        ) {
+                            viewModel.selectedGoalType = .specificRace
+                        }
+                        .padding(.horizontal)
 
-                    // 選項 2: 完成第一個五公里
-                    GoalTypeCard(
-                        icon: "figure.run",
-                        title: NSLocalizedString("onboarding.goal_type_beginner_5k", comment: "完成第一個五公里，感受跑步樂趣"),
-                        description: NSLocalizedString("onboarding.goal_type_beginner_5k_desc", comment: "12 週訓練計劃，帶你達成 5 公里目標"),
-                        isSelected: viewModel.selectedGoalType == .beginner5k
-                    ) {
-                        viewModel.selectedGoalType = .beginner5k
+                        GoalTypeCard(
+                            icon: "figure.run",
+                            title: NSLocalizedString("onboarding.goal_type_beginner_5k", comment: "Complete my first 5km, enjoy running"),
+                            description: NSLocalizedString("onboarding.goal_type_beginner_5k_desc", comment: "Training plan to help you achieve 5km goal"),
+                            isSelected: viewModel.selectedGoalType == .beginner5k
+                        ) {
+                            viewModel.selectedGoalType = .beginner5k
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
 
-                    // 錯誤訊息
+                    // Error message
                     if let error = viewModel.error {
                         Text(error)
                             .foregroundColor(.red)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .padding(.horizontal)
                     }
                 }
-                .padding(.bottom, 100) // 留出底部按鈕空間
+                .padding(.bottom, 100) // Leave space for bottom button
             }
 
-            // 底部按鈕
+            // Bottom button
             VStack(spacing: 0) {
                 Divider()
 
@@ -116,7 +121,7 @@ struct GoalTypeSelectionView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .frame(maxWidth: .infinity)
                     } else {
-                        Text(NSLocalizedString("onboarding.next_step", comment: "下一步"))
+                        Text(NSLocalizedString("onboarding.next_step", comment: "Next Step"))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -130,53 +135,89 @@ struct GoalTypeSelectionView: View {
             }
             .background(Color(.systemGroupedBackground))
 
-            // 導航到賽事設定頁面（使用現有的 OnboardingView）
-            NavigationLink(
-                destination: OnboardingView()
-                    .navigationBarBackButtonHidden(true),
-                isActive: $viewModel.navigateToRaceSetup
-            ) {
-                EmptyView()
-            }
-            .hidden()
-
-            // 導航到訓練日數選擇頁面（新手 5km）
-            NavigationLink(
-                destination: TrainingDaysSetupView(isBeginner: true)
-                    .navigationBarBackButtonHidden(true),
-                isActive: $viewModel.navigateToTrainingDays
-            ) {
-                EmptyView()
-            }
-            .hidden()
+            Spacer()
         }
-        .navigationTitle(NSLocalizedString("onboarding.goal_type_nav_title", comment: "訓練目標"))
+        .navigationTitle(NSLocalizedString("onboarding.goal_type_nav_title", comment: "Training Goal"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text(NSLocalizedString("common.back", comment: "返回"))
-                }
+        .onAppear {
+            Logger.info("🎯 [GoalTypeSelectionView] onAppear triggered - loading V2 target types")
+            // Load V2 target types on view appear
+            Task {
+                await viewModel.loadTargetTypes()
             }
         }
     }
 
     // MARK: - Private Methods
+
+    /// Get icon for target type
+    private func iconForTargetType(_ targetType: TargetTypeV2) -> String {
+        switch targetType.id {
+        case "race_run":
+            return "flag.checkered"
+        case "beginner":
+            return "figure.run"
+        case "maintenance":
+            return "heart.circle"
+        default:
+            return "target"
+        }
+    }
+
     private func handleNextStep() {
         guard let goalType = viewModel.selectedGoalType else { return }
 
         switch goalType {
+        case .v2(let targetType):
+            // V2 flow: handle different target types
+            // ⭐ 統一設定 coordinator 的 selectedTargetTypeId（供 MethodologySelectionView 使用）
+            coordinator.selectedTargetTypeId = targetType.id
+
+            if targetType.isRaceRunTarget {
+                // Race run: navigate to race setup
+                coordinator.isBeginner = false
+                viewModel.isBeginner = false
+                viewModel.selectedTargetTypeV2 = targetType
+                coordinator.navigate(to: .raceSetup)
+            } else {
+                // Non-race (beginner/maintenance)
+                coordinator.isBeginner = targetType.isBeginnerTarget
+                viewModel.isBeginner = targetType.isBeginnerTarget
+                viewModel.selectedTargetTypeV2 = targetType
+
+                // ⭐ V2 流程：先檢查方法論數量，再決定流程
+                // 如果有多個方法論 → 先選方法論 → 選週數 → 訓練日
+                // 如果單一/無方法論 → 直接選週數 → 訓練日
+                Task {
+                    await viewModel.loadMethodologiesForTargetType(targetType.id)
+
+                    await MainActor.run {
+                        if viewModel.availableMethodologies.count > 1 {
+                            // 多個方法論：先讓用戶選擇方法論
+                            Logger.debug("[GoalTypeSelectionView] Multiple methodologies available (\(viewModel.availableMethodologies.count)), navigating to methodology selection")
+                            coordinator.navigate(to: .methodologySelection)
+                        } else {
+                            // 單一或無方法論：直接到訓練週數選擇
+                            Logger.debug("[GoalTypeSelectionView] Single or no methodology, navigating to training weeks setup")
+                            coordinator.navigate(to: .trainingWeeksSetup)
+                        }
+                    }
+                }
+            }
+
         case .specificRace:
-            // 導航到詳細賽事設定頁面
-            viewModel.navigateToRaceSetup = true
+            // V1 legacy: Navigate to detailed race setup
+            coordinator.isBeginner = false
+            viewModel.isBeginner = false
+            coordinator.navigate(to: .raceSetup)
 
         case .beginner5k:
-            // 創建新手 5km 目標，然後導航到訓練日數選擇
+            // V1 legacy: Create beginner 5K goal, then navigate to training days
             Task {
-                if await viewModel.createBeginner5kGoal() {
-                    viewModel.navigateToTrainingDays = true
+                let success = await viewModel.createBeginner5kGoal()
+                if success {
+                    coordinator.isBeginner = true
+                    coordinator.navigate(to: .trainingDays)
                 }
             }
         }
@@ -194,40 +235,41 @@ struct GoalTypeCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                // 圖標
+                // Icon
                 Image(systemName: icon)
                     .font(.system(size: 32))
                     .foregroundColor(isSelected ? .accentColor : .secondary)
                     .frame(width: 50)
 
-                // 文字內容
+                // Text content
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
                         .multilineTextAlignment(.leading)
 
                     Text(description)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
                 }
 
                 Spacer()
 
-                // 選擇指示器
+                // Selection indicator
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 24))
+                    .font(AppFont.title2())
                     .foregroundColor(isSelected ? .accentColor : .secondary.opacity(0.3))
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(.systemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
-                    )
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.accentColor : Color(.systemGray3), lineWidth: isSelected ? 2.5 : 1.5)
             )
         }
         .buttonStyle(PlainButtonStyle())

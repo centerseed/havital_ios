@@ -23,6 +23,9 @@
 "common.confirm" = "Confirm";
 "common.loading" = "Loading...";
 "common.retry" = "Retry";
+"common.time" = "Time";
+"common.pace" = "Pace";
+"common.date" = "Date";
 "common.refresh" = "Refresh";
 "common.settings" = "Settings";
 "common.logout" = "Log Out";
@@ -192,7 +195,6 @@
 // MARK: - Onboarding
 "onboarding.welcome" = "Welcome to Paceriz";
 "onboarding.set_goal" = "Set Training Goal";
-"onboarding.race_distance" = "Race Distance";
 "onboarding.target_time" = "Target Finish Time";
 "onboarding.training_days" = "Training Days";
 "onboarding.weekly_volume" = "Weekly Volume";
@@ -235,6 +237,7 @@
 "profile.personal_info" = "Personal Info";
 "profile.training_info" = "Training Info";
 "profile.heart_rate_info" = "Heart Rate Info";
+"profile.pace_zones" = "Pace Zones";
 "profile.data_sources" = "Data Sources";
 "profile.settings" = "Settings";
 "profile.name" = "Name";
@@ -267,6 +270,13 @@
 // MARK: - Training Plan
 "training.plan_title" = "Training Plan";
 "training.weekly_plan" = "Weekly Plan";
+"training.no_weekly_plan_title" = "Weekly Plan Not Generated";
+"training.no_weekly_plan_description" = "Tap the button below to generate this week's training plan";
+"training.generate_weekly_plan" = "Generate Weekly Plan";
+"training.get_weekly_summary" = "Get Weekly Summary";
+"training.generate_next_week_plan" = "Generate Next Week's Plan";
+"training.generating_weekly_plan" = "Generating Weekly Plan...";
+"training.generating_weekly_plan_description" = "AI is planning your training for this week, please wait";
 "training.daily_training" = "Daily Training";
 "training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
@@ -358,6 +368,18 @@
 "training.type.yoga" = "Yoga";
 "training.type.cycling" = "Cycling";
 "training.type.rest_day" = "Rest Day";
+// New Interval Training Types
+"training.type.strides" = "Strides";
+"training.type.hill_repeats" = "Hill Repeats";
+"training.type.cruise_intervals" = "Cruise Intervals";
+"training.type.short_interval" = "Short Intervals";
+"training.type.long_interval" = "Long Intervals";
+"training.type.norwegian_4x4" = "Norwegian 4x4";
+"training.type.yasso_800" = "Yasso 800s";
+// New Combination Training Types (fartlek already exists)
+"training.type.fast_finish" = "Fast Finish Run";
+// New Race Pace Training
+"training.type.race_pace" = "Race Pace Run";
 
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "Maintain a comfortable effort pace";
@@ -424,6 +446,15 @@
 "workout.detail.intensity_medium" = "Medium";
 "workout.detail.intensity_high" = "High";
 "workout.detail.minutes" = "min";
+"workout.detail.training_notes_title" = "Training Notes";
+"workout.detail.training_notes_add" = "Add";
+"workout.detail.training_notes_edit" = "Edit";
+"workout.detail.training_notes_save" = "Save";
+"workout.detail.training_notes_cancel" = "Cancel";
+"workout.detail.training_notes_saving" = "Saving...";
+"workout.detail.training_notes_placeholder" = "No training notes yet. Tap 'Add' to record your thoughts and reflections.";
+"workout.detail.training_notes_save_error" = "Failed to save training notes. Please try again later.";
+"workout.detail.training_notes_editor_title" = "Edit Training Notes";
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "Distance";
@@ -439,6 +470,8 @@
 "activity.type.strength_training" = "Strength Training";
 "activity.type.yoga" = "Yoga";
 "activity.type.pilates" = "Pilates";
+"activity.type.elliptical" = "Elliptical";
+"activity.type.rowing" = "Rowing";
 "activity.type.other" = "Other";
 
 // MARK: - Training Record
@@ -585,6 +618,7 @@
 "date.fri" = "Fri";
 "date.sat" = "Sat";
 "date.sun" = "Sun";
+"date.minutes_ago" = "%d minutes ago";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "Unsaved Changes";
@@ -714,6 +748,7 @@
 "onboarding.start_setup" = "Start Setup";
 "onboarding.your_running_goal" = "Your Running Goal";
 "onboarding.goal_description" = "If you don't have a specific race, you can set a challenge goal for yourself, such as 'Complete first 5K' or 'Improve 10K speed'.";
+"onboarding.or_select_existing_target" = "Previously set target races";
 "onboarding.goal_name_placeholder" = "Goal name (e.g., Taipei Marathon or My 5K Challenge)";
 "onboarding.goal_date" = "Goal Date";
 "onboarding.weeks_until_race" = "Weeks until race: %d";
@@ -725,6 +760,10 @@
 "onboarding.minutes" = "minutes";
 "onboarding.average_pace" = "Average pace: %@ /km";
 "onboarding.next_step" = "Next Step";
+"onboarding.distance_and_target_time" = "Distance & Target Time";
+"onboarding.distance_time_hint" = "Tap to edit race distance and target finish time";
+"onboarding.edit_distance_time" = "Edit Distance & Time";
+"onboarding.common_times_reference" = "Common Times";
 "onboarding.set_training_goal" = "Set Training Goal";
 "onboarding.back" = "Back";
 "onboarding.my_training_goal" = "My Training Goal";
@@ -738,7 +777,7 @@
 "onboarding.goal_type_beginner_5k" = "Complete your first 5K and experience the joy of running";
 "onboarding.goal_type_beginner_5k_desc" = "4-week training plan to help you reach the 5K goal";
 "onboarding.goal_type_nav_title" = "Training Goal";
-"onboarding.beginner_5k_goal" = "能跑 5 公里";
+"onboarding.beginner_5k_goal" = "Run 5 km";
 
 // MARK: - Training Overview View
 "onboarding.training_overview_title" = "Training Overview";
@@ -748,7 +787,7 @@
 "onboarding.target_pace" = "Target Pace";
 "onboarding.target_evaluate" = "Target Evaluation";
 "onboarding.training_timeline" = "Training Timeline";
-"onboarding.training_focus" = "Training Focus";
+"onboarding.training_focus_title" = "Training Focus";
 "onboarding.training_highlight" = "Training Highlight";
 "onboarding.generate_first_week" = "Generate First Week Plan";
 "onboarding.confirm_generate_first_week" = "Confirm and Generate First Week Plan";
@@ -782,6 +821,22 @@
 "onboarding.skip_personal_best" = "Skip Personal Best";
 "onboarding.skip_personal_best_message" = "No problem! Paceriz will adjust training intensity based on your training progress.";
 "onboarding.personal_best_title_nav" = "Personal Best";
+"onboarding.select_existing_pb" = "Or select from your existing personal bests";
+ 
+// MARK: - Backfill Prompt
+"onboarding.backfill_prompt.title" = "Sync recent training data?";
+"onboarding.backfill_prompt.subtitle" = "Get your last 14 days from %@";
+"onboarding.backfill_prompt.what_is_backfill" = "What is data sync?";
+"onboarding.backfill_prompt.backfill_description" = "We'll sync your last 14 days of running records to help Vita create a more accurate training plan for you.";
+"onboarding.backfill_prompt.why_it_helps" = "Why it helps?";
+"onboarding.backfill_prompt.benefit1_title" = "Better training suggestions";
+"onboarding.backfill_prompt.benefit1_description" = "Personalized plan based on your history.";
+"onboarding.backfill_prompt.benefit2_title" = "Complete progress tracking";
+"onboarding.backfill_prompt.benefit2_description" = "View your full training journey and growth.";
+"onboarding.backfill_prompt.benefit3_title" = "Accurate fitness assessment";
+"onboarding.backfill_prompt.benefit3_description" = "Analyze your running status and avoid overtraining.";
+"onboarding.backfill_prompt.confirm_button" = "Yes, Get My Data";
+"onboarding.backfill_prompt.skip_button" = "Skip for Now";
 "onboarding.next" = "Next";
 
 // MARK: - Training Days Setup
@@ -794,7 +849,7 @@
 "onboarding.long_run_day_description_beginner" = "This day will have slightly longer distances to help your body gradually adapt. Don't worry, we'll take it step by step";
 "onboarding.select_long_run_day" = "Select Long Run Day";
 "onboarding.long_run_day_must_be_training_day" = "Long run day must be one of your selected training days.";
-"onboarding.suggest_saturday_long_run" = "We recommend setting Saturday as your long run day for sufficient time for long-distance training.";
+"onboarding.suggest_saturday_long_run" = "We recommend setting a weekend day as your long run day for sufficient time for long-distance training.";
 "onboarding.save_preferences_preview" = "Generate Training Plan Overview";
 "onboarding.complete_setup_view_schedule" = "Complete Setup and View First Week Schedule";
 
@@ -832,12 +887,10 @@
 "onboarding.weekly_distance_description" = "Weekly running volume is the total distance you typically run in a week. This helps Paceriz understand your current running habits and set appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
-"onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
+"onboarding.weekly_volume_label" = "Estimated weekly volume: %.0f km";
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "Your Weekly Running Volume";
 "onboarding.skip" = "Skip";
-"onboarding.back" = "Back";
-"onboarding.next_step" = "Next";
 
 // MARK: - Workout Row Component
 "workout_row.today" = "Today";
@@ -929,6 +982,23 @@
 "hr_zone.max_heart_rate_display" = "Max Heart Rate";
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
 
+// MARK: - Heart Rate Zone Names & Details
+"hr_zone.easy" = "Recovery";
+"hr_zone.easy.description" = "Recovery and warmup";
+"hr_zone.easy.benefit" = "Active recovery";
+"hr_zone.aerobic" = "Aerobic";
+"hr_zone.aerobic.description" = "Marathon pace training";
+"hr_zone.aerobic.benefit" = "Improve aerobic capacity";
+"hr_zone.threshold" = "Marathon";
+"hr_zone.threshold.description" = "Lactate threshold training";
+"hr_zone.threshold.benefit" = "Increase lactate threshold";
+"hr_zone.vo2max" = "Threshold";
+"hr_zone.vo2max.description" = "Interval training";
+"hr_zone.vo2max.benefit" = "Improve VO2Max";
+"hr_zone.max" = "Anaerobic";
+"hr_zone.max.description" = "Speed work";
+"hr_zone.max.benefit" = "Maximum effort";
+
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "Select General Training Days";
 "training_days.long_run_day_weekend" = "Long Run Day (Recommend Weekend)";
@@ -954,6 +1024,8 @@
 "sync.retry" = "Retry";
 "sync.skip" = "Skip";
 "sync.error_records_failed" = "%d records failed to process";
+"sync.timeout_warning_title" = "Syncing is taking longer than expected";
+"sync.timeout_warning_message" = "You can skip and continue, the sync will finish in the background.";
 "sync.checking_health_auth" = "Checking Apple Health authorization...";
 "sync.getting_30_day_records" = "Getting workout records from the last 30 days...";
 "sync.no_health_records" = "No Apple Health workout records found in the last 30 days. Please ensure your iPhone or Apple Watch has recorded workout data.";
@@ -973,6 +1045,10 @@
 "sync.garmin_sync_failed" = "Garmin sync failed: %@";
 "sync.processing_garmin_progress" = "Processing Garmin data...\nProgress: %d/%d (%d%%)";
 "sync.processing_garmin_initializing" = "Processing Garmin data...\nInitializing processing...";
+"sync.preparing_strava" = "Preparing Strava sync...";
+"sync.strava_triggered" = "Strava sync triggered...";
+"sync.processing_strava_progress" = "Processing Strava data, synced %d records...";
+"sync.strava_sync_failed" = "Strava sync failed: %@";
 
 // MARK: - Weekly Volume & Intensity Strings
 "weekly_volume.trend" = "Weekly Volume Trend";
@@ -1088,6 +1164,70 @@
 "training_type_info.rest.why_run" = "Rest is the most overlooked yet most critical part of training plans. Complete rest days allow muscle repair, nervous system recovery, and energy stores to replenish.";
 "training_type_info.rest.logic" = "Without training load, your body undergoes deep repair. Muscle protein synthesis increases, fatigue toxins clear out, and hormonal and immune systems rebalance—this is the process of 'getting stronger through rest.'";
 "training_type_info.rest.role" = "Schedule 1–2 complete rest days each week, typically after hard training. Adequate rest days prevent overtraining and maintain long-term performance and health.";
+
+// MARK: - New Interval Training Type Info
+"training_type_info.strides.title" = "Strides";
+"training_type_info.strides.how_to_run" = "Short bursts (80-100 meters) of gradual acceleration. Start easy, build to near-sprint, then slow down. Stay relaxed, focus on good running form.";
+"training_type_info.strides.why_run" = "Strides improve running economy and neuromuscular coordination. They help your legs get used to faster turnover and make a great warm-up before races.";
+"training_type_info.strides.logic" = "A neuromuscular drill that uses short high-speed bursts to improve muscle fiber recruitment and leg coordination. The short distance and full recovery prevent significant fatigue.";
+"training_type_info.strides.role" = "Usually done after easy runs or as a warm-up before hard sessions. Do them 2-3 times per week, 4-8 reps each time.";
+
+"training_type_info.hill_repeats.title" = "Hill Repeats";
+"training_type_info.hill_repeats.how_to_run" = "Find a 5-10% grade hill. Run up at a steady but challenging pace, then jog or walk down to recover. Focus on driving with your legs and leaning forward.";
+"training_type_info.hill_repeats.why_run" = "Hill running is 'weight training in disguise.' It builds leg strength, improves running form, and reduces injury risk compared to flat sprinting.";
+"training_type_info.hill_repeats.logic" = "Running uphill requires greater muscular output, effectively training glutes, quads, and calves. Less joint impact than flat sprints but greater muscle load.";
+"training_type_info.hill_repeats.role" = "Usually scheduled in base or strength-building phases, once per week. An important transition between aerobic base and high-intensity intervals.";
+
+"training_type_info.cruise_intervals.title" = "Cruise Intervals";
+"training_type_info.cruise_intervals.how_to_run" = "Run at threshold pace (the fastest pace you can hold for 20-30 minutes) with short recovery jogs (1-2 minutes) between intervals.";
+"training_type_info.cruise_intervals.why_run" = "Cruise intervals let you accumulate more volume at threshold intensity. The short recoveries allow you to spend more time at this critical intensity zone.";
+"training_type_info.cruise_intervals.logic" = "A variation of threshold training that keeps your body near lactate threshold for extended periods. The interval structure allows higher total volume while maintaining good form.";
+"training_type_info.cruise_intervals.role" = "Usually used in race preparation phases as an advanced version of threshold runs. Key training for improving half and full marathon performance.";
+
+// MARK: - New Combination Training Type Info
+"training_type_info.fartlek.title" = "Fartlek";
+"training_type_info.fartlek.how_to_run" = "'Fartlek' is Swedish for 'speed play.' Vary your pace spontaneously during the run—sprint to the next lamppost, slow down at the park entrance. No fixed structure, just follow your feeling.";
+"training_type_info.fartlek.why_run" = "Fartlek makes training fun while teaching your body to adapt to pace changes. It's a great way to break monotony and simulate race-day pace variations.";
+"training_type_info.fartlek.logic" = "An unstructured mixed-intensity workout that stimulates both aerobic and anaerobic systems. The free-form approach reduces mental fatigue while delivering training benefits.";
+"training_type_info.fartlek.role" = "Can replace structured interval training or serve as an easy variable-pace run during recovery weeks. Suitable for any training phase, especially when you need a mental break.";
+
+"training_type_info.fast_finish.title" = "Fast Finish Long Run";
+"training_type_info.fast_finish.how_to_run" = "Run the first 70% at easy pace, then gradually accelerate to tempo pace or faster for the final 30%. You should feel challenged but able to finish strong.";
+"training_type_info.fast_finish.why_run" = "Fast finish runs train you to maintain or increase pace when tired—the exact challenge of late-race miles. They teach your body to 'push harder when fatigued.'";
+"training_type_info.fast_finish.logic" = "Running at higher intensity when glycogen is depleted and muscles are tired improves fat metabolism and fatigue tolerance. Also trains form and focus maintenance.";
+"training_type_info.fast_finish.role" = "Usually done during race preparation phase weekend long runs. Key training for simulating late-race conditions and building confidence.";
+
+// MARK: - New Race Pace Training Info
+"training_type_info.race_pace.title" = "Race Pace Run";
+"training_type_info.race_pace.how_to_run" = "Run at your target race pace. Focus on maintaining steady rhythm, getting familiar with breathing, cadence, and body feel at this speed.";
+"training_type_info.race_pace.why_run" = "Race pace runs help your body and brain memorize the target speed. On race day, you'll naturally hit this pace without constantly checking your watch.";
+"training_type_info.race_pace.logic" = "By repeatedly practicing target pace, you build neuromuscular memory and pace awareness. It also helps evaluate if your current fitness can achieve your goal.";
+"training_type_info.race_pace.role" = "Usually scheduled starting 4-8 weeks before race day, with distances increasing over time. One of the most important race-specific workouts.";
+
+// MARK: - New VO2max Improvement Training Info
+"training_type_info.norwegian_4x4.title" = "Norwegian 4x4";
+"training_type_info.norwegian_4x4.how_to_run" = "Perform 4 intervals of 4 minutes at high intensity (92% max heart rate), with 3 minutes of easy running recovery between each. Maintain a steady VO₂max pace—you should feel \"very hard but able to complete all intervals.\"";
+"training_type_info.norwegian_4x4.why_run" = "Norwegian 4x4 is the most efficient method for improving maximum oxygen uptake (VO₂max). Scientific research shows this protocol can boost aerobic capacity by approximately 7% in a short timeframe—a key workout before racing.";
+"training_type_info.norwegian_4x4.logic" = "Performed at VO₂max intensity (92% max heart rate, 95-100% VO₂max), it stimulates both aerobic and anaerobic systems to their limits. The 4-minute duration is long enough to fully challenge your heart and lungs, while 3 minutes of recovery allows you to complete all intervals. This design accumulates significant training load at peak intensity.";
+"training_type_info.norwegian_4x4.role" = "Typically used during build or race-prep phases, limited to once per week maximum. Pair with easy runs and ensure adequate recovery. Not suitable for consecutive weeks—needs to be balanced with recovery weeks.";
+
+"training_type_info.short_interval.title" = "Short Interval";
+"training_type_info.short_interval.how_to_run" = "Perform 6-10 repetitions of short distances (400-600 meters) at high intensity, with 1-2 minutes of easy running recovery between each. Sprint hard and let your breathing rise significantly.";
+"training_type_info.short_interval.why_run" = "Short intervals train speed and explosive power. The shorter distances allow you to maintain maximum effort, while adequate recovery helps you complete all repetitions. Especially beneficial for 5K race preparation.";
+"training_type_info.short_interval.logic" = "Part of high-intensity interval training (HIIT), it stimulates VO₂max and neuromuscular response. Short distances are particularly effective for developing top speed and running cadence, while also training the body's acceleration ability.";
+"training_type_info.short_interval.role" = "Typically used during base speed development or 5K race-prep phases. Maximum once per week, combined with easy runs and rest days. Consecutive weeks increase injury risk.";
+
+"training_type_info.long_interval.title" = "Long Interval";
+"training_type_info.long_interval.how_to_run" = "Perform 4-6 repetitions of longer distances (1200-2000 meters) at high intensity, with 2-3 minutes of easy running recovery between each. Pace should be slightly slower than short intervals but still maintain high intensity.";
+"training_type_info.long_interval.why_run" = "Long intervals bridge short intervals and continuous running. They stimulate VO₂max while maintaining high pace for longer durations, making them particularly suited for half-marathon and 10K race preparation.";
+"training_type_info.long_interval.logic" = "A form of high-intensity interval training with slightly lower intensity than short intervals. The longer sustained efforts help the body adapt to maintaining high pace when fatigued, while building lactate tolerance.";
+"training_type_info.long_interval.role" = "Typically used during advanced speed development or 10K/half-marathon prep phases. Maximum once per week, usually after short interval work. Requires adequate recovery.";
+
+"training_type_info.yasso_800.title" = "Yasso 800s";
+"training_type_info.yasso_800.how_to_run" = "Perform 8-10 repetitions of 800 meters at high intensity, with 2-3 minutes of easy jogging recovery between each (approximately equal to the time your 800m takes). For example, if you run 800m in 3 minutes, recover for about 3 minutes.";
+"training_type_info.yasso_800.why_run" = "Yasso 800s have a unique ability to directly predict marathon performance. According to renowned coach Bart Yasso's theory, the time you run (in minutes and seconds) for 800m correlates to your predicted marathon finish time (in hours and minutes).";
+"training_type_info.yasso_800.logic" = "The 800-meter distance perfectly balances speed and endurance. The interval design stimulates VO₂max and lactate buffering capacity. Equal recovery develops your ability to maintain pace while partially fatigued—true marathon-specific training.";
+"training_type_info.yasso_800.role" = "Especially valuable during marathon preparation, performed once per week. The most predictive workout in marathon training. Also commonly used during other distance race preparation phases to build speed.";
 
 // MARK: - Weekday Names (Full and Short)
 "weekday.monday" = "Monday";
@@ -1316,6 +1456,10 @@
 "feedback.error.description_required" = "Description is required";
 "feedback.success_title" = "Success";
 "feedback.success_message" = "Thank you for your feedback!";
+
+// MARK: - Contact
+"contact.paceriz" = "Contact Paceriz";
+"contact.contact_support" = "Contact Support";
 "common.submit" = "Submit";
 
 // MARK: - Workout Detail
@@ -1466,7 +1610,11 @@
 "edit_schedule.delete" = "Delete";
 "edit_schedule.close" = "Close";
 "edit_schedule.cannot_edit" = "Cannot Edit";
-"edit_schedule.addSegment" = "Add Segment";
+"edit_schedule.add_segment" = "Add Segment";
+"edit_schedule.total_distance" = "Total Distance";
+"edit_schedule.edit_training" = "Edit Training";
+"edit_schedule.rest_in_place" = "Rest in Place";
+"edit_schedule.save_failed" = "Save Failed";
 "edit_schedule.reorder_title" = "Reorder";
 "edit_schedule.reorder_days" = "Reorder Schedule";
 
@@ -1488,6 +1636,11 @@
 "edit_schedule.combination_settings" = "Combination Run Settings";
 "edit_schedule.long_run_settings" = "Long Run Settings";
 "edit_schedule.training_settings" = "Training Settings";
+"edit_schedule.norwegian_4x4_settings" = "Norwegian 4x4 Training";
+"edit_schedule.norwegian_4x4_description" = "4 sets of 4-minute high-intensity intervals (92% VO2max), 3-minute rest between sets. Focus on improving VO2max.";
+"edit_schedule.yasso_800_settings" = "Yasso 800 Training";
+"edit_schedule.yasso_800_description" = "800m repeat training for marathon time prediction and VO2max improvement. Target time relates to your marathon goal.";
+"edit_schedule.rest_time" = "Rest Time";
 
 "edit_schedule.suggested_pace" = "Suggested Pace: %@";
 "edit_schedule.sprint_suggested_pace" = "Sprint Suggested Pace: %@";
@@ -1503,6 +1656,9 @@
 
 "edit_schedule.repeats" = "Repeats";
 "edit_schedule.repeats_placeholder" = "e.g., 6";
+"edit_schedule.time" = "Time";
+"edit_schedule.select_time" = "Select Time";
+"edit_schedule.time_selection" = "Time Selection";
 "edit_schedule.sprint_segment" = "Sprint Segment";
 "edit_schedule.recovery_segment" = "Recovery Segment";
 "edit_schedule.segment" = "Segment %d";
@@ -1514,6 +1670,10 @@
 "edit_schedule.interval_distance_selection" = "Interval Distance Selection";
 "edit_schedule.select_training_type" = "Select Training Type";
 "edit_schedule.training_type_selection" = "Training Type Selection";
+"edit_schedule.select_distance" = "Select Distance";
+"edit_schedule.distance_selection" = "Distance Selection";
+"edit_schedule.select_repeats" = "Select Repeats";
+"edit_schedule.repeats_selection" = "Repeats Selection";
 
 // Pace Table
 "edit_schedule.pace_table_description" = "Training pace recommendations calculated based on your running ability. Each zone shows the fastest - slowest pace range";
@@ -1724,6 +1884,7 @@
 "edit_schedule.category_easy" = "Easy Training";
 "edit_schedule.category_intensity" = "Intensity Training";
 "edit_schedule.category_long" = "Long Distance";
+"edit_schedule.category_other" = "Other";
 
 // MARK: - Edit Schedule Additional Keys
 "edit_schedule.edit_training" = "Edit Training";
@@ -1749,3 +1910,252 @@
 "empty_state.vdot_data_desc" = "No VDOT data yet. Please complete a running workout first";
 "empty_state.workout_data_desc" = "No workout data recorded yet";
 "empty_state.health_data_desc" = "Unable to retrieve health data";
+"edit_schedule.distance_meters" = "Distance(m)";
+
+// MARK: - Distance Labels
+"distance.mile" = "1.6 km";
+"distance.3k" = "3 km";
+"distance.5k" = "5 km";
+"distance.10k" = "10 km";
+"distance.half_marathon" = "Half Marathon";
+"distance.half_marathon_short" = "21km";
+"distance.full_marathon" = "Full Marathon";
+"distance.full_marathon_short" = "42km";
+
+// MARK: - My Achievement - Personal Best
+"my_achievement.personal_best.title" = "Personal Best";
+"my_achievement.personal_best.explanation" = "Displays your best moving time at different distances (excludes pauses, uses sliding window for fastest continuous segment)";
+"my_achievement.personal_best.no_data" = "No Personal Best records yet\nComplete your first workout to see results";
+"my_achievement.personal_best.first_place" = "1st Place";
+"my_achievement.personal_best.second_place" = "2nd Place";
+"my_achievement.personal_best.third_place" = "3rd Place";
+"my_achievement.personal_best.detail_explanation" = "Shows your best performances at this distance, including finish time, pace, and workout date.";
+"my_achievement.personal_best.top_records" = "Top Records";
+
+// MARK: - My Achievement - Celebration
+"my_achievement.celebration.new_record" = "New Record!";
+"my_achievement.celebration.improved" = "Improved by";
+
+// MARK: - Workout - Effort Score (iOS 18+)
+"workout.effort_score" = "Effort Score";
+
+// MARK: - Backfilled Translations
+"edit_schedule.addSegment" = "Add Segment";
+"edit_schedule.cannot_edit_completed" = "Cannot edit schedule with existing training records";
+"edit_schedule.drag_to_swap" = "Long press and drag to swap";
+"edit_schedule.heart_rate" = "Heart Rate";
+"intensity.high_zh" = "High Intensity";
+"intensity.low_zh" = "Low Intensity";
+"intensity.medium_zh" = "Medium Intensity";
+"my_achievement.balanced" = "Balanced State";
+"my_achievement.chart_guide" = "Chart Guide";
+"my_achievement.complete" = "Complete";
+"my_achievement.fatigue" = "Fatigue";
+"my_achievement.fitness_index" = "Fitness Index";
+"my_achievement.fitness_index_description" = "Fitness Index reflects your athletic performance level **relative to your past performance**. This value adjusts dynamically based on your recent training intensity, frequency, and duration, focus on the **trend changes**.";
+"my_achievement.how_to_interpret" = "How to interpret the trend:";
+"my_achievement.important_reminder" = "Important Reminder";
+"my_achievement.key_point" = "💡 Key Point: Focusing on the **direction** of the lines is more important than a single value";
+"my_achievement.optimal" = "Optimal State";
+"my_achievement.practical_tips" = "Practical Tips";
+"my_achievement.reasonable_training_load" = "Reasonable Training Load Zone";
+"my_achievement.reminder1" = "• Training load data requires at least 2-3 weeks of exercise records to provide accurate trend analysis";
+"my_achievement.reminder2" = "• A decrease in Fitness Index is not necessarily a bad thing; it may represent a planned tapering or recovery period";
+"my_achievement.reminder3" = "• Suggest observing both TSB and HRV trends simultaneously to assess overall body recovery status";
+"my_achievement.reminder4" = "• If you feel unwell, please prioritize rest; data is for reference only and should not be fully relied upon";
+"my_achievement.syncing" = "Syncing...";
+"my_achievement.training_load_subtitle" = "Understand your Fitness Index and Training Stress Balance to help optimize your training plan";
+"my_achievement.tsb" = "Training Stress Balance (TSB)";
+"my_achievement.tsb_interpretation" = "TSB Status Interpretation:";
+"onboarding.goal_assessment" = "Goal Assessment";
+"onboarding.training_plan_preview" = "Your Training Plan Preview";
+"progress.weekly_volume_zh" = "Weekly Volume";
+"share_card.choose_photo" = "Choose Photo";
+"share_card.generate" = "Generate Share Card";
+"training_plan.weekly_volume_load_zh" = "Weekly Volume and Intensity";
+"training_type_info.norwegian_4x4.how_to_run" = "Perform 4 sets of 4-minute high-intensity runs, with 3 minutes of rest between sets. Maintain a steady VO₂max pace (92% max HR), sprint but stay controlled—you should feel \"very hard, but able to complete all sets\".";
+
+
+// MARK: - Hardcoded String Localization
+"bottominfooverlay.text_0" = "Distance (km)";
+"bottominfooverlay.text_1" = "Total Time";
+"bottominfooverlay.text_2" = "Avg Pace";
+"circularprogress.text_0" = "/ %d";
+"clickablecircularprogress.text_0" = "/ %d";
+"dailytrainingcard.text_0" = "Segment %d";
+"dailytrainingcard.text_1" = "Easy Run";
+"dailytrainingcard.text_2" = "× %@";
+"dailytrainingcard.text_3" = "%@ min";
+"datasync.text_0" = "Sync Timeout";
+"datasync.text_1" = "Data synchronization is taking longer than expected. Please check your connection.";
+"debugfailedworkouts.text_0" = "Failure Stats";
+"debugfailedworkouts.text_1" = "Show failed workout upload records";
+"debugfailedworkouts.text_10" = "Copy Date Format";
+"debugfailedworkouts.text_12" = "Debug - Failed Workouts";
+"debugfailedworkouts.text_2" = "Total Failed";
+"debugfailedworkouts.text_3" = "Permanent Failures (Max Retries)";
+"debugfailedworkouts.text_4" = "Search by Date";
+"debugfailedworkouts.text_5" = "Search failure records for this date";
+"debugfailedworkouts.text_6" = "All Records";
+"debugfailedworkouts.text_7" = "Print All Failure Records";
+"debugfailedworkouts.text_8" = "Clear All Failure Records";
+"debugfailedworkouts.text_9" = "Other Functions";
+"editabledailycard.text_0" = "🇳🇴 Norwegian 4x4";
+"editabledailycard.text_1" = "%d Sets";
+"editabledailycard.text_10" = "Training Type";
+"editabledailycard.text_2" = "Sprint";
+"editabledailycard.text_3" = "@ %@";
+"editabledailycard.text_4" = "Recovery";
+"editabledailycard.text_5" = "Yasso 800";
+"editabledailycard.text_6" = "Interval Training";
+"editabledailycard.text_7" = "Recovery Segment";
+"editabledailycard.text_8" = "@%@";
+"editabledailycard.text_9" = "%d ×";
+"editschedule.text_0" = "Pace:";
+"editschedule.text_1" = "Distance:";
+"garminattribution.compact" = "Compact";
+"garminattribution.no_device_model" = "No Device Model";
+"garminattribution.secondary" = "Secondary";
+"garminattribution.social" = "Social";
+"garminattribution.title_level" = "Title Level";
+"garminreconnectionalert.text_0" = "Main Content";
+"generatenextweekbutton.text_0" = "Back to This Week (Week %@)";
+"generatenextweekbutton.text_1" = "Back to This Week";
+"heartratezoneinfo.bpm" = "%@ bpm";
+"hrvtrendchart.hrv" = "Diagnose HRV Issue";
+"login.demo_mode" = "Demo Mode";
+"login.for_apple_review" = "For Apple Review";
+"misc.reset" = "Reset";
+"misc.syncing" = "Syncing...";
+"myachievement.text_0" = "Fitness Index & Training Stress Balance";
+"myachievement.text_10" = "Fitness Index";
+"myachievement.text_11" = "Fitness Index reflects your athletic performance level **relative to your past performance**. This value adjusts dynamically based on your recent training intensity, frequency, and duration. Focus on the **trend changes**.";
+"myachievement.text_12" = "How to interpret the trend:";
+"myachievement.text_13" = "💡 Key Point: Focusing on the **direction** of the lines is more important than a single value";
+"myachievement.text_14" = "Training Stress Balance (TSB)";
+"myachievement.text_17" = "Chart Guide";
+"myachievement.text_18" = "Practical Tips";
+"myachievement.text_19" = "Important Reminder";
+"myachievement.text_20" = "• Training load data requires at least 2-3 weeks of records for accurate trend analysis";
+"myachievement.text_21" = "• A decrease in Fitness Index is not necessarily bad; it may represent planned tapering or recovery";
+"myachievement.text_23" = "• If feeling unwell, prioritize rest; data is for reference only";
+"myachievement.text_3" = "Fatigue";
+"myachievement.text_4" = "Balanced";
+"myachievement.text_5" = "Optimal";
+"myachievement.text_6" = "Reasonable Training Load Zone";
+"myachievement.text_7" = "Fatigue Status";
+"myachievement.text_8" = "Training Load Details";
+"myachievement.text_9" = "Understand your Fitness Index and Training Stress Balance to optimize your training plan";
+"myachievement.tsb" = "TSB Status Interpretation:";
+"myachievement.tsb_hrv" = "• Suggest observing both TSB and HRV trends to assess overall recovery";
+"onboarding.text_0" = "%@km";
+"onboardingintro.text_0" = "**%@**";
+"performancechart.text_0" = "Insufficient training data";
+"performancechart.text_1" = "Recent 3 Months Performance";
+"performancechart.text_2" = "Training Day";
+"personalbest.text_0" = "Or select existing personal best";
+"personalbest.text_1" = "%@km";
+"sharecardtutorialoverlay.text_0" = "Share Card Guide";
+"sharecardtutorialoverlay.text_1" = "Start Editing";
+"sideinfooverlay.text_0" = "Distance (km)";
+"sideinfooverlay.text_1" = "Total Time";
+"sideinfooverlay.text_2" = "Avg Pace";
+"stravaattribution.compact" = "Compact";
+"stravaattribution.secondary" = "Secondary";
+"stravaattribution.title_level" = "Title Level";
+"todayfocuscard.text_0" = "Today's Training";
+"todayfocuscard.text_1" = "No Training Today";
+"todayfocuscard.text_2" = "Completed Workouts";
+"topinfooverlay.text_0" = "Distance (km)";
+"topinfooverlay.text_1" = "Total Time";
+"topinfooverlay.text_2" = "Avg Pace";
+"trainingcalendar.text_1" = "×%@";
+"trainingdetaileditor.400m" = "400m Jogging Recovery";
+"trainingdetaileditor.800m" = "800m";
+"trainingdetaileditor.text_0" = "🇳🇴";
+"trainingdetaileditor.text_1" = "Recovery Run";
+"trainingdetaileditor.text_4" = "%d ×";
+"trainingdetaileditor.text_6" = "Select Work Duration";
+"trainingdetaileditor.text_7" = "Select Rest Duration";
+"trainingoverview.text_0" = "%@ /km";
+"trainingplanoverview.text_0" = "• %@";
+"trainingplanviewmodel.text_0" = "Week out of range";
+"trainingprogress.text_0" = "Loading...";
+"trainingreadiness.tsb" = "TSB";
+"userprofile.onboarding" = "Restart Full Onboarding";
+"userprofile.text_0" = "🧪 Dev Test";
+"weekprogressheader.text_0" = "Week %d / %d";
+"weektimeline.text_0" = "Interval Training";
+"weektimeline.text_1" = "%d × Sets";
+"weektimeline.text_10" = "Segment %d";
+"weektimeline.text_11" = "Completed Training";
+"weektimeline.text_12" = "More Workouts";
+"weektimeline.text_2" = "Sprint Segment";
+"weektimeline.text_3" = "Recovery Segment";
+"weektimeline.text_4" = "Rest in Place";
+"weektimeline.text_5" = "%@ min";
+"weektimeline.text_6" = "🇳🇴 Norwegian 4x4";
+"weektimeline.text_7" = "%d Sets";
+"weektimeline.text_8" = "Sprint";
+"weektimeline.text_9" = "Yasso 800";
+"workoutsharecardsheet.text_1" = "Customize your title for a personalized share!";
+"workoutsharecardsheet.text_12" = "Generate Share Card";
+"workoutsharecardsheet.text_2" = "Add your training thoughts or quotes!";
+"workoutsharecardsheet.text_3" = "Pinch to zoom, drag to adjust position";
+"workoutsharecardsheet.text_4" = "Generating share card...";
+"workoutsharecardsheet.text_5" = "Added Text (%d)";
+"workoutsharecardsheet.text_6" = "Bottom Layout";
+"workoutsharecardsheet.text_7" = "Top Layout";
+"workoutsharecardsheet.text_8" = "Side Layout";
+"workoutsharecardsheet.text_9" = "Auto Select";
+"workoutsyncdebug.healthkit" = "This will permanently delete %d workouts from your HealthKit data. This action cannot be undone.";
+"workoutsyncdebug.text_0" = "Select deletion method. Range delete removes all records in specified time.";
+"workoutsyncdebug.text_1" = "Sync Status";
+"workoutsyncdebug.text_10" = "Find Workouts";
+"workoutsyncdebug.text_13" = "Operation Log";
+"workoutsyncdebug.text_14" = "Select Time Range";
+"workoutsyncdebug.text_15" = "No workouts found in selected range";
+"workoutsyncdebug.text_16" = "Delete All Records (%d)";
+"workoutsyncdebug.text_17" = "Warning: This will permanently delete these workouts from health data";
+"workoutsyncdebug.text_19" = "Delete by Time Range";
+"workoutsyncdebug.text_2" = "Test Features";
+"workoutsyncdebug.text_20" = "Refresh Status";
+"workoutsyncdebug.text_21" = "Test Observer Setup";
+"workoutsyncdebug.text_23" = "Workouts Found";
+"workoutsyncdebug.text_3" = "Create Test Workout";
+"workoutsyncdebug.text_4" = "Manual Check & Upload";
+"workoutsyncdebug.text_5" = "Test Notification";
+"workoutsyncdebug.text_6" = "Clear Upload History";
+"workoutsyncdebug.text_7" = "Created Test Workout ID: %@";
+"workoutsyncdebug.text_8" = "Test Data Management";
+"workoutsyncdebug.text_9" = "Delete Test Data";
+
+/* Methodology Selection */
+"onboarding.methodology_title" = "Choose Your Training Methodology";
+"onboarding.methodology_description" = "Different methodologies focus on different training approaches.";
+"onboarding.methodology_nav_title" = "Training Methodology";
+"onboarding.methodology_load_failed" = "Failed to load methodologies";
+"onboarding.loading_methodologies" = "Loading methodologies...";
+"onboarding.methodology_phases" = "%d phases";
+"onboarding.recommended" = "Recommended";
+"onboarding.cross_training_enabled" = "Cross-training enabled";
+
+// MARK: - Weekly Summary V2
+"training.week_summary_title" = "Week %d Summary";
+"training.completion" = "Completion";
+"training.sessions" = "sessions";
+"training.analysis" = "Analysis";
+"training.heart_rate" = "Heart Rate";
+"training.trend" = "Trend";
+"training.total" = "Total";
+"training.vs_plan" = "vs Plan";
+"training.intensity_distribution" = "Intensity Distribution";
+"training.average" = "Average";
+"training.max" = "Max";
+"training.highlights" = "Weekly Highlights";
+"training.achievements" = "Achievements";
+"training.areas_for_improvement" = "Areas for Improvement";
+"training.next_week_adjustments" = "Next Week Adjustments";
+"training.no_weekly_summary" = "No Weekly Summary";
+"training.no_weekly_summary_hint" = "Weekly summary will be generated automatically after training";
+

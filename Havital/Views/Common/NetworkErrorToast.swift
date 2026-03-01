@@ -13,7 +13,7 @@ struct NetworkErrorToast: View {
                 .font(.system(size: 16, weight: .medium))
             
             Text(message)
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
             

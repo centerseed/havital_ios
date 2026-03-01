@@ -18,6 +18,9 @@ extension Notification.Name {
     /// 訓練計劃數據更新
     static let trainingPlanDidUpdate = Notification.Name("trainingPlanDidUpdate")
     
+    /// 訓練計劃概覽更新
+    static let trainingOverviewUpdated = Notification.Name("TrainingOverviewUpdated")
+    
     /// HRV 數據更新
     static let hrvDataDidUpdate = Notification.Name("hrvDataDidUpdate")
     
@@ -26,7 +29,10 @@ extension Notification.Name {
     
     /// 用戶數據更新
     static let userDataDidUpdate = Notification.Name("userDataDidUpdate")
-    
+
+    /// Personal Best 更新通知
+    static let personalBestDidUpdate = Notification.Name("personalBestDidUpdate")
+
     /// 運動記錄更新 (already exists, keeping for reference)
     static let workoutsDidUpdate = Notification.Name("workoutsDidUpdate")
     

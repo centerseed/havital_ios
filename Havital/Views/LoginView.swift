@@ -1,18 +1,19 @@
 import SwiftUI
-import FirebaseAuth
 
+// MARK: - Login View (Clean Architecture)
+/// Uses LoginViewModel for authentication operations
+/// All authentication flows are handled via Repository pattern
 struct LoginView: View {
-    // 不再使用 AppStorage 來儲存 onboarding 狀態
-    @StateObject private var authService = AuthenticationService.shared
+    // Clean Architecture: Use LoginViewModel instead of AuthenticationService
+    @StateObject private var viewModel = LoginViewModel()
     @State private var showError = false
-    @State private var errorMessage = ""
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         NavigationView {
             VStack(spacing: 60) {
                 Spacer()
-                
+
                 // Title and Subtitle
                 VStack(spacing: 16) {
                     Image("paceriz_light")
@@ -23,67 +24,67 @@ struct LoginView: View {
                         .frame(height: 60)
 
                     Text(NSLocalizedString("login.tagline", comment: "Login tagline"))
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .foregroundColor(AppTheme.TextColors.secondary)
                         .multilineTextAlignment(.center)
                 }
 
-               
-                
                 Spacer()
-                
+
                 // Login Buttons
                 VStack(spacing: 16) {
+                    // Google Sign-In Button
                     Button {
                         Task {
-                            await authService.signInWithGoogle()
+                            await viewModel.signInWithGoogle()
                         }
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "g.circle.fill")
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("login.google_signin", comment: "Sign in with Google"))
-                                .font(.title3)
+                                .font(AppFont.title3())
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(authService.isLoading ? Color.gray : AppTheme.shared.primaryColor)
+                        .background(viewModel.isLoading ? Color.gray : AppTheme.shared.primaryColor)
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
-                    .disabled(authService.isLoading)
+                    .disabled(viewModel.isLoading)
                     .overlay(
                         Group {
-                            if authService.isLoading {
+                            if viewModel.isGoogleSignInLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             }
                         }
                     )
-                    
+
+                    // Apple Sign-In Button
                     Button {
                         Task {
-                            await authService.signInWithApple()
+                            await viewModel.signInWithApple()
                         }
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "apple.logo")
-                                .font(.title2)
+                                .font(AppFont.title2())
                             Text(NSLocalizedString("login.apple_signin", comment: "Sign in with Apple"))
-                                .font(.title3)
+                                .font(AppFont.title3())
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(authService.isLoading ? Color.gray : Color.black) // Apple's branding is typically black or white
+                        .background(viewModel.isLoading ? Color.gray : Color.black)
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
-                    .disabled(authService.isLoading)
+                    .disabled(viewModel.isLoading)
                     .overlay(
                         Group {
-                            if authService.isLoading {
+                            if viewModel.isAppleSignInLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             }
@@ -91,25 +92,63 @@ struct LoginView: View {
                     )
                 }
                 .padding(.horizontal, 32)
-                .padding(.bottom, 48) // 增加底部間距，讓按鈕不會太靠近底部
+                .padding(.bottom, 48)
+
+                Spacer()
+
+                // Demo Mode Button
+                VStack(spacing: 8) {
+                    Divider()
+                        .padding(.horizontal, 32)
+                        .padding(.bottom, 8)
+
+                    Button {
+                        Task {
+                            await viewModel.demoLogin()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.circle.fill")
+                                .font(AppFont.title2())
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(NSLocalizedString("login.demo_mode", comment: ""))
+                                    .font(AppFont.title3())
+                                    .fontWeight(.semibold)
+                                Text(NSLocalizedString("login.for_apple_review", comment: ""))
+                                    .font(AppFont.caption())
+                                    .opacity(0.7)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.blue, lineWidth: 1)
+                        )
+                    }
+                    .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("Login_DemoButton")
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 24)
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .background(Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.backgroundColor) : UIColor(AppTheme.shared.backgroundColor)
         }))
-        .onReceive(authService.$loginError) { newError in
-            if let error = newError {
-                errorMessage = error.localizedDescription
-                showError = true
-            }
+        .onChange(of: viewModel.hasError) { hasError in
+            showError = hasError
         }
         .alert(NSLocalizedString("login.failed", comment: "Login Failed"), isPresented: $showError) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {
-                authService.loginError = nil
+                // Reset error state
             }
         } message: {
-            Text(errorMessage)
+            Text(viewModel.getErrorMessage() ?? "Unknown error")
         }
     }
 }

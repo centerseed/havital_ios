@@ -4,7 +4,9 @@
   "total_weeks": "number", // 總訓練週數
   "training_hightlight": "string", // 訓練計畫的亮點與重點描述
   "training_plan_name": "string", // 訓練計畫名稱
-  "training_plan_overview": ["string"], // 訓練計畫的概述
+  "training_plan_overview": [
+    "string"
+  ], // 訓練計畫的概述
   "training_stage_discription": [ // 訓練階段的描述列表
     {
       "stage_name": "string", // 階段名稱

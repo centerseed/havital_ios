@@ -65,7 +65,7 @@ struct AdjustmentConfirmationView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(NSLocalizedString("adjustment.header_title", comment: "Header title for adjustment suggestions"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .fontWeight(.bold)
 
             Text(adjustmentItems.isEmpty ?
@@ -102,7 +102,7 @@ struct AdjustmentConfirmationView: View {
                 }) {
                     Image(systemName: adjustmentItems[index].apply ? "checkmark.square.fill" : "square")
                         .foregroundColor(adjustmentItems[index].apply ? .blue : .gray)
-                        .font(.title2)
+                        .font(AppFont.title2())
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -144,7 +144,7 @@ struct AdjustmentConfirmationView: View {
     private var addNewAdjustmentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(NSLocalizedString("adjustment.add_custom_title", comment: "Add custom adjustment title"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.medium)
 
             VStack(spacing: 8) {

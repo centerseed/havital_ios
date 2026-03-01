@@ -12,17 +12,17 @@ struct WeekTimelineView: View {
             HStack {
                 Image(systemName: "calendar")
                     .foregroundColor(.secondary)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
             }
             .padding(.horizontal, 4)
 
-            // 時間軸列表
+            // 時間軸列表（按 dayIndex 排序確保日期順序正確）
             VStack(spacing: 12) {
-                ForEach(plan.days) { day in
+                ForEach(plan.days.sorted { $0.dayIndexInt < $1.dayIndexInt }) { day in
                     TimelineItemView(
                         viewModel: viewModel,
                         day: day,
@@ -66,9 +66,20 @@ struct TimelineItemView: View {
         // 在 body 內部計算這些值
         let isToday = viewModel.isToday(dayIndex: day.dayIndexInt, planWeek: planWeek)
         let workouts = viewModel.workoutsByDayV2[day.dayIndexInt] ?? []
-        let isCompleted = day.type == .rest || !workouts.isEmpty  // 休息日自動標記為已完成
-        // 簡單判斷：如果不是今天且沒有訓練記錄，認為是未來或過去
-        let isPast = !isToday && day.dayIndexInt < Calendar.current.component(.weekday, from: Date()) - 1
+
+        // 正確判斷是否為過去的日期：使用 getDateForDay 取得實際日期並與今天比較
+        let isPast: Bool = {
+            guard let dayDate = viewModel.getDateForDay(dayIndex: day.dayIndexInt) else {
+                return false
+            }
+            let today = Calendar.current.startOfDay(for: Date())
+            let targetDay = Calendar.current.startOfDay(for: dayDate)
+            return targetDay < today
+        }()
+
+        // 休息日只有在當天或已過去時才標記為已完成，未來的休息日不標記
+        let isCompletedRest = day.type == .rest && (isToday || isPast)
+        let isCompleted = isCompletedRest || !workouts.isEmpty
 
         HStack(alignment: .top, spacing: 12) {
             // 左側時間軸狀態點（只有圓點，連接線在外層背景繪製）
@@ -79,7 +90,7 @@ struct TimelineItemView: View {
 
                 if isCompleted {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.white)
                 } else if isToday {
                     Circle()
@@ -104,19 +115,19 @@ struct TimelineItemView: View {
                             // 日期
                             HStack(spacing: 6) {
                                 Text(viewModel.weekdayName(for: day.dayIndexInt))
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(isToday ? .semibold : .regular)
                                     .foregroundColor(isToday ? .blue : .primary)
 
                                 if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
                                     Text(viewModel.formatShortDate(date))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
                                 }
 
                                 if isToday {
                                     Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -133,7 +144,7 @@ struct TimelineItemView: View {
                                     showTrainingTypeInfo = true
                                 }) {
                                     Text(day.type.localizedName)
-                                        .font(.subheadline)
+                                        .font(AppFont.bodySmall())
                                         .fontWeight(.medium)
                                         .foregroundColor(getTypeColor())
                                         .padding(.horizontal, 10)
@@ -144,7 +155,7 @@ struct TimelineItemView: View {
                                 .buttonStyle(.borderless)
                             } else {
                                 Text(day.type.localizedName)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .fontWeight(.medium)
                                     .foregroundColor(getTypeColor())
                                     .padding(.horizontal, 10)
@@ -157,7 +168,7 @@ struct TimelineItemView: View {
                             if !isToday {
                                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                     .foregroundColor(.secondary)
-                                    .font(.system(size: 14))
+                                    .font(AppFont.bodySmall())
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
                             }
@@ -166,7 +177,7 @@ struct TimelineItemView: View {
                         // 第二行：距離
                         if let distance = day.trainingDetails?.totalDistanceKm {
                             Text(String(format: "%.1f km", distance))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -181,18 +192,21 @@ struct TimelineItemView: View {
                         // 課表區域
                         VStack(alignment: .leading, spacing: 8) {
                             // 訓練目標 - 優先顯示 description，否則顯示 dayTarget
-                            if let desc = day.trainingDetails?.description, !desc.isEmpty {
-                                Text(desc)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            } else {
-                                Text(day.dayTarget)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            // 挪威4x4 和亞索800 有專屬詳細顯示，不需要重複顯示說明文字
+                            if day.type != .norwegian4x4 && day.type != .yasso800 {
+                                if let desc = day.trainingDetails?.description, !desc.isEmpty {
+                                    Text(desc)
+                                        .font(AppFont.caption())
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                } else {
+                                    Text(day.dayTarget)
+                                        .font(AppFont.caption())
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
 
                             // 顯示間歇訓練的 trainingItems 詳情
@@ -201,12 +215,12 @@ struct TimelineItemView: View {
                                     if let repeats = trainingItems[0].goals.times {
                                         HStack {
                                             Text("間歇訓練")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                             Spacer()
                                             Text("\(repeats) × 組")
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                         }
@@ -220,7 +234,7 @@ struct TimelineItemView: View {
                                             // 衝刺段
                                             HStack(spacing: 6) {
                                                 Text("衝刺段")
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 6)
                                                     .padding(.vertical, 3)
@@ -230,10 +244,10 @@ struct TimelineItemView: View {
                                                 if let pace = sprintItem.goals.pace {
                                                     HStack(spacing: 2) {
                                                         Image(systemName: "speedometer")
-                                                            .font(.system(size: 8))
+                                                            .font(AppFont.captionSmall())
                                                             .foregroundColor(.white)
                                                         Text(pace)
-                                                            .font(.system(size: 10, weight: .medium))
+                                                            .font(AppFont.caption())
                                                             .foregroundColor(.white)
                                                     }
                                                     .padding(.horizontal, 5)
@@ -244,7 +258,7 @@ struct TimelineItemView: View {
 
                                                 if let distance = sprintItem.goals.distanceKm {
                                                     Text(String(format: "%.1fkm", distance))
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                         .padding(.horizontal, 5)
                                                         .padding(.vertical, 3)
@@ -259,7 +273,7 @@ struct TimelineItemView: View {
                                             if let recoveryItem = recoveryItem {
                                                 HStack(spacing: 6) {
                                                     Text("恢復段")
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                         .padding(.horizontal, 6)
                                                         .padding(.vertical, 3)
@@ -268,20 +282,53 @@ struct TimelineItemView: View {
 
                                                     if recoveryItem.goals.pace == nil && recoveryItem.goals.distanceKm == nil {
                                                         Text("原地休息")
-                                                            .font(.system(size: 10, weight: .medium))
+                                                            .font(AppFont.caption())
                                                             .foregroundColor(.secondary)
                                                             .padding(.horizontal, 5)
                                                             .padding(.vertical, 3)
                                                             .background(Color.gray.opacity(0.15))
                                                             .cornerRadius(4)
+
+                                                        // 顯示原地休息的時間：優先顯示 durationSeconds，沒有則用 durationMinutes
+                                                        if let seconds = recoveryItem.durationSeconds {
+                                                            // 🔍 DEBUG: 秒數被正確傳遞
+                                                            let _ = Logger.debug("[WeekTimelineView] 恢復段 - 使用 durationSeconds: \(seconds)")
+                                                            HStack(spacing: 2) {
+                                                                Image(systemName: "clock.fill")
+                                                                    .font(AppFont.captionSmall())
+                                                                    .foregroundColor(.white)
+                                                                Text(formatRestTime(seconds))
+                                                                    .font(AppFont.caption())
+                                                                    .foregroundColor(.white)
+                                                            }
+                                                            .padding(.horizontal, 5)
+                                                            .padding(.vertical, 3)
+                                                            .background(Color.blue)
+                                                            .cornerRadius(4)
+                                                        } else if let minutes = recoveryItem.durationMinutes {
+                                                            // 用 durationMinutes 轉換為秒數顯示
+                                                            let totalSeconds = Int(round(minutes * 60))
+                                                            HStack(spacing: 2) {
+                                                                Image(systemName: "clock.fill")
+                                                                    .font(AppFont.captionSmall())
+                                                                    .foregroundColor(.white)
+                                                                Text(formatRestTime(totalSeconds))
+                                                                    .font(AppFont.caption())
+                                                                    .foregroundColor(.white)
+                                                            }
+                                                            .padding(.horizontal, 5)
+                                                            .padding(.vertical, 3)
+                                                            .background(Color.blue)
+                                                            .cornerRadius(4)
+                                                        }
                                                     } else {
                                                         if let pace = recoveryItem.goals.pace {
                                                             HStack(spacing: 2) {
                                                                 Image(systemName: "speedometer")
-                                                                    .font(.system(size: 8))
+                                                                    .font(AppFont.captionSmall())
                                                                     .foregroundColor(.white)
                                                                 Text(pace)
-                                                                    .font(.system(size: 10, weight: .medium))
+                                                                    .font(AppFont.caption())
                                                                     .foregroundColor(.white)
                                                             }
                                                             .padding(.horizontal, 5)
@@ -292,7 +339,7 @@ struct TimelineItemView: View {
 
                                                         if let distance = recoveryItem.goals.distanceKm {
                                                             Text(String(format: "%.1fkm", distance))
-                                                                .font(.system(size: 10, weight: .medium))
+                                                                .font(AppFont.caption())
                                                                 .foregroundColor(.white)
                                                                 .padding(.horizontal, 5)
                                                                 .padding(.vertical, 3)
@@ -308,6 +355,441 @@ struct TimelineItemView: View {
                                     }
                                 }
                                 .padding(.top, 4)
+                            } else if day.type == .norwegian4x4, let details = day.trainingDetails {
+                                // 🇳🇴 挪威4x4 專屬顯示
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("🇳🇴 挪威4x4")
+                                            .font(AppFont.caption())
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let repeats = details.repeats {
+                                            Text("\(repeats) 組")
+                                                .font(AppFont.caption())
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+
+                                    // 工作段
+                                    if let work = details.work {
+                                        HStack(spacing: 6) {
+                                            Text("衝刺")
+                                                .font(AppFont.caption())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.orange)
+                                                .cornerRadius(4)
+
+                                            if let seconds = work.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = work.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            if let pace = work.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 恢復段
+                                    if let recovery = details.recovery {
+                                        // 判斷是否為原地休息：沒有配速且沒有距離
+                                        let isRestInPlaceN4x4 = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
+
+                                        HStack(spacing: 6) {
+                                            Text(isRestInPlaceN4x4 ? "原地休息" : "恢復跑")
+                                                .font(AppFont.caption())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(isRestInPlaceN4x4 ? Color.gray : Color.mint)
+                                                .cornerRadius(4)
+
+                                            if let seconds = recovery.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            if let pace = recovery.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            } else if day.type == .yasso800, let details = day.trainingDetails {
+                                // 亞索800 專屬顯示
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("亞索800")
+                                            .font(AppFont.caption())
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let repeats = details.repeats {
+                                            Text("\(repeats) 組")
+                                                .font(AppFont.caption())
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+
+                                    // 工作段（800m）
+                                    if let work = details.work {
+                                        HStack(spacing: 6) {
+                                            Text("衝刺")
+                                                .font(AppFont.caption())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.orange)
+                                                .cornerRadius(4)
+
+                                            // 顯示距離
+                                            if let distanceKm = work.distanceKm {
+                                                Text("\(Int(distanceKm * 1000))m")
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            }
+
+                                            if let pace = work.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 恢復段
+                                    if let recovery = details.recovery {
+                                        // 判斷是否為原地休息：沒有配速且沒有距離
+                                        let isRestInPlaceY800 = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
+
+                                        HStack(spacing: 6) {
+                                            Text(isRestInPlaceY800 ? "原地休息" : "恢復跑")
+                                                .font(AppFont.caption())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(isRestInPlaceY800 ? Color.gray : Color.mint)
+                                                .cornerRadius(4)
+
+                                            // 顯示時間
+                                            if let seconds = recovery.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            // 顯示配速
+                                            if let pace = recovery.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            } else if [DayType.interval, .cruiseIntervals, .shortInterval, .longInterval, .hillRepeats, .strides].contains(day.type),
+                                      let details = day.trainingDetails,
+                                      details.work != nil {
+                                // 通用間歇訓練顯示（有 work/recovery 段）
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(day.type.localizedName)
+                                            .font(AppFont.caption())
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        if let repeats = details.repeats {
+                                            Text("\(repeats) 組")
+                                                .font(AppFont.caption())
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+
+                                    // 工作段
+                                    if let work = details.work {
+                                        HStack(spacing: 6) {
+                                            Text("衝刺")
+                                                .font(AppFont.caption())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.orange)
+                                                .cornerRadius(4)
+
+                                            // 距離（優先顯示）
+                                            if let distanceKm = work.distanceKm {
+                                                Text(String(format: "%.0fm", distanceKm * 1000))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let distanceM = work.distanceM {
+                                                Text(String(format: "%.0fm", distanceM))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let seconds = work.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = work.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            // 配速
+                                            if let pace = work.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 恢復段
+                                    if let recovery = details.recovery {
+                                        // 判斷是否為原地休息：沒有配速且沒有距離
+                                        let isRestInPlace = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
+
+                                        HStack(spacing: 6) {
+                                            // 根據恢復類型顯示不同標籤
+                                            Text(isRestInPlace ? "原地休息" : "恢復跑")
+                                                .font(AppFont.caption())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(isRestInPlace ? Color.gray : Color.mint)
+                                                .cornerRadius(4)
+
+                                            // 距離或時間
+                                            if let distanceKm = recovery.distanceKm {
+                                                Text(String(format: "%.0fm", distanceKm * 1000))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let distanceM = recovery.distanceM {
+                                                Text(String(format: "%.0fm", distanceM))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.purple.opacity(0.8))
+                                                    .cornerRadius(4)
+                                            } else if let seconds = recovery.timeSeconds {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(formatRestTime(seconds))
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            } else if let timeMinutes = recovery.timeMinutes {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.purple.opacity(0.8))
+                                                .cornerRadius(4)
+                                            }
+
+                                            // 配速（只有非原地休息才顯示）
+                                            if let pace = recovery.pace {
+                                                HStack(spacing: 2) {
+                                                    Image(systemName: "speedometer")
+                                                        .font(AppFont.captionSmall())
+                                                        .foregroundColor(.white)
+                                                    Text(pace)
+                                                        .font(AppFont.caption())
+                                                        .foregroundColor(.white)
+                                                }
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 3)
+                                                .background(Color.blue)
+                                                .cornerRadius(4)
+                                            }
+
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
                             } else if let details = day.trainingDetails, let segments = details.segments, !segments.isEmpty {
                                 // 顯示分段訓練詳情（針對組合跑、漸進跑等）
                                 VStack(alignment: .leading, spacing: 6) {
@@ -318,21 +800,21 @@ struct TimelineItemView: View {
                                         HStack(spacing: 6) {
                                             // 段落標籤
                                             Text("第\(index + 1)段")
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 3)
                                                 .background(Color.orange)
                                                 .cornerRadius(4)
 
-                                            // 配速（根據訓練類型決定是否顯示）
-                                            if let pace = segment.pace, !shouldHidePace {
+                                            // 配速（組合跑/漸速跑永遠顯示配速）
+                                            if let pace = segment.pace {
                                                 HStack(spacing: 2) {
                                                     Image(systemName: "speedometer")
-                                                        .font(.system(size: 8))
+                                                        .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
                                                     Text(pace)
-                                                        .font(.system(size: 10, weight: .medium))
+                                                        .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
                                                 .padding(.horizontal, 5)
@@ -344,7 +826,7 @@ struct TimelineItemView: View {
                                             // 距離
                                             if let distance = segment.distanceKm {
                                                 Text(String(format: "%.1fkm", distance))
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 3)
@@ -364,10 +846,10 @@ struct TimelineItemView: View {
                                     if let distance = details.distanceKm {
                                         HStack(spacing: 2) {
                                             Image(systemName: "figure.run")
-                                                .font(.system(size: 8))
+                                                .font(AppFont.captionSmall())
                                                 .foregroundColor(.white)
                                             Text(String(format: "%.1fkm", distance))
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
@@ -380,10 +862,10 @@ struct TimelineItemView: View {
                                     if let pace = details.pace, !shouldHidePaceForTrainingType() {
                                         HStack(spacing: 2) {
                                             Image(systemName: "speedometer")
-                                                .font(.system(size: 8))
+                                                .font(AppFont.captionSmall())
                                                 .foregroundColor(.white)
                                             Text(pace)
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
@@ -396,10 +878,10 @@ struct TimelineItemView: View {
                                     if let hr = details.heartRateRange, let displayText = hr.displayText {
                                         HStack(spacing: 2) {
                                             Image(systemName: "heart.fill")
-                                                .font(.system(size: 8))
+                                                .font(AppFont.captionSmall())
                                                 .foregroundColor(.white)
                                             Text(displayText)
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                         }
                                         .padding(.horizontal, 5)
@@ -421,7 +903,7 @@ struct TimelineItemView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("已完成訓練")
-                                    .font(.caption2)
+                                    .font(AppFont.captionSmall())
                                     .fontWeight(.semibold)
                                     .foregroundColor(.green)
                                     .padding(.bottom, 2)
@@ -433,17 +915,17 @@ struct TimelineItemView: View {
                                         HStack {
                                             Image(systemName: "figure.run")
                                                 .foregroundColor(.green)
-                                                .font(.caption2)
+                                                .font(AppFont.captionSmall())
 
                                             Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.primary)
 
                                             Text("·")
                                                 .foregroundColor(.secondary)
 
                                             Text(formatDuration(workout.duration))
-                                                .font(.caption)
+                                                .font(AppFont.caption())
                                                 .foregroundColor(.secondary)
 
                                             Spacer()
@@ -455,7 +937,7 @@ struct TimelineItemView: View {
 
                                 if workouts.count > 2 {
                                     Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
-                                        .font(.caption2)
+                                        .font(AppFont.captionSmall())
                                         .foregroundColor(.blue)
                                 }
                             }
@@ -476,17 +958,17 @@ struct TimelineItemView: View {
                                 HStack {
                                     Image(systemName: "figure.run")
                                         .foregroundColor(.green)
-                                        .font(.caption2)
+                                        .font(AppFont.captionSmall())
 
                                     Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.primary)
 
                                     Text("·")
                                         .foregroundColor(.secondary)
 
                                     Text(formatDuration(workout.duration))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                         .foregroundColor(.secondary)
 
                                     Spacer()
@@ -497,7 +979,7 @@ struct TimelineItemView: View {
 
                         if workouts.count > 2 {
                             Text("+ \(workouts.count - 2) \(NSLocalizedString("training.more_workouts", comment: "more"))")
-                                .font(.caption2)
+                                .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
                         }
                     }
@@ -611,15 +1093,15 @@ struct TimelineItemView: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .mint
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return .orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
-        case .race:
+        case .race, .racePace:
             return .red
         case .rest:
             return .gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return .purple
         }
     }
@@ -635,6 +1117,13 @@ struct TimelineItemView: View {
         } else {
             return String(format: "%d:%02d", minutes, seconds)
         }
+    }
+
+    // 格式化休息時間（秒轉換為 mm:ss 格式）
+    private func formatRestTime(_ durationSeconds: Int) -> String {
+        let minutes = durationSeconds / 60
+        let seconds = durationSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
     // 檢查分段是否應該隱藏配速
@@ -661,13 +1150,13 @@ struct TimelineItemView: View {
         designReason: ["測試用"],
         days: [
             TrainingDay(dayIndex: "0", dayTarget: "恢復跑", reason: nil, tips: nil, trainingType: "recovery_run",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: 6.19, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 6.19, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil)),
             TrainingDay(dayIndex: "1", dayTarget: "間歇訓練", reason: nil, tips: nil, trainingType: "interval",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: 4.42, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 4.42, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil)),
             TrainingDay(dayIndex: "4", dayTarget: "組合訓練", reason: nil, tips: nil, trainingType: "combination",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: nil, totalDistanceKm: 10.0, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil)),
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: nil, totalDistanceKm: 10.0, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil)),
             TrainingDay(dayIndex: "2", dayTarget: "輕鬆跑", reason: nil, tips: nil, trainingType: "easy",
-                       trainingDetails: TrainingDetails(description: nil, distanceKm: 8.0, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil))
+                       trainingDetails: TrainingDetails(description: nil, distanceKm: 8.0, totalDistanceKm: nil, timeMinutes: nil, pace: nil, work: nil, recovery: nil, repeats: nil, heartRateRange: nil, segments: nil, warmup: nil, cooldown: nil, exercises: nil, supplementary: nil))
         ],
         intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes(low: 120, medium: 45, high: 15)
     )

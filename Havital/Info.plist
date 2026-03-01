@@ -70,7 +70,7 @@
 	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
 	<string>Paceriz 需要存取健康記錄，以提供更完整的健康分析</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Paceriz 需要讀取您的健康資料（包括心率、HRV和運動記錄），以提供訓練分析和建議，並自動同步您的健身記錄</string>
+	<string>Paceriz 需要讀取您的健康資料（包括心率、HRV、運動努力程度和運動記錄），以提供訓練分析和建議，並自動同步您的健身記錄</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Paceriz 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
 	<key>NSUserNotificationUsageDescription</key>
@@ -104,6 +104,13 @@
 		<string>remote-notification</string>
 		<string>fetch</string>
 		<string>processing</string>
+	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Onest-Regular.ttf</string>
+		<string>Onest-Medium.ttf</string>
+		<string>Onest-SemiBold.ttf</string>
+		<string>Onest-Bold.ttf</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

@@ -64,7 +64,7 @@ struct GoalWheelView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text(goalType == "heart_rate" ? NSLocalizedString("goal_wheel.target_heart_rate", comment: "Target Heart Rate") : NSLocalizedString("goal_wheel.target_pace", comment: "Target Pace"))
-                .font(.title2)
+                .font(AppFont.title2())
             
             Picker("", selection: $value) {
                 ForEach(wheelValues, id: \.self) { val in

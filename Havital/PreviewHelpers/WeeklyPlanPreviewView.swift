@@ -5,11 +5,44 @@ struct WeeklyPlanPreviewView: View {
     let weeklyPlans: [WeeklyPlan]
     @State private var selectedIndex = 0
     
-    // 建立一個 Preview 專用的 ViewModel
+    // 建立一個 Preview 專用的 ViewModel（使用便利初始化器）
     class PreviewViewModel: TrainingPlanViewModel {
-        override init() {
-            super.init()
-            // 覆寫任何可能導致網路請求的方法
+        override init(
+            repository: TrainingPlanRepository,
+            workoutRepository: WorkoutRepository,
+            loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
+            aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
+            weeklyPlanVM: WeeklyPlanViewModel? = nil,
+            summaryVM: WeeklySummaryViewModel? = nil
+        ) {
+            super.init(
+                repository: repository,
+                workoutRepository: workoutRepository,
+                loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
+                aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
+                weeklyPlanVM: weeklyPlanVM,
+                summaryVM: summaryVM
+            )
+        }
+
+        convenience init() {
+            let container = DependencyContainer.shared
+            if !container.isRegistered(TrainingPlanRepository.self) {
+                container.registerTrainingPlanModule()
+            }
+            if !container.isRegistered(WorkoutRepository.self) {
+                container.registerWorkoutModule()
+            }
+            let repository: TrainingPlanRepository = container.resolve()
+            let workoutRepository: WorkoutRepository = container.resolve()
+            let loadUseCase = container.makeLoadWeeklyWorkoutsUseCase()
+            let aggregateUseCase = container.makeAggregateWorkoutMetricsUseCase()
+            self.init(
+                repository: repository,
+                workoutRepository: workoutRepository,
+                loadWeeklyWorkoutsUseCase: loadUseCase,
+                aggregateWorkoutMetricsUseCase: aggregateUseCase
+            )
         }
     }
     
@@ -24,7 +57,7 @@ struct WeeklyPlanPreviewView: View {
                 // 使用 Preview 專用的 ViewModel
                 let viewModel = {
                     let vm = PreviewViewModel()
-                    vm.weeklyPlan = weeklyPlans[selectedIndex]
+                    vm.weeklyPlanVM.state = .loaded(weeklyPlans[selectedIndex])
                     return vm
                 }()
                 
@@ -46,13 +79,12 @@ struct WeeklyPlanPreviewView: View {
                     .disabled(weeklyPlans.count <= 1)
                 }
                 .padding()
-                
-                // 顯示 DailyTrainingListView
-                DailyTrainingListView(
+
+                // 顯示 WeekTimelineView
+                WeekTimelineView(
                     viewModel: viewModel,
                     plan: weeklyPlans[selectedIndex]
                 )
-                .frame(maxHeight: .infinity)
             } else {
                 Text("沒有找到測試資料")
                     .foregroundColor(.secondary)

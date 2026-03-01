@@ -21,7 +21,7 @@ struct PaceTableView: View {
                     // 配速區間詳情
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.EditSchedule.paceZoneDetails.localized)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .padding(.horizontal)
 
                         ForEach(PaceCalculator.PaceZone.allCases, id: \.self) { zone in
@@ -52,7 +52,7 @@ struct PaceTableView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(zone.displayName)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
 
                 Spacer()
@@ -60,18 +60,18 @@ struct PaceTableView: View {
                 // 顯示配速範圍（最快-最慢）
                 if let paceRange = PaceCalculator.getPaceRange(for: zoneToPaceType(zone), vdot: vdot) {
                     Text("\(paceRange.min) - \(paceRange.max)")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.primary)
                         .fontWeight(.medium)
                 }
             }
 
             Text(paceDescription(for: zone))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             Text(paceBenefit(for: zone))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)

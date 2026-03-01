@@ -41,9 +41,9 @@ struct TodayFocusCard: View {
         HStack {
             Image(systemName: "target")
                 .foregroundColor(.blue)
-                .font(.title3)
+                .font(AppFont.title3())
             Text(NSLocalizedString("training.today_training", comment: "Today's Training"))
-                .font(.title3)
+                .font(AppFont.title3())
                 .fontWeight(.bold)
             Spacer()
         }
@@ -52,11 +52,11 @@ struct TodayFocusCard: View {
     private var noTrainingView: some View {
         VStack(spacing: 12) {
             Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 40))
+                .font(AppFont.dataMedium())
                 .foregroundColor(.gray)
 
             Text(NSLocalizedString("training.no_training_today", comment: "No training scheduled for today"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -94,7 +94,7 @@ struct TodayTrainingContent: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(today.type.localizedName)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
 
                 if let distance = today.trainingDetails?.totalDistanceKm {
@@ -108,7 +108,7 @@ struct TodayTrainingContent: View {
 
             // 訓練類型標籤
             Text(today.type.localizedName)
-                .font(.caption)
+                .font(AppFont.caption())
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .foregroundColor(getTypeColor(for: today.type))
@@ -140,7 +140,7 @@ struct TodayTrainingContent: View {
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.primary)
                     Text(String(format: "/ %.1f km", totalDistance))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -162,7 +162,7 @@ struct TodayTrainingContent: View {
 
                             if let description = segment.description {
                                 Text(description)
-                                    .font(.subheadline)
+                                    .font(AppFont.bodySmall())
                                     .foregroundColor(.secondary)
                             }
 
@@ -170,7 +170,7 @@ struct TodayTrainingContent: View {
 
                             if let distance = segment.distanceKm {
                                 Text(String(format: "%.1fkm", distance))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .fontWeight(.medium)
                                     .foregroundColor(.blue)
                             }
@@ -181,7 +181,7 @@ struct TodayTrainingContent: View {
                 Divider()
 
                 Text(today.dayTarget)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -194,7 +194,7 @@ struct TodayTrainingContent: View {
             Divider()
 
             Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
 
             ForEach(workouts.prefix(2), id: \.id) { workout in
@@ -204,17 +204,17 @@ struct TodayTrainingContent: View {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                            .font(.caption)
+                            .font(AppFont.caption())
 
                         Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.primary)
 
                         Text("·")
                             .foregroundColor(.secondary)
 
                         Text(formatDuration(workout.duration))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         Spacer()
@@ -230,15 +230,15 @@ struct TodayTrainingContent: View {
         switch type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return .orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
-        case .race:
+        case .race, .racePace:
             return .red
         case .rest:
             return .gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return .purple
         }
     }
@@ -279,7 +279,11 @@ struct TodayTrainingContent: View {
                 ProgressionSegment(distanceKm: 3.0, pace: nil, description: "輕鬆開始", heartRateRange: HeartRateRange(min: 141, max: 162)),
                 ProgressionSegment(distanceKm: 4.0, pace: "5:25", description: "提速", heartRateRange: HeartRateRange(min: 162, max: 176)),
                 ProgressionSegment(distanceKm: 3.0, pace: nil, description: "放鬆結束", heartRateRange: HeartRateRange(min: 141, max: 162))
-            ]
+            ],
+            warmup: nil,
+            cooldown: nil,
+            exercises: nil,
+            supplementary: nil
         )
     )
 

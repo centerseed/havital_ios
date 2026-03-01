@@ -7,6 +7,14 @@ import Foundation
 // These types are defined in the Models module but may need explicit imports
 // TrainingDay, WorkoutV2, ProgressionSegment are defined in Models/ files
 
+// MARK: - Helper Functions
+/// 格式化休息時間（秒轉換為 mm:ss 格式）
+private func formatRestTime(_ durationSeconds: Int) -> String {
+    let minutes = durationSeconds / 60
+    let seconds = durationSeconds % 60
+    return String(format: "%d:%02d", minutes, seconds)
+}
+
 // MARK: - Supporting Views
 struct DayHeaderView: View {
     let day: TrainingDay
@@ -20,15 +28,15 @@ struct DayHeaderView: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.mint
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return Color.orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return Color.blue
-        case .race:
+        case .race, .racePace:
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return Color.purple
         }
     }
@@ -40,15 +48,15 @@ struct DayHeaderView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 4) {
                             Text(viewModel.weekdayName(for: day.dayIndexInt))
-                                .font(.headline)
+                                .font(AppFont.headline())
                             if let date = viewModel.getDateForDay(dayIndex: day.dayIndexInt) {
                                 Text(viewModel.formatShortDate(date))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                             }
                             if isToday {
                                 Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
@@ -69,7 +77,7 @@ struct DayHeaderView: View {
                     showTrainingTypeInfo = true
                 }) {
                     Text(day.type.localizedName)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .foregroundColor(getTypeColor())
@@ -82,7 +90,7 @@ struct DayHeaderView: View {
                 }
             } else {
                 Text(day.type.localizedName)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .foregroundColor(getTypeColor())
@@ -93,7 +101,7 @@ struct DayHeaderView: View {
             Button(action: onToggle) {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .foregroundColor(.secondary)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .frame(minWidth: 44, minHeight: 36)
                     .contentShape(Rectangle())
             }
@@ -196,7 +204,7 @@ struct TrainingDetailsView: View {
 
                 if let tips = day.tips {
                     Text(String(format: NSLocalizedString("training_plan.tip", comment: "Tip: %@"), tips))
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.secondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
@@ -225,21 +233,14 @@ struct SegmentedTrainingView: View {
     let segments: [ProgressionSegment]
     let total: Double
 
-    // 檢查分段是否應該隱藏配速（基於分段描述）
-    private func shouldHidePaceForSegment(_ segment: ProgressionSegment) -> Bool {
-        guard let description = segment.description else { return false }
-        let desc = description.lowercased()
-        return desc.contains("輕鬆") || desc.contains("恢復") || desc.contains("easy") || desc.contains("recovery")
-    }
-
     // 創建單個段落行視圖
     private func segmentRowView(segment: ProgressionSegment, index: Int) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             // 第一行：段落標籤、配速、心率、距離
             HStack(spacing: 8) {
                 // 段落標籤
-                Text("第\(index + 1)段")
-                    .font(.caption)
+                Text(String(format: NSLocalizedString("dailytrainingcard.text_0", comment: ""), index + 1))
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.orange)
                     .padding(.horizontal, 8)
@@ -247,14 +248,14 @@ struct SegmentedTrainingView: View {
                     .background(Color.orange.opacity(0.15))
                     .cornerRadius(6)
 
-                // 配速（根據分段類型條件顯示）
-                if let pace = segment.pace, !shouldHidePaceForSegment(segment) {
+                // 配速（分段訓練中總是顯示配速）
+                if let pace = segment.pace {
                     HStack(spacing: 4) {
                         Image(systemName: "speedometer")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.blue)
                         Text(pace)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.blue)
                     }
@@ -262,16 +263,31 @@ struct SegmentedTrainingView: View {
                     .padding(.vertical, 4)
                     .background(Color.blue.opacity(0.15))
                     .cornerRadius(6)
+                } else {
+                    // 如果 pace 為 nil，顯示"輕鬆跑"標籤
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.walk")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.mint)
+                        Text(NSLocalizedString("dailytrainingcard.text_1", comment: ""))
+                            .font(AppFont.caption())
+                            .fontWeight(.medium)
+                            .foregroundColor(.mint)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.mint.opacity(0.15))
+                    .cornerRadius(6)
                 }
 
                 // 心率區間（用圖示節省空間，心率圖示靠左對齊）
                 if let hrRange = segment.heartRateRange, let displayText = hrRange.displayText {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .foregroundColor(.red)
                         Text(displayText)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
@@ -287,7 +303,7 @@ struct SegmentedTrainingView: View {
                 // 距離（固定在右側，保持對齊）
                 if let distance = segment.distanceKm {
                     Text(String(format: "%.1fkm", distance))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
@@ -300,7 +316,7 @@ struct SegmentedTrainingView: View {
             // 第二行：分段描述（獨立一行，較小字體）
             if let description = segment.description {
                 Text(NSLocalizedString(description, comment: description))
-                    .font(.caption2)
+                    .font(AppFont.captionSmall())
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -317,7 +333,7 @@ struct SegmentedTrainingView: View {
                 Spacer()
 
                 Text(String(format: "%.1fkm", total))
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
                     .padding(.horizontal, 8)
@@ -381,7 +397,7 @@ struct SimpleTrainingView: View {
                 // 只在非輕鬆跑/恢復跑時顯示配速
                 if let pace = details.pace, !shouldHidePace {
                     Text(pace)
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.blue.opacity(0.15))
@@ -390,7 +406,7 @@ struct SimpleTrainingView: View {
                 
                 if let hr = details.heartRateRange, let displayText = hr.displayText {
                     Text(String(format: NSLocalizedString("training_plan.heart_rate_zone", comment: "Heart Rate Zone: %@"), displayText))
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.green.opacity(0.15))
@@ -398,7 +414,7 @@ struct SimpleTrainingView: View {
                 }
                 if let distance = details.distanceKm {
                     Text(String(format: "%.1fkm", distance))
-                        .font(.caption2)
+                        .font(AppFont.captionSmall())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
@@ -438,12 +454,12 @@ struct IntervalTrainingHeaderView: View {
     var body: some View {
         HStack {
             Text(NSLocalizedString("training_plan.interval_training", comment: "Interval Training"))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.semibold)
                 .foregroundColor(.orange)
             Spacer()
             Text(String(format: NSLocalizedString("training_plan.repeats", comment: "%d × Repeats"), repeats))
-                .font(.subheadline)
+                .font(AppFont.bodySmall())
                 .fontWeight(.semibold)
                 .foregroundColor(.orange)
                 .padding(.horizontal, 8)
@@ -490,16 +506,50 @@ struct IntervalSegmentRow: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.orange)
             }
-            
-            // 如果是恢復段且沒有配速和距離，顯示"原地休息"
-            if title == NSLocalizedString("training_plan.recovery_segment", comment: "Recovery Segment") && item.goals.pace == nil && item.goals.distanceKm == nil {
-                Text(NSLocalizedString("training_plan.rest_in_place", comment: "Rest in place"))
-                    .font(.system(size: 11, weight: .medium))
+
+            // 如果是恢復段且有時間，只顯示時間（原地休息）
+            let isRecoverySegment = title == NSLocalizedString("training_plan.recovery_segment", comment: "Recovery Segment")
+            let hasTime = item.durationMinutes != nil
+
+            if isRecoverySegment && hasTime {
+                // 原地休息：只顯示時間
+                HStack(spacing: 4) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.gray)
+                    Text(NSLocalizedString("training_plan.rest_in_place", comment: "Rest in place"))
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.gray.opacity(0.15))
+                .cornerRadius(8)
+
+                // 優先顯示 durationSeconds（精確秒數），沒有則用 durationMinutes * 60 轉換
+                let displaySeconds: Int? = {
+                    if let seconds = item.durationSeconds {
+                        return seconds
+                    } else if let minutes = item.durationMinutes {
+                        return Int(round(minutes * 60))
+                    }
+                    return nil
+                }()
+
+                if let seconds = displaySeconds {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.blue)
+                        Text(formatRestTime(seconds))
+                            .font(.system(size: 11, weight: .medium))
+                    }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Color.gray.opacity(0.15))
+                    .background(Color.blue.opacity(0.15))
                     .cornerRadius(8)
+                }
             } else {
+                // 主動恢復或衝刺段：顯示配速和距離
                 if let pace = item.goals.pace {
                     Text(pace)
                         .font(.system(size: 11, weight: .medium))
@@ -508,7 +558,7 @@ struct IntervalSegmentRow: View {
                         .background(Color.orange.opacity(0.15))
                         .cornerRadius(8)
                 }
-                
+
                 if let distance = item.goals.distanceKm {
                     Text(String(format: "%.1fkm", distance))
                         .font(.system(size: 11, weight: .medium))
@@ -550,7 +600,7 @@ struct RegularTrainingItemsView: View {
                     // 只在非輕鬆跑/恢復跑時顯示配速
                     if let pace = item.goals.pace, !shouldHidePace(for: item) {
                         Text(pace)
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color.blue.opacity(0.15))
@@ -559,7 +609,7 @@ struct RegularTrainingItemsView: View {
                     
                     if let hr = item.goals.heartRateRange, let displayText = hr.displayText {
                         Text(String(format: NSLocalizedString("training_plan.heart_rate_zone", comment: "Heart Rate Zone: %@"), displayText))
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color.green.opacity(0.15))
@@ -567,7 +617,7 @@ struct RegularTrainingItemsView: View {
                     }
                     if let distance = item.goals.distanceKm {
                         Text(String(format: "%.1fkm", distance))
-                            .font(.caption2)
+                            .font(AppFont.captionSmall())
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color.blue.opacity(0.15))
@@ -577,7 +627,7 @@ struct RegularTrainingItemsView: View {
                 }
                 
                 Text(item.runDetails)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -601,19 +651,19 @@ struct DailyTrainingCard: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.mint
-        case .interval, .tempo, .progression, .threshold, .combination:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
             return Color.orange
-        case .longRun, .hiking, .cycling:
+        case .longRun, .hiking, .cycling, .fastFinish:
             return Color.blue
-        case .race:
+        case .race, .racePace:
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return Color.purple
         }
     }
-    
+
     var body: some View {
         let isExpanded = isToday || viewModel.expandedDayIndices.contains(day.dayIndexInt)
 
@@ -699,7 +749,7 @@ struct DailyTrainingCard: View {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) / 60 % 60
         let seconds = Int(duration) % 60
-        
+
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {

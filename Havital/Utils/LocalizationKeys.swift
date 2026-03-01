@@ -22,6 +22,9 @@ enum L10n {
         static let confirm = "common.confirm"
         static let loading = "common.loading"
         static let retry = "common.retry"
+        static let time = "common.time"
+        static let pace = "common.pace"
+        static let date = "common.date"
         static let refresh = "common.refresh"
         static let settings = "common.settings"
         static let logout = "common.logout"
@@ -443,9 +446,26 @@ enum GaitAnalysisChart {
         static let connect = "datasource.connect"
         static let syncNow = "datasource.sync_now"
         static let lastSync = "datasource.last_sync"
-        static let syncSuccess = "datasource.sync_success"
         static let syncFailed = "datasource.sync_failed"
         static let syncing = "datasource.syncing"
+    }
+
+
+
+    // MARK: - Workout
+    enum Workout {
+        static let details = "workout.details" // "訓練詳情"
+        static let shareCard = "workout.share_card" // "分享訓練成果"
+        static let shareScreenshot = "workout.share_screenshot" // "分享截圖"
+        static let startTime = "workout.start_time" // "開始時間"
+        static let reuploadSuccess = "workout.reupload_success" // "訓練已成功重新上傳！"
+        static let uploadSuccessInsufficientHr = "workout.upload_success_insufficient_hr" // "訓練已上傳但心率資料不足。"
+        static let reuploadError = "workout.reupload_error" // "重新上傳時發生錯誤："
+        static let reuploadFailed = "workout.reupload_failed" // "重新上傳失敗，請稍後再試。"
+        static let provider = "workout.provider" // "來源"
+        static let activityType = "workout.activity_type" // "活動類型"
+        static let resyncData = "workout.resync_data" // "重新同步資料"
+        static let forceReuploadDescription = "workout.force_reupload_description" // "強制重新上傳這筆訓練紀錄，包含重新嘗試抓取心率資料"
     }
     
     // MARK: - Training Plan
@@ -468,6 +488,21 @@ enum GaitAnalysisChart {
         static let skipped = "training.skipped"
         static let editVolume = "training.edit_volume"
         static let editDays = "training.edit_days"
+        
+        static let progress = "training.progress" // "訓練進度"
+        static let currentProgress = "training.current_progress" // "目前進度"
+        static let currentWeekOfTotal = "training.current_week_of_total" // "第 %d 週 / 總共 %d 週"
+        static let currentStage = "training.current_stage" // "目前階段：%@"
+        static let weekRange = "training.week_range" // "第 %d-%d 週"
+        static let cannotGetProgress = "training.cannot_get_progress" // "無法取得目前訓練進度"
+        static let targetRace = "training.target_race" // "目標賽事"
+        static let raceAssessment = "training.race_assessment" // "賽事評估"
+        static let trainingStages = "training.training_stages" // "訓練階段"
+        static let cannotGetStages = "training.cannot_get_stages" // "無法取得訓練階段資訊"
+        static let weekNumber = "training.week_number" // "第 %d 週"
+        static let getWeeklyReview = "training.get_weekly_review" // "取得週回顧"
+        static let paceZone = "training.pace_zone" // "配速區間"
+        static let heartRateZone = "training.heart_rate_zone" // "心率區間"
         
         // Loading Animation Messages
         enum LoadingAnimation {
@@ -527,7 +562,6 @@ enum GaitAnalysisChart {
         static let collapse = "training.collapse"
         static let distance = "training.distance"
         static let pace = "training.pace"
-        static let heartRateZone = "training.heart_rate_zone"
         static let trainingType = "training.training_type"
         
         enum TrainingType {
@@ -551,6 +585,18 @@ enum GaitAnalysisChart {
             static let yoga = "training.type.yoga"
             static let cycling = "training.type.cycling"
             static let restDay = "training.type.rest_day"
+            // 新增間歇訓練類型
+            static let strides = "training.type.strides"
+            static let hillRepeats = "training.type.hill_repeats"
+            static let cruiseIntervals = "training.type.cruise_intervals"
+            static let shortInterval = "training.type.short_interval"
+            static let longInterval = "training.type.long_interval"
+            static let norwegian4x4 = "training.type.norwegian_4x4"
+            static let yasso800 = "training.type.yasso_800"
+            // 新增組合訓練類型
+            static let fastFinish = "training.type.fast_finish"
+            // 新增比賽配速訓練
+            static let racePace = "training.type.race_pace"
         }
         
         // Heart Rate Zones
@@ -600,6 +646,7 @@ enum GaitAnalysisChart {
         static let dynamicVdot = "workout.detail.dynamic_vdot"
         static let trainingLoad = "workout.detail.training_load"
         static let movementEfficiency = "workout.detail.movement_efficiency"
+        static let effortScore = "workout.effort_score"  // iOS 18+ Effort Score
         
         // Heart Rate Zones
         static let recoveryZone = "workout.detail.recovery_zone"
@@ -626,6 +673,17 @@ enum GaitAnalysisChart {
         static let medium = "workout.detail.intensity_medium"
         static let high = "workout.detail.intensity_high"
         static let minutes = "workout.detail.minutes"
+
+        // Training Notes
+        static let trainingNotesTitle = "workout.detail.training_notes_title"
+        static let trainingNotesAdd = "workout.detail.training_notes_add"
+        static let trainingNotesEdit = "workout.detail.training_notes_edit"
+        static let trainingNotesSave = "workout.detail.training_notes_save"
+        static let trainingNotesCancel = "workout.detail.training_notes_cancel"
+        static let trainingNotesSaving = "workout.detail.training_notes_saving"
+        static let trainingNotesPlaceholder = "workout.detail.training_notes_placeholder"
+        static let trainingNotesSaveError = "workout.detail.training_notes_save_error"
+        static let trainingNotesEditorTitle = "workout.detail.training_notes_editor_title"
     }
     
     // MARK: - Workout Metrics
@@ -645,6 +703,8 @@ enum GaitAnalysisChart {
         static let strengthTraining = "activity.type.strength_training"
         static let yoga = "activity.type.yoga"
         static let pilates = "activity.type.pilates"
+        static let elliptical = "activity.type.elliptical"
+        static let rowing = "activity.type.rowing"
         static let other = "activity.type.other"
     }
     
@@ -658,6 +718,8 @@ enum GaitAnalysisChart {
         static let distance = "record.distance"
         static let duration = "record.duration"
         static let pace = "record.pace"
+        static let avgHeartRate = "record.avg_heart_rate"
+        static let maxHeartRate = "record.max_heart_rate"
         static let heartRate = "record.heart_rate"
         static let calories = "record.calories"
         static let elevation = "record.elevation"
@@ -937,6 +999,47 @@ enum GaitAnalysisChart {
         static let disconnectSource = "alert.disconnect_source"
         static let disconnectConfirm = "alert.disconnect_confirm"
     }
+
+    // MARK: - Data Sync
+    enum Sync {
+        static let title = "sync.title" // "數據同步"
+        static let syncData = "sync.sync_data" // "同步 %@ 數據"
+        static let syncingRecords = "sync.syncing_records" // "正在同步您的運動記錄..."
+        static let complete = "sync.complete" // "同步完成"
+        static let errorRecordsFailed = "sync.error_records_failed" // "有 %d 條記錄同步失敗"
+        static let failed = "sync.failed" // "同步失敗"
+        static let skip = "sync.skip" // "跳過"
+        static let retry = "sync.retry" // "重試"
+        static let timeoutWarningTitle = "sync.timeout_warning_title" // "同步時間比預期長"
+        static let timeoutWarningMessage = "sync.timeout_warning_message" // "您可以選擇跳過並繼續，同步將在後台完成。"
+        
+        // Progress Steps
+        static let checkingHealthAuth = "sync.checking_health_auth" // "正在檢查 Apple Health 授權..."
+        static let getting30DayRecords = "sync.getting_30_day_records" // "正在獲取近 30 天的運動記錄..."
+        static let noHealthRecords = "sync.no_health_records" // "在近 30 天內未找到 Apple Health 運動記錄..."
+        static let uploadingRecords = "sync.uploading_records" // "正在將 %d 條運動記錄上傳到雲端..."
+        static let uploadingRecordProgress = "sync.uploading_record_progress" // "正在上傳運動記錄 (%d/%d)..."
+        static let allRecordsFailed = "sync.all_records_failed" // "所有運動記錄上傳失敗: %@"
+        static let reloadData = "sync.reload_data" // "正在重新載入運動數據..."
+        static let appleHealthFailed = "sync.apple_health_failed" // "Apple Health 同步失敗: %@"
+        
+        static let checkingGarminStatus = "sync.checking_garmin_status" // "正在檢查 Garmin 處理狀態..."
+        static let garminProcessingDetected = "sync.garmin_processing_detected" // "檢測到 Garmin 數據正在處理中..."
+        static let garminProcessingContinue = "sync.garmin_processing_continue" // "檢測到 Garmin 正在處理，直接進入輪詢模式"
+        static let startGarminHistorical = "sync.start_garmin_historical" // "開始處理 Garmin 歷史數據..."
+        static let processingGarminData = "sync.processing_garmin_data" // "正在處理 Garmin 數據 (預計 %@)..."
+        static let garminHistoricalSuccess = "sync.garmin_historical_success" // "成功觸發新的 Garmin 歷史數據處理"
+        static let processingInProgress = "sync.processing_in_progress" // "檢測到處理正在進行中...\n正在連接到處理程序"
+        static let cannotConnectGarmin = "sync.cannot_connect_garmin" // "無法連接到進行中的 Garmin 處理: %@"
+        static let garminSyncFailed = "sync.garmin_sync_failed" // "Garmin 同步失敗: %@"
+        static let processingGarminProgress = "sync.processing_garmin_progress" // "正在處理 Garmin 數據...\n進度: %d/%d (%d%%)"
+        static let processingGarminInitializing = "sync.processing_garmin_initializing" // "正在處理 Garmin 數據...\n正在初始化..."
+        
+        static let preparingStrava = "sync.preparing_strava" // "正在準備 Strava 同步..."
+        static let stravaTriggered = "sync.strava_triggered" // "已觸發 Strava 同步..."
+        static let processingStravaProgress = "sync.processing_strava_progress" // "正在處理 Strava 數據，已同步 %d 條記錄..."
+        static let stravaSyncFailed = "sync.strava_sync_failed" // "Strava 同步失敗: %@"
+    }
 }
 
 // MARK: - String Extension for Localization
@@ -1078,6 +1181,7 @@ extension L10n {
         static let close = "edit_schedule.close" // "關閉"
         static let cannotEdit = "edit_schedule.cannot_edit" // "無法編輯"
         static let addSegment = "edit_schedule.add_segment" // "新增區段"
+        static let totalDistance = "edit_schedule.total_distance" // "總距離"
 
         // Training Types
         static let easyRun = "edit_schedule.easy_run" // "輕鬆跑"
@@ -1097,6 +1201,12 @@ extension L10n {
         static let combinationSettings = "edit_schedule.combination_settings" // "組合跑設定"
         static let longRunSettings = "edit_schedule.long_run_settings" // "長距離跑設定"
         static let trainingSettings = "edit_schedule.training_settings" // "訓練設定"
+        static let norwegian4x4Settings = "edit_schedule.norwegian_4x4_settings" // "挪威4x4訓練設定"
+        static let norwegian4x4Description = "edit_schedule.norwegian_4x4_description" // "4組4分鐘高強度間歇（92% VO2max），組間休息3分鐘"
+        static let yasso800Settings = "edit_schedule.yasso_800_settings" // "亞索800訓練設定"
+        static let yasso800Description = "edit_schedule.yasso_800_description" // "800公尺重複跑，用於預測馬拉松成績並提升VO2max"
+        static let time = "edit_schedule.time" // "時間"
+        static let restTime = "edit_schedule.rest_time" // "休息時間"
 
         static let suggestedPace = "edit_schedule.suggested_pace" // "建議配速: %@"
         static let sprintSuggestedPace = "edit_schedule.sprint_suggested_pace" // "衝刺段建議配速: %@"
@@ -1279,6 +1389,23 @@ extension L10n {
         static let reminder4 = "my_achievement.reminder4" // "• 如有身體不適，請優先考慮休息，數據僅供參考不可完全依賴"
         static let complete = "my_achievement.complete" // "完成"
         static let updated = "my_achievement.updated" // " 更新"
+
+        // Personal Best v2
+        enum PersonalBest {
+            static let title = "my_achievement.personal_best.title"  // "個人最佳成績"
+            static let explanation = "my_achievement.personal_best.explanation"  // "顯示你在不同距離的最佳完賽時間和配速"
+            static let noData = "my_achievement.personal_best.no_data"  // "暫無個人最佳成績\n完成第一次訓練後即可查看"
+            static let firstPlace = "my_achievement.personal_best.first_place"  // "第一名"
+            static let secondPlace = "my_achievement.personal_best.second_place"  // "第二名"
+            static let thirdPlace = "my_achievement.personal_best.third_place"  // "第三名"
+            static let detailExplanation = "my_achievement.personal_best.detail_explanation"  // 詳細說明
+            static let topRecords = "my_achievement.personal_best.top_records"  // 歷史最佳
+        }
+
+        enum Celebration {
+            static let newRecord = "my_achievement.celebration.new_record"  // "新紀錄！"
+            static let improved = "my_achievement.celebration.improved"  // "進步了"
+        }
     }
 
     // MARK: - Debug Tools (Optional - Low Priority)
@@ -1323,7 +1450,7 @@ extension L10n {
     enum OnboardingAdditional {
         static let trainingPlanPreview = "onboarding.training_plan_preview" // "您的訓練計畫預覽"
         static let goalAssessment = "onboarding.goal_assessment" // "目標評估"
-        static let trainingFocus = "onboarding.training_focus" // "訓練重點"
+        static let trainingFocus = "onboarding.training_focus_title" // "訓練重點"
     }
 
     // MARK: - Miscellaneous
@@ -1367,5 +1494,17 @@ extension L10n {
         static let vdotDataDesc = "empty_state.vdot_data_desc" // "暫無跑力數據，請先完成跑步訓練"
         static let workoutDataDesc = "empty_state.workout_data_desc" // "尚未記錄任何運動數據"
         static let healthDataDesc = "empty_state.health_data_desc" // "無法獲取健康數據"
+    }
+
+    // MARK: - Distance Labels
+    enum Distance {
+        static let mile = "distance.mile"                   // "1.6 公里"
+        static let threeK = "distance.3k"                   // "3 公里"
+        static let fiveK = "distance.5k"                    // "5 公里"
+        static let tenK = "distance.10k"                    // "10 公里"
+        static let halfMarathon = "distance.half_marathon"  // "半程馬拉松"
+        static let halfMarathonShort = "distance.half_marathon_short"  // "半馬"
+        static let fullMarathon = "distance.full_marathon"  // "全程馬拉松"
+        static let fullMarathonShort = "distance.full_marathon_short"  // "全馬"
     }
 }

@@ -5,6 +5,7 @@ import FirebaseAppCheck
 import FirebaseRemoteConfig
 import BackgroundTasks
 import UserNotifications
+import FirebaseAuth
 
 /// 判斷當前是否為 Debug 建置
 private var isDebugBuild: Bool {
@@ -19,38 +20,69 @@ private var isDebugBuild: Bool {
 struct HavitalApp: App {
     // 注入 AppDelegate 以處理推播與 FCM token
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    // 不再使用 AppStorage 來儲存 onboarding 狀態，而是使用 AuthenticationService 提供的狀態
+    // Clean Architecture: Use AuthenticationViewModel for authentication state
     @AppStorage("isHealthKitAuthorized") private var isHealthKitAuthorized = false
-    @StateObject private var healthKitManager = HealthKitManager()
-    @StateObject private var appViewModel = AppViewModel()
-    @StateObject private var authService = AuthenticationService.shared
+    @StateObject private var healthKitManager: HealthKitManager
+    @StateObject private var appViewModel: AppViewModel
+    @StateObject private var authViewModel: AuthenticationViewModel
     @State private var featureFlagManager: FeatureFlagManager? = nil
     @State private var shouldRefreshForLanguage = false
     @State private var hasLaunched = false  // ✅ 追蹤是否已完成啟動
     
     init() {
-        // 1. 初始化 Firebase（必須最先執行，因為 Logger 依賴它）
+        // 1. 初始化 Firebase（必須最先執行，因為 Logger 依賴它，且 Auth.auth() 等服務需要它）
         let configFileName = "GoogleService-Info-" + (isDebugBuild ? "dev" : "prod")
+        print("🔍 啟動 HavitalApp 初始化...")
         print("🔍 當前建置環境: \(isDebugBuild ? "DEBUG" : "PRODUCTION")")
         print("🔍 嘗試使用 Firebase 配置文件: \(configFileName)")
         
-        // 首先嘗試標準的 GoogleService-Info.plist
         if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
             print("✅ 找到標準 Firebase 配置文件: \(path)")
             FirebaseApp.configure()
+        } else if let path = Bundle.main.path(forResource: configFileName, ofType: "plist"),
+                  let options = FirebaseOptions(contentsOfFile: path) {
+            FirebaseApp.configure(options: options)
+            print("✅ Firebase 初始化成功 - 使用: \(path)")
         } else {
-            // 如果沒有標準文件，嘗試環境特定的文件
-            if let path = Bundle.main.path(forResource: configFileName, ofType: "plist"),
-               let options = FirebaseOptions(contentsOfFile: path) {
-                FirebaseApp.configure(options: options)
-                print("✅ Firebase 初始化成功 - 使用: \(path)")
-                print("✅ Firebase Project ID: \(options.projectID ?? "unknown")")
-                print("✅ Bundle ID: \(options.bundleID ?? "unknown")")
-            } else {
-                print("❌ 找不到環境特定的 Firebase 配置文件: \(configFileName)")
-                // 最後的備用方案
-                FirebaseApp.configure()
+            print("❌ 找不到 Firebase 配置文件 (GoogleService-Info.plist 或 \(configFileName).plist)")
+            // 退回預設配置
+            FirebaseApp.configure()
+        }
+
+        // 2. ✅ Clean Architecture: 使用集中式 Bootstrap 註冊所有模組依賴
+        AppDependencyBootstrap.registerAllModules()
+        print("📦 所有模組依賴已優先註冊")
+
+        // 🔍 DEBUG: 驗證 MonthlyStatsRepository 是否註冊
+        let testRepo: MonthlyStatsRepository? = DependencyContainer.shared.tryResolve()
+        print("🔍 MonthlyStatsRepository 註冊驗證: \(testRepo != nil ? "✅ 成功" : "❌ 失敗")")
+        
+        // 3. 🚀 必須在訪問 self 之前初始化所有屬性
+        // 注意：此時 Firebase 已就緒，DI Container 已填充，可以安全創建單例和 ViewModels
+        self._healthKitManager = StateObject(wrappedValue: HealthKitManager())
+        self._appViewModel = StateObject(wrappedValue: AppViewModel())
+        // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
+        self._authViewModel = StateObject(wrappedValue: AuthenticationViewModel.shared)
+        
+        // [TEST HELPER] 檢查是否需要重置 Onboarding (用於 UI 測試)
+        if CommandLine.arguments.contains("-resetOnboarding") {
+            print("🧪 [UI Test] 檢測到 -resetOnboarding 標誌，清除所有本地狀態...")
+            // 強制登出 Firebase 用戶
+            do {
+                try Auth.auth().signOut()
+                print("🧪 [UI Test] Firebase 用戶已登出")
+            } catch {
+                print("🧪 [UI Test] Firebase 登出失敗: \(error)")
             }
+            
+            // 清除 UserDefaults
+            let domain = Bundle.main.bundleIdentifier!
+            UserDefaults.standard.removePersistentDomain(forName: domain)
+            UserDefaults.standard.synchronize()
+            print("🧪 [UI Test] 用戶已登出且 UserDefaults 已清除")
+            
+            // 由於 AuthenticationViewModel 使用 UserDefaults 儲存狀態，這裡清除後
+            // 在下面初始化的 authViewModel 應該會是未登入狀態
         }
         
         // 3. 設定其他 Firebase 服務
@@ -64,86 +96,99 @@ struct HavitalApp: App {
             print("❌ Firebase 初始化失敗！")
         } else {
             print("✅ Firebase 已成功初始化")
-            
+
             // 6. 初始化語言管理器（Firebase 完成後才能安全使用 Logger.firebase）
             _ = LanguageManager.shared
             print("🌍 LanguageManager 已初始化")
-            
-            // 7. Firebase 初始化完成後才創建 FeatureFlagManager
-            // 注意：這裡不能直接設定 @State 變數，需要在 view 中設定
+
+            // 7. 動態載入 Onest 字體（如果未被 Info.plist 載入）
+            print("🔤 開始動態載入 Onest 字體...")
+            AppFont.loadOnestFontsIfNeeded()
+
+            // 8. 檢查字體載入情況（DEBUG only）
+            print("🔍 檢查字體載入結果...")
+            AppFont.debugCheckFonts()
+
+            // 9. 設定 Tab Bar 字體（根據語言選擇）
+            self.configureTabBarFont()
         }
-        
-        // 7. 檢查是否因語言變更而重啟
+
+        // 10. 檢查是否因語言變更而重啟
         checkLanguageChangeRestart()
     }
     
     var body: some Scene {
         WindowGroup {
-            Group {
-                if let featureFlagManager = featureFlagManager {
-                    ContentView() // 使用 ContentView 作為根視圖
-                        .environmentObject(authService)       // 注入 AuthenticationService
-                        .environmentObject(healthKitManager)  // 注入 HealthKitManager
-                        .environmentObject(appViewModel)      // 注入 AppViewModel
-                        .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
-                        .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
-                        .onAppear {
-                            // App 啟動時使用新的狀態管理進行序列化初始化
-                            Task {
-                                print("🚀 HavitalApp: 開始序列化初始化流程")
+            if isRunningTests {
+                Text("Running Tests...")
+            } else {
+                Group {
+                    if let featureFlagManager = featureFlagManager {
+                        ContentView() // 使用 ContentView 作為根視圖
+                            .environmentObject(authViewModel)      // Clean Architecture: AuthenticationViewModel
+                            // ✅ AuthenticationService removed - LoginView now uses LoginViewModel
+                            .environmentObject(healthKitManager)   // 注入 HealthKitManager
+                            .environmentObject(appViewModel)       // 注入 AppViewModel
+                            .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
+                            .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
+                            .onAppear {
+                                // App 啟動時使用新的狀態管理進行序列化初始化
+                                Task {
+                                    print("🚀 HavitalApp: 開始序列化初始化流程")
 
-                                // Step 1: App 核心初始化（用戶狀態優先）
-                                await appViewModel.initializeApp()
+                                    // Step 1: App 核心初始化（用戶狀態優先）
+                                    await appViewModel.initializeApp()
 
-                                // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
-                                await setupPermissionsBasedOnUserState()
+                                    // Step 2: 只有在用戶資料載入完成後才設置權限和背景處理
+                                    await setupPermissionsBasedOnUserState()
 
-                                // Step 3: 檢查並初始化時區設定（僅限已認證用戶）
-                                await checkAndInitializeTimezone()
+                                    // Step 3: 檢查並初始化時區設定（僅限已認證用戶）
+                                    await checkAndInitializeTimezone()
 
-                                print("✅ HavitalApp: 初始化流程完成")
-                            }
-                            
-                            // 監聽語言變更通知
-                            NotificationCenter.default.addObserver(
-                                forName: NSNotification.Name("AppShouldRefreshForLanguageChange"),
-                                object: nil,
-                                queue: .main
-                            ) { _ in
-                                print("🌍 收到語言變更通知，刷新 UI")
-                                shouldRefreshForLanguage.toggle() // Trigger UI refresh
-                            }
-                        }
-                } else {
-                    // Firebase 和 FeatureFlagManager 初始化中
-                    ProgressView("初始化中...")
-                        .onAppear {
-                            // 在 Firebase 初始化完成後創建 FeatureFlagManager
-                            if FirebaseApp.app() != nil {
-                                print("🎛️ 創建 FeatureFlagManager")
-                                featureFlagManager = FeatureFlagManager.shared
+                                    print("✅ HavitalApp: 初始化流程完成")
+                                }
                                 
-                                // 延遲調試檢查和手動刷新
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                    #if DEBUG
-                                    print("🔍 DEBUG: 3 秒後檢查 Feature Flag 狀態")
-                                    FeatureFlagManager.shared.debugPrintAllFlags()
-                                    
-                                    // 手動刷新 Remote Config
-                                    print("🔄 DEBUG: 手動刷新 Remote Config")
-                                    Task {
-                                        await FeatureFlagManager.shared.refreshConfig()
-                                        print("🔍 DEBUG: 刷新後再次檢查狀態")
-                                        FeatureFlagManager.shared.debugPrintAllFlags()
-                                    }
-                                    #endif
+                                // 監聽語言變更通知
+                                NotificationCenter.default.addObserver(
+                                    forName: NSNotification.Name("AppShouldRefreshForLanguageChange"),
+                                    object: nil,
+                                    queue: .main
+                                ) { _ in
+                                    print("🌍 收到語言變更通知，刷新 UI")
+                                    shouldRefreshForLanguage.toggle() // Trigger UI refresh
                                 }
                             }
-                        }
+                    } else {
+                        // Firebase 和 FeatureFlagManager 初始化中
+                        ProgressView("初始化中...")
+                            .onAppear {
+                                // 在 Firebase 初始化完成後創建 FeatureFlagManager
+                                if FirebaseApp.app() != nil {
+                                    print("🎛️ 創建 FeatureFlagManager")
+                                    featureFlagManager = FeatureFlagManager.shared
+                                    
+                                    // 延遲調試檢查和手動刷新
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                        #if DEBUG
+                                        print("🔍 DEBUG: 3 秒後檢查 Feature Flag 狀態")
+                                        FeatureFlagManager.shared.debugPrintAllFlags()
+                                        
+                                        // 手動刷新 Remote Config
+                                        print("🔄 DEBUG: 手動刷新 Remote Config")
+                                        Task {
+                                            await FeatureFlagManager.shared.refreshConfig()
+                                            print("🔍 DEBUG: 刷新後再次檢查狀態")
+                                            FeatureFlagManager.shared.debugPrintAllFlags()
+                                        }
+                                        #endif
+                                    }
+                                }
+                            }
+                    }
                 }
-            }
-            .onOpenURL { url in
-                handleDeepLink(url: url)
+                .onOpenURL { url in
+                    handleDeepLink(url: url)
+                }
             }
         }
         // 添加應用程式生命週期事件處理
@@ -155,6 +200,9 @@ struct HavitalApp: App {
                     Task {
                         await appViewModel.onAppBecameActive()
                     }
+                    Task {
+                        await checkForPendingHealthUpdates()
+                    }
                 } else {
                     print("📱 應用首次啟動變為 active，跳過刷新（已在初始化時載入）")
                     hasLaunched = true
@@ -163,47 +211,59 @@ struct HavitalApp: App {
         }
     }
     
+    // 判斷是否正在運行測試
+    private var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
+    }
+    
     /// 基於已確定用戶狀態的權限設置
     func setupPermissionsBasedOnUserState() async {
         print("🔐 HavitalApp: 開始基於用戶狀態設置權限")
-        
+
         // 獲取用戶狀態
         let appStateManager = AppStateManager.shared
         let isAuthenticated = appStateManager.isUserAuthenticated
         let dataSource = appStateManager.userDataSource
-        
+
         print("🔐 用戶認證狀態: \(isAuthenticated)")
         print("🔐 數據源: \(dataSource.rawValue)")
+
+        // 📊 關鍵診斷：記錄入口狀態
+        Logger.firebase(
+            "setupPermissions 入口狀態",
+            level: .info,
+            labels: ["module": "HavitalApp", "action": "setup_permissions_entry", "cloud_logging": "true"],
+            jsonPayload: [
+                "isAuthenticated": isAuthenticated,
+                "dataSource": dataSource.rawValue,
+                "userPrefsDataSource": UserPreferencesManager.shared.dataSourcePreference.rawValue,
+                "hasCompletedOnboarding": UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+            ]
+        )
         
         if isAuthenticated {
-            // 已認證用戶的權限設置
-            switch dataSource {
-            case .appleHealth:
-                print("🍎 設置 Apple Health 用戶權限")
+            // 🔧 多來源判定：避免 AppStateManager 未同步完成時漏判
+            let userPrefsDataSource = UserPreferencesManager.shared.dataSourcePreference
+            let isAppleHealthUser = dataSource == .appleHealth || userPrefsDataSource == .appleHealth
+
+            if isAppleHealthUser {
+                print("🍎 設置 Apple Health 用戶權限 (appState=\(dataSource.rawValue), prefs=\(userPrefsDataSource.rawValue))")
                 // 1. 請求 HealthKit 授權
                 await requestHealthKitAuthorization()
-                
+
                 // 2. 請求通知授權
                 await requestNotificationAuthorization()
-                
+
                 // 3. 設置背景健身記錄同步
                 await setupWorkoutBackgroundProcessing()
-                
-                // 4. setupWorkoutObserver 內部已包含上傳檢查，無需重複調用
-                // await checkForPendingHealthUpdates() // 已移除重複調用
-                
-            case .garmin:
+            } else if dataSource == .garmin {
                 print("⌚ 設置 Garmin 用戶權限")
-                // 只需要通知授權
                 await requestNotificationAuthorization()
-                
-            case .strava:
+            } else if dataSource == .strava {
                 print("🏃 設置 Strava 用戶權限")
-                // 只需要通知授權
                 await requestNotificationAuthorization()
-                
-            case .unbound:
-                print("🔓 用戶未綁定數據源，設置基本權限")
+            } else {
+                print("🔓 用戶未綁定數據源 (appState=\(dataSource.rawValue), prefs=\(userPrefsDataSource.rawValue))，設置基本權限")
                 await requestNotificationAuthorization()
             }
             
@@ -266,18 +326,36 @@ struct HavitalApp: App {
         UNUserNotificationCenter.current().delegate = WorkoutBackgroundManager.shared
         
         // 標記首次登入狀態
-        if authService.isFirstLogin {
+        if authViewModel.isFirstLogin {
             WorkoutBackgroundManager.shared.markFirstLogin()
-            authService.isFirstLogin = false
+            authViewModel.isFirstLogin = false
         }
         
         // 🚨 關鍵修復：只有 Apple Health 用戶才設置觀察者
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
+
+        // 📊 診斷：記錄進入 setupWorkoutBackgroundProcessing 的狀態
+        Logger.firebase(
+            "setupWorkoutBackgroundProcessing 開始",
+            level: .info,
+            labels: ["module": "HavitalApp", "action": "setup_workout_bg", "cloud_logging": "true"],
+            jsonPayload: [
+                "dataSourcePreference": dataSourcePreference.rawValue,
+                "isFirstLogin": authViewModel.isFirstLogin
+            ]
+        )
+
         if dataSourcePreference == .appleHealth {
             print("設置健身記錄觀察者（Apple Health 用戶）...")
             await WorkoutBackgroundManager.shared.setupWorkoutObserver()
         } else {
             print("跳過健身記錄觀察者設置（數據源: \(dataSourcePreference.displayName)）")
+            Logger.firebase(
+                "跳過 Observer 設置：非 Apple Health",
+                level: .warn,
+                labels: ["module": "HavitalApp", "action": "setup_workout_bg_skipped", "cloud_logging": "true"],
+                jsonPayload: ["dataSource": dataSourcePreference.rawValue]
+            )
             // 確保停止任何可能已經啟動的觀察者
             WorkoutBackgroundManager.shared.stopAndCleanupObserving()
         }
@@ -289,12 +367,12 @@ struct HavitalApp: App {
     // 檢查是否有待處理的健身記錄
     private func checkForPendingHealthUpdates() async {
         // 確保用戶已登入且完成引導
-        guard authService.isAuthenticated && authService.hasCompletedOnboarding else {
+        guard authViewModel.isAuthenticated && authViewModel.hasCompletedOnboarding else {
             return
         }
         
         // 再次確認數據來源（WorkoutBackgroundManager 內部也會檢查）
-        let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+        let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         guard dataSourcePreference == .appleHealth else {
             print("數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 數據檢查")
             return
@@ -309,6 +387,14 @@ struct HavitalApp: App {
     
     // 註冊背景任務 - 只在初始化時呼叫一次
     private func registerBackgroundTasks() {
+        // 1. 註冊健身記錄同步任務
+        registerWorkoutSyncTask()
+
+        // 2. 註冊健康數據同步任務
+        registerHealthDataSyncTask()
+    }
+
+    private func registerWorkoutSyncTask() {
         let taskIdentifier = "com.havital.workout-sync"
 
         // ✅ 修復：不要全局清除所有任務，只檢查任務是否已註冊
@@ -318,7 +404,7 @@ struct HavitalApp: App {
         do {
             BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
                 // 背景同步任務
-                print("背景任務開始執行")
+                print("背景任務開始執行: \(taskIdentifier)")
 
                 // 設置任務到期處理
                 task.expirationHandler = {
@@ -327,13 +413,14 @@ struct HavitalApp: App {
 
                 Task {
                     // 確保用戶已登入
-                    guard AuthenticationService.shared.isAuthenticated else {
+                    // Clean Architecture: Use AuthenticationViewModel
+                    guard AuthenticationViewModel.shared.isAuthenticated else {
                         (task as? BGProcessingTask)?.setTaskCompleted(success: false)
                         return
                     }
 
                     // 確認當前數據來源是 Apple Health
-                    let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+                    let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
                     guard dataSourcePreference == .appleHealth else {
                         print("背景任務 - 數據來源為 \(dataSourcePreference.displayName)，跳過 HealthKit 同步")
                         (task as? BGProcessingTask)?.setTaskCompleted(success: true)
@@ -353,6 +440,47 @@ struct HavitalApp: App {
             print("已註冊背景任務: \(taskIdentifier)")
         } catch {
             print("❌ 背景任務註冊失敗: \(error.localizedDescription)")
+        }
+    }
+
+    private func registerHealthDataSyncTask() {
+        let taskIdentifier = "com.havital.health-data-sync"
+
+        do {
+            BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
+                print("健康數據同步後台任務開始執行: \(taskIdentifier)")
+
+                // 設置任務到期處理
+                task.expirationHandler = {
+                    print("健康數據同步後台任務到期")
+                }
+
+                Task {
+                    // 確保用戶已登入
+                    // Clean Architecture: Use AuthenticationViewModel
+                    guard AuthenticationViewModel.shared.isAuthenticated else {
+                        (task as? BGAppRefreshTask)?.setTaskCompleted(success: false)
+                        return
+                    }
+
+                    // 確認當前數據來源是 Apple Health
+                    let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
+                    guard dataSourcePreference == .appleHealth else {
+                        print("健康數據同步任務 - 數據來源為 \(dataSourcePreference.displayName)，跳過")
+                        (task as? BGAppRefreshTask)?.setTaskCompleted(success: true)
+                        return
+                    }
+
+                    // 執行健康數據上傳
+                    await HealthDataUploadManagerV2.shared.syncHealthDataNow()
+
+                    // 任務完成
+                    (task as? BGAppRefreshTask)?.setTaskCompleted(success: true)
+                }
+            }
+            print("已註冊背景任務: \(taskIdentifier)")
+        } catch {
+            print("❌ 健康數據同步任務註冊失敗: \(error.localizedDescription)")
         }
     }
     
@@ -388,6 +516,32 @@ struct HavitalApp: App {
         }
     }
     
+    /// 設定 Tab Bar 字體（根據當前語言）
+    private func configureTabBarFont() {
+        let language = LanguageManager.shared.currentLanguage
+
+        // 根據語言選擇字體
+        let font: UIFont
+        switch language {
+        case .english:
+            // 英文使用 Onest
+            font = UIFont(name: "Onest-Medium", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .medium)
+        case .japanese, .traditionalChinese:
+            // 日文和中文使用系統字體
+            font = UIFont.systemFont(ofSize: 10, weight: .medium)
+        }
+
+        // 設定 Tab Bar Item 的字體
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font
+        ]
+
+        UITabBarItem.appearance().setTitleTextAttributes(attributes, for: .normal)
+        UITabBarItem.appearance().setTitleTextAttributes(attributes, for: .selected)
+
+        print("✅ Tab Bar 字體已設定: \(language == .english ? "Onest-Medium" : "System Font")")
+    }
+
     /// 檢查是否因語言變更而重啟
     private func checkLanguageChangeRestart() {
         if UserDefaults.standard.bool(forKey: "language_changed_restart") {
@@ -402,19 +556,19 @@ struct HavitalApp: App {
     /// 檢查並初始化時區設定
     private func checkAndInitializeTimezone() async {
         // 僅在用戶已認證時執行
-        guard authService.isAuthenticated else {
+        guard authViewModel.isAuthenticated else {
             print("⏰ 用戶未認證，跳過時區初始化")
             return
         }
 
-        let userPreferenceManager = UserPreferenceManager.shared
+        let userPreferenceManager = UserPreferencesManager.shared
 
         // 檢查是否需要初始化時區
         if userPreferenceManager.needsTimezoneInitialization() {
             print("⏰ 開始自動偵測並初始化時區")
 
             // 獲取裝置時區
-            let deviceTimezone = UserPreferenceManager.getDeviceTimezone()
+            let deviceTimezone = UserPreferencesManager.getDeviceTimezone()
             print("⏰ 偵測到裝置時區: \(deviceTimezone)")
 
             // 更新本地偏好
@@ -446,7 +600,7 @@ struct HavitalApp: App {
 
 func scheduleBackgroundWorkoutSync() {
     // 只有 Apple Health 用戶才需要背景同步任務
-    let dataSourcePreference = UserPreferenceManager.shared.dataSourcePreference
+    let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
     guard dataSourcePreference == .appleHealth else {
         print("數據來源為 \(dataSourcePreference.displayName)，跳過背景同步任務排程")
         return
@@ -469,8 +623,8 @@ func scheduleBackgroundWorkoutSync() {
     }
 }
 
-// 擴展 AuthenticationService 以追蹤第一次登入狀態
-extension AuthenticationService {
+// Clean Architecture: 擴展 AuthenticationViewModel 以追蹤第一次登入狀態
+extension AuthenticationViewModel {
     var isFirstLogin: Bool {
         get {
             UserDefaults.standard.bool(forKey: "isFirstLogin")
@@ -479,7 +633,6 @@ extension AuthenticationService {
             UserDefaults.standard.set(newValue, forKey: "isFirstLogin")
         }
     }
-    
 }
 
 class FirebaseLogConfigurator {

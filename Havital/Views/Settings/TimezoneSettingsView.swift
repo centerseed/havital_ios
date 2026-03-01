@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TimezoneSettingsView: View {
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
+    @StateObject private var viewModel = UserProfileFeatureViewModel()
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedTimezone: String
@@ -10,9 +10,12 @@ struct TimezoneSettingsView: View {
     @State private var errorMessage = ""
     @State private var showWarningAlert = false
 
-    init() {
-        let currentTimezone = UserPreferenceManager.shared.timezonePreference ?? UserPreferenceManager.getDeviceTimezone()
-        _selectedTimezone = State(initialValue: currentTimezone)
+    /// Initialize with current timezone
+    /// - Parameter currentTimezone: The user's current timezone (pass from parent view)
+    init(currentTimezone: String? = nil) {
+        // Use provided timezone, or fall back to device timezone
+        let initialTimezone = currentTimezone ?? TimezoneOption.getDeviceTimezoneId()
+        _selectedTimezone = State(initialValue: initialTimezone)
     }
 
     var body: some View {
@@ -20,8 +23,8 @@ struct TimezoneSettingsView: View {
             List {
                 // Current Timezone Section
                 Section(header: Text(L10n.Timezone.current.localized)) {
-                    Text(UserPreferenceManager.getTimezoneDisplayName(for: selectedTimezone))
-                        .font(.headline)
+                    Text(TimezoneOption.getDisplayName(for: selectedTimezone))
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
                 }
 
@@ -31,9 +34,9 @@ struct TimezoneSettingsView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(timezone.displayName)
-                                    .font(.body)
+                                    .font(AppFont.body())
                                 Text(timezone.offset)
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
@@ -69,7 +72,7 @@ struct TimezoneSettingsView: View {
                     Button(L10n.Common.save.localized) {
                         saveSettings()
                     }
-                    .disabled(isLoading || selectedTimezone == userPreferenceManager.timezonePreference)
+                    .disabled(isLoading || selectedTimezone == viewModel.timezonePreference)
                 }
             }
             .disabled(isLoading)
@@ -87,8 +90,8 @@ struct TimezoneSettingsView: View {
         }
         .alert(L10n.Timezone.changeConfirm.localized, isPresented: $showWarningAlert) {
             Button(L10n.Common.cancel.localized, role: .cancel) {
-                // Reset selection
-                selectedTimezone = userPreferenceManager.timezonePreference ?? UserPreferenceManager.getDeviceTimezone()
+                // Reset selection to current saved preference or device default
+                selectedTimezone = viewModel.timezonePreference ?? TimezoneOption.getDeviceTimezoneId()
             }
             Button(L10n.Common.confirm.localized) {
                 Task {
@@ -111,7 +114,7 @@ struct TimezoneSettingsView: View {
                 .font(.footnote)
                 .foregroundColor(.secondary)
 
-            if selectedTimezone != userPreferenceManager.timezonePreference {
+            if selectedTimezone != viewModel.timezonePreference {
                 Text(L10n.Timezone.changeWarningMessage.localized)
                     .font(.footnote)
                     .foregroundColor(.orange)
@@ -121,7 +124,7 @@ struct TimezoneSettingsView: View {
 
     private func saveSettings() {
         // Check if timezone is changing
-        if selectedTimezone != userPreferenceManager.timezonePreference {
+        if selectedTimezone != viewModel.timezonePreference {
             showWarningAlert = true
         }
     }
@@ -130,12 +133,10 @@ struct TimezoneSettingsView: View {
         isLoading = true
 
         do {
-            // ✅ 優化：使用 UserPreferencesManager 同步到後端（使用雙軌緩存）
-            try await UserPreferencesManager.shared.updatePreferences(timezone: selectedTimezone)
+            // Use new ViewModel to sync timezone to backend
+            try await viewModel.updateTimezone(selectedTimezone)
 
-            // Update local preference
             await MainActor.run {
-                userPreferenceManager.timezonePreference = selectedTimezone
                 isLoading = false
                 dismiss()
             }
@@ -143,6 +144,12 @@ struct TimezoneSettingsView: View {
             Logger.firebase("時區已更新: \(selectedTimezone)", level: .info)
 
         } catch {
+            // 任務取消是正常行為，不記錄錯誤
+            if error.isCancellationError {
+                Logger.debug("時區更新任務被取消，忽略錯誤")
+                return
+            }
+
             await MainActor.run {
                 isLoading = false
                 errorMessage = error.localizedDescription

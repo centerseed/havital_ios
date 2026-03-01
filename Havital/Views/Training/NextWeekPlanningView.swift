@@ -98,7 +98,7 @@ struct NextWeekPlanningView: View {
                     }
                     
                     Text(L10n.NextWeekPlanning.trainingExpectation.localized)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
                     
                     Section(header: Text(L10n.NextWeekPlanning.difficultyAdjustment.localized)) {
@@ -159,11 +159,11 @@ struct NextWeekPlanningView: View {
                             .scaleEffect(1.5)
                         
                         Text(L10n.NextWeekPlanning.generatingPlan.localized)
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.primary)
 
                         Text(L10n.NextWeekPlanning.pleaseWait.localized)
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

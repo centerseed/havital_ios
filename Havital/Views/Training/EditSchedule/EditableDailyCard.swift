@@ -12,11 +12,20 @@ struct TrainingDetailsEditView: View {
             switch day.type {
             case .easyRun, .easy, .recovery_run, .lsd:
                 EasyRunEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .interval:
+            case .norwegian4x4:
+                // 挪威4x4 專用卡片
+                Norwegian4x4CardView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
+            case .yasso800:
+                // 亞索800 專用卡片
+                Yasso800CardView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
+            case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+                // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇、短間歇、長間歇）
                 IntervalEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .tempo, .threshold, .longRun:
+            case .tempo, .threshold, .longRun, .racePace:
+                // 節奏/閾值/長跑類型（包含新增的比賽配速跑）
                 TempoRunEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .progression, .combination:
+            case .progression, .combination, .fartlek, .fastFinish:
+                // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
                 CombinationEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
             default:
                 SimpleTrainingEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
@@ -54,7 +63,10 @@ struct EasyRunEditView: View {
 
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
-        updatedDay.trainingDetails?.distanceKm = newDistance
+        if var details = updatedDay.trainingDetails {
+            details.distanceKm = newDistance
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -97,14 +109,201 @@ struct TempoRunEditView: View {
 
     private func updatePace(_ newPace: String) {
         var updatedDay = day
-        updatedDay.trainingDetails?.pace = newPace
+        if var details = updatedDay.trainingDetails {
+            details.pace = newPace
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
-        updatedDay.trainingDetails?.distanceKm = newDistance
+        if var details = updatedDay.trainingDetails {
+            details.distanceKm = newDistance
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
+    }
+}
+
+// MARK: - 挪威4x4 專用卡片
+
+struct Norwegian4x4CardView: View {
+    let day: MutableTrainingDay
+    let details: MutableTrainingDetails
+    let isEditable: Bool
+    let onEdit: (MutableTrainingDay) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 標題行
+            HStack {
+                Text("🇳🇴 挪威4x4")
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+
+                Spacer()
+
+                if let repeats = details.repeats {
+                    Text("\(repeats) 組")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.15))
+                        .cornerRadius(6)
+                }
+            }
+
+            // 訓練內容
+            HStack(spacing: 12) {
+                // 工作段
+                if let work = details.work {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("衝刺")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 4) {
+                            if let timeMinutes = work.timeMinutes {
+                                Text("\(Int(timeMinutes)) 分鐘")
+                                    .font(AppFont.caption())
+                                    .fontWeight(.medium)
+                            }
+                            if let pace = work.pace {
+                                Text("@ \(pace)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(6)
+                }
+
+                // 恢復段
+                if let recovery = details.recovery {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("恢復")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 4) {
+                            if let timeMinutes = recovery.timeMinutes {
+                                Text("\(Int(timeMinutes)) 分鐘")
+                                    .font(AppFont.caption())
+                                    .fontWeight(.medium)
+                            }
+                            if let pace = recovery.pace {
+                                Text("@ \(pace)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(6)
+                }
+
+                Spacer()
+            }
+        }
+    }
+}
+
+// MARK: - 亞索800 專用卡片
+
+struct Yasso800CardView: View {
+    let day: MutableTrainingDay
+    let details: MutableTrainingDetails
+    let isEditable: Bool
+    let onEdit: (MutableTrainingDay) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 標題行
+            HStack {
+                Text("亞索800")
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+
+                Spacer()
+
+                if let repeats = details.repeats {
+                    Text("\(repeats) 組")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.15))
+                        .cornerRadius(6)
+                }
+            }
+
+            // 訓練內容
+            HStack(spacing: 12) {
+                // 工作段
+                if let work = details.work {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("衝刺")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 4) {
+                            // 顯示距離（優先 distanceM，否則 distanceKm）
+                            if let distanceM = work.distanceM {
+                                Text("\(Int(distanceM))m")
+                                    .font(AppFont.caption())
+                                    .fontWeight(.medium)
+                            } else if let distanceKm = work.distanceKm {
+                                Text("\(Int(distanceKm * 1000))m")
+                                    .font(AppFont.caption())
+                                    .fontWeight(.medium)
+                            }
+                            if let pace = work.pace {
+                                Text("@ \(pace)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(6)
+                }
+
+                // 恢復段
+                if let recovery = details.recovery {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("恢復")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 4) {
+                            if let timeMinutes = recovery.timeMinutes {
+                                Text("\(Int(timeMinutes)) 分鐘")
+                                    .font(AppFont.caption())
+                                    .fontWeight(.medium)
+                            }
+                            if let pace = recovery.pace {
+                                Text("@ \(pace)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(6)
+                }
+
+                Spacer()
+            }
+        }
     }
 }
 
@@ -118,7 +317,7 @@ struct IntervalEditView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("間歇訓練")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
 
@@ -161,25 +360,49 @@ struct IntervalEditView: View {
                 ) { updatedSegment in
                     updateRecoverySegment(updatedSegment)
                 }
+            } else {
+                // recovery 為 nil 時顯示原地休息
+                HStack(spacing: 8) {
+                    Text("恢復段")
+                        .font(AppFont.caption())
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
+                        .font(AppFont.caption())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.15))
+                        .cornerRadius(8)
+                }
             }
         }
     }
 
     private func updateRepeats(_ newRepeats: Int) {
         var updatedDay = day
-        updatedDay.trainingDetails?.repeats = newRepeats
+        if var details = updatedDay.trainingDetails {
+            details.repeats = newRepeats
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 
     private func updateWorkSegment(_ segment: MutableWorkoutSegment) {
         var updatedDay = day
-        updatedDay.trainingDetails?.work = segment
+        if var details = updatedDay.trainingDetails {
+            details.work = segment
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 
     private func updateRecoverySegment(_ segment: MutableWorkoutSegment) {
         var updatedDay = day
-        updatedDay.trainingDetails?.recovery = segment
+        if var details = updatedDay.trainingDetails {
+            details.recovery = segment
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -192,39 +415,17 @@ struct CombinationEditView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(day.type.localizedName)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.orange)
-
-                Spacer()
-
-                if let total = details.totalDistanceKm {
-                    Text(String(format: "%.1f", total))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.15))
-                        .cornerRadius(12)
-                }
-            }
-
-            Divider()
-                .background(Color.orange.opacity(0.3))
-
-            if let segments = details.segments {
-                VStack(spacing: 4) {
-                    ForEach(segments.indices, id: \.self) { index in
-                        if index < segments.count {
-                            CombinationSegmentEditView(
-                                title: "區段\(index + 1)",
-                                segment: segments[index],
-                                isEditable: isEditable
-                            ) { updatedSegment in
-                                updateSegment(at: index, with: updatedSegment)
+            // 顯示分段摘要（簡潔版，詳細編輯用右側按鈕）
+            if let segments = details.segments, !segments.isEmpty {
+                // 水平滾動顯示所有分段
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(segments.indices, id: \.self) { index in
+                            if let segment = segments[safe: index] {
+                                CombinationSegmentSummary(
+                                    segmentIndex: index + 1,
+                                    segment: segment
+                                )
                             }
                         }
                     }
@@ -232,11 +433,47 @@ struct CombinationEditView: View {
             }
         }
     }
+}
 
-    private func updateSegment(at index: Int, with segment: MutableProgressionSegment) {
-        var updatedDay = day
-        updatedDay.trainingDetails?.segments?[index] = segment
-        onEdit(updatedDay)
+/// 組合訓練分段摘要視圖（只讀）
+struct CombinationSegmentSummary: View {
+    let segmentIndex: Int
+    let segment: MutableProgressionSegment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // 分段描述或編號
+            if let desc = segment.description, !desc.isEmpty {
+                Text(desc)
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+            }
+
+            // 距離和配速
+            HStack(spacing: 4) {
+                if let distance = segment.distanceKm {
+                    Text(String(format: "%.1fkm", distance))
+                        .font(AppFont.caption())
+                        .fontWeight(.medium)
+                }
+                if let pace = segment.pace {
+                    Text("@\(pace)")
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(6)
+    }
+}
+
+// 安全的數組索引存取
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }
 
@@ -249,7 +486,8 @@ struct SimpleTrainingEditView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                if let distance = details.distanceKm {
+                // 只有跑步活動才顯示距離（瑜珈、重訓、交叉訓練等不顯示）
+                if day.type.isRunningActivity, let distance = details.distanceKm {
                     EditableValueView(
                         title: "距離",
                         value: String(format: "%.1f", distance),
@@ -267,7 +505,10 @@ struct SimpleTrainingEditView: View {
 
     private func updateDistance(_ newDistance: Double) {
         var updatedDay = day
-        updatedDay.trainingDetails?.distanceKm = newDistance
+        if var details = updatedDay.trainingDetails {
+            details.distanceKm = newDistance
+            updatedDay.trainingDetails = details
+        }
         onEdit(updatedDay)
     }
 }
@@ -286,6 +527,7 @@ struct EditableValueView: View {
     @State private var showingIntervalDistancePicker = false
     @State private var showingTrainingTypePicker = false
     @State private var showingRepeatsPicker = false
+    @State private var showingTimePicker = false
 
     init(title: String, value: String, isEditable: Bool, valueType: EditValueType = .general, onEdit: @escaping (String) -> Void) {
         self.title = title
@@ -309,6 +551,8 @@ struct EditableValueView: View {
                     showingDistancePicker = true
                 case .repeats:
                     showingRepeatsPicker = true
+                case .time:
+                    showingTimePicker = true
                 case .general:
                     showingDistancePicker = true
                 }
@@ -317,18 +561,18 @@ struct EditableValueView: View {
             HStack(spacing: 4) {
                 if !title.isEmpty {
                     Text(title + ": ")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
                 Text(value)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(isEditable ? .blue : .secondary)
 
                 if isEditable {
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 10))
+                        .font(AppFont.captionSmall())
                         .foregroundColor(.blue)
                 }
             }
@@ -337,6 +581,7 @@ struct EditableValueView: View {
             .background(Color.blue.opacity(isEditable ? 0.12 : 0.05))
             .cornerRadius(8)
         }
+        .buttonStyle(.plain)  // 確保在 List 中能正確響應點擊
         .disabled(!isEditable)
         .sheet(isPresented: $showingPacePicker) {
             PaceWheelPicker(selectedPace: Binding(
@@ -390,6 +635,24 @@ struct EditableValueView: View {
             ))
             .presentationDetents([.height(320)])
         }
+        .sheet(isPresented: $showingTimePicker) {
+            TimeWheelPicker(selectedTime: Binding(
+                get: {
+                    // 從 "4分鐘" 格式中提取分鐘值
+                    let cleanValue = value.replacingOccurrences(of: "分鐘", with: "")
+                    return Double(cleanValue) ?? 1.0
+                },
+                set: { newValue in
+                    // 格式化為 "4分鐘" 或 "2.5分鐘"
+                    if newValue == floor(newValue) {
+                        onEdit("\(Int(newValue))分鐘")
+                    } else {
+                        onEdit(String(format: "%.1f分鐘", newValue))
+                    }
+                }
+            ))
+            .presentationDetents([.height(320)])
+        }
     }
 }
 
@@ -399,6 +662,7 @@ enum EditValueType {
     case trainingType      // 組合訓練類型選擇
     case pace
     case repeats
+    case time              // 時間選擇（用於時間基準訓練）
     case general
 }
 
@@ -416,14 +680,14 @@ struct IntervalSegmentEditView: View {
     }
 
     private var isStaticRest: Bool {
-        return segment.pace == nil && segment.distanceKm == nil
+        return segment.pace == nil && segment.distanceKm == nil && segment.distanceM == nil
     }
 
     var body: some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
 
@@ -433,7 +697,7 @@ struct IntervalSegmentEditView: View {
 
                     HStack(spacing: 4) {
                         Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
 
                         Toggle("", isOn: Binding(
@@ -450,7 +714,7 @@ struct IntervalSegmentEditView: View {
                 }
             }
 
-            // 配速和距離編輯（非原地休息時顯示）
+            // 配速、距離或時間編輯（非原地休息時顯示）
             if !isStaticRest {
                 HStack(spacing: 8) {
                     if let pace = segment.pace {
@@ -464,7 +728,27 @@ struct IntervalSegmentEditView: View {
                         }
                     }
 
-                    if let distance = segment.distanceKm {
+                    // 優先顯示時間（時間基準訓練），否則顯示距離
+                    if let timeMinutes = segment.timeMinutes {
+                        EditableValueView(
+                            title: NSLocalizedString("edit_schedule.time", comment: "時間"),
+                            value: formatTime(timeMinutes),
+                            isEditable: isEditable,
+                            valueType: .time
+                        ) { newValue in
+                            updateTime(newValue)
+                        }
+                    } else if let distanceM = segment.distanceM {
+                        // 優先顯示 distanceM（公尺），用於新的時間基準訓練
+                        EditableValueView(
+                            title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
+                            value: formatDistanceMeters(distanceM),
+                            isEditable: isEditable,
+                            valueType: .intervalDistance
+                        ) { newValue in
+                            updateIntervalDistance(newValue)
+                        }
+                    } else if let distance = segment.distanceKm {
                         EditableValueView(
                             title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
                             value: formatIntervalDistance(distance),
@@ -482,7 +766,7 @@ struct IntervalSegmentEditView: View {
                 // 原地休息狀態顯示
                 HStack {
                     Text(NSLocalizedString("interval.static_rest", comment: "原地休息"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.gray.opacity(0.15))
@@ -506,16 +790,74 @@ struct IntervalSegmentEditView: View {
         onEdit(updatedSegment)
     }
 
+    private func formatTime(_ minutes: Double) -> String {
+        // 格式化時間顯示，並計算基於配速的約略距離
+        let timeText: String
+        if minutes == floor(minutes) {
+            timeText = "\(Int(minutes))分鐘"
+        } else {
+            timeText = String(format: "%.1f分鐘", minutes)
+        }
+
+        // 如果有配速，計算約略距離（以200m為單位）
+        if let pace = segment.pace, let distanceKm = calculateDistanceFromPace(pace: pace, timeMinutes: minutes) {
+            let meters = Int(distanceKm * 1000)
+            let roundedMeters = (meters / 200) * 200  // 四捨五入到最接近的200m
+            if roundedMeters > 0 {
+                return "\(timeText) (約\(roundedMeters)m)"
+            }
+        }
+
+        return timeText
+    }
+
+    /// 從配速和時間計算距離
+    private func calculateDistanceFromPace(pace: String, timeMinutes: Double) -> Double? {
+        // 解析配速格式 "5:10" -> 5分10秒/公里
+        let components = pace.split(separator: ":").compactMap { Int($0) }
+        guard components.count == 2 else { return nil }
+
+        let paceMinutes = Double(components[0])
+        let paceSeconds = Double(components[1])
+        let paceMinutesPerKm = paceMinutes + paceSeconds / 60.0
+
+        // 計算距離 = 時間 / 配速
+        guard paceMinutesPerKm > 0 else { return nil }
+        return timeMinutes / paceMinutesPerKm
+    }
+
+    private func updateTime(_ timeString: String) {
+        // 從 "4分鐘" 或 "4分鐘 (約800m)" 格式中提取分鐘值
+        var cleanedString = timeString
+        // 移除距離部分（如果存在）
+        if let parenIndex = cleanedString.firstIndex(of: "(") {
+            cleanedString = String(cleanedString[..<parenIndex])
+        }
+        cleanedString = cleanedString.replacingOccurrences(of: "分鐘", with: "").trimmingCharacters(in: .whitespaces)
+
+        if let minutes = Double(cleanedString) {
+            var updatedSegment = segment
+            updatedSegment.timeMinutes = minutes
+            onEdit(updatedSegment)
+        }
+    }
+
     private func toggleStaticRest(_ isStatic: Bool) {
         var updatedSegment = segment
         if isStatic {
             // 切換到原地休息：清除配速和距離
             updatedSegment.pace = nil
             updatedSegment.distanceKm = nil
+            updatedSegment.distanceM = nil
         } else {
             // 切換到跑步恢復：設定預設配速和距離
             updatedSegment.pace = "6:00"
-            updatedSegment.distanceKm = 0.2 // 預設 200m 恢復跑
+            // 優先設定 distanceM（如果原本有 distanceM），否則設定 distanceKm
+            if segment.distanceM != nil {
+                updatedSegment.distanceM = 200.0 // 預設 200m 恢復跑
+            } else {
+                updatedSegment.distanceKm = 0.2 // 預設 200m 恢復跑
+            }
         }
         onEdit(updatedSegment)
     }
@@ -525,75 +867,28 @@ struct IntervalSegmentEditView: View {
         return "\(meters)m"
     }
 
+    private func formatDistanceMeters(_ meters: Double) -> String {
+        return "\(Int(meters))m"
+    }
+
     private func updateIntervalDistance(_ meterString: String) {
-        // 從 "400m" 格式中提取 km 值
+        // 從 "400m" 格式中提取公尺值
         if meterString.hasSuffix("m") {
             let meterValue = meterString.replacingOccurrences(of: "m", with: "")
             if let meters = Double(meterValue) {
-                let km = meters / 1000.0
-                updateDistance(km)
+                var updatedSegment = segment
+
+                // 如果原本是 distanceM，更新 distanceM；否則轉換為 distanceKm
+                if segment.distanceM != nil {
+                    updatedSegment.distanceM = meters
+                } else {
+                    let km = meters / 1000.0
+                    updatedSegment.distanceKm = km
+                }
+
+                onEdit(updatedSegment)
             }
         }
-    }
-}
-
-struct CombinationSegmentEditView: View {
-    let title: String
-    let segment: MutableProgressionSegment
-    let isEditable: Bool
-    let onEdit: (MutableProgressionSegment) -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            // 訓練類型標籤（僅顯示，不可編輯）
-            if let description = segment.description {
-                Text(description)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(6)
-            }
-
-            if let pace = segment.pace {
-                EditableValueView(
-                    title: NSLocalizedString("edit_schedule.pace", comment: "配速"),
-                    value: pace,
-                    isEditable: isEditable,
-                    valueType: .pace
-                ) { newValue in
-                    updatePace(newValue)
-                }
-            }
-
-            if let distance = segment.distanceKm {
-                EditableValueView(
-                    title: NSLocalizedString("edit_schedule.distance", comment: "距離"),
-                    value: String(format: "%.1f", distance),
-                    isEditable: isEditable,
-                    valueType: .distance
-                ) { newValue in
-                    updateDistance(Double(newValue) ?? distance)
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 2)
-    }
-
-    private func updatePace(_ newPace: String) {
-        var updatedSegment = segment
-        updatedSegment.pace = newPace
-        onEdit(updatedSegment)
-    }
-
-    private func updateDistance(_ newDistance: Double) {
-        var updatedSegment = segment
-        updatedSegment.distanceKm = newDistance
-        onEdit(updatedSegment)
     }
 }
 
@@ -604,8 +899,28 @@ struct TrainingEditSheet: View {
     let onSave: (MutableTrainingDay) -> Void
     let viewModel: TrainingPlanViewModel
 
+    // iOS 18 修復：把 @State 放在這裡，避免 TrainingDetailEditor 重複 init 時重置
+    @State private var editedDay: MutableTrainingDay
+
+    init(day: MutableTrainingDay, onSave: @escaping (MutableTrainingDay) -> Void, viewModel: TrainingPlanViewModel) {
+        self.day = day
+        self.onSave = onSave
+        self.viewModel = viewModel
+        self._editedDay = State(initialValue: day)
+        print("🔍 [TrainingEditSheet] init - repeats = \(day.trainingDetails?.repeats ?? -1)")
+    }
+
     var body: some View {
-        TrainingDetailEditor(day: day, onSave: onSave, viewModel: viewModel)
+        // 移除高頻日誌：body 每次重新評估都會觸發
+        // iOS 18 修復：使用 TrainingEditSheetV2
+        TrainingEditSheetV2(
+            day: editedDay,
+            onSave: { updatedDay in
+                print("🔍 [TrainingEditSheet] onSave 回調 - repeats = \(updatedDay.trainingDetails?.repeats ?? -1)")
+                onSave(updatedDay)
+            },
+            paceHelper: PaceCalculationHelper(vdot: viewModel.currentVDOT)
+        )
     }
 }
 
@@ -676,7 +991,7 @@ struct PaceWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_pace", comment: "選擇配速"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.pace", comment: "配速"), selection: $selectedIndex) {
@@ -696,14 +1011,14 @@ struct PaceWheelPicker: View {
 
                         HStack {
                             Image(systemName: "clock")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Text(NSLocalizedString("edit_schedule.estimated_time", comment: "預估時間"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(estimatedTime(for: distance, pace: paceOptions[selectedIndex]))
-                                .font(.title3)
+                                .font(AppFont.title3())
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                         }
@@ -711,7 +1026,7 @@ struct PaceWheelPicker: View {
                         .padding(.vertical, 8)
 
                         Text(String(format: NSLocalizedString("edit_schedule.for_distance", comment: "%.1f 公里"), distance))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                     .padding(.bottom, 8)
@@ -786,7 +1101,7 @@ struct IntervalDistanceWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_interval_distance", comment: "選擇間歇距離"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.distance", comment: "距離"), selection: $selectedIndex) {
@@ -855,7 +1170,7 @@ struct CombinationTrainingTypeWheelPicker: View {
         NavigationView {
             VStack {
                 Text(NSLocalizedString("edit_schedule.select_training_type", comment: "選擇訓練類型"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.training_type", comment: "訓練類型"), selection: $selectedIndex) {
@@ -923,7 +1238,7 @@ struct DistanceWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_distance", comment: "選擇距離"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.distance", comment: "距離"), selection: $selectedIndex) {
@@ -985,7 +1300,7 @@ struct RepeatsWheelPicker: View {
         NavigationView {
             VStack(spacing: 0) {
                 Text(NSLocalizedString("edit_schedule.select_repeats", comment: "選擇重複次數"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .padding()
 
                 Picker(NSLocalizedString("edit_schedule.repeats", comment: "重複次數"), selection: $selectedIndex) {
@@ -1024,6 +1339,83 @@ struct RepeatsWheelPicker: View {
             } else {
                 // 預設為 4 次
                 selectedIndex = 3
+            }
+        }
+    }
+}
+
+/// 時間選擇器（用於時間基準訓練）
+struct TimeWheelPicker: View {
+    @Binding var selectedTime: Double
+    @Environment(\.dismiss) private var dismiss
+
+    // 時間選項：0.5 到 10 分鐘，以 0.5 分鐘為單位
+    private let timeOptions: [Double] = {
+        var options: [Double] = []
+        var time = 0.5
+        while time <= 10.0 {
+            options.append(time)
+            time += 0.5
+        }
+        return options
+    }()
+
+    @State private var selectedIndex: Int = 0
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Text(NSLocalizedString("edit_schedule.select_time", comment: "選擇時間"))
+                    .font(AppFont.headline())
+                    .padding()
+
+                Picker(NSLocalizedString("edit_schedule.time", comment: "時間"), selection: $selectedIndex) {
+                    ForEach(timeOptions.indices, id: \.self) { index in
+                        let time = timeOptions[index]
+                        if time == floor(time) {
+                            Text("\(Int(time))分鐘")
+                                .tag(index)
+                        } else {
+                            Text(String(format: "%.1f分鐘", time))
+                                .tag(index)
+                        }
+                    }
+                }
+                .pickerStyle(WheelPickerStyle())
+                .frame(height: 180)
+
+                Spacer()
+            }
+            .navigationTitle(NSLocalizedString("edit_schedule.time_selection", comment: "時間選擇"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(NSLocalizedString("edit_schedule.cancel", comment: "取消")) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("edit_schedule.confirm", comment: "確定")) {
+                        selectedTime = timeOptions[selectedIndex]
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .onAppear {
+            // 設定初始選擇
+            if let currentIndex = timeOptions.firstIndex(of: selectedTime) {
+                selectedIndex = currentIndex
+            } else {
+                // 找最接近的值
+                if let nearestIndex = timeOptions.enumerated().min(by: { abs($0.element - selectedTime) < abs($1.element - selectedTime) })?.offset {
+                    selectedIndex = nearestIndex
+                } else {
+                    // 預設為 4 分鐘（index 7: 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0）
+                    selectedIndex = 7
+                }
             }
         }
     }

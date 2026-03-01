@@ -34,16 +34,16 @@ struct OldCircularProgressView: View {
             // Text in the center
             VStack(spacing: 2) {
                 Text("\(currentWeek)")
-                    .font(.title)
+                    .font(AppFont.title1())
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                 
                 Text("/ \(totalWeeks)")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.gray)
                 
                 Text(NSLocalizedString("circular_progress.week", comment: "Week"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.gray)
             }
         }

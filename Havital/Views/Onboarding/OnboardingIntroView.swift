@@ -2,13 +2,11 @@
 import SwiftUI
 
 struct OnboardingIntroView: View {
-    @State private var navigateToNextStep = false
+    @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
     var body: some View {
-        NavigationView { // 這個 NavigationView 將是 onboarding 流程的起點
-            ZStack {
-                // 內容區
-                ScrollView {
+        // 移除 NavigationView - 由 OnboardingContainerView 的 NavigationStack 管理
+        ScrollView {
                     VStack(spacing: 20) {
                         Spacer()
                         
@@ -30,11 +28,11 @@ struct OnboardingIntroView: View {
                         // 主要內容區塊
                         VStack(alignment: .leading, spacing: 24) {
                             Text(NSLocalizedString("onboarding.ready_to_start", comment: "Ready to start your running journey?"))
-                                .font(.body)
+                                .font(AppFont.body())
                                 .fixedSize(horizontal: false, vertical: true)
                             
                             Text(NSLocalizedString("onboarding.training_focus", comment: "Our training plans focus on:"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                             
                             // 特色項目
                             VStack(alignment: .leading, spacing: 16) {
@@ -59,7 +57,7 @@ struct OnboardingIntroView: View {
                         
                         // 底部提示文字
                         Text(NSLocalizedString("onboarding.setup_guide", comment: "Setup guide text"))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
@@ -69,51 +67,41 @@ struct OnboardingIntroView: View {
                         
                         // 開始設定按鈕
                         Button(action: {
-                            navigateToNextStep = true
+                            coordinator.navigate(to: .dataSource)
                         }) {
                             Text(NSLocalizedString("onboarding.start_setup", comment: "Start Setup"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.accentColor)
                                 .cornerRadius(10)
                         }
+                        .accessibilityIdentifier("OnboardingStartButton")
                         .padding(.horizontal, 40)
                         .padding(.bottom, 30)
                         .padding(.top, 10)
                     }
-                    .padding()
+                    .padding(.top, 8)
                 }
-                // 隱藏的 NavigationLink
-                NavigationLink(
-                    destination: DataSourceSelectionView()
-                        .navigationBarBackButtonHidden(true),
-                    isActive: $navigateToNextStep
-                ) {
-                    EmptyView()
-                }
-            }
-            .navigationBarHidden(true) // 隱藏此頁的導航欄，因為它是流程的起點
-            .navigationBarTitle("", displayMode: .inline)
-        }
-        .navigationViewStyle(StackNavigationViewStyle()) // 確保是堆疊式導航
+        .navigationBarHidden(true)
+        .navigationBarTitle("", displayMode: .inline)
     }
 
     // 輔助視圖：創建統一風格的特色項目行
     private func featureRow(icon: String, title: String, description: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppFont.title3())
                 .foregroundColor(.accentColor)
                 .frame(width: 24, alignment: .leading)
                 .padding(.top, 2)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text("**\(title)**")
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                 Text(description)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

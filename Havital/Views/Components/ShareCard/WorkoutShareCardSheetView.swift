@@ -17,10 +17,10 @@ struct WorkoutShareCardSheetView: View {
     @State private var shareImage: UIImage?  // ShareLink 使用的圖片
     @State private var fullWorkout: WorkoutV2?  // 完整的 workout 數據（包含 shareCardContent）
 
-    // 圖片變換狀態
-    @State private var photoScale: CGFloat = 1.0
+    // 圖片變換狀態（預設 1.05 倍縮放，確保滿版避免白邊）
+    @State private var photoScale: CGFloat = 1.05
     @State private var photoOffset: CGSize = .zero
-    @State private var lastScale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.05
     @State private var lastOffset: CGSize = .zero
 
     // 文字編輯狀態
@@ -30,6 +30,7 @@ struct WorkoutShareCardSheetView: View {
     @State private var editingEncouragement: String = ""
     @State private var customTitle: String?
     @State private var customEncouragement: String?
+    @State private var isTitleVisible: Bool = true  // 控制標題顯示/隱藏
 
     // 文字疊加層管理
     @State private var textOverlays: [TextOverlay] = []
@@ -119,9 +120,9 @@ struct WorkoutShareCardSheetView: View {
         contentWithCardDataHandlers
             .onChange(of: selectedPhoto) { _, newPhoto in
                 if let photo = newPhoto {
-                    photoScale = 1.0
+                    photoScale = 1.05
                     photoOffset = .zero
-                    lastScale = 1.0
+                    lastScale = 1.05
                     lastOffset = .zero
 
                     Task {
@@ -134,12 +135,8 @@ struct WorkoutShareCardSheetView: View {
                     }
                 }
             }
-            .onChange(of: photoScale) { _, _ in
-                Task { await updateShareImage() }
-            }
-            .onChange(of: photoOffset) { _, _ in
-                Task { await updateShareImage() }
-            }
+            // ⚠️ 移除 photoScale 和 photoOffset 的即時監聽
+            // 改為在手勢結束時才更新分享圖片（見 gesture.onEnded）
     }
 
     private var contentWithCardDataHandlers: some View {
@@ -271,20 +268,9 @@ struct WorkoutShareCardSheetView: View {
     private var previewArea: some View {
         GeometryReader { geometry in
             if let cardData = viewModel.cardData {
-                ScrollView {
-                    let transformedData = WorkoutShareCardData(
-                        workout: cardData.workout,
-                        workoutDetail: cardData.workoutDetail,
-                        userPhoto: cardData.userPhoto,
-                        layoutMode: cardData.layoutMode,
-                        colorScheme: cardData.colorScheme,
-                        photoScale: photoScale,
-                        photoOffset: photoOffset,
-                        customAchievementTitle: customTitle,
-                        customEncouragementText: customEncouragement,
-                        textOverlays: textOverlays
-                    )
+                let transformedData = createTransformedData(from: cardData)
 
+                ScrollView {
                     VStack(spacing: 16) {
                         WorkoutShareCardView(
                             data: transformedData,
@@ -312,16 +298,24 @@ struct WorkoutShareCardSheetView: View {
                                 selectedPhoto != nil ?
                                 MagnificationGesture()
                                     .onChanged { value in
+                                        // 拖動過程中只更新 UI 顯示，不生成分享圖片
                                         photoScale = lastScale * value
                                     }
                                     .onEnded { value in
                                         lastScale = photoScale
                                         photoScale = min(max(photoScale, 0.5), 3.0)
                                         lastScale = photoScale
+
+                                        // 手勢結束後延遲生成分享圖片
+                                        Task { @MainActor in
+                                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 秒
+                                            await updateShareImage()
+                                        }
                                     }
                                     .simultaneously(with:
                                         DragGesture()
                                             .onChanged { value in
+                                                // 拖動過程中只更新 UI 顯示，不生成分享圖片
                                                 photoOffset = CGSize(
                                                     width: lastOffset.width + value.translation.width / previewScale(for: geometry.size),
                                                     height: lastOffset.height + value.translation.height / previewScale(for: geometry.size)
@@ -329,6 +323,12 @@ struct WorkoutShareCardSheetView: View {
                                             }
                                             .onEnded { value in
                                                 lastOffset = photoOffset
+
+                                                // 手勢結束後延遲生成分享圖片
+                                                Task { @MainActor in
+                                                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 秒
+                                                    await updateShareImage()
+                                                }
                                             }
                                     )
                                 : nil
@@ -336,7 +336,7 @@ struct WorkoutShareCardSheetView: View {
 
                         if selectedPhoto != nil {
                             Text("雙指縮放、拖曳調整圖片位置")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -348,7 +348,7 @@ struct WorkoutShareCardSheetView: View {
                     ProgressView()
                         .scaleEffect(1.5)
                     Text("正在生成分享卡...")
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -370,11 +370,11 @@ struct WorkoutShareCardSheetView: View {
                     }) {
                         HStack {
                             Text("已添加的文字 (\(textOverlays.count))")
-                                .font(.body)
+                                .font(AppFont.body())
                                 .foregroundColor(.secondary)
                             Spacer()
                             Image(systemName: showTextOverlayList ? "chevron.down" : "chevron.up")
-                                .font(.body)
+                                .font(AppFont.body())
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 16)
@@ -388,14 +388,14 @@ struct WorkoutShareCardSheetView: View {
                                 ForEach(textOverlays) { overlay in
                                     HStack(spacing: 8) {
                                         Text(overlay.text)
-                                            .font(.body)
+                                            .font(AppFont.body())
                                             .lineLimit(1)
 
                                         Button(action: {
                                             editTextOverlay(overlay)
                                         }) {
                                             Image(systemName: "pencil")
-                                                .font(.system(size: 16))
+                                                .font(AppFont.body())
                                                 .foregroundColor(.blue)
                                         }
 
@@ -403,7 +403,7 @@ struct WorkoutShareCardSheetView: View {
                                             deleteTextOverlay(overlay.id)
                                         }) {
                                             Image(systemName: "trash")
-                                                .font(.system(size: 16))
+                                                .font(AppFont.body())
                                                 .foregroundColor(.red)
                                         }
                                     }
@@ -500,16 +500,33 @@ struct WorkoutShareCardSheetView: View {
                         }
                     )
 
+                    // 顯示/隱藏標題按鈕
+                    ToolbarButton(
+                        icon: isTitleVisible ? "textformat" : "textformat.alt",
+                        label: isTitleVisible ? "隱藏標題" : "顯示標題",
+                        action: {
+                            withAnimation(.spring()) {
+                                isTitleVisible.toggle()
+                                // 如果隱藏標題，設置 customTitle 為空字串
+                                // 如果顯示標題，設置 customTitle 為 nil（使用預設值）
+                                customTitle = isTitleVisible ? nil : ""
+                            }
+                            Task {
+                                await updateShareImage()
+                            }
+                        }
+                    )
+
                     // 重置圖片按鈕（僅在有照片且有變換時顯示）
-                    if selectedPhoto != nil && (photoScale != 1.0 || photoOffset != .zero) {
+                    if selectedPhoto != nil && (photoScale != 1.05 || photoOffset != .zero) {
                         ToolbarButton(
                             icon: "arrow.counterclockwise",
                             label: "重置",
                             action: {
                                 withAnimation(.spring()) {
-                                    photoScale = 1.0
+                                    photoScale = 1.05
                                     photoOffset = .zero
-                                    lastScale = 1.0
+                                    lastScale = 1.05
                                     lastOffset = .zero
                                 }
                             }
@@ -525,6 +542,23 @@ struct WorkoutShareCardSheetView: View {
     }
 
     // MARK: - Helper Methods
+
+    private func createTransformedData(from cardData: WorkoutShareCardData) -> WorkoutShareCardData {
+        var transformedData = WorkoutShareCardData(
+            workout: cardData.workout,
+            workoutDetail: cardData.workoutDetail,
+            userPhoto: cardData.userPhoto,
+            layoutMode: cardData.layoutMode,
+            colorScheme: cardData.colorScheme,
+            photoScale: photoScale,
+            photoOffset: photoOffset,
+            customAchievementTitle: customTitle,
+            customEncouragementText: customEncouragement,
+            textOverlays: textOverlays
+        )
+        transformedData.cachedPhotoAverageColor = cardData.cachedPhotoAverageColor
+        return transformedData
+    }
 
     private func previewWidth(for size: CGSize) -> CGFloat {
         let maxWidth = size.width - 32
@@ -581,19 +615,7 @@ struct WorkoutShareCardSheetView: View {
     private func updateShareImage() async {
         guard let cardData = viewModel.cardData else { return }
 
-        let transformedData = WorkoutShareCardData(
-            workout: cardData.workout,
-            workoutDetail: cardData.workoutDetail,
-            userPhoto: cardData.userPhoto,
-            layoutMode: cardData.layoutMode,
-            colorScheme: cardData.colorScheme,
-            photoScale: photoScale,
-            photoOffset: photoOffset,
-            customAchievementTitle: customTitle,
-            customEncouragementText: customEncouragement,
-            textOverlays: textOverlays
-        )
-
+        let transformedData = createTransformedData(from: cardData)
         let shareCardView = WorkoutShareCardView(data: transformedData, size: selectedSize)
 
         if let image = await viewModel.exportAsImage(size: selectedSize, view: AnyView(shareCardView)) {

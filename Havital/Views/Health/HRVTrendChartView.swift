@@ -3,8 +3,7 @@ import Charts
 
 struct HRVTrendChartView: View {
     @StateObject private var viewModel: HRVChartViewModel
-    @StateObject private var userPreferenceManager = UserPreferenceManager.shared
-    
+
     init() {
         _viewModel = StateObject(wrappedValue: HRVChartViewModel(healthKitManager: HealthKitManager()))
     }
@@ -21,7 +20,7 @@ struct HRVTrendChartView: View {
                     Button("診斷 HRV 問題") {
                         Task { await viewModel.fetchDiagnostics() }
                     }
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.white)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
@@ -31,7 +30,7 @@ struct HRVTrendChartView: View {
                     // 顯示診斷結果
                     if let diag = viewModel.diagnosticsText {
                         Text(diag)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .padding()
                             .multilineTextAlignment(.leading)
                     }
@@ -62,7 +61,7 @@ struct HRVTrendChartView: View {
                             if let date = value.as(Date.self) {
                                 AxisValueLabel {
                                     Text(formatDate(date))
-                                        .font(.caption)
+                                        .font(AppFont.caption())
                                 }
                                 AxisGridLine()
                                 AxisTick()

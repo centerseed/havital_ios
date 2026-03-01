@@ -6,18 +6,46 @@ struct WeekSelectorSheet: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoadingWeeklySummaries {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(viewModel.weeklySummaries, id: \.weekIndex) { item in
+            contentView
+                .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            isPresented = false
+                        } label: {
+                            HStack {
+                                Image(systemName: "xmark")
+                                Text(L10n.WeekSelector.close.localized)
+                            }
+                            .foregroundColor(.blue)
+                        }
+                    }
+                }
+        }
+        .task {
+            await viewModel.fetchWeeklySummaries()
+        }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if viewModel.isLoadingWeeklySummaries {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            listView
+        }
+    }
+
+    private var listView: some View {
+        List(viewModel.weeklySummaries, id: \.weekIndex) { item in
                         HStack {
                             // 左側：週次與完成率
                             Text(L10n.WeekSelector.weekNumber.localized(with: item.weekIndex))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                             // 顯示完成率（若有）
                             if let percent = item.completionPercentage {
@@ -45,8 +73,13 @@ struct WeekSelectorSheet: View {
                             HStack(spacing: 8) {
                                 if item.weekSummary != nil {
                                     Button {
-                                        Task { await viewModel.fetchWeeklySummary(weekNumber: item.weekIndex) }
-                                        isPresented = false
+                                        Task {
+                                            await viewModel.fetchWeeklySummary(weekNumber: item.weekIndex)
+                                            // ✅ 延遲關閉 sheet，確保週回顧 sheet 可以正常顯示
+                                            // SwiftUI 限制：同一時間只能顯示一個 sheet
+                                            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒
+                                            isPresented = false
+                                        }.tracked(from: "WeekSelectorSheet: fetchWeeklySummary")
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "doc.text.magnifyingglass")
@@ -68,10 +101,11 @@ struct WeekSelectorSheet: View {
                                 if item.weekPlan != nil {
                                     Button {
                                         Task {
-                                            viewModel.selectedWeek = item.weekIndex
+                                            // ✅ 直接調用 fetchWeekPlan,它內部會處理 selectedWeek 和 currentWeek 的更新
                                             await viewModel.fetchWeekPlan(week: item.weekIndex)
+                                            // ✅ 等待課表載入完成後再關閉 sheet
                                             isPresented = false
-                                        }
+                                        }.tracked(from: "WeekSelectorSheet: fetchWeekPlan")
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "calendar")
@@ -105,27 +139,6 @@ struct WeekSelectorSheet: View {
                     }
                     .listStyle(PlainListStyle())
                     .padding(.horizontal, 6)
-                }
-            }
-            .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        isPresented = false
-                    } label: {
-                        HStack {
-                            Image(systemName: "xmark")
-                            Text(L10n.WeekSelector.close.localized)
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-            }
-        }
-        .task {
-            await viewModel.fetchWeeklySummaries()
-        }
     }
 }
 

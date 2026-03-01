@@ -12,11 +12,11 @@ struct WorkoutRowView: View {
             HStack {
                 HStack(spacing: 4) {
                     Text(workout.workoutActivityType.name)
-                        .font(.headline)
+                        .font(AppFont.headline())
                     
                     if isToday(date: workout.startDate) {
                         Text(NSLocalizedString("workout_row.today", comment: "Today"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -33,13 +33,13 @@ struct WorkoutRowView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                         Text(NSLocalizedString("workout_row.synced", comment: "Synced"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.green)
                     } else {
                         Image(systemName: "arrow.up.circle")
                             .foregroundColor(.orange)
                         Text(NSLocalizedString("workout_row.not_synced", comment: "Not Synced"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.orange)
                     }
                 }
@@ -50,17 +50,17 @@ struct WorkoutRowView: View {
                 // 距離
                 VStack(alignment: .leading) {
                     Text(NSLocalizedString("workout_row.distance", comment: "Distance"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     
-                    if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                    if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()) {
                         Text(distance >= 1000 ?
                              String(format: "%.2f km", distance / 1000) :
                              String(format: "%.0f m", distance))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                     } else {
                         Text("-")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -70,10 +70,10 @@ struct WorkoutRowView: View {
                 // 時間
                 VStack(alignment: .leading) {
                     Text(NSLocalizedString("workout_row.time", comment: "Time"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     Text(WorkoutUtils.formatDuration(workout.duration))
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                 }
                 
                 Spacer()
@@ -81,15 +81,15 @@ struct WorkoutRowView: View {
                 // 卡路里
                 VStack(alignment: .leading) {
                     Text(NSLocalizedString("workout_row.calories", comment: "Calories"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     
-                    if let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) {
+                    if let calories = workout.totalEnergyBurned?.safeDoubleValue(for: .kilocalorie()) {
                         Text(String(format: "%.0f kcal", calories))
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                     } else {
                         Text("-")
-                            .font(.subheadline)
+                            .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -98,7 +98,7 @@ struct WorkoutRowView: View {
             // 日期
             HStack {
                 Text(formattedDate(workout.startDate))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Spacer()
             }

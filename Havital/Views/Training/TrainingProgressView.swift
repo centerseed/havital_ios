@@ -1,11 +1,15 @@
+// [V1 DEPRECATED] V1 訓練進度視圖，未來將隨 V1 移除。
+// V2 對應: Features/TrainingPlanV2/Presentation/Views/TrainingProgressViewV2.swift
 import SwiftUI
 
 struct TrainingProgressView: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @State private var selectedStageIndex: Int? = nil
     @State private var isLoadingWeeklySummaries = false
-    
+    @State private var selectedWeekForSummary: Int? = nil  // ✅ 保存當前查看週回顧的週數
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -23,11 +27,11 @@ struct TrainingProgressView: View {
                 }
                 .padding()
             }
-            .navigationTitle(NSLocalizedString("training.progress", comment: "Training Progress"))
+            .navigationTitle(L10n.Training.progress.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("common.done", comment: "Done")) {
+                    Button(L10n.Common.done.localized) {
                         dismiss()
                     }
                 }
@@ -44,23 +48,55 @@ struct TrainingProgressView: View {
             // 自動展開當前週期對應的階段
             expandCurrentStage()
         }
+        .sheet(isPresented: viewModel.showWeeklySummary) {
+            // ✅ 在 TrainingProgressView 內部顯示週回顧 sheet
+            // 注意:這裡不傳 onGenerateNextWeek,所以不會顯示"產生下週課表"按鈕
+            if let summary = viewModel.weeklySummary {
+                NavigationView {
+                    WeeklySummaryView(
+                        summary: summary,
+                        weekNumber: selectedWeekForSummary,  // ✅ 使用保存的週數
+                        isVisible: viewModel.showWeeklySummary,
+                        onGenerateNextWeek: nil,  // ✅ 不顯示產生下週課表按鈕
+                        onSetNewGoal: nil
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(L10n.Common.close.localized) {
+                                viewModel.showWeeklySummary.wrappedValue = false
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    
+
+    // 檢查訓練是否完成
+    private var isTrainingCompleted: Bool {
+        viewModel.planStatus == .completed ||
+        viewModel.planStatusResponse?.nextAction == .trainingCompleted
+    }
+
     // 當前訓練進度卡片
     private var currentTrainingStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let plan = viewModel.weeklyPlan, let currentWeek = viewModel.calculateCurrentTrainingWeek() {
+            // 使用 overview 的 totalWeeks 作為主要來源，weeklyPlan 作為備用
+            let totalWeeks = viewModel.trainingOverview?.totalWeeks ?? viewModel.weeklyPlan?.totalWeeks ?? 0
+            let currentWeek = viewModel.calculateCurrentTrainingWeek()
+
+            if totalWeeks > 0 {
                 HStack {
-                    Text(NSLocalizedString("training.current_progress", comment: "Current Progress"))
-                        .font(.headline)
-                    
+                    Text(L10n.Training.currentProgress.localized)
+                        .font(AppFont.headline())
+
                     Spacer()
-                    
-                    Text(String(format: NSLocalizedString("training.current_week_of_total", comment: "Week %d / Total %d weeks"), currentWeek, viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks))
-                        .font(.subheadline)
+
+                    Text(L10n.Training.currentWeekOfTotal.localized(with: currentWeek, totalWeeks))
+                        .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
-                
+
                 // 進度條
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
@@ -68,8 +104,9 @@ struct TrainingProgressView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.gray.opacity(0.3))
                             .frame(height: 12)
-                        
-                        // 完成進度
+
+                        // 完成進度（限制最大為 100%）
+                        let progress = min(Double(currentWeek) / Double(totalWeeks), 1.0)
                         RoundedRectangle(cornerRadius: 8)
                             .fill(
                                 LinearGradient(
@@ -78,33 +115,56 @@ struct TrainingProgressView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(geometry.size.width * CGFloat(Double(currentWeek) / Double(viewModel.trainingOverview?.totalWeeks ?? plan.totalWeeks)), 0), height: 12)
+                            .frame(width: max(geometry.size.width * CGFloat(progress), 0), height: 12)
                     }
                 }
                 .frame(height: 12)
-                
-                // 目前訓練階段
+
+                // 目前訓練階段（訓練完成時可能找不到當前階段）
                 if let overview = viewModel.trainingOverview,
                    let currentStage = getCurrentStage(from: overview, currentWeek: currentWeek) {
                     HStack(alignment: .center, spacing: 12) {
                         Circle()
-                            .fill(getStageColor(stageIndex: currentStage.index))
+                            .fill(getStageColor(stageId: currentStage.stageId))
                             .frame(width: 12, height: 12)
-                        
-                        Text(String(format: NSLocalizedString("training.current_stage", comment: "Current Stage: %@"), currentStage.stageName))
-                            .font(.subheadline)
+
+                        Text(L10n.Training.currentStage.localized(with: currentStage.stageName))
+                            .font(AppFont.bodySmall())
                             .fontWeight(.medium)
-                        
+
                         Spacer()
-                        
-                        Text(String(format: NSLocalizedString("training.week_range", comment: "Week %d-%d"), currentStage.weekStart, currentStage.weekEnd))
-                            .font(.caption)
+
+                        Text(L10n.Training.weekRange.localized(with: currentStage.weekStart, currentStage.weekEnd))
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
+
+                // 🆕 訓練完成時顯示「設定新目標」按鈕
+                if isTrainingCompleted {
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    Button(action: {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            authViewModel.startReonboarding()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "target")
+                            Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                }
             } else {
-                Text(NSLocalizedString("training.cannot_get_progress", comment: "Unable to get current training progress"))
-                    .font(.body)
+                Text(L10n.Training.cannotGetProgress.localized)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
             }
         }
@@ -116,24 +176,24 @@ struct TrainingProgressView: View {
     // 目標賽事卡片
     private func targetRaceCard(overview: TrainingPlanOverview) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(NSLocalizedString("training.target_race", comment: "Target Race"))
-                .font(.headline)
+            Text(L10n.Training.targetRace.localized)
+                .font(AppFont.headline())
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(overview.trainingPlanName)
-                    .font(.title3)
+                    .font(AppFont.title3())
                     .fontWeight(.semibold)
                 
                 // 分隔線
                 Divider()
                 
-                Text(NSLocalizedString("training.race_assessment", comment: "Race Assessment"))
-                    .font(.subheadline)
+                Text(L10n.Training.raceAssessment.localized)
+                    .font(AppFont.bodySmall())
                     .fontWeight(.medium)
                     .padding(.top, 4)
                 
                 Text(overview.targetEvaluate)
-                    .font(.subheadline)
+                    .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
             }
         }
@@ -145,11 +205,11 @@ struct TrainingProgressView: View {
     // 訓練階段區塊
     private var trainingStagesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(NSLocalizedString("training.training_stages", comment: "Training Stages"))
-                .font(.headline)
+            Text(L10n.Training.trainingStages.localized)
+                .font(AppFont.headline())
             
-            if let overview = viewModel.trainingOverview,
-               let currentWeek = viewModel.calculateCurrentTrainingWeek() {
+            if let overview = viewModel.trainingOverview {
+                let currentWeek = viewModel.calculateCurrentTrainingWeek()
                 ForEach(overview.trainingStageDescription.indices, id: \.self) { index in
                     let stage = overview.trainingStageDescription[index]
                     let isCurrentStage = currentWeek >= stage.weekStart && currentWeek <= (stage.weekEnd ?? stage.weekStart)
@@ -157,8 +217,8 @@ struct TrainingProgressView: View {
                     stageSection(stage: stage, index: index, isCurrentStage: isCurrentStage)
                 }
             } else {
-                Text(NSLocalizedString("training.cannot_get_stages", comment: "Unable to get training stage information"))
-                    .font(.body)
+                Text(L10n.Training.cannotGetStages.localized)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
             }
         }
@@ -177,27 +237,27 @@ struct TrainingProgressView: View {
             } label: {
                 HStack {
                     Circle()
-                        .fill(getStageColor(stageIndex: index))
+                        .fill(getStageColor(stageId: stage.stageId))
                         .frame(width: 16, height: 16)
                     
                     Text(stage.stageName)
-                        .font(.subheadline)
+                        .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
                         .foregroundColor(isCurrentStage ? .primary : .secondary)
                     
                     Spacer()
                     
-                    Text(String(format: NSLocalizedString("training.week_range", comment: "Week %d-%d"), stage.weekStart, stage.weekEnd ?? stage.weekStart))
-                        .font(.caption)
+                    Text(L10n.Training.weekRange.localized(with: stage.weekStart, stage.weekEnd ?? stage.weekStart))
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     
                     Image(systemName: selectedStageIndex == index ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 12)
                 .padding(.horizontal, 16)
-                .background(isCurrentStage ? getStageColor(stageIndex: index).opacity(0.1) : Color.clear)
+                .background(isCurrentStage ? getStageColor(stageId: stage.stageId).opacity(0.1) : Color.clear)
                 .cornerRadius(8)
             }
             .buttonStyle(PlainButtonStyle())
@@ -207,7 +267,7 @@ struct TrainingProgressView: View {
                 VStack(spacing: 4) {
                     // 階段描述
                     Text(stage.stageDescription)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -226,7 +286,7 @@ struct TrainingProgressView: View {
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isCurrentStage ? getStageColor(stageIndex: index) : Color.clear, lineWidth: 1)
+                .stroke(isCurrentStage ? getStageColor(stageId: stage.stageId) : Color.clear, lineWidth: 1)
         )
         .padding(.bottom, 8)
     }
@@ -258,8 +318,8 @@ struct TrainingProgressView: View {
         return VStack(spacing: 8) {
             HStack {
                 // 週數指示
-                Text(String(format: NSLocalizedString("training.week_number", comment: "Week %d"), weekNumber))
-                    .font(.subheadline)
+                Text(L10n.Training.weekNumber.localized(with: weekNumber))
+                    .font(AppFont.bodySmall())
                     .fontWeight(isCurrentWeek ? .bold : .regular)
                     .foregroundColor(isCurrentWeek ? .primary : .secondary)
                 
@@ -292,9 +352,11 @@ struct TrainingProgressView: View {
                     // 週回顧按鈕
                     if hasSummary {
                         Button {
-                            Task { 
-                                await viewModel.fetchWeeklySummary(weekNumber: weekNumber) 
-                                dismiss() // 關閉當前視圖以顯示回顧
+                            Task {
+                                Logger.debug("[TrainingProgressView] 🔵 Review 按鈕被點擊 - weekNumber: \(weekNumber)")
+                                selectedWeekForSummary = weekNumber  // ✅ 保存週數
+                                await viewModel.fetchWeeklySummary(weekNumber: weekNumber)
+                                Logger.debug("[TrainingProgressView] ✅ fetchWeeklySummary 完成, showWeeklySummary: \(viewModel.showWeeklySummary)")
                             }
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
@@ -318,8 +380,10 @@ struct TrainingProgressView: View {
                     if hasWeekPlan {
                         Button {
                             Task {
-                                viewModel.selectedWeek = weekNumber
+                                // ✅ 直接調用 fetchWeekPlan,它內部會處理 selectedWeek 和 currentWeek 的更新
+                                Logger.debug("[TrainingProgressView] 🔘 Schedule 按鈕被點擊 - weekNumber: \(weekNumber)")
                                 await viewModel.fetchWeekPlan(week: weekNumber)
+                                Logger.debug("[TrainingProgressView] ✅ fetchWeekPlan 完成,準備關閉視圖")
                                 dismiss() // 關閉當前視圖以顯示課表
                             }
                         } label: {
@@ -348,7 +412,7 @@ struct TrainingProgressView: View {
                             HStack(alignment: .center, spacing: 4) {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                Text("載入中...")
+                                Text(L10n.Common.loading.localized)
                                     .font(.footnote)
                                     .fontWeight(.medium)
                             }
@@ -369,7 +433,7 @@ struct TrainingProgressView: View {
                                 HStack(alignment: .center, spacing: 4) {
                                     Image(systemName: "arrow.clockwise")
                                         .font(.system(size: 12, weight: .medium))
-                                    Text("重試")
+                                    Text(L10n.Common.retry.localized)
                                         .font(.footnote)
                                         .fontWeight(.medium)
                                 }
@@ -381,10 +445,11 @@ struct TrainingProgressView: View {
                                 .cornerRadius(8)
                             }
                             .buttonStyle(PlainButtonStyle())
-                        } else if viewModel.showWeeklySummary && viewModel.weeklySummary != nil {
+                        } else if viewModel.showWeeklySummary.wrappedValue && viewModel.weeklySummary != nil {
                             // 已有週回顧時顯示產生課表按鈕
                             Button {
                                 Task {
+                                    // ✅ 產生課表會自動設置 selectedWeek，不需要手動設置
                                     await viewModel.generateNextWeekPlan(targetWeek: weekNumber)
                                 }
                             } label: {
@@ -414,7 +479,7 @@ struct TrainingProgressView: View {
                                 HStack(alignment: .center, spacing: 4) {
                                     Image(systemName: "doc.text.magnifyingglass")
                                         .font(.system(size: 12, weight: .medium))
-                                    Text(NSLocalizedString("training.get_weekly_review", comment: "Get Weekly Review"))
+                                    Text(L10n.Training.getWeeklyReview.localized)
                                         .font(.footnote)
                                         .fontWeight(.medium)
                                 }
@@ -437,28 +502,35 @@ struct TrainingProgressView: View {
     }
     
     // 獲取當前階段
-    private func getCurrentStage(from overview: TrainingPlanOverview, currentWeek: Int) -> (index: Int, stageName: String, weekStart: Int, weekEnd: Int)? {
-        for (index, stage) in overview.trainingStageDescription.enumerated() {
+    private func getCurrentStage(from overview: TrainingPlanOverview, currentWeek: Int) -> (stageId: String, stageName: String, weekStart: Int, weekEnd: Int)? {
+        for stage in overview.trainingStageDescription {
             let endWeek = stage.weekEnd ?? stage.weekStart
             if currentWeek >= stage.weekStart && currentWeek <= endWeek {
-                return (index, stage.stageName, stage.weekStart, endWeek)
+                return (stage.stageId, stage.stageName, stage.weekStart, endWeek)
             }
         }
         return nil
     }
-    
+
     // 獲取階段顏色
-    private func getStageColor(stageIndex: Int) -> Color {
-        let colors: [Color] = [.blue, .green, .orange, .purple, .pink]
-        return colors[stageIndex % colors.count]
+    private func getStageColor(stageId: String) -> Color {
+        switch stageId {
+        case "conversion": return .teal
+        case "base":       return .blue
+        case "build":      return .green
+        case "peak":       return .orange
+        case "taper":      return .purple
+        default:           return .gray
+        }
     }
 
     // 自動展開當前週期對應的階段
     private func expandCurrentStage() {
-        guard let overview = viewModel.trainingOverview,
-              let currentWeek = viewModel.calculateCurrentTrainingWeek() else {
+        guard let overview = viewModel.trainingOverview else {
             return
         }
+        let currentWeek = viewModel.calculateCurrentTrainingWeek()
+
 
         // 找到當前週期對應的階段 index
         for (index, stage) in overview.trainingStageDescription.enumerated() {
@@ -482,9 +554,9 @@ struct TrainingProgressView: View {
         // 先嘗試從緩存載入
         if !viewModel.weeklySummaries.isEmpty {
             isLoadingWeeklySummaries = false
-            
-            // 背景更新
-            Task.detached { [weak viewModel] in
+
+            // 背景更新（使用 Task 而非 Task.detached 以保持主線程上下文）
+            Task { [weak viewModel] in
                 await viewModel?.fetchWeeklySummaries()
             }
             return

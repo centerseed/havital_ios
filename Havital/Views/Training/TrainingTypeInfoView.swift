@@ -11,10 +11,10 @@ struct TrainingTypeInfoView: View {
                     // 標題區域
                     HStack(spacing: 12) {
                         Text(trainingTypeInfo.icon)
-                            .font(.system(size: 40))
+                            .font(AppFont.dataMedium())
 
                         Text(trainingTypeInfo.title)
-                            .font(.title2)
+                            .font(AppFont.title2())
                             .fontWeight(.bold)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,15 +72,15 @@ struct InfoSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Text(icon)
-                    .font(.title3)
+                    .font(AppFont.title3())
 
                 Text(title)
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.semibold)
             }
 
             Text(content)
-                .font(.body)
+                .font(AppFont.body())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

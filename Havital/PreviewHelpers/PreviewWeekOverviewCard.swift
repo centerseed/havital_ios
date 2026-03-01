@@ -9,9 +9,9 @@ struct PreviewWeekOverviewCard: View {
     // 簡化的格式函數
     private func formatDistance(_ distance: Double, unit: String? = nil) -> String {
         let formatter = NumberFormatter()
-        formatter.maximumFractionDigits = 1
-        formatter.minimumFractionDigits = 1
-        let distanceString = formatter.string(from: NSNumber(value: distance)) ?? "0.0"
+        formatter.maximumFractionDigits = 0
+        formatter.minimumFractionDigits = 0
+        let distanceString = formatter.string(from: NSNumber(value: distance)) ?? "0"
         return unit != nil ? "\(distanceString) \(unit!)" : distanceString
     }
     

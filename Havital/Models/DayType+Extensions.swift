@@ -21,6 +21,23 @@ extension DayType {
         case .hiking: return L10n.Training.TrainingType.hiking.localized
         case .yoga: return L10n.Training.TrainingType.yoga.localized
         case .cycling: return L10n.Training.TrainingType.cycling.localized
+        // 新增間歇訓練類型
+        case .strides: return L10n.Training.TrainingType.strides.localized
+        case .hillRepeats: return L10n.Training.TrainingType.hillRepeats.localized
+        case .cruiseIntervals: return L10n.Training.TrainingType.cruiseIntervals.localized
+        case .shortInterval: return L10n.Training.TrainingType.shortInterval.localized
+        case .longInterval: return L10n.Training.TrainingType.longInterval.localized
+        case .norwegian4x4: return L10n.Training.TrainingType.norwegian4x4.localized
+        case .yasso800: return L10n.Training.TrainingType.yasso800.localized
+        // 新增組合訓練類型
+        case .fartlek: return L10n.Training.TrainingType.fartlek.localized
+        case .fastFinish: return L10n.Training.TrainingType.fastFinish.localized
+        // 新增比賽配速訓練
+        case .racePace: return L10n.Training.TrainingType.racePace.localized
+        // V3 交叉訓練新增類型
+        case .swimming: return L10n.ActivityType.swimming.localized
+        case .elliptical: return L10n.ActivityType.elliptical.localized
+        case .rowing: return L10n.ActivityType.rowing.localized
         }
     }
     
@@ -32,26 +49,47 @@ extension DayType {
     /// 標籤顏色
     var labelColor: Color {
         switch self {
-        case .easyRun, .easy, .recovery_run, .lsd, .yoga:
+        // 輕鬆訓練 - 綠色
+        case .easyRun, .easy, .recovery_run, .yoga:
             return .green
-        case .interval, .tempo, .threshold, .progression, .combination:
+        // 強度訓練 - 橘色
+        case .interval, .tempo, .threshold, .combination:
             return .orange
-        case .longRun:
+        case .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+            return .orange
+        case .fartlek: return .orange      // 法特雷克 - 橘色（變速訓練，屬強度訓練）
+        case .racePace:
+            return .red
+        // 長距離訓練 - 藍色
+        case .lsd, .longRun, .progression, .fastFinish:
             return .blue
+        // 休息日 - 灰色
         case .race:
             return .red
         case .rest:
             return .gray
-        case .crossTraining:
-            return .purple
-        case .strength:
+        // 交叉訓練 - 紫色
+        case .crossTraining, .strength:
             return .purple
         case .hiking, .cycling:
             return .blue
+        // V3 交叉訓練新增類型
+        case .swimming, .elliptical, .rowing:
+            return .purple
         }
     }
     /// 背景顏色
     var backgroundColor: Color {
         labelColor.opacity(0.2)
+    }
+
+    /// 是否為跑步活動（用於判斷是否顯示距離等跑步相關資訊）
+    var isRunningActivity: Bool {
+        switch self {
+        case .rest, .crossTraining, .strength, .yoga, .hiking, .cycling, .swimming, .elliptical, .rowing:
+            return false
+        default:
+            return true
+        }
     }
 }
