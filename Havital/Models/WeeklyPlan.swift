@@ -247,10 +247,15 @@ struct TrainingDay: Codable, Identifiable, Equatable {
 
             switch category {
             case "run":
-                let run = try container.decode(V3RunActivity.self, forKey: .primary)
-                let mapped = TrainingDay.mapV3Run(run, warmup: v3Warmup, cooldown: v3Cooldown)
-                trainingType = mapped.type
-                trainingDetails = mapped.details
+                if let run = try container.decodeIfPresent(V3RunActivity.self, forKey: .primary) {
+                    let mapped = TrainingDay.mapV3Run(run, warmup: v3Warmup, cooldown: v3Cooldown)
+                    trainingType = mapped.type
+                    trainingDetails = mapped.details
+                } else {
+                    // V3 format 但缺少 primary 欄位（v1 課表混用 v2 endpoint 產生的異常資料），退回 V2 解析
+                    trainingType = (try? container.decode(String.self, forKey: .trainingType)) ?? "rest"
+                    trainingDetails = try container.decodeIfPresent(TrainingDetails.self, forKey: .trainingDetails)
+                }
             case "strength":
                 let strength = try container.decodeIfPresent(V3StrengthActivity.self, forKey: .primary)
                 trainingType = "strength"

@@ -226,7 +226,17 @@ class WorkoutUploadTracker {
     
     /// 批量清除舊的記錄，只保留最近的N條
     func cleanupOldRecords(keepLatest: Int = 200) {
-        var uploadedWorkouts = getUploadedWorkouts()
+        // 清理 V1 和 V2 兩個 key
+        cleanupRecordsForKey(uploadedWorkoutsKey, keepLatest: keepLatest)
+        cleanupRecordsForKey(uploadedWorkoutsV2Key, keepLatest: keepLatest)
+    }
+
+    private func cleanupRecordsForKey(_ key: String, keepLatest: Int) {
+        guard let data = defaults.data(forKey: key),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return
+        }
+        let uploadedWorkouts = json
 
         // 如果記錄數少於保留閾值，則不執行清理
         if uploadedWorkouts.count <= keepLatest {
@@ -259,12 +269,12 @@ class WorkoutUploadTracker {
         // 保存新的字典
         do {
             let data = try JSONSerialization.data(withJSONObject: newUploadedWorkouts)
-            defaults.set(data, forKey: uploadedWorkoutsKey)
+            defaults.set(data, forKey: key)
             defaults.synchronize()
 
-            print("清理完成，從 \(uploadedWorkouts.count) 條記錄減少到 \(newUploadedWorkouts.count) 條")
+            print("清理完成 [\(key)]，從 \(uploadedWorkouts.count) 條記錄減少到 \(newUploadedWorkouts.count) 條")
         } catch {
-            print("清理舊記錄時出錯: \(error)")
+            print("清理舊記錄時出錯 [\(key)]: \(error)")
         }
     }
 
