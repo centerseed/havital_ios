@@ -916,6 +916,8 @@ enum GaitAnalysisChart {
     
     // MARK: - Units
     enum Unit {
+        static let metric = "unit.metric"
+        static let imperial = "unit.imperial"
         static let km = "unit.km"
         static let mi = "unit.mi"
         static let m = "unit.m"

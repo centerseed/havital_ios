@@ -140,7 +140,11 @@ struct ContentView: View {
                     "new_value": newValue
                 ]
             )
-            // 移除 fullScreenCover 相關邏輯
+            // Re-onboarding 結束後重新檢查訓練版本，確保切換到正確的 V1/V2 視圖
+            if !newValue {
+                isCheckingVersion = true
+                checkTrainingVersion()
+            }
         }
     }
 

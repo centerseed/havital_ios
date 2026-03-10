@@ -266,6 +266,8 @@ struct TrainingPlanV2View: View {
                             Task {
                                 if let nextWeek = viewModel.planStatusResponse?.nextWeekInfo?.weekNumber {
                                     await viewModel.generateWeeklyPlanDirectly(weekNumber: nextWeek)
+                                } else {
+                                    Logger.error("[TrainingPlanV2View] nextWeekInfo is nil, cannot generate next week plan")
                                 }
                             }
                         },

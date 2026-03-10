@@ -18,7 +18,7 @@ struct ExercisesListView: View {
 
             // 動作清單
             ForEach(exercises.indices, id: \.self) { index in
-                ExerciseRowView(
+                ExerciseRowWrapperView(
                     exercise: exercises[index],
                     index: index + 1
                 )
@@ -27,6 +27,37 @@ struct ExercisesListView: View {
         .padding(10)
         .background(Color.purple.opacity(0.08))
         .cornerRadius(8)
+    }
+}
+
+/// 單個動作行視圖 (點擊彈出教學)
+private struct ExerciseRowWrapperView: View {
+    let exercise: Exercise
+    let index: Int
+    @State private var showInstructionSheet = false
+    
+    var body: some View {
+        let mapped = ExerciseImageMapper.mappedImageAndKey(for: exercise.exerciseId, name: exercise.name)
+        
+        Button(action: {
+            if mapped != nil {
+                showInstructionSheet = true
+            }
+        }) {
+            ExerciseRowView(exercise: exercise, index: index)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showInstructionSheet) {
+            if let mapping = mapped {
+                ExerciseInstructionView(
+                    exerciseName: exercise.name,
+                    imageName: mapping.image,
+                    instructionDesc: mapping.key
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
 }
 
@@ -46,7 +77,7 @@ private struct ExerciseRowView: View {
             // 動作名稱
             Text(exercise.name)
                 .font(.caption)
-                .fontWeight(.medium)
+                .foregroundColor(.primary)
 
             Spacer()
 
@@ -95,6 +126,7 @@ private struct ExerciseRowView: View {
     ExercisesListView(
         exercises: [
             Exercise(
+                exerciseId: nil,
                 name: "棒式",
                 sets: 3,
                 reps: nil,
@@ -104,6 +136,7 @@ private struct ExerciseRowView: View {
                 description: "保持核心穩定，身體呈一直線"
             ),
             Exercise(
+                exerciseId: nil,
                 name: "死蟲式",
                 sets: 3,
                 reps: "10-12",
@@ -113,6 +146,7 @@ private struct ExerciseRowView: View {
                 description: "控制動作，避免下背離地"
             ),
             Exercise(
+                exerciseId: nil,
                 name: "側棒式",
                 sets: 3,
                 reps: nil,
@@ -130,6 +164,7 @@ private struct ExerciseRowView: View {
     ExercisesListView(
         exercises: [
             Exercise(
+                exerciseId: nil,
                 name: "深蹲",
                 sets: 4,
                 reps: "8-10",
@@ -139,6 +174,7 @@ private struct ExerciseRowView: View {
                 description: "膝蓋與腳尖方向一致"
             ),
             Exercise(
+                exerciseId: nil,
                 name: "硬舉",
                 sets: 4,
                 reps: "6-8",
@@ -156,6 +192,7 @@ private struct ExerciseRowView: View {
     ExercisesListView(
         exercises: [
             Exercise(
+                exerciseId: nil,
                 name: "跳繩",
                 sets: 5,
                 reps: nil,
@@ -165,6 +202,7 @@ private struct ExerciseRowView: View {
                 description: ""
             ),
             Exercise(
+                exerciseId: nil,
                 name: "登山式",
                 sets: 3,
                 reps: "20",

@@ -1165,6 +1165,8 @@ struct ZoneRow: View {
         endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
         durationSeconds: 3600,
         distanceMeters: 5000,
+        distanceDisplay: nil,
+        distanceUnit: nil,
         deviceName: "Garmin",
         basicMetrics: nil,
         advancedMetrics: nil,

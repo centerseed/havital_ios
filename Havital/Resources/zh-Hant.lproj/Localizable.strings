@@ -581,6 +581,8 @@
 "success.settings_saved" = "設定已儲存";
 
 // MARK: - Units
+"unit.metric" = "公制（公里）";
+"unit.imperial" = "英制（英里）";
 "unit.km" = "公里";
 "unit.mi" = "英里";
 "unit.m" = "公尺";
@@ -2313,6 +2315,7 @@
 "training.reps_unit" = "次";
 "training.seconds_unit" = "秒";
 "training.minutes_unit" = "分鐘";
+"training.exercises_count_unit" = "個動作";
 
 // MARK: - Supplementary Training
 "training.supplementary" = "補充訓練";
@@ -2342,3 +2345,28 @@
 "training.avg_heart_rate_preview" = "平均心率 %.0f bpm";
 "training.avg_pace_preview" = "平均配速 %@";
 "training.view_analysis" = "查看數據分析";
+
+// Exercise Image Instructions
+"exercise.instruction.title" = "動作指引";
+
+"exercise.instruction.plank.desc" = "面朝下，前臂與腳尖撐地。保持背部平直、頸部中立。收緊核心與臀部，保持姿勢。";
+"exercise.instruction.squat.desc" = "站直，雙腳打開。向下深蹲，臀部後推，保持挺胸，膝蓋不向內縮。透過腳跟出力站起。";
+"exercise.instruction.deadbug.desc" = "平躺，雙手向上伸直，雙膝彎曲90度。慢慢將一手與對側腳向下放。回到原位後換邊。";
+"exercise.instruction.glute_bridge.desc" = "平躺，雙膝彎曲，腳掌踩地。夾緊臀部向上推，直到膝蓋至肩膀呈一直線。慢慢放下。";
+
+"exercise.instruction.bird_dog.desc" = "四足跪姿，保持背部平直。將一手向前伸，同時伸直對側腳。保持穩定後換邊。";
+"exercise.instruction.side_plank.desc" = "側躺，用單側前臂與腳側邊撐起身體。收緊核心，保持身體呈一直線。";
+"exercise.instruction.clamshell.desc" = "側躺，雙腳微屈。腳踝併攏，將上方膝蓋盡量向外打開，感受臀部出力。";
+"exercise.instruction.single_leg_glute_bridge.desc" = "平躺，一腳屈膝踩地，另一腳伸直。利用踩地的腳出力將臀部推高。";
+"exercise.instruction.monster_walk.desc" = "保持半蹲姿勢。雙腳向側邊邁出大步移動，可搭配彈力帶增加阻力。";
+"exercise.instruction.lunge.desc" = "一腳向前跨，雙膝彎曲至90度，後腳膝蓋靠近地面。保持背部挺直，再推回站姿。";
+"exercise.instruction.romanian_deadlift.desc" = "保持背部平直，膝蓋微彎，將臀部向後推使上半身前傾。利用臀腿力量拉回站姿。";
+"exercise.instruction.calf_raise.desc" = "站立，將腳跟盡量向上踮起，感受小腿後側發力。然後慢慢降下。";
+"exercise.instruction.vertical_jump.desc" = "屈膝下蹲，接著雙手向上帶動身體全力跳高。落地時注意緩衝。";
+"exercise.instruction.jump_rope.desc" = "手肘靠近身體，輕輕跳起越過繩子，保持腳尖著地。";
+"exercise.instruction.lateral_jump.desc" = "單腳向側邊跳躍，另一腳落地緩衝，接著連續左右交替跳躍。";
+"exercise.instruction.consecutive_hops.desc" = "雙腳連續向前或原地輕巧跳躍，盡量縮短觸地時間。";
+"exercise.instruction.hip_flexor_stretch.desc" = "呈單膝跪姿，上半身挺直。輕輕將骨盆向前推，感受後腳大腿前側的拉伸。";
+"exercise.instruction.thoracic_rotation.desc" = "四足跪姿，單手放在腦後。將手肘向上轉開看向天花板，再轉回下方。";
+"exercise.instruction.seated_forward_fold.desc" = "雙腳伸直坐於地面，上半身從髖部向前傾，雙手盡量觸碰腳尖。";
+"exercise.instruction.standing_quad_stretch.desc" = "單腳站立，抓住另一隻腳的腳踝，將腳跟拉向臀部，感受大腿前側伸展。";

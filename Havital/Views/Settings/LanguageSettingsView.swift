@@ -2,23 +2,22 @@ import SwiftUI
 
 struct LanguageSettingsView: View {
     @StateObject private var languageManager = LanguageManager.shared
+    @StateObject private var unitManager = UnitManager.shared
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     // Clean Architecture: Use AuthenticationViewModel from environment
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var selectedLanguage: SupportedLanguage
-    // Note: Unit preference removed until backend supports imperial units
-    // @State private var selectedUnit: UnitPreference
+    @State private var selectedUnit: UnitSystem
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showRestartAlert = false
-    
+
     init() {
         _selectedLanguage = State(initialValue: LanguageManager.shared.currentLanguage)
-        // Note: Unit preference initialization removed until backend supports imperial units
-        // _selectedUnit = State(initialValue: UserPreferencesManager.shared.unitPreference)
+        _selectedUnit = State(initialValue: UnitManager.shared.currentUnitSystem)
     }
     
     var body: some View {
@@ -44,10 +43,9 @@ struct LanguageSettingsView: View {
                     }
                 }
                 
-                // Unit Section - Currently disabled as backend only supports metric
-                /*
+                // Unit Section
                 Section(header: Text(L10n.Settings.units.localized)) {
-                    ForEach(UnitPreference.allCases, id: \.self) { unit in
+                    ForEach(UnitSystem.allCases, id: \.self) { unit in
                         HStack {
                             Text(unit.displayName)
                             Spacer()
@@ -64,7 +62,6 @@ struct LanguageSettingsView: View {
                         }
                     }
                 }
-                */
                 
                 // Info Section
                 Section(footer: languageInfoFooter) {
@@ -84,7 +81,7 @@ struct LanguageSettingsView: View {
                     Button(L10n.Common.save.localized) {
                         saveSettings()
                     }
-                    .disabled(isLoading || selectedLanguage == languageManager.currentLanguage)
+                    .disabled(isLoading || (selectedLanguage == languageManager.currentLanguage && selectedUnit == unitManager.currentUnitSystem))
                 }
             }
             .disabled(isLoading)
@@ -125,11 +122,7 @@ struct LanguageSettingsView: View {
             Text(L10n.Language.syncMessage.localized)
                 .font(.footnote)
                 .foregroundColor(.secondary)
-            
-            Text(L10n.Language.metricOnlyMessage.localized)
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            
+
             if selectedLanguage != languageManager.currentLanguage {
                 Text(L10n.Language.restartRequiredMessage.localized)
                     .font(.footnote)
@@ -139,11 +132,34 @@ struct LanguageSettingsView: View {
     }
     
     private func saveSettings() {
-        // Check if language is changing
+        // Language change requires restart confirmation
         if selectedLanguage != languageManager.currentLanguage {
             showRestartAlert = true
+            return
         }
-        // Note: Unit preference changes removed until backend supports imperial units
+        // Unit change does not require restart
+        if selectedUnit != unitManager.currentUnitSystem {
+            Task {
+                await performUnitChange()
+            }
+        }
+    }
+
+    private func performUnitChange() async {
+        isLoading = true
+        do {
+            try await viewModel.updateUnitSystem(selectedUnit)
+            await MainActor.run {
+                isLoading = false
+                dismiss()
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        }
     }
     
     private func performLanguageChange() async {

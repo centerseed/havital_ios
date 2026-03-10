@@ -27,6 +27,8 @@ struct HeartRateRangeV2: Codable, Equatable {
 struct RunSegment: Codable, Equatable {
     let distanceKm: Double?
     let distanceM: Int?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
@@ -42,6 +44,9 @@ struct IntervalBlock: Codable, Equatable {
     let repeats: Int
     let workDistanceKm: Double?
     let workDistanceM: Int?
+    let workDistanceDisplay: Double?
+    let workDistanceUnit: String?
+    let workPaceUnit: String?
     let workDurationMinutes: Int?
     let workPace: String?
     let workDescription: String?
@@ -60,6 +65,9 @@ struct IntervalBlock: Codable, Equatable {
 struct RunActivity: Codable, Equatable {
     let runType: String
     let distanceKm: Double?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
+    let paceUnit: String?
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
@@ -74,6 +82,7 @@ struct RunActivity: Codable, Equatable {
 
 /// 單個力量訓練動作
 struct Exercise: Codable, Equatable {
+    let exerciseId: String?
     let name: String
     let sets: Int?
     let reps: String?
@@ -81,6 +90,17 @@ struct Exercise: Codable, Equatable {
     let weightKg: Double?
     let restSeconds: Int?
     let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case exerciseId = "exercise_id"
+        case name
+        case sets
+        case reps
+        case durationSeconds = "duration_seconds"
+        case weightKg = "weight_kg"
+        case restSeconds = "rest_seconds"
+        case description
+    }
 }
 
 // MARK: - StrengthActivity (力量訓練)
@@ -100,6 +120,8 @@ struct CrossActivity: Codable, Equatable {
     let crossType: String
     let durationMinutes: Int
     let distanceKm: Double?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
     let intensity: String?
     let description: String?
 }

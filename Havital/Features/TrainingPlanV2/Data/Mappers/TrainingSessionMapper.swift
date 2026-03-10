@@ -27,6 +27,8 @@ enum TrainingSessionMapper {
         return RunSegment(
             distanceKm: dto.distanceKm,
             distanceM: dto.distanceM,
+            distanceDisplay: dto.distanceDisplay,
+            distanceUnit: dto.distanceUnit,
             durationMinutes: dto.durationMinutes,
             durationSeconds: dto.durationSeconds,
             pace: dto.pace,
@@ -40,6 +42,8 @@ enum TrainingSessionMapper {
         return RunSegmentDTO(
             distanceKm: entity.distanceKm,
             distanceM: entity.distanceM,
+            distanceDisplay: entity.distanceDisplay,
+            distanceUnit: entity.distanceUnit,
             durationMinutes: entity.durationMinutes,
             durationSeconds: entity.durationSeconds,
             pace: entity.pace,
@@ -56,6 +60,9 @@ enum TrainingSessionMapper {
             repeats: dto.repeats,
             workDistanceKm: dto.workDistanceKm,
             workDistanceM: dto.workDistanceM,
+            workDistanceDisplay: dto.workDistanceDisplay,
+            workDistanceUnit: dto.workDistanceUnit,
+            workPaceUnit: dto.workPaceUnit,
             workDurationMinutes: dto.workDurationMinutes,
             workPace: dto.workPace,
             workDescription: dto.workDescription,
@@ -74,6 +81,9 @@ enum TrainingSessionMapper {
             repeats: entity.repeats,
             workDistanceKm: entity.workDistanceKm,
             workDistanceM: entity.workDistanceM,
+            workDistanceDisplay: entity.workDistanceDisplay,
+            workDistanceUnit: entity.workDistanceUnit,
+            workPaceUnit: entity.workPaceUnit,
             workDurationMinutes: entity.workDurationMinutes,
             workPace: entity.workPace,
             workDescription: entity.workDescription,
@@ -93,6 +103,9 @@ enum TrainingSessionMapper {
         return RunActivity(
             runType: dto.runType,
             distanceKm: dto.distanceKm,
+            distanceDisplay: dto.distanceDisplay,
+            distanceUnit: dto.distanceUnit,
+            paceUnit: dto.paceUnit,
             durationMinutes: dto.durationMinutes,
             durationSeconds: dto.durationSeconds,
             pace: dto.pace,
@@ -108,6 +121,9 @@ enum TrainingSessionMapper {
         return RunActivityDTO(
             runType: entity.runType,
             distanceKm: entity.distanceKm,
+            distanceDisplay: entity.distanceDisplay,
+            distanceUnit: entity.distanceUnit,
+            paceUnit: entity.paceUnit,
             durationMinutes: entity.durationMinutes,
             durationSeconds: entity.durationSeconds,
             pace: entity.pace,
@@ -125,6 +141,7 @@ enum TrainingSessionMapper {
         // DTO reps (Int?) + repsRange (String?) → Entity reps (String?)
         let repsString: String? = dto.repsRange ?? dto.reps.map { String($0) }
         return Exercise(
+            exerciseId: dto.exerciseId,
             name: dto.name,
             sets: dto.sets,
             reps: repsString,
@@ -140,6 +157,7 @@ enum TrainingSessionMapper {
         let repsInt = entity.reps.flatMap { Int($0) }
         let repsRange: String? = (repsInt == nil) ? entity.reps : nil
         return ExerciseDTO(
+            exerciseId: entity.exerciseId,
             name: entity.name,
             sets: entity.sets,
             reps: repsInt,
@@ -178,6 +196,8 @@ enum TrainingSessionMapper {
             crossType: dto.crossType,
             durationMinutes: dto.durationMinutes,
             distanceKm: dto.distanceKm,
+            distanceDisplay: dto.distanceDisplay,
+            distanceUnit: dto.distanceUnit,
             intensity: dto.intensity,
             description: dto.description
         )
@@ -188,6 +208,8 @@ enum TrainingSessionMapper {
             crossType: entity.crossType,
             durationMinutes: entity.durationMinutes,
             distanceKm: entity.distanceKm,
+            distanceDisplay: entity.distanceDisplay,
+            distanceUnit: entity.distanceUnit,
             intensity: entity.intensity,
             description: entity.description
         )

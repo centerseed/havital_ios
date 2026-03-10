@@ -20,6 +20,8 @@ struct HeartRateRangeDTO: Codable, Equatable {
 struct RunSegmentDTO: Codable, Equatable {
     let distanceKm: Double?
     let distanceM: Int?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
@@ -30,6 +32,8 @@ struct RunSegmentDTO: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
         case distanceM = "distance_m"
+        case distanceDisplay = "distance_display"
+        case distanceUnit = "distance_unit"
         case durationMinutes = "duration_minutes"
         case durationSeconds = "duration_seconds"
         case pace
@@ -45,6 +49,9 @@ struct IntervalBlockDTO: Codable, Equatable {
     let repeats: Int
     let workDistanceKm: Double?
     let workDistanceM: Int?
+    let workDistanceDisplay: Double?
+    let workDistanceUnit: String?
+    let workPaceUnit: String?
     let workDurationMinutes: Int?
     let workPace: String?
     let workDescription: String?
@@ -60,6 +67,9 @@ struct IntervalBlockDTO: Codable, Equatable {
         case repeats
         case workDistanceKm = "work_distance_km"
         case workDistanceM = "work_distance_m"
+        case workDistanceDisplay = "work_distance_display"
+        case workDistanceUnit = "work_distance_unit"
+        case workPaceUnit = "work_pace_unit"
         case workDurationMinutes = "work_duration_minutes"
         case workPace = "work_pace"
         case workDescription = "work_description"
@@ -78,6 +88,9 @@ struct IntervalBlockDTO: Codable, Equatable {
 struct RunActivityDTO: Codable, Equatable {
     let runType: String
     let distanceKm: Double?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
+    let paceUnit: String?
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
@@ -90,6 +103,9 @@ struct RunActivityDTO: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case runType = "run_type"
         case distanceKm = "distance_km"
+        case distanceDisplay = "distance_display"
+        case distanceUnit = "distance_unit"
+        case paceUnit = "pace_unit"
         case durationMinutes = "duration_minutes"
         case durationSeconds = "duration_seconds"
         case pace
@@ -104,6 +120,7 @@ struct RunActivityDTO: Codable, Equatable {
 // MARK: - ExerciseDTO
 
 struct ExerciseDTO: Codable, Equatable {
+    let exerciseId: String?
     let name: String
     let sets: Int?
     let reps: Int?
@@ -114,6 +131,7 @@ struct ExerciseDTO: Codable, Equatable {
     let description: String?
 
     enum CodingKeys: String, CodingKey {
+        case exerciseId = "exercise_id"
         case name
         case sets
         case reps
@@ -147,6 +165,8 @@ struct CrossActivityDTO: Codable, Equatable {
     let crossType: String
     let durationMinutes: Int
     let distanceKm: Double?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
     let intensity: String?
     let description: String?
 
@@ -154,6 +174,8 @@ struct CrossActivityDTO: Codable, Equatable {
         case crossType = "cross_type"
         case durationMinutes = "duration_minutes"
         case distanceKm = "distance_km"
+        case distanceDisplay = "distance_display"
+        case distanceUnit = "distance_unit"
         case intensity
         case description
     }

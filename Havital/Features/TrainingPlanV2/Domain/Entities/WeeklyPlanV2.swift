@@ -31,6 +31,12 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 週跑量（公里）
     let totalDistance: Double
 
+    /// 週跑量顯示值（英制用戶為英里數值，公制用戶為 nil）
+    let totalDistanceDisplay: Double?
+
+    /// 週跑量單位（英制用戶為 "miles"，公制用戶為 nil）
+    let totalDistanceUnit: String?
+
     /// 當週跑量決定方式說明
     let totalDistanceReason: String?
 

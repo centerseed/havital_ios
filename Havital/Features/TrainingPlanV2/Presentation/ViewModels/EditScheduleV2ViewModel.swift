@@ -167,6 +167,8 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 crossType: crossType,
                 durationMinutes: day.trainingDetails?.timeMinutes.map { Int($0) } ?? 60,
                 distanceKm: day.trainingDetails?.distanceKm,
+                distanceDisplay: nil,
+                distanceUnit: nil,
                 intensity: nil,
                 description: day.dayTarget
             ))
@@ -195,6 +197,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             return RunActivityDTO(
                 runType: runType,
                 distanceKm: nil,
+                distanceDisplay: nil,
+                distanceUnit: nil,
+                paceUnit: nil,
                 durationMinutes: nil,
                 durationSeconds: nil,
                 pace: nil,
@@ -212,6 +217,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 repeats: repeats,
                 workDistanceKm: work.distanceKm,
                 workDistanceM: work.distanceM.map { Int($0) },
+                workDistanceDisplay: nil,
+                workDistanceUnit: nil,
+                workPaceUnit: nil,
                 workDurationMinutes: work.timeMinutes.map { Int($0) },
                 workPace: work.pace,
                 workDescription: work.description,
@@ -226,6 +234,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             return RunActivityDTO(
                 runType: runType,
                 distanceKm: details.totalDistanceKm ?? details.distanceKm,
+                distanceDisplay: nil,
+                distanceUnit: nil,
+                paceUnit: nil,
                 durationMinutes: details.timeMinutes.map { Int($0) },
                 durationSeconds: nil,
                 pace: details.pace,
@@ -243,6 +254,8 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 RunSegmentDTO(
                     distanceKm: seg.distanceKm,
                     distanceM: nil,
+                    distanceDisplay: nil,
+                    distanceUnit: nil,
                     durationMinutes: nil,
                     durationSeconds: nil,
                     pace: seg.pace,
@@ -254,6 +267,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             return RunActivityDTO(
                 runType: runType,
                 distanceKm: details.totalDistanceKm,
+                distanceDisplay: nil,
+                distanceUnit: nil,
+                paceUnit: nil,
                 durationMinutes: details.timeMinutes.map { Int($0) },
                 durationSeconds: nil,
                 pace: details.pace,
@@ -269,6 +285,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
         return RunActivityDTO(
             runType: runType,
             distanceKm: details.distanceKm,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            paceUnit: nil,
             durationMinutes: details.timeMinutes.map { Int($0) },
             durationSeconds: nil,
             pace: details.pace,

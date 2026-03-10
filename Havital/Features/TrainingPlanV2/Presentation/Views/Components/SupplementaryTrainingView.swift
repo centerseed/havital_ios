@@ -159,6 +159,7 @@ private struct CrossSupplementaryView: View {
                     strengthType: "core_stability",
                     exercises: [
                         Exercise(
+                            exerciseId: nil,
                             name: "棒式",
                             sets: 3,
                             reps: nil,
@@ -168,6 +169,7 @@ private struct CrossSupplementaryView: View {
                             description: "保持核心穩定"
                         ),
                         Exercise(
+                            exerciseId: nil,
                             name: "死蟲式",
                             sets: 3,
                             reps: "10-12",
@@ -194,6 +196,7 @@ private struct CrossSupplementaryView: View {
                     strengthType: "glutes_hip",
                     exercises: [
                         Exercise(
+                            exerciseId: nil,
                             name: "臀橋",
                             sets: 3,
                             reps: "15",
@@ -212,6 +215,7 @@ private struct CrossSupplementaryView: View {
                     strengthType: "core_stability",
                     exercises: [
                         Exercise(
+                            exerciseId: nil,
                             name: "棒式",
                             sets: 2,
                             reps: nil,

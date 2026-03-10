@@ -160,6 +160,8 @@ class TrainingCalendarViewModel: ObservableObject {
                 endTimeUtc: "\(stat.date)T00:00:00Z",
                 durationSeconds: stat.avgPacePerKm.map { $0 * Int(stat.totalDistanceKm) } ?? 0,
                 distanceMeters: stat.totalDistanceMeters,
+                distanceDisplay: nil,
+                distanceUnit: nil,
                 deviceName: nil,
                 basicMetrics: nil,
                 advancedMetrics: nil,

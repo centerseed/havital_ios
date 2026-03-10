@@ -114,6 +114,8 @@ struct WarmupCooldownView: View {
         segment: RunSegment(
             distanceKm: 2.0,
             distanceM: nil,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             durationMinutes: 15,
             durationSeconds: nil,
             pace: "6:30",
@@ -131,6 +133,8 @@ struct WarmupCooldownView: View {
         segment: RunSegment(
             distanceKm: 1.0,
             distanceM: nil,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             durationMinutes: 8,
             durationSeconds: nil,
             pace: "6:30",
@@ -148,6 +152,8 @@ struct WarmupCooldownView: View {
         segment: RunSegment(
             distanceKm: nil,
             distanceM: 800,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             durationMinutes: 6,
             durationSeconds: nil,
             pace: "6:00",

@@ -8,9 +8,13 @@ struct WeekOverviewCardV2: View {
     @State private var showWeekTargetDetail = false
     @State private var showTrainingCalendar = false
 
-    // ✅ 直接從 WeeklyPlanV2 Entity 提取總跑量（V1 欄位）
+    // 優先讀 totalDistanceDisplay（英制），沒有就用 totalDistance（公里）
     private var targetDistance: Double {
-        return plan.totalDistance
+        return plan.totalDistanceDisplay ?? plan.totalDistance
+    }
+
+    private var distanceUnit: String {
+        return plan.totalDistanceUnit ?? "km"
     }
 
     // ✅ 從 intensityTotalMinutes 提取強度目標（分鐘）
@@ -87,7 +91,7 @@ struct WeekOverviewCardV2: View {
                                 .lineLimit(1)
                         }
 
-                        Text(L10n.Unit.km.localized)
+                        Text(distanceUnit)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }

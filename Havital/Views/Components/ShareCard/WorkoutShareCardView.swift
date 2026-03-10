@@ -228,6 +228,8 @@ struct DefaultBackgroundLayer: View {
                 endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(5400)),
                 durationSeconds: 5400,
                 distanceMeters: 13200,
+                distanceDisplay: nil,
+                distanceUnit: nil,
                 deviceName: "Apple Watch",
                 basicMetrics: BasicMetrics(
                     avgPaceSPerKm: 392
@@ -268,6 +270,8 @@ struct DefaultBackgroundLayer: View {
                 endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600)),
                 durationSeconds: 3600,
                 distanceMeters: 10000,
+                distanceDisplay: nil,
+                distanceUnit: nil,
                 deviceName: "Garmin",
                 basicMetrics: BasicMetrics(
                     avgPaceSPerKm: 360
@@ -308,6 +312,8 @@ struct DefaultBackgroundLayer: View {
                 endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(2700)),
                 durationSeconds: 2700,
                 distanceMeters: 8000,
+                distanceDisplay: nil,
+                distanceUnit: nil,
                 deviceName: "Apple Watch",
                 basicMetrics: BasicMetrics(
                     avgPaceSPerKm: 337

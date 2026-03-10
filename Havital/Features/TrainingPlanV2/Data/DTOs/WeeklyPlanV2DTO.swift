@@ -34,6 +34,12 @@ struct WeeklyPlanV2DTO: Codable {
     /// 週跑量（公里）
     let totalDistance: Double
 
+    /// 週跑量顯示值（英制用戶為英里數值，公制用戶為 nil）
+    let totalDistanceDisplay: Double?
+
+    /// 週跑量單位（英制用戶為 "miles"，公制用戶為 nil）
+    let totalDistanceUnit: String?
+
     /// 當週跑量決定方式說明
     let totalDistanceReason: String?
 
@@ -88,6 +94,8 @@ struct WeeklyPlanV2DTO: Codable {
         case weekOfPlan = "week_of_plan"
         case totalWeeks = "total_weeks"
         case totalDistance = "total_distance_km"
+        case totalDistanceDisplay = "total_distance_display"
+        case totalDistanceUnit = "total_distance_unit"
         case totalDistanceReason = "total_distance_reason"
         case designReason = "design_reason"
         case days

@@ -112,9 +112,6 @@ final class CompleteOnboardingUseCase {
             // Step 2: Update completion flags
             await updateCompletionFlags(isReonboarding: input.isReonboarding)
 
-            // Step 3: Publish completion event via CacheEventBus
-            await publishCompletionEvent()
-
             Logger.debug("[CompleteOnboardingUseCase] Onboarding completion flow finished successfully")
 
             return output
@@ -278,13 +275,6 @@ final class CompleteOnboardingUseCase {
         }
     }
 
-    /// Publish completion event to trigger cache clearing and UI refresh
-    private func publishCompletionEvent() async {
-        await MainActor.run {
-            CacheEventBus.shared.publish(.onboardingCompleted)
-            Logger.debug("[CompleteOnboardingUseCase] Published onboardingCompleted event via CacheEventBus")
-        }
-    }
 }
 
 // MARK: - DependencyContainer Factory

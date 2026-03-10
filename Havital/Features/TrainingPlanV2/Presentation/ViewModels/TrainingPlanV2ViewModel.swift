@@ -269,6 +269,24 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
         }
     }
 
+    /// 靜默更新 planStatusResponse（只更新 planStatusResponse 和 currentWeek，不改變 planStatus）
+    /// 用於成功操作後需要取得 nextWeekInfo 但不想覆蓋已設定好的 planStatus 的場景
+    private func refreshPlanStatusResponse() async {
+        do {
+            let status = try await repository.getPlanStatus()
+            await MainActor.run {
+                self.planStatusResponse = status
+                self.currentWeek = status.currentWeek
+            }
+            Logger.debug("[TrainingPlanV2VM] ✅ planStatusResponse 已靜默更新")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] planStatusResponse 更新被取消")
+        } catch {
+            // 靜默忽略錯誤，不影響當前 planStatus
+            Logger.error("[TrainingPlanV2VM] ⚠️ planStatusResponse 更新失敗（已忽略）: \(error)")
+        }
+    }
+
     /// ⭐ 根據 nextAction 執行對應動作
     private func handleNextAction(_ nextAction: String, planId: String?) async {
         Logger.debug("[TrainingPlanV2VM] 處理 nextAction: \(nextAction)")
@@ -343,18 +361,19 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
 
     /// 背景刷新 Overview（Track B）
     private func backgroundRefreshOverview() async {
+        let initialOverviewId = planOverview?.id  // capture before API call
         do {
             let freshOverview = try await repository.refreshOverview()
             Logger.debug("[TrainingPlanV2VM] ✅ Background refresh: Overview updated")
 
             await MainActor.run {
-                // 只在資料有變化時更新 UI
-                if self.planOverview?.id != freshOverview.id {
-                    self.planOverview = freshOverview
-                    self.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
-                    // ❌ 移除前端週數計算，完全信任後端 Status API 的 currentWeek
-                    // self.calculateCurrentWeek(from: freshOverview)
+                // 只在計畫沒有被換掉的情況下更新（防止 stale refresh 蓋掉 re-onboarding 後的新計畫）
+                guard self.planOverview?.id == initialOverviewId else {
+                    Logger.debug("[TrainingPlanV2VM] Background refresh overview: plan changed, discarding stale result")
+                    return
                 }
+                self.planOverview = freshOverview
+                self.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
             }
         } catch {
             Logger.error("[TrainingPlanV2VM] ⚠️ Background refresh failed (ignored): \(error.localizedDescription)")
@@ -500,13 +519,9 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
                 self.successToast = "第 \(weekNumber) 週課表已產生"
             }
 
-            // 重新載入 Plan Status（更新狀態）
-            await loadPlanStatus()
-
-            // Fix BUG-05: loadPlanStatus 可能用後端值覆蓋 currentWeek，重設 selectedWeek 確保顯示新產生的週
-            await MainActor.run {
-                self.selectedWeek = weekNumber
-            }
+            // 靜默更新 planStatusResponse 以取得 nextWeekInfo，不覆蓋已設定的 .ready(plan) 狀態
+            // 注意：refreshPlanStatusResponse 不會改動 selectedWeek，selectedWeek 已在上方設定完成
+            await refreshPlanStatusResponse()
 
             // 載入本週訓練記錄
             await loadWorkoutsForCurrentWeek()
@@ -539,6 +554,10 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             Logger.debug("[TrainingPlanV2VM] ✅ Background refresh: Weekly plan updated")
 
             await MainActor.run {
+                guard self.planOverview?.id == overviewId else {
+                    Logger.debug("[TrainingPlanV2VM] Background refresh: plan changed, discarding stale result")
+                    return
+                }
                 if self.selectedWeek == week {
                     self.weeklyPlan = freshPlan
                     self.planStatus = .ready(freshPlan)
@@ -874,10 +893,11 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             isLoadingWeeklySummary = false
             isGeneratingSummary = false
             weeklySummary = .loaded(summary)
-            showWeeklySummary = true
 
-            // ✅ 重新載入 Plan Status，讓 nextWeekInfo 更新為下週資訊
-            await loadPlanStatus()
+            // ✅ 先更新 planStatusResponse，確保 nextWeekInfo 在 sheet 顯示前就已就緒
+            await refreshPlanStatusResponse()
+
+            showWeeklySummary = true
 
             Logger.info("[TrainingPlanV2VM] ✅ 週摘要產生成功，顯示 sheet")
         } catch is CancellationError {

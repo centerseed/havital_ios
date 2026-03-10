@@ -52,7 +52,7 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     func updatePreferences(language: String?, timezone: String?) async throws {
         Logger.debug("[UserPreferencesRepo] Updating preferences")
 
-        try await remoteDataSource.updatePreferences(language: language, timezone: timezone)
+        try await remoteDataSource.updatePreferences(language: language, timezone: timezone, unitSystem: nil)
 
         // Update local language manager if language changed
         if let language = language,
@@ -189,6 +189,29 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
         localDataSource.targetVDOT = targetVDOT
     }
 
+    // MARK: - Unit System
+
+    var unitSystemPreference: UnitSystem {
+        if let raw = localDataSource.unitSystemPreference,
+           let system = UnitSystem(rawValue: raw) {
+            return system
+        }
+        return .metric
+    }
+
+    func updateUnitSystem(_ unitSystem: UnitSystem) async throws {
+        Logger.debug("[UserPreferencesRepo] Updating unit system: \(unitSystem.rawValue)")
+
+        try await remoteDataSource.updatePreferences(language: nil, timezone: nil, unitSystem: unitSystem.rawValue)
+        localDataSource.unitSystemPreference = unitSystem.rawValue
+        await MainActor.run {
+            UnitManager.shared.currentUnitSystem = unitSystem
+        }
+
+        // Invalidate cache
+        localDataSource.clearPreferencesCache()
+    }
+
     // MARK: - Language Preference
 
     var languagePreference: SupportedLanguage {
@@ -264,6 +287,16 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     private func fetchAndCachePreferences() async throws -> UserPreferences {
         let preferences = try await remoteDataSource.getPreferences()
         localDataSource.savePreferences(preferences)
+
+        // Sync unit system from API response
+        if let unitSystemRaw = preferences.unitSystem,
+           let unitSystem = UnitSystem(rawValue: unitSystemRaw) {
+            localDataSource.unitSystemPreference = unitSystemRaw
+            await MainActor.run {
+                UnitManager.shared.currentUnitSystem = unitSystem
+            }
+        }
+
         return preferences
     }
 

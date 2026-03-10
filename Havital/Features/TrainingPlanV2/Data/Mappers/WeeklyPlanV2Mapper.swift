@@ -26,6 +26,8 @@ enum WeeklyPlanV2Mapper {
             weekOfPlan: dto.weekOfPlan,
             totalWeeks: dto.totalWeeks,
             totalDistance: dto.totalDistance,
+            totalDistanceDisplay: dto.totalDistanceDisplay,
+            totalDistanceUnit: dto.totalDistanceUnit,
             totalDistanceReason: dto.totalDistanceReason,
             designReason: dto.designReason,
             days: dto.days.map { TrainingSessionMapper.toEntity(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
@@ -54,6 +56,8 @@ enum WeeklyPlanV2Mapper {
             weekOfPlan: entity.weekOfPlan,
             totalWeeks: entity.totalWeeks,
             totalDistance: entity.totalDistance,
+            totalDistanceDisplay: entity.totalDistanceDisplay,
+            totalDistanceUnit: entity.totalDistanceUnit,
             totalDistanceReason: entity.totalDistanceReason,
             designReason: entity.designReason,
             days: entity.days.map { TrainingSessionMapper.toDTO(from: $0) },  // V2.1+ 使用 TrainingSessionMapper

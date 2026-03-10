@@ -118,6 +118,7 @@ struct UserPreferences: Codable {
     // API 返回的字段
     var language: String
     var timezone: String
+    var unitSystem: String?
     var supportedLanguages: [String]
     var languageNames: [String: String]
 
@@ -141,6 +142,7 @@ struct UserPreferences: Codable {
     enum CodingKeys: String, CodingKey {
         case language
         case timezone
+        case unitSystem = "unit_system"
         case supportedLanguages = "supported_languages"
         case languageNames = "language_names"
         // 本地字段不參與 API 編解碼
@@ -151,6 +153,7 @@ struct UserPreferences: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         language = try container.decode(String.self, forKey: .language)
         timezone = try container.decode(String.self, forKey: .timezone)
+        unitSystem = try container.decodeIfPresent(String.self, forKey: .unitSystem)
         supportedLanguages = try container.decode([String].self, forKey: .supportedLanguages)
         languageNames = try container.decode([String: String].self, forKey: .languageNames)
 
@@ -177,6 +180,7 @@ struct UserPreferences: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(language, forKey: .language)
         try container.encode(timezone, forKey: .timezone)
+        try container.encodeIfPresent(unitSystem, forKey: .unitSystem)
         try container.encode(supportedLanguages, forKey: .supportedLanguages)
         try container.encode(languageNames, forKey: .languageNames)
         // 本地字段不編碼到 API
@@ -186,6 +190,7 @@ struct UserPreferences: Codable {
     init(
         language: String,
         timezone: String,
+        unitSystem: String? = nil,
         supportedLanguages: [String] = [],
         languageNames: [String: String] = [:],
         dataSourcePreference: DataSourceType? = nil,
@@ -206,6 +211,7 @@ struct UserPreferences: Codable {
     ) {
         self.language = language
         self.timezone = timezone
+        self.unitSystem = unitSystem
         self.supportedLanguages = supportedLanguages
         self.languageNames = languageNames
         self.dataSourcePreference = dataSourcePreference

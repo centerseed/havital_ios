@@ -269,9 +269,9 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             return cached
         }
 
-        // Cache miss - generate summary
-        Logger.debug("[TrainingPlanV2Repo] Cache miss for week \(weekOfPlan), generating summary")
-        return try await generateWeeklySummary(weekOfPlan: weekOfPlan, forceUpdate: nil)
+        // Cache miss - 先 GET，404 才 fallback 到 POST
+        Logger.debug("[TrainingPlanV2Repo] Cache miss for week \(weekOfPlan), fetching or generating summary")
+        return try await fetchOrGenerateWeeklySummary(week: weekOfPlan)
     }
 
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
@@ -368,19 +368,11 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     private func refreshWeeklyPlanInBackground(week: Int) async {
         do {
-            // 優先用 GET（如果有 planId），否則用 POST
-            if let cached = localDataSource.getWeeklyPlan(week: week) {
-                _ = try await fetchAndCacheWeeklyPlan(planId: cached.effectivePlanId, week: week)
-            } else {
-                let dto = try await remoteDataSource.generateWeeklyPlan(
-                    weekOfTraining: week,
-                    forceGenerate: false,
-                    promptVersion: nil,
-                    methodology: nil
-                )
-                let entity = WeeklyPlanV2Mapper.toEntity(from: dto)
-                localDataSource.saveWeeklyPlan(entity, week: week)
+            guard let cached = localDataSource.getWeeklyPlan(week: week) else {
+                Logger.debug("[TrainingPlanV2Repo] No cached plan for week \(week), skipping background refresh")
+                return
             }
+            _ = try await fetchAndCacheWeeklyPlan(planId: cached.effectivePlanId, week: week)
             Logger.debug("[TrainingPlanV2Repo] Background refresh completed for week \(week) plan")
         } catch {
             Logger.debug("[TrainingPlanV2Repo] Background refresh failed for week \(week) plan: \(error)")
@@ -389,15 +381,26 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     private func refreshWeeklySummaryInBackground(week: Int) async {
         do {
-            let dto = try await remoteDataSource.generateWeeklySummary(
-                weekOfPlan: week,
-                forceUpdate: false
-            )
+            let dto = try await remoteDataSource.getWeeklySummary(weekOfPlan: week)
             let entity = WeeklySummaryV2Mapper.toEntity(from: dto)
             localDataSource.saveWeeklySummary(entity, week: week)
             Logger.debug("[TrainingPlanV2Repo] Background refresh completed for week \(week) summary")
         } catch {
             Logger.debug("[TrainingPlanV2Repo] Background refresh failed for week \(week) summary: \(error)")
+        }
+    }
+
+    private func fetchOrGenerateWeeklySummary(week: Int) async throws -> WeeklySummaryV2 {
+        do {
+            let dto = try await remoteDataSource.getWeeklySummary(weekOfPlan: week)
+            let entity = WeeklySummaryV2Mapper.toEntity(from: dto)
+            localDataSource.saveWeeklySummary(entity, week: week)
+            return entity
+        } catch {
+            if case .notFound = error.toDomainError() {
+                return try await generateWeeklySummary(weekOfPlan: week, forceUpdate: nil)
+            }
+            throw error.toDomainError()
         }
     }
 }

@@ -76,6 +76,14 @@ protocol UserPreferencesRepository {
     ///   - targetVDOT: Target VDOT value
     func saveVDOTData(currentVDOT: Double, targetVDOT: Double)
 
+    // MARK: - Unit System
+
+    /// Get current unit system preference
+    var unitSystemPreference: UnitSystem { get }
+
+    /// Update unit system preference (syncs to backend)
+    func updateUnitSystem(_ unitSystem: UnitSystem) async throws
+
     // MARK: - Language Preference
 
     /// Get current language preference

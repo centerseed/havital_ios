@@ -99,6 +99,11 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         await preferencesRepository.updateLanguagePreference(language)
     }
 
+    /// Update unit system preference (syncs to backend)
+    func updateUnitSystem(_ unitSystem: UnitSystem) async throws {
+        try await preferencesRepository.updateUnitSystem(unitSystem)
+    }
+
     // MARK: - Heart Rate Prompt Settings
 
     /// Do not show heart rate prompt

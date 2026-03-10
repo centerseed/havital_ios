@@ -15,6 +15,8 @@ struct WorkoutV2: Codable, Identifiable {
     let endTimeUtc: String?
     let durationSeconds: Int
     let distanceMeters: Double?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
     let deviceName: String?
     let basicMetrics: BasicMetrics?
     let advancedMetrics: AdvancedMetrics?
@@ -32,6 +34,8 @@ struct WorkoutV2: Codable, Identifiable {
         case endTimeUtc = "end_time_utc"
         case durationSeconds = "duration_seconds"
         case distanceMeters = "distance_meters"
+        case distanceDisplay = "distance_display"
+        case distanceUnit = "distance_unit"
         case deviceName = "device_name"
         case basicMetrics = "basic_metrics"
         case advancedMetrics = "advanced_metrics"

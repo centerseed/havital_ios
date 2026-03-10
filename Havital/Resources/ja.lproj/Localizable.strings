@@ -366,6 +366,17 @@
 "training.type.hiking" = "ハイキング";
 "training.type.strength" = "筋力トレーニング";
 "training.type.yoga" = "ヨガ";
+
+// MARK: - Strength Training Types
+"training.strength_type.core_stability" = "コアスタビリティ";
+"training.strength_type.glutes_hip" = "臀部・股関節";
+"training.strength_type.lower_strength" = "下半身筋力";
+"training.strength_type.upper_strength" = "上半身筋力";
+"training.strength_type.full_body" = "全身筋力";
+"training.strength_type.plyometric" = "プライオメトリクス";
+"training.strength_type.mobility" = "モビリティ";
+"training.minutes_unit" = "分";
+"training.exercises_count_unit" = "種目";
 "training.type.cycling" = "サイクリング";
 "training.type.rest_day" = "休息日";
 // 新しいインターバルトレーニングタイプ
@@ -581,6 +592,8 @@
 "success.settings_saved" = "設定を保存しました";
 
 // MARK: - Units
+"unit.metric" = "メートル法（km）";
+"unit.imperial" = "ヤード・ポンド法（mi）";
 "unit.km" = "km";
 "unit.mi" = "マイル";
 "unit.m" = "m";
@@ -2148,3 +2161,43 @@
 "training.no_weekly_summary" = "週間サマリーなし";
 "training.no_weekly_summary_hint" = "週間サマリーはトレーニング終了後に自動生成されます";
 
+"training.interval_type.interval" = "インターバル";
+"training.interval_type.fartlek" = "ファルトレク";
+"training.interval_type.strides" = "流し";
+"training.interval_type.hill_repeats" = "坂道ダッシュ";
+"training.interval_type.cruise_intervals" = "クルーズインターバル";
+"training.interval_type.short_interval" = "ショートインターバル";
+"training.interval_type.long_interval" = "ロングインターバル";
+"training.interval_type.norwegian_4x4" = "ノルウェー4×4";
+"training.interval_type.yasso_800" = "Yasso 800";
+"training.interval.work_label.hill_repeats" = "坂道";
+"training.interval.work_label.strides" = "流し";
+"training.interval.work_label.default" = "疾走";
+"training.interval.recovery_run" = "回復";
+"training.interval.rest" = "休憩";
+"training.interval.repeats" = "%dセット";
+
+// Exercise Image Instructions
+"exercise.instruction.title" = "エクササイズガイド";
+
+"exercise.instruction.plank.desc" = "うつ伏せになり、前腕とつま先で体を支えます。背中を真っ直ぐに保ち、体幹と臀部を締めます。";
+"exercise.instruction.squat.desc" = "まっすぐ立ち、足を広げます。胸を張り、お尻を下げます。かかとで押し上げて戻ります。";
+"exercise.instruction.deadbug.desc" = "仰向けになり、両腕を上げ、膝を90度に曲げます。片腕と反対側の脚を床に向かってゆっくり下ろします。";
+"exercise.instruction.glute_bridge.desc" = "仰向けになり、膝を曲げ、足の裏を床につけます。お尻を締め、膝から肩が真っ直ぐになるまで腰を上げます。";
+
+"exercise.instruction.bird_dog.desc" = "四つん這いになり、背中を平らに保ちます。片腕を前に、反対側の脚を後ろに伸ばします。";
+"exercise.instruction.side_plank.desc" = "横向きになり、片方の前腕と足の側面で体を支えます。体を一直線に保ちます。";
+"exercise.instruction.clamshell.desc" = "横向きになり、膝を曲げます。両足をつけたまま、上の膝をできるだけ高く開きます。";
+"exercise.instruction.single_leg_glute_bridge.desc" = "仰向けになり、片膝を曲げ、もう片方の脚を伸ばします。床についている足で押し上げて腰を上げます。";
+"exercise.instruction.monster_walk.desc" = "ハーフスクワットの姿勢を保ち、横に向かって大きくステップを踏みます。";
+"exercise.instruction.lunge.desc" = "片足を前に出し、両膝を90度に曲げます。背中を真っすぐに保ち、元の位置に戻ります。";
+"exercise.instruction.romanian_deadlift.desc" = "背中を真っすぐに保ち、膝を少し曲げたまま、股関節から前傾します。お尻を締めて戻ります。";
+"exercise.instruction.calf_raise.desc" = "まっすぐ立ちます。つま先で押し上げて、かかとをできるだけ高く上げます。";
+"exercise.instruction.vertical_jump.desc" = "軽くしゃがみ込み、両腕を振り上げて真上に高くジャンプします。柔らかく着地します。";
+"exercise.instruction.jump_rope.desc" = "肘を体につけたまま、縄を回し、つま先で軽くホップします。";
+"exercise.instruction.lateral_jump.desc" = "片足で横方向にジャンプし、もう片方の足で柔らかく着地します。左右に繰り返します。";
+"exercise.instruction.consecutive_hops.desc" = "つま先で軽く連続してその場、または前方にホップします。";
+"exercise.instruction.hip_flexor_stretch.desc" = "片膝立ちの姿勢になります。上体を起こしたまま、骨盆をゆっくりと前に押し出します。";
+"exercise.instruction.thoracic_rotation.desc" = "四つん這いになり、片手を後頭部に当てます。肘を天井に向けて開き、背骨をひねります。";
+"exercise.instruction.seated_forward_fold.desc" = "両足を前に伸ばして座ります。股関節から前屈し、つま先に向かって手を伸ばします。";
+"exercise.instruction.standing_quad_stretch.desc" = "片足で立ち、もう片方の足首を掴んで、かかとをお尻に引き寄せます。";

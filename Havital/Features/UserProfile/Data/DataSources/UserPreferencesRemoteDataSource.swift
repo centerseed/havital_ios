@@ -3,7 +3,7 @@ import Foundation
 // MARK: - UserPreferencesRemoteDataSource Protocol
 protocol UserPreferencesRemoteDataSourceProtocol {
     func getPreferences() async throws -> UserPreferences
-    func updatePreferences(language: String?, timezone: String?) async throws
+    func updatePreferences(language: String?, timezone: String?, unitSystem: String?) async throws
     func updateTimezone(_ timezone: String) async throws
     func updateLanguage(_ language: String) async throws
 }
@@ -40,11 +40,12 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
         return try await apiHelper.get(UserPreferences.self, path: "/user/preferences")
     }
 
-    /// Update user preferences (language and/or timezone)
+    /// Update user preferences (language, timezone, and/or unit system)
     /// - Parameters:
     ///   - language: Language code (optional)
     ///   - timezone: IANA timezone (optional)
-    func updatePreferences(language: String?, timezone: String?) async throws {
+    ///   - unitSystem: Unit system rawValue e.g. "metric" / "imperial" (optional)
+    func updatePreferences(language: String?, timezone: String?, unitSystem: String? = nil) async throws {
         Logger.debug("[UserPreferencesRemoteDS] Updating preferences")
 
         var requestBody: [String: String] = [:]
@@ -55,9 +56,12 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
         if let timezone = timezone {
             requestBody["timezone"] = timezone
         }
+        if let unitSystem = unitSystem {
+            requestBody["unit_system"] = unitSystem
+        }
 
         guard !requestBody.isEmpty else {
-            throw UserProfileError.invalidUpdateData(field: "language or timezone required")
+            throw UserProfileError.invalidUpdateData(field: "at least one field required")
         }
 
         let body = try JSONEncoder().encode(requestBody)
@@ -68,12 +72,12 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
     /// Update only timezone
     /// - Parameter timezone: IANA timezone identifier
     func updateTimezone(_ timezone: String) async throws {
-        try await updatePreferences(language: nil, timezone: timezone)
+        try await updatePreferences(language: nil, timezone: timezone, unitSystem: nil)
     }
 
     /// Update only language
     /// - Parameter language: Language code
     func updateLanguage(_ language: String) async throws {
-        try await updatePreferences(language: language, timezone: nil)
+        try await updatePreferences(language: language, timezone: nil, unitSystem: nil)
     }
 }

@@ -157,6 +157,7 @@ private struct V3StrengthActivity: Decodable {
 }
 
 private struct V3Exercise: Decodable {
+    let exercise_id: String?
     let name: String?
     let sets: Int?
     let reps: Int?
@@ -180,7 +181,7 @@ private struct V3WarmupCooldown: Decodable {
     let description: String?
 
     func toRunSegment() -> RunSegmentV2 {
-        return RunSegmentV2(distanceKm: distance_km, distanceM: distance_m, durationMinutes: duration_minutes, durationSeconds: nil, pace: pace, heartRateRange: nil, intensity: nil, description: description)
+        return RunSegmentV2(distanceKm: distance_km, distanceM: distance_m, distanceDisplay: nil, distanceUnit: nil, durationMinutes: duration_minutes, durationSeconds: nil, pace: pace, heartRateRange: nil, intensity: nil, description: description)
     }
 }
 
@@ -261,7 +262,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 trainingType = "strength"
                 let exercises: [ExerciseV2]? = strength?.exercises?.compactMap { ex -> ExerciseV2? in
                     guard let name = ex.name else { return nil }
-                    return ExerciseV2(name: name, sets: ex.sets, reps: ex.reps != nil ? "\(ex.reps!)" : nil, durationSeconds: ex.duration_seconds, weightKg: nil, restSeconds: nil, description: ex.description ?? "")
+                    return ExerciseV2(exerciseId: ex.exercise_id, name: name, sets: ex.sets, reps: ex.reps != nil ? "\(ex.reps!)" : nil, durationSeconds: ex.duration_seconds, weightKg: nil, restSeconds: nil, description: ex.description ?? "")
                 }
                 trainingDetails = TrainingDetails(
                     description: strength?.description,

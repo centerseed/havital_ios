@@ -19,6 +19,8 @@ struct WorkoutMapper {
             endTimeUtc: detail.endTime,
             durationSeconds: Int(detail.basicMetrics?.totalDurationS ?? 0),
             distanceMeters: detail.basicMetrics?.totalDistanceM,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             deviceName: detail.deviceInfo?.deviceName,
             basicMetrics: toBasicMetrics(from: detail.basicMetrics),
             advancedMetrics: toAdvancedMetrics(from: detail.advancedMetrics),

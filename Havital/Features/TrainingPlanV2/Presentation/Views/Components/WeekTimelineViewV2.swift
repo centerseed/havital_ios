@@ -221,7 +221,9 @@ struct TimelineItemViewV2: View {
                                                 .foregroundColor(.green)
                                                 .font(AppFont.captionSmall())
 
-                                            Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
+                                            let distVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                            let distUnit = workout.distanceUnit ?? "km"
+                                            Text(String(format: "%.2f \(distUnit)", distVal))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.primary)
 
@@ -264,7 +266,9 @@ struct TimelineItemViewV2: View {
                                         .foregroundColor(.green)
                                         .font(AppFont.captionSmall())
 
-                                    Text(String(format: "%.2f km", (workout.distance ?? 0.0) / 1000.0))
+                                    let distVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                    let distUnit = workout.distanceUnit ?? "km"
+                                    Text(String(format: "%.2f \(distUnit)", distVal))
                                         .font(AppFont.caption())
                                         .foregroundColor(.primary)
 
@@ -458,7 +462,10 @@ private struct PhaseRow: View {
 
     private func buildDetailStrings() -> [String] {
         var items: [String] = []
-        if let km = segment.distanceKm {
+        if let display = segment.distanceDisplay {
+            let unit = segment.distanceUnit ?? "km"
+            items.append(String(format: "%.1f\(unit)", display))
+        } else if let km = segment.distanceKm {
             items.append(String(format: "%.1fkm", km))
         } else if let m = segment.distanceM {
             items.append("\(m)m")
@@ -482,18 +489,27 @@ private struct SimpleRunBadgesView: View {
         dayType == .easyRun || dayType == .easy || dayType == .recovery_run || dayType == .lsd
     }
 
+    private var displayPace: String? {
+        guard !shouldHidePace else { return nil }
+        if let pace = activity.pace { return pace }
+        let vdot = effectiveVDOT()
+        return PaceCalculator.getSuggestedPace(for: activity.runType, vdot: vdot)
+    }
+
     var body: some View {
         HStack(spacing: 4) {
             // 距離（加粗主資訊）
-            if let km = activity.distanceKm {
-                Text(String(format: "%.1f km", km))
+            if activity.distanceDisplay != nil || activity.distanceKm != nil {
+                let distVal = activity.distanceDisplay ?? activity.distanceKm ?? 0
+                let distUnit = activity.distanceUnit ?? "km"
+                Text(String(format: "%.1f \(distUnit)", distVal))
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
             }
 
             // 配速
-            if let pace = activity.pace, !shouldHidePace {
+            if let pace = displayPace {
                 Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                 Text(pace)
                     .font(AppFont.caption())
@@ -521,12 +537,22 @@ private struct SimpleRunBadgesView: View {
     }
 }
 
+/// 取得有效 VDOT（從本地快取讀取，失敗則用預設值）
+private func effectiveVDOT() -> Double {
+    VDOTManager.shared.loadLocalCacheSync()
+    let vdot = VDOTManager.shared.currentVDOT
+    return vdot > 0 ? vdot : PaceCalculator.defaultVDOT
+}
+
 /// 間歇訓練區塊 — 結構化卡片風格（accent bar + 文字表格）
 private struct IntervalBlockView: View {
     let interval: IntervalBlock
     let runType: String
 
     var body: some View {
+        let vdot = effectiveVDOT()
+        let effectiveWorkPace = interval.workPace ?? fallbackWorkPace(vdot: vdot)
+
         VStack(alignment: .leading, spacing: 6) {
             // Header: 訓練名稱 + 組數
             HStack {
@@ -549,8 +575,9 @@ private struct IntervalBlockView: View {
                     accentColor: .orange,
                     label: workLabel,
                     distance: workDistanceText,
-                    pace: interval.workPace,
-                    duration: interval.workDurationMinutes
+                    pace: effectiveWorkPace,
+                    duration: interval.workDurationMinutes,
+                    description: interval.workDescription
                 )
 
                 // Recovery row — 灰綠色 accent bar
@@ -559,7 +586,8 @@ private struct IntervalBlockView: View {
                     label: recoveryLabel,
                     distance: recoveryDistanceText,
                     pace: interval.recoveryPace,
-                    duration: interval.recoveryDurationMinutes
+                    duration: interval.recoveryDurationMinutes,
+                    description: interval.recoveryDescription
                 )
             }
             .background(Color(.quaternarySystemFill))
@@ -567,8 +595,25 @@ private struct IntervalBlockView: View {
         }
     }
 
+    private func fallbackWorkPace(vdot: Double) -> String? {
+        let effectiveType = interval.variant ?? runType
+        switch effectiveType.lowercased() {
+        case "strides":
+            return PaceCalculator.getPaceForPercentage(0.975, vdot: vdot)
+        case "cruise_intervals":
+            return PaceCalculator.getSuggestedPace(for: "threshold", vdot: vdot)
+        case "norwegian_4x4":
+            return PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
+        default:
+            return PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot)
+        }
+    }
+
     private var workDistanceText: String? {
-        if let km = interval.workDistanceKm {
+        if let display = interval.workDistanceDisplay {
+            let unit = interval.workDistanceUnit ?? "km"
+            return String(format: "%.1f\(unit)", display)
+        } else if let km = interval.workDistanceKm {
             return String(format: "%.1fkm", km)
         } else if let m = interval.workDistanceM {
             return "\(m)m"
@@ -645,6 +690,7 @@ private struct IntervalRow: View {
     let distance: String?
     let pace: String?
     let duration: Int?
+    var description: String? = nil
 
     var body: some View {
         HStack(spacing: 0) {
@@ -671,6 +717,12 @@ private struct IntervalRow: View {
                     Text(pace)
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
+                } else if let desc = description, !desc.isEmpty {
+                    Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                    Text(desc)
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
 
                 if let mins = duration {
@@ -709,7 +761,12 @@ private struct SegmentsView: View {
                             .foregroundColor(.primary)
                             .frame(minWidth: 36, alignment: .leading)
 
-                        if let km = seg.distanceKm {
+                        if let display = seg.distanceDisplay {
+                            let unit = seg.distanceUnit ?? "km"
+                            Text(String(format: "%.1f\(unit)", display))
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        } else if let km = seg.distanceKm {
                             Text(String(format: "%.1fkm", km))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
@@ -766,19 +823,47 @@ private struct StrengthContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let mins = activity.durationMinutes {
-                HStack(spacing: 4) {
-                    Text("\(mins) 分鐘")
+            // 摘要列：類型名稱 · 動作數量 · 時長
+            HStack(spacing: 4) {
+                if !activity.strengthType.isEmpty {
+                    Text(strengthTypeDisplayName(activity.strengthType))
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                    Spacer()
+                        .foregroundColor(.purple)
                 }
+                if !activity.exercises.isEmpty {
+                    Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                    Text("\(activity.exercises.count) \(NSLocalizedString("training.exercises_count_unit", comment: "exercises"))")
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.purple)
+                }
+                if let mins = activity.durationMinutes {
+                    Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+                    Text("\(mins) \(NSLocalizedString("training.minutes_unit", comment: "min"))")
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.purple)
+                }
+                Spacer()
             }
 
             if !activity.exercises.isEmpty {
                 ExercisesListView(exercises: activity.exercises)
             }
+        }
+    }
+
+    private func strengthTypeDisplayName(_ type: String) -> String {
+        switch type {
+        case "core_stability":  return NSLocalizedString("training.strength_type.core_stability", comment: "Core Stability")
+        case "glutes_hip":      return NSLocalizedString("training.strength_type.glutes_hip", comment: "Glutes Hip")
+        case "lower_strength":  return NSLocalizedString("training.strength_type.lower_strength", comment: "Lower Strength")
+        case "upper_strength":  return NSLocalizedString("training.strength_type.upper_strength", comment: "Upper Strength")
+        case "full_body":       return NSLocalizedString("training.strength_type.full_body", comment: "Full Body")
+        case "plyometric":      return NSLocalizedString("training.strength_type.plyometric", comment: "Plyometric")
+        case "mobility":        return NSLocalizedString("training.strength_type.mobility", comment: "Mobility")
+        default:                return type.replacingOccurrences(of: "_", with: " ").capitalized
         }
     }
 }
@@ -794,9 +879,11 @@ private struct CrossContentView: View {
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
 
-            if let km = activity.distanceKm {
+            if activity.distanceDisplay != nil || activity.distanceKm != nil {
+                let distVal = activity.distanceDisplay ?? activity.distanceKm ?? 0
+                let distUnit = activity.distanceUnit ?? "km"
                 Text("·").font(AppFont.caption()).foregroundColor(.secondary)
-                Text(String(format: "%.1f km", km))
+                Text(String(format: "%.1f \(distUnit)", distVal))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }

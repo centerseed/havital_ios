@@ -27,6 +27,7 @@ protocol UserPreferencesLocalDataSourceProtocol: AnyObject {
     
     var languagePreference: String? { get set }
     var timezonePreference: String? { get set }
+    var unitSystemPreference: String? { get set }
     
     var currentVDOT: Double? { get set }
     var targetVDOT: Double? { get set }
@@ -63,6 +64,7 @@ final class UserPreferencesLocalDataSource: UserPreferencesLocalDataSourceProtoc
         static let photoURL = "user_photo_url"
         static let languagePreference = "language_preference"
         static let timezonePreference = "timezone_preference"
+        static let unitSystem = "unit_system_preference"
         static let currentVDOT = "current_vdot"
         static let targetVDOT = "target_vdot"
     }
@@ -238,6 +240,11 @@ final class UserPreferencesLocalDataSource: UserPreferencesLocalDataSourceProtoc
         set { defaults.set(newValue, forKey: Keys.timezonePreference) }
     }
 
+    var unitSystemPreference: String? {
+        get { defaults.string(forKey: Keys.unitSystem) }
+        set { defaults.set(newValue, forKey: Keys.unitSystem) }
+    }
+
     // MARK: - VDOT Data
 
     var currentVDOT: Double? {
@@ -262,7 +269,7 @@ final class UserPreferencesLocalDataSource: UserPreferencesLocalDataSourceProtoc
             Keys.heartRateZones, Keys.currentPace, Keys.currentDistance,
             Keys.preferWeekDays, Keys.preferWeekDaysLongRun, Keys.weekOfTraining,
             Keys.photoURL, Keys.languagePreference, Keys.timezonePreference,
-            Keys.currentVDOT, Keys.targetVDOT
+            Keys.currentVDOT, Keys.targetVDOT, Keys.unitSystem
         ]
 
         for key in keysToRemove {
