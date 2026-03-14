@@ -55,6 +55,8 @@ struct MutableTrainingDay: Identifiable, Equatable {
     var tips: String?
     var trainingType: String
     var trainingDetails: MutableTrainingDetails?
+    var warmup: RunSegment?
+    var cooldown: RunSegment?
 
     /// 從 TrainingDay 初始化
     init(from day: TrainingDay) {
@@ -64,6 +66,8 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.tips = day.tips
         self.trainingType = day.trainingType
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
+        self.warmup = day.trainingDetails?.warmup
+        self.cooldown = day.trainingDetails?.cooldown
     }
 
     /// V2 支援：從 DayDetail 初始化（使用 V1 兼容層）
@@ -75,6 +79,8 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingType = day.type.rawValue
         // 使用 DayDetail 的 V1 兼容層 trainingDetails computed property
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
+        self.warmup = day.session?.warmup
+        self.cooldown = day.session?.cooldown
     }
 
     /// 轉換回 TrainingDay
@@ -108,27 +114,33 @@ struct MutableTrainingDay: Identifiable, Equatable {
         return lhs.dayIndex == rhs.dayIndex &&
                lhs.dayTarget == rhs.dayTarget &&
                lhs.trainingType == rhs.trainingType &&
-               lhs.trainingDetails == rhs.trainingDetails
+               lhs.trainingDetails == rhs.trainingDetails &&
+               lhs.warmup == rhs.warmup &&
+               lhs.cooldown == rhs.cooldown
     }
-    
+
     /// 創建空白訓練日
     static func createEmpty(dayIndex: Int) -> MutableTrainingDay {
         return MutableTrainingDay(
             dayIndex: String(dayIndex),
             dayTarget: "",
             trainingType: "rest",
-            trainingDetails: nil
+            trainingDetails: nil,
+            warmup: nil,
+            cooldown: nil
         )
     }
-    
+
     /// 自定義初始化
-    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?) {
+    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?, warmup: RunSegment? = nil, cooldown: RunSegment? = nil) {
         self.dayIndex = dayIndex
         self.dayTarget = dayTarget
         self.trainingType = trainingType
         self.tips = nil
         self.reason = nil
         self.trainingDetails = trainingDetails
+        self.warmup = warmup
+        self.cooldown = cooldown
     }
 }
 

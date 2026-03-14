@@ -178,6 +178,43 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             primary = .run(buildRunActivityDTO(from: day, dayType: dayType))
         }
 
+        // Convert warmup/cooldown to DTOs for run category only
+        let warmupDTO: RunSegmentDTO?
+        let cooldownDTO: RunSegmentDTO?
+        if category == "run" {
+            warmupDTO = day.warmup.map { w in
+                RunSegmentDTO(
+                    distanceKm: w.distanceKm,
+                    distanceM: w.distanceM,
+                    distanceDisplay: w.distanceDisplay,
+                    distanceUnit: w.distanceUnit,
+                    durationMinutes: w.durationMinutes,
+                    durationSeconds: w.durationSeconds,
+                    pace: w.pace,
+                    heartRateRange: nil,
+                    intensity: w.intensity,
+                    description: w.description
+                )
+            }
+            cooldownDTO = day.cooldown.map { c in
+                RunSegmentDTO(
+                    distanceKm: c.distanceKm,
+                    distanceM: c.distanceM,
+                    distanceDisplay: c.distanceDisplay,
+                    distanceUnit: c.distanceUnit,
+                    durationMinutes: c.durationMinutes,
+                    durationSeconds: c.durationSeconds,
+                    pace: c.pace,
+                    heartRateRange: nil,
+                    intensity: c.intensity,
+                    description: c.description
+                )
+            }
+        } else {
+            warmupDTO = nil
+            cooldownDTO = nil
+        }
+
         return DayDetailDTO(
             dayIndex: day.dayIndexInt,
             dayTarget: day.dayTarget,
@@ -185,8 +222,8 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             tips: day.tips,
             category: category,
             primary: primary,
-            warmup: nil,
-            cooldown: nil,
+            warmup: warmupDTO,
+            cooldown: cooldownDTO,
             supplementary: nil
         )
     }

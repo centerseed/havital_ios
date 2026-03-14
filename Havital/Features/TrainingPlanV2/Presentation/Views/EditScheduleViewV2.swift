@@ -307,8 +307,31 @@ struct SimplifiedDailyCardV2: View {
                 } else {
                     simpleTrainingControls
                 }
+
+                if day.warmup != nil || day.cooldown != nil {
+                    warmupCooldownSummary
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private var warmupCooldownSummary: some View {
+        HStack(spacing: 8) {
+            if let warmup = day.warmup, let dist = warmup.distanceKm {
+                Text("🔥 暖跑 \(String(format: "%.1f", dist))km")
+                    .font(AppFont.caption())
+                    .foregroundColor(.orange)
+            }
+            if let cooldown = day.cooldown, let dist = cooldown.distanceKm {
+                Text("❄️ 緩和 \(String(format: "%.1f", dist))km")
+                    .font(AppFont.caption())
+                    .foregroundColor(.blue)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
     }
 
     private var simpleTrainingControls: some View {
@@ -422,6 +445,34 @@ struct SimplifiedDailyCardV2: View {
 
     // MARK: - Update Training Type (reuse V1 logic)
 
+    // MARK: - Warmup/cooldown type classification
+
+    private func typeNeedsWarmupCooldown(_ type: DayType) -> Bool {
+        let noWarmupTypes: Set<DayType> = [
+            .easyRun, .easy, .recovery_run, .lsd, .rest,
+            .strength, .crossTraining, .yoga, .hiking, .cycling,
+            .swimming, .elliptical, .rowing
+        ]
+        return !noWarmupTypes.contains(type)
+    }
+
+    private func defaultWarmupCooldown(vdot: Double) -> (warmup: RunSegment, cooldown: RunSegment) {
+        let recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "6:30"
+        let warmup = RunSegment(
+            distanceKm: 2.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
+            durationMinutes: nil, durationSeconds: nil,
+            pace: recoveryPace, heartRateRange: nil,
+            intensity: "easy", description: "暖跑"
+        )
+        let cooldown = RunSegment(
+            distanceKm: 1.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
+            durationMinutes: nil, durationSeconds: nil,
+            pace: recoveryPace, heartRateRange: nil,
+            intensity: "easy", description: "緩和跑"
+        )
+        return (warmup, cooldown)
+    }
+
     private func updateTrainingType(_ newType: DayType) {
         day.trainingType = newType.rawValue
         let vdot = editViewModel.currentVDOT ?? PaceCalculator.defaultVDOT
@@ -430,16 +481,23 @@ struct SimplifiedDailyCardV2: View {
         case .rest:
             day.dayTarget = "休息日"
             day.trainingDetails = nil
+            day.warmup = nil
+            day.cooldown = nil
 
         case .easyRun, .easy, .recovery_run:
             day.dayTarget = newType == .recovery_run ? "恢復跑：低強度恢復訓練" : "輕鬆跑：恢復和建立有氧基礎"
             let pace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 5.0, pace: pace)
+            day.warmup = nil
+            day.cooldown = nil
 
         case .tempo, .threshold:
             day.dayTarget = newType == .tempo ? "節奏跑：乳酸閾值訓練" : "閾值跑：提升乳酸清除能力"
             let pace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 8.0, pace: pace)
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .interval:
             day.dayTarget = "間歇訓練：提升VO2max和速度"
@@ -450,16 +508,24 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: nil, distanceKm: 0.2, distanceM: 200, timeMinutes: nil, pace: rPace, heartRateRange: nil),
                 repeats: 4
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .longRun:
             day.dayTarget = "長距離跑：建立耐力基礎"
             let pace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 15.0, pace: pace)
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .lsd:
             day.dayTarget = "LSD長距離慢跑：輕鬆配速建立有氧基礎"
             let pace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 20.0, pace: pace)
+            day.warmup = nil
+            day.cooldown = nil
 
         case .progression:
             day.dayTarget = "漸進配速跑：從慢到快逐漸加速"
@@ -473,6 +539,9 @@ struct SimplifiedDailyCardV2: View {
                     MutableProgressionSegment(distanceKm: 4.0, pace: "4:30", description: "加速")
                 ]
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .combination:
             day.dayTarget = "組合訓練：多配速混合訓練"
@@ -486,6 +555,9 @@ struct SimplifiedDailyCardV2: View {
                     MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "輕鬆跑")
                 ]
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .fartlek:
             day.dayTarget = "法特雷克：變速跑訓練配速轉換能力"
@@ -501,6 +573,9 @@ struct SimplifiedDailyCardV2: View {
                     MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "收操")
                 ]
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .fastFinish:
             day.dayTarget = "快結尾長跑：後段加速訓練"
@@ -513,11 +588,17 @@ struct SimplifiedDailyCardV2: View {
                     MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑")
                 ]
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .racePace:
             day.dayTarget = "比賽配速跑：熟悉目標比賽節奏"
             let pace = PaceCalculator.getSuggestedPace(for: "marathon", vdot: vdot) ?? "5:15"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 10.0, pace: pace)
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .strides:
             day.dayTarget = "大步跑：短距離衝刺，提升跑步經濟性"
@@ -527,6 +608,9 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "原地休息1分鐘", distanceKm: nil, distanceM: nil, timeMinutes: 1.0, pace: nil, heartRateRange: nil),
                 repeats: 6
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .hillRepeats:
             day.dayTarget = "山坡重複跑：上坡衝刺訓練腿部力量"
@@ -536,6 +620,9 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "慢跑下坡恢復", distanceKm: nil, distanceM: nil, timeMinutes: 2.0, pace: nil, heartRateRange: nil),
                 repeats: 6
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .cruiseIntervals:
             day.dayTarget = "巡航間歇：閾值配速間歇訓練"
@@ -546,6 +633,9 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "恢復跑1分鐘", distanceKm: nil, distanceM: nil, timeMinutes: 1.0, pace: rPace, heartRateRange: nil),
                 repeats: 4
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .shortInterval:
             day.dayTarget = "短間歇：提升速度和無氧能力"
@@ -556,6 +646,9 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "恢復跑", distanceKm: 0.4, distanceM: 400, timeMinutes: nil, pace: rPace, heartRateRange: nil),
                 repeats: 12
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .longInterval:
             day.dayTarget = "長間歇：提升VO2max和速度耐力"
@@ -566,6 +659,9 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "輕鬆跑恢復", distanceKm: nil, distanceM: nil, timeMinutes: 2.5, pace: rPace, heartRateRange: nil),
                 repeats: 5
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .norwegian4x4:
             day.dayTarget = "挪威4x4：4組4分鐘高強度間歇"
@@ -576,6 +672,9 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "恢復跑3分鐘", distanceKm: nil, distanceM: nil, timeMinutes: 3.0, pace: rPace, heartRateRange: nil),
                 repeats: 4
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .yasso800:
             day.dayTarget = "亞索800：800m重複跑，VO2max訓練"
@@ -586,30 +685,45 @@ struct SimplifiedDailyCardV2: View {
                 recovery: MutableWorkoutSegment(description: "等時恢復", distanceKm: nil, distanceM: nil, timeMinutes: nil, pace: rPace, heartRateRange: nil),
                 repeats: 8
             )
+            let wc = defaultWarmupCooldown(vdot: vdot)
+            day.warmup = wc.warmup
+            day.cooldown = wc.cooldown
 
         case .crossTraining:
             day.dayTarget = "交叉訓練：非跑步運動訓練"
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
+            day.warmup = nil
+            day.cooldown = nil
 
         case .strength:
             day.dayTarget = "肌力訓練：增強肌肉力量"
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
+            day.warmup = nil
+            day.cooldown = nil
 
         case .yoga:
             day.dayTarget = "瑜珈：柔軟度和恢復訓練"
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
+            day.warmup = nil
+            day.cooldown = nil
 
         case .hiking:
             day.dayTarget = "登山健行：有氧耐力訓練"
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
+            day.warmup = nil
+            day.cooldown = nil
 
         case .cycling:
             day.dayTarget = "騎車：低衝擊有氧訓練"
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
+            day.warmup = nil
+            day.cooldown = nil
 
         default:
             day.dayTarget = "自訂訓練"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 6.0)
+            day.warmup = nil
+            day.cooldown = nil
         }
 
         onDataChanged?()

@@ -27,6 +27,14 @@ final class TrainingDayEditState: ObservableObject {
     // 組合跑欄位
     @Published var segments: [EditableSegment]
 
+    // 暖跑/緩和跑欄位
+    @Published var hasWarmup: Bool
+    @Published var warmupDistance: Double
+    @Published var warmupPace: String
+    @Published var hasCooldown: Bool
+    @Published var cooldownDistance: Double
+    @Published var cooldownPace: String
+
     // 描述
     @Published var description: String?
 
@@ -78,6 +86,26 @@ final class TrainingDayEditState: ObservableObject {
         } else {
             self.segments = [EditableSegment(pace: "6:00", distance: 2.0)]
         }
+
+        // 暖跑/緩和跑欄位
+        if let w = day.warmup {
+            self.hasWarmup = true
+            self.warmupDistance = w.distanceKm ?? 2.0
+            self.warmupPace = w.pace ?? "6:30"
+        } else {
+            self.hasWarmup = false
+            self.warmupDistance = 2.0
+            self.warmupPace = "6:30"
+        }
+        if let c = day.cooldown {
+            self.hasCooldown = true
+            self.cooldownDistance = c.distanceKm ?? 1.0
+            self.cooldownPace = c.pace ?? "6:30"
+        } else {
+            self.hasCooldown = false
+            self.cooldownDistance = 1.0
+            self.cooldownPace = "6:30"
+        }
     }
 
     var type: DayType {
@@ -86,6 +114,16 @@ final class TrainingDayEditState: ObservableObject {
 
     var totalSegmentDistance: Double {
         segments.reduce(0) { $0 + $1.distance }
+    }
+
+    /// 判斷當前訓練類型是否需要暖跑/緩和跑
+    var needsWarmupCooldown: Bool {
+        let noWarmupTypes: Set<DayType> = [
+            .easyRun, .easy, .recovery_run, .lsd, .rest,
+            .strength, .crossTraining, .yoga, .hiking, .cycling,
+            .swimming, .elliptical, .rowing
+        ]
+        return !noWarmupTypes.contains(type)
     }
 
     /// 轉換回 MutableTrainingDay
@@ -256,6 +294,37 @@ final class TrainingDayEditState: ObservableObject {
             )
         }
 
+        // Write back warmup/cooldown
+        if needsWarmupCooldown {
+            result.warmup = hasWarmup ? RunSegment(
+                distanceKm: warmupDistance,
+                distanceM: nil,
+                distanceDisplay: nil,
+                distanceUnit: nil,
+                durationMinutes: nil,
+                durationSeconds: nil,
+                pace: warmupPace.isEmpty ? nil : warmupPace,
+                heartRateRange: nil,
+                intensity: "easy",
+                description: "暖跑"
+            ) : nil
+            result.cooldown = hasCooldown ? RunSegment(
+                distanceKm: cooldownDistance,
+                distanceM: nil,
+                distanceDisplay: nil,
+                distanceUnit: nil,
+                durationMinutes: nil,
+                durationSeconds: nil,
+                pace: cooldownPace.isEmpty ? nil : cooldownPace,
+                heartRateRange: nil,
+                intensity: "easy",
+                description: "緩和跑"
+            ) : nil
+        } else {
+            result.warmup = nil
+            result.cooldown = nil
+        }
+
         return result
     }
 
@@ -424,20 +493,26 @@ struct TrainingEditSheetV2: View {
         case .tempo, .threshold, .racePace:
             // 節奏/閾值/比賽配速跑 - 需要配速和距離
             TempoEditorV2(editState: editState, paceHelper: paceHelper)
+            WarmupCooldownEditorV2(editState: editState)
         case .norwegian4x4:
             // 挪威4x4 專屬編輯器
             Norwegian4x4EditorV2(editState: editState, paceHelper: paceHelper)
+            WarmupCooldownEditorV2(editState: editState)
         case .yasso800:
             // 亞索800 專屬編輯器
             Yasso800EditorV2(editState: editState, paceHelper: paceHelper)
+            WarmupCooldownEditorV2(editState: editState)
         case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
             // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇）
             IntervalEditorV2(editState: editState, paceHelper: paceHelper)
+            WarmupCooldownEditorV2(editState: editState)
         case .combination, .progression, .fartlek, .fastFinish:
             // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
             CombinationEditorV2(editState: editState, paceHelper: paceHelper)
+            WarmupCooldownEditorV2(editState: editState)
         case .longRun:
             LongRunEditorV2(editState: editState, paceHelper: paceHelper)
+            WarmupCooldownEditorV2(editState: editState)
         default:
             SimpleEditorV2(editState: editState, paceHelper: paceHelper)
         }
@@ -1143,6 +1218,93 @@ struct SimpleEditorV2: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
+    }
+}
+
+// MARK: - 暖跑/緩和跑編輯器
+
+struct WarmupCooldownEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("暖跑 / 緩和跑")
+                .font(AppFont.headline())
+                .foregroundColor(.orange)
+
+            // 暖跑
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(isOn: $editState.hasWarmup) {
+                    HStack(spacing: 6) {
+                        Text("🔥")
+                        Text("暖跑")
+                            .font(AppFont.bodySmall())
+                            .fontWeight(.medium)
+                            .foregroundColor(.orange)
+                    }
+                }
+
+                if editState.hasWarmup {
+                    HStack(spacing: 16) {
+                        DistancePickerFieldV2(title: "距離", distance: $editState.warmupDistance)
+                        PacePickerFieldV2(title: "配速", pace: $editState.warmupPace, referenceDistance: editState.warmupDistance)
+                    }
+
+                    let estimatedMinutes = estimateDuration(distanceKm: editState.warmupDistance, pace: editState.warmupPace)
+                    if let mins = estimatedMinutes {
+                        Text("預估時間：約 \(Int(mins)) 分鐘")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.orange.opacity(0.08))
+            .cornerRadius(8)
+
+            // 緩和跑
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(isOn: $editState.hasCooldown) {
+                    HStack(spacing: 6) {
+                        Text("❄️")
+                        Text("緩和跑")
+                            .font(AppFont.bodySmall())
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                    }
+                }
+
+                if editState.hasCooldown {
+                    HStack(spacing: 16) {
+                        DistancePickerFieldV2(title: "距離", distance: $editState.cooldownDistance)
+                        PacePickerFieldV2(title: "配速", pace: $editState.cooldownPace, referenceDistance: editState.cooldownDistance)
+                    }
+
+                    let estimatedMinutes = estimateDuration(distanceKm: editState.cooldownDistance, pace: editState.cooldownPace)
+                    if let mins = estimatedMinutes {
+                        Text("預估時間：約 \(Int(mins)) 分鐘")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.08))
+            .cornerRadius(8)
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+
+    private func estimateDuration(distanceKm: Double, pace: String) -> Double? {
+        let parts = pace.split(separator: ":")
+        guard parts.count == 2,
+              let mins = Double(parts[0]),
+              let secs = Double(parts[1]) else { return nil }
+        let paceMinPerKm = mins + secs / 60.0
+        guard paceMinPerKm > 0 else { return nil }
+        return distanceKm * paceMinPerKm
     }
 }
 
