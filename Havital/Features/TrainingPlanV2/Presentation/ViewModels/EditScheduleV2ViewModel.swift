@@ -108,14 +108,10 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
 
         do {
             let dayDTOs = editingDays.map { buildDayDetailDTO(from: $0) }
-            let totalDistance = editingDays.reduce(0.0) {
-                $0 + ($1.trainingDetails?.totalDistanceKm ?? $1.trainingDetails?.distanceKm ?? 0.0)
-            }
-
             let request = UpdateWeeklyPlanRequest(
                 days: dayDTOs,
                 purpose: nil,
-                totalDistanceKm: totalDistance > 0 ? totalDistance : nil
+                totalDistanceKm: nil
             )
 
             let savedPlan = try await repository.updateWeeklyPlan(
