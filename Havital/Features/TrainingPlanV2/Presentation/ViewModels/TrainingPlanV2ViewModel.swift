@@ -889,35 +889,33 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
         do {
             let summary = try await repository.generateWeeklySummary(weekOfPlan: week, forceUpdate: false)
 
-            isLoadingAnimation = false
-            isLoadingWeeklySummary = false
-            isGeneratingSummary = false
             weeklySummary = .loaded(summary)
 
-            // ✅ 先更新 planStatusResponse，確保 nextWeekInfo 在 sheet 顯示前就已就緒
+            // 趁 loading sheet 還在時先更新 planStatusResponse
             await refreshPlanStatusResponse()
+
+            // 關閉 loading sheet，等待 dismiss 動畫完成，再開啟 summary sheet
+            stopLoadingAnimation()
+            try await Task.sleep(nanoseconds: 600_000_000)
 
             showWeeklySummary = true
 
             Logger.info("[TrainingPlanV2VM] ✅ 週摘要產生成功，顯示 sheet")
         } catch is CancellationError {
             Logger.debug("[TrainingPlanV2VM] 週摘要產生被取消，忽略")
-            isLoadingAnimation = false
-            isLoadingWeeklySummary = false
-            isGeneratingSummary = false
+            stopLoadingAnimation()
         } catch {
-            if (error as NSError).code == NSURLErrorCancelled {
-                isLoadingAnimation = false
-                isLoadingWeeklySummary = false
-                isGeneratingSummary = false
-                return
-            }
+            stopLoadingAnimation()
+            if (error as NSError).code == NSURLErrorCancelled { return }
             Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
-            isLoadingAnimation = false
-            isLoadingWeeklySummary = false
-            isGeneratingSummary = false
             networkError = error
         }
+    }
+
+    private func stopLoadingAnimation() {
+        isLoadingAnimation = false
+        isLoadingWeeklySummary = false
+        isGeneratingSummary = false
     }
 
     /// 獲取所有週摘要列表（共用 V1 endpoint，用於判斷各週是否有課表/回顧）

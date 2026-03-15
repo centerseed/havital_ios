@@ -337,6 +337,11 @@ struct TrainingPlanV2View: View {
         .task {
             await viewModel.initialize()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task {
+                await viewModel.initialize()
+            }
+        }
         // 成功訊息 Toast
         .overlay(alignment: .top) {
             if let successMessage = viewModel.successToast {
