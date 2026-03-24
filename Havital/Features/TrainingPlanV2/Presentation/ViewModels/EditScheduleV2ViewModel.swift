@@ -261,7 +261,7 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 recoveryDurationMinutes: recovery.timeMinutes.map { Int($0) },
                 recoveryPace: recovery.pace,
                 recoveryDescription: recovery.description,
-                recoveryDurationSeconds: nil,
+                recoveryDurationSeconds: recovery.timeSeconds,
                 variant: nil
             )
             return RunActivityDTO(

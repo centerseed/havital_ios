@@ -81,6 +81,30 @@ struct IntervalBlockDTO: Codable, Equatable {
         case recoveryDurationSeconds = "recovery_duration_seconds"
         case variant
     }
+
+    /// 自定義編碼器 — recovery 欄位用 encode（nil → null），work 欄位用 encodeIfPresent（nil → 省略）
+    /// 確保後端收到 null 時清除舊的 recovery 距離/配速
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(repeats, forKey: .repeats)
+        // Work 欄位：省略 nil（不影響後端已有值）
+        try container.encodeIfPresent(workDistanceKm, forKey: .workDistanceKm)
+        try container.encodeIfPresent(workDistanceM, forKey: .workDistanceM)
+        try container.encodeIfPresent(workDistanceDisplay, forKey: .workDistanceDisplay)
+        try container.encodeIfPresent(workDistanceUnit, forKey: .workDistanceUnit)
+        try container.encodeIfPresent(workPaceUnit, forKey: .workPaceUnit)
+        try container.encodeIfPresent(workDurationMinutes, forKey: .workDurationMinutes)
+        try container.encodeIfPresent(workPace, forKey: .workPace)
+        try container.encodeIfPresent(workDescription, forKey: .workDescription)
+        // Recovery 欄位：明確編碼 nil 為 null，確保後端清除舊值
+        try container.encode(recoveryDistanceKm, forKey: .recoveryDistanceKm)
+        try container.encode(recoveryDistanceM, forKey: .recoveryDistanceM)
+        try container.encode(recoveryDurationMinutes, forKey: .recoveryDurationMinutes)
+        try container.encode(recoveryPace, forKey: .recoveryPace)
+        try container.encodeIfPresent(recoveryDescription, forKey: .recoveryDescription)
+        try container.encode(recoveryDurationSeconds, forKey: .recoveryDurationSeconds)
+        try container.encodeIfPresent(variant, forKey: .variant)
+    }
 }
 
 // MARK: - RunActivityDTO

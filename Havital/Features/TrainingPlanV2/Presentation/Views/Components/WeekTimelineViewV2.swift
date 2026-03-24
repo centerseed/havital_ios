@@ -6,6 +6,8 @@ struct WeekTimelineViewV2: View {
     @ObservedObject var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
     @State private var selectedWorkout: WorkoutV2?
+    /// 午夜跨日觸發器：值變化時強制重繪所有 TimelineItemViewV2，修正「兩天都顯示今日」
+    @State private var todayTrigger = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -29,7 +31,8 @@ struct WeekTimelineViewV2: View {
                         day: day,
                         onWorkoutSelect: { workout in
                             selectedWorkout = workout
-                        }
+                        },
+                        todayTrigger: todayTrigger
                     )
                 }
             }
@@ -48,6 +51,9 @@ struct WeekTimelineViewV2: View {
                 WorkoutDetailViewV2(workout: workout)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            todayTrigger = Date()
+        }
     }
 }
 
@@ -56,12 +62,15 @@ struct TimelineItemViewV2: View {
     @ObservedObject var viewModel: TrainingPlanV2ViewModel
     let day: DayDetail
     let onWorkoutSelect: (WorkoutV2) -> Void
+    let todayTrigger: Date
 
     @State private var isExpanded = false
     @State private var showTrainingTypeInfo = false
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        // todayTrigger 參與 body，確保日期變化時 SwiftUI 重繪
+        let _ = todayTrigger
         let isToday = viewModel.isToday(dayIndex: day.dayIndexInt)
         let workouts = viewModel.workoutsByDay[day.dayIndexInt] ?? []
 

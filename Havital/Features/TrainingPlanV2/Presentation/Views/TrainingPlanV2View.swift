@@ -5,6 +5,7 @@ import SwiftUI
 struct TrainingPlanV2View: View {
     @StateObject private var viewModel: TrainingPlanV2ViewModel
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
     @State private var showEditSchedule = false
@@ -264,11 +265,12 @@ struct TrainingPlanV2View: View {
                         onGenerateNextWeek: isTrainingCompleted ? nil : {
                             viewModel.showWeeklySummary = false
                             Task {
-                                if let nextWeek = viewModel.planStatusResponse?.nextWeekInfo?.weekNumber {
-                                    await viewModel.generateWeeklyPlanDirectly(weekNumber: nextWeek)
-                                } else {
-                                    Logger.error("[TrainingPlanV2View] nextWeekInfo is nil, cannot generate next week plan")
-                                }
+                                // 等待 summary sheet dismiss 動畫完成，避免與 loading sheet 衝突
+                                try? await Task.sleep(nanoseconds: 600_000_000)
+                                // 週一流程：產完上週回顧後，要產的是 currentWeek 的課表
+                                // nextWeekInfo 是 currentWeek+1（下週），不是當週
+                                let weekToGenerate = viewModel.currentWeek
+                                await viewModel.generateWeeklyPlanDirectly(weekNumber: weekToGenerate)
                             }
                         },
                         onSetNewGoal: isTrainingCompleted ? {
@@ -337,9 +339,11 @@ struct TrainingPlanV2View: View {
         .task {
             await viewModel.initialize()
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            Task {
-                await viewModel.initialize()
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if oldPhase == .background && newPhase == .active {
+                Task {
+                    await viewModel.initialize()
+                }
             }
         }
         // 成功訊息 Toast

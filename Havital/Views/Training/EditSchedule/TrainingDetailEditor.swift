@@ -53,7 +53,9 @@ final class TrainingDayEditState: ObservableObject {
         // 間歇跑欄位
         self.repeats = details?.repeats ?? 4
         self.workPace = details?.work?.pace ?? ""
-        self.workDistance = details?.work?.distanceKm ?? 0.4
+        self.workDistance = details?.work?.distanceKm
+            ?? details?.work?.distanceM.map { $0 / 1000.0 }
+            ?? 0.4
         self.workTimeMinutes = details?.work?.timeMinutes ?? 4.0
         // 判斷是否為時間制間歇：有 timeMinutes 且 distanceKm 為空或 0
         let workHasTime = details?.work?.timeMinutes != nil && details!.work!.timeMinutes! > 0

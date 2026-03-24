@@ -245,6 +245,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Returns: Updated Weekly Plan DTO
     func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Updating weekly plan: \(planId)")
+        // DEBUG: 印出實際送出的 JSON，確認 recovery null 欄位
+        if let jsonData = try? JSONEncoder().encode(updates),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            Logger.debug("[TrainingPlanV2RemoteDS] 📤 Request JSON: \(jsonString)")
+        }
         let weeklyPlan = try await apiHelper.put(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)", body: updates)
         Logger.info("[TrainingPlanV2RemoteDS] Weekly plan updated: \(weeklyPlan.id)")
         return weeklyPlan
