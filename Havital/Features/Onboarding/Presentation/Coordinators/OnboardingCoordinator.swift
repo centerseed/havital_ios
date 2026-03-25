@@ -18,6 +18,8 @@ class OnboardingCoordinator: ObservableObject {
         case goalType
         case raceSetup
         case startStage
+        case methodologySelection
+        case trainingWeeksSetup
         case trainingDays
         case trainingOverview
         case dataSync
@@ -33,6 +35,8 @@ class OnboardingCoordinator: ObservableObject {
             case .goalType: return "Goal Type"
             case .raceSetup: return "Race Setup"
             case .startStage: return "Start Stage"
+            case .methodologySelection: return NSLocalizedString("onboarding.methodology_nav_title", comment: "Training Methodology")
+            case .trainingWeeksSetup: return NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration")
             case .trainingDays: return "Training Days"
             case .trainingOverview: return "Training Overview"
             case .dataSync: return "Data Sync"
@@ -62,11 +66,26 @@ class OnboardingCoordinator: ObservableObject {
     /// 是否為新手 5km 計劃
     @Published var isBeginner: Bool = false
 
-    /// 訓練計劃概覽（生成後暫存）
+    /// 訓練計劃概覽（生成後暫存）- V1
     @Published var trainingPlanOverview: TrainingPlanOverview?
+
+    /// 訓練計劃概覽（生成後暫存）- V2
+    @Published var trainingPlanOverviewV2: PlanOverviewV2?
 
     /// 選擇的起始階段
     @Published var selectedStartStage: String?
+
+    /// 選擇的目標類型 ID（用於方法論選擇）
+    @Published var selectedTargetTypeId: String?
+
+    /// 選擇的方法論 ID（V2 流程）
+    @Published var selectedMethodologyId: String?
+
+    /// 訓練週數（V2 流程，非賽事目標使用）
+    @Published var trainingWeeks: Int?
+
+    /// 每週可訓練天數（V2 流程）
+    @Published var availableDays: Int?
 
     /// 剩餘週數（用於起始階段選擇）
     @Published var weeksRemaining: Int = 12
@@ -116,6 +135,7 @@ class OnboardingCoordinator: ObservableObject {
 
     /// 完成 onboarding 流程
     /// ✅ Clean Architecture: 使用 CompleteOnboardingUseCase 執行完成流程
+    /// 支持 V1 (legacy) 和 V2 (new) 訓練計畫 API
     func completeOnboarding() async {
         isCompleting = true
         error = nil
@@ -128,16 +148,35 @@ class OnboardingCoordinator: ObservableObject {
             // 這是唯一的狀態源，不需要在 Coordinator 維護重複狀態
             let isReonboardingMode = AuthenticationViewModel.shared.isReonboardingMode
 
+            // 判斷是否為 V2 流程
+            let isV2Flow = selectedTargetTypeId != nil
+            print("[OnboardingCoordinator] - isV2Flow: \(isV2Flow)")
+            print("[OnboardingCoordinator] - targetTypeId: \(selectedTargetTypeId ?? "nil")")
+            print("[OnboardingCoordinator] - methodologyId: \(selectedMethodologyId ?? "nil")")
+            print("[OnboardingCoordinator] - targetId: \(selectedTargetId ?? "nil")")
+
             let input = CompleteOnboardingUseCase.Input(
                 startFromStage: selectedStartStage,
                 isBeginner: isBeginner,
-                isReonboarding: isReonboardingMode
+                isReonboarding: isReonboardingMode,
+                // V2 Parameters
+                targetTypeId: selectedTargetTypeId,
+                targetId: selectedTargetId,
+                methodologyId: selectedMethodologyId,
+                trainingWeeks: trainingWeeks,
+                availableDays: availableDays
             )
 
             let output = try await completeOnboardingUseCase.execute(input: input)
 
             print("[OnboardingCoordinator] ✅ CompleteOnboardingUseCase 執行成功")
-            print("[OnboardingCoordinator] - 創建的週計畫 ID: \(output.weeklyPlan.id)")
+            if output.usedV2API {
+                print("[OnboardingCoordinator] - 使用 V2 API")
+                print("[OnboardingCoordinator] - 創建的 V2 週計畫 ID: \(output.weeklyPlanV2?.id ?? "nil")")
+            } else {
+                print("[OnboardingCoordinator] - 使用 V1 API")
+                print("[OnboardingCoordinator] - 創建的 V1 週計畫 ID: \(output.weeklyPlan?.id ?? "nil")")
+            }
 
             // 關閉 loading 動畫
             isCompleting = false
@@ -145,10 +184,10 @@ class OnboardingCoordinator: ObservableObject {
 
             // 清理 UI 狀態
             if output.wasReonboarding {
-                // Re-onboarding 模式：直接關閉 sheet
-                // ✅ 簡化：直接設置狀態，不需要事件系統
-                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet")
+                // Re-onboarding 模式：關閉 sheet 並通知所有訂閱者刷新資料
+                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
                 AuthenticationViewModel.shared.isReonboardingMode = false
+                CacheEventBus.shared.publish(.onboardingCompleted)
             } else {
                 // 新用戶 onboarding：重置所有狀態並發布事件
                 reset()
@@ -176,7 +215,12 @@ class OnboardingCoordinator: ObservableObject {
         selectedTargetId = nil
         isBeginner = false
         trainingPlanOverview = nil
+        trainingPlanOverviewV2 = nil
         selectedStartStage = nil
+        selectedTargetTypeId = nil
+        selectedMethodologyId = nil
+        trainingWeeks = nil
+        availableDays = nil
         weeksRemaining = 12
         isCompleting = false
         error = nil
@@ -225,6 +269,12 @@ class OnboardingCoordinator: ObservableObject {
             return nil
         case .startStage:
             return .trainingDays
+        case .methodologySelection:
+            // MethodologySelectionView 會處理導航邏輯
+            return nil
+        case .trainingWeeksSetup:
+            // TrainingWeeksSetupView 會處理導航邏輯（根據方法論數量決定）
+            return nil
         case .trainingDays:
             return .trainingOverview
         case .trainingOverview:

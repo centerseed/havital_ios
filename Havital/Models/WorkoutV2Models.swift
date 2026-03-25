@@ -15,6 +15,8 @@ struct WorkoutV2: Codable, Identifiable {
     let endTimeUtc: String?
     let durationSeconds: Int
     let distanceMeters: Double?
+    let distanceDisplay: Double?
+    let distanceUnit: String?
     let deviceName: String?
     let basicMetrics: BasicMetrics?
     let advancedMetrics: AdvancedMetrics?
@@ -32,6 +34,8 @@ struct WorkoutV2: Codable, Identifiable {
         case endTimeUtc = "end_time_utc"
         case durationSeconds = "duration_seconds"
         case distanceMeters = "distance_meters"
+        case distanceDisplay = "distance_display"
+        case distanceUnit = "distance_unit"
         case deviceName = "device_name"
         case basicMetrics = "basic_metrics"
         case advancedMetrics = "advanced_metrics"
@@ -178,26 +182,28 @@ struct SafeDouble: Codable {
         
         // Try to decode as Double first
         if let doubleValue = try? container.decode(Double.self) {
-            _internal = doubleValue
+            _internal = doubleValue.isFinite ? doubleValue : nil
             return
         }
-        
+
         // Try to decode as String and convert
         if let stringValue = try? container.decode(String.self),
-           let doubleValue = Double(stringValue) {
+           let doubleValue = Double(stringValue),
+           doubleValue.isFinite {
             _internal = doubleValue
             return
         }
-        
+
         // Try to decode as Int and convert
         if let intValue = try? container.decode(Int.self) {
             _internal = Double(intValue)
             return
         }
-        
+
         // Try to decode as Decimal and convert
         if let decimalValue = try? container.decode(Decimal.self) {
-            _internal = NSDecimalNumber(decimal: decimalValue).doubleValue
+            let doubleValue = NSDecimalNumber(decimal: decimalValue).doubleValue
+            _internal = doubleValue.isFinite ? doubleValue : nil
             return
         }
         
@@ -236,16 +242,22 @@ struct SafeInt: Codable {
         }
         
         // Try to decode as Double and convert
-        if let doubleValue = try? container.decode(Double.self) {
+        if let doubleValue = try? container.decode(Double.self), doubleValue.isFinite {
             _internal = Int(doubleValue)
             return
         }
-        
+
         // Try to decode as String and convert
-        if let stringValue = try? container.decode(String.self),
-           let intValue = Int(stringValue) {
-            _internal = intValue
-            return
+        if let stringValue = try? container.decode(String.self) {
+            // 先嘗試直接轉 Int，再嘗試透過 Double 轉換（處理 "3.14" 這種情況）
+            if let intValue = Int(stringValue) {
+                _internal = intValue
+                return
+            }
+            if let doubleValue = Double(stringValue), doubleValue.isFinite {
+                _internal = Int(doubleValue)
+                return
+            }
         }
         
         _internal = nil
@@ -863,7 +875,28 @@ struct LapData: Codable, Identifiable {
         case _avgHeartRateBpm = "avg_heart_rate_bpm"
         case metadata = "metadata"
     }
-    
+
+    /// 直接建構 LapData（用於從 Apple Health 建立，不經過 JSON round-trip）
+    init(
+        lapNumber: Int,
+        startTimeOffsetS: Int,
+        totalTimeS: Int? = nil,
+        totalDistanceM: Double? = nil,
+        avgSpeedMPerS: Double? = nil,
+        avgPaceSPerKm: Double? = nil,
+        avgHeartRateBpm: Int? = nil,
+        metadata: [String: String]? = nil
+    ) {
+        self.lapNumber = lapNumber
+        self._startTimeOffsetS = SafeInt(value: startTimeOffsetS)
+        self._totalTimeS = totalTimeS.map { SafeInt(value: $0) }
+        self._totalDistanceM = totalDistanceM.map { SafeDouble(value: $0) }
+        self._avgSpeedMPerS = avgSpeedMPerS.map { SafeDouble(value: $0) }
+        self._avgPaceSPerKm = avgPaceSPerKm.map { SafeDouble(value: $0) }
+        self._avgHeartRateBpm = avgHeartRateBpm.map { SafeInt(value: $0) }
+        self.metadata = metadata
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -1390,13 +1423,13 @@ extension WorkoutV2 {
     }
 }
 
-// MARK: - Apple Health Lap Data Upload Helper Extension
+// MARK: - Apple Health Lap Data Helper Extension
 
 extension LapData {
     /// 從 Apple Health 分圈事件創建 LapData（用於上傳）
     static func fromAppleHealth(
         lapNumber: Int,
-        startTimeOffset: TimeInterval,  // 相對於運動開始時間的偏移秒數
+        startTimeOffset: TimeInterval,
         duration: TimeInterval,
         distance: Double?,
         averagePace: Double?,
@@ -1404,50 +1437,23 @@ extension LapData {
         type: String,
         metadata: [String: String]?
     ) -> LapData {
-        // 將 Apple Health 格式轉換為後端 API 格式
-        let startOffset = Int(startTimeOffset)  // 相對偏移，不是絕對時間戳
-        let totalTime = Int(duration)
-        let avgSpeed = distance.map { $0 / duration }
-        let avgHR = averageHeartRate.map { Int($0) }
+        let safeOffset = startTimeOffset.isFinite ? Int(startTimeOffset) : 0
+        let safeDuration = duration.isFinite ? Int(duration) : nil
+        let safeDistance = distance?.isFinite == true ? distance : nil
+        let safeSpeed: Double? = if let d = safeDistance, duration > 0 { d / duration } else { nil }
+        let safePace = averagePace?.isFinite == true ? averagePace : nil
+        let safeHR = averageHeartRate.flatMap { $0.isFinite ? Int($0) : nil }
 
-        // 構建 JSON 字典，只包含非 nil 值
-        var jsonDict: [String: Any] = [
-            "lap_number": lapNumber,
-            "start_time_offset_s": startOffset
-        ]
-
-        if let time = totalTime as Int? {
-            jsonDict["total_time_s"] = time
-        }
-
-        if let dist = distance {
-            jsonDict["total_distance_m"] = dist
-        }
-
-        if let speed = avgSpeed {
-            jsonDict["avg_speed_m_per_s"] = speed
-        }
-
-        if let pace = averagePace {
-            jsonDict["avg_pace_s_per_km"] = pace
-        }
-
-        if let hr = avgHR {
-            jsonDict["avg_heart_rate_bpm"] = hr
-        }
-
-        if let meta = metadata {
-            jsonDict["metadata"] = meta
-        }
-
-        // 創建 JSON 數據並解碼
-        if let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict),
-           let lapData = try? JSONDecoder().decode(LapData.self, from: jsonData) {
-            return lapData
-        }
-
-        // 備用方案：使用預設值
-        fatalError("Failed to create LapData from Apple Health data")
+        return LapData(
+            lapNumber: lapNumber,
+            startTimeOffsetS: safeOffset,
+            totalTimeS: safeDuration,
+            totalDistanceM: safeDistance,
+            avgSpeedMPerS: safeSpeed,
+            avgPaceSPerKm: safePace,
+            avgHeartRateBpm: safeHR,
+            metadata: metadata
+        )
     }
 }
 

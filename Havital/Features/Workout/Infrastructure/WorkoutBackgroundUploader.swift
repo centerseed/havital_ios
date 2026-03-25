@@ -43,14 +43,14 @@ class WorkoutBackgroundUploader {
                 }
 
                 // 已上傳且有心率資料，則跳過
-                if workoutUploadTracker.isWorkoutUploaded(workout) &&
-                   workoutUploadTracker.workoutHasHeartRate(workout) {
+                if workoutUploadTracker.isWorkoutUploaded(workout, apiVersion: .v2) &&
+                   workoutUploadTracker.workoutHasHeartRate(workout, apiVersion: .v2) {
                     continue
                 }
                 // 已上傳但缺少心率且在等待期內，跳過
-                if workoutUploadTracker.isWorkoutUploaded(workout) &&
-                   !workoutUploadTracker.workoutHasHeartRate(workout) {
-                    if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout) {
+                if workoutUploadTracker.isWorkoutUploaded(workout, apiVersion: .v2) &&
+                   !workoutUploadTracker.workoutHasHeartRate(workout, apiVersion: .v2) {
+                    if let uploadTime = workoutUploadTracker.getWorkoutUploadTime(workout, apiVersion: .v2) {
                         let timeElapsed = Date().timeIntervalSince(uploadTime)
                         if timeElapsed < 3600 {
                             continue

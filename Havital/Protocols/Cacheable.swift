@@ -35,6 +35,7 @@ enum CacheInvalidationReason {
 enum DataType {
     case workouts
     case trainingPlan
+    case trainingPlanV2
     case weeklySummary
     case targets
     case user

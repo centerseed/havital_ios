@@ -58,7 +58,7 @@ final class TrainingPlanRemoteDataSource {
         let bodyData = params.isEmpty ? nil : try JSONSerialization.data(withJSONObject: params)
 
         let rawData = try await httpClient.request(
-            path: "/plan/race_run/weekly/v2",
+            path: "/plan/race_run/weekly",
             method: .POST,
             body: bodyData
         )

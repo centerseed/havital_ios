@@ -12,6 +12,7 @@ struct StartStageSelectionView: View {
     let weeksRemaining: Int
     let targetDistanceKm: Double
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
+    @StateObject private var viewModel = OnboardingFeatureViewModel()
 
     @State private var selectedStage: TrainingStagePhase?
     @State private var recommendation: StartStageRecommendation
@@ -95,6 +96,7 @@ struct StartStageSelectionView: View {
                             isRecommended: true,
                             isSelected: selectedStage == recommendation.recommendedStage
                         )
+                        .accessibilityIdentifier("StartStage_\(recommendation.recommendedStage.apiIdentifier)")
                         .contentShape(Rectangle())
                         .onTapGesture {
                             selectedStage = recommendation.recommendedStage
@@ -112,6 +114,7 @@ struct StartStageSelectionView: View {
                                     alternative: alternative,
                                     isSelected: selectedStage == alternative.stage
                                 )
+                                .accessibilityIdentifier("StartStage_\(alternative.stage.apiIdentifier)")
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectedStage = alternative.stage
@@ -145,12 +148,49 @@ struct StartStageSelectionView: View {
                     } else {
                         UserDefaults.standard.removeObject(forKey: "selectedStartStage")
                     }
-                    coordinator.navigate(to: .trainingDays)
+
+                    // ⭐ 新增：檢查方法論後導航
+                    Task {
+                        Logger.debug("[StartStageSelectionView] 🎯 Button clicked - selectedTargetTypeV2: \(viewModel.selectedTargetTypeV2?.id ?? "nil")")
+
+                        // 確保有 target type（如果沒有，重新載入）
+                        if viewModel.selectedTargetTypeV2 == nil {
+                            Logger.debug("[StartStageSelectionView] ⚠️ selectedTargetTypeV2 is nil, loading target types...")
+                            await viewModel.loadTargetTypes()
+
+                            if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
+                                viewModel.selectedTargetTypeV2 = raceRunType
+                                Logger.debug("[StartStageSelectionView] ✅ Loaded and set selectedTargetTypeV2 to: \(raceRunType.id)")
+                            }
+                        }
+
+                        if let targetType = viewModel.selectedTargetTypeV2 {
+                            Logger.debug("[StartStageSelectionView] 📥 Loading methodologies for: \(targetType.id)")
+                            await viewModel.loadMethodologiesForTargetType(targetType.id)
+
+                            await MainActor.run {
+                                let methodCount = viewModel.availableMethodologies.count
+                                Logger.debug("[StartStageSelectionView] 📊 Loaded \(methodCount) methodologies")
+
+                                if methodCount > 1 {
+                                    Logger.info("[StartStageSelectionView] ✅ Navigating to methodologySelection")
+                                    coordinator.navigate(to: .methodologySelection)
+                                } else {
+                                    Logger.info("[StartStageSelectionView] ⏭️ Skipping methodology selection (count=\(methodCount)), navigating to trainingDays")
+                                    coordinator.navigate(to: .trainingDays)
+                                }
+                            }
+                        } else {
+                            Logger.error("[StartStageSelectionView] ❌ Failed to load targetType, navigating to trainingDays")
+                            coordinator.navigate(to: .trainingDays)
+                        }
+                    }
                 }) {
                     Text(NSLocalizedString("start_stage.continue", comment: "繼續"))
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                 }
+                .accessibilityIdentifier("StartStage_NextButton")
                 .padding()
                 .background(Color.accentColor)
                 .foregroundColor(.white)
@@ -162,6 +202,16 @@ struct StartStageSelectionView: View {
         }
         .navigationTitle(NSLocalizedString("start_stage.title", comment: "訓練計劃起始階段"))
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            // ⭐ 載入 V2 target types 並設置 race_run 類型
+            await viewModel.loadTargetTypes()
+
+            // 找到 race_run 目標類型並設置
+            if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
+                viewModel.selectedTargetTypeV2 = raceRunType
+                Logger.debug("[StartStageSelectionView] ✅ Set selectedTargetTypeV2 to: \(raceRunType.id)")
+            }
+        }
     }
 
     /// 判斷是否有基礎期選項可用（用於條件顯示提醒訊息）

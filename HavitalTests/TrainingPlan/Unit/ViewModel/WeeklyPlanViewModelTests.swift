@@ -167,20 +167,22 @@ final class WeeklyPlanViewModelTests: XCTestCase {
     
     func testSelectWeek_InvalidWeek_DoesNothing() async {
         // Given
+        mockRepository.overviewToReturn = TrainingPlanTestFixtures.trainingOverview
+        mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
         sut.currentWeek = 5
         sut.selectedWeek = 1
-        
-        // When
-        await sut.selectWeek(6) // > current
-        
-        // Then
-        XCTAssertEqual(sut.selectedWeek, 1)
-        
-        // When
-        await sut.selectWeek(0) // < 1
-        
-        // Then
-        XCTAssertEqual(sut.selectedWeek, 1)
+
+        // When: 選擇未來週次（新邏輯允許查看任何已產生的週計畫）
+        await sut.selectWeek(6) // >= 1 是允許的
+
+        // Then: 應該更新 selectedWeek
+        XCTAssertEqual(sut.selectedWeek, 6)
+
+        // When: 選擇無效週次 (< 1)
+        await sut.selectWeek(0) // < 1 是不允許的
+
+        // Then: selectedWeek 應該保持不變
+        XCTAssertEqual(sut.selectedWeek, 6)
     }
     
     // MARK: - generateWeeklyPlan Tests

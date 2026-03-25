@@ -276,13 +276,19 @@ struct ResponseProcessor {
     
     /// 嘗試從原始數據中提取結果
     static func extractData<T: Codable>(
-        _ type: T.Type, 
-        from rawData: Data, 
+        _ type: T.Type,
+        from rawData: Data,
         using parser: APIParser
     ) throws -> T {
-        
+
         Logger.debug("[ResponseProcessor] 開始提取數據，目標類型: \(String(describing: type))")
-        Logger.debug("[ResponseProcessor] 原始響應數據預覽: \(String(data: rawData.prefix(200), encoding: .utf8) ?? "無法解析")...")
+
+        // 打印完整的原始響應以便調試
+        if let rawString = String(data: rawData, encoding: .utf8) {
+            Logger.debug("[ResponseProcessor] 🔍 完整原始響應:\n\(rawString)")
+        } else {
+            Logger.debug("[ResponseProcessor] ⚠️ 無法解析原始響應為字符串")
+        }
         
         // 嘗試解析為統一回應格式
         do {

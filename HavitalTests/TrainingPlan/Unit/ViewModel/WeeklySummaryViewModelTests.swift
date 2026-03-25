@@ -46,7 +46,7 @@ final class WeeklySummaryViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isGenerating)
     }
 
-    func testCreateWeeklySummary_WithAdjustments_ShowsConfirmation() async throws {
+    func testCreateWeeklySummary_WithAdjustments_ShowsSummaryFirst() async throws {
         // Given
         let adjustmentItems = [
             AdjustmentItem(content: "Reduce interval training", apply: true),
@@ -67,11 +67,11 @@ final class WeeklySummaryViewModelTests: XCTestCase {
         // When
         await viewModel.createWeeklySummary(weekNumber: 4)
 
-        // Then
-        XCTAssertTrue(viewModel.showAdjustmentConfirmation)
-        XCTAssertEqual(viewModel.pendingAdjustments.count, 2)
+        // Then: 新流程 - 先顯示週回顧，調整項目保存待用戶關閉後再顯示
+        XCTAssertTrue(viewModel.showSummarySheet) // 先顯示週回顧
+        XCTAssertEqual(viewModel.pendingAdjustments.count, 2) // 調整項目已保存
         XCTAssertEqual(viewModel.pendingSummaryId, "summary_2")
-        XCTAssertFalse(viewModel.showSummarySheet) // 應顯示調整確認而非週回顧
+        // 注意：showAdjustmentConfirmation 會在用戶關閉週回顧後才設置為 true
     }
 
     func testCreateWeeklySummary_NoAdjustments_ShowsSummarySheet() async throws {

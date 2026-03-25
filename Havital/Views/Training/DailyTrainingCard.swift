@@ -36,7 +36,7 @@ struct DayHeaderView: View {
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength, .fartlek:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return Color.purple
         }
     }
@@ -659,11 +659,11 @@ struct DailyTrainingCard: View {
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength, .fartlek:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return Color.purple
         }
     }
-    
+
     var body: some View {
         let isExpanded = isToday || viewModel.expandedDayIndices.contains(day.dayIndexInt)
 

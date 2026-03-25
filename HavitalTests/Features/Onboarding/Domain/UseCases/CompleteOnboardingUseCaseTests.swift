@@ -14,19 +14,45 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
 
     private var sut: CompleteOnboardingUseCase!
     private var mockRepository: MockTrainingPlanRepository!
+    private var mockV2Repository: MockTrainingPlanV2Repository!
 
     // MARK: - Setup & Teardown
 
     override func setUp() {
         super.setUp()
         mockRepository = MockTrainingPlanRepository()
-        sut = CompleteOnboardingUseCase(trainingPlanRepository: mockRepository)
+        mockV2Repository = MockTrainingPlanV2Repository()
+        sut = CompleteOnboardingUseCase(
+            trainingPlanRepository: mockRepository,
+            trainingPlanV2Repository: mockV2Repository
+        )
     }
 
     override func tearDown() {
         sut = nil
         mockRepository = nil
+        mockV2Repository = nil
         super.tearDown()
+    }
+
+    // MARK: - Helper
+
+    /// Create a V1-style Input (no V2 parameters)
+    private func makeV1Input(
+        startFromStage: String? = nil,
+        isBeginner: Bool = false,
+        isReonboarding: Bool = false
+    ) -> CompleteOnboardingUseCase.Input {
+        CompleteOnboardingUseCase.Input(
+            startFromStage: startFromStage,
+            isBeginner: isBeginner,
+            isReonboarding: isReonboarding,
+            targetTypeId: nil,
+            targetId: nil,
+            methodologyId: nil,
+            trainingWeeks: nil,
+            availableDays: nil
+        )
     }
 
     // MARK: - Success Cases
@@ -36,17 +62,13 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         let expectedPlan = TrainingPlanTestFixtures.weeklyPlan1
         mockRepository.weeklyPlanToReturn = expectedPlan
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: nil,
-            isBeginner: false,
-            isReonboarding: false
-        )
+        let input = makeV1Input()
 
         // When
         let output = try await sut.execute(input: input)
 
         // Then
-        XCTAssertEqual(output.weeklyPlan.id, expectedPlan.id)
+        XCTAssertEqual(output.weeklyPlan?.id, expectedPlan.id)
         XCTAssertEqual(output.wasReonboarding, false)
         XCTAssertEqual(mockRepository.createWeeklyPlanCallCount, 1)
     }
@@ -55,30 +77,20 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         // Given
         mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: "stage_2",
-            isBeginner: true,
-            isReonboarding: false
-        )
+        let input = makeV1Input(startFromStage: "stage_2", isBeginner: true)
 
         // When
         _ = try await sut.execute(input: input)
 
         // Then
         XCTAssertEqual(mockRepository.createWeeklyPlanCallCount, 1)
-        // Note: MockTrainingPlanRepository doesn't track parameters for createWeeklyPlan
-        // This verifies the call was made
     }
 
     func test_execute_handlesReonboardingMode() async throws {
         // Given
         mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: nil,
-            isBeginner: false,
-            isReonboarding: true
-        )
+        let input = makeV1Input(isReonboarding: true)
 
         // When
         let output = try await sut.execute(input: input)
@@ -92,17 +104,13 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         // Given
         mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: nil,
-            isBeginner: true,
-            isReonboarding: false
-        )
+        let input = makeV1Input(isBeginner: true)
 
         // When
         let output = try await sut.execute(input: input)
 
         // Then
-        XCTAssertEqual(output.weeklyPlan.id, TrainingPlanTestFixtures.weeklyPlan1.id)
+        XCTAssertEqual(output.weeklyPlan?.id, TrainingPlanTestFixtures.weeklyPlan1.id)
         XCTAssertEqual(output.wasReonboarding, false)
     }
 
@@ -112,18 +120,13 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         // Given
         mockRepository.errorToThrow = TrainingPlanError.noPlan
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: nil,
-            isBeginner: false,
-            isReonboarding: false
-        )
+        let input = makeV1Input()
 
         // When / Then
         do {
             _ = try await sut.execute(input: input)
             XCTFail("Expected error to be thrown")
         } catch {
-            // Verify error is wrapped as OnboardingError
             XCTAssertTrue(error is OnboardingError)
         }
     }
@@ -132,11 +135,7 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         // Given
         mockRepository.weeklyPlanToReturn = nil
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: nil,
-            isBeginner: false,
-            isReonboarding: false
-        )
+        let input = makeV1Input()
 
         // When / Then
         do {
@@ -154,18 +153,14 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         let expectedPlan = TrainingPlanTestFixtures.weeklyPlan2
         mockRepository.weeklyPlanToReturn = expectedPlan
 
-        let input = CompleteOnboardingUseCase.Input(
-            startFromStage: "advanced_stage",
-            isBeginner: false,
-            isReonboarding: true
-        )
+        let input = makeV1Input(startFromStage: "advanced_stage", isReonboarding: true)
 
         // When
         let output = try await sut.execute(input: input)
 
         // Then
-        XCTAssertEqual(output.weeklyPlan.id, expectedPlan.id)
-        XCTAssertEqual(output.weeklyPlan.weekOfPlan, expectedPlan.weekOfPlan)
+        XCTAssertEqual(output.weeklyPlan?.id, expectedPlan.id)
+        XCTAssertEqual(output.weeklyPlan?.weekOfPlan, expectedPlan.weekOfPlan)
         XCTAssertEqual(output.wasReonboarding, true)
     }
 }

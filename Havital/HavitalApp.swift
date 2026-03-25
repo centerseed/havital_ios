@@ -200,6 +200,9 @@ struct HavitalApp: App {
                     Task {
                         await appViewModel.onAppBecameActive()
                     }
+                    Task {
+                        await checkForPendingHealthUpdates()
+                    }
                 } else {
                     print("📱 應用首次啟動變為 active，跳過刷新（已在初始化時載入）")
                     hasLaunched = true
@@ -216,44 +219,51 @@ struct HavitalApp: App {
     /// 基於已確定用戶狀態的權限設置
     func setupPermissionsBasedOnUserState() async {
         print("🔐 HavitalApp: 開始基於用戶狀態設置權限")
-        
+
         // 獲取用戶狀態
         let appStateManager = AppStateManager.shared
         let isAuthenticated = appStateManager.isUserAuthenticated
         let dataSource = appStateManager.userDataSource
-        
+
         print("🔐 用戶認證狀態: \(isAuthenticated)")
         print("🔐 數據源: \(dataSource.rawValue)")
+
+        // 📊 關鍵診斷：記錄入口狀態
+        Logger.firebase(
+            "setupPermissions 入口狀態",
+            level: .info,
+            labels: ["module": "HavitalApp", "action": "setup_permissions_entry", "cloud_logging": "true"],
+            jsonPayload: [
+                "isAuthenticated": isAuthenticated,
+                "dataSource": dataSource.rawValue,
+                "userPrefsDataSource": UserPreferencesManager.shared.dataSourcePreference.rawValue,
+                "hasCompletedOnboarding": UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+            ]
+        )
         
         if isAuthenticated {
-            // 已認證用戶的權限設置
-            switch dataSource {
-            case .appleHealth:
-                print("🍎 設置 Apple Health 用戶權限")
+            // 🔧 多來源判定：避免 AppStateManager 未同步完成時漏判
+            let userPrefsDataSource = UserPreferencesManager.shared.dataSourcePreference
+            let isAppleHealthUser = dataSource == .appleHealth || userPrefsDataSource == .appleHealth
+
+            if isAppleHealthUser {
+                print("🍎 設置 Apple Health 用戶權限 (appState=\(dataSource.rawValue), prefs=\(userPrefsDataSource.rawValue))")
                 // 1. 請求 HealthKit 授權
                 await requestHealthKitAuthorization()
-                
+
                 // 2. 請求通知授權
                 await requestNotificationAuthorization()
-                
+
                 // 3. 設置背景健身記錄同步
                 await setupWorkoutBackgroundProcessing()
-                
-                // 4. setupWorkoutObserver 內部已包含上傳檢查，無需重複調用
-                // await checkForPendingHealthUpdates() // 已移除重複調用
-                
-            case .garmin:
+            } else if dataSource == .garmin {
                 print("⌚ 設置 Garmin 用戶權限")
-                // 只需要通知授權
                 await requestNotificationAuthorization()
-                
-            case .strava:
+            } else if dataSource == .strava {
                 print("🏃 設置 Strava 用戶權限")
-                // 只需要通知授權
                 await requestNotificationAuthorization()
-                
-            case .unbound:
-                print("🔓 用戶未綁定數據源，設置基本權限")
+            } else {
+                print("🔓 用戶未綁定數據源 (appState=\(dataSource.rawValue), prefs=\(userPrefsDataSource.rawValue))，設置基本權限")
                 await requestNotificationAuthorization()
             }
             
@@ -323,11 +333,29 @@ struct HavitalApp: App {
         
         // 🚨 關鍵修復：只有 Apple Health 用戶才設置觀察者
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
+
+        // 📊 診斷：記錄進入 setupWorkoutBackgroundProcessing 的狀態
+        Logger.firebase(
+            "setupWorkoutBackgroundProcessing 開始",
+            level: .info,
+            labels: ["module": "HavitalApp", "action": "setup_workout_bg", "cloud_logging": "true"],
+            jsonPayload: [
+                "dataSourcePreference": dataSourcePreference.rawValue,
+                "isFirstLogin": authViewModel.isFirstLogin
+            ]
+        )
+
         if dataSourcePreference == .appleHealth {
             print("設置健身記錄觀察者（Apple Health 用戶）...")
             await WorkoutBackgroundManager.shared.setupWorkoutObserver()
         } else {
             print("跳過健身記錄觀察者設置（數據源: \(dataSourcePreference.displayName)）")
+            Logger.firebase(
+                "跳過 Observer 設置：非 Apple Health",
+                level: .warn,
+                labels: ["module": "HavitalApp", "action": "setup_workout_bg_skipped", "cloud_logging": "true"],
+                jsonPayload: ["dataSource": dataSourcePreference.rawValue]
+            )
             // 確保停止任何可能已經啟動的觀察者
             WorkoutBackgroundManager.shared.stopAndCleanupObserving()
         }

@@ -14,20 +14,23 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
     var mockUserProfileRepository: MockUserProfileRepository!
     var mockTargetRepository: MockTargetRepository!
     var mockTrainingPlanRepository: MockTrainingPlanRepository!
-    
+    var mockTrainingPlanV2Repository: MockTrainingPlanV2Repository!
+
     override func setUp() async throws {
         try await super.setUp()
-        
+
         // Initialize Mocks
         mockUserProfileRepository = MockUserProfileRepository()
         mockTargetRepository = MockTargetRepository()
         mockTrainingPlanRepository = MockTrainingPlanRepository()
-        
+        mockTrainingPlanV2Repository = MockTrainingPlanV2Repository()
+
         // Initialize ViewModel with Mocks
         sut = OnboardingFeatureViewModel(
             userProfileRepository: mockUserProfileRepository,
             targetRepository: mockTargetRepository,
-            trainingPlanRepository: mockTrainingPlanRepository
+            trainingPlanRepository: mockTrainingPlanRepository,
+            trainingPlanV2Repository: mockTrainingPlanV2Repository
         )
         
         // Clear UserDefaults
@@ -39,6 +42,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         mockUserProfileRepository = nil
         mockTargetRepository = nil
         mockTrainingPlanRepository = nil
+        mockTrainingPlanV2Repository = nil
         UserDefaults.standard.removeObject(forKey: "onboarding_hasPersonalBest")
         try await super.tearDown()
     }
@@ -153,16 +157,16 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(nextStep, .goalType)
     }
     
-    func testDetermineNextStep_HasHistory_ReturnsRaceSetup() {
-        // Given
+    func testDetermineNextStep_HasHistory_ReturnsGoalType() {
+        // Given: V2 Flow - Always go to Goal Type first
         UserDefaults.standard.set(true, forKey: "onboarding_hasPersonalBest")
         sut.weeklyDistance = 20
-        
+
         // When
         let nextStep = sut.determineNextStepAfterWeeklyDistance()
-        
-        // Then
-        XCTAssertEqual(nextStep, .raceSetup)
+
+        // Then: V2 Flow 總是先進入 Goal Type 選擇
+        XCTAssertEqual(nextStep, .goalType)
     }
     
     // MARK: - Goal Type Tests

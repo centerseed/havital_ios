@@ -237,6 +237,7 @@
 "profile.personal_info" = "Personal Info";
 "profile.training_info" = "Training Info";
 "profile.heart_rate_info" = "Heart Rate Info";
+"profile.pace_zones" = "Pace Zones";
 "profile.data_sources" = "Data Sources";
 "profile.settings" = "Settings";
 "profile.name" = "Name";
@@ -269,6 +270,13 @@
 // MARK: - Training Plan
 "training.plan_title" = "Training Plan";
 "training.weekly_plan" = "Weekly Plan";
+"training.no_weekly_plan_title" = "Weekly Plan Not Generated";
+"training.no_weekly_plan_description" = "Tap the button below to generate this week's training plan";
+"training.generate_weekly_plan" = "Generate Weekly Plan";
+"training.get_weekly_summary" = "Get Weekly Summary";
+"training.generate_next_week_plan" = "Generate Next Week's Plan";
+"training.generating_weekly_plan" = "Generating Weekly Plan...";
+"training.generating_weekly_plan_description" = "AI is planning your training for this week, please wait";
 "training.daily_training" = "Daily Training";
 "training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
@@ -358,6 +366,17 @@
 "training.type.hiking" = "Hiking";
 "training.type.strength" = "Strength Training";
 "training.type.yoga" = "Yoga";
+
+// MARK: - Strength Training Types
+"training.strength_type.core_stability" = "Core Stability";
+"training.strength_type.glutes_hip" = "Glutes & Hip";
+"training.strength_type.lower_strength" = "Lower Body Strength";
+"training.strength_type.upper_strength" = "Upper Body Strength";
+"training.strength_type.full_body" = "Full Body Strength";
+"training.strength_type.plyometric" = "Plyometric";
+"training.strength_type.mobility" = "Mobility";
+"training.minutes_unit" = "min";
+"training.exercises_count_unit" = "exercises";
 "training.type.cycling" = "Cycling";
 "training.type.rest_day" = "Rest Day";
 // New Interval Training Types
@@ -462,6 +481,8 @@
 "activity.type.strength_training" = "Strength Training";
 "activity.type.yoga" = "Yoga";
 "activity.type.pilates" = "Pilates";
+"activity.type.elliptical" = "Elliptical";
+"activity.type.rowing" = "Rowing";
 "activity.type.other" = "Other";
 
 // MARK: - Training Record
@@ -473,8 +494,6 @@
 "record.distance" = "Distance";
 "record.duration" = "Duration";
 "record.pace" = "Pace";
-"record.avg_heart_rate" = "Avg Heart Rate";
-"record.max_heart_rate" = "Max Heart Rate";
 "record.heart_rate" = "Heart Rate";
 "record.calories" = "Calories";
 "record.elevation" = "Elevation";
@@ -573,6 +592,8 @@
 "success.settings_saved" = "Settings Saved";
 
 // MARK: - Units
+"unit.metric" = "Metric (km)";
+"unit.imperial" = "Imperial (mi)";
 "unit.km" = "km";
 "unit.mi" = "mi";
 "unit.m" = "m";
@@ -652,8 +673,6 @@
 
 // MARK: - Workout Details
 "workout.details" = "Workout Details";
-"workout.share_card" = "Share Achievement";
-"workout.share_screenshot" = "Share Screenshot";
 "workout.start_time" = "Start Time";
 "workout.reupload_success" = "Workout successfully re-uploaded!";
 "workout.upload_success_insufficient_hr" = "Workout uploaded but insufficient heart rate data.";
@@ -881,7 +900,7 @@
 "onboarding.weekly_distance_description" = "Weekly running volume is the total distance you typically run in a week. This helps Paceriz understand your current running habits and set appropriate training intensity. If you're not sure, you can estimate a rough number or simply 'skip' this step.";
 "onboarding.target_distance_label" = "Your target distance: %.1f km";
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
-"onboarding.weekly_volume_label" = "Weekly volume: %.0f km";
+"onboarding.weekly_volume_label" = "Estimated weekly volume: %.0f km";
 "onboarding.km_label" = "%.0f km";
 "onboarding.weekly_distance_title" = "Your Weekly Running Volume";
 "onboarding.skip" = "Skip";
@@ -1912,13 +1931,13 @@
 "distance.5k" = "5 km";
 "distance.10k" = "10 km";
 "distance.half_marathon" = "Half Marathon";
-"distance.half_marathon_short" = "Half";
+"distance.half_marathon_short" = "21km";
 "distance.full_marathon" = "Full Marathon";
-"distance.full_marathon_short" = "Full";
+"distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
 "my_achievement.personal_best.title" = "Personal Best";
-"my_achievement.personal_best.explanation" = "Displays your best finish times and pace at different distances";
+"my_achievement.personal_best.explanation" = "Displays your best moving time at different distances (excludes pauses, uses sliding window for fastest continuous segment)";
 "my_achievement.personal_best.no_data" = "No Personal Best records yet\nComplete your first workout to see results";
 "my_achievement.personal_best.first_place" = "1st Place";
 "my_achievement.personal_best.second_place" = "2nd Place";
@@ -1930,10 +1949,8 @@
 "my_achievement.celebration.new_record" = "New Record!";
 "my_achievement.celebration.improved" = "Improved by";
 
-<<<<<<< HEAD
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "Effort Score";
-=======
 
 // MARK: - Backfilled Translations
 "edit_schedule.addSegment" = "Add Segment";
@@ -2125,4 +2142,73 @@
 "workoutsyncdebug.text_7" = "Created Test Workout ID: %@";
 "workoutsyncdebug.text_8" = "Test Data Management";
 "workoutsyncdebug.text_9" = "Delete Test Data";
->>>>>>> dev
+
+/* Methodology Selection */
+"onboarding.methodology_title" = "Choose Your Training Methodology";
+"onboarding.methodology_description" = "Different methodologies focus on different training approaches.";
+"onboarding.methodology_nav_title" = "Training Methodology";
+"onboarding.methodology_load_failed" = "Failed to load methodologies";
+"onboarding.loading_methodologies" = "Loading methodologies...";
+"onboarding.methodology_phases" = "%d phases";
+"onboarding.recommended" = "Recommended";
+"onboarding.cross_training_enabled" = "Cross-training enabled";
+
+// MARK: - Weekly Summary V2
+"training.week_summary_title" = "Week %d Summary";
+"training.completion" = "Completion";
+"training.sessions" = "sessions";
+"training.analysis" = "Analysis";
+"training.heart_rate" = "Heart Rate";
+"training.trend" = "Trend";
+"training.total" = "Total";
+"training.vs_plan" = "vs Plan";
+"training.intensity_distribution" = "Intensity Distribution";
+"training.average" = "Average";
+"training.max" = "Max";
+"training.highlights" = "Weekly Highlights";
+"training.achievements" = "Achievements";
+"training.areas_for_improvement" = "Areas for Improvement";
+"training.next_week_adjustments" = "Next Week Adjustments";
+"training.no_weekly_summary" = "No Weekly Summary";
+"training.no_weekly_summary_hint" = "Weekly summary will be generated automatically after training";
+
+"training.interval_type.interval" = "Interval";
+"training.interval_type.fartlek" = "Fartlek";
+"training.interval_type.strides" = "Strides";
+"training.interval_type.hill_repeats" = "Hill Repeats";
+"training.interval_type.cruise_intervals" = "Cruise Intervals";
+"training.interval_type.short_interval" = "Short Interval";
+"training.interval_type.long_interval" = "Long Interval";
+"training.interval_type.norwegian_4x4" = "Norwegian 4×4";
+"training.interval_type.yasso_800" = "Yasso 800";
+"training.interval.work_label.hill_repeats" = "Hill";
+"training.interval.work_label.strides" = "Stride";
+"training.interval.work_label.default" = "Work";
+"training.interval.recovery_run" = "Recovery";
+"training.interval.rest" = "Rest";
+"training.interval.repeats" = "%d sets";
+
+// Exercise Image Instructions
+"exercise.instruction.title" = "Exercise Guide";
+
+"exercise.instruction.plank.desc" = "Lie face down, lift body onto forearms & toes. Keep back straight, hips level, neck neutral. Tighten abs, glutes, & legs. Hold position.";
+"exercise.instruction.squat.desc" = "Stand straight, feet apart. Lower hips, keep chest up, knees over toes. Drive through heels to return.";
+"exercise.instruction.deadbug.desc" = "Lie on back with arms extended up and knees bent 90 degrees. Slowly lower one arm and the opposite leg towards the floor. Return and switch sides.";
+"exercise.instruction.glute_bridge.desc" = "Lie on back, knees bent, feet flat. Squeeze glutes and lift hips until your body forms a straight line from knees to shoulders. Lower slowly.";
+
+"exercise.instruction.bird_dog.desc" = "On all fours, keep back flat. Extend one arm forward and opposite leg back. Hold, then switch sides.";
+"exercise.instruction.side_plank.desc" = "Lie on your side. Prop yourself up on one forearm and the side of your foot. Keep your body in a straight line.";
+"exercise.instruction.clamshell.desc" = "Lie on your side with hips and knees bent. Keeping your feet together, raise your top knee as high as possible.";
+"exercise.instruction.single_leg_glute_bridge.desc" = "Lie on your back, one knee bent, the other straight. Push through the planted foot to lift your hips.";
+"exercise.instruction.monster_walk.desc" = "Keep a half-squat posture. Step laterally taking wide steps against resistance if used.";
+"exercise.instruction.lunge.desc" = "Step one leg forward, bending both knees to 90 degrees. Keep back straight, then push back up.";
+"exercise.instruction.romanian_deadlift.desc" = "Hinge forward at the hips while keeping your back straight and legs slightly bent. Squeeze glutes to return.";
+"exercise.instruction.calf_raise.desc" = "Stand tall. Push through the balls of your feet to raise your heels as high as possible. Lower slowly.";
+"exercise.instruction.vertical_jump.desc" = "Squat down briefly, then explode upwards, reaching your arms high. Land softly.";
+"exercise.instruction.jump_rope.desc" = "Keep elbows close to your sides. Turn the rope and hop lightly over it on the balls of your feet.";
+"exercise.instruction.lateral_jump.desc" = "Jump sideways from one foot, landing softly on the other. Repeat side to side.";
+"exercise.instruction.consecutive_hops.desc" = "Hop forward or in place repeatedly, staying on the balls of your feet with a quick bounce.";
+"exercise.instruction.hip_flexor_stretch.desc" = "Start in a half-kneeling position. Keep your torso upright and gently push your hips forward.";
+"exercise.instruction.thoracic_rotation.desc" = "On hands and knees, place one hand behind your head. Rotate your elbow up towards the ceiling, then back down.";
+"exercise.instruction.seated_forward_fold.desc" = "Sit with legs straight in front of you. Hinge at the hips and reach forward towards your toes.";
+"exercise.instruction.standing_quad_stretch.desc" = "Stand on one leg, grab the other foot behind you, and gently pull your heel towards your glutes.";

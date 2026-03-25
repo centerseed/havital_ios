@@ -19,6 +19,9 @@ struct User: Codable {
     let personalBestV2: [String: [String: [PersonalBestRecordV2]]]?  // { "race_run": { "5": [...], "10": [...] } }
     let dataSource: String?
 
+    /// Training Plan 版本識別 ("v1" | "v2" | null)
+    let trainingVersion: String?
+
     // App 評分相關欄位
     let ratingPromptCount: Int?
     let lastRatingPromptDate: String?
@@ -75,6 +78,7 @@ struct User: Codable {
         personalBest = try container.decodeIfPresent([String: [RaceBest]].self, forKey: .personalBest)
         personalBestV2 = try container.decodeIfPresent([String: [String: [PersonalBestRecordV2]]].self, forKey: .personalBestV2)
         dataSource = try container.decodeIfPresent(String.self, forKey: .dataSource)
+        trainingVersion = try container.decodeIfPresent(String.self, forKey: .trainingVersion)
 
         // 處理 App 評分相關欄位
         ratingPromptCount = try container.decodeIfPresent(Int.self, forKey: .ratingPromptCount)
@@ -98,6 +102,7 @@ struct User: Codable {
         case personalBestV2 = "personal_best_v2"
         case currentWeekDistance = "current_week_distance"
         case dataSource = "data_source"
+        case trainingVersion = "training_version"
         case ratingPromptCount = "rating_prompt_count"
         case lastRatingPromptDate = "last_rating_prompt_date"
     }

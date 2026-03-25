@@ -16,16 +16,14 @@ import Combine
 /// Unified ViewModel for the entire onboarding flow
 /// Uses Clean Architecture principles with Repository dependencies
 @MainActor
-final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
-
-    // MARK: - TaskManageable
-    nonisolated let taskRegistry = TaskRegistry()
+final class OnboardingFeatureViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
     private let userProfileRepository: UserProfileRepository
     private let targetRepository: TargetRepository
     private let trainingPlanRepository: TrainingPlanRepository
+    private let trainingPlanV2Repository: TrainingPlanV2Repository
 
     // MARK: - Shared State (across all steps)
 
@@ -67,6 +65,26 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
     @Published var selectedGoalType: GoalType?
 
+    // MARK: - V2 Goal Type State
+
+    @Published var availableTargetTypes: [TargetTypeV2] = []
+    @Published var selectedTargetTypeV2: TargetTypeV2?
+    @Published var isLoadingTargetTypes: Bool = false
+
+    // MARK: - Methodology State
+
+    /// 當前目標類型的可用方法論列表
+    @Published var availableMethodologies: [MethodologyV2] = []
+
+    /// 使用者選擇的方法論
+    @Published var selectedMethodology: MethodologyV2?
+
+    /// 載入方法論的狀態
+    @Published var isLoadingMethodologies: Bool = false
+
+    /// 方法論載入錯誤
+    @Published var methodologyError: String?
+
     // MARK: - Training Days State
 
     @Published var selectedWeekdays: Set<Int> = []
@@ -75,6 +93,7 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
     // MARK: - Training Overview State
 
     @Published var trainingOverview: TrainingPlanOverview?
+    @Published var trainingOverviewV2: PlanOverviewV2?
 
     // MARK: - UI State
 
@@ -97,13 +116,15 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
     init(
         userProfileRepository: UserProfileRepository,
         targetRepository: TargetRepository,
-        trainingPlanRepository: TrainingPlanRepository
+        trainingPlanRepository: TrainingPlanRepository,
+        trainingPlanV2Repository: TrainingPlanV2Repository
     ) {
         self.userProfileRepository = userProfileRepository
         self.targetRepository = targetRepository
         self.trainingPlanRepository = trainingPlanRepository
+        self.trainingPlanV2Repository = trainingPlanV2Repository
 
-        Logger.debug("[OnboardingFeatureVM] Initialized with repositories")
+        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2)")
     }
 
     /// Convenience initializer for DI
@@ -112,7 +133,8 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
         self.init(
             userProfileRepository: container.resolve(),
             targetRepository: container.resolve(),
-            trainingPlanRepository: container.resolve()
+            trainingPlanRepository: container.resolve(),
+            trainingPlanV2Repository: container.resolve()
         )
     }
 
@@ -120,25 +142,19 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
     /// Load existing personal bests from user profile
     func loadPersonalBests() async {
-        let repo = userProfileRepository
-        await executeTask(id: TaskID("load_personal_bests")) { [weak self] in
-            Logger.debug("[OnboardingFeatureVM] Loading personal bests")
+        Logger.debug("[OnboardingFeatureVM] Loading personal bests")
 
-            do {
-                let user = try await repo.getUserProfile()
+        do {
+            let user = try await userProfileRepository.getUserProfile()
 
-                if let personalBestV2 = user.personalBestV2,
-                   let raceRunData = personalBestV2["race_run"] {
-                    await MainActor.run {
-                        self?.availablePersonalBests = raceRunData
-                    }
-                    Logger.debug("[OnboardingFeatureVM] Loaded \(raceRunData.count) PB distances")
-                }
-            } catch is CancellationError {
-                // Ignore cancellation
-            } catch {
-                Logger.debug("[OnboardingFeatureVM] Failed to load PBs: \(error.localizedDescription)")
+            if let personalBestV2 = user.personalBestV2,
+               let raceRunData = personalBestV2["race_run"] {
+                self.availablePersonalBests = raceRunData
+                Logger.debug("[OnboardingFeatureVM] Loaded \(raceRunData.count) PB distances")
             }
+        } catch {
+            Logger.debug("[OnboardingFeatureVM] Failed to load PBs: \(error.localizedDescription)")
+            // Don't show error - new users may not have PBs
         }
     }
 
@@ -189,9 +205,6 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
             isLoading = false
             return true
-        } catch is CancellationError {
-            isLoading = false
-            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -202,31 +215,30 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
     // MARK: - Weekly Distance Methods
 
     /// Load historical weekly distance from summaries
+    /// Updates weeklyDistance if history exists, otherwise keeps the default value
     func loadHistoricalWeeklyDistance() async {
         isLoadingWeeklyHistory = true
 
-        await executeTask(id: TaskID("load_weekly_distance")) { [weak self] in
-            do {
-                let summaries = try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
+        do {
+            // Use WeeklySummaryService for now (peripheral service, not user data)
+            let summaries = try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
 
-                if !summaries.isEmpty {
-                    let recentWeeks = summaries.suffix(4)
-                    let distances = recentWeeks.compactMap { $0.distanceKm }.filter { $0 > 0 }
+            if !summaries.isEmpty {
+                let recentWeeks = summaries.suffix(4)
+                let distances = recentWeeks.compactMap { $0.distanceKm }.filter { $0 > 0 }
 
-                    if !distances.isEmpty {
-                        let average = distances.reduce(0, +) / Double(distances.count)
-                        let clamped = min(max(average, 5.0), 30.0)
-                        await MainActor.run {
-                            self?.weeklyDistance = clamped
-                        }
-                        Logger.debug("[OnboardingFeatureVM] Calculated weekly distance: \(clamped)km")
-                    }
+                if !distances.isEmpty {
+                    let average = distances.reduce(0, +) / Double(distances.count)
+                    weeklyDistance = min(max(average, 5.0), 30.0)
+                    Logger.debug("[OnboardingFeatureVM] Updated weekly distance from history: \(weeklyDistance)km")
+                } else {
+                    Logger.debug("[OnboardingFeatureVM] No valid historical data found, keeping default 10km")
                 }
-            } catch is CancellationError {
-                // Ignore cancellation
-            } catch {
-                Logger.debug("[OnboardingFeatureVM] Failed to load weekly history: \(error.localizedDescription)")
+            } else {
+                Logger.debug("[OnboardingFeatureVM] No historical summaries found, keeping default 10km")
             }
+        } catch {
+            Logger.debug("[OnboardingFeatureVM] Failed to load weekly history: \(error.localizedDescription), keeping default 10km")
         }
 
         isLoadingWeeklyHistory = false
@@ -246,9 +258,6 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
             isLoading = false
             return true
-        } catch is CancellationError {
-            isLoading = false
-            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -258,19 +267,157 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
     /// Determine next step after weekly distance based on user data
     func determineNextStepAfterWeeklyDistance() -> OnboardingCoordinator.Step {
-        let hasPersonalBest = UserDefaults.standard.bool(forKey: "onboarding_hasPersonalBest")
-        let weeklyDistanceInt = Int(weeklyDistance.rounded())
-
-        if !hasPersonalBest && weeklyDistanceInt == 0 {
-            return .goalType
-        } else {
-            return .raceSetup
-        }
+        // V2 Flow: Always go to Goal Type first to let user choose their training target
+        // Goal Type will then navigate to appropriate next step based on selection
+        return .goalType
     }
 
     // MARK: - Goal Type Methods
 
-    /// Create beginner 5K goal
+    /// Load V2 target types from API
+    func loadTargetTypes() async {
+        Logger.debug("[OnboardingFeatureVM] Starting to load V2 target types...")
+        isLoadingTargetTypes = true
+        error = nil
+
+        do {
+            let targetTypes = try await trainingPlanV2Repository.getTargetTypes()
+            await MainActor.run {
+                self.availableTargetTypes = targetTypes
+                if targetTypes.isEmpty {
+                    Logger.warn("[OnboardingFeatureVM] ⚠️ API returned 0 target types - will show V1 fallback options")
+                } else {
+                    Logger.info("[OnboardingFeatureVM] ✅ Loaded \(targetTypes.count) V2 target types: \(targetTypes.map { $0.id }.joined(separator: ", "))")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error.localizedDescription
+                Logger.error("[OnboardingFeatureVM] ❌ Failed to load target types: \(error.localizedDescription)")
+                Logger.error("[OnboardingFeatureVM] Will fall back to V1 legacy options")
+            }
+        }
+
+        await MainActor.run {
+            self.isLoadingTargetTypes = false
+        }
+    }
+
+    // MARK: - Methodology Methods
+
+    /// 載入指定目標類型的方法論列表
+    func loadMethodologiesForTargetType(_ targetType: String) async {
+        Logger.debug("[OnboardingFeatureVM] Loading methodologies for: \(targetType)")
+        isLoadingMethodologies = true
+        methodologyError = nil
+
+        do {
+            let methodologies = try await trainingPlanV2Repository.getMethodologies(targetType: targetType)
+
+            await MainActor.run {
+                self.availableMethodologies = methodologies
+
+                // 如果只有一個方法論，自動選擇
+                if methodologies.count == 1 {
+                    self.selectedMethodology = methodologies[0]
+                    Logger.debug("[OnboardingFeatureVM] Auto-selected single methodology: \(methodologies[0].id)")
+                }
+                // 如果有預設方法論，優先選擇
+                else if let targetTypeV2 = self.selectedTargetTypeV2,
+                        let defaultMethod = methodologies.first(where: { $0.id == targetTypeV2.defaultMethodology }) {
+                    self.selectedMethodology = defaultMethod
+                    Logger.debug("[OnboardingFeatureVM] Pre-selected default methodology: \(defaultMethod.id)")
+                }
+
+                Logger.info("[OnboardingFeatureVM] Loaded \(methodologies.count) methodologies")
+            }
+        } catch {
+            await MainActor.run {
+                self.methodologyError = error.localizedDescription
+                Logger.error("[OnboardingFeatureVM] Failed to load methodologies: \(error.localizedDescription)")
+            }
+        }
+
+        await MainActor.run {
+            self.isLoadingMethodologies = false
+        }
+    }
+
+    /// 重置方法論相關狀態
+    func resetMethodologyState() {
+        availableMethodologies = []
+        selectedMethodology = nil
+        isLoadingMethodologies = false
+        methodologyError = nil
+    }
+
+    /// Create V2 training plan overview
+    /// - Parameters:
+    ///   - targetType: 目標類型（beginner, maintenance, race_run）
+    ///   - trainingWeeks: 訓練週數（非賽事模式必填）
+    ///   - targetId: 目標 ID（賽事模式必填）
+    ///   - startFromStage: 起始階段（可選）
+    /// - Returns: 創建的 PlanOverviewV2，失敗時返回 nil
+    func createPlanOverviewV2(
+        targetType: TargetTypeV2,
+        trainingWeeks: Int?,
+        targetId: String?,
+        startFromStage: String? = nil,
+        methodologyId: String? = nil
+    ) async -> PlanOverviewV2? {
+        isLoading = true
+        error = nil
+
+        let resolvedMethodologyId = methodologyId ?? selectedMethodology?.id
+
+        do {
+            let overview: PlanOverviewV2
+
+            if targetType.isRaceRunTarget {
+                // 賽事模式：需要 targetId
+                guard let targetId = targetId else {
+                    error = NSLocalizedString("onboarding.race_target_required", comment: "Race target required")
+                    isLoading = false
+                    return nil
+                }
+
+                overview = try await trainingPlanV2Repository.createOverviewForRace(
+                    targetId: targetId,
+                    startFromStage: startFromStage,
+                    methodologyId: resolvedMethodologyId
+                )
+            } else {
+                // 非賽事模式：需要 trainingWeeks
+                guard let trainingWeeks = trainingWeeks else {
+                    error = NSLocalizedString("onboarding.training_weeks_required", comment: "Training weeks required")
+                    isLoading = false
+                    return nil
+                }
+
+                overview = try await trainingPlanV2Repository.createOverviewForNonRace(
+                    targetType: targetType.id,
+                    trainingWeeks: trainingWeeks,
+                    availableDays: selectedWeekdays.count > 0 ? selectedWeekdays.count : nil,
+                    methodologyId: resolvedMethodologyId,
+                    startFromStage: startFromStage
+                )
+            }
+
+            // 存儲到 ViewModel
+            self.trainingOverviewV2 = overview
+
+            Logger.info("[OnboardingFeatureVM] ✅ V2 plan overview created: \(overview.id) for targetType: \(targetType.id)")
+            isLoading = false
+            return overview
+        } catch {
+            self.error = error.localizedDescription
+            Logger.error("[OnboardingFeatureVM] ❌ Failed to create V2 overview: \(error.localizedDescription)")
+            isLoading = false
+            return nil
+        }
+    }
+
+    /// Create beginner 5K goal (V1 compatibility)
     func createBeginner5kGoal() async -> Bool {
         isLoading = true
         error = nil
@@ -295,9 +442,6 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
             isLoading = false
             return true
-        } catch is CancellationError {
-            isLoading = false
-            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -312,31 +456,24 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
         // ✅ Use separate loading state to avoid triggering fullScreenCover
         // This loading is fast (reads from cache) and doesn't need a full-screen loading animation
         isLoadingPreferences = true
-        let repo = userProfileRepository
 
-        await executeTask(id: TaskID("load_training_day_prefs")) { [weak self] in
-            do {
-                let user = try await repo.getUserProfile()
+        do {
+            let user = try await userProfileRepository.getUserProfile()
 
-                await MainActor.run {
-                    if let weekdayPreferences = user.preferWeekDays, !weekdayPreferences.isEmpty {
-                        self?.selectedWeekdays = Set(weekdayPreferences)
-                        Logger.debug("[OnboardingFeatureVM] Loaded training days: \(weekdayPreferences)")
-                    }
-
-                    if let longrunDays = user.preferWeekDaysLongrun,
-                       let longrunDay = longrunDays.first {
-                        self?.selectedLongRunDay = longrunDay
-                        Logger.debug("[OnboardingFeatureVM] Loaded long run day: \(longrunDay)")
-                    } else if let weekdays = self?.selectedWeekdays, !weekdays.isEmpty {
-                        self?.selectedLongRunDay = weekdays.contains(6) ? 6 : (weekdays.sorted().first ?? 6)
-                    }
-                }
-            } catch is CancellationError {
-                // Ignore cancellation
-            } catch {
-                Logger.debug("[OnboardingFeatureVM] Failed to load training days: \(error.localizedDescription)")
+            if let weekdayPreferences = user.preferWeekDays, !weekdayPreferences.isEmpty {
+                selectedWeekdays = Set(weekdayPreferences)
+                Logger.debug("[OnboardingFeatureVM] Loaded training days: \(weekdayPreferences)")
             }
+
+            if let longrunDays = user.preferWeekDaysLongrun,
+               let longrunDay = longrunDays.first {
+                selectedLongRunDay = longrunDay
+                Logger.debug("[OnboardingFeatureVM] Loaded long run day: \(longrunDay)")
+            } else if !selectedWeekdays.isEmpty {
+                selectedLongRunDay = selectedWeekdays.contains(6) ? 6 : (selectedWeekdays.sorted().first ?? 6)
+            }
+        } catch {
+            Logger.debug("[OnboardingFeatureVM] Failed to load training days: \(error.localizedDescription)")
         }
 
         isLoadingPreferences = false
@@ -376,9 +513,40 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
 
             isLoading = false
             return true
-        } catch is CancellationError {
+        } catch {
+            self.error = error.localizedDescription
             isLoading = false
             return false
+        }
+    }
+
+    /// Save training day preferences only (V2 flow - Overview created in CompleteOnboardingUseCase)
+    func saveTrainingDaysPreferencesOnly() async -> Bool {
+        guard !selectedWeekdays.isEmpty else {
+            error = NSLocalizedString("onboarding.select_at_least_one_day", comment: "Select at least one day")
+            return false
+        }
+
+        guard selectedWeekdays.contains(selectedLongRunDay) else {
+            error = NSLocalizedString("onboarding.long_run_day_must_be_training_day", comment: "Long run day must be training day")
+            return false
+        }
+
+        isLoading = true
+        error = nil
+
+        do {
+            // Update user preferences only
+            let preferences: [String: Any] = [
+                "prefer_week_days": Array(selectedWeekdays),
+                "prefer_week_days_longrun": [selectedLongRunDay]
+            ]
+            _ = try await userProfileRepository.updateUserProfile(preferences)
+
+            Logger.debug("[OnboardingFeatureVM] V2: Training days preferences saved (no Overview yet)")
+
+            isLoading = false
+            return true
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -423,8 +591,6 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
             let overview = try await trainingPlanRepository.getOverview()
             trainingOverview = overview
             Logger.debug("[OnboardingFeatureVM] Training overview loaded: \(overview.id)")
-        } catch is CancellationError {
-            // Ignore cancellation
         } catch {
             self.error = error.localizedDescription
         }
@@ -462,9 +628,6 @@ final class OnboardingFeatureViewModel: ObservableObject, TaskManageable {
             Logger.debug("[OnboardingFeatureVM] Weekly plan created, onboarding complete")
             isLoading = false
             return true
-        } catch is CancellationError {
-            isLoading = false
-            return false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -506,11 +669,15 @@ extension DependencyContainer {
         if !isRegistered(TrainingPlanRepository.self) {
             registerTrainingPlanModule()
         }
+        if !isRegistered(TrainingPlanV2Repository.self) {
+            registerTrainingPlanV2Dependencies()
+        }
 
         return OnboardingFeatureViewModel(
             userProfileRepository: resolve(),
             targetRepository: resolve(),
-            trainingPlanRepository: resolve()
+            trainingPlanRepository: resolve(),
+            trainingPlanV2Repository: resolve()
         )
     }
 }

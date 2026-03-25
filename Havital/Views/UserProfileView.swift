@@ -40,6 +40,7 @@ struct UserProfileView: View {
             weeklyDistanceSection
             dataSourceSection
             heartRateSection
+            paceZoneSection
             trainingDaysSection
             settingsSection
             logoutSection
@@ -67,12 +68,14 @@ struct UserProfileView: View {
         }
         .refreshable {
             viewModel.fetchUserProfile()
+            viewModel.loadVDOT()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnRefresh") {
                 await viewModel.loadHeartRateZones()
             }.value
         }
         .task {
             viewModel.fetchUserProfile()
+            viewModel.loadVDOT()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnAppear") {
                 await viewModel.loadHeartRateZones()
             }.value
@@ -308,6 +311,35 @@ struct UserProfileView: View {
     }
 
     @ViewBuilder
+    private var paceZoneSection: some View {
+        if viewModel.currentVDOT > 0 {
+            Section(header: Text(NSLocalizedString("profile.pace_zones", comment: "Pace Zones"))) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(PaceCalculator.PaceZone.allCases, id: \.self) { zone in
+                        HStack {
+                            Circle()
+                                .fill(viewModel.paceZoneColor(for: zone))
+                                .frame(width: 10, height: 10)
+
+                            Text(zone.displayName)
+                                .font(AppFont.bodySmall())
+
+                            Spacer()
+
+                            if let paceRange = PaceCalculator.getPaceRange(for: viewModel.paceZoneType(zone), vdot: viewModel.currentVDOT) {
+                                Text("\(paceRange.min) - \(paceRange.max)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var trainingDaysSection: some View {
         if let userData = viewModel.userData {
             Section(header: Text(NSLocalizedString("onboarding.training_days", comment: "Training Days"))) {
@@ -480,6 +512,56 @@ struct UserProfileView: View {
     @ViewBuilder
     private var developerSection: some View {
         Section(header: Text(NSLocalizedString("userprofile.text_0", comment: ""))) {
+            // Training Version Debug Info
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                    Text("Training Version Debug")
+                        .font(.headline)
+                }
+
+                if let userData = viewModel.userData {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("User.trainingVersion:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(userData.trainingVersion ?? "nil (default: v1)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(userData.trainingVersion == "v2" ? .green : .orange)
+                        }
+
+                        Button {
+                            Task {
+                                let router: TrainingVersionRouter = DependencyContainer.shared.resolve()
+                                let version = await router.getTrainingVersion()
+                                let isV2 = await router.isV2User()
+                                print("🔍 [Debug] TrainingVersionRouter Results:")
+                                print("   - getTrainingVersion(): \(version)")
+                                print("   - isV2User(): \(isV2)")
+                                print("   - User.trainingVersion: \(userData.trainingVersion ?? "nil")")
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.circle")
+                                Text("Test Version Router")
+                                    .font(.caption)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.vertical, 4)
+
+            Divider()
+
             // 重新開始完整 Onboarding 流程
             Button {
                 // 清除 onboarding 完成標記
@@ -563,6 +645,57 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.orange)
+
+            Divider()
+
+            Button {
+                Task {
+                    do {
+                        // 從 DependencyContainer 取得 Repository
+                        let repository: TrainingPlanV2Repository = DependencyContainer.shared.resolve()
+
+                        // 先取得 Overview 以計算當前週數
+                        print("🔧 [Debug] 正在取得當前週數...")
+                        let overview = try await repository.getOverview()
+
+                        // 計算當前週數（與 TrainingPlanV2ViewModel 相同邏輯）
+                        let calendar = Calendar.current
+                        let now = Date()
+                        guard let startDate = overview.createdAt else {
+                            print("❌ [Debug] Overview createdAt 為 nil")
+                            return
+                        }
+
+                        guard let weekDiff = calendar.dateComponents([.weekOfYear], from: startDate, to: now).weekOfYear else {
+                            print("❌ [Debug] 無法計算週數差異")
+                            return
+                        }
+
+                        let currentWeek = min(max(weekDiff + 1, 1), overview.totalWeeks)
+
+                        print("🔧 [Debug] 開始產生第 \(currentWeek) 週回顧（強制更新）")
+
+                        let summary = try await repository.generateWeeklySummary(
+                            weekOfPlan: currentWeek,
+                            forceUpdate: true
+                        )
+
+                        print("✅ [Debug] 週回顧產生成功！")
+                        print("   - 週數: 第 \(currentWeek) 週 / 共 \(overview.totalWeeks) 週")
+                        print("   - ID: \(summary.id)")
+                        print("   - 完成度: \(Int(summary.trainingCompletion.percentage * 100))%")
+                        print("   - 完成場次: \(summary.trainingCompletion.completedSessions)/\(summary.trainingCompletion.plannedSessions)")
+                    } catch {
+                        print("❌ [Debug] 產生週回顧失敗: \(error.localizedDescription)")
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                    Text("🐛 產生當週回顧（強制）")
+                }
+            }
+            .foregroundColor(.purple)
         }
     }
     #endif
@@ -580,7 +713,7 @@ struct UserProfileView: View {
                     
                     Spacer()
                     
-                    Text("\(Int(zone.range.lowerBound))-\(Int(zone.range.upperBound))")
+                    Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded()))")
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }

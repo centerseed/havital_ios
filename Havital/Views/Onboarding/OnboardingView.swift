@@ -121,8 +121,9 @@ class OnboardingViewModel: ObservableObject {
                     trainingWeeks: trainingWeeks
                 )
 
-                _ = try await targetRepository.createTarget(target)
-                print("✅ 新目標創建成功: \(target.name)")
+                let createdTarget = try await targetRepository.createTarget(target)
+                selectedTargetKey = createdTarget.id
+                print("✅ 新目標創建成功: \(createdTarget.name), id: \(createdTarget.id)")
             } else {
                 // 選擇了目標但沒有改動，直接跳過
                 print("✅ 使用先前的目標賽事，不需要創建或更新")
@@ -410,6 +411,7 @@ struct OnboardingView: View {
                     }
                 }
                 .disabled(viewModel.isLoading)
+                .accessibilityIdentifier("RaceSetup_SaveButton")
                 .padding()
                 .background(Color.accentColor)
                 .foregroundColor(.white)
@@ -474,7 +476,10 @@ struct OnboardingView: View {
         let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(for: targetDistance)
         let trainingWeeks = viewModel.trainingWeeks
 
-        print("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks)")
+        // 將 target ID 傳遞給 coordinator，供 V2 流程使用
+        coordinator.selectedTargetId = viewModel.selectedTargetKey
+
+        print("[OnboardingView] 🧭 Navigation Decision: trainingWeeks=\(trainingWeeks), standardWeeks=\(standardWeeks), targetId=\(viewModel.selectedTargetKey ?? "nil")")
 
         if trainingWeeks < 2 {
             // 時間過短（<2週），顯示警告

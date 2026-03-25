@@ -321,7 +321,9 @@ final class DateFormatterHelperTests: XCTestCase {
         let formatter = DateFormatterHelper.formatter(dateFormat: "HH:mm")
 
         // Then: 應該回退到當前時區
-        XCTAssertEqual(formatter.timeZone, TimeZone.current)
+        // 注意：不直接比較 TimeZone 對象，因為 TimeZone.current 在不同測試環境會不同
+        XCTAssertNotNil(formatter.timeZone)
+        XCTAssertEqual(formatter.timeZone.identifier, TimeZone.current.identifier)
     }
 
     func testHandleNilDate() {

@@ -1,0 +1,127 @@
+{
+  "id": "test_v3_001_1",
+  "purpose": "V3 格式測試週",
+  "week_of_plan": 1,
+  "total_weeks": 12,
+  "total_distance_km": 45,
+  "total_distance_reason": "漸進增量",
+  "design_reason": ["測試 V3 格式解碼"],
+  "days": [
+    {
+      "day_index": 1,
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 8.0,
+        "pace": "5:45",
+        "heart_rate_range": {"min": 130, "max": 145},
+        "description": "輕鬆跑，保持舒適配速"
+      },
+      "warmup": {
+        "distance_km": 1.0,
+        "pace": "6:30",
+        "description": "慢跑熱身"
+      },
+      "cooldown": {
+        "distance_km": 1.0,
+        "pace": "6:30",
+        "description": "慢跑收操"
+      },
+      "day_target": "有氧基礎",
+      "reason": "建立基礎體能"
+    },
+    {
+      "day_index": 2,
+      "category": "strength",
+      "primary": {
+        "strength_type": "core_stability",
+        "exercises": [
+          {"name": "棒式", "sets": 3, "duration_seconds": 45, "description": "核心穩定"},
+          {"name": "深蹲", "sets": 3, "reps": 12}
+        ],
+        "duration_minutes": 30,
+        "description": "核心穩定訓練"
+      },
+      "day_target": "強化核心",
+      "reason": "提升跑步效率"
+    },
+    {
+      "day_index": 3,
+      "category": "run",
+      "primary": {
+        "run_type": "interval",
+        "interval": {
+          "repeats": 6,
+          "work_distance_m": 800,
+          "work_distance_km": 0.8,
+          "work_pace": "4:30",
+          "work_description": "接近 5K 比賽強度",
+          "recovery_distance_m": 400,
+          "recovery_distance_km": 0.4,
+          "recovery_pace": "6:00",
+          "recovery_description": "慢跑恢復"
+        },
+        "description": "6x800m 間歇訓練"
+      },
+      "warmup": {
+        "distance_km": 2.0,
+        "pace": "6:00",
+        "description": "慢跑熱身"
+      },
+      "cooldown": {
+        "distance_km": 1.5,
+        "pace": "6:15",
+        "description": "慢跑收操"
+      },
+      "day_target": "提升 VO2max",
+      "reason": "刺激最大攝氧量"
+    },
+    {
+      "day_index": 4,
+      "category": "rest",
+      "day_target": "完全休息",
+      "reason": "恢復體能"
+    },
+    {
+      "day_index": 5,
+      "category": "run",
+      "primary": {
+        "run_type": "tempo",
+        "segments": [
+          {"distance_km": 2.0, "pace": "5:30", "description": "暖身段"},
+          {"distance_km": 4.0, "pace": "4:50", "description": "節奏段"},
+          {"distance_km": 2.0, "pace": "5:30", "description": "緩和段"}
+        ],
+        "description": "分段節奏跑"
+      },
+      "day_target": "提升乳酸閾值",
+      "reason": "強化節奏耐力"
+    },
+    {
+      "day_index": 6,
+      "category": "cross",
+      "primary": {
+        "cross_type": "cycling",
+        "duration_minutes": 45,
+        "distance_km": 20.0,
+        "description": "輕鬆自行車"
+      },
+      "day_target": "主動恢復",
+      "reason": "低衝擊有氧運動"
+    },
+    {
+      "day_index": 7,
+      "category": "run",
+      "primary": {
+        "run_type": "lsd",
+        "distance_km": 16.0,
+        "pace": "6:00",
+        "heart_rate_range": {"min": 125, "max": 140},
+        "description": "長距離慢跑"
+      },
+      "day_target": "有氧耐力",
+      "reason": "累積長距離基礎",
+      "tips": "注意補水"
+    }
+  ]
+}

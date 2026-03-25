@@ -34,6 +34,10 @@ extension DayType {
         case .fastFinish: return L10n.Training.TrainingType.fastFinish.localized
         // 新增比賽配速訓練
         case .racePace: return L10n.Training.TrainingType.racePace.localized
+        // V3 交叉訓練新增類型
+        case .swimming: return L10n.ActivityType.swimming.localized
+        case .elliptical: return L10n.ActivityType.elliptical.localized
+        case .rowing: return L10n.ActivityType.rowing.localized
         }
     }
     
@@ -69,6 +73,9 @@ extension DayType {
             return .purple
         case .hiking, .cycling:
             return .blue
+        // V3 交叉訓練新增類型
+        case .swimming, .elliptical, .rowing:
+            return .purple
         }
     }
     /// 背景顏色
@@ -79,7 +86,7 @@ extension DayType {
     /// 是否為跑步活動（用於判斷是否顯示距離等跑步相關資訊）
     var isRunningActivity: Bool {
         switch self {
-        case .rest, .crossTraining, .strength, .yoga, .hiking, .cycling:
+        case .rest, .crossTraining, .strength, .yoga, .hiking, .cycling, .swimming, .elliptical, .rowing:
             return false
         default:
             return true

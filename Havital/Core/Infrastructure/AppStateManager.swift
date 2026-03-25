@@ -106,6 +106,7 @@ class AppStateManager: ObservableObject {
             Logger.firebase("App 初始化完成", level: .info, labels: [
                 "module": "AppStateManager",
                 "action": "initialize_complete",
+                "cloud_logging": "true",
                 "data_source": userDataSource.rawValue,
                 "subscription": subscriptionStatus.rawValue
             ])

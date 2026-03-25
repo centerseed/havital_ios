@@ -29,6 +29,7 @@ struct PersonalBestView: View {
                     footer: Text(NSLocalizedString("onboarding.personal_best_description", comment: "Personal Best Description"))
                 ) {
                     Toggle(NSLocalizedString("onboarding.has_personal_best", comment: "Has Personal Best"), isOn: $viewModel.hasPersonalBest)
+                    .accessibilityIdentifier("PersonalBest_HasPBToggle")
 
                     // Show quick select list if user has existing PBs
                     if viewModel.hasPersonalBest && !viewModel.availablePersonalBests.isEmpty {
@@ -102,7 +103,9 @@ struct PersonalBestView: View {
                             }
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
-                            Text(NSLocalizedString("onboarding.time_hours", comment: "Hours"))
+                            Text("hrs")
+                                .fixedSize()
+                                .font(AppFont.caption())
 
                             Picker(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"), selection: $viewModel.personalBestMinutes) {
                                 ForEach(0...59, id: \.self) { minute in
@@ -111,7 +114,9 @@ struct PersonalBestView: View {
                             }
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
-                            Text(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"))
+                            Text("min")
+                                .fixedSize()
+                                .font(AppFont.caption())
 
                             Picker(NSLocalizedString("onboarding.time_seconds", comment: "Seconds"), selection: $viewModel.personalBestSeconds) {
                                 ForEach(0...59, id: \.self) { second in
@@ -120,7 +125,9 @@ struct PersonalBestView: View {
                             }
                             .pickerStyle(.wheel)
                             .frame(maxWidth: .infinity)
-                            Text(NSLocalizedString("onboarding.time_seconds", comment: "Seconds"))
+                            Text("sec")
+                                .fixedSize()
+                                .font(AppFont.caption())
                         }
                         .padding(.vertical, 8)
 
@@ -192,6 +199,7 @@ struct PersonalBestView: View {
                     }
                 }
                 .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && totalTimeInSeconds == 0))
+                .accessibilityIdentifier("PersonalBest_ContinueButton")
             }
         }
         .task {

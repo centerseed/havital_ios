@@ -1,3 +1,5 @@
+// [V1 DEPRECATED] V1 週課表編輯視圖，未來將隨 V1 移除。
+// V2 對應: Features/TrainingPlanV2/Presentation/Views/EditScheduleViewV2.swift
 import SwiftUI
 import Foundation
 
@@ -38,7 +40,7 @@ struct EditScheduleView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         // 配速表按鈕
-                        if let vdot = editViewModel.currentVDOT, !viewModel.calculatedPaces.isEmpty {
+                        if editViewModel.currentVDOT != nil {
                             Button {
                                 showingPaceTable = true
                             } label: {
@@ -59,7 +61,7 @@ struct EditScheduleView: View {
             }
             .sheet(isPresented: $showingPaceTable) {
                 if let vdot = editViewModel.currentVDOT {
-                    PaceTableView(vdot: vdot, calculatedPaces: viewModel.calculatedPaces)
+                    PaceTableView(vdot: vdot, calculatedPaces: PaceCalculator.calculateTrainingPaces(vdot: vdot))
                 }
             }
         }
@@ -99,7 +101,6 @@ struct EditScheduleView: View {
                     day: $day,
                     isEditable: true,
                     editViewModel: editViewModel,
-                    viewModel: viewModel,
                     arrayIndex: nil,
                     onDataChanged: {
                         hasUnsavedChanges = true
@@ -176,7 +177,6 @@ struct SimplifiedDailyCard: View {
     @Binding var day: MutableTrainingDay
     let isEditable: Bool
     let editViewModel: EditScheduleViewModel
-    let viewModel: TrainingPlanViewModel
     var arrayIndex: Int? = nil
     var onDataChanged: (() -> Void)? = nil
 
@@ -204,7 +204,7 @@ struct SimplifiedDailyCard: View {
             return Color.red
         case .rest:
             return Color.gray
-        case .crossTraining, .strength, .fartlek:
+        case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return Color.purple
         }
     }
@@ -486,7 +486,7 @@ struct SimplifiedDailyCard: View {
                     day = updatedDay
                     onDataChanged?()
                 },
-                viewModel: viewModel
+                paceHelper: PaceCalculationHelper(vdot: editViewModel.currentVDOT)
             )
         }
         .sheet(isPresented: $showingDistancePicker) {

@@ -62,6 +62,7 @@ struct TrainingDaysSetupView: View {
                             }
                         }
                         .foregroundColor(.primary)
+                        .accessibilityIdentifier("TrainingDay_\(weekday)")
                     }
                 }
 
@@ -79,6 +80,7 @@ struct TrainingDaysSetupView: View {
                             Text(getWeekdayName(weekday)).tag(weekday)
                         }
                     }
+                    .accessibilityIdentifier("LongRunDay_Picker")
                     .disabled(viewModel.selectedWeekdays.isEmpty)
                     .onAppear {
                         // Prefer Saturday, then Sunday for long run day
@@ -139,6 +141,7 @@ struct TrainingDaysSetupView: View {
                     }
                     .disabled(viewModel.isLoading || !canSavePreferences)
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("TrainingDays_SaveButton")
                 }
             }
             .navigationTitle(NSLocalizedString("onboarding.training_days_title", comment: "Training Days Title"))
@@ -160,12 +163,74 @@ struct TrainingDaysSetupView: View {
     private func saveAndNavigate() {
         Task {
             let selectedStage = UserDefaults.standard.string(forKey: "selectedStartStage")
-            let success = await viewModel.saveTrainingDaysAndGenerateOverview(startFromStage: selectedStage)
-            if success {
-                // Update coordinator with overview
-                coordinator.trainingPlanOverview = viewModel.trainingOverview
-                coordinator.navigate(to: .trainingOverview)
+
+            // 保存 availableDays 到 coordinator（供 V2 流程使用）
+            coordinator.availableDays = viewModel.selectedWeekdays.count
+
+            // 判斷是否為 V2 流程
+            let isV2Flow = coordinator.selectedTargetTypeId != nil
+            Logger.debug("[TrainingDaysSetupView] isV2Flow: \(isV2Flow), availableDays: \(viewModel.selectedWeekdays.count)")
+
+            if isV2Flow {
+                // V2 流程：只保存訓練日偏好，overview 建立延遲到用戶最終確認時
+                // （避免在這一步就設定 training_version: "v2"，讓用戶有機會返回）
+                let saveSuccess = await viewModel.saveTrainingDaysPreferencesOnly()
+                guard saveSuccess else {
+                    Logger.error("[TrainingDaysSetupView] V2: Failed to save training days")
+                    return
+                }
+
+                Logger.debug("[TrainingDaysSetupView] V2: Training days saved, creating V2 overview...")
+                Logger.debug("[TrainingDaysSetupView] V2: targetTypeId=\(coordinator.selectedTargetTypeId ?? "nil"), targetId=\(coordinator.selectedTargetId ?? "nil"), trainingWeeks=\(coordinator.trainingWeeks ?? 0)")
+
+                // 獲取 targetType - 優先使用 viewModel 中的
+                guard let targetType = viewModel.selectedTargetTypeV2 else {
+                    // 如果 viewModel 沒有，從 API 重新載入
+                    Logger.warn("[TrainingDaysSetupView] V2: selectedTargetTypeV2 is nil, loading target types...")
+                    await viewModel.loadTargetTypes()
+
+                    guard let targetTypeId = coordinator.selectedTargetTypeId,
+                          let loadedType = viewModel.availableTargetTypes.first(where: { $0.id == targetTypeId }) else {
+                        Logger.error("[TrainingDaysSetupView] V2: Failed to find targetType for id: \(coordinator.selectedTargetTypeId ?? "nil")")
+                        return
+                    }
+
+                    viewModel.selectedTargetTypeV2 = loadedType
+                    await createAndNavigateWithOverview(targetType: loadedType, startFromStage: selectedStage)
+                    return
+                }
+
+                await createAndNavigateWithOverview(targetType: targetType, startFromStage: selectedStage)
+            } else {
+                // V1 流程：保存訓練日偏好並生成 Overview
+                let success = await viewModel.saveTrainingDaysAndGenerateOverview(startFromStage: selectedStage)
+                if success {
+                    // Update coordinator with overview
+                    coordinator.trainingPlanOverview = viewModel.trainingOverview
+                    coordinator.navigate(to: .trainingOverview)
+                }
             }
+        }
+    }
+
+    /// V2 流程：創建 Overview 並導航
+    private func createAndNavigateWithOverview(targetType: TargetTypeV2, startFromStage: String?) async {
+        // 呼叫 POST /v2/plan/overview
+        let overview = await viewModel.createPlanOverviewV2(
+            targetType: targetType,
+            trainingWeeks: coordinator.trainingWeeks,
+            targetId: coordinator.selectedTargetId,
+            startFromStage: startFromStage,
+            methodologyId: coordinator.selectedMethodologyId
+        )
+
+        if let overview = overview {
+            // 存儲到 coordinator
+            coordinator.trainingPlanOverviewV2 = overview
+            Logger.info("[TrainingDaysSetupView] ✅ V2 Overview created: \(overview.id), navigating to trainingOverview")
+            coordinator.navigate(to: .trainingOverview)
+        } else {
+            Logger.error("[TrainingDaysSetupView] ❌ V2: Failed to create overview")
         }
     }
 

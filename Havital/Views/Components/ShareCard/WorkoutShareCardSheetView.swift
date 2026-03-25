@@ -597,6 +597,8 @@ struct WorkoutShareCardSheetView: View {
                 endTimeUtc: workout.endTimeUtc,
                 durationSeconds: workout.durationSeconds,
                 distanceMeters: workout.distanceMeters,
+                distanceDisplay: workout.distanceDisplay,
+                distanceUnit: workout.distanceUnit,
                 deviceName: workout.deviceName,
                 basicMetrics: workout.basicMetrics,
                 advancedMetrics: workout.advancedMetrics,
@@ -822,6 +824,8 @@ struct PhotoPicker: UIViewControllerRepresentable {
             endTimeUtc: ISO8601DateFormatter().string(from: Date().addingTimeInterval(5400)),
             durationSeconds: 5400,
             distanceMeters: 13200,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             deviceName: "Apple Watch",
             basicMetrics: BasicMetrics(
                 avgPaceSPerKm: 392

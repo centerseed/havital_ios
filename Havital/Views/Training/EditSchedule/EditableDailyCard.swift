@@ -919,7 +919,7 @@ struct TrainingEditSheet: View {
                 print("🔍 [TrainingEditSheet] onSave 回調 - repeats = \(updatedDay.trainingDetails?.repeats ?? -1)")
                 onSave(updatedDay)
             },
-            viewModel: viewModel
+            paceHelper: PaceCalculationHelper(vdot: viewModel.currentVDOT)
         )
     }
 }

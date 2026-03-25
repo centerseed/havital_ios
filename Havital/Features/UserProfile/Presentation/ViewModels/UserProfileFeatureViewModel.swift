@@ -25,6 +25,9 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     /// User statistics
     @Published var statistics: UserStatistics?
 
+    /// Current VDOT value for pace zone display
+    @Published var currentVDOT: Double = 0
+
     /// Loading states
     @Published var isLoadingZones = false
     @Published var isLoadingTargets = false
@@ -94,6 +97,11 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     /// Update language preference
     func updateLanguage(_ language: SupportedLanguage) async {
         await preferencesRepository.updateLanguagePreference(language)
+    }
+
+    /// Update unit system preference (syncs to backend)
+    func updateUnitSystem(_ unitSystem: UnitSystem) async throws {
+        try await preferencesRepository.updateUnitSystem(unitSystem)
     }
 
     // MARK: - Heart Rate Prompt Settings
@@ -244,6 +252,12 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         await loadHeartRateZones()
         await loadTargets()
         calculateStatistics()
+        loadVDOT()
+    }
+
+    /// Load current VDOT value from VDOTManager
+    func loadVDOT() {
+        currentVDOT = VDOTManager.shared.currentVDOT
     }
 
     /// Load user profile
@@ -499,6 +513,10 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         try await authService.signOut()
         await userRepository.clearCache()
 
+        // Publish userLogout event so AuthenticationViewModel updates isAuthenticated
+        // This is required for Demo mode where Firebase listener doesn't fire on signOut
+        CacheEventBus.shared.publish(.userLogout)
+
         // Clear state
         profileState = .loading
         preferencesState = .loading
@@ -566,6 +584,30 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     func formatHeartRate(_ rate: Int) -> String {
         return "\(rate) bpm"
+    }
+
+    func paceZoneColor(for zone: PaceCalculator.PaceZone) -> Color {
+        switch zone {
+        case .recovery: return .blue
+        case .easy: return .green
+        case .tempo: return .yellow
+        case .marathon: return .orange
+        case .threshold: return .orange
+        case .anaerobic: return .purple
+        case .interval: return .red
+        }
+    }
+
+    func paceZoneType(_ zone: PaceCalculator.PaceZone) -> String {
+        switch zone {
+        case .recovery: return "recovery"
+        case .easy: return "easy"
+        case .tempo: return "tempo"
+        case .marathon: return "marathon"
+        case .threshold: return "threshold"
+        case .anaerobic: return "anaerobic"
+        case .interval: return "interval"
+        }
     }
 
     func zoneColor(for zone: Int) -> Color {

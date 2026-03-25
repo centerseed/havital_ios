@@ -237,6 +237,7 @@
 "profile.personal_info" = "個人資訊";
 "profile.training_info" = "訓練資訊";
 "profile.heart_rate_info" = "心率資訊";
+"profile.pace_zones" = "配速區間";
 "profile.data_sources" = "數據來源";
 "profile.settings" = "設定";
 "profile.name" = "姓名";
@@ -269,6 +270,13 @@
 // MARK: - Training Plan
 "training.plan_title" = "訓練計劃";
 "training.weekly_plan" = "本週計劃";
+"training.no_weekly_plan_title" = "週課表尚未產生";
+"training.no_weekly_plan_description" = "點擊下方按鈕產生本週課表";
+"training.generate_weekly_plan" = "產生週課表";
+"training.get_weekly_summary" = "取得週回顧";
+"training.generate_next_week_plan" = "產生下週課表";
+"training.generating_weekly_plan" = "正在產生週課表...";
+"training.generating_weekly_plan_description" = "AI 正在為您規劃本週訓練，請稍候";
 "training.daily_training" = "每日訓練";
 "training.design_reason" = "設計原因";
 "training.weekly_volume" = "週跑量";
@@ -462,6 +470,8 @@
 "activity.type.strength_training" = "肌力訓練";
 "activity.type.yoga" = "瑜珈";
 "activity.type.pilates" = "皮拉提斯";
+"activity.type.elliptical" = "橢圓機";
+"activity.type.rowing" = "划船機";
 "activity.type.other" = "其他運動";
 
 // MARK: - Training Record
@@ -473,8 +483,6 @@
 "record.distance" = "距離";
 "record.duration" = "時間";
 "record.pace" = "配速";
-"record.avg_heart_rate" = "平均心率";
-"record.max_heart_rate" = "最高心率";
 "record.heart_rate" = "心率";
 "record.calories" = "卡路里";
 "record.elevation" = "爬升";
@@ -573,6 +581,8 @@
 "success.settings_saved" = "設定已儲存";
 
 // MARK: - Units
+"unit.metric" = "公制（公里）";
+"unit.imperial" = "英制（英里）";
 "unit.km" = "公里";
 "unit.mi" = "英里";
 "unit.m" = "公尺";
@@ -661,6 +671,7 @@
 "workout.activity_type" = "活動類型";
 "workout.resync_data" = "重新同步資料";
 "workout.force_reupload_description" = "強制重新上傳這筆訓練紀錄，包含重新嘗試抓取心率資料";
+"workout.effort_score" = "努力評分";
 
 // MARK: - Record Additional
 "record.avg_heart_rate" = "平均心率";
@@ -724,6 +735,10 @@
 "training.stages_summary" = "%d 個階段，共 %d 週";
 "training.updating_plan" = "更新訓練計畫中...";
 "training.plan_regenerated" = "訓練計畫已根據最新目標重新產生";
+"training.methodology_changed" = "方法論已成功更換";
+"training.change_methodology" = "更換方法論";
+"training.select_methodology" = "選擇方法論";
+"training.current_methodology" = "目前方法論";
 "training.update_failed" = "訓練計畫更新失敗：%@";
 
 // MARK: - Onboarding Strings
@@ -879,7 +894,7 @@
 "onboarding.weekly_distance_description" = "週跑量是指您通常一週內跑步的總公里數。這個數據有助於 Paceriz 了解您目前的跑步習慣，以便安排合適的訓練強度。如果您不確定，可以先估算一個大概的數字，或者直接「略過」此步驟。";
 "onboarding.target_distance_label" = "您的目標距離：%.1f 公里";
 "onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
-"onboarding.weekly_volume_label" = "本週跑量：%.0f 公里";
+"onboarding.weekly_volume_label" = "週跑量約為：%.0f 公里";
 "onboarding.km_label" = "%.0f 公里";
 "onboarding.weekly_distance_title" = "您的週跑量";
 "onboarding.skip" = "略過";
@@ -1925,13 +1940,13 @@
 "distance.5k" = "5 公里";
 "distance.10k" = "10 公里";
 "distance.half_marathon" = "半程馬拉松";
-"distance.half_marathon_short" = "半馬";
+"distance.half_marathon_short" = "21km";
 "distance.full_marathon" = "全程馬拉松";
-"distance.full_marathon_short" = "全馬";
+"distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
 "my_achievement.personal_best.title" = "個人最佳成績";
-"my_achievement.personal_best.explanation" = "顯示你在不同距離的最佳完賽時間和配速";
+"my_achievement.personal_best.explanation" = "顯示你在不同距離的最佳移動時間（排除暫停、使用滑動窗口找最快連續段落）";
 "my_achievement.personal_best.no_data" = "暫無個人最佳成績\n完成第一次訓練後即可查看";
 "my_achievement.personal_best.first_place" = "第一名";
 "my_achievement.personal_best.second_place" = "第二名";
@@ -2013,8 +2028,8 @@
 "dailytrainingcard.text_1" = "輕鬆跑";
 "dailytrainingcard.text_2" = "× %@";
 "dailytrainingcard.text_3" = "%@ 分鐘";
-"datasync.text_0" = "sync.timeout_warning_title";
-"datasync.text_1" = "sync.timeout_warning_message";
+"datasync.text_0" = "同步逾時";
+"datasync.text_1" = "數據同期所需時間比預期更長。請檢查您的連線狀況。";
 "debugfailedworkouts.text_0" = "失敗統計";
 "debugfailedworkouts.text_1" = "顯示失敗的運動上傳記錄";
 "debugfailedworkouts.text_10" = "複製日期格式";
@@ -2029,7 +2044,7 @@
 "debugfailedworkouts.text_9" = "其他功能";
 "editabledailycard.text_0" = "🇳🇴 挪威4x4";
 "editabledailycard.text_1" = "%d 組";
-"editabledailycard.text_10" = "edit_schedule.training_type";
+"editabledailycard.text_10" = "訓練類型";
 "editabledailycard.text_2" = "衝刺";
 "editabledailycard.text_3" = "@ %@";
 "editabledailycard.text_4" = "恢復";
@@ -2040,18 +2055,18 @@
 "editabledailycard.text_9" = "%d ×";
 "editschedule.text_0" = "配速:";
 "editschedule.text_1" = "距離:";
-"garminattribution.compact" = "Compact";
-"garminattribution.no_device_model" = "No Device Model";
-"garminattribution.secondary" = "Secondary";
-"garminattribution.social" = "Social";
-"garminattribution.title_level" = "Title Level";
+"garminattribution.compact" = "簡潔";
+"garminattribution.no_device_model" = "無裝置型號";
+"garminattribution.secondary" = "次要";
+"garminattribution.social" = "社交";
+"garminattribution.title_level" = "標題層級";
 "garminreconnectionalert.text_0" = "主要內容";
 "generatenextweekbutton.text_0" = "返回本週（第%@週）";
 "generatenextweekbutton.text_1" = "返回本週";
 "heartratezoneinfo.bpm" = "%@ bpm";
 "hrvtrendchart.hrv" = "診斷 HRV 問題";
 "login.demo_mode" = "查看示範 / Demo Mode";
-"login.for_apple_review" = "For Apple Review";
+"login.for_apple_review" = "Apple 審核用";
 "misc.reset" = "重置";
 "misc.syncing" = "同步中...";
 "myachievement.text_0" = "體適能指數 & 訓練壓力平衡";
@@ -2087,12 +2102,12 @@
 "sideinfooverlay.text_0" = "距離 (km)";
 "sideinfooverlay.text_1" = "總計時間";
 "sideinfooverlay.text_2" = "平均配速";
-"stravaattribution.compact" = "Compact";
-"stravaattribution.secondary" = "Secondary";
-"stravaattribution.title_level" = "Title Level";
-"todayfocuscard.text_0" = "training.today_training";
-"todayfocuscard.text_1" = "training.no_training_today";
-"todayfocuscard.text_2" = "training.completed_workouts";
+"stravaattribution.compact" = "簡潔";
+"stravaattribution.secondary" = "次要";
+"stravaattribution.title_level" = "標題層級";
+"todayfocuscard.text_0" = "今天的訓練";
+"todayfocuscard.text_1" = "今天無訓練";
+"todayfocuscard.text_2" = "已完成訓練";
 "topinfooverlay.text_0" = "距離 (km)";
 "topinfooverlay.text_1" = "總計時間";
 "topinfooverlay.text_2" = "平均配速";
@@ -2106,7 +2121,7 @@
 "trainingdetaileditor.text_7" = "選擇休息時間";
 "trainingoverview.text_0" = "%@ /km";
 "trainingplanoverview.text_0" = "• %@";
-"trainingplanviewmodel.text_0" = "training.week_out_of_range";
+"trainingplanviewmodel.text_0" = "週次超出範圍";
 "trainingprogress.text_0" = "載入中...";
 "trainingreadiness.tsb" = "TSB";
 "userprofile.onboarding" = "重新開始完整 Onboarding";
@@ -2116,7 +2131,7 @@
 "weektimeline.text_1" = "%d × 組";
 "weektimeline.text_10" = "第%d段";
 "weektimeline.text_11" = "已完成訓練";
-"weektimeline.text_12" = "training.more_workouts";
+"weektimeline.text_12" = "更多訓練";
 "weektimeline.text_2" = "衝刺段";
 "weektimeline.text_3" = "恢復段";
 "weektimeline.text_4" = "原地休息";
@@ -2156,3 +2171,202 @@
 "workoutsyncdebug.text_7" = "已創建測試健身記錄 ID: %@";
 "workoutsyncdebug.text_8" = "測試數據管理";
 "workoutsyncdebug.text_9" = "刪除測試數據";
+
+/* Methodology Selection */
+"onboarding.methodology_title" = "選擇訓練方法";
+"onboarding.methodology_description" = "不同的訓練方法專注於不同的訓練策略。";
+"onboarding.methodology_nav_title" = "訓練方法";
+"onboarding.methodology_load_failed" = "載入方法論失敗";
+"onboarding.loading_methodologies" = "正在載入方法論...";
+"onboarding.methodology_phases" = "%d 個階段";
+"onboarding.recommended" = "推薦";
+"onboarding.cross_training_enabled" = "支援交叉訓練";
+
+/* Training Weeks Setup */
+"onboarding.training_weeks_title" = "訓練週數";
+"onboarding.training_weeks_description" = "您計劃訓練幾週？";
+"onboarding.training_weeks_nav_title" = "訓練週數";
+"onboarding.quick_options" = "快速選項";
+"onboarding.selected_duration" = "選擇的訓練週數";
+"onboarding.custom_weeks" = "自訂週數";
+"onboarding.select_weeks" = "選擇週數";
+"onboarding.short_duration_warning" = "較短的訓練時間可能會限制進步空間";
+"onboarding.long_duration_benefit" = "較長的訓練時間能讓您循序漸進地提升";
+
+/* Training Overview V2 */
+"onboarding.target_type" = "目標類型";
+"onboarding.methodology" = "訓練方法";
+"onboarding.approach_summary" = "訓練方針";
+
+// MARK: - Weekly Summary V2
+"training.week_summary_title" = "第 %d 週回顧";
+"training.completion" = "訓練完成度";
+"training.sessions" = "場";
+"training.analysis" = "訓練分析";
+"training.heart_rate" = "心率";
+"training.trend" = "趨勢";
+"training.total" = "總計";
+"training.vs_plan" = "對比計畫";
+"training.intensity_distribution" = "強度分配";
+"training.average" = "平均";
+"training.max" = "最高";
+"training.highlights" = "本週亮點";
+"training.achievements" = "成就";
+"training.areas_for_improvement" = "待改善";
+"training.next_week_adjustments" = "下週調整建議";
+"training.no_weekly_summary" = "尚無週回顧";
+"training.no_weekly_summary_hint" = "本週回顧將在訓練結束後自動產生";
+"training.accept_adjustments_and_generate" = "接受調整並產生下週課表";
+"training.tab_results" = "本週成績";
+"training.tab_analysis" = "數據分析";
+"training.tab_next_week" = "下週計劃";
+"training.areas_for_improvement_title" = "待改善";
+
+// MARK: - Training Plan V2 Navigation
+"training_plan.back_to_current_week" = "返回本週 (Week %d)";
+"training_plan.current_week" = "本週";
+"training_plan.not_current_week" = "非本週";
+"training.weekly_summary" = "週回顧";
+"training.user_profile" = "個人資料";
+"training.plan_overview" = "訓練計畫概覽";
+"training.contact_paceriz" = "聯絡 Paceriz";
+"training.switch_week" = "切換週數";
+"training.current_week_label" = "本週";
+
+// MARK: - Training Plan V2 Status Messages
+"training.no_plan_title" = "尚未建立訓練計畫";
+"training.no_plan_description" = "請前往 Onboarding 建立您的訓練計畫";
+"training.need_weekly_summary_title" = "需要產生週回顧";
+"training.need_weekly_summary_description" = "請先產生第 %d 週的週回顧，才能繼續產生下週課表";
+"training.generate_week_summary" = "產生第 %d 週回顧";
+"training.completed_title" = "恭喜！訓練計畫已完成";
+"training.completed_description" = "準備開始新的訓練計畫嗎？";
+"training.loading_failed" = "載入失敗";
+
+// MARK: - Generate Next Week
+"training.ready_for_next_week_title" = "🎯 準備好下週訓練了嗎？";
+"training.generate_week_n_plan" = "產生第 %d 週課表";
+"training.need_complete_current_summary" = "需要先完成本週回顧";
+"training.current_summary_completed" = "本週回顧已完成";
+"training.confirm_training_complete" = "確認訓練完成";
+"training.confirm_training_complete_message" = "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。";
+
+// MARK: - Plan Overview V2
+"training.race_info" = "賽事資訊";
+"training.target_info" = "目標資訊";
+"training.training_plan" = "訓練計畫";
+"training.target_race" = "目標賽事";
+"training.training_target" = "訓練目標";
+"training.my_training_target" = "我的訓練目標";
+"training.race_date" = "賽事日期";
+"training.race_distance" = "賽事距離";
+"training.target_pace" = "目標配速";
+"training.target_time" = "目標時間";
+"training.training_weeks" = "訓練週數";
+"training.race_evaluation" = "賽事評估";
+"training.methodology" = "訓練方法論";
+"training.philosophy" = "訓練哲學";
+"training.training_strategy" = "訓練策略";
+"training.updating_overview" = "正在更新訓練計畫...";
+"training.training_focus" = "訓練重點";
+"training.weekly_km_target" = "週跑量目標";
+"training.key_workouts" = "關鍵訓練";
+"training.key_milestones" = "重要里程碑";
+
+// MARK: - Workout Type Mappings
+"training.workout_type.short_interval" = "短間歇";
+"training.workout_type.long_interval" = "長間歇";
+"training.workout_type.threshold" = "門檻跑";
+"training.workout_type.tempo" = "節奏跑";
+"training.workout_type.fartlek" = "法特雷克";
+"training.workout_type.norwegian_4x4" = "挪威 4x4";
+"training.workout_type.race_pace" = "配速跑";
+"training.workout_type.long_run" = "長距離";
+
+// MARK: - Week Timeline V2
+"training.completed_workouts" = "已完成訓練";
+"training.more_workouts" = "更多訓練";
+"training.warmup" = "暖身";
+"training.cooldown" = "緩和";
+
+// MARK: - Interval Training Types
+"training.interval_type.interval" = "間歇訓練";
+"training.interval_type.fartlek" = "法特雷克";
+"training.interval_type.strides" = "大步跑";
+"training.interval_type.hill_repeats" = "山坡重複跑";
+"training.interval_type.cruise_intervals" = "巡航間歇";
+"training.interval_type.short_interval" = "短間歇";
+"training.interval_type.long_interval" = "長間歇";
+"training.interval_type.norwegian_4x4" = "挪威 4×4";
+"training.interval_type.yasso_800" = "Yasso 800";
+
+// MARK: - Interval Training Labels
+"training.interval.work_label.hill_repeats" = "上坡衝刺";
+"training.interval.work_label.strides" = "加速跑";
+"training.interval.work_label.default" = "衝刺";
+"training.interval.recovery_run" = "恢復跑";
+"training.interval.rest" = "休息";
+"training.interval.repeats" = "%d 組";
+"training.segment_n" = "第%d段";
+
+// MARK: - Exercises and Units
+"training.exercises" = "訓練動作";
+"training.sets_unit" = "組";
+"training.reps_unit" = "次";
+"training.seconds_unit" = "秒";
+"training.minutes_unit" = "分鐘";
+"training.exercises_count_unit" = "個動作";
+
+// MARK: - Supplementary Training
+"training.supplementary" = "補充訓練";
+
+// MARK: - Strength Training Types
+"training.strength_type.core_stability" = "核心穩定訓練";
+"training.strength_type.glutes_hip" = "臀部與髖部訓練";
+"training.strength_type.lower_strength" = "下肢力量訓練";
+"training.strength_type.upper_strength" = "上肢力量訓練";
+"training.strength_type.full_body" = "全身力量訓練";
+"training.strength_type.plyometric" = "增強式訓練";
+"training.strength_type.mobility" = "活動度訓練";
+
+// MARK: - Cross Training Types
+"training.cross_type.cycling" = "自行車";
+"training.cross_type.swimming" = "游泳";
+"training.cross_type.yoga" = "瑜伽";
+"training.cross_type.hiking" = "健行";
+"training.cross_type.elliptical" = "橢圓機";
+"training.cross_type.rowing" = "划船";
+
+
+// WeeklySummaryV2 Progressive Disclosure
+"training.no_highlights" = "無亮點資料";
+"training.highlights_count" = "%d 個亮點";
+"training.achievements_count" = "%d 項成就";
+"training.avg_heart_rate_preview" = "平均心率 %.0f bpm";
+"training.avg_pace_preview" = "平均配速 %@";
+"training.view_analysis" = "查看數據分析";
+
+// Exercise Image Instructions
+"exercise.instruction.title" = "動作指引";
+
+"exercise.instruction.plank.desc" = "面朝下，前臂與腳尖撐地。保持背部平直、頸部中立。收緊核心與臀部，保持姿勢。";
+"exercise.instruction.squat.desc" = "站直，雙腳打開。向下深蹲，臀部後推，保持挺胸，膝蓋不向內縮。透過腳跟出力站起。";
+"exercise.instruction.deadbug.desc" = "平躺，雙手向上伸直，雙膝彎曲90度。慢慢將一手與對側腳向下放。回到原位後換邊。";
+"exercise.instruction.glute_bridge.desc" = "平躺，雙膝彎曲，腳掌踩地。夾緊臀部向上推，直到膝蓋至肩膀呈一直線。慢慢放下。";
+
+"exercise.instruction.bird_dog.desc" = "四足跪姿，保持背部平直。將一手向前伸，同時伸直對側腳。保持穩定後換邊。";
+"exercise.instruction.side_plank.desc" = "側躺，用單側前臂與腳側邊撐起身體。收緊核心，保持身體呈一直線。";
+"exercise.instruction.clamshell.desc" = "側躺，雙腳微屈。腳踝併攏，將上方膝蓋盡量向外打開，感受臀部出力。";
+"exercise.instruction.single_leg_glute_bridge.desc" = "平躺，一腳屈膝踩地，另一腳伸直。利用踩地的腳出力將臀部推高。";
+"exercise.instruction.monster_walk.desc" = "保持半蹲姿勢。雙腳向側邊邁出大步移動，可搭配彈力帶增加阻力。";
+"exercise.instruction.lunge.desc" = "一腳向前跨，雙膝彎曲至90度，後腳膝蓋靠近地面。保持背部挺直，再推回站姿。";
+"exercise.instruction.romanian_deadlift.desc" = "保持背部平直，膝蓋微彎，將臀部向後推使上半身前傾。利用臀腿力量拉回站姿。";
+"exercise.instruction.calf_raise.desc" = "站立，將腳跟盡量向上踮起，感受小腿後側發力。然後慢慢降下。";
+"exercise.instruction.vertical_jump.desc" = "屈膝下蹲，接著雙手向上帶動身體全力跳高。落地時注意緩衝。";
+"exercise.instruction.jump_rope.desc" = "手肘靠近身體，輕輕跳起越過繩子，保持腳尖著地。";
+"exercise.instruction.lateral_jump.desc" = "單腳向側邊跳躍，另一腳落地緩衝，接著連續左右交替跳躍。";
+"exercise.instruction.consecutive_hops.desc" = "雙腳連續向前或原地輕巧跳躍，盡量縮短觸地時間。";
+"exercise.instruction.hip_flexor_stretch.desc" = "呈單膝跪姿，上半身挺直。輕輕將骨盆向前推，感受後腳大腿前側的拉伸。";
+"exercise.instruction.thoracic_rotation.desc" = "四足跪姿，單手放在腦後。將手肘向上轉開看向天花板，再轉回下方。";
+"exercise.instruction.seated_forward_fold.desc" = "雙腳伸直坐於地面，上半身從髖部向前傾，雙手盡量觸碰腳尖。";
+"exercise.instruction.standing_quad_stretch.desc" = "單腳站立，抓住另一隻腳的腳踝，將腳跟拉向臀部，感受大腿前側伸展。";

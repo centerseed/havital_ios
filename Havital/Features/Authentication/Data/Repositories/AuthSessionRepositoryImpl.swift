@@ -182,15 +182,21 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     func getIdToken() async throws -> String {
         // Prioritize Demo Token if set
         if let demoToken = demoToken {
-             return demoToken
+            Logger.debug("[AuthSession] 🎯 Using demo token (length: \(demoToken.count))")
+            return demoToken
         }
+
+        // Check if Firebase user exists first
+        Logger.debug("[AuthSession] 🔑 Attempting to get Firebase ID Token...")
+        Logger.debug("[AuthSession] 🔑 Firebase currentUser exists: \(firebaseAuth.getCurrentUser() != nil)")
 
         do {
             let token = try await firebaseAuth.getIdToken()
-            Logger.debug("[AuthSession] ID Token retrieved successfully")
+            let tokenPreview = String(token.prefix(30))
+            Logger.debug("[AuthSession] ✅ ID Token retrieved successfully (length: \(token.count), preview: \(tokenPreview)...)")
             return token
         } catch {
-            Logger.error("[AuthSession] Failed to get ID Token: \(error.localizedDescription)")
+            Logger.error("[AuthSession] ❌ Failed to get ID Token: \(error.localizedDescription)")
             throw AuthenticationError.tokenExpired
         }
     }

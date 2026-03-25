@@ -160,6 +160,8 @@ class TrainingCalendarViewModel: ObservableObject {
                 endTimeUtc: "\(stat.date)T00:00:00Z",
                 durationSeconds: stat.avgPacePerKm.map { $0 * Int(stat.totalDistanceKm) } ?? 0,
                 distanceMeters: stat.totalDistanceMeters,
+                distanceDisplay: nil,
+                distanceUnit: nil,
                 deviceName: nil,
                 basicMetrics: nil,
                 advancedMetrics: nil,
@@ -474,9 +476,9 @@ struct TrainingCalendarView: View {
 
         var days: [Date?] = []
 
-        // 獲取第一天是星期幾（1=週一，7=週日）
-        let firstWeekday = calendar.component(.weekday, from: startOfMonth)
-        let offset = (firstWeekday == 1 ? 0 : firstWeekday - 2 + (firstWeekday == 1 ? 7 : 0))
+        // 獲取第一天是星期幾，轉換為 Mon=0, Tue=1, ..., Sun=6
+        let firstWeekday = calendar.component(.weekday, from: startOfMonth) // 1=Sun, 2=Mon, ..., 7=Sat
+        let offset = (firstWeekday + 5) % 7
 
         // 添加前置空白
         for _ in 0..<offset {

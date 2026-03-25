@@ -197,10 +197,10 @@ final class TrainingPlanViewModelTests: XCTestCase {
         mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan2
         mockRepository.weeklySummaryToReturn = try! TrainingPlanTestFixtures.createWeeklySummary()
         sut.weeklyPlanVM.overviewState = .loaded(TrainingPlanTestFixtures.trainingOverview)
-        
-        // When
-        await sut.generateNextWeekPlan(targetWeek: 2)
-        
+
+        // When: 使用 forceGenerate=true 跳過週回顧檢查，直接產生課表
+        await sut.generateNextWeekPlan(targetWeek: 2, forceGenerate: true)
+
         // Then
         XCTAssertEqual(mockRepository.createWeeklyPlanCallCount, 1)
         XCTAssertNotNil(sut.successToast)
