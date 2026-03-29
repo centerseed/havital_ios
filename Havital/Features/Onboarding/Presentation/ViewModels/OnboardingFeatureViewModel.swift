@@ -410,10 +410,24 @@ final class OnboardingFeatureViewModel: ObservableObject {
             isLoading = false
             return overview
         } catch {
-            self.error = error.localizedDescription
             Logger.error("[OnboardingFeatureVM] ❌ Failed to create V2 overview: \(error.localizedDescription)")
-            isLoading = false
-            return nil
+
+            // Recovery path:
+            // Some backend deployments may have succeeded in creating the overview
+            // but returned a payload that fails DTO extraction on POST.
+            // Try fetching active overview once before surfacing error to UI.
+            do {
+                let recoveredOverview = try await trainingPlanV2Repository.refreshOverview()
+                self.trainingOverviewV2 = recoveredOverview
+                Logger.warn("[OnboardingFeatureVM] ⚠️ POST create failed but recovered active overview via GET: \(recoveredOverview.id)")
+                isLoading = false
+                return recoveredOverview
+            } catch {
+                self.error = error.localizedDescription
+                Logger.error("[OnboardingFeatureVM] ❌ Recovery via GET /v2/plan/overview also failed: \(error.localizedDescription)")
+                isLoading = false
+                return nil
+            }
         }
     }
 

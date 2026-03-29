@@ -55,6 +55,14 @@ grep -r "Dictionary.*Date" Havital/ --include="*.swift"
 
 ---
 
+## ZenOS 治理技能
+
+寫文件前讀：`skills/governance/document-governance.md`
+操作 L2 節點前讀：`skills/governance/l2-knowledge-governance.md`
+建票/管票前讀：`skills/governance/task-governance.md`
+
+---
+
 ## Architecture Constraints
 
 Detailed rules: @.claude/rules/architecture.md

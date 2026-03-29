@@ -475,6 +475,7 @@ struct OnboardingView: View {
         let targetDistance = Double(viewModel.selectedDistance) ?? 42.195
         let standardWeeks = TrainingPlanCalculator.getStandardTrainingWeeks(for: targetDistance)
         let trainingWeeks = viewModel.trainingWeeks
+        let isRaceV2Flow = coordinator.selectedTargetTypeId == "race_run"
 
         // 將 target ID 傳遞給 coordinator，供 V2 流程使用
         coordinator.selectedTargetId = viewModel.selectedTargetKey
@@ -485,15 +486,25 @@ struct OnboardingView: View {
             // 時間過短（<2週），顯示警告
             showTimeWarning = true
         } else if trainingWeeks >= standardWeeks {
-            // 時間充足，直接進入訓練日數設定
+            // 時間充足
             coordinator.selectedStartStage = nil
             UserDefaults.standard.removeObject(forKey: "selectedStartStage")
-            coordinator.navigate(to: .trainingDays)
+            coordinator.shouldNavigateToStartStageAfterMethodology = false
+            if isRaceV2Flow {
+                coordinator.navigate(to: .methodologySelection)
+            } else {
+                coordinator.navigate(to: .trainingDays)
+            }
         } else {
-            // 時間緊張，導航到階段選擇
+            // 時間緊張
             coordinator.weeksRemaining = trainingWeeks
             coordinator.targetDistance = targetDistance
-            coordinator.navigate(to: .startStage)
+            coordinator.shouldNavigateToStartStageAfterMethodology = true
+            if isRaceV2Flow {
+                coordinator.navigate(to: .methodologySelection)
+            } else {
+                coordinator.navigate(to: .startStage)
+            }
         }
     }
 

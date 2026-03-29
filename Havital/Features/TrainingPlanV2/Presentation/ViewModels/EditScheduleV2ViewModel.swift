@@ -144,9 +144,22 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             primary = nil
         } else if dayType == .strength {
             category = "strength"
+            let exerciseDTOs = (day.strengthExercises ?? []).map { exercise in
+                ExerciseDTO(
+                    exerciseId: exercise.exerciseId,
+                    name: exercise.name,
+                    sets: exercise.sets,
+                    reps: exercise.reps.flatMap { Int($0) },
+                    repsRange: exercise.reps,
+                    durationSeconds: exercise.durationSeconds,
+                    weightKg: exercise.weightKg,
+                    restSeconds: exercise.restSeconds,
+                    description: exercise.description
+                )
+            }
             primary = .strength(StrengthActivityDTO(
-                strengthType: "general",
-                exercises: [],
+                strengthType: day.strengthType ?? "general",
+                exercises: exerciseDTOs,
                 durationMinutes: day.trainingDetails?.timeMinutes.map { Int($0) },
                 description: day.dayTarget
             ))
@@ -220,7 +233,43 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             primary: primary,
             warmup: warmupDTO,
             cooldown: cooldownDTO,
-            supplementary: nil
+            supplementary: day.supplementaryActivities?.map { activity in
+                switch activity {
+                case .strength(let strengthActivity):
+                    return .strength(
+                        StrengthActivityDTO(
+                            strengthType: strengthActivity.strengthType,
+                            exercises: strengthActivity.exercises.map { ex in
+                                ExerciseDTO(
+                                    exerciseId: ex.exerciseId,
+                                    name: ex.name,
+                                    sets: ex.sets,
+                                    reps: ex.reps.flatMap { Int($0) },
+                                    repsRange: Int(ex.reps ?? "") == nil ? ex.reps : nil,
+                                    durationSeconds: ex.durationSeconds,
+                                    weightKg: ex.weightKg,
+                                    restSeconds: ex.restSeconds,
+                                    description: ex.description
+                                )
+                            },
+                            durationMinutes: strengthActivity.durationMinutes,
+                            description: strengthActivity.description
+                        )
+                    )
+                case .cross(let crossActivity):
+                    return .cross(
+                        CrossActivityDTO(
+                            crossType: crossActivity.crossType,
+                            durationMinutes: crossActivity.durationMinutes,
+                            distanceKm: crossActivity.distanceKm,
+                            distanceDisplay: crossActivity.distanceDisplay,
+                            distanceUnit: crossActivity.distanceUnit,
+                            intensity: crossActivity.intensity,
+                            description: crossActivity.description
+                        )
+                    )
+                }
+            }
         )
     }
 

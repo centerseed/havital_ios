@@ -57,6 +57,9 @@ struct MutableTrainingDay: Identifiable, Equatable {
     var trainingDetails: MutableTrainingDetails?
     var warmup: RunSegment?
     var cooldown: RunSegment?
+    var strengthExercises: [Exercise]?
+    var strengthType: String?
+    var supplementaryActivities: [SupplementaryActivity]?
 
     /// 從 TrainingDay 初始化
     init(from day: TrainingDay) {
@@ -81,6 +84,13 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
         self.warmup = day.session?.warmup
         self.cooldown = day.session?.cooldown
+        // 保留力量訓練的 exercises 和 strengthType
+        if case .strength(let strengthActivity) = day.session?.primary {
+            self.strengthExercises = strengthActivity.exercises
+            self.strengthType = strengthActivity.strengthType
+        }
+        // 保留 V3 supplementary（例如：跑步日附加力量訓練）
+        self.supplementaryActivities = day.session?.supplementary
     }
 
     /// 轉換回 TrainingDay
@@ -116,7 +126,10 @@ struct MutableTrainingDay: Identifiable, Equatable {
                lhs.trainingType == rhs.trainingType &&
                lhs.trainingDetails == rhs.trainingDetails &&
                lhs.warmup == rhs.warmup &&
-               lhs.cooldown == rhs.cooldown
+               lhs.cooldown == rhs.cooldown &&
+               lhs.strengthExercises == rhs.strengthExercises &&
+               lhs.strengthType == rhs.strengthType &&
+               lhs.supplementaryActivities == rhs.supplementaryActivities
     }
 
     /// 創建空白訓練日
@@ -132,7 +145,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
     }
 
     /// 自定義初始化
-    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?, warmup: RunSegment? = nil, cooldown: RunSegment? = nil) {
+    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?, warmup: RunSegment? = nil, cooldown: RunSegment? = nil, strengthExercises: [Exercise]? = nil, strengthType: String? = nil) {
         self.dayIndex = dayIndex
         self.dayTarget = dayTarget
         self.trainingType = trainingType
@@ -141,6 +154,9 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = trainingDetails
         self.warmup = warmup
         self.cooldown = cooldown
+        self.strengthExercises = strengthExercises
+        self.strengthType = strengthType
+        self.supplementaryActivities = nil
     }
 }
 

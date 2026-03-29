@@ -152,9 +152,14 @@ struct MethodologySelectionView: View {
         let isRaceTarget = coordinator.selectedTargetTypeId == "race_run"
 
         if isRaceTarget {
-            // Race 目標：直接到訓練日設定
-            Logger.debug("[MethodologySelectionView] Race target, navigating to trainingDays")
-            coordinator.navigate(to: .trainingDays)
+            // Race 目標：依 OnboardingView 週數判斷結果，決定是否先進起始階段
+            if coordinator.shouldNavigateToStartStageAfterMethodology {
+                Logger.debug("[MethodologySelectionView] Race target with tight schedule, navigating to startStage")
+                coordinator.navigate(to: .startStage)
+            } else {
+                Logger.debug("[MethodologySelectionView] Race target with sufficient schedule, navigating to trainingDays")
+                coordinator.navigate(to: .trainingDays)
+            }
         } else {
             // Non-race 目標：導航到訓練週數設定
             Logger.debug("[MethodologySelectionView] Non-race target, navigating to trainingWeeksSetup")

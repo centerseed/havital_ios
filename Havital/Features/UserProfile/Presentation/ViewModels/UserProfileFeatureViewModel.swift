@@ -612,11 +612,12 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     func zoneColor(for zone: Int) -> Color {
         switch zone {
-        case 1: return .blue
-        case 2: return .green
-        case 3: return .yellow
-        case 4: return .orange
-        case 5: return .red
+        case 1: return .blue      // recovery
+        case 2: return .green     // easy
+        case 3: return .yellow    // tempo
+        case 4: return .pink      // threshold
+        case 5: return .purple    // anaerobic
+        case 6: return .red       // interval
         default: return .gray
         }
     }
