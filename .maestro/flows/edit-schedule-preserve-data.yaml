@@ -1,0 +1,17 @@
+appId: com.havital.Havital.dev
+tags:
+  - smoke
+  - edit
+---
+- assertVisible: "每日訓練"
+- assertVisible: "間歇訓練"
+- assertVisible: "肌力訓練"
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯課表"
+- tapOn:
+    text: "取消"
+    optional: true
+- assertVisible: "每日訓練"
+- assertVisible: "間歇訓練"
+- assertVisible: "肌力訓練"

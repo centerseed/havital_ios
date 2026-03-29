@@ -1,0 +1,33 @@
+appId: com.havital.Havital.dev
+tags:
+  - edit
+  - critical
+---
+# 測試：編輯課表 — 改訓練類型（輕鬆跑→恢復跑）→ 儲存 → 回到主畫面
+
+- assertVisible: "每日訓練"
+
+# 進編輯課表
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+
+# 點星期一的訓練類型 dropdown
+- tapOn:
+    text: "輕鬆跑"
+    index: 0
+
+# 選恢復跑
+- tapOn: "恢復跑"
+
+# 儲存（hasUnsavedChanges = true）
+- tapOn: "儲存"
+
+# 等 API 完成
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 15000
+
+# 驗證：星期一應該變成恢復跑
+- assertVisible: "星期一"
+- assertVisible: "恢復跑"

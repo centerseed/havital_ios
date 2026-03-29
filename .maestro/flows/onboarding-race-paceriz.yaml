@@ -1,0 +1,56 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - critical
+  - race_run
+  - paceriz
+---
+# T1: 賽事 + Paceriz 平衡訓練法
+
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+- assertVisible: "訓練目標"
+- tapOn: "賽事訓練"
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+
+# 賽事設定
+- tapOn:
+    id: "RaceSetup_SaveButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+# 起始階段
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續"
+    optional: true
+
+# 方法論 → paceriz
+- tapOn:
+    id: "Methodology_paceriz"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === 課表合理性驗證 ===
+- assertVisible: "輕鬆跑"

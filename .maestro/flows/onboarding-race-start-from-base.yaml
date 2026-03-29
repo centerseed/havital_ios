@@ -1,0 +1,60 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - p1
+  - race_run
+  - start-stage
+---
+# T7: 賽事 + Paceriz + 從基礎期開始（P1）
+
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+- assertVisible: "訓練目標"
+- tapOn: "賽事訓練"
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+
+- tapOn:
+    id: "RaceSetup_SaveButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+# 起始階段 → 基礎期
+- tapOn:
+    id: "StartStage_base"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續"
+    optional: true
+
+- tapOn:
+    id: "Methodology_paceriz"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === 課表合理性驗證 ===
+# base 階段：輕鬆跑為主，禁止節奏跑
+# 注意：strides（加速跑/大步跑）在 base 後期允許，app 可能顯示為「間歇訓練」
+- assertVisible: "輕鬆跑"
+- assertNotVisible: "節奏跑"

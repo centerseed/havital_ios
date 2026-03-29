@@ -1,0 +1,17 @@
+appId: com.havital.Havital.dev
+tags:
+  - setup
+---
+# 前置流程：Demo Mode 登入
+
+# === 確認在登入頁 ===
+- assertVisible:
+    id: "Login_DemoButton"
+
+# === 點 Demo Mode ===
+- tapOn:
+    id: "Login_DemoButton"
+
+# === 等待登入完成，進入主畫面 ===
+- assertVisible:
+    text: "訓練目標|訓練計畫|每日訓練|週課表尚未產生"

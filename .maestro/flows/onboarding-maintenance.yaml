@@ -1,0 +1,54 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - critical
+  - maintenance
+---
+# T6: 維持訓練（aerobic_endurance）→ overview → weekly plan（P0）
+
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+- assertVisible: "訓練目標"
+- tapOn: "維持訓練"
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+
+# 方法論（維持訓練有）
+- tapOn:
+    text: "有氧耐力提升"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+
+# 訓練週數 / 起始階段
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續"
+    optional: true
+
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === 課表合理性驗證 ===
+- assertVisible: "輕鬆跑"
+- assertNotVisible: "間歇訓練"

@@ -1,0 +1,60 @@
+appId: com.havital.Havital.dev
+tags:
+  - edit
+  - critical
+---
+# 完整編輯課表測試
+# E1: 進出不破壞
+# E2: 改訓練類型 → 儲存
+# E3: 改配速（套用建議）→ 儲存
+# E4: 齒輪編輯 sheet
+
+# === E1: 進出不破壞 ===
+- assertVisible: "每日訓練"
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+- tapOn: "取消"
+- assertVisible: "每日訓練"
+- assertVisible: "輕鬆跑"
+
+# === E2: 改訓練類型 ===
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+# 點第一個輕鬆跑 dropdown
+- tapOn:
+    text: "輕鬆跑"
+    index: 0
+# 選恢復跑
+- tapOn: "恢復跑"
+# 確認星期一變成恢復跑
+- assertVisible: "恢復跑"
+# 儲存
+- tapOn: "儲存"
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 15000
+# 驗證主畫面是否反映修改
+- assertVisible: "恢復跑"
+
+# === E3: 改配速（透過齒輪 sheet 套用建議配速）===
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+# 點齒輪進入編輯 sheet（用座標，齒輪不是 accessibility element）
+- tapOn:
+    point: "86%, 19%"
+- assertVisible: "編輯訓練"
+# 點套用建議配速
+- tapOn: "套用"
+# 點儲存（sheet 內）
+- tapOn: "儲存"
+# 回到編輯週課表
+- assertVisible: "編輯週課表"
+# 儲存整個課表
+- tapOn: "儲存"
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 15000
+- assertVisible: "每日訓練"

@@ -1,0 +1,37 @@
+appId: com.havital.Havital.dev
+tags:
+  - edit
+  - critical
+  - strength
+---
+# 測試：拖動排序 — 把星期一（輕鬆跑+力量）往下移
+# 編輯頁使用 List + .onMove，左側有拖動 handle（三條線）
+
+# 確認初始狀態
+- assertVisible: "每日訓練"
+- assertVisible: "輕鬆跑"
+
+# 進編輯
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+
+# 拖動星期一到星期二下方
+# List 在 editMode 時，右側有 ≡ 拖動 handle
+# 星期一 row 中心 ≈ y:155，星期三 row 中心 ≈ y:285
+# 長按 drag handle 然後拖動
+- longPressOn:
+    point: "95%, 17%"
+- swipe:
+    start: "95%, 17%"
+    end: "95%, 33%"
+    duration: 1000
+
+# 儲存
+- tapOn: "儲存"
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 15000
+
+# 驗證
+- assertVisible: "每日訓練"

@@ -1,0 +1,7 @@
+appId: com.havital.Havital.dev
+---
+- launchApp:
+    appId: "com.havital.Havital.dev"
+    clearState: false
+    stopApp: true
+- assertVisible: "每日訓練"

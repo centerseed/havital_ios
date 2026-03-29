@@ -1,0 +1,88 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - critical
+  - race_run
+---
+# T1: 賽事訓練（全馬）→ plan overview → weekly plan
+
+- assertVisible:
+    text: "個人最佳成績"
+- swipe:
+    start: "50%, 65%"
+    end: "50%, 45%"
+    duration: 300
+- swipe:
+    start: "50%, 65%"
+    end: "50%, 45%"
+    duration: 300
+- tapOn:
+    id: "PersonalBest_ContinueButton"
+
+- assertVisible:
+    text: "週跑量|每週跑量"
+- tapOn:
+    id: "WeeklyDistance_ContinueButton"
+
+- assertVisible:
+    text: "目標|訓練目標"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+# 賽事設定 — 點編輯進入距離/時間
+- assertVisible:
+    text: "設定.*目標|賽事"
+- tapOn:
+    text: "編輯"
+    optional: true
+- tapOn:
+    text: "全馬|42|Marathon"
+    optional: true
+- tapOn:
+    id: "RaceSetup_DoneButton"
+    optional: true
+- tapOn:
+    id: "RaceSetup_SaveButton"
+    optional: true
+- tapOn:
+    text: "下一步|繼續"
+    optional: true
+
+# 起始階段
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+
+# 訓練方法 → Paceriz
+- tapOn:
+    id: "Methodology_paceriz"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+
+# 訓練偏好
+- assertVisible:
+    text: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+# Plan Overview
+- assertVisible:
+    text: "訓練總覽|訓練計劃總覽"
+- assertVisible:
+    id: "TrainingOverview_WeeksLabel"
+
+# 生成 Weekly Plan
+- tapOn:
+    id: "TrainingOverview_GenerateButton"
+
+# 驗證
+- assertVisible:
+    text: "每日訓練|週課表"
+- assertVisible:
+    text: "星期.*"
+- assertVisible:
+    text: "間歇|節奏|輕鬆跑|長距離|休息"

@@ -1,0 +1,12 @@
+appId: com.havital.Havital.dev
+tags:
+  - smoke
+  - weekly-plan
+---
+# 週課表顯示正確性驗證
+
+- assertVisible: "每日訓練"
+- assertVisible: "星期一"
+- assertVisible: "休息"
+- assertVisible: "間歇訓練"
+- assertVisible: "肌力訓練"
