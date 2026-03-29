@@ -311,6 +311,10 @@ struct SimplifiedDailyCardV2: View {
                 if day.warmup != nil || day.cooldown != nil {
                     warmupCooldownSummary
                 }
+
+                if let supplementary = day.supplementaryActivities, !supplementary.isEmpty {
+                    supplementaryActivitiesSummary(supplementary)
+                }
             }
         }
     }
@@ -327,6 +331,29 @@ struct SimplifiedDailyCardV2: View {
                 Text("❄️ 緩和 \(String(format: "%.1f", dist))km")
                     .font(AppFont.caption())
                     .foregroundColor(.blue)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+
+    @ViewBuilder
+    private func supplementaryActivitiesSummary(_ activities: [SupplementaryActivity]) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 6, height: 6)
+            if activities.count == 1, case .strength(let s) = activities[0] {
+                let label = StrengthEditorV2.label(for: s.strengthType)
+                let durationText = s.durationMinutes.map { "· \($0)分鐘" } ?? ""
+                Text("➕ \(label)\(durationText)")
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            } else {
+                Text("➕ 補充訓練 (\(activities.count)項)")
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
             }
             Spacer()
         }

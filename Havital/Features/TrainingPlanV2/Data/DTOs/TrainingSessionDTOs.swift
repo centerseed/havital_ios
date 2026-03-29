@@ -310,10 +310,11 @@ struct TrainingSessionDTO: Codable, Equatable {
 }
 
 // MARK: - SessionWrapperDTO
-/// API 回傳的 session 包裝物件，內含 primary activity
+/// API 回傳的 session 包裝物件，內含 primary activity 和補充訓練
 
 struct SessionWrapperDTO: Codable, Equatable {
     let primary: PrimaryActivityDTO?
+    let supplementary: [SupplementaryActivityDTO]?
 }
 
 // MARK: - DayDetailDTO
@@ -354,15 +355,19 @@ struct DayDetailDTO: Codable, Equatable {
         category = try container.decodeIfPresent(String.self, forKey: .category)
         warmup = try container.decodeIfPresent(RunSegmentDTO.self, forKey: .warmup)
         cooldown = try container.decodeIfPresent(RunSegmentDTO.self, forKey: .cooldown)
-        supplementary = try container.decodeIfPresent([SupplementaryActivityDTO].self, forKey: .supplementary)
+        let flatSupplementary = try container.decodeIfPresent([SupplementaryActivityDTO].self, forKey: .supplementary)
 
         // 優先嘗試扁平結構的 primary，再嘗試 session.primary
         if let directPrimary = try container.decodeIfPresent(PrimaryActivityDTO.self, forKey: .primary) {
             primary = directPrimary
+            supplementary = flatSupplementary
         } else if let sessionWrapper = try container.decodeIfPresent(SessionWrapperDTO.self, forKey: .session) {
             primary = sessionWrapper.primary
+            // 扁平 supplementary 優先；若無，嘗試從 session.supplementary 補充
+            supplementary = flatSupplementary ?? sessionWrapper.supplementary
         } else {
             primary = nil
+            supplementary = flatSupplementary
         }
     }
 

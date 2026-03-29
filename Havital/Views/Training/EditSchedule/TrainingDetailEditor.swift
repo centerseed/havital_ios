@@ -35,6 +35,10 @@ final class TrainingDayEditState: ObservableObject {
     @Published var cooldownDistance: Double
     @Published var cooldownPace: String
 
+    // 力量訓練欄位
+    @Published var strengthType: String
+    @Published var strengthDurationMinutes: Int
+
     // 描述
     @Published var description: String?
 
@@ -43,6 +47,8 @@ final class TrainingDayEditState: ObservableObject {
         self.dayTarget = day.dayTarget
         self.trainingType = day.trainingType
         self.description = day.trainingDetails?.description
+        self.strengthType = day.strengthType ?? "general"
+        self.strengthDurationMinutes = day.trainingDetails?.timeMinutes.map { Int($0) } ?? 30
 
         let details = day.trainingDetails
 
@@ -289,6 +295,22 @@ final class TrainingDayEditState: ObservableObject {
                 segments: mutableSegments
             )
 
+        case .strength:
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: nil,
+                timeMinutes: Double(strengthDurationMinutes)
+            )
+            result.strengthType = strengthType
+            // strengthExercises: 保留 originalDay 的（不編輯，只顯示）
+
+        case .crossTraining, .yoga, .hiking, .cycling,
+             .swimming, .elliptical, .rowing:
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: nil
+            )
+
         default:
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
@@ -515,6 +537,8 @@ struct TrainingEditSheetV2: View {
         case .longRun:
             LongRunEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+        case .strength:
+            StrengthEditorV2(editState: editState, originalDay: originalDay)
         default:
             SimpleEditorV2(editState: editState, paceHelper: paceHelper)
         }
@@ -1197,11 +1221,123 @@ struct LongRunEditorV2: View {
     }
 }
 
+// MARK: - 力量訓練編輯器
+
+struct StrengthEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    let originalDay: MutableTrainingDay
+
+    static let strengthTypeOptions: [(String, String)] = [
+        ("general", "一般肌力"),
+        ("core_stability", "核心穩定"),
+        ("glutes_hip", "臀部髖部"),
+        ("lower_strength", "下肢力量"),
+        ("upper_strength", "上肢力量"),
+        ("full_body", "全身訓練"),
+        ("plyometric", "增強式訓練"),
+        ("mobility", "活動度訓練"),
+    ]
+
+    static func label(for strengthType: String) -> String {
+        strengthTypeOptions.first { $0.0 == strengthType }?.1 ?? "補充力量訓練"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("肌力訓練設定")
+                .font(AppFont.headline())
+                .foregroundColor(.purple)
+
+            // 訓練類型
+            VStack(alignment: .leading, spacing: 8) {
+                Text("訓練類型")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+
+                Menu {
+                    ForEach(Self.strengthTypeOptions, id: \.0) { key, label in
+                        Button(label) {
+                            editState.strengthType = key
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(Self.label(for: editState.strengthType))
+                            .font(AppFont.body())
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
+            }
+
+            // 時長
+            VStack(alignment: .leading, spacing: 8) {
+                Text("訓練時長")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+
+                Stepper("\(editState.strengthDurationMinutes) 分鐘", value: $editState.strengthDurationMinutes, in: 5...120, step: 5)
+                    .font(AppFont.body())
+            }
+
+            // 動作清單（read-only 顯示）
+            if let exercises = originalDay.strengthExercises, !exercises.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("訓練動作")
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+
+                    ForEach(exercises, id: \.name) { exercise in
+                        HStack {
+                            Text(exercise.name)
+                                .font(AppFont.bodySmall())
+                                .foregroundColor(.primary)
+                            Spacer()
+                            if let sets = exercise.sets, let reps = exercise.reps {
+                                Text("\(sets) × \(reps)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                            } else if let sets = exercise.sets {
+                                Text("\(sets) 組")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .padding()
+                .background(Color.purple.opacity(0.08))
+                .cornerRadius(8)
+            }
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
 // MARK: - 簡單訓練編輯器
 
 struct SimpleEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
     @ObservedObject var paceHelper: PaceCalculationHelper
+
+    private static let nonRunTypes: Set<DayType> = [
+        .strength, .crossTraining, .yoga, .hiking, .cycling,
+        .swimming, .elliptical, .rowing
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1209,7 +1345,7 @@ struct SimpleEditorV2: View {
                 .font(AppFont.headline())
                 .foregroundColor(.blue)
 
-            if editState.type != .rest {
+            if editState.type != .rest && !Self.nonRunTypes.contains(editState.type) {
                 DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
             }
 
