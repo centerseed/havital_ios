@@ -1,6 +1,8 @@
 import Foundation
 import Combine
 
+private typealias DomainHeartRateZone = HeartRateZone
+
 /// 心率區間管理器 - 基於心率儲備(HRR)方法計算訓練區間
 ///
 /// ⚠️ DEPRECATED: 此類需要重構為 UseCase 模式
@@ -13,29 +15,6 @@ class HeartRateZonesManager {
     static let shared = HeartRateZonesManager()
     
     private let userPreferenceManager = UserPreferencesManager.shared
-    
-    // 心率區間定義 (百分比)
-    struct ZonePercentages {
-        // 輕鬆跑 (Easy)
-        static let easyLow: Double = 0.59
-        static let easyHigh: Double = 0.74
-        
-        // 馬拉松配速 (Marathon)
-        static let marathonLow: Double = 0.74
-        static let marathonHigh: Double = 0.84
-        
-        // 閾值跑 (Threshold)
-        static let thresholdLow: Double = 0.84
-        static let thresholdHigh: Double = 0.88
-        
-        // 有氧跑 (Aerobic)
-        static let aerobicLow: Double = 0.88
-        static let aerobicHigh: Double = 0.95
-        
-        // 間歇跑 (Interval)
-        static let intervalLow: Double = 0.95
-        static let intervalHigh: Double = 1.0
-    }
     
     /// 心率區間結構 (與 HealthKitManager.HeartRateZone 相容的結構)
     struct HeartRateZone {
@@ -54,59 +33,18 @@ class HeartRateZonesManager {
         saveHeartRateZones(zones: zones)
     }
     
-    /// 計算心率區間 (基於 HRR 心率儲備法)
+    /// 計算心率區間 (委派給 HeartRateZone.calculateZones，確保與新 6 區間系統一致)
     func calculateHeartRateZones(maxHR: Int, restingHR: Int) -> [HeartRateZone] {
-        let hrr = Double(maxHR - restingHR) // 心率儲備 (Heart Rate Reserve)
-        
-        // 計算各區間
-        let zone1 = HeartRateZone(
-            zone: 1,
-            name: L10n.Performance.HeartRateZone.zone1Name.localized,
-            range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.easyLow, highPct: ZonePercentages.easyHigh),
-            description: L10n.Performance.HeartRateZone.zone1Description.localized,
-            benefit: L10n.Performance.HeartRateZone.zone1Benefit.localized
-        )
-        
-        let zone2 = HeartRateZone(
-            zone: 2,
-            name: L10n.Performance.HeartRateZone.zone2Name.localized,
-            range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.marathonLow, highPct: ZonePercentages.marathonHigh),
-            description: L10n.Performance.HeartRateZone.zone2Description.localized,
-            benefit: L10n.Performance.HeartRateZone.zone2Benefit.localized
-        )
-        
-        let zone3 = HeartRateZone(
-            zone: 3,
-            name: L10n.Performance.HeartRateZone.zone3Name.localized,
-            range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.thresholdLow, highPct: ZonePercentages.thresholdHigh),
-            description: L10n.Performance.HeartRateZone.zone3Description.localized,
-            benefit: L10n.Performance.HeartRateZone.zone3Benefit.localized
-        )
-        
-        let zone4 = HeartRateZone(
-            zone: 4,
-            name: L10n.Performance.HeartRateZone.zone4Name.localized,
-            range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.aerobicLow, highPct: ZonePercentages.aerobicHigh),
-            description: L10n.Performance.HeartRateZone.zone4Description.localized,
-            benefit: L10n.Performance.HeartRateZone.zone4Benefit.localized
-        )
-        
-        let zone5 = HeartRateZone(
-            zone: 5,
-            name: L10n.Performance.HeartRateZone.zone5Name.localized,
-            range: calculateRange(hrr: hrr, restingHR: restingHR, lowPct: ZonePercentages.intervalLow, highPct: ZonePercentages.intervalHigh),
-            description: L10n.Performance.HeartRateZone.zone5Description.localized,
-            benefit: L10n.Performance.HeartRateZone.zone5Benefit.localized
-        )
-        
-        return [zone1, zone2, zone3, zone4, zone5]
-    }
-    
-    /// 根據心率儲備百分比計算實際心率範圍
-    private func calculateRange(hrr: Double, restingHR: Int, lowPct: Double, highPct: Double) -> ClosedRange<Double> {
-        let low = (hrr * lowPct) + Double(restingHR)
-        let high = (hrr * highPct) + Double(restingHR)
-        return low...high
+        let domainZones = DomainHeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
+        return domainZones.map { zone in
+            HeartRateZone(
+                zone: zone.zone,
+                name: zone.name,
+                range: zone.range,
+                description: zone.description,
+                benefit: zone.benefit
+            )
+        }
     }
     
     /// 將計算的心率區間儲存到 UserPreferences
@@ -190,7 +128,7 @@ class HeartRateZonesManager {
         
         // 如果心率超過最高區間
         if heartRate > zones.last?.range.upperBound ?? 0 {
-            return zones.last?.zone ?? 5
+            return zones.last?.zone ?? 6
         }
         
         // 如果心率低於最低區間

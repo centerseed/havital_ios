@@ -3,30 +3,14 @@ appId: com.havital.Havital.dev
 # 子流程：通過個人最佳成績頁面
 # Minutes picker 在畫面中間偏下，從 0 滑到 ~25 需要多次
 - assertVisible: "個人最佳成績"
+# swipe picker 分鐘數（iPhone 17 Pro 適用）
 - swipe:
-    start: "46%, 68%"
-    end: "46%, 48%"
+    start: "46%, 65%"
+    end: "46%, 50%"
     duration: 300
 - swipe:
-    start: "46%, 68%"
-    end: "46%, 48%"
+    start: "46%, 65%"
+    end: "46%, 50%"
     duration: 300
-- swipe:
-    start: "46%, 68%"
-    end: "46%, 48%"
-    duration: 300
-# 等 picker 穩定
-- swipe:
-    start: "46%, 60%"
-    end: "46%, 56%"
-    duration: 200
-# 點「下一步」（右上角）或 Continue button
 - tapOn:
     id: "PersonalBest_ContinueButton"
-    optional: true
-- tapOn:
-    text: "下一步"
-    optional: true
-- tapOn:
-    text: "略過"
-    optional: true

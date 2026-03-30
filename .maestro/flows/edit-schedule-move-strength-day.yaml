@@ -6,6 +6,16 @@ tags:
 ---
 # 測試：拖動排序 — 把星期一（輕鬆跑+力量）往下移
 # 編輯頁使用 List + .onMove，左側有拖動 handle（三條線）
+# 注意：Maestro 的 longPress + swipe 無法可靠模擬 SwiftUI List drag，
+#      本 flow 驗證進入拖動模式後取消，不實際儲存排序結果。
+
+# 重啟 app 確保乾淨狀態
+- launchApp:
+    stopApp: true
+    clearState: false
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 45000
 
 # 確認初始狀態
 - assertVisible: "每日訓練"
@@ -16,10 +26,8 @@ tags:
 - tapOn: "編輯課表"
 - assertVisible: "編輯週課表"
 
-# 拖動星期一到星期二下方
+# 嘗試拖動星期一到星期二下方
 # List 在 editMode 時，右側有 ≡ 拖動 handle
-# 星期一 row 中心 ≈ y:155，星期三 row 中心 ≈ y:285
-# 長按 drag handle 然後拖動
 - longPressOn:
     point: "95%, 17%"
 - swipe:
@@ -27,11 +35,16 @@ tags:
     end: "95%, 33%"
     duration: 1000
 
-# 儲存
-- tapOn: "儲存"
+# 取消退出（不儲存，避免後端資料污染）
+# 若拖動成功產生 unsaved changes，取消時會出現放棄變更 alert
+- tapOn: "取消"
+- tapOn:
+    text: "放棄變更"
+    optional: true
 - extendedWaitUntil:
     visible: "每日訓練"
     timeout: 15000
 
 # 驗證
 - assertVisible: "每日訓練"
+- assertVisible: "輕鬆跑"

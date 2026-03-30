@@ -289,4 +289,105 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
             XCTFail("Expected .loaded state")
         }
     }
+
+    // MARK: - Week Resolution Tests
+
+    func testResolveWeekToGenerateAfterSummary_UsesBackendNextWeekInfo_OnSundayLikeState() async {
+        // Given: currentWeek 尚未切到下一週（例如週日），但後端 nextWeekInfo 已指出應產生第 2 週
+        sut.currentWeek = 1
+        sut.planStatusResponse = PlanStatusV2Response(
+            currentWeek: 1,
+            totalWeeks: 12,
+            nextAction: "view_plan",
+            canGenerateNextWeek: true,
+            currentWeekPlanId: "plan_week_1",
+            previousWeekSummaryId: "summary_week_1",
+            targetType: "race",
+            methodologyId: nil,
+            nextWeekInfo: NextWeekInfoV2(
+                weekNumber: 2,
+                hasPlan: false,
+                canGenerate: true,
+                requiresCurrentWeekSummary: false,
+                nextAction: "create_plan"
+            ),
+            metadata: nil
+        )
+
+        // When
+        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 1)
+
+        // Then
+        XCTAssertEqual(weekToGenerate, 2)
+    }
+
+    func testResolveWeekToGenerateAfterSummary_FallbacksToSummaryPlusOne_WhenBackendMissing() async {
+        // Given
+        sut.currentWeek = 1
+        sut.planStatusResponse = nil
+
+        // When
+        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 1)
+
+        // Then
+        XCTAssertEqual(weekToGenerate, 2)
+    }
+
+    func testResolveWeekToGenerateAfterSummary_MonToSatFlow_UsesBackendWeek() async {
+        // Given: 週一到週六情境，currentWeek=3，回顧上週(summaryWeek=2)後應產生第 3 週
+        sut.currentWeek = 3
+        sut.planStatusResponse = PlanStatusV2Response(
+            currentWeek: 3,
+            totalWeeks: 12,
+            nextAction: "create_summary",
+            canGenerateNextWeek: false,
+            currentWeekPlanId: nil,
+            previousWeekSummaryId: nil,
+            targetType: "race",
+            methodologyId: nil,
+            nextWeekInfo: NextWeekInfoV2(
+                weekNumber: 3,
+                hasPlan: false,
+                canGenerate: true,
+                requiresCurrentWeekSummary: false,
+                nextAction: "create_plan"
+            ),
+            metadata: nil
+        )
+
+        // When
+        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 2)
+
+        // Then
+        XCTAssertEqual(weekToGenerate, 3)
+    }
+
+    func testResolveWeekToGenerateAfterSummary_PrefersBackendWeek_WhenAvailable() async {
+        // Given: 後端可用時，直接使用後端值
+        sut.currentWeek = 5
+        sut.planStatusResponse = PlanStatusV2Response(
+            currentWeek: 5,
+            totalWeeks: 12,
+            nextAction: "view_plan",
+            canGenerateNextWeek: true,
+            currentWeekPlanId: "plan_week_5",
+            previousWeekSummaryId: "summary_week_4",
+            targetType: "race",
+            methodologyId: nil,
+            nextWeekInfo: NextWeekInfoV2(
+                weekNumber: 7,
+                hasPlan: false,
+                canGenerate: true,
+                requiresCurrentWeekSummary: false,
+                nextAction: "create_plan"
+            ),
+            metadata: nil
+        )
+
+        // When
+        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 4)
+
+        // Then
+        XCTAssertEqual(weekToGenerate, 7)
+    }
 }

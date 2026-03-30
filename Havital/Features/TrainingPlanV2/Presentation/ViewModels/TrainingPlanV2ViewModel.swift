@@ -493,6 +493,17 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
         await generateWeeklyPlanDirectly(weekNumber: nextWeekInfo.weekNumber)
     }
 
+    /// 決定「從週回顧 Sheet 產生課表」時應該產生哪一週。
+    /// 優先使用後端 Status API 的 nextWeekInfo.weekNumber（source of truth）。
+    /// 若短暫拿不到 nextWeekInfo，才退回 summaryWeek + 1。
+    func resolveWeekToGenerateAfterSummary(summaryWeek: Int) async -> Int {
+        await refreshPlanStatusResponse()
+        if let backendWeek = planStatusResponse?.nextWeekInfo?.weekNumber, backendWeek > 0 {
+            return backendWeek
+        }
+        return max(1, summaryWeek + 1)
+    }
+
     /// 直接產生週課表（不檢查週回顧）
     func generateWeeklyPlanDirectly(weekNumber: Int) async {
         Logger.debug("[TrainingPlanV2VM] 開始產生第 \(weekNumber) 週課表...")

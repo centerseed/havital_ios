@@ -282,6 +282,7 @@ struct SimplifiedDailyCardV2: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(day.type == .strength ? "strength_day_edit_gear" : "day_\(displayDayIndex)_edit_gear")
             }
         }
         .padding(.horizontal, 12)
@@ -468,6 +469,7 @@ struct SimplifiedDailyCardV2: View {
             .background(getTypeColor().opacity(0.15))
             .cornerRadius(8)
         }
+        .accessibilityIdentifier("training_type_menu_\(displayDayIndex)")
     }
 
     // MARK: - Update Training Type (reuse V1 logic)

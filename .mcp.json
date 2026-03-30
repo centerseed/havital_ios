@@ -6,7 +6,10 @@
     },
     "ios-simulator": {
       "command": "npx",
-      "args": ["-y", "ios-simulator-mcp"]
+      "args": ["-y", "ios-simulator-mcp"],
+      "env": {
+        "IOS_SIMULATOR_MCP_FILTERED_TOOLS": "open_simulator"
+      }
     },
     "zenos": {
       "type": "http",

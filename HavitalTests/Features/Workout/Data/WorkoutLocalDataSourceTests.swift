@@ -321,6 +321,8 @@ class WorkoutLocalDataSourceTests: XCTestCase {
             endTimeUtc: "2026-01-05T11:00:00Z",
             durationSeconds: 3600,
             distanceMeters: 10000,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             deviceName: "Apple Watch",
             basicMetrics: nil,
             advancedMetrics: nil,

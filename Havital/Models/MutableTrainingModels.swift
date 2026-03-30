@@ -2,6 +2,64 @@ import Foundation
 
 // MARK: - Mutable Training Models for Editing
 
+// MARK: - MutableExercise
+
+/// 可編輯的單個力量訓練動作
+struct MutableExercise: Identifiable, Equatable {
+    var id: String = UUID().uuidString
+    var exerciseId: String?
+    var name: String
+    var sets: Int?
+    var reps: String?           // 支援 "8-12" 格式
+    var durationSeconds: Int?
+    var weightKg: Double?
+    var restSeconds: Int?
+    var description: String?
+
+    /// 從 Exercise 初始化
+    init(from exercise: Exercise) {
+        self.exerciseId = exercise.exerciseId
+        self.name = exercise.name
+        self.sets = exercise.sets
+        self.reps = exercise.reps
+        self.durationSeconds = exercise.durationSeconds
+        self.weightKg = exercise.weightKg
+        self.restSeconds = exercise.restSeconds
+        self.description = exercise.description
+    }
+
+    /// 空白動作初始化（新增時使用）
+    init(name: String = "") {
+        self.name = name
+        self.sets = 3
+    }
+
+    /// 模板動作初始化（帶組數、次數或秒數）
+    init(exerciseId: String? = nil, name: String, sets: Int, reps: String? = nil, durationSeconds: Int? = nil) {
+        self.exerciseId = exerciseId
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.durationSeconds = durationSeconds
+    }
+
+    /// 轉回 Exercise
+    func toExercise() -> Exercise {
+        Exercise(
+            exerciseId: exerciseId,
+            name: name,
+            sets: sets,
+            reps: reps,
+            durationSeconds: durationSeconds,
+            weightKg: weightKg,
+            restSeconds: restSeconds,
+            description: description
+        )
+    }
+}
+
+// MARK: - MutableWeeklyPlan
+
 /// 可編輯的週課表模型
 struct MutableWeeklyPlan {
     var id: String

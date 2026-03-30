@@ -2,7 +2,13 @@ appId: com.havital.Havital.dev
 tags:
   - setup
 ---
-- assertVisible: "每日訓練"
+- launchApp:
+    stopApp: true
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      text: "訓練計畫|每日訓練"
+    timeout: 30000
 - tapOn: "更多"
 - tapOn: "個人資料"
 - scrollUntilVisible:

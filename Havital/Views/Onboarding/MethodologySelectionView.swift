@@ -66,7 +66,6 @@ struct MethodologySelectionView: View {
                                 ) {
                                     viewModel.selectedMethodology = methodology
                                 }
-                                .accessibilityIdentifier("Methodology_\(methodology.id)")
                             }
                         }
                         .padding(.horizontal)
@@ -246,6 +245,7 @@ struct MethodologyCard: View {
             .shadow(color: isSelected ? Color.accentColor.opacity(0.2) : Color.black.opacity(0.05), radius: isSelected ? 8 : 4)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("Methodology_\(methodology.id)")
     }
 
     private func iconForMethodology(_ id: String) -> String {

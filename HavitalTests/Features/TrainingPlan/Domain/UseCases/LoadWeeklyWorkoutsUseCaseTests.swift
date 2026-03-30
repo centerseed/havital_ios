@@ -101,6 +101,8 @@ final class LoadWeeklyWorkoutsUseCaseTests: XCTestCase {
             endTimeUtc: date, // Simplify for test
             durationSeconds: 3600,
             distanceMeters: 5000,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             deviceName: "Garmin",
             basicMetrics: nil,
             advancedMetrics: nil,

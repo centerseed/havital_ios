@@ -816,24 +816,27 @@ enum GaitAnalysisChart {
         enum HeartRateZone {
             // Zone Names
             static let zone1Name = "performance.heart_rate_zone.zone1_name"
-            static let zone2Name = "performance.heart_rate_zone.zone2_name" 
+            static let zone2Name = "performance.heart_rate_zone.zone2_name"
             static let zone3Name = "performance.heart_rate_zone.zone3_name"
             static let zone4Name = "performance.heart_rate_zone.zone4_name"
             static let zone5Name = "performance.heart_rate_zone.zone5_name"
-            
+            static let zone6Name = "performance.heart_rate_zone.zone6_name"
+
             // Zone Descriptions
             static let zone1Description = "performance.heart_rate_zone.zone1_description"
             static let zone2Description = "performance.heart_rate_zone.zone2_description"
-            static let zone3Description = "performance.heart_rate_zone.zone3_description" 
+            static let zone3Description = "performance.heart_rate_zone.zone3_description"
             static let zone4Description = "performance.heart_rate_zone.zone4_description"
             static let zone5Description = "performance.heart_rate_zone.zone5_description"
-            
+            static let zone6Description = "performance.heart_rate_zone.zone6_description"
+
             // Zone Benefits
             static let zone1Benefit = "performance.heart_rate_zone.zone1_benefit"
             static let zone2Benefit = "performance.heart_rate_zone.zone2_benefit"
             static let zone3Benefit = "performance.heart_rate_zone.zone3_benefit"
             static let zone4Benefit = "performance.heart_rate_zone.zone4_benefit"
             static let zone5Benefit = "performance.heart_rate_zone.zone5_benefit"
+            static let zone6Benefit = "performance.heart_rate_zone.zone6_benefit"
         }
     }
     

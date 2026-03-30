@@ -8,19 +8,20 @@ tags:
 
 - assertVisible:
     text: "個人最佳成績"
+# swipe picker 分鐘數（iPhone 17 Pro 適用）
 - swipe:
-    start: "50%, 65%"
-    end: "50%, 45%"
+    start: "46%, 65%"
+    end: "46%, 50%"
     duration: 300
 - swipe:
-    start: "50%, 65%"
-    end: "50%, 45%"
+    start: "46%, 65%"
+    end: "46%, 50%"
     duration: 300
 - tapOn:
     id: "PersonalBest_ContinueButton"
 
 - assertVisible:
-    text: "週跑量|每週跑量"
+    text: ".*週跑量.*"
 - tapOn:
     id: "WeeklyDistance_ContinueButton"
 

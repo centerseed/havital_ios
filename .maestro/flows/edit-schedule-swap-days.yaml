@@ -5,6 +5,14 @@ tags:
 ---
 # 測試：編輯課表 — 進入 → 取消 → 資料完整
 
+# 重啟 app 確保乾淨狀態
+- launchApp:
+    stopApp: true
+    clearState: false
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 45000
+
 - assertVisible: "每日訓練"
 - assertVisible: "星期一"
 

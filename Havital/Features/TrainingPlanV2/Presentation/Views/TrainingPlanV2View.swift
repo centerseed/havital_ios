@@ -267,9 +267,8 @@ struct TrainingPlanV2View: View {
                             Task {
                                 // 等待 summary sheet dismiss 動畫完成，避免與 loading sheet 衝突
                                 try? await Task.sleep(nanoseconds: 600_000_000)
-                                // 週一流程：產完上週回顧後，要產的是 currentWeek 的課表
-                                // nextWeekInfo 是 currentWeek+1（下週），不是當週
-                                let weekToGenerate = viewModel.currentWeek
+                                // 依後端 nextWeekInfo 決定目標週，避免週日情境誤打到已存在的第 1 週
+                                let weekToGenerate = await viewModel.resolveWeekToGenerateAfterSummary(summaryWeek: weekToShow)
                                 await viewModel.generateWeeklyPlanDirectly(weekNumber: weekToGenerate)
                             }
                         },

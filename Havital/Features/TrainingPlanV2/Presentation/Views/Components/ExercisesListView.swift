@@ -50,7 +50,7 @@ private struct ExerciseRowWrapperView: View {
         .sheet(isPresented: $showInstructionSheet) {
             if let mapping = mapped {
                 ExerciseInstructionView(
-                    exerciseName: exercise.name,
+                    exerciseName: ExerciseImageMapper.localizedName(for: exercise.exerciseId, fallback: exercise.name),
                     imageName: mapping.image,
                     instructionDesc: mapping.key
                 )
