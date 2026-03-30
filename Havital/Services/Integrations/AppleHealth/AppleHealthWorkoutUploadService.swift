@@ -358,6 +358,15 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
         for (index, w) in workouts.enumerated() {
             let workoutId = makeWorkoutId(for: w)
+
+            // ★ 修復 Bug 3：檢查是否超過重試上限
+            guard force || workoutUploadTracker.shouldRetryUpload(w) else {
+                failed += 1
+                print("⚠️ [批次上傳] \(workoutId) 已達重試上限，永久跳過")
+                failedList.append(FailedWorkout(workout: w, error: WorkoutV2ServiceError.invalidWorkoutData))
+                continue
+            }
+
             print("📤 [批次上傳] 正在處理 \(index + 1)/\(workouts.count) - \(workoutId)")
 
             do {
@@ -392,8 +401,9 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             } catch {
                 failed += 1
                 let errorMsg = error.localizedDescription
+                let isCancelled = errorMsg.contains("cancelled")
 
-                if errorMsg.contains("cancelled") || errorMsg == "invalidWorkoutData" {
+                if isCancelled {
                     print("⏰ [批次上傳] \(workoutId) 超時或被取消，跳過")
                 } else {
                     print("❌ [批次上傳] \(workoutId) 上傳失敗: \(errorMsg)")
@@ -403,6 +413,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                         labels: ["module": "AppleHealthUpload", "action": "batch_upload_failed", "cloud_logging": "true"],
                         jsonPayload: ["workoutId": workoutId, "error": errorMsg]
                     )
+                    // ★ 修復 Bug 1：記錄失敗，避免無限重試
+                    workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, apiVersion: .v2)
                 }
 
                 failedList.append(FailedWorkout(workout: w, error: error))
