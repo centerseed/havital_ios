@@ -1,0 +1,65 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - p2
+  - race_run
+  - start-stage
+---
+# T8: 賽事 + Paceriz + 從強化期開始（P2）
+
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+- assertVisible: "訓練目標"
+- tapOn: "賽事訓練"
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+
+- tapOn:
+    id: "RaceSetup_SaveButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+# 起始階段 → 強化期
+- tapOn:
+    id: "StartStage_build"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續"
+    optional: true
+
+- tapOn:
+    id: "Methodology_paceriz"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === 課表合理性驗證 ===
+# build 期必須有間歇（verify-plan-generated 滑到底後需要 scroll 找元素）
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 5000
+- scrollUntilVisible:
+    element: "間歇訓練"
+    direction: DOWN
+    timeout: 5000

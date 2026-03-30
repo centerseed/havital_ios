@@ -2,6 +2,64 @@ import Foundation
 
 // MARK: - Mutable Training Models for Editing
 
+// MARK: - MutableExercise
+
+/// 可編輯的單個力量訓練動作
+struct MutableExercise: Identifiable, Equatable {
+    var id: String = UUID().uuidString
+    var exerciseId: String?
+    var name: String
+    var sets: Int?
+    var reps: String?           // 支援 "8-12" 格式
+    var durationSeconds: Int?
+    var weightKg: Double?
+    var restSeconds: Int?
+    var description: String?
+
+    /// 從 Exercise 初始化
+    init(from exercise: Exercise) {
+        self.exerciseId = exercise.exerciseId
+        self.name = exercise.name
+        self.sets = exercise.sets
+        self.reps = exercise.reps
+        self.durationSeconds = exercise.durationSeconds
+        self.weightKg = exercise.weightKg
+        self.restSeconds = exercise.restSeconds
+        self.description = exercise.description
+    }
+
+    /// 空白動作初始化（新增時使用）
+    init(name: String = "") {
+        self.name = name
+        self.sets = 3
+    }
+
+    /// 模板動作初始化（帶組數、次數或秒數）
+    init(exerciseId: String? = nil, name: String, sets: Int, reps: String? = nil, durationSeconds: Int? = nil) {
+        self.exerciseId = exerciseId
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.durationSeconds = durationSeconds
+    }
+
+    /// 轉回 Exercise
+    func toExercise() -> Exercise {
+        Exercise(
+            exerciseId: exerciseId,
+            name: name,
+            sets: sets,
+            reps: reps,
+            durationSeconds: durationSeconds,
+            weightKg: weightKg,
+            restSeconds: restSeconds,
+            description: description
+        )
+    }
+}
+
+// MARK: - MutableWeeklyPlan
+
 /// 可編輯的週課表模型
 struct MutableWeeklyPlan {
     var id: String
@@ -57,6 +115,9 @@ struct MutableTrainingDay: Identifiable, Equatable {
     var trainingDetails: MutableTrainingDetails?
     var warmup: RunSegment?
     var cooldown: RunSegment?
+    var strengthExercises: [Exercise]?
+    var strengthType: String?
+    var supplementaryActivities: [SupplementaryActivity]?
 
     /// 從 TrainingDay 初始化
     init(from day: TrainingDay) {
@@ -81,6 +142,13 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
         self.warmup = day.session?.warmup
         self.cooldown = day.session?.cooldown
+        // 保留力量訓練的 exercises 和 strengthType
+        if case .strength(let strengthActivity) = day.session?.primary {
+            self.strengthExercises = strengthActivity.exercises
+            self.strengthType = strengthActivity.strengthType
+        }
+        // 保留 V3 supplementary（例如：跑步日附加力量訓練）
+        self.supplementaryActivities = day.session?.supplementary
     }
 
     /// 轉換回 TrainingDay
@@ -116,7 +184,10 @@ struct MutableTrainingDay: Identifiable, Equatable {
                lhs.trainingType == rhs.trainingType &&
                lhs.trainingDetails == rhs.trainingDetails &&
                lhs.warmup == rhs.warmup &&
-               lhs.cooldown == rhs.cooldown
+               lhs.cooldown == rhs.cooldown &&
+               lhs.strengthExercises == rhs.strengthExercises &&
+               lhs.strengthType == rhs.strengthType &&
+               lhs.supplementaryActivities == rhs.supplementaryActivities
     }
 
     /// 創建空白訓練日
@@ -132,7 +203,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
     }
 
     /// 自定義初始化
-    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?, warmup: RunSegment? = nil, cooldown: RunSegment? = nil) {
+    init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?, warmup: RunSegment? = nil, cooldown: RunSegment? = nil, strengthExercises: [Exercise]? = nil, strengthType: String? = nil) {
         self.dayIndex = dayIndex
         self.dayTarget = dayTarget
         self.trainingType = trainingType
@@ -141,6 +212,9 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = trainingDetails
         self.warmup = warmup
         self.cooldown = cooldown
+        self.strengthExercises = strengthExercises
+        self.strengthType = strengthType
+        self.supplementaryActivities = nil
     }
 }
 

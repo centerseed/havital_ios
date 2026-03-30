@@ -1,0 +1,24 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：驗證 plan overview → weekly plan → 課表合理性
+
+# Plan Overview 必須出現
+- assertVisible: "訓練總覽"
+- assertVisible:
+    id: "TrainingOverview_WeeksLabel"
+
+# 生成第一週計劃
+- tapOn:
+    id: "TrainingOverview_GenerateButton"
+
+# Weekly Plan 必須出現（API 需要時間）
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 45000
+- assertVisible: "星期一"
+
+# 課表合理性：必須有休息日（可能需要滑動才看到）
+- scrollUntilVisible:
+    element: "休息"
+    direction: DOWN
+    timeout: 10000

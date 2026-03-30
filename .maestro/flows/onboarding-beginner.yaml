@@ -1,0 +1,54 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - critical
+  - beginner
+---
+# T5: 新手入門 → overview → weekly plan（P0）
+# 預期：conversion/base 階段，只有輕鬆跑和休息，無高強度
+
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+# 目標類型 → beginner
+- assertVisible: "訓練目標"
+- tapOn: "新手入門"
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+
+# 以下各頁都 optional，因為不同 target type 流程不同
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+# 訓練偏好 — 這步一定會到
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === 課表合理性驗證 ===
+- assertVisible: "輕鬆跑"
+- assertNotVisible: "間歇訓練"
+- assertNotVisible: "節奏跑"
+- assertNotVisible: "巡航間歇"

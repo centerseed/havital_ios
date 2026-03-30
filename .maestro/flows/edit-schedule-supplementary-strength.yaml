@@ -1,0 +1,86 @@
+appId: com.havital.Havital.dev
+tags:
+  - edit
+  - critical
+  - strength
+  - supplementary
+---
+# 測試：跑步日補充力量訓練類型切換
+# 驗收：
+#   DC-1 點「+ 新增力量訓練」後預設動作不為空（核心穩定動作立即出現）
+#   DC-2 切換訓練類型時動作清單立即更新
+#   DC-3 多次切換都顯示正確動作
+
+# 0. 啟動 app，等主畫面
+- launchApp:
+    stopApp: true
+    clearState: false
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 45000
+
+# 1. 進入編輯週課表
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+
+# 2. 開啟第一個跑步訓練日的編輯器（使用 accessibilityId，星期一預設為跑步日）
+- tapOn:
+    id: "day_1_edit_gear"
+- assertVisible: "編輯訓練"
+
+# 3. 確認跑步編輯器已開啟（有距離設定）
+- assertVisible: "距離 (公里)"
+
+# 3.5. 前置條件：若已有補充力量訓練，先移除，確保從空狀態開始
+# 向下滑動以展示隱藏在螢幕外的「移除力量訓練」按鈕
+- swipe:
+    direction: UP
+- tapOn:
+    text: "移除力量訓練"
+    optional: true
+- waitForAnimationToEnd
+# 移除後「+ 新增力量訓練」按鈕應出現在畫面中，使用 scrollUntilVisible 滾到它
+- scrollUntilVisible:
+    element:
+      text: "+ 新增力量訓練"
+    direction: DOWN
+
+# 4. DC-1：點「+ 新增力量訓練」，驗證預設核心穩定動作立即出現
+- tapOn: "+ 新增力量訓練"
+- assertVisible: "補充力量訓練"
+# 預設類型為核心穩定，動作清單應立即非空
+- assertVisible: "核心穩定"
+
+# 5. DC-2：切換到「下肢力量」，驗證動作清單立即更新
+- tapOn: "核心穩定"
+- assertVisible: "下肢力量"
+- tapOn: "下肢力量"
+- waitForAnimationToEnd
+# 確認訓練類型已切換
+- assertVisible: "下肢力量"
+
+# 6. DC-3：再切換到「增強式訓練」，驗證動作清單再次更新
+- tapOn: "下肢力量"
+- assertVisible: "增強式訓練"
+- tapOn: "增強式訓練"
+- waitForAnimationToEnd
+- assertVisible: "增強式訓練"
+
+# 7. 再切換回「核心穩定」，確認反覆切換都正確
+- tapOn: "增強式訓練"
+- assertVisible: "核心穩定"
+- tapOn: "核心穩定"
+- waitForAnimationToEnd
+- assertVisible: "核心穩定"
+
+# 8. 取消，不儲存（避免污染後端資料）
+- tapOn: "取消"
+- assertVisible: "編輯週課表"
+
+# 9. 取消離開編輯週課表
+- tapOn: "取消"
+- tapOn:
+    text: "放棄變更"
+    optional: true
+- assertVisible: "每日訓練"

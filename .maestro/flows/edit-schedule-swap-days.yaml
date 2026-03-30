@@ -1,0 +1,34 @@
+appId: com.havital.Havital.dev
+tags:
+  - edit
+  - critical
+---
+# 測試：編輯課表 — 進入 → 取消 → 資料完整
+
+# 重啟 app 確保乾淨狀態
+- launchApp:
+    stopApp: true
+    clearState: false
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 45000
+
+- assertVisible: "每日訓練"
+- assertVisible: "星期一"
+
+# 進編輯課表
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+- assertVisible: "輕鬆跑"
+
+# 取消退出
+- tapOn: "取消"
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 10000
+
+# 驗證資料完整
+- assertVisible: "星期一"
+- assertVisible: "休息"
+- assertVisible: "輕鬆跑"

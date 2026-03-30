@@ -30,7 +30,7 @@ final class UserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
     private enum Keys {
         static let userProfile = "user_profile_cache_v3"
         static let targets = "user_targets_cache_v3"
-        static let heartRateZones = "heart_rate_zones_cache_v3"
+        static let heartRateZones = "heart_rate_zones_cache_v4"
         static let timestampSuffix = "_timestamp"
     }
 

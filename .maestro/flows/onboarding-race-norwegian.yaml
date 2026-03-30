@@ -1,0 +1,50 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - p1
+  - race_run
+  - norwegian
+---
+# T2: 賽事 + 挪威乳酸閾值訓練法
+
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+- assertVisible: "訓練目標"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+# 賽事設定
+- tapOn:
+    id: "RaceSetup_SaveButton"
+    optional: true
+
+# 方法論 → norwegian（等 API 載入，不加「下一步」避免誤觸 Methodology 按鈕）
+- extendedWaitUntil:
+    visible:
+      id: "Methodology_norwegian"
+    timeout: 10000
+- tapOn:
+    id: "Methodology_norwegian"
+- tapOn:
+    id: "Methodology_NextButton"
+
+# 起始階段（若時間緊張才出現，在 Methodology 之後）
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === 課表合理性驗證 ===
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 5000
+- assertNotVisible: "間歇訓練"

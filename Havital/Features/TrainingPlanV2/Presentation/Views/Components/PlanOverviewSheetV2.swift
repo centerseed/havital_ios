@@ -331,7 +331,7 @@ private struct TargetInfoTabV2: View {
             Text(NSLocalizedString("training.race_evaluation", comment: "Race Evaluation"))
                 .font(AppFont.headline())
 
-            Text(overview.targetEvaluate)
+            Text(overview.targetEvaluate ?? "")
                 .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -677,7 +677,7 @@ private struct TrainingOverviewTabV2: View {
                 .padding(.horizontal, 16)
 
             // 策略內容
-            Text(overview.approachSummary)
+            Text(overview.approachSummary ?? "")
                 .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

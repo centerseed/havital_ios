@@ -154,13 +154,13 @@ struct TrainingOverviewView: View {
             summarySectionV2(overview)
 
             // Target Evaluate (collapsible)
-            if !overview.targetEvaluate.isEmpty {
-                targetEvaluateSection(overview.targetEvaluate)
+            if let evaluate = overview.targetEvaluate, !evaluate.isEmpty {
+                targetEvaluateSection(evaluate)
             }
 
             // Approach Summary (類似 V1 的 Training Highlight)
-            if !overview.approachSummary.isEmpty {
-                approachSummarySection(overview.approachSummary)
+            if let summary = overview.approachSummary, !summary.isEmpty {
+                approachSummarySection(summary)
             }
 
             // Training Timeline - V2

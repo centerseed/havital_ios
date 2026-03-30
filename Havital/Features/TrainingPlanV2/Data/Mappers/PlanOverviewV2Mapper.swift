@@ -28,8 +28,8 @@ enum PlanOverviewV2Mapper {
             methodologyOverview: dto.methodologyOverview.map { toMethodologyOverview(from: $0) },
             targetEvaluate: dto.targetEvaluate,
             approachSummary: dto.approachSummary,
-            trainingStages: dto.trainingStages.map { toTrainingStage(from: $0) },
-            milestones: dto.milestones.map { toMilestone(from: $0) },
+            trainingStages: (dto.trainingStages ?? []).map { toTrainingStage(from: $0) },
+            milestones: (dto.milestones ?? []).map { toMilestone(from: $0) },
             createdAt: parseDate(from: dto.createdAt),
             methodologyVersion: dto.methodologyVersion
         )

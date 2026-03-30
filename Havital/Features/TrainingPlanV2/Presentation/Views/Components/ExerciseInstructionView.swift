@@ -2,6 +2,35 @@ import SwiftUI
 
 /// 根據動作名稱或 ID 判斷是否有對應的教學圖片與說明
 struct ExerciseImageMapper {
+    /// 可選的動作清單（exerciseId, 本地化顯示名）
+    static let catalog: [(id: String, displayName: String)] = [
+        ("plank", NSLocalizedString("exercise.name.plank", comment: "棒式")),
+        ("dead_bug", NSLocalizedString("exercise.name.dead_bug", comment: "死蟲式")),
+        ("bird_dog", NSLocalizedString("exercise.name.bird_dog", comment: "鳥狗式")),
+        ("side_plank", NSLocalizedString("exercise.name.side_plank", comment: "側棒式")),
+        ("glute_bridge", NSLocalizedString("exercise.name.glute_bridge", comment: "臀橋")),
+        ("clamshell", NSLocalizedString("exercise.name.clamshell", comment: "蛤蜊式")),
+        ("single_leg_glute_bridge", NSLocalizedString("exercise.name.single_leg_glute_bridge", comment: "單腿臀橋")),
+        ("monster_walk", NSLocalizedString("exercise.name.monster_walk", comment: "怪物走路")),
+        ("squat", NSLocalizedString("exercise.name.squat", comment: "深蹲")),
+        ("lunge", NSLocalizedString("exercise.name.lunge", comment: "弓步蹲")),
+        ("romanian_deadlift", NSLocalizedString("exercise.name.romanian_deadlift", comment: "羅馬尼亞硬舉")),
+        ("calf_raise", NSLocalizedString("exercise.name.calf_raise", comment: "提踵")),
+        ("vertical_jump", NSLocalizedString("exercise.name.vertical_jump", comment: "垂直跳")),
+        ("jump_rope", NSLocalizedString("exercise.name.jump_rope", comment: "跳繩")),
+        ("lateral_jump", NSLocalizedString("exercise.name.lateral_jump", comment: "側向跳")),
+        ("consecutive_hops", NSLocalizedString("exercise.name.consecutive_hops", comment: "連續跳")),
+        ("hip_flexor_stretch", NSLocalizedString("exercise.name.hip_flexor_stretch", comment: "髖屈肌伸展")),
+        ("thoracic_rotation", NSLocalizedString("exercise.name.thoracic_rotation", comment: "胸椎旋轉")),
+        ("seated_forward_fold", NSLocalizedString("exercise.name.seated_forward_fold", comment: "坐姿前彎")),
+        ("standing_quad_stretch", NSLocalizedString("exercise.name.standing_quad_stretch", comment: "站姿股四頭肌伸展")),
+    ]
+
+    static func localizedName(for exerciseId: String?, fallback: String) -> String {
+        guard let id = exerciseId?.lowercased(), !id.isEmpty else { return fallback }
+        return catalog.first { $0.id == id }?.displayName ?? fallback
+    }
+
     static func mappedImageAndKey(for exerciseId: String?, name: String) -> (image: String, key: String)? {
         
         // 優先使用由 LLM 回傳的 standardized ID

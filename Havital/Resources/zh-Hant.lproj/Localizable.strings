@@ -990,21 +990,24 @@
 "hr_zone.resting_heart_rate_display" = "靜息心率";
 
 // MARK: - Heart Rate Zone Names & Details
-"hr_zone.easy" = "恢復";
-"hr_zone.easy.description" = "恢復與熱身";
-"hr_zone.easy.benefit" = "主動恢復";
-"hr_zone.aerobic" = "有氧";
-"hr_zone.aerobic.description" = "馬拉松配速訓練";
-"hr_zone.aerobic.benefit" = "提升有氧能力";
-"hr_zone.threshold" = "馬拉松";
-"hr_zone.threshold.description" = "乳酸閾值訓練";
+"hr_zone.recovery" = "恢復";
+"hr_zone.recovery.description" = "非常輕鬆的活動，主動恢復";
+"hr_zone.recovery.benefit" = "主動恢復與適應";
+"hr_zone.easy" = "輕鬆";
+"hr_zone.easy.description" = "舒適有氧強度，建立有氧基礎";
+"hr_zone.easy.benefit" = "建立有氧基礎";
+"hr_zone.tempo" = "節奏";
+"hr_zone.tempo.description" = "中等偏強，提升有氧效率";
+"hr_zone.tempo.benefit" = "提升有氧效率";
+"hr_zone.threshold" = "閾值";
+"hr_zone.threshold.description" = "乳酸閾值強度，提升閾值速度";
 "hr_zone.threshold.benefit" = "提升乳酸閾值";
-"hr_zone.vo2max" = "閾值";
-"hr_zone.vo2max.description" = "間歇訓練";
-"hr_zone.vo2max.benefit" = "提升 VO2 最大值";
-"hr_zone.max" = "無氧";
-"hr_zone.max.description" = "速度訓練";
-"hr_zone.max.benefit" = "最大努力";
+"hr_zone.anaerobic" = "無氧";
+"hr_zone.anaerobic.description" = "無氧間歇強度，提升 VO2Max 與速度";
+"hr_zone.anaerobic.benefit" = "提升 VO2Max 與速度";
+"hr_zone.interval" = "間歇";
+"hr_zone.interval.description" = "最大衝刺強度，極限速度與爆發力";
+"hr_zone.interval.benefit" = "極限速度與爆發力";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "選擇一般訓練日";
@@ -1381,23 +1384,26 @@
 "performance.training_load.select_data_source_training_load" = "請選擇資料來源以查看訓練負荷趨勢";
 
 // Heart Rate Zone
-"performance.heart_rate_zone.zone1_name" = "輕鬆 (E)";
-"performance.heart_rate_zone.zone2_name" = "馬拉松 (M)";
-"performance.heart_rate_zone.zone3_name" = "閾值 (T)";
-"performance.heart_rate_zone.zone4_name" = "無氧 (A)";
-"performance.heart_rate_zone.zone5_name" = "間歇 (I)";
+"performance.heart_rate_zone.zone1_name" = "恢復 (R)";
+"performance.heart_rate_zone.zone2_name" = "輕鬆 (E)";
+"performance.heart_rate_zone.zone3_name" = "節奏 (T)";
+"performance.heart_rate_zone.zone4_name" = "閾值 (T)";
+"performance.heart_rate_zone.zone5_name" = "無氧 (A)";
+"performance.heart_rate_zone.zone6_name" = "間歇 (I)";
 
-"performance.heart_rate_zone.zone1_description" = "基礎耐力訓練，可長時間維持的輕鬆配速";
-"performance.heart_rate_zone.zone2_description" = "馬拉松配速訓練，提升長距離跑步的耐力";
-"performance.heart_rate_zone.zone3_description" = "乳酸閾值訓練，提升速度耐力，約10K-半馬配速";
-"performance.heart_rate_zone.zone4_description" = "有氧循環無法負荷的運動強度，約3至5K的配速";
-"performance.heart_rate_zone.zone5_description" = "高強度間歇訓練，提升爆發力和速度";
+"performance.heart_rate_zone.zone1_description" = "非常輕鬆的活動，主動恢復";
+"performance.heart_rate_zone.zone2_description" = "舒適有氧強度，建立有氧基礎";
+"performance.heart_rate_zone.zone3_description" = "中等偏強，提升有氧效率";
+"performance.heart_rate_zone.zone4_description" = "乳酸閾值強度，提升閾值速度";
+"performance.heart_rate_zone.zone5_description" = "無氧間歇強度，提升 VO2Max 與速度";
+"performance.heart_rate_zone.zone6_description" = "最大衝刺強度，極限速度與爆發力";
 
-"performance.heart_rate_zone.zone1_benefit" = "建立有氧基礎，增加粒線體數量。在有充足訓練時間下，輕鬆跑應該佔訓練的60~80%，以平衡訓練強度。";
-"performance.heart_rate_zone.zone2_benefit" = "理論上跑全程馬拉松適合的心率範圍。此心率區間的訓練效益較低，通常是在週期後段適應比賽配速才會加入。";
-"performance.heart_rate_zone.zone3_benefit" = "強度訓練有氧循環的臨界點，適當的訓練已提高乳酸清除能力，增加在較高配速的耐力。";
-"performance.heart_rate_zone.zone4_benefit" = "提升最大攝氧量，改善跑姿和強化肌力。";
-"performance.heart_rate_zone.zone5_benefit" = "提升無氧能力與肌耐力，並提升最大攝氧量。適度的加入間歇訓練可以明顯的感受到進步，但千萬不要過量";
+"performance.heart_rate_zone.zone1_benefit" = "主動恢復與適應。非常輕鬆的運動有助於消除疲勞並保持身體活動。";
+"performance.heart_rate_zone.zone2_benefit" = "建立有氧基礎，增加粒線體數量。在有充足訓練時間下，輕鬆跑應該佔訓練的60~80%，以平衡訓練強度。";
+"performance.heart_rate_zone.zone3_benefit" = "提升有氧效率與跑步經濟性。中等節奏訓練增強身體在較高強度下利用氧氣的能力。";
+"performance.heart_rate_zone.zone4_benefit" = "強度訓練有氧循環的臨界點，適當的訓練已提高乳酸清除能力，增加在較高配速的耐力。";
+"performance.heart_rate_zone.zone5_benefit" = "提升最大攝氧量，改善跑姿和強化肌力。無氧間歇訓練提升速度與爆發力。";
+"performance.heart_rate_zone.zone6_benefit" = "提升無氧能力與肌耐力，並提升最大攝氧量。適度的加入間歇訓練可以明顯的感受到進步，但千萬不要過量。";
 
 // MARK: - Edit Schedule
 "edit_schedule.title" = "編輯週課表";
@@ -1422,8 +1428,8 @@
 "edit_schedule.drag_to_swap" = "長按拖曳以交換課表";
 "edit_schedule.loading_data" = "載入編輯資料...";
 "edit_schedule.edit_training" = "編輯訓練";
-"edit_schedule.distance" = "距離";
-"edit_schedule.pace" = "配速";
+"edit_schedule.distance" = "距離 (公里)";
+"edit_schedule.pace" = "配速 (分:秒/公里)";
 "edit_schedule.repeats" = "重複";
 "edit_schedule.time" = "時間";
 "edit_schedule.select_time" = "選擇時間";
@@ -2370,3 +2376,25 @@
 "exercise.instruction.thoracic_rotation.desc" = "四足跪姿，單手放在腦後。將手肘向上轉開看向天花板，再轉回下方。";
 "exercise.instruction.seated_forward_fold.desc" = "雙腳伸直坐於地面，上半身從髖部向前傾，雙手盡量觸碰腳尖。";
 "exercise.instruction.standing_quad_stretch.desc" = "單腳站立，抓住另一隻腳的腳踝，將腳跟拉向臀部，感受大腿前側伸展。";
+
+// MARK: - Exercise Names (for catalog picker)
+"exercise.name.plank" = "棒式";
+"exercise.name.dead_bug" = "死蟲式";
+"exercise.name.bird_dog" = "鳥狗式";
+"exercise.name.side_plank" = "側棒式";
+"exercise.name.glute_bridge" = "臀橋";
+"exercise.name.clamshell" = "蛤蜊式";
+"exercise.name.single_leg_glute_bridge" = "單腿臀橋";
+"exercise.name.monster_walk" = "怪物走路";
+"exercise.name.squat" = "深蹲";
+"exercise.name.lunge" = "弓步蹲";
+"exercise.name.romanian_deadlift" = "羅馬尼亞硬舉";
+"exercise.name.calf_raise" = "提踵";
+"exercise.name.vertical_jump" = "垂直跳";
+"exercise.name.jump_rope" = "跳繩";
+"exercise.name.lateral_jump" = "側向跳";
+"exercise.name.consecutive_hops" = "連續跳";
+"exercise.name.hip_flexor_stretch" = "髖屈肌伸展";
+"exercise.name.thoracic_rotation" = "胸椎旋轉";
+"exercise.name.seated_forward_fold" = "坐姿前彎";
+"exercise.name.standing_quad_stretch" = "站姿股四頭肌伸展";

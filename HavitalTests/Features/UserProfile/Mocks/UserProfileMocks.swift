@@ -188,6 +188,13 @@ final class MockUserPreferencesRepository: UserPreferencesRepository {
         saveVDOTDataCallCount += 1
     }
 
+    var unitSystemPreference: UnitSystem = .metric
+    var updateUnitSystemCallCount = 0
+    func updateUnitSystem(_ unitSystem: UnitSystem) async throws {
+        updateUnitSystemCallCount += 1
+        unitSystemPreference = unitSystem
+    }
+
     var languagePreference: SupportedLanguage = .traditionalChinese
     func updateLanguagePreference(_ language: SupportedLanguage) async {
         updateLanguagePreferenceCallCount += 1
@@ -336,7 +343,7 @@ final class MockUserPreferencesRemoteDataSource: UserPreferencesRemoteDataSource
         return preferencesToReturn
     }
 
-    func updatePreferences(language: String?, timezone: String?) async throws {
+    func updatePreferences(language: String?, timezone: String?, unitSystem: String?) async throws {
         updatePreferencesCallCount += 1
         if let error = errorToThrow { throw error }
     }
@@ -394,6 +401,7 @@ final class MockUserPreferencesLocalDataSource: UserPreferencesLocalDataSourcePr
     
     var languagePreference: String? = "zh-TW"
     var timezonePreference: String? = "Asia/Taipei"
+    var unitSystemPreference: String? = "metric"
     
     var currentVDOT: Double? = 45.0
     var targetVDOT: Double? = 50.0

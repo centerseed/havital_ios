@@ -84,7 +84,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return methodologiesToReturn
     }
 
-    func createOverviewForRace(targetId: String, startFromStage: String?) async throws -> PlanOverviewV2 {
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2 {
         createOverviewForRaceCallCount += 1
         if let error = errorToThrow { throw error }
         guard let overview = overviewToReturn else {

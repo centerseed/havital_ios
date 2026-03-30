@@ -90,6 +90,9 @@ class OnboardingCoordinator: ObservableObject {
     /// 剩餘週數（用於起始階段選擇）
     @Published var weeksRemaining: Int = 12
 
+    /// Race V2 流程：方法論選擇後是否需要先進入起始階段選擇
+    @Published var shouldNavigateToStartStageAfterMethodology: Bool = false
+
     /// 是否為 re-onboarding 模式
     @Published var isReonboarding: Bool = false
 
@@ -155,6 +158,14 @@ class OnboardingCoordinator: ObservableObject {
             print("[OnboardingCoordinator] - methodologyId: \(selectedMethodologyId ?? "nil")")
             print("[OnboardingCoordinator] - targetId: \(selectedTargetId ?? "nil")")
 
+            // V2 weekly generation should align with the created overview to avoid context mismatch.
+            let resolvedMethodologyId = trainingPlanOverviewV2?.methodologyId ?? selectedMethodologyId
+            if let overviewMethodologyId = trainingPlanOverviewV2?.methodologyId,
+               let selectedMethodologyId,
+               overviewMethodologyId != selectedMethodologyId {
+                Logger.warn("[OnboardingCoordinator] Methodology mismatch detected. Using overview methodology: \(overviewMethodologyId), selected: \(selectedMethodologyId)")
+            }
+
             let input = CompleteOnboardingUseCase.Input(
                 startFromStage: selectedStartStage,
                 isBeginner: isBeginner,
@@ -162,7 +173,7 @@ class OnboardingCoordinator: ObservableObject {
                 // V2 Parameters
                 targetTypeId: selectedTargetTypeId,
                 targetId: selectedTargetId,
-                methodologyId: selectedMethodologyId,
+                methodologyId: resolvedMethodologyId,
                 trainingWeeks: trainingWeeks,
                 availableDays: availableDays
             )
@@ -222,6 +233,7 @@ class OnboardingCoordinator: ObservableObject {
         trainingWeeks = nil
         availableDays = nil
         weeksRemaining = 12
+        shouldNavigateToStartStageAfterMethodology = false
         isCompleting = false
         error = nil
         isReonboarding = false

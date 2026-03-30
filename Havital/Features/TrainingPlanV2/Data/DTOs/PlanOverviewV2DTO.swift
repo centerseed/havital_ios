@@ -11,9 +11,9 @@ struct PlanOverviewV2DTO: Codable {
     let targetId: String?
     let targetType: String
     let targetDescription: String?
-    let methodologyId: String
+    let methodologyId: String?
     let totalWeeks: Int
-    let startFromStage: String
+    let startFromStage: String?
 
     // Target 核心字段
     let raceDate: Int?
@@ -26,17 +26,17 @@ struct PlanOverviewV2DTO: Codable {
     // 方法論概覽
     let methodologyOverview: MethodologyOverviewDTO?
 
-    // 評估與概要
-    let targetEvaluate: String
-    let approachSummary: String
+    // 評估與概要（AI 生成，POST 回傳時可能為 null）
+    let targetEvaluate: String?
+    let approachSummary: String?
 
-    // 訓練結構
-    let trainingStages: [TrainingStageDTO]
-    let milestones: [MilestoneDTO]
+    // 訓練結構（POST 回傳時可能為 null 或空陣列）
+    let trainingStages: [TrainingStageDTO]?
+    let milestones: [MilestoneDTO]?
 
     // Metadata
     let createdAt: String?
-    let methodologyVersion: String
+    let methodologyVersion: String?
 
     // MARK: - CodingKeys
 
@@ -61,6 +61,84 @@ struct PlanOverviewV2DTO: Codable {
         case milestones
         case createdAt = "created_at"
         case methodologyVersion = "methodology_version"
+    }
+
+    init(
+        id: String,
+        targetId: String?,
+        targetType: String,
+        targetDescription: String?,
+        methodologyId: String?,
+        totalWeeks: Int,
+        startFromStage: String?,
+        raceDate: Int?,
+        distanceKm: Double?,
+        targetPace: String?,
+        targetTime: Int?,
+        isMainRace: Bool?,
+        targetName: String?,
+        methodologyOverview: MethodologyOverviewDTO?,
+        targetEvaluate: String?,
+        approachSummary: String?,
+        trainingStages: [TrainingStageDTO]?,
+        milestones: [MilestoneDTO]?,
+        createdAt: String?,
+        methodologyVersion: String?
+    ) {
+        self.id = id
+        self.targetId = targetId
+        self.targetType = targetType
+        self.targetDescription = targetDescription
+        self.methodologyId = methodologyId
+        self.totalWeeks = totalWeeks
+        self.startFromStage = startFromStage
+        self.raceDate = raceDate
+        self.distanceKm = distanceKm
+        self.targetPace = targetPace
+        self.targetTime = targetTime
+        self.isMainRace = isMainRace
+        self.targetName = targetName
+        self.methodologyOverview = methodologyOverview
+        self.targetEvaluate = targetEvaluate
+        self.approachSummary = approachSummary
+        self.trainingStages = trainingStages
+        self.milestones = milestones
+        self.createdAt = createdAt
+        self.methodologyVersion = methodologyVersion
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(String.self, forKey: .id)
+        targetId = try container.decodeIfPresent(String.self, forKey: .targetId)
+        targetType = try container.decode(String.self, forKey: .targetType)
+        targetDescription = try container.decodeIfPresent(String.self, forKey: .targetDescription)
+        methodologyId = try container.decodeIfPresent(String.self, forKey: .methodologyId)
+        totalWeeks = try container.decode(Int.self, forKey: .totalWeeks)
+        startFromStage = try container.decodeIfPresent(String.self, forKey: .startFromStage)
+        raceDate = try container.decodeIfPresent(Int.self, forKey: .raceDate)
+        distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm)
+        targetPace = try container.decodeIfPresent(String.self, forKey: .targetPace)
+        targetTime = try container.decodeIfPresent(Int.self, forKey: .targetTime)
+        isMainRace = try container.decodeIfPresent(Bool.self, forKey: .isMainRace)
+        targetName = try container.decodeIfPresent(String.self, forKey: .targetName)
+        methodologyOverview = try container.decodeIfPresent(MethodologyOverviewDTO.self, forKey: .methodologyOverview)
+        targetEvaluate = try container.decodeIfPresent(String.self, forKey: .targetEvaluate)
+        approachSummary = try container.decodeIfPresent(String.self, forKey: .approachSummary)
+        trainingStages = try container.decodeIfPresent([TrainingStageDTO].self, forKey: .trainingStages)
+        milestones = try container.decodeIfPresent([MilestoneDTO].self, forKey: .milestones)
+        methodologyVersion = try container.decodeIfPresent(String.self, forKey: .methodologyVersion)
+
+        if let createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAt) {
+            createdAt = createdAtString
+        } else if let createdAtInt = try container.decodeIfPresent(Int.self, forKey: .createdAt) {
+            createdAt = String(createdAtInt)
+        } else if let createdAtDouble = try container.decodeIfPresent(Double.self, forKey: .createdAt) {
+            createdAt = String(Int(createdAtDouble))
+        } else {
+            createdAt = nil
+        }
     }
 }
 
@@ -133,8 +211,3 @@ struct MilestoneDTO: Codable {
         case isKeyMilestone = "is_key_milestone"
     }
 }
-
-// MARK: - API Response Wrapper
-/// API 響應包裝器已由 ResponseProcessor 自動處理
-/// 後端返回格式：{"success": true, "data": {...}}
-/// 前端使用 PlanOverviewV2DTO 即可，ResponseProcessor 會自動解析

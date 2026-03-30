@@ -995,21 +995,24 @@
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
 
 // MARK: - Heart Rate Zone Names & Details
-"hr_zone.easy" = "リカバリー";
-"hr_zone.easy.description" = "リカバリーとウォームアップ";
-"hr_zone.easy.benefit" = "アクティブリカバリー";
-"hr_zone.aerobic" = "有氧";
-"hr_zone.aerobic.description" = "マラソンペース訓練";
-"hr_zone.aerobic.benefit" = "有氧能力を改善";
-"hr_zone.threshold" = "マラソン";
-"hr_zone.threshold.description" = "乳酸閾値訓練";
+"hr_zone.recovery" = "リカバリー";
+"hr_zone.recovery.description" = "非常に軽い活動、アクティブリカバリー";
+"hr_zone.recovery.benefit" = "アクティブリカバリーと適応";
+"hr_zone.easy" = "イージー";
+"hr_zone.easy.description" = "快適な有酸素強度、有酸素ベースを構築";
+"hr_zone.easy.benefit" = "有酸素ベースを構築";
+"hr_zone.tempo" = "テンポ";
+"hr_zone.tempo.description" = "やや強い強度、有酸素効率を向上";
+"hr_zone.tempo.benefit" = "有酸素効率を向上";
+"hr_zone.threshold" = "閾値";
+"hr_zone.threshold.description" = "乳酸閾値強度、閾値ペースを向上";
 "hr_zone.threshold.benefit" = "乳酸閾値を上げる";
-"hr_zone.vo2max" = "閾値";
-"hr_zone.vo2max.description" = "インターバルトレーニング";
-"hr_zone.vo2max.benefit" = "VO2マックスを改善";
-"hr_zone.max" = "無酸素";
-"hr_zone.max.description" = "スピードワーク";
-"hr_zone.max.benefit" = "最大努力";
+"hr_zone.anaerobic" = "無酸素";
+"hr_zone.anaerobic.description" = "無酸素インターバル強度、VO2Maxとスピードを向上";
+"hr_zone.anaerobic.benefit" = "VO2Maxとスピードを向上";
+"hr_zone.interval" = "インターバル";
+"hr_zone.interval.description" = "最大スプリント強度、極限のスピードと爆発力";
+"hr_zone.interval.benefit" = "極限のスピードと爆発力";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "一般的なトレーニング日を選択";
@@ -1379,23 +1382,26 @@
 "performance.training_load.select_data_source_training_load" = "トレーニング負荷トレンドを表示するためにデータソースを選択してください";
 
 // Heart Rate Zone
-"performance.heart_rate_zone.zone1_name" = "イージー (E)";
-"performance.heart_rate_zone.zone2_name" = "マラソン (M)";
-"performance.heart_rate_zone.zone3_name" = "閾値 (T)";
-"performance.heart_rate_zone.zone4_name" = "無酸素 (A)";
-"performance.heart_rate_zone.zone5_name" = "インターバル (I)";
+"performance.heart_rate_zone.zone1_name" = "リカバリー (R)";
+"performance.heart_rate_zone.zone2_name" = "イージー (E)";
+"performance.heart_rate_zone.zone3_name" = "テンポ (T)";
+"performance.heart_rate_zone.zone4_name" = "閾値 (T)";
+"performance.heart_rate_zone.zone5_name" = "無酸素 (A)";
+"performance.heart_rate_zone.zone6_name" = "インターバル (I)";
 
-"performance.heart_rate_zone.zone1_description" = "基礎持久力トレーニング、長時間維持可能なイージーペース";
-"performance.heart_rate_zone.zone2_description" = "マラソンペーストレーニング、長距離ランニングの持久力向上";
-"performance.heart_rate_zone.zone3_description" = "乳酸閾値トレーニング、スピード持久力向上、約10K〜ハーフマラソンペース";
-"performance.heart_rate_zone.zone4_description" = "有酸素循環では対応できない運動強度、約3〜5Kのペース";
-"performance.heart_rate_zone.zone5_description" = "高強度インターバルトレーニング、爆発力とスピードの向上";
+"performance.heart_rate_zone.zone1_description" = "非常に軽い活動、アクティブリカバリー";
+"performance.heart_rate_zone.zone2_description" = "快適な有酸素強度、有酸素ベースを構築";
+"performance.heart_rate_zone.zone3_description" = "やや強い強度、有酸素効率を向上";
+"performance.heart_rate_zone.zone4_description" = "乳酸閾値強度、閾値ペースを向上";
+"performance.heart_rate_zone.zone5_description" = "無酸素インターバル強度、VO2Maxとスピードを向上";
+"performance.heart_rate_zone.zone6_description" = "最大スプリント強度、極限のスピードと爆発力";
 
-"performance.heart_rate_zone.zone1_benefit" = "有酸素ベースを構築し、ミトコンドリア数を増加させます。十分なトレーニング時間がある場合、イージーランはトレーニングの60〜80%を占めるべきで、強度のバランスを保ちます。";
-"performance.heart_rate_zone.zone2_benefit" = "理論上、フルマラソンを走るのに適した心拍範囲です。この心拍ゾーンでのトレーニング効果は比較的低く、通常はサイクル後期にレースペースに慣れるために追加されます。";
-"performance.heart_rate_zone.zone3_benefit" = "有酸素循環システムの限界点をトレーニングし、適切なトレーニングで乳酸除去能力を向上させ、より高いペースでの持久力を増加させます。";
-"performance.heart_rate_zone.zone4_benefit" = "最大酸素摂取量を向上させ、ランニングフォームを改善し、筋力を強化します。";
-"performance.heart_rate_zone.zone5_benefit" = "無酸素能力と筋持久力を向上させ、最大酸素摂取量を増加させます。適度なインターバルトレーニングは明らかな改善をもたらしますが、過度なトレーニングは避けてください。";
+"performance.heart_rate_zone.zone1_benefit" = "アクティブリカバリーと適応。非常に軽い運動で疲労を解消しながら動き続けます。";
+"performance.heart_rate_zone.zone2_benefit" = "有酸素ベースを構築し、ミトコンドリア数を増加させます。十分なトレーニング時間がある場合、イージーランはトレーニングの60〜80%を占めるべきで、強度のバランスを保ちます。";
+"performance.heart_rate_zone.zone3_benefit" = "有酸素効率とランニングエコノミーを向上させます。適度なテンポ努力で、より高い強度での酸素使用能力が高まります。";
+"performance.heart_rate_zone.zone4_benefit" = "有酸素循環システムの限界点をトレーニングし、適切なトレーニングで乳酸除去能力を向上させ、より高いペースでの持久力を増加させます。";
+"performance.heart_rate_zone.zone5_benefit" = "最大酸素摂取量を向上させ、ランニングフォームを改善し、筋力を強化します。無酸素インターバルでスピードと爆発力を高めます。";
+"performance.heart_rate_zone.zone6_benefit" = "無酸素能力と筋持久力を向上させ、最大酸素摂取量を増加させます。適度なインターバルトレーニングは明らかな改善をもたらしますが、過度なトレーニングは避けてください。";
 
 // MARK: - Edit Schedule
 "edit_schedule.cannot_edit_past" = "完了済みや過去のスケジュール、または当日のレースは編集できません";
@@ -2201,3 +2207,25 @@
 "exercise.instruction.thoracic_rotation.desc" = "四つん這いになり、片手を後頭部に当てます。肘を天井に向けて開き、背骨をひねります。";
 "exercise.instruction.seated_forward_fold.desc" = "両足を前に伸ばして座ります。股関節から前屈し、つま先に向かって手を伸ばします。";
 "exercise.instruction.standing_quad_stretch.desc" = "片足で立ち、もう片方の足首を掴んで、かかとをお尻に引き寄せます。";
+
+// MARK: - Exercise Names (for catalog picker)
+"exercise.name.plank" = "プランク";
+"exercise.name.dead_bug" = "デッドバグ";
+"exercise.name.bird_dog" = "バードドッグ";
+"exercise.name.side_plank" = "サイドプランク";
+"exercise.name.glute_bridge" = "グルートブリッジ";
+"exercise.name.clamshell" = "クラムシェル";
+"exercise.name.single_leg_glute_bridge" = "片脚グルートブリッジ";
+"exercise.name.monster_walk" = "モンスターウォーク";
+"exercise.name.squat" = "スクワット";
+"exercise.name.lunge" = "ランジ";
+"exercise.name.romanian_deadlift" = "ルーマニアンデッドリフト";
+"exercise.name.calf_raise" = "カーフレイズ";
+"exercise.name.vertical_jump" = "垂直跳び";
+"exercise.name.jump_rope" = "縄跳び";
+"exercise.name.lateral_jump" = "ラテラルジャンプ";
+"exercise.name.consecutive_hops" = "連続ホップ";
+"exercise.name.hip_flexor_stretch" = "腸腰筋ストレッチ";
+"exercise.name.thoracic_rotation" = "胸椎回旋";
+"exercise.name.seated_forward_fold" = "座位前屈";
+"exercise.name.standing_quad_stretch" = "立位大腿前面ストレッチ";

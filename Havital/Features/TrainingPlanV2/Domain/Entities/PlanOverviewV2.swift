@@ -21,13 +21,13 @@ struct PlanOverviewV2: Codable, Equatable {
     let targetDescription: String?
 
     /// 方法論 ID（paceriz, complete_10k...）
-    let methodologyId: String
+    let methodologyId: String?
 
     /// 總訓練週數
     let totalWeeks: Int
 
     /// 計畫開始階段（conversion, base, build, peak, taper）
-    let startFromStage: String
+    let startFromStage: String?
 
     // MARK: - 嵌入的 Target 核心字段
 
@@ -57,10 +57,10 @@ struct PlanOverviewV2: Codable, Equatable {
     // MARK: - 評估與概要
 
     /// 對目標的評估
-    let targetEvaluate: String
+    let targetEvaluate: String?
 
     /// 如何達到目標的概要描述（150字內）
-    let approachSummary: String
+    let approachSummary: String?
 
     // MARK: - 訓練結構
 
@@ -76,7 +76,7 @@ struct PlanOverviewV2: Codable, Equatable {
     let createdAt: Date?
 
     /// 方法論版本
-    let methodologyVersion: String
+    let methodologyVersion: String?
 
     // MARK: - Computed Properties
 

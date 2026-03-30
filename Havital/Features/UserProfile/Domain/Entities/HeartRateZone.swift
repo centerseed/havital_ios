@@ -72,27 +72,32 @@ struct HeartRateZone: Codable, Equatable, Identifiable {
 // MARK: - Zone Percentages
 /// Heart Rate Reserve (HRR) percentage ranges for each zone
 /// Based on Karvonen formula: Target HR = ((MaxHR - RestingHR) × %Intensity) + RestingHR
+/// Aligned with PaceCalculator.PaceZone percentage ranges
 extension HeartRateZone {
     struct Percentages {
-        // Zone 1: Easy / Recovery
+        // Zone 1: Recovery
+        static let recoveryLow: Double = 0.52
+        static let recoveryHigh: Double = 0.59
+
+        // Zone 2: Easy
         static let easyLow: Double = 0.59
         static let easyHigh: Double = 0.74
 
-        // Zone 2: Aerobic / Marathon pace
-        static let aerobicLow: Double = 0.74
-        static let aerobicHigh: Double = 0.84
+        // Zone 3: Tempo
+        static let tempoLow: Double = 0.75
+        static let tempoHigh: Double = 0.84
 
-        // Zone 3: Threshold / Tempo
-        static let thresholdLow: Double = 0.84
+        // Zone 4: Threshold
+        static let thresholdLow: Double = 0.83
         static let thresholdHigh: Double = 0.88
 
-        // Zone 4: VO2Max / Interval
-        static let vo2maxLow: Double = 0.88
-        static let vo2maxHigh: Double = 0.95
+        // Zone 5: Anaerobic
+        static let anaerobicLow: Double = 0.88
+        static let anaerobicHigh: Double = 0.95
 
-        // Zone 5: Maximum / Speed
-        static let maxLow: Double = 0.95
-        static let maxHigh: Double = 1.0
+        // Zone 6: Interval
+        static let intervalLow: Double = 0.95
+        static let intervalHigh: Double = 1.0
     }
 }
 
@@ -100,49 +105,56 @@ extension HeartRateZone {
 /// Utility to calculate heart rate zones from max and resting heart rate
 extension HeartRateZone {
 
-    /// Calculate all 5 heart rate zones using HRR method
+    /// Calculate all 6 heart rate zones using HRR method
     /// - Parameters:
     ///   - maxHR: Maximum heart rate
     ///   - restingHR: Resting heart rate
-    /// - Returns: Array of 5 heart rate zones
+    /// - Returns: Array of 6 heart rate zones aligned with PaceCalculator.PaceZone
     static func calculateZones(maxHR: Int, restingHR: Int) -> [HeartRateZone] {
         let hrr = Double(maxHR - restingHR)
 
         return [
             HeartRateZone(
                 zone: 1,
-                name: NSLocalizedString("hr_zone.easy", comment: "Easy"),
-                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.easyLow, high: Percentages.easyHigh),
-                description: NSLocalizedString("hr_zone.easy.description", comment: "Recovery and warmup"),
-                benefit: NSLocalizedString("hr_zone.easy.benefit", comment: "Active recovery")
+                name: NSLocalizedString("hr_zone.recovery", comment: "Recovery"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.recoveryLow, high: Percentages.recoveryHigh),
+                description: NSLocalizedString("hr_zone.recovery.description", comment: "Very light activity"),
+                benefit: NSLocalizedString("hr_zone.recovery.benefit", comment: "Active recovery")
             ),
             HeartRateZone(
                 zone: 2,
-                name: NSLocalizedString("hr_zone.aerobic", comment: "Aerobic"),
-                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.aerobicLow, high: Percentages.aerobicHigh),
-                description: NSLocalizedString("hr_zone.aerobic.description", comment: "Endurance base"),
-                benefit: NSLocalizedString("hr_zone.aerobic.benefit", comment: "Improve aerobic capacity")
+                name: NSLocalizedString("hr_zone.easy", comment: "Easy"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.easyLow, high: Percentages.easyHigh),
+                description: NSLocalizedString("hr_zone.easy.description", comment: "Comfortable aerobic effort"),
+                benefit: NSLocalizedString("hr_zone.easy.benefit", comment: "Build aerobic base")
             ),
             HeartRateZone(
                 zone: 3,
-                name: NSLocalizedString("hr_zone.threshold", comment: "Threshold"),
-                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.thresholdLow, high: Percentages.thresholdHigh),
-                description: NSLocalizedString("hr_zone.threshold.description", comment: "Tempo pace"),
-                benefit: NSLocalizedString("hr_zone.threshold.benefit", comment: "Increase lactate threshold")
+                name: NSLocalizedString("hr_zone.tempo", comment: "Tempo"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.tempoLow, high: Percentages.tempoHigh),
+                description: NSLocalizedString("hr_zone.tempo.description", comment: "Comfortably hard effort"),
+                benefit: NSLocalizedString("hr_zone.tempo.benefit", comment: "Improve aerobic efficiency")
             ),
             HeartRateZone(
                 zone: 4,
-                name: NSLocalizedString("hr_zone.vo2max", comment: "VO2Max"),
-                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.vo2maxLow, high: Percentages.vo2maxHigh),
-                description: NSLocalizedString("hr_zone.vo2max.description", comment: "Interval training"),
-                benefit: NSLocalizedString("hr_zone.vo2max.benefit", comment: "Improve VO2Max")
+                name: NSLocalizedString("hr_zone.threshold", comment: "Threshold"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.thresholdLow, high: Percentages.thresholdHigh),
+                description: NSLocalizedString("hr_zone.threshold.description", comment: "Lactate threshold effort"),
+                benefit: NSLocalizedString("hr_zone.threshold.benefit", comment: "Increase lactate threshold")
             ),
             HeartRateZone(
                 zone: 5,
-                name: NSLocalizedString("hr_zone.max", comment: "Maximum"),
-                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.maxLow, high: Percentages.maxHigh),
-                description: NSLocalizedString("hr_zone.max.description", comment: "Speed work"),
-                benefit: NSLocalizedString("hr_zone.max.benefit", comment: "Maximum effort")
+                name: NSLocalizedString("hr_zone.anaerobic", comment: "Anaerobic"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.anaerobicLow, high: Percentages.anaerobicHigh),
+                description: NSLocalizedString("hr_zone.anaerobic.description", comment: "Anaerobic interval effort"),
+                benefit: NSLocalizedString("hr_zone.anaerobic.benefit", comment: "Improve VO2Max and speed")
+            ),
+            HeartRateZone(
+                zone: 6,
+                name: NSLocalizedString("hr_zone.interval", comment: "Interval"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.intervalLow, high: Percentages.intervalHigh),
+                description: NSLocalizedString("hr_zone.interval.description", comment: "Maximum sprint effort"),
+                benefit: NSLocalizedString("hr_zone.interval.benefit", comment: "Maximum speed and power")
             )
         ]
     }
@@ -158,7 +170,7 @@ extension HeartRateZone {
     /// - Parameters:
     ///   - heartRate: Heart rate to check
     ///   - zones: Available zones
-    /// - Returns: Zone number (1-5)
+    /// - Returns: Zone number (1-6)
     static func zoneFor(heartRate: Double, in zones: [HeartRateZone]) -> Int {
         for zone in zones {
             if zone.range.contains(heartRate) {
@@ -168,7 +180,7 @@ extension HeartRateZone {
 
         // Heart rate above maximum zone
         if heartRate > (zones.last?.range.upperBound ?? 0) {
-            return zones.last?.zone ?? 5
+            return zones.last?.zone ?? 6
         }
 
         // Heart rate below minimum zone

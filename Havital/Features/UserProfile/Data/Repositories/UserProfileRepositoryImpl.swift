@@ -84,12 +84,14 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     func getHeartRateZones() async throws -> [HeartRateZone] {
         Logger.debug("[UserProfileRepo] Getting heart rate zones")
 
-        // First check local cache
+        // First check local cache — invalidate if stale or zone count < 6 (migration guard)
         if let cachedZones = localDataSource.getHeartRateZones(),
-           !localDataSource.isHeartRateZonesExpired() {
-            Logger.debug("[UserProfileRepo] HR zones cache hit")
+           !localDataSource.isHeartRateZonesExpired(),
+           cachedZones.count >= 6 {
+            Logger.debug("[UserProfileRepo] HR zones cache hit (\(cachedZones.count) zones)")
             return cachedZones
         }
+        localDataSource.clearHeartRateZones()
 
         // Get user profile to calculate zones
         let profile = try await getUserProfile()

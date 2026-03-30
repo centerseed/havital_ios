@@ -996,21 +996,24 @@
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
 
 // MARK: - Heart Rate Zone Names & Details
-"hr_zone.easy" = "Recovery";
-"hr_zone.easy.description" = "Recovery and warmup";
-"hr_zone.easy.benefit" = "Active recovery";
-"hr_zone.aerobic" = "Aerobic";
-"hr_zone.aerobic.description" = "Marathon pace training";
-"hr_zone.aerobic.benefit" = "Improve aerobic capacity";
-"hr_zone.threshold" = "Marathon";
-"hr_zone.threshold.description" = "Lactate threshold training";
+"hr_zone.recovery" = "Recovery";
+"hr_zone.recovery.description" = "Very light activity, active recovery";
+"hr_zone.recovery.benefit" = "Active recovery and adaptation";
+"hr_zone.easy" = "Easy";
+"hr_zone.easy.description" = "Comfortable aerobic effort, building aerobic base";
+"hr_zone.easy.benefit" = "Build aerobic base";
+"hr_zone.tempo" = "Tempo";
+"hr_zone.tempo.description" = "Moderately hard effort, improving aerobic efficiency";
+"hr_zone.tempo.benefit" = "Improve aerobic efficiency";
+"hr_zone.threshold" = "Threshold";
+"hr_zone.threshold.description" = "Lactate threshold intensity, improving threshold pace";
 "hr_zone.threshold.benefit" = "Increase lactate threshold";
-"hr_zone.vo2max" = "Threshold";
-"hr_zone.vo2max.description" = "Interval training";
-"hr_zone.vo2max.benefit" = "Improve VO2Max";
-"hr_zone.max" = "Anaerobic";
-"hr_zone.max.description" = "Speed work";
-"hr_zone.max.benefit" = "Maximum effort";
+"hr_zone.anaerobic" = "Anaerobic";
+"hr_zone.anaerobic.description" = "Anaerobic interval intensity, improving VO2Max and speed";
+"hr_zone.anaerobic.benefit" = "Improve VO2Max and speed";
+"hr_zone.interval" = "Interval";
+"hr_zone.interval.description" = "Maximum sprint intensity, peak speed and explosive power";
+"hr_zone.interval.benefit" = "Maximum speed and explosive power";
 
 // MARK: - Training Days Editor
 "training_days.select_general_days" = "Select General Training Days";
@@ -1380,23 +1383,26 @@
 "performance.training_load.select_data_source_training_load" = "Please select a data source to view training load trends";
 
 // Heart Rate Zone
-"performance.heart_rate_zone.zone1_name" = "Easy (E)";
-"performance.heart_rate_zone.zone2_name" = "Marathon (M)";
-"performance.heart_rate_zone.zone3_name" = "Threshold (T)";
-"performance.heart_rate_zone.zone4_name" = "Anaerobic (A)";
-"performance.heart_rate_zone.zone5_name" = "Interval (I)";
+"performance.heart_rate_zone.zone1_name" = "Recovery (R)";
+"performance.heart_rate_zone.zone2_name" = "Easy (E)";
+"performance.heart_rate_zone.zone3_name" = "Tempo (T)";
+"performance.heart_rate_zone.zone4_name" = "Threshold (T)";
+"performance.heart_rate_zone.zone5_name" = "Anaerobic (A)";
+"performance.heart_rate_zone.zone6_name" = "Interval (I)";
 
-"performance.heart_rate_zone.zone1_description" = "Base endurance training, easy pace that can be maintained for long periods";
-"performance.heart_rate_zone.zone2_description" = "Marathon pace training, improving endurance for long-distance running";
-"performance.heart_rate_zone.zone3_description" = "Lactate threshold training, improving speed endurance, approximately 10K-half marathon pace";
-"performance.heart_rate_zone.zone4_description" = "Exercise intensity beyond aerobic capacity, approximately 3-5K pace";
-"performance.heart_rate_zone.zone5_description" = "High-intensity interval training, improving explosive power and speed";
+"performance.heart_rate_zone.zone1_description" = "Very light activity, active recovery";
+"performance.heart_rate_zone.zone2_description" = "Comfortable aerobic effort, building aerobic base";
+"performance.heart_rate_zone.zone3_description" = "Moderately hard effort, improving aerobic efficiency";
+"performance.heart_rate_zone.zone4_description" = "Lactate threshold intensity, improving threshold pace";
+"performance.heart_rate_zone.zone5_description" = "Anaerobic interval intensity, improving VO2Max and speed";
+"performance.heart_rate_zone.zone6_description" = "Maximum sprint intensity, peak speed and explosive power";
 
-"performance.heart_rate_zone.zone1_benefit" = "Build aerobic base and increase mitochondrial count. With sufficient training time, easy runs should account for 60-80% of training to balance intensity.";
-"performance.heart_rate_zone.zone2_benefit" = "Theoretically suitable heart rate range for running a full marathon. Training benefits in this zone are relatively low, usually added in the later stages to adapt to race pace.";
-"performance.heart_rate_zone.zone3_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
-"performance.heart_rate_zone.zone4_benefit" = "Improve VO2 max, enhance running form and strengthen muscles.";
-"performance.heart_rate_zone.zone5_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";
+"performance.heart_rate_zone.zone1_benefit" = "Active recovery and adaptation. Very easy effort to flush out fatigue while maintaining movement.";
+"performance.heart_rate_zone.zone2_benefit" = "Build aerobic base and increase mitochondrial count. With sufficient training time, easy runs should account for 60-80% of training to balance intensity.";
+"performance.heart_rate_zone.zone3_benefit" = "Improve aerobic efficiency and economy. Moderate tempo efforts enhance the body's ability to use oxygen at higher intensities.";
+"performance.heart_rate_zone.zone4_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
+"performance.heart_rate_zone.zone5_benefit" = "Improve VO2 max, enhance running form and strengthen muscles. Anaerobic intervals boost speed and power.";
+"performance.heart_rate_zone.zone6_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";
 
 // MARK: - Edit Schedule
 "edit_schedule.cannot_edit_past" = "Completed and past schedules, or race days cannot be edited";
@@ -2212,3 +2218,25 @@
 "exercise.instruction.thoracic_rotation.desc" = "On hands and knees, place one hand behind your head. Rotate your elbow up towards the ceiling, then back down.";
 "exercise.instruction.seated_forward_fold.desc" = "Sit with legs straight in front of you. Hinge at the hips and reach forward towards your toes.";
 "exercise.instruction.standing_quad_stretch.desc" = "Stand on one leg, grab the other foot behind you, and gently pull your heel towards your glutes.";
+
+// MARK: - Exercise Names (for catalog picker)
+"exercise.name.plank" = "Plank";
+"exercise.name.dead_bug" = "Dead Bug";
+"exercise.name.bird_dog" = "Bird Dog";
+"exercise.name.side_plank" = "Side Plank";
+"exercise.name.glute_bridge" = "Glute Bridge";
+"exercise.name.clamshell" = "Clamshell";
+"exercise.name.single_leg_glute_bridge" = "Single-Leg Glute Bridge";
+"exercise.name.monster_walk" = "Monster Walk";
+"exercise.name.squat" = "Squat";
+"exercise.name.lunge" = "Lunge";
+"exercise.name.romanian_deadlift" = "Romanian Deadlift";
+"exercise.name.calf_raise" = "Calf Raise";
+"exercise.name.vertical_jump" = "Vertical Jump";
+"exercise.name.jump_rope" = "Jump Rope";
+"exercise.name.lateral_jump" = "Lateral Jump";
+"exercise.name.consecutive_hops" = "Consecutive Hops";
+"exercise.name.hip_flexor_stretch" = "Hip Flexor Stretch";
+"exercise.name.thoracic_rotation" = "Thoracic Rotation";
+"exercise.name.seated_forward_fold" = "Seated Forward Fold";
+"exercise.name.standing_quad_stretch" = "Standing Quad Stretch";

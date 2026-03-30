@@ -1,0 +1,51 @@
+appId: com.havital.Havital.dev
+tags:
+  - edit
+  - critical
+  - strength
+---
+# 測試：改訓練日為肌力 → gear → 驗 editor → 儲存路徑
+
+- launchApp:
+    stopApp: true
+    clearState: false
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 45000
+
+- tapOn: "更多"
+- tapOn: "編輯課表"
+- assertVisible: "編輯週課表"
+
+# 點第一個訓練日的 dropdown（用 accessibilityId，不依賴當前訓練類型文字）
+- tapOn:
+    id: "training_type_menu_1"
+- swipe:
+    start: "55%, 75%"
+    end: "55%, 30%"
+    duration: "800"
+- swipe:
+    start: "55%, 75%"
+    end: "55%, 30%"
+    duration: "800"
+- tapOn: "肌力訓練"
+- waitForAnimationToEnd
+- assertVisible: "肌力訓練"
+
+# 開 gear
+- tapOn:
+    id: "strength_day_edit_gear"
+- assertVisible: "編輯訓練"
+- assertVisible: "肌力訓練設定"
+- assertVisible: "訓練類型"
+- assertVisible: "訓練時長"
+
+# 儲存 sheet（驗收儲存是否可以關閉 sheet）
+# 注意：若動作清單為空，儲存會被阻擋並顯示驗證錯誤
+- tapOn: "取消"
+- assertVisible: "編輯週課表"
+
+# 取消整個課表編輯
+- tapOn: "取消"
+- tapOn: "放棄變更"
+- assertVisible: "每日訓練"

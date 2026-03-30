@@ -108,6 +108,8 @@ final class WorkoutListViewModelTests: XCTestCase {
             endTimeUtc: "2026-01-05T11:00:00Z",
             durationSeconds: 3600,
             distanceMeters: 1000,
+            distanceDisplay: nil,
+            distanceUnit: nil,
             deviceName: nil,
             basicMetrics: nil,
             advancedMetrics: nil,

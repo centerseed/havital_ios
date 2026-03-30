@@ -35,6 +35,17 @@ final class TrainingDayEditState: ObservableObject {
     @Published var cooldownDistance: Double
     @Published var cooldownPace: String
 
+    // 力量訓練欄位
+    @Published var strengthType: String
+    @Published var strengthDurationMinutes: Int
+    @Published var strengthExercises: [MutableExercise] = []
+    @Published var showStrengthValidationError: Bool = false
+
+    // 補充力量訓練（跑步日附加）
+    @Published var hasSupplementaryStrength: Bool = false
+    @Published var supplementaryStrengthType: String = "core_stability"
+    @Published var supplementaryStrengthExercises: [MutableExercise] = []
+
     // 描述
     @Published var description: String?
 
@@ -43,6 +54,17 @@ final class TrainingDayEditState: ObservableObject {
         self.dayTarget = day.dayTarget
         self.trainingType = day.trainingType
         self.description = day.trainingDetails?.description
+        self.strengthType = day.strengthType ?? "core_stability"
+        self.strengthDurationMinutes = day.trainingDetails?.timeMinutes.map { Int($0) } ?? 30
+        self.strengthExercises = (day.strengthExercises ?? []).map { MutableExercise(from: $0) }
+
+        if let suppStrength = day.supplementaryActivities?.first(where: {
+            if case .strength = $0 { return true }; return false
+        }), case .strength(let s) = suppStrength {
+            self.hasSupplementaryStrength = true
+            self.supplementaryStrengthType = s.strengthType.isEmpty ? "core_stability" : s.strengthType
+            self.supplementaryStrengthExercises = s.exercises.map { MutableExercise(from: $0) }
+        }
 
         let details = day.trainingDetails
 
@@ -289,11 +311,40 @@ final class TrainingDayEditState: ObservableObject {
                 segments: mutableSegments
             )
 
+        case .strength:
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: nil,
+                timeMinutes: Double(strengthDurationMinutes)
+            )
+            result.strengthType = strengthType
+            result.strengthExercises = strengthExercises.map { $0.toExercise() }
+
+        case .crossTraining, .yoga, .hiking, .cycling,
+             .swimming, .elliptical, .rowing:
+            result.trainingDetails = MutableTrainingDetails(
+                description: description,
+                distanceKm: nil
+            )
+
         default:
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
                 distanceKm: distance
             )
+        }
+
+        if hasSupplementaryStrength && !supplementaryStrengthExercises.isEmpty {
+            result.supplementaryActivities = [.strength(StrengthActivity(
+                strengthType: supplementaryStrengthType,
+                exercises: supplementaryStrengthExercises.map { $0.toExercise() },
+                durationMinutes: nil,
+                description: nil
+            ))]
+        } else if !hasSupplementaryStrength {
+            result.supplementaryActivities = originalDay.supplementaryActivities?.filter {
+                if case .strength = $0 { return false }; return true
+            }
         }
 
         // Write back warmup/cooldown
@@ -492,32 +543,88 @@ struct TrainingEditSheetV2: View {
         switch editState.type {
         case .easyRun, .easy, .recovery_run, .lsd:
             EasyRunEditorV2(editState: editState, paceHelper: paceHelper)
+            supplementaryStrengthSection
         case .tempo, .threshold, .racePace:
             // 節奏/閾值/比賽配速跑 - 需要配速和距離
             TempoEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+            supplementaryStrengthSection
         case .norwegian4x4:
             // 挪威4x4 專屬編輯器
             Norwegian4x4EditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+            supplementaryStrengthSection
         case .yasso800:
             // 亞索800 專屬編輯器
             Yasso800EditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+            supplementaryStrengthSection
         case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
             // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇）
             IntervalEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+            supplementaryStrengthSection
         case .combination, .progression, .fartlek, .fastFinish:
             // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
             CombinationEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+            supplementaryStrengthSection
         case .longRun:
             LongRunEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
+            supplementaryStrengthSection
+        case .strength:
+            StrengthEditorV2(editState: editState)
+        case .rest:
+            restDaySection
         default:
             SimpleEditorV2(editState: editState, paceHelper: paceHelper)
+            supplementaryStrengthSection
         }
+    }
+
+    // 跑步/交叉訓練日的補充力量訓練區塊
+    @ViewBuilder
+    private var supplementaryStrengthSection: some View {
+        if editState.hasSupplementaryStrength {
+            SupplementaryStrengthEditor(editState: editState)
+        } else {
+            Button("+ 新增力量訓練") {
+                editState.hasSupplementaryStrength = true
+                if editState.supplementaryStrengthExercises.isEmpty {
+                    editState.supplementaryStrengthExercises = StrengthEditorV2.defaultExercises[editState.supplementaryStrengthType] ?? []
+                }
+            }
+            .font(AppFont.body())
+            .foregroundColor(.purple)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Color.purple.opacity(0.08))
+            .cornerRadius(12)
+        }
+    }
+
+    // 休息日區塊：可轉為力量訓練日
+    @ViewBuilder
+    private var restDaySection: some View {
+        VStack(spacing: 12) {
+            Text("這是休息日")
+                .font(AppFont.body())
+                .foregroundColor(.secondary)
+
+            Button("轉為力量訓練日") {
+                editState.trainingType = "strength"
+            }
+            .font(AppFont.body())
+            .foregroundColor(.purple)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Color.purple.opacity(0.08))
+            .cornerRadius(12)
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
     }
 
     private var typeColor: Color {
@@ -545,6 +652,10 @@ struct TrainingEditSheetV2: View {
     }
 
     private func saveAndDismiss() {
+        if editState.type == .strength && editState.strengthExercises.isEmpty {
+            editState.showStrengthValidationError = true
+            return
+        }
         let updatedDay = editState.toMutableTrainingDay(originalDay: originalDay)
         onSave(updatedDay)
         dismiss()
@@ -1197,11 +1308,439 @@ struct LongRunEditorV2: View {
     }
 }
 
+// MARK: - 力量訓練編輯器
+
+struct StrengthEditorV2: View {
+    @ObservedObject var editState: TrainingDayEditState
+    @State private var pendingStrengthType: String? = nil
+    @State private var showTypeChangeAlert: Bool = false
+
+    static let strengthTypeOptions: [(String, String)] = [
+        ("core_stability", "核心穩定"),
+        ("glutes_hip", "臀部髖部"),
+        ("lower_strength", "下肢力量"),
+        ("plyometric", "增強式訓練"),
+        ("mobility", "活動度訓練"),
+    ]
+
+    static let defaultExercises: [String: [MutableExercise]] = [
+        "core_stability": [
+            MutableExercise(exerciseId: "plank", name: "棒式", sets: 3, durationSeconds: 45),
+            MutableExercise(exerciseId: "dead_bug", name: "死蟲式", sets: 3, reps: "12"),
+            MutableExercise(exerciseId: "bird_dog", name: "鳥狗式", sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "side_plank", name: "側棒式", sets: 2, durationSeconds: 30),
+        ],
+        "glutes_hip": [
+            MutableExercise(exerciseId: "glute_bridge", name: "臀橋", sets: 3, reps: "15"),
+            MutableExercise(exerciseId: "clamshell", name: "蛤蜊式", sets: 3, reps: "15"),
+            MutableExercise(exerciseId: "single_leg_glute_bridge", name: "單腿臀橋", sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "monster_walk", name: "怪物走路", sets: 3, reps: "12"),
+        ],
+        "lower_strength": [
+            MutableExercise(exerciseId: "squat", name: "深蹲", sets: 3, reps: "12"),
+            MutableExercise(exerciseId: "lunge", name: "弓步蹲", sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "romanian_deadlift", name: "羅馬尼亞硬舉", sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "calf_raise", name: "提踵", sets: 3, reps: "20"),
+        ],
+        "plyometric": [
+            MutableExercise(exerciseId: "vertical_jump", name: "垂直跳", sets: 3, reps: "8"),
+            MutableExercise(exerciseId: "jump_rope", name: "跳繩", sets: 3, durationSeconds: 60),
+            MutableExercise(exerciseId: "lateral_jump", name: "側向跳", sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "consecutive_hops", name: "連續跳", sets: 3, reps: "8"),
+        ],
+        "mobility": [
+            MutableExercise(exerciseId: "hip_flexor_stretch", name: "髖屈肌伸展", sets: 2, durationSeconds: 45),
+            MutableExercise(exerciseId: "thoracic_rotation", name: "胸椎旋轉", sets: 2, reps: "10"),
+            MutableExercise(exerciseId: "seated_forward_fold", name: "坐姿前彎", sets: 2, durationSeconds: 45),
+            MutableExercise(exerciseId: "standing_quad_stretch", name: "站姿股四頭肌伸展", sets: 2, durationSeconds: 30),
+        ],
+    ]
+
+    static func label(for strengthType: String) -> String {
+        strengthTypeOptions.first { $0.0 == strengthType }?.1 ?? "補充力量訓練"
+    }
+
+    private func applyTemplate(for type: String) {
+        editState.strengthType = type
+        editState.strengthExercises = Self.defaultExercises[type] ?? []
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("肌力訓練設定")
+                .font(AppFont.headline())
+                .foregroundColor(.purple)
+
+            // 訓練類型
+            VStack(alignment: .leading, spacing: 8) {
+                Text("訓練類型")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+
+                Menu {
+                    ForEach(Self.strengthTypeOptions, id: \.0) { key, label in
+                        Button(label) {
+                            if editState.strengthExercises.isEmpty {
+                                applyTemplate(for: key)
+                            } else {
+                                pendingStrengthType = key
+                                showTypeChangeAlert = true
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(Self.label(for: editState.strengthType))
+                            .font(AppFont.body())
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("strength_type_menu")
+            }
+
+            // 時長
+            VStack(alignment: .leading, spacing: 8) {
+                Text("訓練時長")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+
+                Stepper("\(editState.strengthDurationMinutes) 分鐘", value: $editState.strengthDurationMinutes, in: 5...120, step: 5)
+                    .font(AppFont.body())
+            }
+
+            ExerciseListEditor(exercises: $editState.strengthExercises)
+
+            Button("重新套用預設") {
+                editState.strengthExercises = Self.defaultExercises[editState.strengthType] ?? []
+            }
+            .font(AppFont.caption())
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity)
+
+            if editState.showStrengthValidationError && editState.strengthExercises.isEmpty {
+                Text("至少需要一個動作")
+                    .font(AppFont.caption())
+                    .foregroundColor(.red)
+            }
+
+            if let desc = editState.description, !desc.isEmpty {
+                DescriptionViewV2(description: desc)
+            }
+
+            Button("改為休息日", role: .destructive) {
+                editState.trainingType = "rest"
+                editState.strengthExercises = []
+            }
+            .font(AppFont.body())
+            .frame(maxWidth: .infinity)
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .onAppear {
+            if editState.strengthExercises.isEmpty {
+                editState.strengthExercises = Self.defaultExercises[editState.strengthType] ?? []
+            }
+        }
+        .alert("更換類型將清除目前的動作清單，確定嗎？", isPresented: $showTypeChangeAlert) {
+            Button("確定") {
+                if let type = pendingStrengthType {
+                    applyTemplate(for: type)
+                }
+                pendingStrengthType = nil
+            }
+            Button("取消", role: .cancel) {
+                pendingStrengthType = nil
+            }
+        }
+    }
+}
+
+// MARK: - 動作清單編輯器
+
+struct ExerciseListEditor: View {
+    @Binding var exercises: [MutableExercise]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("動作清單")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button("+ 新增") {
+                    exercises.append(MutableExercise())
+                }
+                .font(AppFont.caption())
+                .foregroundColor(.purple)
+            }
+
+            ForEach($exercises) { $exercise in
+                ExerciseRowEditor(exercise: $exercise, onDelete: {
+                    exercises.removeAll { $0.id == exercise.id }
+                })
+            }
+        }
+        .padding()
+        .background(Color.purple.opacity(0.08))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - 單個動作編輯行
+
+struct ExerciseRowEditor: View {
+    @Binding var exercise: MutableExercise
+    let onDelete: () -> Void
+    @State private var isExpanded: Bool = false
+
+    private var isTimeBased: Bool {
+        exercise.durationSeconds != nil
+    }
+
+    private var summaryText: String {
+        let sets = exercise.sets ?? 3
+        if let duration = exercise.durationSeconds {
+            return "\(sets) × \(duration)秒"
+        } else if let reps = exercise.reps, !reps.isEmpty {
+            return "\(sets) × \(reps)次"
+        } else {
+            return "\(sets) 組"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 收合行
+            HStack(spacing: 8) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(exercise.name.isEmpty ? "（未命名）" : exercise.name)
+                            .font(AppFont.bodySmall())
+                            .foregroundColor(exercise.name.isEmpty ? .secondary : .primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text(summaryText)
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                        .font(AppFont.caption())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+            }
+            .padding(.vertical, 6)
+
+            // 展開編輯區
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    Menu {
+                        ForEach(ExerciseImageMapper.catalog, id: \.id) { item in
+                            Button(item.displayName) {
+                                exercise.name = item.displayName
+                                exercise.exerciseId = item.id
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(exercise.name.isEmpty ? "選擇動作" : exercise.name)
+                                .font(AppFont.bodySmall())
+                                .foregroundColor(exercise.name.isEmpty ? .secondary : .primary)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(6)
+                    }
+
+                    // 組數 inline +/-
+                    HStack {
+                        Text("組數")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .frame(width: 40, alignment: .leading)
+                        Spacer()
+                        Button {
+                            let current = exercise.sets ?? 3
+                            exercise.sets = max(1, current - 1)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                                .font(AppFont.body())
+                                .foregroundColor(.purple)
+                        }
+                        Text("\(exercise.sets ?? 3)")
+                            .font(AppFont.bodySmall())
+                            .frame(minWidth: 24, alignment: .center)
+                        Button {
+                            let current = exercise.sets ?? 3
+                            exercise.sets = min(10, current + 1)
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .font(AppFont.body())
+                                .foregroundColor(.purple)
+                        }
+                    }
+
+                    // 次數或秒數
+                    if isTimeBased {
+                        HStack {
+                            Text("秒數")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                                .frame(width: 40, alignment: .leading)
+                            Spacer()
+                            Button {
+                                let current = exercise.durationSeconds ?? 30
+                                exercise.durationSeconds = max(10, current - 5)
+                            } label: {
+                                Image(systemName: "minus.circle")
+                                    .font(AppFont.body())
+                                    .foregroundColor(.purple)
+                            }
+                            Text("\(exercise.durationSeconds ?? 30)")
+                                .font(AppFont.bodySmall())
+                                .frame(minWidth: 36, alignment: .center)
+                            Button {
+                                let current = exercise.durationSeconds ?? 30
+                                exercise.durationSeconds = min(300, current + 5)
+                            } label: {
+                                Image(systemName: "plus.circle")
+                                    .font(AppFont.body())
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Text("次數")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                                .frame(width: 40, alignment: .leading)
+                            Spacer()
+                            Button {
+                                let current = exercise.reps.flatMap { Int($0) } ?? 10
+                                exercise.reps = "\(max(1, current - 1))"
+                            } label: {
+                                Image(systemName: "minus.circle")
+                                    .font(AppFont.body())
+                                    .foregroundColor(.purple)
+                            }
+                            Text("\(exercise.reps.flatMap { Int($0) } ?? 10)")
+                                .font(AppFont.bodySmall())
+                                .frame(minWidth: 24, alignment: .center)
+                            Button {
+                                let current = exercise.reps.flatMap { Int($0) } ?? 10
+                                exercise.reps = "\(min(30, current + 1))"
+                            } label: {
+                                Image(systemName: "plus.circle")
+                                    .font(AppFont.body())
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            Divider()
+        }
+    }
+}
+
+// MARK: - 補充力量訓練編輯器
+
+struct SupplementaryStrengthEditor: View {
+    @ObservedObject var editState: TrainingDayEditState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("補充力量訓練")
+                .font(AppFont.headline())
+                .foregroundColor(.purple)
+
+            // 訓練類型選擇
+            VStack(alignment: .leading, spacing: 8) {
+                Text("訓練類型")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+                Menu {
+                    ForEach(StrengthEditorV2.strengthTypeOptions, id: \.0) { key, label in
+                        Button(label) {
+                            editState.supplementaryStrengthType = key
+                            editState.supplementaryStrengthExercises = StrengthEditorV2.defaultExercises[key] ?? []
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(StrengthEditorV2.label(for: editState.supplementaryStrengthType))
+                            .font(AppFont.body())
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
+            }
+
+            ExerciseListEditor(exercises: $editState.supplementaryStrengthExercises)
+
+            Button("移除力量訓練", role: .destructive) {
+                editState.hasSupplementaryStrength = false
+                editState.supplementaryStrengthExercises = []
+            }
+            .font(AppFont.body())
+            .frame(maxWidth: .infinity)
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
 // MARK: - 簡單訓練編輯器
 
 struct SimpleEditorV2: View {
     @ObservedObject var editState: TrainingDayEditState
     @ObservedObject var paceHelper: PaceCalculationHelper
+
+    private static let nonRunTypes: Set<DayType> = [
+        .strength, .crossTraining, .yoga, .hiking, .cycling,
+        .swimming, .elliptical, .rowing
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1209,7 +1748,7 @@ struct SimpleEditorV2: View {
                 .font(AppFont.headline())
                 .foregroundColor(.blue)
 
-            if editState.type != .rest {
+            if editState.type != .rest && !Self.nonRunTypes.contains(editState.type) {
                 DistancePickerFieldV2(title: L10n.EditSchedule.distance.localized, distance: $editState.distance)
             }
 

@@ -108,5 +108,5 @@ struct TrainingTypeMenu: View {
     private let longDistanceTypes: [DayType] = [
         .lsd, .longRun, .progression, .fastFinish
     ]
-    private let otherTypes: [DayType] = [.rest]
+    private let otherTypes: [DayType] = [.strength, .rest]
 }
