@@ -1,0 +1,96 @@
+appId: com.havital.Havital.dev
+tags:
+  - regression
+  - settings
+  - profile
+---
+# 回歸測試：個人資料頁完整載入及設定項目可見性驗證
+# 目的：確認個人資料頁各 section 正確顯示，語言設定和時區設定可正常進入
+# 前提：App 已登入，在主頁面
+#
+# Profile 頁面 section 順序（需 scroll 才能看到設定）：
+#   profileSection → 訓練資訊 → 數據來源 → 心率資訊 → 配速區間 → 訓練日 → 設定 → 登出
+
+# 重啟 app 確保乾淨狀態
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# 等待主畫面載入
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|訓練計劃|週課表尚未產生|訓練目標"
+    timeout: 45000
+
+# === Step 1: 導航到個人資料（使用 subflow）===
+- runFlow: ../subflows/nav-to-profile.yaml
+
+# 確認個人資料頁已載入
+- assertVisible: "個人資料"
+
+# === Step 2: 驗證訓練資訊 section 存在（位於頁面頂部）===
+# 訓練資訊是個人資料頁最早出現的 section header
+- assertVisible: "訓練資訊"
+
+# === Step 3: 滑動找到設定 section ===
+# 注意：設定 section 在頁面中段，前面有數據來源、心率資訊、配速區間、訓練日等多個 section
+# 需要更長的 timeout（20000ms）和較快的速度
+- scrollUntilVisible:
+    element: "設定"
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+
+# 確認設定 section 可見
+- assertVisible: "設定"
+
+# 確認語言設定按鈕可見（settings.language = "語言"）
+- assertVisible: "語言"
+
+# 確認時區設定按鈕可見（settings.timezone = "時區"）
+- assertVisible: "時區"
+
+# === Step 4: 滑動找到重新設定目標按鈕 ===
+- scrollUntilVisible:
+    element: "重新設定目標"
+    direction: DOWN
+    timeout: 10000
+
+# 確認重新設定目標按鈕存在
+- assertVisible: "重新設定目標"
+
+# === Step 5: 進入語言設定頁，驗證 3 種語言選項 ===
+# 先滑回語言設定按鈕（它在重新設定目標上方）
+- scrollUntilVisible:
+    element: "語言"
+    direction: UP
+    timeout: 10000
+
+# 點擊語言設定
+- tapOn: "語言"
+
+# 確認語言設定頁載入——三種語言選項固定以各自語言名稱顯示，不受 UI 語言影響
+- assertVisible: "繁體中文"
+- assertVisible: "English"
+- assertVisible: "日本語"
+
+# 返回個人資料（點左上角取消）
+- tapOn: "取消"
+
+# 確認回到個人資料頁（語言按鈕應可見）
+- assertVisible: "語言"
+
+# === Step 6: 進入時區設定頁，驗證時區選擇器存在 ===
+- tapOn: "時區"
+
+# 確認時區設定頁載入（timezone.current 或 timezone 常用區段至少一個可見）
+- extendedWaitUntil:
+    visible:
+      text: "目前時區|常用時區"
+    timeout: 8000
+
+# 返回個人資料
+- tapOn: "取消"
+
+# 確認回到個人資料頁
+- assertVisible: "時區"

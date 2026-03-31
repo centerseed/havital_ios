@@ -1,0 +1,14 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：從任何主畫面導航到個人資料頁
+# 前提：在任一主頁面（有「更多」選單可用）
+# 後置：在個人資料頁（可見「個人資料」或「Profile」標題）
+# 支援：繁體中文 / English / 日本語（プロフィール）
+
+# 點擊右側選單（ellipsis.circle 按鈕）
+- tapOn:
+    text: "更多|More|もっと見る"
+
+# 進入個人資料頁（繁中 / English / 日文）
+- tapOn:
+    text: "個人資料|Profile|プロフィール"

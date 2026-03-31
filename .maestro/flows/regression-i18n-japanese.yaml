@@ -1,0 +1,115 @@
+appId: com.havital.Havital.dev
+tags:
+  - regression
+  - i18n
+  - language
+---
+# 回歸測試：切換到日文介面並驗證關鍵 UI 元素
+# 目的：確認 日本語 (ja-JP) 語言切換正確反映在 UI 上
+# 前提：App 已登入，在主頁面，語言為「繁體中文」
+# 注意：TEARDOWN 步驟必須執行，確保測試後還原繁體中文不影響其他測試
+#       若前次測試 TEARDOWN 失敗，需先手動切回繁中再執行本測試
+#
+# 關鍵字串對照（zh-Hant → ja）：
+#   個人資料 → プロフィール    語言 → 言語    儲存 → 保存    確認 → 確認
+#   每日訓練 → 日々のトレーニング
+
+# 重啟 app 確保乾淨狀態
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# 確認目前為繁體中文主畫面（若看到英文或日文，請先手動切回繁中）
+- extendedWaitUntil:
+    visible:
+      text: "訓練計劃|每日訓練|週課表尚未產生|訓練目標"
+    timeout: 30000
+
+# === Step 1: 導航到語言設定（繁中介面）===
+- runFlow: ../subflows/nav-to-profile.yaml
+
+# 確認個人資料頁已載入
+- assertVisible: "個人資料"
+
+# 語言按鈕在「設定」section（需 scroll 才能到達）
+- scrollUntilVisible:
+    element: "語言"
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+
+# 點擊語言設定按鈕（zh-Hant：語言）
+- tapOn: "語言"
+
+# 等待語言設定頁載入，確認日本語選項可見
+- assertVisible: "日本語"
+
+# === Step 2: 選擇日本語 ===
+
+# 點選日本語選項（語言顯示名稱固定，不隨 UI 語言改變）
+- tapOn: "日本語"
+
+# 點儲存
+- tapOn: "儲存"
+
+# 確認語言切換對話框（語言變更時一定出現）
+- tapOn: "確認"
+
+# 等待 app 重啟並套用日文
+- extendedWaitUntil:
+    visible:
+      text: "日々のトレーニング|トレーニング計画"
+    timeout: 15000
+
+# === Step 3: 驗證日文 UI ===
+
+# 驗證日文介面關鍵文字出現
+- assertVisible:
+    text: "日々のトレーニング|トレーニング計画"
+
+# 開啟右側選單（系統 accessibility label 在 app 語言切換後可能仍是「更多」）
+- tapOn:
+    text: "更多|もっと見る"
+
+# 驗證個人資料在日文下顯示為「プロフィール」
+- assertVisible: "プロフィール"
+
+# 進入個人資料
+- tapOn: "プロフィール"
+
+# 言語按鈕在「設定」section（需 scroll）
+- scrollUntilVisible:
+    element: "言語"
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+
+# 確認語言設定按鈕可見（日文：言語）
+- assertVisible: "言語"
+
+# === TEARDOWN: 還原繁體中文 ===
+# 重要：必須還原，確保後續測試使用繁中介面
+
+- tapOn: "言語"
+
+# 等待語言設定頁載入（繁體中文選項固定以「繁體中文」顯示）
+- assertVisible: "繁體中文"
+
+# 點選繁體中文
+- tapOn: "繁體中文"
+
+# 點儲存（日文介面：保存）
+- tapOn: "保存"
+
+# 確認語言切換對話框（日文介面：確認）
+- tapOn: "確認"
+
+# 等待 app 重啟並還原繁中
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|訓練計劃"
+    timeout: 15000
+
+# 驗證已成功還原繁體中文
+- assertVisible:
+    text: "每日訓練|訓練計劃"
