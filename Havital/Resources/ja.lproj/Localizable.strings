@@ -2229,3 +2229,9 @@
 "exercise.name.thoracic_rotation" = "胸椎回旋";
 "exercise.name.seated_forward_fold" = "座位前屈";
 "exercise.name.standing_quad_stretch" = "立位大腿前面ストレッチ";
+
+// MARK: - Settings Menu (added to match zh-Hant)
+"training.weekly_summary" = "週次レビュー";
+"training.user_profile" = "プロフィール";
+"training.contact_paceriz" = "Pacerizに連絡";
+"training.switch_week" = "週を切り替え";

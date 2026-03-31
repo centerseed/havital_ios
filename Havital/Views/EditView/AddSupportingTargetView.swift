@@ -10,6 +10,7 @@ struct AddSupportingTargetView: View {
                 Section(header: Text(L10n.EditTarget.raceInfo.localized)) {
                     TextField(L10n.EditTarget.raceName.localized, text: $viewModel.raceName)
                         .textContentType(.name)
+                        .accessibilityIdentifier("race_name_input")
                     
                     DatePicker(L10n.EditTarget.raceDate.localized,
                               selection: $viewModel.raceDate,

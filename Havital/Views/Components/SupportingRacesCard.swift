@@ -21,6 +21,7 @@ struct SupportingRacesCard: View {
                         Image(systemName: "plus.circle")
                             .foregroundColor(.blue)
                     }
+                    .accessibilityIdentifier("add_supporting_race")
                 }
                 
                 if supportingTargets.isEmpty {

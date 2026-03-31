@@ -2240,3 +2240,9 @@
 "exercise.name.thoracic_rotation" = "Thoracic Rotation";
 "exercise.name.seated_forward_fold" = "Seated Forward Fold";
 "exercise.name.standing_quad_stretch" = "Standing Quad Stretch";
+
+// MARK: - Settings Menu (added to match zh-Hant)
+"training.weekly_summary" = "Weekly Summary";
+"training.user_profile" = "Profile";
+"training.contact_paceriz" = "Contact Paceriz";
+"training.switch_week" = "Switch Week";

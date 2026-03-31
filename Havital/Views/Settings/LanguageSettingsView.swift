@@ -142,7 +142,11 @@ struct LanguageSettingsView: View {
             Task {
                 await performUnitChange()
             }
+            return
         }
+        // Nothing changed — dismiss on next runloop to avoid NavigationView dismiss conflict
+        let dismissAction = dismiss
+        Task { @MainActor in dismissAction() }
     }
 
     private func performUnitChange() async {
