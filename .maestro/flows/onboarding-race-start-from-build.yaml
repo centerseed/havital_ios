@@ -63,3 +63,6 @@ tags:
     element: "間歇訓練"
     direction: DOWN
     timeout: 5000
+
+# === 品質指南驗證 ===
+- runFlow: ../subflows/verify-plan-quality.yaml

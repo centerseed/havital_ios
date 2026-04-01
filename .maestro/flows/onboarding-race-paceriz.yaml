@@ -54,3 +54,6 @@ tags:
 
 # === 課表合理性驗證 ===
 - assertVisible: "輕鬆跑"
+
+# === 品質指南驗證 ===
+- runFlow: ../subflows/verify-plan-quality.yaml

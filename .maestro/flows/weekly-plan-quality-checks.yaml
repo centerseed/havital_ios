@@ -1,0 +1,15 @@
+appId: com.havital.Havital.dev
+tags:
+  - quality
+  - weekly-plan
+---
+# 週課表品質驗證（獨立 flow）
+# 前提：App 已登入且有課表資料
+
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 30000
+
+- assertVisible: "星期一"
+
+- runFlow: ../subflows/verify-plan-quality.yaml

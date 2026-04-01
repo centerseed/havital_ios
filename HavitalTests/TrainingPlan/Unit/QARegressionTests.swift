@@ -175,6 +175,142 @@ final class QARegressionTests: XCTestCase {
         XCTAssertLessThan(intervalPace, easyPace,
                           "Interval pace must be faster (smaller) than easy pace")
     }
+
+    // MARK: - Group 5: Structure Completeness
+
+    func testStructure_fullWeek_has7Days() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        XCTAssertEqual(plan.days.count, 7, "Full week must have exactly 7 days")
+    }
+
+    func testStructure_runDay_hasPositiveDistance() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        // Interval/fartlek store distance in work segment — tested separately
+        let skipTypes: Set<String> = ["rest", "strength", "cross_training", "interval", "fartlek"]
+        for day in plan.days where !skipTypes.contains(day.trainingType) {
+            let distance = day.trainingDetails?.distanceKm ?? 0.0
+            XCTAssertGreaterThan(distance, 0,
+                "Run day (type=\(day.trainingType), index=\(day.dayIndex)) must have distance_km > 0")
+        }
+    }
+
+    func testStructure_intervalDay_hasWorkDistance() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let intervalTypes: Set<String> = ["interval", "fartlek"]
+        for day in plan.days where intervalTypes.contains(day.trainingType) {
+            let workDistance = day.trainingDetails?.work?.distanceKm ?? 0.0
+            XCTAssertGreaterThan(workDistance, 0,
+                "Interval day (index=\(day.dayIndex)) work segment must have distance_km > 0")
+        }
+    }
+
+    func testStructure_intervalDay_hasWorkPace() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let intervalTypes: Set<String> = ["interval", "fartlek"]
+        for day in plan.days where intervalTypes.contains(day.trainingType) {
+            let workPace = day.trainingDetails?.work?.pace
+            XCTAssertNotNil(workPace, "Interval day (index=\(day.dayIndex)) work segment must have a pace")
+            if let pace = workPace {
+                XCTAssertFalse(pace.isEmpty, "Interval day work pace must not be empty")
+            }
+        }
+    }
+
+    func testStructure_hasAtLeastOneRestDay() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let restCount = plan.days.filter { $0.trainingType == "rest" }.count
+        XCTAssertGreaterThanOrEqual(restCount, 1, "Week must have at least 1 rest day")
+    }
+
+    // MARK: - Group 6: Pace Validity
+
+    func testPace_allPacesAreValid() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        for day in plan.days {
+            if let pace = day.trainingDetails?.pace {
+                let minutes = parsePace(pace)
+                XCTAssertNotNil(minutes, "Pace '\(pace)' on day \(day.dayIndex) must be parseable")
+                if let m = minutes {
+                    XCTAssertGreaterThan(m, 0, "Pace must be > 0 min/km")
+                    XCTAssertLessThan(m, 20.0, "Pace must be < 20 min/km (got \(m))")
+                }
+            }
+            if let workPace = day.trainingDetails?.work?.pace {
+                let minutes = parsePace(workPace)
+                XCTAssertNotNil(minutes, "Work pace '\(workPace)' on day \(day.dayIndex) must be parseable")
+                if let m = minutes {
+                    XCTAssertGreaterThan(m, 0)
+                    XCTAssertLessThan(m, 20.0)
+                }
+            }
+        }
+    }
+
+    func testPace_easyPaceSlowerThanTempoPace() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let easyDay = plan.days.first { $0.trainingType == "easy" || $0.trainingType == "easy_run" }
+        let tempoDay = plan.days.first { $0.trainingType == "tempo" }
+        guard let easyPaceStr = easyDay?.trainingDetails?.pace,
+              let tempoPaceStr = tempoDay?.trainingDetails?.pace else {
+            XCTFail("fullWeekMixedJSON must contain easy and tempo days with pace set")
+            return
+        }
+        guard let easyMinutes = parsePace(easyPaceStr),
+              let tempoMinutes = parsePace(tempoPaceStr) else {
+            XCTFail("Pace strings '\(easyPaceStr)' / '\(tempoPaceStr)' must be parseable by parsePace()")
+            return
+        }
+        XCTAssertGreaterThan(easyMinutes, tempoMinutes,
+            "Easy pace (\(easyPaceStr)) must be slower (larger number) than tempo pace (\(tempoPaceStr))")
+    }
+
+    // MARK: - Group 7 Extension: Intensity Distribution
+
+    func testIntensity_nonZeroWhenPlanHasRunDays() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let intensity = plan.intensityTotalMinutes!
+        XCTAssertGreaterThan(intensity.total, 0, "A week with run days must have total intensity > 0")
+    }
+
+    // MARK: - Group 8: Heart Rate & Distance Limits
+
+    func testStructure_easyRun_hasHeartRateRange() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let heartRateTypes: Set<String> = ["easy", "easy_run", "lsd", "recovery_run"]
+        for day in plan.days where heartRateTypes.contains(day.trainingType) {
+            let hrRange = day.trainingDetails?.heartRateRange
+            XCTAssertNotNil(hrRange, "Easy/LSD day (index=\(day.dayIndex)) must have heart_rate_range")
+            if let hr = hrRange {
+                XCTAssertNotNil(hr.min, "heart_rate_range.min must not be nil")
+                XCTAssertNotNil(hr.max, "heart_rate_range.max must not be nil")
+                if let minVal = hr.min { XCTAssertGreaterThan(minVal, 0) }
+                if let maxVal = hr.max { XCTAssertGreaterThan(maxVal, 0) }
+            }
+        }
+    }
+
+    func testLSD_distanceUnder35km() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        for day in plan.days where day.trainingType == "lsd" {
+            let distance = day.trainingDetails?.distanceKm ?? 0.0
+            XCTAssertLessThanOrEqual(distance, 35.0,
+                "LSD day (index=\(day.dayIndex)) distance \(distance) km must be <= 35 km")
+        }
+    }
+
+    func testQualitySessions_notConsecutive() {
+        let plan = decodePlan(Self.fullWeekMixedJSON)
+        let qualityTypes: Set<String> = ["interval", "tempo", "threshold", "fartlek", "progression"]
+        let qualityIndices = plan.days
+            .filter { qualityTypes.contains($0.trainingType) }
+            .compactMap { Int($0.dayIndex) }
+            .sorted()
+        for i in 1..<qualityIndices.count {
+            let gap = qualityIndices[i] - qualityIndices[i - 1]
+            XCTAssertGreaterThanOrEqual(gap, 2,
+                "Quality sessions at day_index \(qualityIndices[i-1]) and \(qualityIndices[i]) must not be consecutive")
+        }
+    }
 }
 
 // MARK: - Inline JSON Fixtures
@@ -245,6 +381,63 @@ extension QARegressionTests {
           "description": "Easy run"
         }
       }]
+    }
+    """
+
+    /// Full 7-day mixed week for Group 5-8 tests
+    /// Mon easy, Tue interval, Wed rest, Thu tempo, Fri easy, Sat lsd, Sun rest
+    static let fullWeekMixedJSON = """
+    {
+      "id": "reg_full_week", "purpose": "test", "week_of_plan": 3,
+      "total_weeks": 12, "total_distance_km": 55,
+      "intensity_total_minutes": { "low": 240, "medium": 30, "high": 20 },
+      "days": [
+        {
+          "day_index": "1", "day_target": "Easy run", "training_type": "easy",
+          "training_details": {
+            "distance_km": 8.0, "pace": "6:40", "time_minutes": 53.0,
+            "description": "Easy aerobic run",
+            "heart_rate_range": { "min": 130, "max": 150 }
+          }
+        },
+        {
+          "day_index": "2", "day_target": "Interval", "training_type": "interval",
+          "training_details": {
+            "repeats": 5,
+            "work": { "distance_km": 0.8, "pace": "4:50", "description": "800m at I pace" },
+            "recovery": { "distance_km": 0.4, "pace": "7:30", "description": "jog recovery" }
+          }
+        },
+        {
+          "day_index": "3", "day_target": "Rest", "training_type": "rest"
+        },
+        {
+          "day_index": "4", "day_target": "Tempo run", "training_type": "tempo",
+          "training_details": {
+            "distance_km": 10.0, "pace": "5:20", "time_minutes": 53.0,
+            "description": "Tempo run at T pace"
+          }
+        },
+        {
+          "day_index": "5", "day_target": "Easy run", "training_type": "easy_run",
+          "training_details": {
+            "distance_km": 6.0, "pace": "6:50", "time_minutes": 41.0,
+            "description": "Easy recovery run",
+            "heart_rate_range": { "min": 128, "max": 148 }
+          }
+        },
+        {
+          "day_index": "6", "day_target": "Long slow distance", "training_type": "lsd",
+          "training_details": {
+            "distance_km": 22.0, "pace": "7:00", "time_minutes": 154.0,
+            "description": "Long slow distance run",
+            "heart_rate_range": { "min": 125, "max": 145 }
+          }
+        },
+        {
+          "day_index": "7", "day_target": "Rest", "training_type": "rest"
+        }
+      ]
     }
     """
 }

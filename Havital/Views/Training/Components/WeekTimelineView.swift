@@ -153,6 +153,7 @@ struct TimelineItemView: View {
                                         .cornerRadius(8)
                                 }
                                 .buttonStyle(.borderless)
+                                .accessibilityIdentifier("day_\(day.dayIndexInt)_type")
                             } else {
                                 Text(day.type.localizedName)
                                     .font(AppFont.bodySmall())
@@ -162,6 +163,7 @@ struct TimelineItemView: View {
                                     .padding(.vertical, 6)
                                     .background(getTypeColor().opacity(0.15))
                                     .cornerRadius(8)
+                                    .accessibilityIdentifier("day_\(day.dayIndexInt)_type")
                             }
 
                             // 展開/收起圖示
@@ -179,6 +181,7 @@ struct TimelineItemView: View {
                             Text(String(format: "%.1f km", distance))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
+                                .accessibilityIdentifier("day_\(day.dayIndexInt)_distance")
                         }
                     }
                 }
@@ -888,6 +891,7 @@ struct TimelineItemView: View {
                                         .padding(.vertical, 3)
                                         .background(Color.red)
                                         .cornerRadius(4)
+                                        .accessibilityIdentifier("day_\(day.dayIndexInt)_heart_rate")
                                     }
 
                                     Spacer()
@@ -1001,6 +1005,7 @@ struct TimelineItemView: View {
                 x: 0,
                 y: getShadowY(isToday: isToday, isCompleted: isCompleted)
             )
+            .accessibilityIdentifier("weekly_plan_day_\(day.dayIndexInt)")
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {

@@ -87,3 +87,6 @@ tags:
     text: "星期.*"
 - assertVisible:
     text: "間歇|節奏|輕鬆跑|長距離|休息"
+
+# === 品質指南驗證 ===
+- runFlow: ../subflows/verify-plan-quality.yaml

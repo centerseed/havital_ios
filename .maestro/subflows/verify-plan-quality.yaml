@@ -1,0 +1,45 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：課表品質驗證（品質指南檢查項）
+# 前提：在每日訓練頁面，課表已載入
+# 驗證：距離、強度分布、心率、7天完整、休息日
+
+# === 1. 距離顯示（km 或 miles）===
+- assertVisible:
+    text: "km|miles"
+
+# === 2. 強度分布 ===
+- scrollUntilVisible:
+    element: "週跑量和訓練強度"
+    direction: UP
+    timeout: 10000
+
+- assertVisible:
+    text: "低 \\d+/\\d+"
+- assertVisible:
+    text: "高 \\d+/\\d+"
+
+# === 3. 心率顯示（optional：今天可能不是 easy/lsd day）===
+- scrollUntilVisible:
+    element: "HR \\d+-\\d+"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+
+# === 4. 輕鬆跑存在 ===
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 10000
+
+# === 5. 7 天完整 ===
+- scrollUntilVisible:
+    element: "星期日"
+    direction: DOWN
+    timeout: 15000
+
+# === 6. 有休息日 ===
+- scrollUntilVisible:
+    element: "休息"
+    direction: UP
+    timeout: 10000

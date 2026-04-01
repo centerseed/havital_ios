@@ -1,0 +1,47 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：清除 app 數據 → Demo 登入 → 進入 onboarding（模擬全新用戶）
+# 後置：在 onboarding 個人最佳成績頁面
+
+# 清除 app 數據並重啟（模擬首次安裝）
+- launchApp:
+    stopApp: true
+    clearState: true
+
+# 處理通知權限彈窗（clearState 後首次啟動會出現）
+- tapOn:
+    text: "允許"
+    optional: true
+
+# 等待登入頁出現
+- extendedWaitUntil:
+    visible:
+      id: "Login_DemoButton"
+    timeout: 30000
+
+# Demo 登入
+- tapOn:
+    id: "Login_DemoButton"
+
+# 等待進入主頁面（Demo 全新用戶會到空狀態「尚未建立訓練計畫」）
+- extendedWaitUntil:
+    visible: "更多"
+    timeout: 30000
+
+# 透過「更多 → 個人資料 → 重新設定目標」觸發 onboarding
+- tapOn: "更多"
+- tapOn: "個人資料"
+- extendedWaitUntil:
+    visible: "個人資料"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "重新設定目標"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "重新設定目標"
+- tapOn: "確認"
+
+# 等待進入 onboarding 第一步
+- extendedWaitUntil:
+    visible: "個人最佳成績"
+    timeout: 30000

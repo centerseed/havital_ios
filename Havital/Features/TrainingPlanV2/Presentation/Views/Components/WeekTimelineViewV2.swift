@@ -160,6 +160,7 @@ struct TimelineItemViewV2: View {
                                         .cornerRadius(8)
                                 }
                                 .buttonStyle(.borderless)
+                                .accessibilityIdentifier("day_\(day.dayIndexInt)_type")
                             } else {
                                 Text(day.type.localizedName)
                                     .font(AppFont.bodySmall())
@@ -169,6 +170,7 @@ struct TimelineItemViewV2: View {
                                     .padding(.vertical, 6)
                                     .background(getTypeColor().opacity(0.15))
                                     .cornerRadius(8)
+                                    .accessibilityIdentifier("day_\(day.dayIndexInt)_type")
                             }
 
                             // 展開/收起圖示
@@ -318,6 +320,7 @@ struct TimelineItemViewV2: View {
                 x: 0,
                 y: isToday ? 4 : 1
             )
+            .accessibilityIdentifier("weekly_plan_day_\(day.dayIndexInt)")
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
@@ -515,6 +518,7 @@ private struct SimpleRunBadgesView: View {
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
+                    .accessibilityIdentifier("simple_run_distance")
             }
 
             // 配速
@@ -539,6 +543,7 @@ private struct SimpleRunBadgesView: View {
                 Text("HR \(text)")
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
+                    .accessibilityIdentifier("simple_run_heart_rate")
             }
 
             Spacer()

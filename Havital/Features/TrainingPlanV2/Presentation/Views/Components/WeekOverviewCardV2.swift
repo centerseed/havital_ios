@@ -158,6 +158,7 @@ struct WeekOverviewCardV2: View {
                 // 低強度
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.low", comment: "Low"),
+                    intensityKey: "low",
                     current: Int(viewModel.currentWeekIntensity.low),
                     target: lowIntensityTarget,
                     color: .green
@@ -166,6 +167,7 @@ struct WeekOverviewCardV2: View {
                 // 中強度
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.medium", comment: "Medium"),
+                    intensityKey: "medium",
                     current: Int(viewModel.currentWeekIntensity.medium),
                     target: mediumIntensityTarget,
                     color: .orange
@@ -174,11 +176,13 @@ struct WeekOverviewCardV2: View {
                 // 高強度
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.high", comment: "High"),
+                    intensityKey: "high",
                     current: Int(viewModel.currentWeekIntensity.high),
                     target: highIntensityTarget,
                     color: .red
                 )
             }
+            .accessibilityIdentifier("intensity_distribution")
         }
         .padding()
         .background(
@@ -186,6 +190,7 @@ struct WeekOverviewCardV2: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .accessibilityIdentifier("week_overview_card")
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailViewV2(
@@ -205,6 +210,7 @@ struct WeekOverviewCardV2: View {
 // MARK: - 緊湊型強度條組件 V2
 struct CompactIntensityBarV2: View {
     let label: String
+    let intensityKey: String
     let current: Int
     let target: Int
     let color: Color
@@ -241,6 +247,8 @@ struct CompactIntensityBarV2: View {
             }
             .frame(height: 4)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("intensity_\(intensityKey)")
     }
 }
 

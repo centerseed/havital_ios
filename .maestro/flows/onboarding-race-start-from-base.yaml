@@ -58,3 +58,6 @@ tags:
 # 注意：strides（加速跑/大步跑）在 base 後期允許，app 可能顯示為「間歇訓練」
 - assertVisible: "輕鬆跑"
 - assertNotVisible: "節奏跑"
+
+# === 品質指南驗證 ===
+- runFlow: ../subflows/verify-plan-quality.yaml

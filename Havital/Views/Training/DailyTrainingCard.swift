@@ -411,6 +411,7 @@ struct SimpleTrainingView: View {
                         .padding(.vertical, 4)
                         .background(Color.green.opacity(0.15))
                         .cornerRadius(12)
+                        .accessibilityIdentifier("day_\(day.dayIndexInt)_heart_rate")
                 }
                 if let distance = details.distanceKm {
                     Text(String(format: "%.1fkm", distance))
@@ -419,6 +420,7 @@ struct SimpleTrainingView: View {
                         .padding(.vertical, 4)
                         .background(day.type == .interval ? Color.orange.opacity(0.15) : Color.blue.opacity(0.15))
                         .cornerRadius(12)
+                        .accessibilityIdentifier("day_\(day.dayIndexInt)_distance")
                 }
                 Spacer()
             }

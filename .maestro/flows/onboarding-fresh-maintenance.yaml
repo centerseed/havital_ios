@@ -3,12 +3,20 @@ tags:
   - onboarding
   - critical
   - maintenance
+  - fresh-user
 ---
-# T6: 維持訓練（aerobic_endurance）→ overview → weekly plan（P0）
+# 全新用戶：登出 → Demo 登入 → 維持訓練 onboarding → 品質驗證
+# 目的：模擬完全乾淨的用戶狀態，驗證 maintenance 路徑不出錯
+# 前提：App 已登入（任何狀態皆可，會先登出）
 
+# === Step 0: 登出並重新 Demo 登入 ===
+- runFlow: ../subflows/logout-and-demo-login.yaml
+
+# === Step 1: PB + 週跑量 ===
 - runFlow: ../subflows/pass-pb-step.yaml
 - runFlow: ../subflows/pass-weekly-distance.yaml
 
+# === Step 2: 選維持訓練 ===
 - assertVisible: "訓練目標"
 - tapOn: "維持訓練"
 - tapOn:
@@ -18,7 +26,7 @@ tags:
     id: "GoalType_NextButton"
     optional: true
 
-# 方法論（維持訓練有）
+# === Step 3: 方法論（維持訓練可能有） ===
 - tapOn:
     text: "有氧耐力提升"
     optional: true
@@ -29,7 +37,7 @@ tags:
     id: "Methodology_NextButton"
     optional: true
 
-# 訓練週數 / 起始階段
+# === Step 4: 訓練週數 / 起始階段 ===
 - tapOn:
     id: "TrainingWeeks_NextButton"
     optional: true
@@ -43,15 +51,17 @@ tags:
     text: "繼續"
     optional: true
 
+# === Step 5: 訓練偏好 ===
 - assertVisible: "訓練偏好設定"
 - tapOn:
     id: "TrainingDays_SaveButton"
 
+# === Step 6: 驗證計畫產生 ===
 - runFlow: ../subflows/verify-plan-generated.yaml
 
-# === 課表合理性驗證 ===
+# === Step 7: 方法論合理性驗證 ===
 - assertVisible: "輕鬆跑"
 - assertNotVisible: "間歇訓練"
 
-# === 品質指南驗證 ===
+# === Step 8: 品質指南驗證 ===
 - runFlow: ../subflows/verify-plan-quality.yaml

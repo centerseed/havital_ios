@@ -135,6 +135,7 @@ struct WeekOverviewCard: View {
                     // 低強度
                     CompactIntensityBar(
                         label: NSLocalizedString("intensity.low", comment: "Low"),
+                        intensityKey: "low",
                         current: Int(viewModel.currentWeekIntensity.low),
                         target: Int(intensity.low),
                         color: .green
@@ -143,6 +144,7 @@ struct WeekOverviewCard: View {
                     // 中強度
                     CompactIntensityBar(
                         label: NSLocalizedString("intensity.medium", comment: "Medium"),
+                        intensityKey: "medium",
                         current: Int(viewModel.currentWeekIntensity.medium),
                         target: Int(intensity.medium),
                         color: .orange
@@ -151,11 +153,13 @@ struct WeekOverviewCard: View {
                     // 高強度
                     CompactIntensityBar(
                         label: NSLocalizedString("intensity.high", comment: "High"),
+                        intensityKey: "high",
                         current: Int(viewModel.currentWeekIntensity.high),
                         target: Int(intensity.high),
                         color: .red
                     )
                 }
+                .accessibilityIdentifier("intensity_distribution")
             }
         }
         .padding()
@@ -164,6 +168,7 @@ struct WeekOverviewCard: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .accessibilityIdentifier("week_overview_card")
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailView(purpose: plan.purpose, designReason: plan.designReason)
@@ -180,6 +185,7 @@ struct WeekOverviewCard: View {
 // MARK: - 緊湊型強度條組件
 struct CompactIntensityBar: View {
     let label: String
+    let intensityKey: String
     let current: Int
     let target: Int
     let color: Color
@@ -217,6 +223,8 @@ struct CompactIntensityBar: View {
             }
             .frame(height: 4)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("intensity_\(intensityKey)")
     }
 }
 

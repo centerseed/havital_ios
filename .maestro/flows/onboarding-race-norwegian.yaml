@@ -48,3 +48,6 @@ tags:
     direction: UP
     timeout: 5000
 - assertNotVisible: "間歇訓練"
+
+# === 品質指南驗證 ===
+- runFlow: ../subflows/verify-plan-quality.yaml
