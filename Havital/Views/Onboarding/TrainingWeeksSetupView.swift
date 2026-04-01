@@ -280,13 +280,13 @@ struct TrainingWeeksSetupView: View {
 
     // MARK: - Actions
     private func saveAndNavigate() {
-        // 保存選擇的週數到 coordinator
         coordinator.trainingWeeks = selectedWeeks
         Logger.debug("[TrainingWeeksSetupView] Selected \(selectedWeeks) weeks for \(coordinator.selectedTargetTypeId ?? "unknown")")
-
-        // ⭐ 方法論已經在前面選擇過了（如果有多個的話）
-        // 這裡直接導航到訓練日設定
-        coordinator.navigate(to: .trainingDays)
+        if coordinator.selectedTargetTypeId == "maintenance" {
+            coordinator.navigate(to: .maintenanceRaceDistance)
+        } else {
+            coordinator.navigate(to: .trainingDays)
+        }
     }
 }
 

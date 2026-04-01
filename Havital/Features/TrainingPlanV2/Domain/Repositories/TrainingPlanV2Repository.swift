@@ -44,7 +44,8 @@ protocol TrainingPlanV2Repository {
         trainingWeeks: Int,
         availableDays: Int?,
         methodologyId: String?,
-        startFromStage: String?
+        startFromStage: String?,
+        intendedRaceDistanceKm: Int?
     ) async throws -> PlanOverviewV2
 
     /// 獲取當前 active 計畫概覽（支援緩存）

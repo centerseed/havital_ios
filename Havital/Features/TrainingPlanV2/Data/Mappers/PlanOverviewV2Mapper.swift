@@ -31,7 +31,8 @@ enum PlanOverviewV2Mapper {
             trainingStages: (dto.trainingStages ?? []).map { toTrainingStage(from: $0) },
             milestones: (dto.milestones ?? []).map { toMilestone(from: $0) },
             createdAt: parseDate(from: dto.createdAt),
-            methodologyVersion: dto.methodologyVersion
+            methodologyVersion: dto.methodologyVersion,
+            milestoneBasis: dto.milestoneBasis
         )
     }
 
@@ -61,7 +62,8 @@ enum PlanOverviewV2Mapper {
             trainingStages: entity.trainingStages.map { toTrainingStageDTO(from: $0) },
             milestones: entity.milestones.map { toMilestoneDTO(from: $0) },
             createdAt: formatDate(entity.createdAt),
-            methodologyVersion: entity.methodologyVersion
+            methodologyVersion: entity.methodologyVersion,
+            milestoneBasis: entity.milestoneBasis
         )
     }
 

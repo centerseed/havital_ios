@@ -221,7 +221,8 @@ struct TrainingDaysSetupView: View {
             trainingWeeks: coordinator.trainingWeeks,
             targetId: coordinator.selectedTargetId,
             startFromStage: startFromStage,
-            methodologyId: coordinator.selectedMethodologyId
+            methodologyId: coordinator.selectedMethodologyId,
+            intendedRaceDistanceKm: coordinator.intendedRaceDistanceKm
         )
 
         if let overview = overview {

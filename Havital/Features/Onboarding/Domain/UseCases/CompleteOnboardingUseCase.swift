@@ -223,7 +223,8 @@ final class CompleteOnboardingUseCase {
                     trainingWeeks: trainingWeeks,
                     availableDays: input.availableDays,
                     methodologyId: input.methodologyId,
-                    startFromStage: input.startFromStage
+                    startFromStage: input.startFromStage,
+                    intendedRaceDistanceKm: nil
                 )
             }
         } catch {

@@ -363,7 +363,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
         trainingWeeks: Int?,
         targetId: String?,
         startFromStage: String? = nil,
-        methodologyId: String? = nil
+        methodologyId: String? = nil,
+        intendedRaceDistanceKm: Int? = nil
     ) async -> PlanOverviewV2? {
         isLoading = true
         error = nil
@@ -399,7 +400,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     trainingWeeks: trainingWeeks,
                     availableDays: selectedWeekdays.count > 0 ? selectedWeekdays.count : nil,
                     methodologyId: resolvedMethodologyId,
-                    startFromStage: startFromStage
+                    startFromStage: startFromStage,
+                    intendedRaceDistanceKm: intendedRaceDistanceKm
                 )
             }
 

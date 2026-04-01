@@ -38,6 +38,9 @@ struct PlanOverviewV2DTO: Codable {
     let createdAt: String?
     let methodologyVersion: String?
 
+    // 里程碑計算依據
+    let milestoneBasis: String?
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
@@ -61,6 +64,7 @@ struct PlanOverviewV2DTO: Codable {
         case milestones
         case createdAt = "created_at"
         case methodologyVersion = "methodology_version"
+        case milestoneBasis = "milestone_basis"
     }
 
     init(
@@ -83,7 +87,8 @@ struct PlanOverviewV2DTO: Codable {
         trainingStages: [TrainingStageDTO]?,
         milestones: [MilestoneDTO]?,
         createdAt: String?,
-        methodologyVersion: String?
+        methodologyVersion: String?,
+        milestoneBasis: String?
     ) {
         self.id = id
         self.targetId = targetId
@@ -105,6 +110,7 @@ struct PlanOverviewV2DTO: Codable {
         self.milestones = milestones
         self.createdAt = createdAt
         self.methodologyVersion = methodologyVersion
+        self.milestoneBasis = milestoneBasis
     }
 
     init(from decoder: Decoder) throws {
@@ -129,6 +135,7 @@ struct PlanOverviewV2DTO: Codable {
         trainingStages = try container.decodeIfPresent([TrainingStageDTO].self, forKey: .trainingStages)
         milestones = try container.decodeIfPresent([MilestoneDTO].self, forKey: .milestones)
         methodologyVersion = try container.decodeIfPresent(String.self, forKey: .methodologyVersion)
+        milestoneBasis = try container.decodeIfPresent(String.self, forKey: .milestoneBasis)
 
         if let createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = createdAtString

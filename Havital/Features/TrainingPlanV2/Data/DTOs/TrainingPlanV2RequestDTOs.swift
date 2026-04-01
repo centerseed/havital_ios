@@ -30,6 +30,7 @@ struct CreateOverviewForNonRaceRequest: Codable {
     let availableDays: Int?
     let methodologyId: String?
     let startFromStage: String?
+    let intendedRaceDistanceKm: Int?
 
     enum CodingKeys: String, CodingKey {
         case targetType = "target_type"
@@ -37,6 +38,7 @@ struct CreateOverviewForNonRaceRequest: Codable {
         case availableDays = "available_days"
         case methodologyId = "methodology_id"
         case startFromStage = "start_from_stage"
+        case intendedRaceDistanceKm = "intended_race_distance_km"
     }
 }
 

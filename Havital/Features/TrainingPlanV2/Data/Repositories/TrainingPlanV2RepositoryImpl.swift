@@ -85,7 +85,8 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         trainingWeeks: Int,
         availableDays: Int?,
         methodologyId: String?,
-        startFromStage: String?
+        startFromStage: String?,
+        intendedRaceDistanceKm: Int?
     ) async throws -> PlanOverviewV2 {
         Logger.debug("[TrainingPlanV2Repo] Creating overview for \(targetType)")
 
@@ -94,7 +95,8 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             trainingWeeks: trainingWeeks,
             availableDays: availableDays,
             methodologyId: methodologyId,
-            startFromStage: startFromStage
+            startFromStage: startFromStage,
+            intendedRaceDistanceKm: intendedRaceDistanceKm
         )
 
         let entity = PlanOverviewV2Mapper.toEntity(from: dto)

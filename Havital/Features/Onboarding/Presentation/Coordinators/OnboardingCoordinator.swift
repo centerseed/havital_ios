@@ -20,6 +20,7 @@ class OnboardingCoordinator: ObservableObject {
         case startStage
         case methodologySelection
         case trainingWeeksSetup
+        case maintenanceRaceDistance
         case trainingDays
         case trainingOverview
         case dataSync
@@ -37,6 +38,7 @@ class OnboardingCoordinator: ObservableObject {
             case .startStage: return "Start Stage"
             case .methodologySelection: return NSLocalizedString("onboarding.methodology_nav_title", comment: "Training Methodology")
             case .trainingWeeksSetup: return NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration")
+            case .maintenanceRaceDistance: return "目標賽事"
             case .trainingDays: return "Training Days"
             case .trainingOverview: return "Training Overview"
             case .dataSync: return "Data Sync"
@@ -83,6 +85,9 @@ class OnboardingCoordinator: ObservableObject {
 
     /// 訓練週數（V2 流程，非賽事目標使用）
     @Published var trainingWeeks: Int?
+
+    /// 預期目標賽事距離（maintenance 流程使用，單位 km，nil 表示不確定）
+    @Published var intendedRaceDistanceKm: Int?
 
     /// 每週可訓練天數（V2 流程）
     @Published var availableDays: Int?
@@ -231,6 +236,7 @@ class OnboardingCoordinator: ObservableObject {
         selectedTargetTypeId = nil
         selectedMethodologyId = nil
         trainingWeeks = nil
+        intendedRaceDistanceKm = nil
         availableDays = nil
         weeksRemaining = 12
         shouldNavigateToStartStageAfterMethodology = false
@@ -287,6 +293,8 @@ class OnboardingCoordinator: ObservableObject {
         case .trainingWeeksSetup:
             // TrainingWeeksSetupView 會處理導航邏輯（根據方法論數量決定）
             return nil
+        case .maintenanceRaceDistance:
+            return .trainingDays
         case .trainingDays:
             return .trainingOverview
         case .trainingOverview:

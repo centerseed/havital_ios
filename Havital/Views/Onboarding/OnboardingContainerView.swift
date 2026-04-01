@@ -75,6 +75,8 @@ struct OnboardingContainerView: View {
             MethodologySelectionView()
         case .trainingWeeksSetup:
             TrainingWeeksSetupView()
+        case .maintenanceRaceDistance:
+            MaintenanceRaceDistanceView()
         case .trainingDays:
             TrainingDaysSetupView(isBeginner: coordinator.isBeginner)
         case .trainingOverview:

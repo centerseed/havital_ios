@@ -78,6 +78,9 @@ struct PlanOverviewV2: Codable, Equatable {
     /// 方法論版本
     let methodologyVersion: String?
 
+    /// 里程碑計算依據（"intended_race_distance" / "prior_target" / "no_prior_target"）
+    let milestoneBasis: String?
+
     // MARK: - Computed Properties
 
     /// 比賽日期（Date 對象）

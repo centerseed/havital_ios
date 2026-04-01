@@ -385,6 +385,12 @@ private struct TrainingOverviewTabV2: View {
 
                     // 里程碑 section（無外層卡片，每個 milestone 各自為卡）
                     if !overview.milestones.isEmpty {
+                        if overview.milestoneBasis == "no_prior_target" {
+                            Text("⚠️ 里程碑距離以你的歷史跑步資料為準，開始訓練後將持續優化")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                        }
                         milestonesSection
                     }
                 }

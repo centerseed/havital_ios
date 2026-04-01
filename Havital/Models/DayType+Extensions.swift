@@ -83,6 +83,11 @@ extension DayType {
         labelColor.opacity(0.2)
     }
 
+    /// 是否應隱藏配速（輕鬆跑/恢復跑/LSD 不顯示配速）
+    var shouldHidePace: Bool {
+        self == .easyRun || self == .easy || self == .recovery_run || self == .lsd
+    }
+
     /// 是否為跑步活動（用於判斷是否顯示距離等跑步相關資訊）
     var isRunningActivity: Bool {
         switch self {
