@@ -32,6 +32,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             Logger.info("[TrainingPlanV2Repo] ✅ Plan status: week \(response.currentWeek)/\(response.totalWeeks), nextAction=\(response.nextAction)")
             return response
         } catch {
+            logErrorToCloud(module: "PlanStatus", operation: "fetch", error: error)
             // 將錯誤轉換為 DomainError
             throw error.toDomainError()
         }
@@ -158,20 +159,25 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     ) async throws -> WeeklyPlanV2 {
         Logger.debug("[TrainingPlanV2Repo] Generating weekly plan for week \(weekOfTraining)")
 
-        let dto = try await remoteDataSource.generateWeeklyPlan(
-            weekOfTraining: weekOfTraining,
-            forceGenerate: forceGenerate,
-            promptVersion: promptVersion,
-            methodology: methodology
-        )
+        do {
+            let dto = try await remoteDataSource.generateWeeklyPlan(
+                weekOfTraining: weekOfTraining,
+                forceGenerate: forceGenerate,
+                promptVersion: promptVersion,
+                methodology: methodology
+            )
 
-        let entity = WeeklyPlanV2Mapper.toEntity(from: dto)
+            let entity = WeeklyPlanV2Mapper.toEntity(from: dto)
 
-        // Cache the result
-        localDataSource.saveWeeklyPlan(entity, week: weekOfTraining)
+            // Cache the result
+            localDataSource.saveWeeklyPlan(entity, week: weekOfTraining)
 
-        Logger.info("[TrainingPlanV2Repo] Weekly plan generated and cached: week \(weekOfTraining)")
-        return entity
+            Logger.info("[TrainingPlanV2Repo] Weekly plan generated and cached: week \(weekOfTraining)")
+            return entity
+        } catch {
+            logErrorToCloud(module: "WeeklyPlan", operation: "generate", error: error, context: ["week": weekOfTraining])
+            throw error.toDomainError()
+        }
     }
 
     func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
@@ -232,18 +238,23 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {
         Logger.debug("[TrainingPlanV2Repo] Generating weekly summary for week \(weekOfPlan)")
 
-        let dto = try await remoteDataSource.generateWeeklySummary(
-            weekOfPlan: weekOfPlan,
-            forceUpdate: forceUpdate
-        )
+        do {
+            let dto = try await remoteDataSource.generateWeeklySummary(
+                weekOfPlan: weekOfPlan,
+                forceUpdate: forceUpdate
+            )
 
-        let entity = WeeklySummaryV2Mapper.toEntity(from: dto)
+            let entity = WeeklySummaryV2Mapper.toEntity(from: dto)
 
-        // Cache the result
-        localDataSource.saveWeeklySummary(entity, week: weekOfPlan)
+            // Cache the result
+            localDataSource.saveWeeklySummary(entity, week: weekOfPlan)
 
-        Logger.info("[TrainingPlanV2Repo] Weekly summary generated and cached: week \(weekOfPlan)")
-        return entity
+            Logger.info("[TrainingPlanV2Repo] Weekly summary generated and cached: week \(weekOfPlan)")
+            return entity
+        } catch {
+            logErrorToCloud(module: "WeeklySummary", operation: "generate", error: error, context: ["week": weekOfPlan])
+            throw error.toDomainError()
+        }
     }
 
     func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
@@ -251,6 +262,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         do {
             return try await remoteDataSource.getWeeklySummaries()
         } catch {
+            logErrorToCloud(module: "WeeklySummary", operation: "list", error: error)
             throw error.toDomainError()
         }
     }
@@ -335,6 +347,34 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     // MARK: - Private Helpers
 
+    private func logErrorToCloud(
+        module: String,
+        operation: String,
+        error: Error,
+        context: [String: Any] = [:]
+    ) {
+        guard !error.isCancellationError else { return }
+
+        var payload: [String: Any] = [
+            "error_type": String(describing: type(of: error)),
+            "error_description": error.localizedDescription,
+            "module": module,
+            "operation": operation
+        ]
+        payload.merge(context) { _, new in new }
+
+        Logger.firebase(
+            "[\(module)] \(operation) failed: \(error.localizedDescription)",
+            level: .error,
+            labels: [
+                "cloud_logging": "true",
+                "module": module,
+                "operation": operation
+            ],
+            jsonPayload: payload
+        )
+    }
+
     private func fetchAndCacheOverview() async throws -> PlanOverviewV2 {
         do {
             let dto = try await remoteDataSource.getOverview()
@@ -342,6 +382,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             localDataSource.saveOverview(entity)
             return entity
         } catch {
+            logErrorToCloud(module: "PlanOverview", operation: "fetch", error: error)
             // 將 HTTPError 轉換為 DomainError
             throw error.toDomainError()
         }
@@ -363,6 +404,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             localDataSource.saveWeeklyPlan(entity, week: week)
             return entity
         } catch {
+            logErrorToCloud(module: "WeeklyPlan", operation: "fetch", error: error, context: ["planId": planId, "week": week])
             // 將 HTTPError 轉換為 DomainError，確保 ViewModel 能正確處理 404
             throw error.toDomainError()
         }
@@ -402,6 +444,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             if case .notFound = error.toDomainError() {
                 return try await generateWeeklySummary(weekOfPlan: week, forceUpdate: nil)
             }
+            logErrorToCloud(module: "WeeklySummary", operation: "fetch_or_generate", error: error, context: ["week": week])
             throw error.toDomainError()
         }
     }
