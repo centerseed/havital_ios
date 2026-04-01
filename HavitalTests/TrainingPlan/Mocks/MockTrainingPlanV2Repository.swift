@@ -93,7 +93,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return overview
     }
 
-    func createOverviewForNonRace(targetType: String, trainingWeeks: Int, availableDays: Int?, methodologyId: String?, startFromStage: String?) async throws -> PlanOverviewV2 {
+    func createOverviewForNonRace(targetType: String, trainingWeeks: Int, availableDays: Int?, methodologyId: String?, startFromStage: String?, intendedRaceDistanceKm: Int?) async throws -> PlanOverviewV2 {
         createOverviewForNonRaceCallCount += 1
         if let error = errorToThrow { throw error }
         guard let overview = overviewToReturn else {
