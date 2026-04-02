@@ -162,12 +162,18 @@ struct TrainingDaysSetupView: View {
 
     private func saveAndNavigate() {
         Task {
-            // Only use UserDefaults stage for race_run plans; clear it for all other plan types
             let targetTypeId = coordinator.selectedTargetTypeId
-            let isRacePlan = targetTypeId == "race_run" || targetTypeId == nil
-            let selectedStage = isRacePlan
-                ? UserDefaults.standard.string(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
-                : nil
+            let selectedStage: String?
+            if targetTypeId == "race_run" {
+                // race_run V2：起始階段由 StartStageSelectionView 寫入 UserDefaults
+                selectedStage = UserDefaults.standard.string(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
+            } else if targetTypeId == nil {
+                // V1 legacy：從 coordinator 取，不讀 UserDefaults（避免 race_run 殘留值污染）
+                selectedStage = coordinator.selectedStartStage
+            } else {
+                // maintenance / beginner V2：不傳 stage
+                selectedStage = nil
+            }
 
             // 保存 availableDays 到 coordinator（供 V2 流程使用）
             coordinator.availableDays = viewModel.selectedWeekdays.count

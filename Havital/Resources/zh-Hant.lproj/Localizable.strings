@@ -2270,6 +2270,7 @@
 "training.target_time" = "目標時間";
 "training.training_weeks" = "訓練週數";
 "training.race_evaluation" = "賽事評估";
+"training.target_evaluation" = "目標評估";
 "training.methodology" = "訓練方法論";
 "training.philosophy" = "訓練哲學";
 "training.training_strategy" = "訓練策略";

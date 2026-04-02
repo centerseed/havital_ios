@@ -168,13 +168,17 @@ struct StartStageSelectionView: View {
         .navigationTitle(NSLocalizedString("start_stage.title", comment: "訓練計劃起始階段"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            // ⭐ 載入 V2 target types 並設置 race_run 類型
+            // ⭐ 載入 V2 target types 並設置正確類型
             await viewModel.loadTargetTypes()
 
-            // 找到 race_run 目標類型並設置
-            if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
+            if let targetTypeId = coordinator.selectedTargetTypeId,
+               let targetType = viewModel.availableTargetTypes.first(where: { $0.id == targetTypeId }) {
+                viewModel.selectedTargetTypeV2 = targetType
+                Logger.debug("[StartStageSelectionView] ✅ Set selectedTargetTypeV2 to: \(targetType.id)")
+            } else if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
+                // Fallback：這個 view 目前只由 race 流程導航到，保留 fallback 防禦
                 viewModel.selectedTargetTypeV2 = raceRunType
-                Logger.debug("[StartStageSelectionView] ✅ Set selectedTargetTypeV2 to: \(raceRunType.id)")
+                Logger.debug("[StartStageSelectionView] ✅ Fallback: Set selectedTargetTypeV2 to race_run: \(raceRunType.id)")
             }
         }
     }

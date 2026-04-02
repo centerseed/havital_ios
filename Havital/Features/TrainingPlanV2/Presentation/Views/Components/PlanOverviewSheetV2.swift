@@ -334,7 +334,9 @@ private struct TargetInfoTabV2: View {
     // 目標評估卡片
     private var evaluationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(NSLocalizedString("training.race_evaluation", comment: "Race Evaluation"))
+            Text(overview.isRaceRunTarget
+                ? NSLocalizedString("training.race_evaluation", comment: "Race Evaluation")
+                : NSLocalizedString("training.target_evaluation", comment: "Target Evaluation"))
                 .font(AppFont.headline())
 
             Text(overview.targetEvaluate ?? "")

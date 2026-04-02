@@ -175,8 +175,9 @@ class OnboardingCoordinator: ObservableObject {
                 Logger.warn("[OnboardingCoordinator] Methodology mismatch detected. Using overview methodology: \(overviewMethodologyId), selected: \(selectedMethodologyId)")
             }
 
+            let effectiveStartStage = selectedTargetTypeId == "race_run" ? selectedStartStage : nil
             let input = CompleteOnboardingUseCase.Input(
-                startFromStage: selectedStartStage,
+                startFromStage: effectiveStartStage,
                 isBeginner: isBeginner,
                 isReonboarding: isReonboardingMode,
                 // V2 Parameters
