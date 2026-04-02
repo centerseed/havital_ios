@@ -108,17 +108,23 @@ struct PlanOverviewSheetV2: View {
                     Logger.debug("[🐛 TARGET_UPDATE]    解析成功: hasSignificantChange = \(hasSignificantChange)")
 
                     if hasSignificantChange {
-                        Logger.debug("[🐛 TARGET_UPDATE] ④ 顯示起始階段選擇")
                         let weeks = userInfo["remainingWeeks"] as? Int ?? 12
                         let distance = userInfo["distanceKm"] as? Double ?? 42.195
                         showEditMainTarget = false
                         Task {
                             // 等待 EditTargetView sheet dismiss 動畫完成
                             try? await Task.sleep(nanoseconds: 400_000_000)
-                            pendingWeeksRemaining = weeks
-                            pendingDistanceKm = distance
-                            showStageSelection = true
                             await targetViewModel.forceRefresh()
+                            // Only show stage selection for race_run plans
+                            if viewModel.planOverview?.isRaceRunTarget == true {
+                                Logger.debug("[🐛 TARGET_UPDATE] ④ 顯示起始階段選擇")
+                                pendingWeeksRemaining = weeks
+                                pendingDistanceKm = distance
+                                showStageSelection = true
+                            } else {
+                                Logger.debug("[🐛 TARGET_UPDATE] ④ 非 race plan，跳過起始階段選擇，直接更新 overview")
+                                await viewModel.updateOverview(startFromStage: nil)
+                            }
                         }
                     } else {
                         Logger.debug("[🐛 TARGET_UPDATE]    無重要變更，僅重新載入賽事資料")
@@ -582,7 +588,17 @@ private struct TrainingOverviewTabV2: View {
             Task {
                 // 等待方法論 sheet dismiss 動畫完成
                 try? await Task.sleep(nanoseconds: 400_000_000)
-                showStageSelectionForMethodology = true
+                if overview.isRaceRunTarget {
+                    showStageSelectionForMethodology = true
+                } else {
+                    // Non-race plan: change methodology directly without stage selection
+                    withAnimation { isChangingMethodology = true }
+                    await viewModel.changeMethodology(
+                        methodologyId: methodology.id,
+                        startFromStage: nil
+                    )
+                    withAnimation { isChangingMethodology = false }
+                }
             }
         } label: {
             VStack(alignment: .leading, spacing: 0) {

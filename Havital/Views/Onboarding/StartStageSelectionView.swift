@@ -144,9 +144,9 @@ struct StartStageSelectionView: View {
                 Button(action: {
                     coordinator.selectedStartStage = selectedStage?.apiIdentifier
                     if let stage = selectedStage {
-                        UserDefaults.standard.set(stage.apiIdentifier, forKey: "selectedStartStage")
+                        UserDefaults.standard.set(stage.apiIdentifier, forKey: OnboardingCoordinator.startStageUserDefaultsKey)
                     } else {
-                        UserDefaults.standard.removeObject(forKey: "selectedStartStage")
+                        UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
                     }
                     // 方法論已在前一步完成，起始階段選擇後直接進入訓練日設定，避免循環導航
                     coordinator.navigate(to: .trainingDays)

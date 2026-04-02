@@ -488,7 +488,7 @@ struct OnboardingView: View {
         } else if trainingWeeks >= standardWeeks {
             // 時間充足
             coordinator.selectedStartStage = nil
-            UserDefaults.standard.removeObject(forKey: "selectedStartStage")
+            UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
             coordinator.shouldNavigateToStartStageAfterMethodology = false
             if isRaceV2Flow {
                 coordinator.navigate(to: .methodologySelection)

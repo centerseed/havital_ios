@@ -46,6 +46,10 @@ class OnboardingCoordinator: ObservableObject {
         }
     }
 
+    // MARK: - Constants
+
+    static let startStageUserDefaultsKey = "selectedStartStage"
+
     // MARK: - Published Properties
 
     /// 當前步驟的導航路徑
@@ -233,6 +237,7 @@ class OnboardingCoordinator: ObservableObject {
         trainingPlanOverview = nil
         trainingPlanOverviewV2 = nil
         selectedStartStage = nil
+        UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
         selectedTargetTypeId = nil
         selectedMethodologyId = nil
         trainingWeeks = nil
