@@ -324,12 +324,12 @@ struct SimplifiedDailyCardV2: View {
     private var warmupCooldownSummary: some View {
         HStack(spacing: 8) {
             if let warmup = day.warmup, let dist = warmup.distanceKm {
-                Text("🔥 暖跑 \(String(format: "%.1f", dist))km")
+                Text(String(format: NSLocalizedString("edit_schedule.warmup_summary", comment: "Warmup km"), dist))
                     .font(AppFont.caption())
                     .foregroundColor(.orange)
             }
             if let cooldown = day.cooldown, let dist = cooldown.distanceKm {
-                Text("❄️ 緩和 \(String(format: "%.1f", dist))km")
+                Text(String(format: NSLocalizedString("edit_schedule.cooldown_summary", comment: "Cooldown km"), dist))
                     .font(AppFont.caption())
                     .foregroundColor(.blue)
             }
@@ -347,12 +347,12 @@ struct SimplifiedDailyCardV2: View {
                 .frame(width: 6, height: 6)
             if activities.count == 1, case .strength(let s) = activities[0] {
                 let label = StrengthEditorV2.label(for: s.strengthType)
-                let durationText = s.durationMinutes.map { "· \($0)分鐘" } ?? ""
+                let durationText = s.durationMinutes.map { "· \($0)" + NSLocalizedString("training.minutes_unit", comment: "min") } ?? ""
                 Text("➕ \(label)\(durationText)")
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             } else {
-                Text("➕ 補充訓練 (\(activities.count)項)")
+                Text(String(format: NSLocalizedString("edit_schedule.supplementary_count", comment: "Supplementary training count"), activities.count))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
@@ -369,7 +369,7 @@ struct SimplifiedDailyCardV2: View {
                     showingPacePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("配速:")
+                        Text(NSLocalizedString("edit_schedule.pace_label_colon", comment: "Pace:"))
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(day.trainingDetails?.pace ?? "")
@@ -393,7 +393,7 @@ struct SimplifiedDailyCardV2: View {
                     showingDistancePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("距離:")
+                        Text(NSLocalizedString("edit_schedule.distance_label_colon", comment: "Distance:"))
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(String(format: "%.1f km", distance))

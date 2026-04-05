@@ -18,6 +18,8 @@ struct PlanOverviewV2DTO: Codable {
     // Target 核心字段
     let raceDate: Int?
     let distanceKm: Double?
+    let distanceKmDisplay: Double?
+    let distanceUnit: String?
     let targetPace: String?
     let targetTime: Int?
     let isMainRace: Bool?
@@ -53,6 +55,8 @@ struct PlanOverviewV2DTO: Codable {
         case startFromStage = "start_from_stage"
         case raceDate = "race_date"
         case distanceKm = "distance_km"
+        case distanceKmDisplay = "distance_km_display"
+        case distanceUnit = "distance_unit"
         case targetPace = "target_pace"
         case targetTime = "target_time"
         case isMainRace = "is_main_race"
@@ -77,6 +81,8 @@ struct PlanOverviewV2DTO: Codable {
         startFromStage: String?,
         raceDate: Int?,
         distanceKm: Double?,
+        distanceKmDisplay: Double?,
+        distanceUnit: String?,
         targetPace: String?,
         targetTime: Int?,
         isMainRace: Bool?,
@@ -99,6 +105,8 @@ struct PlanOverviewV2DTO: Codable {
         self.startFromStage = startFromStage
         self.raceDate = raceDate
         self.distanceKm = distanceKm
+        self.distanceKmDisplay = distanceKmDisplay
+        self.distanceUnit = distanceUnit
         self.targetPace = targetPace
         self.targetTime = targetTime
         self.isMainRace = isMainRace
@@ -125,6 +133,8 @@ struct PlanOverviewV2DTO: Codable {
         startFromStage = try container.decodeIfPresent(String.self, forKey: .startFromStage)
         raceDate = try container.decodeIfPresent(Int.self, forKey: .raceDate)
         distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm)
+        distanceKmDisplay = try container.decodeIfPresent(Double.self, forKey: .distanceKmDisplay)
+        distanceUnit = try container.decodeIfPresent(String.self, forKey: .distanceUnit)
         targetPace = try container.decodeIfPresent(String.self, forKey: .targetPace)
         targetTime = try container.decodeIfPresent(Int.self, forKey: .targetTime)
         isMainRace = try container.decodeIfPresent(Bool.self, forKey: .isMainRace)
@@ -173,6 +183,7 @@ struct TrainingStageDTO: Codable {
     let weekEnd: Int
     let trainingFocus: String
     let targetWeeklyKmRange: TargetWeeklyKmRangeDTO
+    let targetWeeklyKmRangeDisplay: TargetWeeklyKmRangeDisplayDTO?
     let intensityRatio: IntensityDistributionDTO?
     let keyWorkouts: [String]?
 
@@ -184,8 +195,23 @@ struct TrainingStageDTO: Codable {
         case weekEnd = "week_end"
         case trainingFocus = "training_focus"
         case targetWeeklyKmRange = "target_weekly_km_range"
+        case targetWeeklyKmRangeDisplay = "target_weekly_km_range_display"
         case intensityRatio = "intensity_ratio"
         case keyWorkouts = "key_workouts"
+    }
+}
+
+// MARK: - TargetWeeklyKmRangeDisplayDTO
+/// 英制用戶的週跑量顯示值（公制用戶不回傳此欄位）
+struct TargetWeeklyKmRangeDisplayDTO: Codable {
+    let lowDisplay: Double
+    let highDisplay: Double
+    let distanceUnit: String
+
+    enum CodingKeys: String, CodingKey {
+        case lowDisplay = "low_display"
+        case highDisplay = "high_display"
+        case distanceUnit = "distance_unit"
     }
 }
 

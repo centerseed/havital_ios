@@ -58,26 +58,44 @@ struct WorkoutUtils {
         return formatter.string(from: date)
     }
     
-    /// 格式化距離
+    /// 格式化距離（依 UnitManager 設定決定單位）
     static func formatDistance(_ distance: Double) -> String {
-        if distance >= 1000 {
-            return String(format: "%.2f 公里", distance / 1000)
-        } else {
-            return String(format: "%.0f 米", distance)
+        return MainActor.assumeIsolated {
+            let unit = UnitManager.shared.currentUnitSystem
+            switch unit {
+            case .metric:
+                if distance >= 1000 {
+                    return String(format: "%.2f 公里", distance / 1000)
+                } else {
+                    return String(format: "%.0f 米", distance)
+                }
+            case .imperial:
+                let miles = (distance / 1000) * 0.621371
+                if miles >= 0.1 {
+                    return String(format: "%.2f mi", miles)
+                } else {
+                    let feet = distance * 3.28084
+                    return String(format: "%.0f ft", feet)
+                }
+            }
         }
     }
-    
-    /// 格式化配速 (分:秒/千米)
+
+    /// 格式化配速（依 UnitManager 設定決定單位）
     static func formatPace(durationInSeconds: Double, distanceInMeters: Double) -> String {
         guard distanceInMeters > 0 else { return "無法計算" }
-        
-        let paceSecondsPerMeter = durationInSeconds / distanceInMeters
-        let paceSecondsPerKm = paceSecondsPerMeter * 1000
-        
-        let paceMinutes = Int(paceSecondsPerKm) / 60
-        let paceSeconds = Int(paceSecondsPerKm) % 60
-        
-        return String(format: "%d'%02d\"/km", paceMinutes, paceSeconds)
+        let paceSecondsPerKm = (durationInSeconds / distanceInMeters) * 1000
+        return MainActor.assumeIsolated {
+            let unit = UnitManager.shared.currentUnitSystem
+            let converted: Double
+            switch unit {
+            case .metric: converted = paceSecondsPerKm
+            case .imperial: converted = paceSecondsPerKm * 1.60934
+            }
+            let minutes = Int(converted) / 60
+            let seconds = Int(converted) % 60
+            return String(format: "%d'%02d\"/%@", minutes, seconds, unit.distanceSuffix)
+        }
     }
     
     /// 檢查運動是否為有心率數據的類型

@@ -24,10 +24,12 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var getWeeklySummaryCallCount = 0
     var refreshWeeklySummaryCallCount = 0
     var deleteWeeklySummaryCallCount = 0
+    var getWeeklyPreviewCallCount = 0
     var clearCacheCallCount = 0
 
     // MARK: - Return Values
 
+    var weeklyPreviewToReturn: WeeklyPreviewV2?
     var planStatusToReturn: PlanStatusV2Response?
     var targetTypesToReturn: [TargetTypeV2] = []
     var methodologiesToReturn: [MethodologyV2] = []
@@ -57,6 +59,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         getWeeklySummaryCallCount = 0
         refreshWeeklySummaryCallCount = 0
         deleteWeeklySummaryCallCount = 0
+        getWeeklyPreviewCallCount = 0
         clearCacheCallCount = 0
         errorToThrow = nil
     }
@@ -177,6 +180,15 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func deleteWeeklyPlan(planId: String) async throws {
         deleteWeeklyPlanCallCount += 1
         if let error = errorToThrow { throw error }
+    }
+
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        getWeeklyPreviewCallCount += 1
+        if let error = errorToThrow { throw error }
+        guard let preview = weeklyPreviewToReturn else {
+            throw TrainingPlanV2Error.unknown("No mock weekly preview set")
+        }
+        return preview
     }
 
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {

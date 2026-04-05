@@ -416,7 +416,7 @@ private struct PlaceholderWeekTimelineView: View {
             }
             .padding(.horizontal, 4)
 
-            Text("週課表功能開發中...")
+            Text(NSLocalizedString("training.weekly_schedule_wip", comment: "Weekly schedule feature is in development"))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding()

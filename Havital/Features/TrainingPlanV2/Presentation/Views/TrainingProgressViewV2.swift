@@ -224,60 +224,122 @@ struct TrainingProgressViewV2: View {
         let showSchedule = summariesLoaded ? hasWeekPlan : !isFutureWeek
         let showReview = summariesLoaded ? hasSummary : false
 
-        return HStack {
-            Text(String(format: NSLocalizedString("training.week_number", comment: "Week %d"), weekNumber))
-                .font(AppFont.bodySmall())
-                .fontWeight(isCurrentWeek ? .bold : .regular)
-                .foregroundColor(isCurrentWeek ? .primary : (isFutureWeek && summariesLoaded ? Color.secondary.opacity(0.5) : .secondary))
+        // 骨架資料：只對當前週及未來週顯示
+        let skeletonWeek = weekNumber >= viewModel.currentWeek
+            ? viewModel.weeklyPreview?.weeks.first { $0.week == weekNumber }
+            : nil
 
-            Spacer()
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(String(format: NSLocalizedString("training.week_number", comment: "Week %d"), weekNumber))
+                    .font(AppFont.bodySmall())
+                    .fontWeight(isCurrentWeek ? .bold : .regular)
+                    .foregroundColor(isCurrentWeek ? .primary : (isFutureWeek && summariesLoaded ? Color.secondary.opacity(0.5) : .secondary))
 
-            HStack(spacing: 8) {
-                if showReview {
-                    Button {
-                        Task {
-                            await viewModel.viewHistoricalSummary(week: weekNumber)
+                Spacer()
+
+                HStack(spacing: 8) {
+                    if showReview {
+                        Button {
+                            Task {
+                                await viewModel.viewHistoricalSummary(week: weekNumber)
+                            }
+                        } label: {
+                            HStack(alignment: .center, spacing: 4) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text(NSLocalizedString("training_progress.review", comment: "Review"))
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                            }
+                            .fixedSize()
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(8)
                         }
-                    } label: {
-                        HStack(alignment: .center, spacing: 4) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.system(size: 12, weight: .medium))
-                            Text(NSLocalizedString("training_progress.review", comment: "Review"))
-                                .font(.footnote)
-                                .fontWeight(.medium)
-                        }
-                        .fixedSize()
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(8)
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
+
+                    if showSchedule {
+                        Button {
+                            Task {
+                                await viewModel.switchToWeek(weekNumber)
+                                dismiss()
+                            }
+                        } label: {
+                            HStack(alignment: .center, spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text(NSLocalizedString("training_progress.schedule", comment: "Schedule"))
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                            }
+                            .fixedSize()
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.green.opacity(0.1))
+                            .foregroundColor(.green)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+            }
+
+            if let skeleton = skeletonWeek {
+                HStack(spacing: 12) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "figure.run")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("\(Int(skeleton.targetKmDisplay ?? skeleton.targetKm)) \(skeleton.distanceUnit ?? "km")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    if skeleton.isRecovery {
+                        Text(NSLocalizedString("training.recovery_week", comment: "恢復週"))
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(4)
+                    }
+
+                    Spacer()
                 }
 
-                if showSchedule {
-                    Button {
-                        Task {
-                            await viewModel.switchToWeek(weekNumber)
-                            dismiss()
+                let longRunDisplay = TrainingTypeDisplayName.longRunDisplay(skeleton.longRun)
+                let qualityDisplay = TrainingTypeDisplayName.qualityOptionsDisplay(skeleton.qualityOptions)
+
+                if longRunDisplay != "—" || qualityDisplay != "—" {
+                    HStack(spacing: 12) {
+                        if longRunDisplay != "—" {
+                            HStack(spacing: 4) {
+                                Text(NSLocalizedString("training.workout_type.long_run", comment: "長跑:"))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Text(longRunDisplay)
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                            }
                         }
-                    } label: {
-                        HStack(alignment: .center, spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 12, weight: .medium))
-                            Text(NSLocalizedString("training_progress.schedule", comment: "Schedule"))
-                                .font(.footnote)
-                                .fontWeight(.medium)
+                        if qualityDisplay != "—" {
+                            HStack(spacing: 4) {
+                                Text(NSLocalizedString("training.quality_session", comment: "品質課:"))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Text(qualityDisplay)
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1)
+                            }
                         }
-                        .fixedSize()
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(Color.green.opacity(0.1))
-                        .foregroundColor(.green)
-                        .cornerRadius(8)
+                        Spacer()
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }

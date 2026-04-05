@@ -380,6 +380,16 @@
 "training.type.fast_finish" = "快速完成跑";
 // 新增比賽配速訓練
 "training.type.race_pace" = "比賽配速跑";
+// 新增長跑類型
+"training.type.mp_long_run" = "馬配速長跑";
+"training.type.progressive_long_run" = "漸進長跑";
+// 舊格式品質課（_day 後綴相容）
+"training.type.vo2max_day" = "VO₂max 間歇";
+"training.type.threshold_day" = "節奏跑";
+"training.type.fartlek_day" = "法特雷克";
+"training.type.speed_day" = "速度訓練";
+"training.type.hills_day" = "爬坡訓練";
+"training.type.quality_day" = "品質訓練";
 
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "維持舒適的費力配速訓練";
@@ -636,7 +646,6 @@
 "training.current_week_progress" = "目前的訓練進度已進入第";
 "training.paceriz_plan_description" = "Paceriz 會根據你的訓練狀況，產生個人化的週課表。先來檢視這週的訓練狀況，並產生新課表吧！";
 "training.get_weekly_review" = "取得週回顧 ";
-"training.daily_training" = "每日訓練";
 "training.cycle_completed_message" = "太棒了！你的訓練週期已完成，記得檢視訓練回顧後，設定你的下一個訓練目標！";
 "training.set_new_goal" = "設定新目標";
 "training.loading_plan" = "載入訓練計畫中...";
@@ -659,6 +668,7 @@
 "common.later" = "稍後";
 "common.reload" = "重新載入";
 "common.ok" = "好";
+"common.minutes_format" = "%d 分鐘";
 
 // MARK: - Workout Details
 "workout.details" = "訓練詳情";
@@ -676,7 +686,6 @@
 // MARK: - Record Additional
 "record.avg_heart_rate" = "平均心率";
 "record.max_heart_rate" = "最高心率";
-"record.no_records_description" = "尚無訓練紀錄，開始運動後就會出現在這裡";
 
 // MARK: - Performance
 "performance.weekly_volume_trend" = "週跑量趨勢";
@@ -720,7 +729,6 @@
 "training.cannot_get_stages" = "無法取得訓練階段資訊";
 "training.week_number" = "第 %d 週";
 "training.view_schedule" = "查看課表";
-"training.training_review" = "訓練回顧";
 "training.generate_schedule" = "產生課表";
 
 // MARK: - Training Overview Strings
@@ -731,7 +739,6 @@
 "training.plan_overview" = "訓練總覽";
 "training.goal_assessment" = "目標評估";
 "training.plan_highlights" = "計畫重點";
-"training.training_stages" = "訓練階段";
 "training.stages_summary" = "%d 個階段，共 %d 週";
 "training.updating_plan" = "更新訓練計畫中...";
 "training.plan_regenerated" = "訓練計畫已根據最新目標重新產生";
@@ -1105,9 +1112,6 @@
 "training_plan.sprint_segment" = "衝刺段";
 "training_plan.recovery_segment" = "恢復段";
 "training_plan.rest_in_place" = "原地休息";
-"training_plan.cycle_completed" = "訓練週期完成";
-"training_plan.congratulations" = "恭喜完成這個訓練週期！";
-"training_plan.loading_schedule" = "載入課表中...";
 
 // MARK: - Training Type Info
 "training_type_info.how_to_run_title" = "怎麼跑";
@@ -1257,9 +1261,6 @@
 "weekday.sun_short" = "日";
 
 // MARK: - Training Intensity Levels
-"intensity.low" = "低";
-"intensity.medium" = "中";
-"intensity.high" = "高";
 
 // MARK: - Weekly Progress Strings
 "progress.weekly_volume" = "跑量";
@@ -1279,7 +1280,7 @@
 "datasource.switch_to_this" = "切換到此資料來源";
 
 // MARK: - Training Plan View Override (Chinese specific) - DEPRECATED, use standard keys
-// "training_plan.weekly_volume_load_zh" = "週跑量和訓練強度"; // Use training_plan.weekly_volume_and_intensity instead
+"training_plan.weekly_volume_load_zh" = "週跑量和訓練強度";
 "progress.weekly_volume_zh" = "週跑量";
 "intensity.low_zh" = "低強度";
 "intensity.medium_zh" = "中強度";
@@ -1463,8 +1464,9 @@
 "edit_schedule.norwegian_4x4_description" = "4組4分鐘高強度間歇（92% VO2max），組間休息3分鐘。專注於提升最大攝氧量。";
 "edit_schedule.yasso_800_settings" = "亞索800訓練設定";
 "edit_schedule.yasso_800_description" = "800公尺重複跑訓練，用於預測馬拉松成績並提升VO2max。目標時間與馬拉松目標相關。";
-"edit_schedule.time" = "時間";
 "edit_schedule.rest_time" = "休息時間";
+"edit_schedule.unnamed_exercise" = "（未命名）";
+"edit_schedule.select_exercise" = "選擇動作";
 "edit_schedule.suggested_pace" = "建議配速: %@";
 "edit_schedule.sprint_suggested_pace" = "衝刺段建議配速: %@";
 "edit_schedule.pace_range" = "配速區間: %@ - %@";
@@ -1482,7 +1484,6 @@
 "edit_schedule.select_repeats" = "選擇重複次數";
 "edit_schedule.repeats_selection" = "重複次數選擇";
 "edit_schedule.save_failed" = "保存失敗";
-"edit_schedule.segment" = "第 %d 段";
 
 // MARK: - Adjustment Confirmation
 "adjustment.title" = "調整建議確認";
@@ -1602,15 +1603,11 @@
 "start_stage.time_too_short_message" = "距離賽事不足 2 週，可能無法達到預期的訓練效果。建議選擇更晚的賽事日期。";
 
 // Common
-"common.ok" = "確定";
 
 // MARK: - Timezone Settings
-"timezone.title" = "時區設定";
 "timezone.current_device" = "裝置時區";
 "timezone.device_timezone" = "裝置時區";
 "timezone.use_device" = "使用裝置時區";
-"timezone.common_timezones" = "常用時區";
-"timezone.sync_message" = "時區設定會同步到伺服器，影響訓練計劃的週數計算";
 "timezone.change_warning" = "變更時區可能影響訓練週數計算";
 
 // Timezone Names
@@ -1650,9 +1647,7 @@
 "heart_rate.go_to_setup" = "立即設定";
 "heart_rate.remind_tomorrow" = "明天再提醒我";
 "heart_rate.never_remind" = "不再提醒";
-"common.ok" = "確定";
 "common.error" = "錯誤";
-"common.generating" = "生成中...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "預計完賽時間";
 
@@ -1680,62 +1675,24 @@
 "profile_view.developer.simulate_remind_tomorrow" = "模擬「明天再提醒」(1分鐘後過期)";
 
 // MARK: - Edit Schedule
-"edit_schedule.cancel" = "取消";
-"edit_schedule.save" = "儲存";
 "edit_schedule.done" = "完成";
-"edit_schedule.confirm" = "確定";
-"edit_schedule.apply" = "套用";
 "edit_schedule.delete" = "刪除";
 "edit_schedule.close" = "關閉";
-"edit_schedule.cannot_edit" = "無法編輯";
 "edit_schedule.addSegment" = "新增區段";
 "edit_schedule.reorder_title" = "調整順序";
 "edit_schedule.reorder_days" = "調整課表順序";
 
 // Training Types
-"edit_schedule.easy_run" = "輕鬆跑";
-"edit_schedule.tempo_run" = "節奏跑";
-"edit_schedule.interval_training" = "間歇訓練";
-"edit_schedule.combination_run" = "組合訓練";
-"edit_schedule.long_distance_run" = "長距離跑";
-"edit_schedule.long_easy_run" = "長距離輕鬆跑";
-"edit_schedule.recovery_run" = "恢復跑";
-"edit_schedule.threshold_run" = "閾值跑";
-"edit_schedule.rest" = "休息";
 
 // Training Detail Editor
-"edit_schedule.easy_run_settings" = "輕鬆跑設定";
-"edit_schedule.tempo_run_settings" = "節奏跑設定";
-"edit_schedule.interval_settings" = "間歇訓練設定";
-"edit_schedule.combination_settings" = "組合跑設定";
-"edit_schedule.long_run_settings" = "長距離跑設定";
-"edit_schedule.training_settings" = "訓練設定";
 
-"edit_schedule.suggested_pace" = "建議配速: %@";
-"edit_schedule.sprint_suggested_pace" = "衝刺段建議配速: %@";
-"edit_schedule.pace_range" = "配速區間: %@ - %@";
-"edit_schedule.interval_pace_range" = "間歇配速區間: %@ - %@";
 
-"edit_schedule.distance" = "距離 (公里)";
 "edit_schedule.distance_placeholder" = "例如: 5.0";
-"edit_schedule.pace" = "配速 (分:秒/公里)";
 "edit_schedule.pace_placeholder" = "例如: 4:30";
-"edit_schedule.description" = "訓練說明";
-"edit_schedule.segment_description" = "區段描述";
 
-"edit_schedule.repeats" = "重複次數";
 "edit_schedule.repeats_placeholder" = "例如: 6";
-"edit_schedule.sprint_segment" = "衝刺段";
-"edit_schedule.recovery_segment" = "恢復段";
-"edit_schedule.segment" = "區段 %d";
 
 // Pace Selection
-"edit_schedule.select_pace" = "選擇配速";
-"edit_schedule.pace_selection" = "配速選擇";
-"edit_schedule.select_interval_distance" = "選擇間歇距離";
-"edit_schedule.interval_distance_selection" = "間歇距離選擇";
-"edit_schedule.select_training_type" = "選擇訓練類型";
-"edit_schedule.training_type_selection" = "訓練類型選擇";
 
 // Pace Table
 "edit_schedule.pace_table_description" = "根據您的跑力計算的訓練配速建議，每個區間顯示最快配速 - 最慢配速範圍";
@@ -1815,8 +1772,6 @@
 "misc.strava_account_bound" = "Strava 帳號已綁定";
 
 // MARK: - Edit Schedule Additional
-"edit_schedule.save_failed" = "保存失敗";
-"edit_schedule.rest_in_place" = "原地休息";
 "edit_schedule.dragging" = "拖曳中...";
 "edit_schedule.drag_to_target" = "拖曳到目標位置";
 "edit_schedule.monday" = "週一";
@@ -1898,19 +1853,12 @@
 "edit_schedule.quick_templates" = "快速選擇";
 "edit_schedule.estimated_time" = "預估時間";
 "edit_schedule.for_distance" = "%.1f 公里";
-"edit_schedule.interval_distance_selection" = "間歇距離選擇";
-"edit_schedule.training_type_selection" = "訓練類型選擇";
-"edit_schedule.distance_selection" = "距離選擇";
-"edit_schedule.repeats_selection" = "重複次數選擇";
-"edit_schedule.select_distance" = "選擇距離";
-"edit_schedule.select_repeats" = "選擇重複次數";
 "edit_schedule.category_easy" = "輕鬆訓練";
 "edit_schedule.category_intensity" = "強度訓練";
 "edit_schedule.category_long" = "長距離訓練";
 "edit_schedule.category_other" = "其他";
 
 // MARK: - Edit Schedule Additional Keys
-"edit_schedule.edit_training" = "編輯訓練";
 
 // MARK: - Empty State
 "empty_state.no_data_title" = "無%@數據";
@@ -1942,12 +1890,7 @@
 
 // MARK: - Distance Labels
 "distance.mile" = "1.6 公里";
-"distance.3k" = "3 公里";
-"distance.5k" = "5 公里";
-"distance.10k" = "10 公里";
-"distance.half_marathon" = "半程馬拉松";
 "distance.half_marathon_short" = "21km";
-"distance.full_marathon" = "全程馬拉松";
 "distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
@@ -2234,7 +2177,6 @@
 "training_plan.not_current_week" = "非本週";
 "training.weekly_summary" = "週回顧";
 "training.user_profile" = "個人資料";
-"training.plan_overview" = "訓練計畫概覽";
 "training.contact_paceriz" = "聯絡 Paceriz";
 "training.switch_week" = "切換週數";
 "training.current_week_label" = "本週";
@@ -2258,10 +2200,8 @@
 "training.confirm_training_complete_message" = "請確認本週訓練是否皆已完成？產生週回顧需要本週的完整訓練數據才能獲得準確的分析。";
 
 // MARK: - Plan Overview V2
-"training.race_info" = "賽事資訊";
 "training.target_info" = "目標資訊";
 "training.training_plan" = "訓練計畫";
-"training.target_race" = "目標賽事";
 "training.training_target" = "訓練目標";
 "training.my_training_target" = "我的訓練目標";
 "training.race_date" = "賽事日期";
@@ -2399,3 +2339,51 @@
 "exercise.name.thoracic_rotation" = "胸椎旋轉";
 "exercise.name.seated_forward_fold" = "坐姿前彎";
 "exercise.name.standing_quad_stretch" = "站姿股四頭肌伸展";
+
+// MARK: - New Localization Keys (Phase 1)
+"edit_schedule.rest_day" = "這是休息日";
+"edit_schedule.strength_settings" = "肌力訓練設定";
+"edit_schedule.training_type" = "訓練類型";
+"edit_schedule.training_duration" = "訓練時長";
+"edit_schedule.min_one_exercise" = "至少需要一個動作";
+"edit_schedule.exercise_list" = "動作清單";
+"edit_schedule.sets" = "組數";
+"edit_schedule.duration_seconds" = "秒數";
+"edit_schedule.reps" = "次數";
+"edit_schedule.warmup_cooldown" = "暖跑 / 緩和跑";
+"edit_schedule.distance_label" = "距離";
+"edit_schedule.pace_label" = "配速";
+"edit_schedule.quick_select" = "快速選擇";
+"edit_schedule.minute_label" = "分";
+"edit_schedule.second_label" = "秒";
+"edit_schedule.recovery" = "恢復";
+"edit_schedule.warmup_summary" = "🔥 暖跑 %.1fkm";
+"edit_schedule.cooldown_summary" = "❄️ 緩和 %.1fkm";
+"edit_schedule.supplementary_count" = "➕ 補充訓練 (%d項)";
+"edit_schedule.pace_label_colon" = "配速:";
+"edit_schedule.distance_label_colon" = "距離:";
+"training.weekly_skeleton_disclaimer" = "以下為各週訓練骨架，實際課表將依你的訓練狀態動態調整";
+"training.weekly_skeleton_title" = "週訓練骨架";
+"training.week_n" = "第 %d 週";
+"training.recovery_week" = "恢復週";
+"training.quality_session" = "品質課";
+"training.weeks_count" = "%d 週";
+"training.milestone_disclaimer" = "⚠️ 里程碑距離以你的歷史跑步資料為準，開始訓練後將持續優化";
+"training.stage_week_range" = "第 %d-%d 週";
+"training.weekly_schedule_wip" = "週課表功能開發中...";
+"performance.no_data" = "沒有足夠的訓練資料";
+"performance.fitness_balance" = "體適能指數 & 訓練壓力平衡";
+"performance.syncing" = "同步中...";
+"workoutsharecardsheet.close" = "關閉";
+"time.seconds_format" = "%d秒";
+"time.minutes_format" = "%d分鐘";
+"time.minutes_seconds_format" = "%d分%d秒";
+"time.sets_seconds_format" = "%d × %d秒";
+"time.picker.minutes" = "分鐘";
+"time.picker.seconds" = "秒";
+"time.quick.30s" = "30秒";
+"time.quick.1m" = "1分";
+"time.quick.1m30s" = "1分30秒";
+"time.quick.2m" = "2分";
+"time.quick.3m" = "3分";
+"edit_schedule.select_rest_time" = "選擇休息時間";

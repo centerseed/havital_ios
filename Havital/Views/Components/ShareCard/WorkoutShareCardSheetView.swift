@@ -53,7 +53,7 @@ struct WorkoutShareCardSheetView: View {
                         Button(action: {
                             dismiss()
                         }) {
-                            Text("關閉")
+                            Text(NSLocalizedString("workoutsharecardsheet.close", comment: "Close"))
                         }
                     }
 
@@ -82,12 +82,12 @@ struct WorkoutShareCardSheetView: View {
             .alert("編輯成就標題", isPresented: $showTitleEditor) {
                 titleEditorAlert
             } message: {
-                Text("自訂你的成就標題，讓分享更個人化！")
+                Text(NSLocalizedString("workoutsharecardsheet.text_1", comment: "Customize title"))
             }
             .alert("編輯 AI 簡評", isPresented: $showEncouragementEditor) {
                 encouragementEditorAlert
             } message: {
-                Text("添加你的訓練感想或勵志語錄！")
+                Text(NSLocalizedString("workoutsharecardsheet.text_2", comment: "Add notes"))
             }
             .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
                 textOverlayEditorAlert
@@ -335,7 +335,7 @@ struct WorkoutShareCardSheetView: View {
                             )
 
                         if selectedPhoto != nil {
-                            Text("雙指縮放、拖曳調整圖片位置")
+                            Text(NSLocalizedString("workoutsharecardsheet.text_3", comment: "Pinch to zoom"))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
@@ -347,7 +347,7 @@ struct WorkoutShareCardSheetView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
-                    Text("正在生成分享卡...")
+                    Text(NSLocalizedString("workoutsharecardsheet.text_4", comment: "Generating share card"))
                         .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }
@@ -369,7 +369,7 @@ struct WorkoutShareCardSheetView: View {
                         }
                     }) {
                         HStack {
-                            Text("已添加的文字 (\(textOverlays.count))")
+                            Text(String(format: NSLocalizedString("workoutsharecardsheet.text_5", comment: "Added text count"), textOverlays.count))
                                 .font(AppFont.body())
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -439,7 +439,7 @@ struct WorkoutShareCardSheetView: View {
                     Menu {
                         Button(action: { changeLayout(.bottom) }) {
                             HStack {
-                                Text("底部版型")
+                                Text(NSLocalizedString("workoutsharecardsheet.text_6", comment: "Bottom layout"))
                                 if selectedLayoutMode == .bottom {
                                     Image(systemName: "checkmark")
                                 }
@@ -447,7 +447,7 @@ struct WorkoutShareCardSheetView: View {
                         }
                         Button(action: { changeLayout(.top) }) {
                             HStack {
-                                Text("頂部版型")
+                                Text(NSLocalizedString("workoutsharecardsheet.text_7", comment: "Top layout"))
                                 if selectedLayoutMode == .top {
                                     Image(systemName: "checkmark")
                                 }
@@ -455,7 +455,7 @@ struct WorkoutShareCardSheetView: View {
                         }
                         Button(action: { changeLayout(.side) }) {
                             HStack {
-                                Text("側邊版型")
+                                Text(NSLocalizedString("workoutsharecardsheet.text_8", comment: "Side layout"))
                                 if selectedLayoutMode == .side {
                                     Image(systemName: "checkmark")
                                 }
@@ -463,7 +463,7 @@ struct WorkoutShareCardSheetView: View {
                         }
                         Button(action: { changeLayout(.auto) }) {
                             HStack {
-                                Text("自動選擇")
+                                Text(NSLocalizedString("workoutsharecardsheet.text_9", comment: "Auto select"))
                                 if selectedLayoutMode == .auto {
                                     Image(systemName: "checkmark")
                                 }

@@ -21,6 +21,8 @@ enum PlanOverviewV2Mapper {
             startFromStage: dto.startFromStage,
             raceDate: dto.raceDate,
             distanceKm: dto.distanceKm,
+            distanceKmDisplay: dto.distanceKmDisplay,
+            distanceUnit: dto.distanceUnit,
             targetPace: dto.targetPace,
             targetTime: dto.targetTime,
             isMainRace: dto.isMainRace,
@@ -52,6 +54,8 @@ enum PlanOverviewV2Mapper {
             startFromStage: entity.startFromStage,
             raceDate: entity.raceDate,
             distanceKm: entity.distanceKm,
+            distanceKmDisplay: entity.distanceKmDisplay,
+            distanceUnit: entity.distanceUnit,
             targetPace: entity.targetPace,
             targetTime: entity.targetTime,
             isMainRace: entity.isMainRace,
@@ -87,8 +91,17 @@ enum PlanOverviewV2Mapper {
             weekEnd: dto.weekEnd,
             trainingFocus: dto.trainingFocus,
             targetWeeklyKmRange: toTargetWeeklyKmRange(from: dto.targetWeeklyKmRange),
+            targetWeeklyKmRangeDisplay: dto.targetWeeklyKmRangeDisplay.map { toTargetWeeklyKmRangeDisplay(from: $0) },
             intensityRatio: dto.intensityRatio.map { toIntensityDistribution(from: $0) },
             keyWorkouts: dto.keyWorkouts
+        )
+    }
+
+    private static func toTargetWeeklyKmRangeDisplay(from dto: TargetWeeklyKmRangeDisplayDTO) -> TargetWeeklyKmRangeDisplayV2 {
+        return TargetWeeklyKmRangeDisplayV2(
+            lowDisplay: dto.lowDisplay,
+            highDisplay: dto.highDisplay,
+            distanceUnit: dto.distanceUnit
         )
     }
 
@@ -130,6 +143,9 @@ enum PlanOverviewV2Mapper {
             weekEnd: entity.weekEnd,
             trainingFocus: entity.trainingFocus,
             targetWeeklyKmRange: toTargetWeeklyKmRangeDTO(from: entity.targetWeeklyKmRange),
+            targetWeeklyKmRangeDisplay: entity.targetWeeklyKmRangeDisplay.map {
+                TargetWeeklyKmRangeDisplayDTO(lowDisplay: $0.lowDisplay, highDisplay: $0.highDisplay, distanceUnit: $0.distanceUnit)
+            },
             intensityRatio: entity.intensityRatio.map { toIntensityDistributionDTO(from: $0) },
             keyWorkouts: entity.keyWorkouts
         )

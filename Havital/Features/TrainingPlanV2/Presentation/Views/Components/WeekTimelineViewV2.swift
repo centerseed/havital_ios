@@ -232,8 +232,9 @@ struct TimelineItemViewV2: View {
                                                 .foregroundColor(.green)
                                                 .font(AppFont.captionSmall())
 
-                                            let distVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                            let distUnit = workout.distanceUnit ?? "km"
+                                            let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                            let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                                            let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
                                             Text(String(format: "%.2f \(distUnit)", distVal))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.primary)
@@ -277,8 +278,9 @@ struct TimelineItemViewV2: View {
                                         .foregroundColor(.green)
                                         .font(AppFont.captionSmall())
 
-                                    let distVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                    let distUnit = workout.distanceUnit ?? "km"
+                                    let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                    let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                                    let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
                                     Text(String(format: "%.2f \(distUnit)", distVal))
                                         .font(AppFont.caption())
                                         .foregroundColor(.primary)
@@ -475,10 +477,12 @@ private struct PhaseRow: View {
     private func buildDetailStrings() -> [String] {
         var items: [String] = []
         if let display = segment.distanceDisplay {
-            let unit = segment.distanceUnit ?? "km"
-            items.append(String(format: "%.1f\(unit)", display))
+            let unit = segment.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+            let val = segment.distanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+            items.append(String(format: "%.1f\(unit)", val))
         } else if let km = segment.distanceKm {
-            items.append(String(format: "%.1fkm", km))
+            let converted = UnitManager.shared.convertedDistance(km)
+            items.append(String(format: "%.1f\(UnitManager.shared.currentUnitSystem.distanceSuffix)", converted))
         } else if let m = segment.distanceM {
             items.append("\(m)m")
         }
@@ -512,8 +516,9 @@ private struct SimpleRunBadgesView: View {
         HStack(spacing: 4) {
             // 距離（加粗主資訊）
             if activity.distanceDisplay != nil || activity.distanceKm != nil {
-                let distVal = activity.distanceDisplay ?? activity.distanceKm ?? 0
-                let distUnit = activity.distanceUnit ?? "km"
+                let rawDistVal = activity.distanceDisplay ?? activity.distanceKm ?? 0
+                let distVal = activity.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                let distUnit = activity.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
                 Text(String(format: "%.1f \(distUnit)", distVal))
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
@@ -532,7 +537,7 @@ private struct SimpleRunBadgesView: View {
             // 時間
             if let mins = activity.durationMinutes {
                 Text("·").font(AppFont.caption()).foregroundColor(.secondary)
-                Text("\(mins) 分鐘")
+                Text(String(format: NSLocalizedString("common.minutes_format", comment: "Minutes format"), mins))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
@@ -625,10 +630,12 @@ private struct IntervalBlockView: View {
 
     private var workDistanceText: String? {
         if let display = interval.workDistanceDisplay {
-            let unit = interval.workDistanceUnit ?? "km"
-            return String(format: "%.1f\(unit)", display)
+            let unit = interval.workDistanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+            let val = interval.workDistanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+            return String(format: "%.1f\(unit)", val)
         } else if let km = interval.workDistanceKm {
-            return String(format: "%.1fkm", km)
+            let converted = UnitManager.shared.convertedDistance(km)
+            return String(format: "%.1f\(UnitManager.shared.currentUnitSystem.distanceSuffix)", converted)
         } else if let m = interval.workDistanceM {
             return "\(m)m"
         }
@@ -741,7 +748,7 @@ private struct IntervalRow: View {
 
                 if let mins = duration {
                     Text("·").font(AppFont.caption()).foregroundColor(.secondary)
-                    Text("\(mins) 分鐘")
+                    Text(String(format: NSLocalizedString("common.minutes_format", comment: "Minutes format"), mins))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
@@ -776,12 +783,14 @@ private struct SegmentsView: View {
                             .frame(minWidth: 36, alignment: .leading)
 
                         if let display = seg.distanceDisplay {
-                            let unit = seg.distanceUnit ?? "km"
-                            Text(String(format: "%.1f\(unit)", display))
+                            let unit = seg.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                            let val = seg.distanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+                            Text(String(format: "%.1f\(unit)", val))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         } else if let km = seg.distanceKm {
-                            Text(String(format: "%.1fkm", km))
+                            let converted = UnitManager.shared.convertedDistance(km)
+                            Text(String(format: "%.1f\(UnitManager.shared.currentUnitSystem.distanceSuffix)", converted))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         } else if let m = seg.distanceM {
@@ -799,7 +808,7 @@ private struct SegmentsView: View {
 
                         if let mins = seg.durationMinutes {
                             Text("·").font(AppFont.caption()).foregroundColor(.secondary)
-                            Text("\(mins) 分鐘")
+                            Text(String(format: NSLocalizedString("common.minutes_format", comment: "Minutes format"), mins))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
@@ -888,14 +897,15 @@ private struct CrossContentView: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Text("\(activity.durationMinutes) 分鐘")
+            Text(String(format: NSLocalizedString("common.minutes_format", comment: "Minutes format"), activity.durationMinutes))
                 .font(AppFont.bodySmall())
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
 
             if activity.distanceDisplay != nil || activity.distanceKm != nil {
-                let distVal = activity.distanceDisplay ?? activity.distanceKm ?? 0
-                let distUnit = activity.distanceUnit ?? "km"
+                let rawDistVal = activity.distanceDisplay ?? activity.distanceKm ?? 0
+                let distVal = activity.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                let distUnit = activity.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
                 Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                 Text(String(format: "%.1f \(distUnit)", distVal))
                     .font(AppFont.caption())

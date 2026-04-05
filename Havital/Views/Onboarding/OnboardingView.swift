@@ -359,7 +359,7 @@ struct OnboardingView: View {
                                         Text(NSLocalizedString("common.pace", comment: "Pace"))
                                             .font(AppFont.caption())
                                             .foregroundColor(.secondary)
-                                        Text(String(format: "%@ /km", viewModel.targetPace))
+                                        Text(UnitManager.shared.formatPaceString(viewModel.targetPace))
                                             .font(AppFont.headline())
                                             .foregroundColor(.primary)
                                     }

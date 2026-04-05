@@ -391,6 +391,16 @@
 "training.type.fast_finish" = "Fast Finish Run";
 // New Race Pace Training
 "training.type.race_pace" = "Race Pace Run";
+// New Long Run Types
+"training.type.mp_long_run" = "MP Long Run";
+"training.type.progressive_long_run" = "Progressive Long Run";
+// Legacy quality session types (_day suffix compatibility)
+"training.type.vo2max_day" = "VO₂max Intervals";
+"training.type.threshold_day" = "Tempo Run";
+"training.type.fartlek_day" = "Fartlek";
+"training.type.speed_day" = "Speed Work";
+"training.type.hills_day" = "Hill Training";
+"training.type.quality_day" = "Quality Session";
 
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "Maintain a comfortable effort pace";
@@ -647,7 +657,6 @@
 "training.current_week_progress" = "Current training progress has entered week";
 "training.paceriz_plan_description" = "Paceriz will generate a personalized weekly schedule based on your training condition. Let's check this week's training status and generate a new schedule!";
 "training.get_weekly_review" = "Get Weekly Review";
-"training.daily_training" = "Daily Training";
 "training.cycle_completed_message" = "Great job! Your training cycle is complete. Don't forget to set your next training goal after reviewing your training!";
 "training.set_new_goal" = "Set New Goal";
 "training.loading_plan" = "Loading training plan...";
@@ -670,6 +679,7 @@
 "common.later" = "Later";
 "common.reload" = "Reload";
 "common.ok" = "OK";
+"common.minutes_format" = "%d min";
 
 // MARK: - Workout Details
 "workout.details" = "Workout Details";
@@ -686,7 +696,6 @@
 // MARK: - Record Additional
 "record.avg_heart_rate" = "Average Heart Rate";
 "record.max_heart_rate" = "Max Heart Rate";
-"record.no_records_description" = "No workout records available, they will appear here after you start exercising";
 
 // MARK: - Performance
 "performance.weekly_volume_trend" = "Weekly Volume Trend";
@@ -730,7 +739,6 @@
 "training.cannot_get_stages" = "Unable to get training stage information";
 "training.week_number" = "Week %d";
 "training.view_schedule" = "View Schedule";
-"training.training_review" = "Training Review";
 "training.generate_schedule" = "Generate Plan";
 
 // MARK: - Training Overview Strings
@@ -741,7 +749,6 @@
 "training.plan_overview" = "Plan Overview";
 "training.goal_assessment" = "Goal Assessment";
 "training.plan_highlights" = "Plan Highlights";
-"training.training_stages" = "Training Stages";
 "training.stages_summary" = "%d stages, %d weeks total";
 "training.updating_plan" = "Updating training plan...";
 "training.plan_regenerated" = "Training plan has been regenerated based on latest goals";
@@ -1111,9 +1118,6 @@
 "training_plan.sprint_segment" = "Sprint Segment";
 "training_plan.recovery_segment" = "Recovery Segment";
 "training_plan.rest_in_place" = "Rest in place";
-"training_plan.cycle_completed" = "Training cycle completed";
-"training_plan.congratulations" = "Congratulations on completing this training cycle!";
-"training_plan.loading_schedule" = "Loading schedule...";
 
 // MARK: - Training Type Info
 "training_type_info.how_to_run_title" = "How to Run";
@@ -1263,9 +1267,6 @@
 "weekday.sun_short" = "Sun";
 
 // MARK: - Training Intensity Levels
-"intensity.low" = "Low";
-"intensity.medium" = "Medium";
-"intensity.high" = "High";
 
 // MARK: - Weekly Progress Strings
 "progress.weekly_volume" = "Volume";
@@ -1543,15 +1544,11 @@
 "start_stage.time_too_short_message" = "Less than 2 weeks until race, may not achieve expected training results. Consider choosing a later race date.";
 
 // Common
-"common.ok" = "OK";
 
 // MARK: - Timezone Settings
-"timezone.title" = "Timezone Settings";
 "timezone.current_device" = "Device Timezone";
 "timezone.device_timezone" = "Device Timezone";
 "timezone.use_device" = "Use Device Timezone";
-"timezone.common_timezones" = "Common Timezones";
-"timezone.sync_message" = "Timezone settings will sync to server and affect training plan week calculations";
 "timezone.change_warning" = "Changing timezone may affect training week calculations";
 
 // Timezone Names
@@ -1591,9 +1588,7 @@
 "heart_rate.go_to_setup" = "Set Up Now";
 "heart_rate.remind_tomorrow" = "Remind Me Tomorrow";
 "heart_rate.never_remind" = "Don't Remind Me";
-"common.ok" = "OK";
 "common.error" = "Error";
-"common.generating" = "Generating...";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "Est. Finish";
 
@@ -1621,8 +1616,6 @@
 "profile_view.developer.simulate_remind_tomorrow" = "Simulate 'Remind Tomorrow' (Expires in 1 minute)";
 
 // MARK: - Edit Schedule
-"edit_schedule.cancel" = "Cancel";
-"edit_schedule.save" = "Save";
 "edit_schedule.done" = "Done";
 "edit_schedule.confirm" = "Confirm";
 "edit_schedule.apply" = "Apply";
@@ -1660,6 +1653,8 @@
 "edit_schedule.yasso_800_settings" = "Yasso 800 Training";
 "edit_schedule.yasso_800_description" = "800m repeat training for marathon time prediction and VO2max improvement. Target time relates to your marathon goal.";
 "edit_schedule.rest_time" = "Rest Time";
+"edit_schedule.unnamed_exercise" = "(Unnamed)";
+"edit_schedule.select_exercise" = "Select Exercise";
 
 "edit_schedule.suggested_pace" = "Suggested Pace: %@";
 "edit_schedule.sprint_suggested_pace" = "Sprint Suggested Pace: %@";
@@ -1736,8 +1731,6 @@
 "my_achievement.monthly_mileage" = "Monthly Mileage";
 
 // MARK: - Training Readiness View
-"training_readiness.title" = "Training Readiness";
-"training_readiness.overall_score" = "Overall Score";
 "training_readiness.fitness_level" = "Fitness Level";
 "training_readiness.fatigue_level" = "Fatigue Level";
 "training_readiness.recovery_status" = "Recovery Status";
@@ -1776,7 +1769,6 @@
 
 // MARK: - Miscellaneous
 "misc.loading" = "Loading...";
-"misc.retry" = "Retry";
 "misc.back" = "Back";
 "misc.back_to_this_week" = "Back to This Week";
 "misc.segment" = "Segment %d";
@@ -1789,8 +1781,6 @@
 "misc.strava_account_bound" = "Strava Account Bound";
 
 // MARK: - Edit Schedule Additional
-"edit_schedule.save_failed" = "Save Failed";
-"edit_schedule.rest_in_place" = "Rest in Place";
 "edit_schedule.dragging" = "Dragging...";
 "edit_schedule.drag_to_target" = "Drag to Target Position";
 "edit_schedule.monday" = "Mon";
@@ -1894,19 +1884,12 @@
 "edit_schedule.quick_templates" = "Quick Templates";
 "edit_schedule.estimated_time" = "Estimated Time";
 "edit_schedule.for_distance" = "%.1f km";
-"edit_schedule.interval_distance_selection" = "Interval Distance";
-"edit_schedule.training_type_selection" = "Training Type";
-"edit_schedule.distance_selection" = "Distance";
-"edit_schedule.repeats_selection" = "Repeats";
-"edit_schedule.select_distance" = "Select Distance";
-"edit_schedule.select_repeats" = "Select Repeats";
 "edit_schedule.category_easy" = "Easy Training";
 "edit_schedule.category_intensity" = "Intensity Training";
 "edit_schedule.category_long" = "Long Distance";
 "edit_schedule.category_other" = "Other";
 
 // MARK: - Edit Schedule Additional Keys
-"edit_schedule.edit_training" = "Edit Training";
 
 // MARK: - Empty State
 "empty_state.no_data_title" = "No %@ Data";
@@ -1933,12 +1916,7 @@
 
 // MARK: - Distance Labels
 "distance.mile" = "1.6 km";
-"distance.3k" = "3 km";
-"distance.5k" = "5 km";
-"distance.10k" = "10 km";
-"distance.half_marathon" = "Half Marathon";
 "distance.half_marathon_short" = "21km";
-"distance.full_marathon" = "Full Marathon";
 "distance.full_marathon_short" = "42km";
 
 // MARK: - My Achievement - Personal Best
@@ -1992,7 +1970,6 @@
 "share_card.choose_photo" = "Choose Photo";
 "share_card.generate" = "Generate Share Card";
 "training_plan.weekly_volume_load_zh" = "Weekly Volume and Intensity";
-"training_type_info.norwegian_4x4.how_to_run" = "Perform 4 sets of 4-minute high-intensity runs, with 3 minutes of rest between sets. Maintain a steady VO₂max pace (92% max HR), sprint but stay controlled—you should feel \"very hard, but able to complete all sets\".";
 
 
 // MARK: - Hardcoded String Localization
@@ -2246,3 +2223,141 @@
 "training.user_profile" = "Profile";
 "training.contact_paceriz" = "Contact Paceriz";
 "training.switch_week" = "Switch Week";
+
+// MARK: - Missing Keys (Phase 2 Sync)
+"onboarding.approach_summary" = "Training Approach";
+"onboarding.custom_weeks" = "Custom Weeks";
+"onboarding.long_duration_benefit" = "A longer training period allows you to progress gradually";
+"onboarding.methodology" = "Training Method";
+"onboarding.quick_options" = "Quick Options";
+"onboarding.select_weeks" = "Select Weeks";
+"onboarding.selected_duration" = "Selected Training Duration";
+"onboarding.short_duration_warning" = "A shorter training period may limit your progress";
+"onboarding.target_type" = "Goal Type";
+"onboarding.training_weeks_description" = "How many weeks do you plan to train?";
+"onboarding.training_weeks_nav_title" = "Training Weeks";
+"onboarding.training_weeks_title" = "Training Weeks";
+"training_plan.back_to_current_week" = "Back to Current Week (Week %d)";
+"training_plan.current_week" = "Current Week";
+"training_plan.not_current_week" = "Not Current Week";
+"training.accept_adjustments_and_generate" = "Accept Adjustments & Generate Next Week";
+"training.achievements_count" = "%d achievements";
+"training.areas_for_improvement_title" = "Areas to Improve";
+"training.avg_heart_rate_preview" = "Avg HR %.0f bpm";
+"training.avg_pace_preview" = "Avg Pace %@";
+"training.change_methodology" = "Change Methodology";
+"training.completed_description" = "Ready to start a new training plan?";
+"training.completed_title" = "Congratulations! Training Plan Completed";
+"training.completed_workouts" = "Completed Workouts";
+"training.confirm_training_complete_message" = "Please confirm that this week's training is complete. Generating the weekly summary requires complete training data for accurate analysis.";
+"training.confirm_training_complete" = "Confirm Training Complete";
+"training.cooldown" = "Cooldown";
+"training.cross_type.cycling" = "Cycling";
+"training.cross_type.elliptical" = "Elliptical";
+"training.cross_type.hiking" = "Hiking";
+"training.cross_type.rowing" = "Rowing";
+"training.cross_type.swimming" = "Swimming";
+"training.cross_type.yoga" = "Yoga";
+"training.current_methodology" = "Current Methodology";
+"training.current_summary_completed" = "This Week's Summary Completed";
+"training.current_week_label" = "This Week";
+"training.exercises" = "Exercises";
+"training.generate_week_n_plan" = "Generate Week %d Plan";
+"training.generate_week_summary" = "Generate Week %d Summary";
+"training.highlights_count" = "%d highlights";
+"training.key_milestones" = "Key Milestones";
+"training.key_workouts" = "Key Workouts";
+"training.loading_failed" = "Loading Failed";
+"training.methodology_changed" = "Methodology changed successfully";
+"training.methodology" = "Training Methodology";
+"training.more_workouts" = "more";
+"training.my_training_target" = "My Training Goal";
+"training.need_complete_current_summary" = "Need to Complete This Week's Summary First";
+"training.need_weekly_summary_description" = "Please generate the Week %d summary before generating next week's plan";
+"training.need_weekly_summary_title" = "Weekly Summary Required";
+"training.no_highlights" = "No highlights data";
+"training.no_plan_description" = "Please go through Onboarding to create your training plan";
+"training.no_plan_title" = "No Training Plan Yet";
+"training.philosophy" = "Training Philosophy";
+"training.race_date" = "Race Date";
+"training.race_distance" = "Race Distance";
+"training.race_evaluation" = "Race Evaluation";
+"training.ready_for_next_week_title" = "🎯 Ready for Next Week?";
+"training.reps_unit" = "reps";
+"training.seconds_unit" = "sec";
+"training.segment_n" = "Segment %d";
+"training.select_methodology" = "Select Methodology";
+"training.sets_unit" = "sets";
+"training.supplementary" = "Supplementary Training";
+"training.tab_analysis" = "Data Analysis";
+"training.tab_next_week" = "Next Week Plan";
+"training.tab_results" = "This Week's Results";
+"training.target_evaluation" = "Goal Evaluation";
+"training.target_info" = "Goal Info";
+"training.target_pace" = "Target Pace";
+"training.target_time" = "Target Time";
+"training.training_focus" = "Training Focus";
+"training.training_plan" = "Training Plan";
+"training.training_strategy" = "Training Strategy";
+"training.training_target" = "Training Goal";
+"training.training_weeks" = "Training Weeks";
+"training.updating_overview" = "Updating training plan...";
+"training.view_analysis" = "View Analysis";
+"training.warmup" = "Warmup";
+"training.weekly_km_target" = "Weekly Mileage Target";
+"training.workout_type.fartlek" = "Fartlek";
+"training.workout_type.long_interval" = "Long Interval";
+"training.workout_type.long_run" = "Long Run";
+"training.workout_type.norwegian_4x4" = "Norwegian 4x4";
+"training.workout_type.race_pace" = "Race Pace";
+"training.workout_type.short_interval" = "Short Interval";
+"training.workout_type.tempo" = "Tempo Run";
+"training.workout_type.threshold" = "Threshold Run";
+
+// MARK: - New Phase 1 Keys
+"edit_schedule.rest_day" = "This is a rest day";
+"edit_schedule.strength_settings" = "Strength Training Settings";
+"edit_schedule.training_type" = "Training Type";
+"edit_schedule.training_duration" = "Training Duration";
+"edit_schedule.min_one_exercise" = "At least one exercise is required";
+"edit_schedule.exercise_list" = "Exercise List";
+"edit_schedule.sets" = "Sets";
+"edit_schedule.duration_seconds" = "Seconds";
+"edit_schedule.reps" = "Reps";
+"edit_schedule.warmup_cooldown" = "Warmup / Cooldown";
+"edit_schedule.distance_label" = "Distance";
+"edit_schedule.pace_label" = "Pace";
+"edit_schedule.quick_select" = "Quick Select";
+"edit_schedule.minute_label" = "min";
+"edit_schedule.second_label" = "sec";
+"edit_schedule.recovery" = "Recovery";
+"edit_schedule.warmup_summary" = "🔥 Warmup %.1fkm";
+"edit_schedule.cooldown_summary" = "❄️ Cooldown %.1fkm";
+"edit_schedule.supplementary_count" = "➕ Supplementary (%d)";
+"edit_schedule.pace_label_colon" = "Pace:";
+"edit_schedule.distance_label_colon" = "Distance:";
+"training.weekly_skeleton_disclaimer" = "The following is the weekly training skeleton. Actual schedule will be dynamically adjusted based on your training status.";
+"training.weekly_skeleton_title" = "Weekly Training Skeleton";
+"training.week_n" = "Week %d";
+"training.recovery_week" = "Recovery Week";
+"training.quality_session" = "Quality Session";
+"training.weeks_count" = "%d weeks";
+"training.milestone_disclaimer" = "⚠️ Milestone distance is based on your historical running data and will be continuously optimized after training begins";
+"training.stage_week_range" = "Week %d-%d";
+"training.weekly_schedule_wip" = "Weekly schedule is under development...";
+"performance.no_data" = "Not enough training data";
+"performance.fitness_balance" = "Fitness Index & Training Stress Balance";
+"performance.syncing" = "Syncing...";
+"workoutsharecardsheet.close" = "Close";
+"time.seconds_format" = "%ds";
+"time.minutes_format" = "%d min";
+"time.minutes_seconds_format" = "%dm %ds";
+"time.sets_seconds_format" = "%d × %ds";
+"time.picker.minutes" = "Minutes";
+"time.picker.seconds" = "Seconds";
+"time.quick.30s" = "30s";
+"time.quick.1m" = "1min";
+"time.quick.1m30s" = "1m30s";
+"time.quick.2m" = "2min";
+"time.quick.3m" = "3min";
+"edit_schedule.select_rest_time" = "Select Rest Time";

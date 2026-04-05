@@ -233,6 +233,29 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         Logger.info("[TrainingPlanV2Repo] ✅ [DEBUG] Weekly plan deleted: \(planId)")
     }
 
+    // MARK: - Weekly Preview
+
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        Logger.debug("[TrainingPlanV2Repo] getWeeklyPreview for overview: \(overviewId)")
+
+        // Track A: Check local cache
+        if let cached = localDataSource.getWeeklyPreview(overviewId: overviewId),
+           !localDataSource.isWeeklyPreviewExpired(overviewId: overviewId) {
+            Logger.debug("[TrainingPlanV2Repo] Weekly preview cache hit")
+
+            // Track B: Background refresh
+            Task.detached(priority: .background) { [weak self] in
+                await self?.refreshWeeklyPreviewInBackground(overviewId: overviewId)
+            }
+
+            return cached
+        }
+
+        // Cache miss - fetch from API
+        Logger.debug("[TrainingPlanV2Repo] Weekly preview cache miss, fetching from API")
+        return try await fetchAndCacheWeeklyPreview(overviewId: overviewId)
+    }
+
     // MARK: - Weekly Summary
 
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {
@@ -431,6 +454,29 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             Logger.debug("[TrainingPlanV2Repo] Background refresh completed for week \(week) summary")
         } catch {
             Logger.debug("[TrainingPlanV2Repo] Background refresh failed for week \(week) summary: \(error)")
+        }
+    }
+
+    private func fetchAndCacheWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        do {
+            let dto = try await remoteDataSource.getWeeklyPreview(overviewId: overviewId)
+            let entity = WeeklyPreviewV2Mapper.toEntity(from: dto)
+            localDataSource.saveWeeklyPreview(entity, overviewId: overviewId)
+            return entity
+        } catch {
+            logErrorToCloud(module: "WeeklyPreview", operation: "fetch", error: error, context: ["overviewId": overviewId])
+            throw error.toDomainError()
+        }
+    }
+
+    private func refreshWeeklyPreviewInBackground(overviewId: String) async {
+        do {
+            let dto = try await remoteDataSource.getWeeklyPreview(overviewId: overviewId)
+            let entity = WeeklyPreviewV2Mapper.toEntity(from: dto)
+            localDataSource.saveWeeklyPreview(entity, overviewId: overviewId)
+            Logger.debug("[TrainingPlanV2Repo] Background refresh completed for weekly preview")
+        } catch {
+            Logger.debug("[TrainingPlanV2Repo] Background refresh failed for weekly preview: \(error)")
         }
     }
 

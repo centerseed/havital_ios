@@ -27,12 +27,11 @@ struct PaceFormatterHelper {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
-    /// 格式化配速為完整描述
+    /// 格式化配速為完整描述（依 UnitManager 設定決定單位）
     /// - Parameter pace: 配速字串，格式為 "mm:ss"
-    /// - Returns: 格式化後的配速描述，例如："5:30/km"
+    /// - Returns: 格式化後的配速描述，例如："5:30/km" 或 "8:51/mi"
     static func formatPaceWithUnit(_ pace: String?) -> String {
-        guard let formatted = pace else { return "--:--/km" }
-        return "\(formatPace(formatted))/km"
+        return MainActor.assumeIsolated { UnitManager.shared.formatPaceString(pace) }
     }
 
     // MARK: - 建議配速計算

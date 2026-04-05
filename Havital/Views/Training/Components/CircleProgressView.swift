@@ -84,7 +84,7 @@ struct CircleProgressView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    Text(unit ?? "km")
+                    Text(unit ?? UnitManager.shared.currentUnitSystem.distanceSuffix)
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .lineLimit(nil)

@@ -67,6 +67,37 @@ class UnitManager: ObservableObject {
         }
     }
 
+    /// 轉換距離數字（不帶單位字串）
+    func convertedDistance(_ km: Double) -> Double {
+        switch currentUnitSystem {
+        case .metric: return km
+        case .imperial: return km * 0.621371
+        }
+    }
+
+    /// 格式化配速（輸入：秒/km，輸出：含單位的配速字串如 "5:30 /km" 或 "8:51 /mi"）
+    func formatPace(secondsPerKm: Double) -> String {
+        let converted: Double
+        switch currentUnitSystem {
+        case .metric: converted = secondsPerKm
+        case .imperial: converted = secondsPerKm * 1.60934
+        }
+        let minutes = Int(converted) / 60
+        let seconds = Int(converted) % 60
+        return String(format: "%d:%02d %@", minutes, seconds, currentUnitSystem.paceSuffix)
+    }
+
+    /// 格式化配速（輸入："mm:ss" 字串，輸出：含單位如 "5:30/km"）
+    func formatPaceString(_ pace: String?) -> String {
+        guard let pace = pace else {
+            return "--:--/\(currentUnitSystem.distanceSuffix)"
+        }
+        let components = pace.split(separator: ":").compactMap { Int($0) }
+        guard components.count == 2 else { return pace }
+        let totalSeconds = Double(components[0] * 60 + components[1])
+        return formatPace(secondsPerKm: totalSeconds)
+    }
+
     func saveToDefaults() {
         UserDefaults.standard.set(currentUnitSystem.rawValue, forKey: Self.defaultsKey)
     }

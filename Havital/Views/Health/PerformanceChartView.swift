@@ -16,12 +16,12 @@ struct PerformanceChartView: View {
                     .frame(height: 200)
             } else {
                 if performancePoints.isEmpty {
-                    Text("沒有足夠的訓練資料")
+                    Text(NSLocalizedString("performance.no_data", comment: "Not enough training data"))
                         .foregroundColor(.secondary)
                         .frame(height: 200)
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("近三個月訓練表現")
+                        Text(NSLocalizedString("performancechart.text_1", comment: "Last 3 months performance"))
                             .font(AppFont.headline())
                             .padding(.horizontal)
                         
@@ -31,7 +31,7 @@ struct PerformanceChartView: View {
                                 Circle()
                                     .fill(Color.orange)
                                     .frame(width: 8, height: 8)
-                                Text("訓練日")
+                                Text(NSLocalizedString("performancechart.text_2", comment: "Training days"))
                                     .font(AppFont.caption())
                             }
                             HStack(spacing: 4) {

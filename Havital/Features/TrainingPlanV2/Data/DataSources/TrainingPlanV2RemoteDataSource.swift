@@ -21,6 +21,9 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
     func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2DTO
     func deleteWeeklyPlan(planId: String) async throws
 
+    // Weekly Preview
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewResponseDTO
+
     // Weekly Summary
     func getWeeklySummaries() async throws -> [WeeklySummaryItem]
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2DTO
@@ -263,6 +266,22 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
         Logger.debug("[TrainingPlanV2RemoteDS] 🗑️ [DEBUG] Deleting weekly plan: \(planId)")
         try await apiHelper.delete(path: "/v2/plan/weekly/\(planId)")
         Logger.info("[TrainingPlanV2RemoteDS] ✅ [DEBUG] Weekly plan deleted: \(planId)")
+    }
+
+    // MARK: - Weekly Preview API
+
+    /// 獲取週預覽資料
+    /// API: GET /v2/plan/{overviewId}/weekly-preview
+    /// - Parameter overviewId: 計畫概覽 ID
+    /// - Returns: Weekly Preview Response DTO
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewResponseDTO {
+        Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly preview for overview: \(overviewId)")
+        let response = try await apiHelper.get(
+            WeeklyPreviewResponseDTO.self,
+            path: "/v2/plan/\(overviewId)/weekly-preview"
+        )
+        Logger.info("[TrainingPlanV2RemoteDS] ✅ Weekly preview fetched: \(response.weeks.count) weeks")
+        return response
     }
 
     // MARK: - Weekly Summary APIs

@@ -211,7 +211,7 @@ struct TrainingOverviewView: View {
                 HStack {
                     Label(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"), systemImage: "speedometer")
                     Spacer()
-                    Text("\(pace) /km")
+                    Text(UnitManager.shared.formatPaceString(pace))
                         .foregroundColor(.secondary)
                 }
             }
@@ -332,7 +332,13 @@ struct TrainingOverviewView: View {
                 }
 
                 // Weekly distance range
-                Text("\(Int(stage.targetWeeklyKmRange.low))-\(Int(stage.targetWeeklyKmRange.high)) \(NSLocalizedString("unit.km", comment: "km"))/\(NSLocalizedString("common.week_unit", comment: "week"))")
+                Text({
+                    if let display = stage.targetWeeklyKmRangeDisplay {
+                        return "\(Int(display.lowDisplay))-\(Int(display.highDisplay)) \(display.distanceUnit)/\(NSLocalizedString("common.week_unit", comment: "week"))"
+                    } else {
+                        return "\(Int(stage.targetWeeklyKmRange.low))-\(Int(stage.targetWeeklyKmRange.high)) km/\(NSLocalizedString("common.week_unit", comment: "week"))"
+                    }
+                }())
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(stageColor(for: stageIndex))

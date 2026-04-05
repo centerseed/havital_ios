@@ -109,6 +109,13 @@ protocol TrainingPlanV2Repository {
     /// - Parameter planId: 週課表 ID
     func deleteWeeklyPlan(planId: String) async throws
 
+    // MARK: - Weekly Preview
+
+    /// 獲取週訓練預覽（支援緩存）
+    /// - Parameter overviewId: 概覽 ID
+    /// - Returns: 週訓練預覽實體
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2
+
     // MARK: - Weekly Summary
 
     /// 生成週摘要

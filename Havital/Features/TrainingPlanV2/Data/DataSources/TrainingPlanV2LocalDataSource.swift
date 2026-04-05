@@ -22,6 +22,12 @@ protocol TrainingPlanV2LocalDataSourceProtocol {
     func clearWeeklySummary(week: Int)
     func clearAllWeeklySummaries()
 
+    // Weekly Preview Cache
+    func getWeeklyPreview(overviewId: String) -> WeeklyPreviewV2?
+    func saveWeeklyPreview(_ preview: WeeklyPreviewV2, overviewId: String)
+    func isWeeklyPreviewExpired(overviewId: String) -> Bool
+    func clearWeeklyPreview(overviewId: String)
+
     // Utility
     func clearAll()
 }
@@ -38,6 +44,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         static let overview = "training_plan_v2_overview_cache"
         static let weeklyPlanPrefix = "training_plan_v2_weekly_"
         static let weeklySummaryPrefix = "training_plan_v2_summary_"
+        static let weeklyPreviewPrefix = "training_plan_v2_preview_"
         static let timestampSuffix = "_timestamp"
     }
 
@@ -207,6 +214,50 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
             clearWeeklySummary(week: week)
         }
         Logger.debug("[TrainingPlanV2LocalDS] All weekly summary caches cleared")
+    }
+
+    // MARK: - Weekly Preview Cache
+
+    func getWeeklyPreview(overviewId: String) -> WeeklyPreviewV2? {
+        let key = Keys.weeklyPreviewPrefix + overviewId
+        guard let data = defaults.data(forKey: key) else {
+            return nil
+        }
+
+        do {
+            return try decoder.decode(WeeklyPreviewV2.self, from: data)
+        } catch {
+            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode weekly preview for \(overviewId), clearing cache")
+            clearWeeklyPreview(overviewId: overviewId)
+            return nil
+        }
+    }
+
+    func saveWeeklyPreview(_ preview: WeeklyPreviewV2, overviewId: String) {
+        do {
+            let key = Keys.weeklyPreviewPrefix + overviewId
+            let data = try encoder.encode(preview)
+            defaults.set(data, forKey: key)
+            defaults.set(Date(), forKey: key + Keys.timestampSuffix)
+            Logger.debug("[TrainingPlanV2LocalDS] Weekly preview saved to cache: \(overviewId)")
+        } catch {
+            Logger.error("[TrainingPlanV2LocalDS] Failed to encode weekly preview: \(error)")
+        }
+    }
+
+    func isWeeklyPreviewExpired(overviewId: String) -> Bool {
+        let key = Keys.weeklyPreviewPrefix + overviewId + Keys.timestampSuffix
+        guard let timestamp = defaults.object(forKey: key) as? Date else {
+            return true
+        }
+        return Date().timeIntervalSince(timestamp) > TTL.overview
+    }
+
+    func clearWeeklyPreview(overviewId: String) {
+        let key = Keys.weeklyPreviewPrefix + overviewId
+        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: key + Keys.timestampSuffix)
+        Logger.debug("[TrainingPlanV2LocalDS] Weekly preview cache cleared for \(overviewId)")
     }
 
     // MARK: - Utility

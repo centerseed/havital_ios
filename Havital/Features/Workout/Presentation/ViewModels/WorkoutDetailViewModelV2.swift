@@ -793,10 +793,22 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     
     var distance: String? {
         guard let distance = workout.distance else { return nil }
+        let unit = MainActor.assumeIsolated { UnitManager.shared.currentUnitSystem }
         if distance >= 1000 {
-            return String(format: "%.2f km", distance / 1000)
+            let km = distance / 1000
+            switch unit {
+            case .metric:
+                return String(format: "%.2f km", km)
+            case .imperial:
+                return String(format: "%.2f mi", km * 0.621371)
+            }
         } else {
-            return String(format: "%.0f m", distance)
+            switch unit {
+            case .metric:
+                return String(format: "%.0f m", distance)
+            case .imperial:
+                return String(format: "%.0f ft", distance * 3.28084)
+            }
         }
     }
     
@@ -810,9 +822,18 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         
         let paceSecondsPerMeter = workout.duration / distance
         let paceInSecondsPerKm = paceSecondsPerMeter * 1000
-        let paceMinutes = Int(paceInSecondsPerKm) / 60
-        let paceRemainingSeconds = Int(paceInSecondsPerKm) % 60
-        return String(format: "%d:%02d/km", paceMinutes, paceRemainingSeconds)
+        let (paceSeconds, suffix) = MainActor.assumeIsolated {
+            let unit = UnitManager.shared.currentUnitSystem
+            let secs: Double
+            switch unit {
+            case .metric: secs = paceInSecondsPerKm
+            case .imperial: secs = paceInSecondsPerKm / 1.60934
+            }
+            return (secs, unit.distanceSuffix)
+        }
+        let paceMinutes = Int(paceSeconds) / 60
+        let paceRemainingSeconds = Int(paceSeconds) % 60
+        return String(format: "%d:%02d/%@", paceMinutes, paceRemainingSeconds, suffix)
     }
     
     var averageHeartRate: String? {

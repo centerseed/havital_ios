@@ -217,12 +217,12 @@ struct TimelineItemView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     if let repeats = trainingItems[0].goals.times {
                                         HStack {
-                                            Text("間歇訓練")
+                                            Text(NSLocalizedString("training.interval_type.interval", comment: "Interval Training"))
                                                 .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                             Spacer()
-                                            Text("\(repeats) × 組")
+                                            Text("\(repeats) × " + NSLocalizedString("training.sets_unit", comment: "sets"))
                                                 .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
@@ -236,7 +236,7 @@ struct TimelineItemView: View {
                                         VStack(alignment: .leading, spacing: 4) {
                                             // 衝刺段
                                             HStack(spacing: 6) {
-                                                Text("衝刺段")
+                                                Text(NSLocalizedString("training.interval.work_label.default", comment: "Sprint"))
                                                     .font(AppFont.caption())
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 6)
@@ -275,7 +275,7 @@ struct TimelineItemView: View {
                                             // 恢復段
                                             if let recoveryItem = recoveryItem {
                                                 HStack(spacing: 6) {
-                                                    Text("恢復段")
+                                                    Text(NSLocalizedString("edit_schedule.recovery_segment", comment: "Recovery Segment"))
                                                         .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                         .padding(.horizontal, 6)
@@ -284,7 +284,7 @@ struct TimelineItemView: View {
                                                         .cornerRadius(4)
 
                                                     if recoveryItem.goals.pace == nil && recoveryItem.goals.distanceKm == nil {
-                                                        Text("原地休息")
+                                                        Text(NSLocalizedString("training.interval.rest", comment: "Rest in Place"))
                                                             .font(AppFont.caption())
                                                             .foregroundColor(.secondary)
                                                             .padding(.horizontal, 5)
@@ -362,13 +362,13 @@ struct TimelineItemView: View {
                                 // 🇳🇴 挪威4x4 專屬顯示
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("🇳🇴 挪威4x4")
+                                        Text(NSLocalizedString("training.interval_type.norwegian_4x4", comment: "Norwegian 4x4"))
                                             .font(AppFont.caption())
                                             .fontWeight(.semibold)
                                             .foregroundColor(.orange)
                                         Spacer()
                                         if let repeats = details.repeats {
-                                            Text("\(repeats) 組")
+                                            Text(String(format: NSLocalizedString("training.interval.repeats", comment: "Repeats"), repeats))
                                                 .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
@@ -378,7 +378,7 @@ struct TimelineItemView: View {
                                     // 工作段
                                     if let work = details.work {
                                         HStack(spacing: 6) {
-                                            Text("衝刺")
+                                            Text(NSLocalizedString("training.interval.work_label.default", comment: "Sprint"))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -404,7 +404,7 @@ struct TimelineItemView: View {
                                                     Image(systemName: "clock.fill")
                                                         .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
-                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                                         .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
@@ -439,7 +439,7 @@ struct TimelineItemView: View {
                                         let isRestInPlaceN4x4 = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
 
                                         HStack(spacing: 6) {
-                                            Text(isRestInPlaceN4x4 ? "原地休息" : "恢復跑")
+                                            Text(isRestInPlaceN4x4 ? NSLocalizedString("training.interval.rest", comment: "Rest in Place") : NSLocalizedString("training.interval.recovery_run", comment: "Recovery Run"))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -465,7 +465,7 @@ struct TimelineItemView: View {
                                                     Image(systemName: "clock.fill")
                                                         .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
-                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                                         .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
@@ -499,13 +499,13 @@ struct TimelineItemView: View {
                                 // 亞索800 專屬顯示
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("亞索800")
+                                        Text(NSLocalizedString("training.interval_type.yasso_800", comment: "Yasso 800"))
                                             .font(AppFont.caption())
                                             .fontWeight(.semibold)
                                             .foregroundColor(.orange)
                                         Spacer()
                                         if let repeats = details.repeats {
-                                            Text("\(repeats) 組")
+                                            Text(String(format: NSLocalizedString("training.interval.repeats", comment: "Repeats"), repeats))
                                                 .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
@@ -515,7 +515,7 @@ struct TimelineItemView: View {
                                     // 工作段（800m）
                                     if let work = details.work {
                                         HStack(spacing: 6) {
-                                            Text("衝刺")
+                                            Text(NSLocalizedString("training.interval.work_label.default", comment: "Sprint"))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -559,7 +559,7 @@ struct TimelineItemView: View {
                                         let isRestInPlaceY800 = recovery.pace == nil && recovery.distanceKm == nil && recovery.distanceM == nil
 
                                         HStack(spacing: 6) {
-                                            Text(isRestInPlaceY800 ? "原地休息" : "恢復跑")
+                                            Text(isRestInPlaceY800 ? NSLocalizedString("training.interval.rest", comment: "Rest in Place") : NSLocalizedString("training.interval.recovery_run", comment: "Recovery Run"))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -586,7 +586,7 @@ struct TimelineItemView: View {
                                                     Image(systemName: "clock.fill")
                                                         .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
-                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                                         .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
@@ -629,7 +629,7 @@ struct TimelineItemView: View {
                                             .foregroundColor(.orange)
                                         Spacer()
                                         if let repeats = details.repeats {
-                                            Text("\(repeats) 組")
+                                            Text(String(format: NSLocalizedString("training.interval.repeats", comment: "Repeats"), repeats))
                                                 .font(AppFont.caption())
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.orange)
@@ -639,7 +639,7 @@ struct TimelineItemView: View {
                                     // 工作段
                                     if let work = details.work {
                                         HStack(spacing: 6) {
-                                            Text("衝刺")
+                                            Text(NSLocalizedString("training.interval.work_label.default", comment: "Sprint"))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -682,7 +682,7 @@ struct TimelineItemView: View {
                                                     Image(systemName: "clock.fill")
                                                         .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
-                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                                         .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
@@ -719,7 +719,7 @@ struct TimelineItemView: View {
 
                                         HStack(spacing: 6) {
                                             // 根據恢復類型顯示不同標籤
-                                            Text(isRestInPlace ? "原地休息" : "恢復跑")
+                                            Text(isRestInPlace ? NSLocalizedString("training.interval.rest", comment: "Rest in Place") : NSLocalizedString("training.interval.recovery_run", comment: "Recovery Run"))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -762,7 +762,7 @@ struct TimelineItemView: View {
                                                     Image(systemName: "clock.fill")
                                                         .font(AppFont.captionSmall())
                                                         .foregroundColor(.white)
-                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) 分鐘")
+                                                    Text(timeMinutes < 1.0 ? formatRestTime(Int(round(timeMinutes * 60))) : "\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                                         .font(AppFont.caption())
                                                         .foregroundColor(.white)
                                                 }
@@ -802,7 +802,7 @@ struct TimelineItemView: View {
 
                                         HStack(spacing: 6) {
                                             // 段落標籤
-                                            Text("第\(index + 1)段")
+                                            Text(String(format: NSLocalizedString("training.segment_n", comment: "Segment N"), index + 1))
                                                 .font(AppFont.caption())
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 6)
@@ -906,7 +906,7 @@ struct TimelineItemView: View {
                                 .padding(.vertical, 4)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("已完成訓練")
+                                Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
                                     .font(AppFont.captionSmall())
                                     .fontWeight(.semibold)
                                     .foregroundColor(.green)

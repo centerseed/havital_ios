@@ -242,7 +242,10 @@ struct UserProfileView: View {
                     Label(NSLocalizedString("profile.weekly_mileage", comment: "Weekly Mileage"), systemImage: "figure.walk")
                         .foregroundColor(.blue)
                     Spacer()
-                    Text("\(userData.currentWeekDistance ?? 0) \(NSLocalizedString("unit.km", comment: "km"))")
+                    Text({
+                        let dist = UnitManager.shared.convertedDistance(Double(userData.currentWeekDistance ?? 0))
+                        return "\(Int(dist)) \(UnitManager.shared.currentUnitSystem.distanceSuffix)"
+                    }())
                         .fontWeight(.medium)
                 }
 

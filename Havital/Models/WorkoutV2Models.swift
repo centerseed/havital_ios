@@ -1389,12 +1389,20 @@ extension WorkoutV2 {
         }
     }
 
-    /// 分享卡專用格式化配速
+    /// 分享卡專用格式化配速（依 UnitManager 設定決定單位）
     var formattedPace: String {
         guard let pace = basicMetrics?.avgPaceSPerKm else { return "-" }
-        let minutes = Int(pace) / 60
-        let seconds = Int(pace) % 60
-        return String(format: "%d'%02d\"/km", minutes, seconds)
+        return MainActor.assumeIsolated {
+            let unit = UnitManager.shared.currentUnitSystem
+            let converted: Double
+            switch unit {
+            case .metric: converted = pace
+            case .imperial: converted = pace * 1.60934
+            }
+            let minutes = Int(converted) / 60
+            let seconds = Int(converted) % 60
+            return String(format: "%d'%02d\"/%@", minutes, seconds, unit.distanceSuffix)
+        }
     }
 
     /// 平均心率字符串

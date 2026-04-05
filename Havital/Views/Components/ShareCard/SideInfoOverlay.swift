@@ -45,7 +45,7 @@ struct SideInfoOverlay: View {
                                 Text(String(format: "%.2f", distance / 1000))
                                     .font(.system(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
-                                Text("距離 (km)")
+                                Text(NSLocalizedString("sideinfooverlay.text_0", comment: "Distance (km)"))
                                     .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }
@@ -56,7 +56,7 @@ struct SideInfoOverlay: View {
                             Text(data.workout.formattedDuration)
                                 .font(.system(size: 54, weight: .semibold))
                                 .foregroundColor(.white)
-                            Text("總計時間")
+                            Text(NSLocalizedString("sideinfooverlay.text_1", comment: "Total Time"))
                                 .font(AppFont.dataSmall())
                                 .foregroundColor(.white.opacity(0.8))
                         }
@@ -67,7 +67,7 @@ struct SideInfoOverlay: View {
                                 Text(paceText)
                                     .font(.system(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
-                                Text("平均配速")
+                                Text(NSLocalizedString("sideinfooverlay.text_2", comment: "Average Pace"))
                                     .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }

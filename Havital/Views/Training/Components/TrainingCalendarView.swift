@@ -332,12 +332,12 @@ struct TrainingCalendarView: View {
                     .foregroundColor(.secondary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(String(format: "%.1f", totalMonthDistance))
+                    Text(String(format: "%.1f", UnitManager.shared.convertedDistance(totalMonthDistance)))
                         .font(AppFont.title1())
                         .fontWeight(.bold)
                         .foregroundColor(.green)
 
-                    Text("km")
+                    Text(UnitManager.shared.currentUnitSystem.distanceSuffix)
                         .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                 }

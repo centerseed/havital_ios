@@ -35,11 +35,9 @@ struct ViewModelUtils {
         return formatter.string(from: date)
     }
 
-    /// 配速格式化 分:秒 /km
+    /// 配速格式化 分:秒 /km 或 /mi（依 UnitManager 設定）
     static func formatPace(_ paceInSeconds: Double) -> String {
-        let minutes = Int(paceInSeconds) / 60
-        let seconds = Int(paceInSeconds) % 60
-        return String(format: "%d:%02d /km", minutes, seconds)
+        return MainActor.assumeIsolated { UnitManager.shared.formatPace(secondsPerKm: paceInSeconds) }
     }
 
     /// 星期文字 (一~日)

@@ -1493,14 +1493,14 @@ struct TrainingLoadChartView: View {
             // Combined Fitness & TSB Chart
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("體適能指數 & 訓練壓力平衡")
+                    Text(NSLocalizedString("performance.fitness_balance", comment: "Fitness Index & Training Stress Balance"))
                     .font(AppFont.bodySmall())
                     .fontWeight(.medium)
 
                     if isLoadingChartData {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("同步中...")
+                    Text(NSLocalizedString("performance.syncing", comment: "Syncing..."))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     }

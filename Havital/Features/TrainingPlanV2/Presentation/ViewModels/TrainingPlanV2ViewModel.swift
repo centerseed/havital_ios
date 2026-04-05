@@ -74,6 +74,9 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
     /// 是否正在載入週摘要（用於決定 loading 動畫類型）
     @Published var isLoadingWeeklySummary = false
 
+    /// 週訓練預覽資料（用於週骨架預覽 UI）
+    @Published var weeklyPreview: WeeklyPreviewV2?
+
     /// 可用方法論列表（用於方法論切換 UI）
     @Published var availableMethodologies: [MethodologyV2] = []
 
@@ -87,6 +90,17 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
     /// 總週數
     var totalWeeks: Int {
         return planOverview?.totalWeeks ?? 0
+    }
+
+    /// 從當前週起算的未來四週預覽（最多 4 週，不足則取到最後一週）
+    var upcomingWeeks: [WeekPreview] {
+        guard let preview = weeklyPreview else { return [] }
+        return Array(
+            preview.weeks
+                .filter { $0.week >= currentWeek }
+                .sorted { $0.week < $1.week }
+                .prefix(4)
+        )
     }
 
     // MARK: - Subscribers
@@ -343,6 +357,9 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
 
             Logger.debug("[TrainingPlanV2VM] ✅ Plan Overview 載入成功: \(overview.id)")
 
+            // 載入週訓練預覽
+            await loadWeeklyPreview(overviewId: overview.id)
+
             // Track B: 背景刷新（不影響已顯示的資料）
             Task.detached(priority: .background) {
                 await self.backgroundRefreshOverview()
@@ -377,6 +394,23 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             }
         } catch {
             Logger.error("[TrainingPlanV2VM] ⚠️ Background refresh failed (ignored): \(error.localizedDescription)")
+        }
+    }
+
+    /// 載入週訓練預覽（靜默載入，不影響主畫面狀態）
+    private func loadWeeklyPreview(overviewId: String) async {
+        Logger.debug("[TrainingPlanV2VM] 載入週訓練預覽...")
+
+        do {
+            let preview = try await repository.getWeeklyPreview(overviewId: overviewId)
+            self.weeklyPreview = preview
+            Logger.debug("[TrainingPlanV2VM] ✅ 週訓練預覽載入成功: \(preview.weeks.count) 週")
+        } catch is CancellationError {
+            Logger.debug("[TrainingPlanV2VM] 週訓練預覽載入被取消，忽略")
+        } catch {
+            if (error as NSError).code == NSURLErrorCancelled { return }
+            // 靜默失敗 — 週預覽是輔助資訊，不影響主流程
+            Logger.error("[TrainingPlanV2VM] ⚠️ 週訓練預覽載入失敗（已忽略）: \(error.localizedDescription)")
         }
     }
 

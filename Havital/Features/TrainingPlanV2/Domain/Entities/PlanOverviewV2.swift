@@ -37,6 +37,12 @@ struct PlanOverviewV2: Codable, Equatable {
     /// 賽事距離（公里）
     let distanceKm: Double?
 
+    /// 賽事距離顯示值（英制時為 mi，公制時為 nil）
+    let distanceKmDisplay: Double?
+
+    /// 距離單位（"km" / "mi"，公制時為 nil）
+    let distanceUnit: String?
+
     /// 目標配速（MM:SS 格式）
     let targetPace: String?
 
@@ -152,6 +158,9 @@ struct TrainingStageV2: Codable, Equatable {
     /// 該階段週跑量目標範圍
     let targetWeeklyKmRange: TargetWeeklyKmRangeV2
 
+    /// 該階段週跑量顯示範圍（英制時有值，公制時為 nil）
+    let targetWeeklyKmRangeDisplay: TargetWeeklyKmRangeDisplayV2?
+
     /// 強度分佈比例（來自方法論）
     let intensityRatio: IntensityDistributionV2?
 
@@ -241,4 +250,18 @@ struct MilestoneV2: Codable, Equatable {
 
     /// 是否為關鍵里程碑
     let isKeyMilestone: Bool
+}
+
+// MARK: - TargetWeeklyKmRangeDisplayV2 Entity
+/// 英制用戶的週跑量顯示範圍
+struct TargetWeeklyKmRangeDisplayV2: Codable, Equatable {
+
+    /// 週跑量低標顯示值（已轉換為用戶單位）
+    let lowDisplay: Double
+
+    /// 週跑量高標顯示值（已轉換為用戶單位）
+    let highDisplay: Double
+
+    /// 距離單位（"mi"）
+    let distanceUnit: String
 }

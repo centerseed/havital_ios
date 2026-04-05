@@ -85,7 +85,7 @@ struct ReturnToCurrentWeekButton: View {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.left.circle.fill")
                     .font(AppFont.body())
-                Text("返回本週（第\(viewModel.currentWeek)週）")
+                Text(String(format: NSLocalizedString("training_plan.back_to_current_week", comment: "Back to current week"), viewModel.currentWeek))
                     .font(AppFont.bodySmall())
             }
             .foregroundColor(.blue)
@@ -113,7 +113,7 @@ struct SuccessToast: View {
             }
 
             if isPresented {
-                Button("返回本週") {
+                Button(NSLocalizedString("training_plan.current_week", comment: "Current Week")) {
                     isPresented = false
                 }
                 .font(AppFont.bodySmall())

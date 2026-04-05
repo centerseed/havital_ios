@@ -1030,10 +1030,16 @@ struct WorkoutSyncDebugView: View {
             guard distance > 0 else { return nil }
             
             let paceInSecondsPerKm = duration / (distance / 1000)
-            let minutes = Int(paceInSecondsPerKm) / 60
-            let seconds = Int(paceInSecondsPerKm) % 60
-            
-            return String(format: "%d'%02d\"/km", minutes, seconds)
+            let unit = UnitManager.shared.currentUnitSystem
+            let paceSeconds: Double
+            switch unit {
+            case .metric: paceSeconds = paceInSecondsPerKm
+            case .imperial: paceSeconds = paceInSecondsPerKm / 1.60934
+            }
+            let minutes = Int(paceSeconds) / 60
+            let seconds = Int(paceSeconds) % 60
+
+            return String(format: "%d'%02d\"/%@", minutes, seconds, unit.distanceSuffix)
         }
     }
    

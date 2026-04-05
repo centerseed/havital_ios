@@ -47,7 +47,7 @@ struct EasyRunEditView: View {
             HStack(spacing: 8) {
                 if let distance = details.distanceKm {
                     EditableValueView(
-                        title: "距離",
+                        title: NSLocalizedString("edit_schedule.distance_label", comment: "Distance"),
                         value: String(format: "%.1f", distance),
                         isEditable: isEditable,
                         valueType: .distance
@@ -82,7 +82,7 @@ struct TempoRunEditView: View {
             HStack(spacing: 8) {
                 if let pace = details.pace {
                     EditableValueView(
-                        title: "配速",
+                        title: NSLocalizedString("edit_schedule.pace", comment: "Pace"),
                         value: pace,
                         isEditable: isEditable,
                         valueType: .pace
@@ -93,7 +93,7 @@ struct TempoRunEditView: View {
 
                 if let distance = details.distanceKm {
                     EditableValueView(
-                        title: "距離",
+                        title: NSLocalizedString("edit_schedule.distance_label", comment: "Distance"),
                         value: String(format: "%.1f", distance),
                         isEditable: isEditable,
                         valueType: .distance
@@ -138,7 +138,7 @@ struct Norwegian4x4CardView: View {
         VStack(alignment: .leading, spacing: 8) {
             // 標題行
             HStack {
-                Text("🇳🇴 挪威4x4")
+                Text(NSLocalizedString("training.interval_type.norwegian_4x4", comment: "Norwegian 4x4"))
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
@@ -146,7 +146,7 @@ struct Norwegian4x4CardView: View {
                 Spacer()
 
                 if let repeats = details.repeats {
-                    Text("\(repeats) 組")
+                    Text(String(format: NSLocalizedString("training.interval.repeats", comment: "Repeats"), repeats))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
@@ -161,12 +161,12 @@ struct Norwegian4x4CardView: View {
                 // 工作段
                 if let work = details.work {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("衝刺")
+                        Text(NSLocalizedString("training.interval.work_label.default", comment: "Sprint"))
                             .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             if let timeMinutes = work.timeMinutes {
-                                Text("\(Int(timeMinutes)) 分鐘")
+                                Text("\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                     .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
@@ -186,12 +186,12 @@ struct Norwegian4x4CardView: View {
                 // 恢復段
                 if let recovery = details.recovery {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("恢復")
+                        Text(NSLocalizedString("edit_schedule.recovery", comment: "Recovery"))
                             .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             if let timeMinutes = recovery.timeMinutes {
-                                Text("\(Int(timeMinutes)) 分鐘")
+                                Text("\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                     .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
@@ -226,7 +226,7 @@ struct Yasso800CardView: View {
         VStack(alignment: .leading, spacing: 8) {
             // 標題行
             HStack {
-                Text("亞索800")
+                Text(NSLocalizedString("training.interval_type.yasso_800", comment: "Yasso 800"))
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
@@ -234,7 +234,7 @@ struct Yasso800CardView: View {
                 Spacer()
 
                 if let repeats = details.repeats {
-                    Text("\(repeats) 組")
+                    Text(String(format: NSLocalizedString("training.interval.repeats", comment: "Repeats"), repeats))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
@@ -249,7 +249,7 @@ struct Yasso800CardView: View {
                 // 工作段
                 if let work = details.work {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("衝刺")
+                        Text(NSLocalizedString("training.interval.work_label.default", comment: "Sprint"))
                             .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
@@ -279,12 +279,12 @@ struct Yasso800CardView: View {
                 // 恢復段
                 if let recovery = details.recovery {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("恢復")
+                        Text(NSLocalizedString("edit_schedule.recovery", comment: "Recovery"))
                             .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                         HStack(spacing: 4) {
                             if let timeMinutes = recovery.timeMinutes {
-                                Text("\(Int(timeMinutes)) 分鐘")
+                                Text("\(Int(timeMinutes)) " + NSLocalizedString("training.minutes_unit", comment: "min"))
                                     .font(AppFont.caption())
                                     .fontWeight(.medium)
                             }
@@ -316,7 +316,7 @@ struct IntervalEditView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("間歇訓練")
+                Text(NSLocalizedString("training.interval_type.interval", comment: "Interval Training"))
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
@@ -325,7 +325,7 @@ struct IntervalEditView: View {
 
                 if let repeats = details.repeats {
                     EditableValueView(
-                        title: "重複",
+                        title: NSLocalizedString("edit_schedule.repeats", comment: "Repeats"),
                         value: "\(repeats) × ",
                         isEditable: isEditable,
                         valueType: .repeats
@@ -341,7 +341,7 @@ struct IntervalEditView: View {
             // 衝刺段
             if let work = details.work {
                 IntervalSegmentEditView(
-                    title: "衝刺段",
+                    title: NSLocalizedString("edit_schedule.sprint_segment", comment: "Sprint segment"),
                     segment: work,
                     isEditable: isEditable,
                     color: .orange
@@ -353,7 +353,7 @@ struct IntervalEditView: View {
             // 恢復段
             if let recovery = details.recovery {
                 IntervalSegmentEditView(
-                    title: "恢復段",
+                    title: NSLocalizedString("edit_schedule.recovery_segment", comment: "Recovery segment"),
                     segment: recovery,
                     isEditable: isEditable,
                     color: .blue
@@ -363,7 +363,7 @@ struct IntervalEditView: View {
             } else {
                 // recovery 為 nil 時顯示原地休息
                 HStack(spacing: 8) {
-                    Text("恢復段")
+                    Text(NSLocalizedString("edit_schedule.recovery_segment", comment: "Recovery Segment"))
                         .font(AppFont.caption())
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
@@ -489,7 +489,7 @@ struct SimpleTrainingEditView: View {
                 // 只有跑步活動才顯示距離（瑜珈、重訓、交叉訓練等不顯示）
                 if day.type.isRunningActivity, let distance = details.distanceKm {
                     EditableValueView(
-                        title: "距離",
+                        title: NSLocalizedString("edit_schedule.distance_label", comment: "Distance"),
                         value: String(format: "%.1f", distance),
                         isEditable: isEditable,
                         valueType: .distance
@@ -537,6 +537,19 @@ struct EditableValueView: View {
         self.onEdit = onEdit
     }
 
+    /// 顯示用的格式化值，對 .time 類型加上語系化的分鐘標籤
+    private var displayValue: String {
+        guard valueType == .time else { return value }
+        // value 格式為 "4" 或 "4.5" 或 "4 (~800m)"
+        let parts = value.components(separatedBy: " (~")
+        let numericPart = parts[0].trimmingCharacters(in: .whitespaces)
+        let minuteLabel = NSLocalizedString("time.picker.minutes", comment: "minutes")
+        if parts.count > 1 {
+            return "\(numericPart)\(minuteLabel) (~\(parts[1])"
+        }
+        return "\(numericPart)\(minuteLabel)"
+    }
+
     var body: some View {
         Button(action: {
             if isEditable {
@@ -565,7 +578,7 @@ struct EditableValueView: View {
                         .foregroundColor(.secondary)
                 }
 
-                Text(value)
+                Text(displayValue)
                     .font(AppFont.caption())
                     .fontWeight(.medium)
                     .foregroundColor(isEditable ? .blue : .secondary)
@@ -638,16 +651,16 @@ struct EditableValueView: View {
         .sheet(isPresented: $showingTimePicker) {
             TimeWheelPicker(selectedTime: Binding(
                 get: {
-                    // 從 "4分鐘" 格式中提取分鐘值
-                    let cleanValue = value.replacingOccurrences(of: "分鐘", with: "")
-                    return Double(cleanValue) ?? 1.0
+                    // 從純數字格式（或帶有附加資訊的格式，如 "4 (~800m)"）中提取分鐘值
+                    let numericPart = value.components(separatedBy: " ").first ?? value
+                    return Double(numericPart) ?? 1.0
                 },
                 set: { newValue in
-                    // 格式化為 "4分鐘" 或 "2.5分鐘"
+                    // 使用純數字格式，避免語系依賴
                     if newValue == floor(newValue) {
-                        onEdit("\(Int(newValue))分鐘")
+                        onEdit("\(Int(newValue))")
                     } else {
-                        onEdit(String(format: "%.1f分鐘", newValue))
+                        onEdit(String(format: "%.1f", newValue))
                     }
                 }
             ))
@@ -792,11 +805,12 @@ struct IntervalSegmentEditView: View {
 
     private func formatTime(_ minutes: Double) -> String {
         // 格式化時間顯示，並計算基於配速的約略距離
+        // 使用純數字格式作為內部資料，避免語系依賴
         let timeText: String
         if minutes == floor(minutes) {
-            timeText = "\(Int(minutes))分鐘"
+            timeText = "\(Int(minutes))"
         } else {
-            timeText = String(format: "%.1f分鐘", minutes)
+            timeText = String(format: "%.1f", minutes)
         }
 
         // 如果有配速，計算約略距離（以200m為單位）
@@ -804,7 +818,7 @@ struct IntervalSegmentEditView: View {
             let meters = Int(distanceKm * 1000)
             let roundedMeters = (meters / 200) * 200  // 四捨五入到最接近的200m
             if roundedMeters > 0 {
-                return "\(timeText) (約\(roundedMeters)m)"
+                return "\(timeText) (~\(roundedMeters)m)"
             }
         }
 
@@ -827,13 +841,13 @@ struct IntervalSegmentEditView: View {
     }
 
     private func updateTime(_ timeString: String) {
-        // 從 "4分鐘" 或 "4分鐘 (約800m)" 格式中提取分鐘值
+        // 從純數字格式（或帶有附加資訊的格式，如 "4 (~800m)"）中提取分鐘值
         var cleanedString = timeString
-        // 移除距離部分（如果存在）
+        // 移除附加距離資訊（如果存在）
         if let parenIndex = cleanedString.firstIndex(of: "(") {
             cleanedString = String(cleanedString[..<parenIndex])
         }
-        cleanedString = cleanedString.replacingOccurrences(of: "分鐘", with: "").trimmingCharacters(in: .whitespaces)
+        cleanedString = cleanedString.trimmingCharacters(in: .whitespaces)
 
         if let minutes = Double(cleanedString) {
             var updatedSegment = segment
@@ -1373,10 +1387,10 @@ struct TimeWheelPicker: View {
                     ForEach(timeOptions.indices, id: \.self) { index in
                         let time = timeOptions[index]
                         if time == floor(time) {
-                            Text("\(Int(time))分鐘")
+                            Text("\(Int(time))" + NSLocalizedString("training.minutes_unit", comment: "min"))
                                 .tag(index)
                         } else {
-                            Text(String(format: "%.1f分鐘", time))
+                            Text(String(format: "%.1f", time) + NSLocalizedString("training.minutes_unit", comment: "min"))
                                 .tag(index)
                         }
                     }

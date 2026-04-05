@@ -130,7 +130,7 @@ struct PersonalBestDetailView: View {
                                     .font(AppFont.headline())
 
                                 HStack(spacing: 12) {
-                                    Text("\(record.pace)/km")
+                                    Text(UnitManager.shared.formatPaceString(record.pace))
                                         .font(AppFont.caption())
                                         .foregroundColor(.secondary)
 

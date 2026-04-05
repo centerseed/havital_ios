@@ -265,7 +265,9 @@ private struct TargetInfoTabV2: View {
                                 .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text(String(format: "%.1f 公里", distance))
+                            let displayDist = overview.distanceKmDisplay ?? distance
+                            let unit = overview.distanceUnit ?? "km"
+                            Text(String(format: "%.1f %@", displayDist, unit))
                                 .font(AppFont.bodySmall())
                                 .fontWeight(.medium)
                         }
@@ -280,7 +282,7 @@ private struct TargetInfoTabV2: View {
                                 .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("\(pace)/km")
+                            Text(UnitManager.shared.formatPaceString(pace))
                                 .font(AppFont.bodySmall())
                                 .fontWeight(.medium)
                         }
@@ -320,7 +322,7 @@ private struct TargetInfoTabV2: View {
                         .font(AppFont.bodySmall())
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("\(overview.totalWeeks) 週")
+                    Text(String(format: NSLocalizedString("training.weeks_count", comment: "%d weeks"), overview.totalWeeks))
                         .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                 }
@@ -391,10 +393,15 @@ private struct TrainingOverviewTabV2: View {
                         trainingStagesSection
                     }
 
+                    // 接下來四週骨架 section
+                    if !viewModel.upcomingWeeks.isEmpty {
+                        upcomingWeeksSection
+                    }
+
                     // 里程碑 section（無外層卡片，每個 milestone 各自為卡）
                     if !overview.milestones.isEmpty {
                         if overview.milestoneBasis == "no_prior_target" {
-                            Text("⚠️ 里程碑距離以你的歷史跑步資料為準，開始訓練後將持續優化")
+                            Text(NSLocalizedString("training.milestone_disclaimer", comment: "Milestone distance is based on your historical running data and will be continuously optimized"))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal)
@@ -768,7 +775,7 @@ private struct TrainingOverviewTabV2: View {
 
                     Spacer()
 
-                    Text("第 \(stage.weekStart)-\(stage.weekEnd) 週")
+                    Text(String(format: NSLocalizedString("training.stage_week_range", comment: "Week %d-%d"), stage.weekStart, stage.weekEnd))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
 
@@ -828,9 +835,13 @@ private struct TrainingOverviewTabV2: View {
                                     .font(.caption2)
                                     .foregroundColor(.green)
                             }
-                            Text(String(format: "%.0f–%.0f 公里",
-                                        stage.targetWeeklyKmRange.low,
-                                        stage.targetWeeklyKmRange.high))
+                            Text({
+                                if let display = stage.targetWeeklyKmRangeDisplay {
+                                    return String(format: "%.0f–%.0f %@", display.lowDisplay, display.highDisplay, display.distanceUnit)
+                                } else {
+                                    return String(format: "%.0f–%.0f km", stage.targetWeeklyKmRange.low, stage.targetWeeklyKmRange.high)
+                                }
+                            }())
                                 .font(AppFont.caption())
                                 .foregroundColor(.primary)
                         }
@@ -871,6 +882,31 @@ private struct TrainingOverviewTabV2: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - 接下來四週骨架 Section
+
+    private var upcomingWeeksSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("接下來四週")
+
+            Text(NSLocalizedString("training.weekly_skeleton_disclaimer", comment: "The following is the weekly training skeleton"))
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 4)
+
+            let weeks = viewModel.upcomingWeeks
+            let stages = overview.trainingStages
+
+            ForEach(weeks) { week in
+                let isCurrentWeek = week.week == viewModel.currentWeek
+                WeekPreviewRowV2(
+                    week: week,
+                    stageInfo: WeekPreviewRowV2.stageInfo(for: week, stages: stages),
+                    isCurrentWeek: isCurrentWeek
+                )
+            }
+        }
     }
 
     // MARK: - 里程碑 Section（單一卡片，標題在卡片內）

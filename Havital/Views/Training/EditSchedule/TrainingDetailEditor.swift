@@ -427,11 +427,11 @@ final class TrainingDayEditState: ObservableObject {
         let secs = totalSeconds % 60
 
         if mins == 0 {
-            return "\(secs)秒"
+            return String(format: NSLocalizedString("time.seconds_format", comment: "seconds"), secs)
         } else if secs == 0 {
-            return "\(mins)分鐘"
+            return String(format: NSLocalizedString("time.minutes_format", comment: "minutes"), mins)
         } else {
-            return "\(mins)分\(secs)秒"
+            return String(format: NSLocalizedString("time.minutes_seconds_format", comment: "minutes seconds"), mins, secs)
         }
     }
 }
@@ -608,7 +608,7 @@ struct TrainingEditSheetV2: View {
     @ViewBuilder
     private var restDaySection: some View {
         VStack(spacing: 12) {
-            Text("這是休息日")
+            Text(NSLocalizedString("edit_schedule.rest_day", comment: "This is a rest day"))
                 .font(AppFont.body())
                 .foregroundColor(.secondary)
 
@@ -824,7 +824,7 @@ struct IntervalEditorV2: View {
 
                 if editState.isRestInPlace {
                     // 原地休息：顯示時間選擇器
-                    RestTimePickerFieldV2(title: "休息時間", timeMinutes: $editState.recoveryTimeMinutes)
+                    RestTimePickerFieldV2(title: NSLocalizedString("edit_schedule.rest_time", comment: "Rest Time"), timeMinutes: $editState.recoveryTimeMinutes)
                 } else {
                     // 主動恢復：顯示配速和距離
                     HStack(spacing: 16) {
@@ -932,7 +932,7 @@ struct Norwegian4x4EditorV2: View {
                         .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     Spacer()
-                    Text("恢復跑")
+                    Text(L10n.EditSchedule.recoveryRun.localized)
                         .font(AppFont.caption())
                         .foregroundColor(.mint)
                         .padding(.horizontal, 8)
@@ -1027,7 +1027,7 @@ struct Yasso800EditorV2: View {
                         .font(AppFont.bodySmall())
                         .fontWeight(.medium)
                     Spacer()
-                    Text("800m")
+                    Text(NSLocalizedString("trainingdetaileditor.800m", comment: "800m"))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
@@ -1057,7 +1057,7 @@ struct Yasso800EditorV2: View {
                     RestTimePickerFieldV2(title: L10n.EditSchedule.restTime.localized, timeMinutes: $editState.recoveryTimeMinutes)
                 } else {
                     HStack {
-                        Text("400m 慢跑恢復")
+                        Text(NSLocalizedString("trainingdetaileditor.400m", comment: "400m jogging recovery"))
                             .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
                         Spacer()
@@ -1113,7 +1113,7 @@ struct WorkTimePickerFieldV2: View {
                 showingPicker = true
             } label: {
                 HStack {
-                    Text(String(format: "%.0f 分鐘", timeMinutes))
+                    Text(String(format: "%d", Int(timeMinutes)) + " " + NSLocalizedString("training.minutes_unit", comment: "min"))
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
@@ -1148,7 +1148,7 @@ struct WorkTimeWheelPicker: View {
             VStack(spacing: 0) {
                 Picker("工作時間", selection: $selectedTimeMinutes) {
                     ForEach(timeOptions, id: \.self) { minutes in
-                        Text("\(Int(minutes)) 分鐘").tag(minutes)
+                        Text("\(Int(minutes)) " + NSLocalizedString("training.minutes_unit", comment: "min")).tag(minutes)
                     }
                 }
                 .pickerStyle(.wheel)
@@ -1367,13 +1367,13 @@ struct StrengthEditorV2: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("肌力訓練設定")
+            Text(NSLocalizedString("edit_schedule.strength_settings", comment: "Strength Training Settings"))
                 .font(AppFont.headline())
                 .foregroundColor(.purple)
 
             // 訓練類型
             VStack(alignment: .leading, spacing: 8) {
-                Text("訓練類型")
+                Text(NSLocalizedString("edit_schedule.training_type", comment: "Training Type"))
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
 
@@ -1409,11 +1409,11 @@ struct StrengthEditorV2: View {
 
             // 時長
             VStack(alignment: .leading, spacing: 8) {
-                Text("訓練時長")
+                Text(NSLocalizedString("edit_schedule.training_duration", comment: "Training Duration"))
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
 
-                Stepper("\(editState.strengthDurationMinutes) 分鐘", value: $editState.strengthDurationMinutes, in: 5...120, step: 5)
+                Stepper("\(editState.strengthDurationMinutes) \(NSLocalizedString("training.minutes_unit", comment: "min"))", value: $editState.strengthDurationMinutes, in: 5...120, step: 5)
                     .font(AppFont.body())
             }
 
@@ -1427,7 +1427,7 @@ struct StrengthEditorV2: View {
             .frame(maxWidth: .infinity)
 
             if editState.showStrengthValidationError && editState.strengthExercises.isEmpty {
-                Text("至少需要一個動作")
+                Text(NSLocalizedString("edit_schedule.min_one_exercise", comment: "At least one exercise required"))
                     .font(AppFont.caption())
                     .foregroundColor(.red)
             }
@@ -1473,7 +1473,7 @@ struct ExerciseListEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("動作清單")
+                Text(NSLocalizedString("edit_schedule.exercise_list", comment: "Exercise List"))
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                 Spacer()
@@ -1510,7 +1510,7 @@ struct ExerciseRowEditor: View {
     private var summaryText: String {
         let sets = exercise.sets ?? 3
         if let duration = exercise.durationSeconds {
-            return "\(sets) × \(duration)秒"
+            return String(format: NSLocalizedString("time.sets_seconds_format", comment: "sets x seconds"), sets, duration)
         } else if let reps = exercise.reps, !reps.isEmpty {
             return "\(sets) × \(reps)次"
         } else {
@@ -1528,7 +1528,7 @@ struct ExerciseRowEditor: View {
                     }
                 } label: {
                     HStack(spacing: 8) {
-                        Text(exercise.name.isEmpty ? "（未命名）" : exercise.name)
+                        Text(exercise.name.isEmpty ? NSLocalizedString("edit_schedule.unnamed_exercise", comment: "Unnamed exercise") : exercise.name)
                             .font(AppFont.bodySmall())
                             .foregroundColor(exercise.name.isEmpty ? .secondary : .primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1567,7 +1567,7 @@ struct ExerciseRowEditor: View {
                         }
                     } label: {
                         HStack {
-                            Text(exercise.name.isEmpty ? "選擇動作" : exercise.name)
+                            Text(exercise.name.isEmpty ? NSLocalizedString("edit_schedule.select_exercise", comment: "Select exercise") : exercise.name)
                                 .font(AppFont.bodySmall())
                                 .foregroundColor(exercise.name.isEmpty ? .secondary : .primary)
                             Spacer()
@@ -1583,7 +1583,7 @@ struct ExerciseRowEditor: View {
 
                     // 組數 inline +/-
                     HStack {
-                        Text("組數")
+                        Text(NSLocalizedString("edit_schedule.sets", comment: "Sets"))
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                             .frame(width: 40, alignment: .leading)
@@ -1612,7 +1612,7 @@ struct ExerciseRowEditor: View {
                     // 次數或秒數
                     if isTimeBased {
                         HStack {
-                            Text("秒數")
+                            Text(NSLocalizedString("edit_schedule.duration_seconds", comment: "Seconds"))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                                 .frame(width: 40, alignment: .leading)
@@ -1639,7 +1639,7 @@ struct ExerciseRowEditor: View {
                         }
                     } else {
                         HStack {
-                            Text("次數")
+                            Text(NSLocalizedString("edit_schedule.reps", comment: "Reps"))
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                                 .frame(width: 40, alignment: .leading)
@@ -1683,13 +1683,13 @@ struct SupplementaryStrengthEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("補充力量訓練")
+            Text(NSLocalizedString("training.supplementary", comment: "Supplementary Training"))
                 .font(AppFont.headline())
                 .foregroundColor(.purple)
 
             // 訓練類型選擇
             VStack(alignment: .leading, spacing: 8) {
-                Text("訓練類型")
+                Text(NSLocalizedString("edit_schedule.training_type", comment: "Training Type"))
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                 Menu {
@@ -1769,7 +1769,7 @@ struct WarmupCooldownEditorV2: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("暖跑 / 緩和跑")
+            Text(NSLocalizedString("edit_schedule.warmup_cooldown", comment: "Warmup / Cooldown"))
                 .font(AppFont.headline())
                 .foregroundColor(.orange)
 
@@ -1778,7 +1778,7 @@ struct WarmupCooldownEditorV2: View {
                 Toggle(isOn: $editState.hasWarmup) {
                     HStack(spacing: 6) {
                         Text("🔥")
-                        Text("暖跑")
+                        Text(NSLocalizedString("training.warmup", comment: "Warmup"))
                             .font(AppFont.bodySmall())
                             .fontWeight(.medium)
                             .foregroundColor(.orange)
@@ -1787,13 +1787,13 @@ struct WarmupCooldownEditorV2: View {
 
                 if editState.hasWarmup {
                     HStack(spacing: 16) {
-                        DistancePickerFieldV2(title: "距離", distance: $editState.warmupDistance)
-                        PacePickerFieldV2(title: "配速", pace: $editState.warmupPace, referenceDistance: editState.warmupDistance)
+                        DistancePickerFieldV2(title: NSLocalizedString("edit_schedule.distance_label", comment: "Distance"), distance: $editState.warmupDistance)
+                        PacePickerFieldV2(title: NSLocalizedString("edit_schedule.pace_label", comment: "Pace"), pace: $editState.warmupPace, referenceDistance: editState.warmupDistance)
                     }
 
                     let estimatedMinutes = estimateDuration(distanceKm: editState.warmupDistance, pace: editState.warmupPace)
                     if let mins = estimatedMinutes {
-                        Text("預估時間：約 \(Int(mins)) 分鐘")
+                        Text(String(format: NSLocalizedString("edit_schedule.estimated_time", comment: "Estimated time: ~%d min"), Int(mins)))
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
@@ -1808,7 +1808,7 @@ struct WarmupCooldownEditorV2: View {
                 Toggle(isOn: $editState.hasCooldown) {
                     HStack(spacing: 6) {
                         Text("❄️")
-                        Text("緩和跑")
+                        Text(NSLocalizedString("training.cooldown", comment: "Cooldown"))
                             .font(AppFont.bodySmall())
                             .fontWeight(.medium)
                             .foregroundColor(.blue)
@@ -1817,13 +1817,13 @@ struct WarmupCooldownEditorV2: View {
 
                 if editState.hasCooldown {
                     HStack(spacing: 16) {
-                        DistancePickerFieldV2(title: "距離", distance: $editState.cooldownDistance)
-                        PacePickerFieldV2(title: "配速", pace: $editState.cooldownPace, referenceDistance: editState.cooldownDistance)
+                        DistancePickerFieldV2(title: NSLocalizedString("edit_schedule.distance_label", comment: "Distance"), distance: $editState.cooldownDistance)
+                        PacePickerFieldV2(title: NSLocalizedString("edit_schedule.pace_label", comment: "Pace"), pace: $editState.cooldownPace, referenceDistance: editState.cooldownDistance)
                     }
 
                     let estimatedMinutes = estimateDuration(distanceKm: editState.cooldownDistance, pace: editState.cooldownPace)
                     if let mins = estimatedMinutes {
-                        Text("預估時間：約 \(Int(mins)) 分鐘")
+                        Text(String(format: NSLocalizedString("edit_schedule.estimated_time", comment: "Estimated time: ~%d min"), Int(mins)))
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
@@ -2058,11 +2058,11 @@ struct RestTimePickerFieldV2: View {
         let secs = totalSeconds % 60
 
         if mins == 0 {
-            return "\(secs) 秒"
+            return String(format: NSLocalizedString("time.seconds_format", comment: "seconds"), secs)
         } else if secs == 0 {
-            return "\(mins) 分鐘"
+            return String(format: NSLocalizedString("time.minutes_format", comment: "minutes"), mins)
         } else {
-            return "\(mins) 分 \(secs) 秒"
+            return String(format: NSLocalizedString("time.minutes_seconds_format", comment: "minutes seconds"), mins, secs)
         }
     }
 }
@@ -2092,7 +2092,7 @@ struct RestTimeWheelPicker: View {
                 // 雙輪選擇器
                 HStack(spacing: 0) {
                     // 分鐘選擇器
-                    Picker("分鐘", selection: $minutes) {
+                    Picker(NSLocalizedString("time.picker.minutes", comment: "minutes picker"), selection: $minutes) {
                         ForEach(minuteOptions, id: \.self) { min in
                             Text("\(min)").tag(min)
                         }
@@ -2101,13 +2101,13 @@ struct RestTimeWheelPicker: View {
                     .frame(width: 80)
                     .clipped()
 
-                    Text("分")
+                    Text(NSLocalizedString("edit_schedule.minute_label", comment: "min"))
                         .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .frame(width: 30)
 
                     // 秒選擇器
-                    Picker("秒", selection: $seconds) {
+                    Picker(NSLocalizedString("time.picker.seconds", comment: "seconds picker"), selection: $seconds) {
                         ForEach(secondOptions, id: \.self) { sec in
                             Text(String(format: "%02d", sec)).tag(sec)
                         }
@@ -2116,7 +2116,7 @@ struct RestTimeWheelPicker: View {
                     .frame(width: 80)
                     .clipped()
 
-                    Text("秒")
+                    Text(NSLocalizedString("edit_schedule.second_label", comment: "sec"))
                         .font(AppFont.body())
                         .foregroundColor(.secondary)
                         .frame(width: 30)
@@ -2125,27 +2125,27 @@ struct RestTimeWheelPicker: View {
 
                 // 快速選擇按鈕
                 VStack(spacing: 8) {
-                    Text("快速選擇")
+                    Text(NSLocalizedString("edit_schedule.quick_select", comment: "Quick Select"))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 12) {
-                        QuickSelectButton(label: "30秒", action: { setTime(0, 30) })
-                        QuickSelectButton(label: "1分", action: { setTime(1, 0) })
-                        QuickSelectButton(label: "1分30秒", action: { setTime(1, 30) })
-                        QuickSelectButton(label: "2分", action: { setTime(2, 0) })
-                        QuickSelectButton(label: "3分", action: { setTime(3, 0) })
+                        QuickSelectButton(label: NSLocalizedString("time.quick.30s", comment: "30 seconds"), action: { setTime(0, 30) })
+                        QuickSelectButton(label: NSLocalizedString("time.quick.1m", comment: "1 minute"), action: { setTime(1, 0) })
+                        QuickSelectButton(label: NSLocalizedString("time.quick.1m30s", comment: "1 minute 30 seconds"), action: { setTime(1, 30) })
+                        QuickSelectButton(label: NSLocalizedString("time.quick.2m", comment: "2 minutes"), action: { setTime(2, 0) })
+                        QuickSelectButton(label: NSLocalizedString("time.quick.3m", comment: "3 minutes"), action: { setTime(3, 0) })
                     }
                 }
                 .padding(.horizontal)
 
                 Spacer()
             }
-            .navigationTitle("選擇休息時間")
+            .navigationTitle(NSLocalizedString("edit_schedule.select_rest_time", comment: "Select Rest Time"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button(NSLocalizedString("common.done", comment: "Done")) {
                         // 更新 binding 值
                         selectedTimeMinutes = Double(minutes) + Double(seconds) / 60.0
                         dismiss()
@@ -2175,11 +2175,11 @@ struct RestTimeWheelPicker: View {
         let secs = totalSeconds % 60
 
         if mins == 0 {
-            return "\(secs) 秒"
+            return String(format: NSLocalizedString("time.seconds_format", comment: "seconds"), secs)
         } else if secs == 0 {
-            return "\(mins) 分鐘"
+            return String(format: NSLocalizedString("time.minutes_format", comment: "minutes"), mins)
         } else {
-            return "\(mins) 分 \(secs) 秒"
+            return String(format: NSLocalizedString("time.minutes_seconds_format", comment: "minutes seconds"), mins, secs)
         }
     }
 }
