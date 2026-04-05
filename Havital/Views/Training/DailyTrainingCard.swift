@@ -740,7 +740,7 @@ struct DailyTrainingCard: View {
     // 格式化距離（公里或米）
     private func formatDistance(_ distanceInMeters: Double) -> String {
         if distanceInMeters >= 1000 {
-            return String(format: "%.2f km", distanceInMeters / 1000)
+            return UnitManager.shared.formatDistance(distanceInMeters / 1000)
         } else {
             return String(format: "%.0f m", distanceInMeters)
         }

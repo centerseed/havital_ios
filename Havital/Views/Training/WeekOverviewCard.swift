@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WeekOverviewCard: View {
     @ObservedObject var viewModel: TrainingPlanViewModel
+    @ObservedObject private var unitManager = UnitManager.shared
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlan
     @EnvironmentObject private var healthKitManager: HealthKitManager
@@ -48,7 +49,7 @@ struct WeekOverviewCard: View {
                     // 文字稍微下移，爭取最大寬度空間
                     VStack(spacing: 2) {
                         HStack(spacing: 1) {
-                            Text(viewModel.formatDistance(viewModel.currentWeekDistance, unit: nil))
+                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.currentWeekDistance)))
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(.primary)
                                 .minimumScaleFactor(0.8)
@@ -58,14 +59,14 @@ struct WeekOverviewCard: View {
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
 
-                            Text(viewModel.formatDistance(plan.totalDistance, unit: nil))
+                            Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
                         }
 
-                        Text(L10n.Unit.km.localized)
+                        Text(unitManager.currentUnitSystem.distanceSuffix)
                             .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }

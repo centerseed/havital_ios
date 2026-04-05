@@ -286,18 +286,14 @@ class LanguageManager: ObservableObject {
         return formatter.string(from: NSNumber(value: number)) ?? "\(number)"
     }
     
-    /// Format distance (currently only metric is supported by backend)
+    /// Format distance — delegates to UnitManager for unit conversion
     func formatDistance(_ distanceInKm: Double) -> String {
-        return "\(formatNumber(distanceInKm, maximumFractionDigits: 2)) \(L10n.Unit.km.localized)"
+        return UnitManager.shared.formatDistance(distanceInKm)
     }
-    
-    /// Format pace (currently only metric is supported by backend)
+
+    /// Format pace — delegates to UnitManager for unit conversion
     func formatPace(_ paceInSeconds: Double) -> String {
-        let minutes = Int(paceInSeconds) / 60
-        let seconds = Int(paceInSeconds) % 60
-        let formattedPace = String(format: "%d:%02d", minutes, seconds)
-        
-        return "\(formattedPace) \(L10n.Unit.minPerKm.localized)"
+        return UnitManager.shared.formatPace(secondsPerKm: paceInSeconds)
     }
 }
 

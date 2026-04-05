@@ -171,7 +171,7 @@ struct WorkoutV2RowView: View {
     
     private func formatDistance(_ distance: Double) -> String {
         if distance >= 1000 {
-            return String(format: "%.2f km", distance / 1000)
+            return UnitManager.shared.formatDistance(distance / 1000)
         } else {
             return String(format: "%.0f m", distance)
         }

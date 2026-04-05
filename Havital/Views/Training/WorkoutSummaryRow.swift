@@ -73,19 +73,19 @@ struct WorkoutSummaryRow: View {
                             Image(systemName: "ruler")
                                 .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
-                            Text("\(viewModel.formatDistance(distance/1000, unit: L10n.Unit.km.localized))")
+                            Text(UnitManager.shared.formatDistance(distance / 1000))
                                 .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
-                    
+
                     if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                         let paceInSeconds = workout.duration / distance * 1000
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
                                 .font(AppFont.captionSmall())
                                 .foregroundColor(.green)
-                            Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                            Text(UnitManager.shared.formatPace(secondsPerKm: paceInSeconds))
                                 .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
@@ -178,24 +178,24 @@ struct CollapsedWorkoutSummary: View {
                                 Image(systemName: "ruler")
                                     .font(AppFont.captionSmall())
                                     .foregroundColor(.blue)
-                                Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
+                                Text(UnitManager.shared.formatDistance(distance / 1000))
                                     .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
-                        
+
                         if let distance = workout.totalDistance?.safeDoubleValue(for: .meter()), distance > 0 {
                             let paceInSeconds = workout.duration / distance * 1000
                             HStack(spacing: 2) {
                                 Image(systemName: "speedometer")
                                     .font(AppFont.captionSmall())
                                     .foregroundColor(.green)
-                                Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                                Text(UnitManager.shared.formatPace(secondsPerKm: paceInSeconds))
                                     .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
-                        
+
                         // 訓練時長 (同 WorkoutSummaryRow)
                         HStack(spacing: 2) {
                             Image(systemName: "fitness.timer.fill")
@@ -304,24 +304,24 @@ struct WorkoutV2SummaryRow: View {
                             Image(systemName: "ruler")
                                 .font(AppFont.captionSmall())
                                 .foregroundColor(.blue)
-                            Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
+                            Text(UnitManager.shared.formatDistance(distance / 1000))
                                 .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
-                    
+
                     if shouldShowPace, let distance = workout.distance, distance > 0 {
                         let paceInSeconds = workout.duration / distance * 1000
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
                                 .font(AppFont.captionSmall())
                                 .foregroundColor(.green)
-                            Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                            Text(UnitManager.shared.formatPace(secondsPerKm: paceInSeconds))
                                 .font(AppFont.caption())
                                 .foregroundColor(.gray)
                         }
                     }
-                    
+
                     // 顯示平均心率
                     if shouldShowHeartRate, let avgHR = workout.basicMetrics?.avgHeartRateBpm {
                         HStack(spacing: 2) {
@@ -383,7 +383,7 @@ struct CollapsedWorkoutV2Summary: View {
                                 Image(systemName: "ruler")
                                     .font(AppFont.captionSmall())
                                     .foregroundColor(.blue)
-                                Text("\(viewModel.formatDistance(distance/1000, unit: "km"))")
+                                Text(UnitManager.shared.formatDistance(distance / 1000))
                                     .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
@@ -395,12 +395,12 @@ struct CollapsedWorkoutV2Summary: View {
                                 Image(systemName: "speedometer")
                                     .font(AppFont.captionSmall())
                                     .foregroundColor(.green)
-                                Text("\(PaceFormatterHelper.secondsToPace(paceInSeconds))")
+                                Text(UnitManager.shared.formatPace(secondsPerKm: paceInSeconds))
                                     .font(AppFont.caption())
                                     .foregroundColor(.gray)
                             }
                         }
-                        
+
                         // 訓練時長
                         HStack(spacing: 2) {
                             Image(systemName: "fitness.timer.fill")

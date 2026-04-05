@@ -3,19 +3,11 @@ import SwiftUI
 /// V2 週總覽卡片 - 顯示本週跑量和強度分配
 struct WeekOverviewCardV2: View {
     @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    @ObservedObject private var unitManager = UnitManager.shared
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlanV2
     @State private var showWeekTargetDetail = false
     @State private var showTrainingCalendar = false
-
-    // 優先讀 totalDistanceDisplay（英制），沒有就用 totalDistance（公里）
-    private var targetDistance: Double {
-        return plan.totalDistanceDisplay ?? plan.totalDistance
-    }
-
-    private var distanceUnit: String {
-        return plan.totalDistanceUnit ?? "km"
-    }
 
     // ✅ 從 intensityTotalMinutes 提取強度目標（分鐘）
     private var lowIntensityTarget: Int {
@@ -36,8 +28,8 @@ struct WeekOverviewCardV2: View {
     }
 
     private var weekProgress: Double {
-        guard targetDistance > 0 else { return 0 }
-        return min(viewModel.currentWeekDistance / targetDistance, 1.0)
+        guard plan.totalDistance > 0 else { return 0 }
+        return min(viewModel.currentWeekDistance / plan.totalDistance, 1.0)
     }
 
     var body: some View {
@@ -74,7 +66,7 @@ struct WeekOverviewCardV2: View {
 
                     VStack(spacing: 2) {
                         HStack(spacing: 1) {
-                            Text(String(format: "%.0f", viewModel.currentWeekDistance))
+                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.currentWeekDistance)))
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(.primary)
                                 .minimumScaleFactor(0.8)
@@ -84,14 +76,14 @@ struct WeekOverviewCardV2: View {
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
 
-                            Text(String(format: "%.0f", targetDistance))
+                            Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
                         }
 
-                        Text(distanceUnit)
+                        Text(unitManager.currentUnitSystem.distanceSuffix)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
