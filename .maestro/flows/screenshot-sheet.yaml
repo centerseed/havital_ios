@@ -1,0 +1,16 @@
+appId: com.havital.Havital.dev
+---
+- launchApp:
+    stopApp: false
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      text: "週訓練骨架"
+    timeout: 10000
+- tapOn:
+    text: "週訓練骨架"
+- extendedWaitUntil:
+    visible:
+      text: ".*各週訓練骨架.*"
+    timeout: 5000
+- takeScreenshot: qa_sheet_chinese

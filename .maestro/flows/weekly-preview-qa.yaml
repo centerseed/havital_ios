@@ -1,0 +1,89 @@
+appId: com.havital.Havital.dev
+tags:
+  - qa
+  - weekly-preview
+---
+# QA 測試：週訓練骨架預覽 UI
+
+# 重啟 app
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# 等待登入頁
+- extendedWaitUntil:
+    visible:
+      id: "Login_DemoButton"
+    timeout: 15000
+
+# Demo Mode 登入
+- tapOn:
+    id: "Login_DemoButton"
+
+# 等待主畫面資料載入完成
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|週課表尚未產生|今天"
+    timeout: 60000
+
+# 截圖：主畫面初始狀態
+- takeScreenshot: qa_01_main_screen
+
+# === P0-1：確認摘要卡片顯示 ===
+- assertVisible:
+    text: "週訓練骨架"
+
+- assertVisible:
+    text: ".*點擊查看.*"
+
+- takeScreenshot: qa_02_preview_card_visible
+
+# === P0-2：點擊卡片開啟 Sheet ===
+- tapOn:
+    text: "週訓練骨架"
+
+# 等待 sheet 動畫完成
+- extendedWaitUntil:
+    visible:
+      text: ".*各週訓練骨架.*"
+    timeout: 5000
+
+- takeScreenshot: qa_03_sheet_opened
+
+# === P0-3：驗證 Sheet 內容 ===
+# Disclaimer（使用 regex 匹配部分文字）
+- assertVisible:
+    text: ".*實際課表.*動態調整.*"
+
+# 週次
+- assertVisible:
+    text: ".*第 1 週.*"
+
+# km
+- assertVisible:
+    text: ".*km.*"
+
+# 長跑標籤
+- assertVisible:
+    text: "長跑"
+
+# 品質課標籤
+- assertVisible:
+    text: "品質課"
+
+- takeScreenshot: qa_04_sheet_content
+
+# === 關閉 Sheet ===
+- tapOn:
+    text: "關閉"
+
+# 回到主畫面
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練"
+    timeout: 5000
+
+- assertVisible:
+    text: "週訓練骨架"
+
+- takeScreenshot: qa_05_after_close
