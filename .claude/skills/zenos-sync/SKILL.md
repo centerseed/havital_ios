@@ -8,7 +8,7 @@ description: >
   或在一批 commits 後想讓 ontology 跟上，或說「幫我同步 {專案名}」時使用。
   注意：第一次為某個專案建立 ontology 請用 /zenos-capture {目錄}，
   /zenos-sync 是為已有 ontology 的專案做增量同步。
-version: 2.0.0
+version: 3.1.0
 ---
 
 # /zenos-sync — Git 增量同步
@@ -21,7 +21,92 @@ version: 2.0.0
 
 ---
 
-## Step 0：確認目標專案和上次 sync 時間
+## Step 0：Source Audit（預設執行）
+
+每次執行 `/zenos-sync` 時先跑 Source Audit。若使用者執行 `/zenos-sync --audit` 或 `/zenos-sync audit`，則只跑 Step 0，不執行後續步驟。
+
+### 0.1 拉取所有有 sources 的項目
+
+```python
+mcp__zenos__search(collection="entities", limit=500)
+mcp__zenos__search(collection="documents", limit=500)
+```
+
+過濾出 `sources` 欄位非空的所有 entity 和 document。
+
+### 0.2 逐項檢查 sources[]
+
+對每個項目的每一筆 source，依序做三項檢查：
+
+**a. label 檢查（bad_label）**
+
+條件：`label == "github"` 或 `label` 為空字串或 null
+
+修正方式：從 URI 尾段提取正確檔名。
+- 例：`https://github.com/.../blob/main/docs/SPEC-agent-system.md` → `SPEC-agent-system.md`
+- 例：`github:docs/SPEC-agent-system.md` → `SPEC-agent-system.md`
+
+分類為 `bad_label`，記錄原 label 和建議修正值。
+
+**b. URI 有效性檢查（broken / renamed）**
+
+僅對 `type=github` 且本地有對應 repo 的 source 執行。
+
+```bash
+# 從 URI 提取 path 部分，然後檢查是否存在
+git ls-files -- {path}
+
+# 若不存在，嘗試找改名記錄
+git log --follow --diff-filter=R --summary -- {path}
+```
+
+- 檔案存在 → 跳過
+- 檔案不存在，且 `git log --follow` 找到新路徑 → 分類為 `renamed`，記錄舊 URI 和新路徑
+- 檔案不存在，且找不到改名記錄 → 分類為 `broken`
+
+**c. 重複 source 檢查（duplicate）**
+
+在同一 parent entity 的所有 document 中，找出多筆 source 指向相同 URI 的情況。
+分類為 `duplicate`，列出所有重複項（entity id + document id + URI）。
+
+### 0.3 產出稽核報告
+
+直接輸出到用戶：
+
+```
+Source Audit 結果
+─────────────────────────────────
+🔴 broken:    N 筆 — URI 指向已刪除的檔案（將自動清除）
+🟡 bad_label: N 筆 — label 將自動修正
+🟠 renamed:   N 筆 — URI 將自動更新為新路徑
+🟠 duplicate: N 筆 — 列出重複項供參考（不自動處理）
+✅ healthy:   N 筆
+```
+
+### 0.4 自動修正
+
+依序執行修正，每筆修正後記錄結果：
+
+修正方式（都透過 `mcp__zenos__write` 更新 sources 陣列）：
+
+- **bad_label**：更新 label 為從 URI 提取的檔名
+- **broken**：移除該 source（若為 document 唯一 source，同時將 status 改為 `archived`）
+- **renamed**：更新 URI 和 label 為新路徑
+- **duplicate**：只報告，不自動處理
+
+### 0.5 顯示修正結果摘要
+
+```
+修正完成：
+  ✅ bad_label 已修正：N 筆
+  ✅ broken 已清除：N 筆（其中 M 筆 document 已標記為 archived）
+  ✅ renamed 已更新：N 筆
+  ⚠️  duplicate 需人工確認：N 筆（見上方清單）
+```
+
+---
+
+## Step 0.5：確認目標專案和上次 sync 時間
 
 **確認目標路徑：**
 - 有引數（目錄路徑）→ `TARGET = {引數路徑}`，在該目錄執行 git 指令
@@ -78,6 +163,27 @@ cd {TARGET} && git log --since="{SINCE}" --name-only --pretty=format:"---commit 
 
 ---
 
+## Step 1.5：用 Impact Chain 確定影響範圍
+
+**對 Step 1 找到的每個高影響文件變更，查其對應 entity 的 impact_chain：**
+
+```python
+# 找到文件對應的 entity
+mcp__zenos__search(query="<文件名或模組名>", collection="entities")
+
+# 查 impact_chain 和 reverse_impact_chain
+mcp__zenos__get(collection="entities", name="<對應模組>")
+```
+
+**用途：**
+- `impact_chain`（下游）→ 這個文件變更可能連帶需要更新哪些下游 entity 的 summary/source？
+- `reverse_impact_chain`（上游）→ 上游有沒有同時在變更？如果有，可能需要合併同步
+- 在 Step 3 propose 更新時，自動把下游 entity 也列入候選清單（標記為「間接影響」）
+
+**例：** `SPEC-action-layer.md` 被修改 → 查 Action Layer 的 impact_chain → 發現下游有 L3 文件治理和 L3 Task治理規則 → 同步提示「這兩個模組的 source 可能也需要更新」
+
+---
+
 ## Step 2：判斷每個變更對 ontology 的影響
 
 ### 高影響（必須處理）
@@ -120,7 +226,7 @@ search(query=文件路徑關鍵詞 或 commit message 關鍵詞)
 → commit message 暗示新模組 → 標記為骨架層 proposal
 ```
 
-利用 **commit message** 推斷變更的 why/how，比讀全文快：
+commit message 只作輔助訊號，不可取代讀全文；高影響文件必讀全文後再寫入：
 - `feat: add ACWR safety check` → 新功能，影響 ACWR module entry
 - `refactor: split WeeklyPlan into v2/v3` → 架構變更，可能需要新實體
 - `fix: correct ACWR calculation` → bug fix，不需要 propose
@@ -137,27 +243,27 @@ search(query=文件路徑關鍵詞 或 commit message 關鍵詞)
   ...
 ```
 
-每個 document entry：
+**高價值文件（spec/架構/PRD）→ 建 document entity：**
 ```
 write(collection="documents", data={
-  title: 從路徑或文件 H1 取得,
-  source = {
-    "type": "github",
-    "uri": 如果有 git remote → 構建 GitHub URL；否則 file://{絕對路徑},
-    "adapter": "github"
-  },
-  tags = {
-    "what": [關聯實體名稱，從 commit message 或路徑推斷],
-    "why": commit message 或文件目的（一句話）,
-    "how": 文件類型（spec/frd/guide/refactor），
-    "who": [推斷的讀者，如 ["開發", "PM"]]
-  },
-  summary = 基於 commit message + 路徑 + 必要時讀文件片段的語意摘要,
-  confirmed_by_user: False
+  title: 從路徑或文件 H1 取得（映射為 entity.name）,
+  source: {type: "github", uri: GitHub URL, adapter: "github"},
+  tags: {what: [關聯實體名稱], why: "文件目的", how: "spec/frd/guide", who: ["開發", "PM"]},
+  summary: 語意摘要,
+  linked_entity_ids: [所屬 entity ID]（第一個映射為 parent_id）,
+  confirmed_by_user: false
 })
 ```
 
-**何時讀全文**：commit message 不夠清楚 + 這是 P0 文件時，才讀全文。
+**低價值文件（guides/雜項）→ 追加到 entity.sources：**
+```
+write(collection="entities", id={parent_entity_id}, data={
+  ...existing fields...,
+  append_sources: [{uri: GitHub URL, label: 檔名, type: "github"}]
+})
+```
+
+**何時讀全文**：高影響文件一律讀全文；中影響文件若 commit message 無法準確判斷才讀全文。
 
 ---
 
@@ -218,38 +324,33 @@ write(collection="documents", data={
 → 呼叫 analyze(check_type="staleness") 偵測過時 entry
 ```
 
+**寫入 Work Journal（必做）：**
+
+```python
+mcp__zenos__journal_write(
+    summary="sync {專案名}：{n} commits，新增 {n} + 更新 {n} entities/documents",
+    project="{專案名}",
+    flow_type="sync",
+    tags=["{產品名}"]
+)
+```
+
 ---
 
 ## 注意事項
 
 - **增量，不是全量**：只看 `--since` 以後的變更，避免重複處理
-- **commit message 優先**：先用 message 推斷，讀全文是最後手段
+- **commit message 僅輔助**：高影響文件必讀全文；中影響文件可先看 message 再決定是否讀全文
 - **外部專案支援**：引數是目錄路徑時，所有 git/file 操作都在那個目錄執行
 - **Why/How 一律 draft**：意圖性維度不自動確認
 - **首次建構不適用**：沒有 last_sync 記錄時，引導用戶用 `/zenos-capture {目錄}` 代替
 
 ---
 
-## MCP Server 驗證規則（違反會被阻擋）
+## MCP Server 驗證規則（摘要）
 
-以下規則由 MCP Server 強制執行，write 操作違反時會回傳 ValueError 並告知正確值。
-
-### Entity 命名規則
-- **禁止括號標註**：不可用 `"訓練計畫 (Training Plan)"` 或 `"Training Plan Module (iOS)"`
-- 長度 2-80 字元，前後空白自動 strip
-- 同 type + name 不可重複（Server 會回傳既有 ID，改用 update）
-
-### Entity 必填驗證
-- `type`：`product` / `module` / `goal` / `role` / `project`
-- `status`：`active` / `paused` / `completed` / `planned`
-- `tags` 必須含四維：`what` / `why` / `how` / `who`
-- **Module 的 `parent_id` 強制必填**，且指向的 entity 必須已存在
-
-### Relationship / Blindspot / Document / Protocol
-- Relationship：source/target entity 必須存在，type 必須是合法 enum
-- Blindspot：severity 必須是 `red` / `yellow` / `green`，related_entity_ids 必須都存在
-- Document：source.type 必須是 `github` / `gdrive` / `notion` / `upload`，linked_entity_ids 必須都存在
-- Protocol：entity_id 必須存在，content 必須含 what/why/how/who
-
-### 寫入順序（必須遵守）
-1. 先建 product entity → 2. 建 module（帶 parent_id）→ 3. 建 relationships → 4. 建 documents
+- Entity：type/status/tags(四維) 必填，module 的 parent_id 必填，命名禁止括號
+- Document：source.type 必填，linked_entity_ids 盡量帶，寫入前用 source.uri 查重
+- 寫入順序：product → module → relationships → documents → entries
+- Sync 不主動產出 entries（entries 由 `/zenos-capture` 或 task 完成流程產出）
+- 完整驗證規則見 `zenos-capture/SKILL.md`「MCP Server 驗證規則」段落

@@ -3,8 +3,9 @@ name: zenos-setup
 description: >
   ZenOS 初始化設定——引導用戶輸入 API token，自動寫入 MCP 設定檔，
   完成後即可使用 /zenos-capture 和 /zenos-sync。
-  當使用者說「設定 ZenOS」「初始化 ZenOS」「setup ZenOS」「/zenos-setup」
-  或「我要開始用 ZenOS」「怎麼設定 MCP」「幫我設定 ontology 工具」時使用。
+  僅在使用者明確說「/zenos-setup」「初次設定 ZenOS」「我還沒設定 MCP token」
+  「幫我連接 ZenOS 服務」時使用。
+  注意：「更新 skill」「同步 skill」「修改 skill」不應觸發此 skill。
 version: 1.0.0
 ---
 
@@ -14,6 +15,27 @@ version: 1.0.0
 設定完成後你就能用 `/zenos-capture` 把任何專案的知識建入 ontology。
 
 整個過程大約 2 分鐘。
+
+---
+
+## Step 0：偵測 MCP 連線狀態
+
+**在問用戶任何設定問題之前，先偵測 MCP 是否已設定。**
+
+執行：
+```python
+mcp__zenos__search(query="ZenOS", collection="entities")
+```
+
+**結果判斷：**
+
+| 結果 | 代表 | 下一步 |
+|------|------|--------|
+| 成功回傳（不論有無資料）| MCP 已設定且連線正常 | 跳過 Step 1–2，直接進 **Step 3** |
+| 失敗（connection error / timeout）| 可能是 server 冷啟動 | 告知用戶「稍等 5 秒，ZenOS server 啟動中...」，等待 5 秒後再試一次 |
+| 重試仍失敗 | MCP 尚未設定或 token 錯誤 | 繼續 Step 1 |
+
+> MCP 第一次連線可能因 Cloud Run 冷啟動而需要 5-10 秒，不要立刻判定「未設定」。
 
 ---
 
@@ -57,7 +79,7 @@ python .claude/skills/zenos-setup/scripts/setup.py --token {用戶輸入的 toke
 ✅ 設定完成！
 
 已寫入 .claude/mcp.json：
-  zenos (Cloud) → https://zenos-mcp-xxx.run.app/sse
+  zenos (Cloud) → https://zenos-mcp-xxx.run.app/mcp
 
 下一步：
 1. 重啟 Claude Code（Cmd+R 或關掉重開）
@@ -72,7 +94,7 @@ python .claude/skills/zenos-setup/scripts/setup.py --token {用戶輸入的 toke
   "mcpServers": {
     "zenos": {
       "type": "http",
-      "url": "https://zenos-mcp-165893875709.asia-east1.run.app/sse?api_key={TOKEN}"
+      "url": "https://zenos-mcp-165893875709.asia-east1.run.app/mcp?api_key={TOKEN}"
     }
   }
 }
@@ -104,7 +126,28 @@ python .claude/skills/zenos-setup/scripts/setup.py \
 
 ---
 
-## Step 3：驗證設定
+## Step 3：安裝 ZenOS Agents
+
+將 ZenOS 角色 agents 安裝到 Claude Code 全域 agents 目錄，讓 `@architect`、`@developer` 等角色可在 Claude Code 中使用。
+
+```bash
+mkdir -p ~/.claude/agents
+cp skills/agents/*.md ~/.claude/agents/
+```
+
+執行後確認安裝的 agents：
+
+```bash
+ls ~/.claude/agents/
+```
+
+應出現：architect.md、debugger.md、designer.md、developer.md、marketing.md、pm.md、qa.md
+
+> 若 `skills/agents/` 不存在（非 ZenOS 專案目錄），跳過此步驟。
+
+---
+
+## Step 4：驗證設定
 
 設定完成後，詢問用戶是否要立刻驗證：
 
