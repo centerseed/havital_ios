@@ -18,6 +18,11 @@ tags:
     stopApp: true
     clearState: false
 
+# Demo 登入（若登入態未保留）
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
 # 確認目前為繁體中文主畫面（若看到英文，請先手動切回繁中）
 - extendedWaitUntil:
     visible:
@@ -50,6 +55,12 @@ tags:
 
 # 點儲存
 - tapOn: "儲存"
+
+# 等待語言切換確認對話框出現
+- extendedWaitUntil:
+    visible:
+      text: "確認|Confirm"
+    timeout: 5000
 
 # 確認語言切換對話框（語言變更時一定出現）
 - tapOn: "確認"

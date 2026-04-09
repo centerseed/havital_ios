@@ -30,6 +30,11 @@ tags:
 - takeScreenshot: qa_01_main_screen
 
 # === P0-1：確認摘要卡片顯示 ===
+- scrollUntilVisible:
+    element: "週訓練骨架"
+    direction: DOWN
+    timeout: 10000
+
 - assertVisible:
     text: "週訓練骨架"
 
@@ -59,13 +64,13 @@ tags:
 - assertVisible:
     text: ".*第 1 週.*"
 
-# km
+# km 或 miles（單位感知）
 - assertVisible:
-    text: ".*km.*"
+    text: ".*km.*|.*miles.*"
 
-# 長跑標籤
+# 長距離 section label（zh-Hant: training.workout_type.long_run = "長距離"）
 - assertVisible:
-    text: "長跑"
+    text: "長距離"
 
 # 品質課標籤
 - assertVisible:

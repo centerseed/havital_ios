@@ -1,0 +1,135 @@
+appId: com.havital.Havital.dev
+tags:
+  - regression
+  - suite
+  - race_run
+  - norwegian
+---
+# 回歸測試套件：Race Run + Norwegian 方法論
+# 依據：norwegian-workout-spec.md — 挪威乳酸閾值方法論課表展開規格
+# 流程：清除狀態 → Demo 登入 → Race Run + Norwegian onboarding → 驗證 overview → 驗證 plan 品質 → 週流程
+# 前提：無（會自動清除 app 數據）
+
+# === Phase 1: 建立 Race Run + Norwegian 用戶 ===
+- runFlow: ../subflows/logout-and-demo-login.yaml
+- runFlow: ../subflows/pass-pb-step.yaml
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
+- assertVisible: "訓練目標"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+# 賽事設定
+- tapOn:
+    id: "RaceSetup_SaveButton"
+    optional: true
+
+# 方法論 → norwegian
+- extendedWaitUntil:
+    visible:
+      id: "Methodology_norwegian"
+    timeout: 10000
+- tapOn:
+    id: "Methodology_norwegian"
+- tapOn:
+    id: "Methodology_NextButton"
+
+# 起始階段（若時間緊張才出現）
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+
+# 訓練偏好設定
+- assertVisible: "訓練偏好設定"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+# 等待 plan overview 生成
+- runFlow: ../subflows/verify-plan-generated.yaml
+
+# === Phase 2: 課表合理性驗證（挪威方法論特定） ===
+# 挪威方法：驗證課表結構合理性
+- runFlow: ../subflows/verify-methodology-norwegian.yaml
+
+# === Phase 3: 品質指南驗證 ===
+- scrollUntilVisible:
+    element: "每日訓練"
+    direction: UP
+    timeout: 10000
+- runFlow: ../subflows/verify-plan-quality.yaml
+
+# === Phase 4: 訓練計畫概覽頁驗證 ===
+- runFlow: ../subflows/verify-plan-overview.yaml
+
+# 返回主頁
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 80%"
+    duration: 300
+    optional: true
+- tapOn:
+    text: "關閉|完成|Done"
+    optional: true
+- back:
+    optional: true
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 15000
+
+# === Phase 5: 週回顧 + 重生流程 ===
+
+# Step 1: 刪除當前週回顧
+- tapOn: "更多"
+- tapOn:
+    text: "🐛 Debug 工具"
+- tapOn: "🗑️ 刪除當前週回顧"
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 10000
+
+# Step 2: 刪除當前週課表
+- tapOn: "更多"
+- tapOn:
+    text: "🐛 Debug 工具"
+- tapOn: "🗑️ 刪除當前週課表"
+
+# 等待進入 noWeeklyPlan 或 needsWeeklySummary 狀態
+- extendedWaitUntil:
+    visible:
+      text: "產生週課表|產生週回顧"
+    timeout: 15000
+
+# Step 3: 如果需要先產生週回顧（Week 2+）
+- tapOn:
+    text: "產生週回顧"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "訓練完成度|產生週課表"
+    timeout: 45000
+
+# Step 4: 產生週課表
+- assertVisible:
+    text: "產生下週課表|產生週課表"
+- tapOn:
+    text: "產生下週課表|產生週課表"
+
+# 等待課表產生完成
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|載入失敗|重試"
+    timeout: 60000
+
+# 驗證成功
+- assertVisible: "每日訓練"
+- assertVisible: "星期一"
+
+# === Phase 6: 重生後課表品質驗證 ===
+- scrollUntilVisible:
+    element: "km|miles"
+    direction: UP
+    timeout: 10000
+    optional: true
+- runFlow: ../subflows/verify-methodology-norwegian.yaml

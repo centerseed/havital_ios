@@ -348,18 +348,24 @@
 
 // MARK: - Training Types
 "training.type.easy" = "Easy Run";
+"training.type.easy_run" = "Easy Run";
 "training.type.tempo" = "Tempo Run";
 "training.type.interval" = "Interval Training";
+"training.type.paceriz_interval" = "Interval";
 "interval.static_rest" = "Static Rest";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";
+"training.type.recovery_run" = "Recovery Run";
 "training.type.race" = "Race";
 "training.type.fartlek" = "Fartlek";
 "training.type.hill" = "Hill Training";
 "training.type.speed" = "Speed Work";
 "training.type.lsd" = "LSD Run";
+"training.type.long_slow_distance" = "LSD Run";
 "training.type.threshold" = "Threshold Run";
 "training.type.progression" = "Progression Run";
+"training.type.progressive_run" = "Progressive Run";
+"training.type.long_run" = "Long Run";
 "training.type.combination" = "Combination Run";
 "training.type.rest" = "Rest";
 "training.type.cross_training" = "Cross Training";
@@ -386,6 +392,7 @@
 "training.type.short_interval" = "Short Intervals";
 "training.type.long_interval" = "Long Intervals";
 "training.type.norwegian_4x4" = "Norwegian 4x4";
+"training.type.norwegian_singles" = "Norwegian Singles";
 "training.type.yasso_800" = "Yasso 800s";
 // New Combination Training Types (fartlek already exists)
 "training.type.fast_finish" = "Fast Finish Run";
@@ -773,6 +780,14 @@
 "onboarding.goal_date" = "Goal Date";
 "onboarding.weeks_until_race" = "Weeks until race: %d";
 "onboarding.race_distance" = "Race Distance";
+"onboarding.race_distance.nav_title" = "Target Race";
+"onboarding.race_distance.title" = "What race are you targeting after off-season?";
+"onboarding.race_distance.subtitle" = "This helps us set realistic training milestones";
+"onboarding.race_distance.marathon" = "Marathon (42K)";
+"onboarding.race_distance.half_marathon" = "Half Marathon (21K)";
+"onboarding.race_distance.10k" = "10K";
+"onboarding.race_distance.5k" = "5K";
+"onboarding.race_distance.unsure" = "Not sure (skip)";
 "onboarding.select_distance" = "Select Distance";
 "onboarding.target_finish_time" = "Target Finish Time";
 "onboarding.target_time_description" = "Set a time you hope to achieve.";

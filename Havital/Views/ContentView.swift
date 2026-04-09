@@ -72,6 +72,12 @@ struct ContentView: View {
                         )
                     }
             }
+            // Re-onboarding：直接替換 mainAppContent，避免 sheet 衝突
+            else if authViewModel.isReonboardingMode {
+                OnboardingContainerView(isReonboarding: true)
+                    .environmentObject(authViewModel)
+                    .environmentObject(FeatureFlagManager.shared)
+            }
             // 顯示主要內容
             else {
                 mainAppContent()
@@ -92,21 +98,6 @@ struct ContentView: View {
 
                         // 檢查訓練版本
                         checkTrainingVersion()
-                    }
-                    .sheet(isPresented: Binding(
-                        get: { authViewModel.isReonboardingMode },
-                        set: { newValue in
-                            if !newValue {
-                                // 當 sheet 關閉時，確保模式已關閉並重置狀態
-                                authViewModel.isReonboardingMode = false
-                                OnboardingCoordinator.shared.reset()
-                            }
-                        }
-                    )) {
-                        // Re-onboarding 使用 OnboardingContainerView，從 personalBest 步驟開始
-                        OnboardingContainerView(isReonboarding: true)
-                            .environmentObject(authViewModel)
-                            .environmentObject(FeatureFlagManager.shared)
                     }
             }
         }
@@ -140,9 +131,11 @@ struct ContentView: View {
                     "new_value": newValue
                 ]
             )
+            // Re-onboarding 開始時隱藏 training tab（避免 V1 VM 在升級中發出 API call）
             // Re-onboarding 結束後重新檢查訓練版本，確保切換到正確的 V1/V2 視圖
-            if !newValue {
+            if newValue {
                 isCheckingVersion = true
+            } else {
                 checkTrainingVersion()
             }
         }

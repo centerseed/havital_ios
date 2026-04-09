@@ -1,0 +1,151 @@
+{
+  "plan_id": "overview_pol_6",
+  "overview_id": "overview_pol",
+  "week_of_training": 6,
+  "purpose": "Build phase with polarized intensity distribution",
+  "week_of_plan": 6,
+  "total_weeks": 14,
+  "total_distance_km": 55.0,
+  "total_distance_display": 34.18,
+  "total_distance_unit": "miles",
+  "design_reason": [
+    "Polarized training: 80% easy, 0% moderate, 20% hard",
+    "No threshold/tempo work per polarized methodology"
+  ],
+  "days": [
+    {
+      "day_index": 1,
+      "day_target": "Easy run",
+      "reason": "Aerobic base",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 8.0,
+        "distance_display": 4.97,
+        "distance_unit": "miles",
+        "duration_minutes": 48,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 2,
+      "day_target": "High intensity intervals",
+      "reason": "VO2max stimulus per polarized model",
+      "category": "run",
+      "primary": {
+        "run_type": "interval",
+        "distance_km": 10.0,
+        "distance_display": 6.21,
+        "distance_unit": "miles",
+        "duration_minutes": 55,
+        "description": "High intensity interval session",
+        "target_intensity": "high",
+        "interval": {
+          "repeats": 6,
+          "work_distance_km": 0.8,
+          "work_distance_display": 0.5,
+          "work_distance_unit": "miles",
+          "work_pace": "3:50",
+          "work_description": "800m at VO2max effort",
+          "recovery_distance_km": 0.4,
+          "recovery_duration_minutes": 2,
+          "recovery_pace": "6:30",
+          "recovery_description": "Easy jog recovery",
+          "recovery_duration_seconds": 120
+        }
+      },
+      "warmup": {
+        "distance_km": 2.0,
+        "distance_display": 1.24,
+        "distance_unit": "miles",
+        "duration_minutes": 12,
+        "pace": "6:00",
+        "intensity": "low"
+      },
+      "cooldown": {
+        "distance_km": 2.0,
+        "distance_display": 1.24,
+        "distance_unit": "miles",
+        "duration_minutes": 12,
+        "pace": "6:00",
+        "intensity": "low"
+      }
+    },
+    {
+      "day_index": 3,
+      "day_target": "Easy run",
+      "reason": "Recovery",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 8.0,
+        "distance_display": 4.97,
+        "distance_unit": "miles",
+        "duration_minutes": 48,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 4,
+      "day_target": "Rest",
+      "reason": "Recovery",
+      "category": "rest"
+    },
+    {
+      "day_index": 5,
+      "day_target": "Easy run",
+      "reason": "Aerobic volume",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 7.0,
+        "distance_display": 4.35,
+        "distance_unit": "miles",
+        "duration_minutes": 42,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 6,
+      "day_target": "Easy run",
+      "reason": "Pre-long run",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 6.0,
+        "distance_display": 3.73,
+        "distance_unit": "miles",
+        "duration_minutes": 36,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 7,
+      "day_target": "Long run",
+      "reason": "Endurance building",
+      "category": "run",
+      "primary": {
+        "run_type": "lsd",
+        "distance_km": 20.0,
+        "distance_display": 12.43,
+        "distance_unit": "miles",
+        "duration_minutes": 130,
+        "pace": "6:30",
+        "description": "Long easy run",
+        "target_intensity": "low"
+      }
+    }
+  ],
+  "intensity_total_minutes": {
+    "low": 280,
+    "medium": 0,
+    "high": 30
+  },
+  "stage_id": "build",
+  "methodology_id": "polarized",
+  "api_version": "2.0"
+}

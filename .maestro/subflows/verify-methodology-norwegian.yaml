@@ -1,0 +1,47 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：挪威乳酸閾值方法論課表品質驗證
+# 依據：norwegian-workout-spec.md
+# 前提：在每日訓練頁面，課表已載入（base 階段）
+# 驗證：
+#   1. 挪威方法不做 VO2max 間歇
+#   2. base 階段不應有比賽配速跑
+#   3. 強度分布以 low 為主
+#   4. 以輕鬆跑和 LSD 為主
+
+# === 1. 禁止出現的訓練類型 ===
+- assertNotVisible:
+    text: "挪威4x4"
+    optional: false
+- assertNotVisible:
+    text: "比賽配速跑"
+    optional: false
+
+# === 2. 必須有輕鬆跑 ===
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 10000
+- assertVisible: "輕鬆跑"
+
+# === 3. 強度分布驗證 ===
+- scrollUntilVisible:
+    element: "週跑量和訓練強度"
+    direction: UP
+    timeout: 10000
+- assertVisible:
+    text: "低 \\d+/\\d+"
+
+# === 4. 距離顯示 ===
+- assertVisible:
+    text: "km|miles"
+
+# === 5. 七天完整 + 休息日 ===
+- scrollUntilVisible:
+    element: "星期日"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element: "休息"
+    direction: UP
+    timeout: 10000

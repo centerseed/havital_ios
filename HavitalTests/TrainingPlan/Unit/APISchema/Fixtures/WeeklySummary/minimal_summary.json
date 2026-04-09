@@ -1,0 +1,24 @@
+{
+  "id": "summary_minimal",
+  "week_of_training": 1,
+  "training_completion": {
+    "percentage": 0.5,
+    "planned_km": 20.0,
+    "completed_km": 10.0,
+    "planned_sessions": 4,
+    "completed_sessions": 2,
+    "evaluation": "Partial completion"
+  },
+  "training_analysis": {},
+  "weekly_highlights": {
+    "highlights": ["First week completed"],
+    "achievements": [],
+    "areas_for_improvement": ["Consistency"]
+  },
+  "next_week_adjustments": {
+    "items": [],
+    "summary": "Maintain current plan",
+    "methodology_constraints_considered": false,
+    "based_on_flags": []
+  }
+}

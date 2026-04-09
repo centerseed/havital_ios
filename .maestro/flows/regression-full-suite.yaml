@@ -46,10 +46,9 @@ tags:
 
 - runFlow: ../subflows/verify-plan-generated.yaml
 
-# Beginner 合理性
-- assertVisible: "輕鬆跑"
-- assertNotVisible: "間歇訓練"
-- assertNotVisible: "節奏跑"
+# Beginner 合理性（方法論特定驗證）
+# 依據：complete-10k-workout-spec.md
+- runFlow: ../subflows/verify-methodology-beginner.yaml
 
 # === Phase 2: 品質驗證 ===
 - runFlow: ../subflows/verify-plan-quality.yaml
@@ -72,6 +71,25 @@ tags:
     timeout: 10000
 
 # 回到主頁（profile 可能是 sheet，嘗試多種方式關閉）
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 80%"
+    duration: 300
+    optional: true
+- tapOn:
+    text: "關閉|完成|Done"
+    optional: true
+- back:
+    optional: true
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 15000
+
+# === Phase 4.5: 訓練計畫概覽頁驗證 ===
+# 依據：TEST-SPEC-01 Section 4.1 — Plan Overview 結構驗證
+- runFlow: ../subflows/verify-plan-overview.yaml
+
+# 返回主頁
 - swipe:
     start: "50%, 20%"
     end: "50%, 80%"
@@ -145,4 +163,13 @@ tags:
     timeout: 10000
 
 # === Phase 6: 重生後再次品質驗證 ===
+# Scroll to top（Phase 5 結束時畫面停在中間，quality 驗證需從頂部開始）
+- scrollUntilVisible:
+    element: "km|miles"
+    direction: UP
+    timeout: 10000
+    optional: true
+
+# 重生後方法論特定驗證（beginner 路徑：不應出現高強度）
+- runFlow: ../subflows/verify-methodology-beginner.yaml
 - runFlow: ../subflows/verify-plan-quality.yaml

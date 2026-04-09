@@ -1,0 +1,50 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：維持訓練方法論 (aerobic_endurance / balanced_fitness) 課表品質驗證
+# 依據：aerobic-endurance-workout-spec.md
+# 前提：在每日訓練頁面，課表已載入
+# 驗證：
+#   1. 不允許 interval / tempo / threshold / race_pace 等賽季導向主課
+#   2. 應以輕鬆跑為主，可有 strides / hill_repeats（maintenance 階段）
+#   3. 強度分布以 low 為主
+
+# === 1. 禁止出現的賽季導向訓練類型 ===
+- assertNotVisible:
+    text: "間歇訓練"
+    optional: false
+- assertNotVisible:
+    text: "節奏跑"
+    optional: false
+- assertNotVisible:
+    text: "巡航間歇"
+    optional: false
+- assertNotVisible:
+    text: "配速跑"
+    optional: false
+
+# === 2. 必須有輕鬆跑 ===
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 10000
+- assertVisible: "輕鬆跑"
+
+# === 3. 強度分布驗證 ===
+- scrollUntilVisible:
+    element: "週跑量和訓練強度"
+    direction: UP
+    timeout: 10000
+
+# 低強度應為主要比例
+- assertVisible:
+    text: "低 \\d+/\\d+"
+
+# === 4. 七天完整 + 休息日 ===
+- scrollUntilVisible:
+    element: "星期日"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element: "休息"
+    direction: UP
+    timeout: 10000

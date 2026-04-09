@@ -1,0 +1,29 @@
+{
+  "id": "overview_maint_001",
+  "target_type": "maintenance",
+  "target_description": "Maintain aerobic fitness between race seasons",
+  "methodology_id": "paceriz",
+  "total_weeks": 8,
+  "methodology_overview": {
+    "name": "Paceriz",
+    "philosophy": "Maintain fitness with moderate volume",
+    "intensity_style": "balanced",
+    "intensity_description": "80% low / 15% moderate / 5% high intensity"
+  },
+  "approach_summary": "8-week maintenance block to preserve fitness",
+  "training_stages": [
+    {
+      "stage_id": "base",
+      "stage_name": "Maintenance",
+      "stage_description": "Steady-state training",
+      "week_start": 1,
+      "week_end": 8,
+      "training_focus": "Aerobic maintenance",
+      "target_weekly_km_range": { "low": 30.0, "high": 40.0 },
+      "intensity_ratio": { "low": 0.80, "medium": 0.15, "high": 0.05 },
+      "key_workouts": ["easy_run", "tempo", "long_run"]
+    }
+  ],
+  "milestones": [],
+  "created_at": "2026-03-01T00:00:00Z"
+}

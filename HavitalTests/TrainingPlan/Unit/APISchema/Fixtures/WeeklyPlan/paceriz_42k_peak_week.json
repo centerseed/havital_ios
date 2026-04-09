@@ -1,0 +1,169 @@
+{
+  "plan_id": "overview_001_12",
+  "overview_id": "overview_001",
+  "week_of_training": 12,
+  "id": "plan_peak_id",
+  "purpose": "Peak training week with highest volume and intensity",
+  "week_of_plan": 12,
+  "total_weeks": 16,
+  "total_distance_km": 70.0,
+  "total_distance_reason": "Peak week: maximum training stimulus before taper",
+  "design_reason": [
+    "Peak volume to maximize fitness",
+    "Quality sessions at race-specific intensity"
+  ],
+  "days": [
+    {
+      "day_index": 1,
+      "day_target": "Easy recovery",
+      "reason": "Recovery from weekend",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 8.0,
+        "duration_minutes": 48,
+        "pace": "6:00",
+        "description": "Easy recovery run",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 2,
+      "day_target": "Interval session",
+      "reason": "VO2max development",
+      "category": "run",
+      "primary": {
+        "run_type": "interval",
+        "distance_km": 12.0,
+        "duration_minutes": 60,
+        "description": "5x1km intervals at VO2max pace",
+        "target_intensity": "high",
+        "interval": {
+          "repeats": 5,
+          "work_distance_km": 1.0,
+          "work_pace": "4:10",
+          "work_description": "Fast 1km repeat",
+          "recovery_distance_km": 0.4,
+          "recovery_duration_minutes": 2,
+          "recovery_pace": "6:00",
+          "recovery_description": "Easy jog recovery"
+        }
+      },
+      "warmup": {
+        "distance_km": 2.0,
+        "duration_minutes": 12,
+        "pace": "6:00",
+        "intensity": "low"
+      },
+      "cooldown": {
+        "distance_km": 2.0,
+        "duration_minutes": 12,
+        "pace": "6:00",
+        "intensity": "low"
+      }
+    },
+    {
+      "day_index": 3,
+      "day_target": "Easy run",
+      "reason": "Recovery",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 8.0,
+        "duration_minutes": 48,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 4,
+      "day_target": "Threshold run",
+      "reason": "Lactate threshold development",
+      "category": "run",
+      "primary": {
+        "run_type": "threshold",
+        "distance_km": 10.0,
+        "duration_minutes": 50,
+        "pace": "5:00",
+        "heart_rate_range": { "min": 165, "max": 175 },
+        "description": "Sustained threshold effort",
+        "target_intensity": "medium"
+      },
+      "warmup": {
+        "distance_km": 2.0,
+        "duration_minutes": 12,
+        "pace": "6:00",
+        "intensity": "low"
+      },
+      "cooldown": {
+        "distance_km": 1.0,
+        "duration_minutes": 7,
+        "pace": "6:30",
+        "intensity": "low"
+      }
+    },
+    {
+      "day_index": 5,
+      "day_target": "Rest",
+      "reason": "Complete rest before long run",
+      "category": "rest"
+    },
+    {
+      "day_index": 6,
+      "day_target": "Easy run",
+      "reason": "Pre-long run shakeout",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 6.0,
+        "duration_minutes": 36,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 7,
+      "day_target": "Long run with progression",
+      "reason": "Race simulation at peak",
+      "tips": "Start easy, build to marathon pace in final 5km",
+      "category": "run",
+      "primary": {
+        "run_type": "progression",
+        "distance_km": 26.0,
+        "duration_minutes": 160,
+        "description": "Progressive long run finishing at marathon pace",
+        "target_intensity": "medium",
+        "segments": [
+          {
+            "distance_km": 15.0,
+            "pace": "6:00",
+            "intensity": "low",
+            "description": "Easy warm-up portion"
+          },
+          {
+            "distance_km": 6.0,
+            "pace": "5:20",
+            "intensity": "medium",
+            "description": "Moderate pickup"
+          },
+          {
+            "distance_km": 5.0,
+            "pace": "4:50",
+            "intensity": "medium",
+            "description": "Marathon pace finish"
+          }
+        ]
+      }
+    }
+  ],
+  "intensity_total_minutes": {
+    "low": 210,
+    "medium": 100,
+    "high": 30
+  },
+  "created_at": "2026-03-15T10:00:00Z",
+  "updated_at": "2026-03-15T10:00:00Z",
+  "stage_id": "peak",
+  "methodology_id": "paceriz",
+  "api_version": "2.0"
+}

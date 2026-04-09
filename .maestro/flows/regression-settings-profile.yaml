@@ -16,6 +16,11 @@ tags:
     stopApp: true
     clearState: false
 
+# Demo 登入（若未登入）
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
 # 等待主畫面載入
 - extendedWaitUntil:
     visible:

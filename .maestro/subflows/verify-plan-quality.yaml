@@ -26,9 +26,10 @@ appId: com.havital.Havital.dev
     timeout: 10000
     optional: true
 
-# === 4. 輕鬆跑存在 ===
+# === 4. 輕鬆跑系列存在（輕鬆跑 或 長距離輕鬆跑）===
 - scrollUntilVisible:
-    element: "輕鬆跑"
+    element:
+      text: "輕鬆跑|長距離輕鬆跑"
     direction: UP
     timeout: 10000
 

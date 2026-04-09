@@ -1,109 +1,66 @@
 # CLAUDE.md — Paceriz iOS
 
-## 🚨 Safety Rules (NEVER Violate)
+## Hard Constraints
 
-- NEVER use `Date` as Dictionary key — causes crashes. Use `TimeInterval` instead
-- NEVER let HealthKit data bypass backend: `HealthKit → Backend API → UI`, not `HealthKit → UI`
-- NEVER show ErrorView for cancelled tasks — filter `NSURLErrorCancelled` before updating UI state
-- NEVER let Repository publish/subscribe CacheEventBus events — Repository is passive
-- NEVER let ViewModel depend on concrete RepositoryImpl — depend on Protocol only
+1. **Never fabricate results.** If you haven't run it, you don't know. Say "unverified" — not "should work" or PASS. Fabricated results cost 10x more to debug than honest unknowns.
 
----
+2. **Own all problems.** Build fails: fix it. QA fails: find root cause. "I don't have simulator access" is false — you have MCP tools (`mcp__ios-simulator__*`). Never push investigation back to the user.
 
-## Workflow
+3. **`Date` is not a valid Dictionary key.** Use `TimeInterval`. Date's Hashable is time-dependent — silent runtime crash, no compile error.
 
-### 1. Plan First
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+4. **HealthKit data must go through backend.** `HealthKit → Backend API → UI`, never `HealthKit → UI`. Bypassing backend creates split truth between HealthKit and Firestore.
 
-### 2. Verify Before Modify (CRITICAL)
-- When debugging UI issues: grep ALL views that display the data, verify which one is active
-- NEVER assume which view is responsible — prove it with evidence
-- When user questions your approach: STOP, re-verify all assumptions, then continue
+5. **Filter `NSURLErrorCancelled` before touching UI state.** Cancelled tasks are intentional navigation — showing ErrorView for them is a UX lie.
 
-### 3. Self-Improvement Loop
-- After ANY user correction: update memory files with the lesson
-- Write rules that prevent the same mistake from recurring
+6. **ViewModel depends on Repository Protocol, never RepositoryImpl.** Concrete impl breaks DI and makes unit testing require full wiring rewrite.
 
-### 4. Verification Before Done
-- MUST run clean build before declaring task complete
-- Ask yourself: "Would a senior engineer approve this?"
+7. **Repository never touches CacheEventBus.** Repository is passive data access. Event flow belongs to ViewModels/Services — mixing it in creates hidden coupling that breaks layer independence.
 
-### 5. Autonomous Bug Fixing
-- When given a bug report: just fix it, don't ask for hand-holding
-- Go fix failing builds without being told how
-
----
-
-## Common Commands
+## Commands
 
 ```bash
-# Clean build
+# Build (always iPhone 17 Pro)
 xcodebuild clean build -project Havital.xcodeproj -scheme Havital \
-  -destination 'platform=iOS Simulator,name=iPhone 16'
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
-# Search crash patterns
-grep -r "Dictionary.*Date" Havital/ --include="*.swift"
+# Find Date-as-key crashes
+grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
 ```
 
----
+## Architecture
 
-## Naming
+Full rules: @.claude/rules/architecture.md
 
-- Product name: **Paceriz** (all user-facing text)
-- Technical identifier: `com.havital.*` (App Store continuity)
-- Directory name stays `Havital`
-
----
-
-## ZenOS 治理技能
-
-若當前專案有 `skills/governance/` 目錄（透過 `/zenos-setup` 安裝），
-執行對應操作前**必須先用 Read tool 讀取該文件完整內容**再執行：
-
-- 寫文件前讀：`skills/governance/document-governance.md`
-- 建立 L2 概念前讀：`skills/governance/l2-knowledge-governance.md`
-- 建立任務前讀：`skills/governance/task-governance.md`
-
-> 若 `skills/governance/` 不存在，跳過治理流程。
-
----
-
-## Architecture Constraints
-
-Detailed rules: @.claude/rules/architecture.md
-
-**Core rule**: 4-layer Clean Architecture, dependencies always point inward.
 ```
-Presentation → Domain → Data → Core
+Presentation → Domain → Data → Core  (dependencies always inward)
 ```
 
-### New Feature Checklist
-- [ ] ViewModel: `@MainActor`, depends on Repository Protocol
-- [ ] View: rendering only, no business logic
-- [ ] DTO in Data Layer, Entity in Domain Layer, Mapper to convert
-- [ ] Errors converted to `DomainError`, UI uses `ViewState<T>`
-- [ ] All async closures use `[weak self]`
-- [ ] All dependencies via `DependencyContainer`
+- DTO in Data layer (snake_case + CodingKeys), Entity in Domain (camelCase). Never add Codable to Entity — couples Domain to serialization format.
+- Singleton: HTTPClient, Logger, DataSource, Mapper, RepositoryImpl. Factory (new per use): ViewModel.
 
----
+## Known Gotchas
 
-## Gotchas & Anti-patterns
+**TaskManageable** — every ViewModel/Manager must implement it. `TaskRegistry` with unique `TaskID`. `cancelAllTasks()` in deinit. Never update UI state for cancelled tasks.
 
-### TaskManageable — YOU MUST follow
-- All ViewModels/Managers implement `TaskManageable`
-- Use `TaskRegistry` with unique `TaskID` (e.g., `TaskID("load_weekly_plan_\(week)")`)
-- `cancelAllTasks()` in deinit
-- NEVER update UI state for cancelled tasks
-
-### API Call Tracking
-- Chain `.tracked(from: "ViewName: functionName")` on all API calls
-
-### Init Order — MUST respect
+**Init order is strict — race conditions are invisible in unit tests:**
 ```
 App Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready
 ```
-NEVER initialize ViewModel before user auth is complete.
 
-### ViewState
-- Use `ViewState<T>` enum: `.loading`, `.loaded(data)`, `.error(error)`, `.empty`
-- `.error` only for actionable errors, NEVER for cancellations
+**API call tracking** — chain `.tracked(from: "ViewName: functionName")` on every API call. Without this, production incidents are unattributable.
+
+**Naming trap** — product name is **Paceriz** (user-facing), bundle ID stays `com.havital.*` (App Store continuity), directory stays `Havital`.
+
+## ZenOS Governance
+
+If `skills/governance/` exists, read before acting:
+- Writing docs → `document-governance.md`
+- Creating L2 concepts → `l2-knowledge-governance.md`
+- Creating tasks → `task-governance.md`
+
+## Role-Specific Rules
+
+@.claude/rules/debugging.md — bug triage, root cause protocol
+@.claude/rules/delivery.md — build gate, new feature checklist
+@.claude/rules/testing.md — QA protocol, simulator rules, Maestro usage
+@.claude/rules/multi-agent.md — agent role boundaries

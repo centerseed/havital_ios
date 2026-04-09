@@ -1,0 +1,167 @@
+{
+  "id": "summary_001",
+  "uid": "user_123",
+  "weekly_plan_id": "plan_001",
+  "training_overview_id": "overview_001",
+  "week_of_training": 3,
+  "created_at": "2026-02-10T12:00:00Z",
+  "plan_context": {
+    "target_type": "race_run",
+    "methodology_id": "paceriz",
+    "methodology_name": "Paceriz",
+    "current_phase": "base",
+    "phase_week": 3,
+    "phase_total_weeks": 4,
+    "total_weeks": 16,
+    "weeks_remaining": 13,
+    "current_stage_description": "Base building phase focusing on aerobic endurance",
+    "upcoming_milestone": {
+      "id": "milestone_base_complete",
+      "name": "Base Phase Complete",
+      "target_week": 4,
+      "description": "Transition to build phase"
+    }
+  },
+  "training_completion": {
+    "percentage": 0.85,
+    "planned_km": 45.0,
+    "completed_km": 38.25,
+    "planned_sessions": 5,
+    "completed_sessions": 4,
+    "evaluation": "Good adherence with one missed session"
+  },
+  "training_analysis": {
+    "heart_rate": {
+      "average": 142.0,
+      "max": 178.0,
+      "zones_distribution": { "zone1": 0.1, "zone2": 0.55, "zone3": 0.25, "zone4": 0.08, "zone5": 0.02 },
+      "evaluation": "Good aerobic distribution"
+    },
+    "pace": {
+      "average": "5:45",
+      "trend": "improving",
+      "target_pace_achievement": 0.92,
+      "evaluation": "Pace improving towards target"
+    },
+    "distance": {
+      "total": 38.25,
+      "comparison_to_plan": "slightly_below",
+      "long_run_completed": true,
+      "evaluation": "Acceptable volume with long run completed"
+    },
+    "intensity_distribution": {
+      "easy_percentage": 0.78,
+      "moderate_percentage": 0.18,
+      "hard_percentage": 0.04,
+      "target_distribution": "80/15/5",
+      "evaluation": "Close to target distribution"
+    }
+  },
+  "readiness_summary": {
+    "speed": {
+      "score": 72.0,
+      "achievement_rate": 0.88,
+      "trend": "improving",
+      "trend_data": [
+        { "date": "2026-02-03", "value": 68.0, "label": "Week 1" },
+        { "date": "2026-02-10", "value": 72.0, "label": "Week 3" }
+      ],
+      "evaluation": "Speed developing well"
+    },
+    "endurance": {
+      "score": 75.0,
+      "avg_esc": 1.05,
+      "long_run_completion": 1.0,
+      "volume_consistency": 0.85,
+      "trend": "stable",
+      "trend_data": [
+        { "date": "2026-02-03", "value": 73.0 },
+        { "date": "2026-02-10", "value": 75.0 }
+      ],
+      "evaluation": "Endurance on track"
+    },
+    "training_load": {
+      "score": 80.0,
+      "current_tsb": 5.0,
+      "ctl": 45.0,
+      "atl": 40.0,
+      "balance_status": "optimal",
+      "is_in_optimal_range": true,
+      "deviation": 0.02,
+      "trend_data": [
+        { "date": "2026-02-10", "value": 80.0 }
+      ],
+      "evaluation": "Training load well managed"
+    },
+    "race_fitness": {
+      "score": 65.0,
+      "current_vdot": 48.5,
+      "target_vdot": 52.0,
+      "baseline_vdot": 46.0,
+      "progress_percentage": 0.42,
+      "training_progress": 0.19,
+      "estimated_race_time": "3:40:00",
+      "target_race_time": "3:31:00",
+      "time_gap_seconds": 540,
+      "trend": "improving",
+      "trend_data": [
+        { "date": "2026-02-03", "value": 47.5 },
+        { "date": "2026-02-10", "value": 48.5 }
+      ],
+      "evaluation": "Fitness progressing towards target"
+    },
+    "mileage": {
+      "planned_km": 45.0,
+      "completed_km": 38.25,
+      "completion_rate": 0.85,
+      "weekly_trend": "increasing",
+      "streak_weeks": 3,
+      "evaluation": "Consistent mileage build"
+    },
+    "overall_readiness_score": 73.0,
+    "overall_status": "on_track",
+    "flags": [
+      {
+        "level": "info",
+        "metric": "mileage",
+        "message": "Mileage slightly below target",
+        "recommended_action": "Consider adding a short easy run"
+      }
+    ]
+  },
+  "weekly_highlights": {
+    "highlights": [
+      "Completed long run at target pace",
+      "Heart rate zones well distributed"
+    ],
+    "achievements": [
+      "Longest run of the training cycle"
+    ],
+    "areas_for_improvement": [
+      "Missed one easy run session"
+    ]
+  },
+  "next_week_adjustments": {
+    "items": [
+      {
+        "content": "Add 5km to weekly volume",
+        "category": "volume",
+        "apply": true,
+        "slot_type": "easy_run",
+        "training_type": "easy",
+        "reason": "Progressive overload",
+        "impact": "Gradual mileage increase",
+        "source_flag": null,
+        "priority": "medium"
+      }
+    ],
+    "summary": "Slight volume increase with maintained intensity",
+    "methodology_constraints_considered": true,
+    "based_on_flags": ["mileage_below_target"]
+  },
+  "rest_week_recommendation": {
+    "recommended": false,
+    "reason": "Training load balanced, no fatigue indicators",
+    "fatigue_indicators": []
+  }
+}

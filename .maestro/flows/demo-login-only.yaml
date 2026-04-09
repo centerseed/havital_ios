@@ -1,0 +1,19 @@
+appId: com.havital.Havital.dev
+---
+# 簡單的 Demo 登入流程（不清除 state，不觸發 onboarding）
+# 前提：App 在登入頁面
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- extendedWaitUntil:
+    visible:
+      id: "Login_DemoButton"
+    timeout: 15000
+
+- tapOn:
+    id: "Login_DemoButton"
+
+- extendedWaitUntil:
+    visible: "更多"
+    timeout: 30000

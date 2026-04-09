@@ -25,6 +25,13 @@ Havital/Resources/GoogleService-Info.plist
 Havital/Resources/APIKeys.plist
 .mcp.json
 
+# Claude Code & ZenOS governance (local tooling, not product code)
+.claude/
+skills/
+
+# QA screenshots (temporary test artifacts)
+*.png
+
 # Swift Package Manager
 .swiftpm/
 SourcePackages/

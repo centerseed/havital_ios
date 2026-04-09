@@ -1,0 +1,15 @@
+{
+  "current_week": 5,
+  "total_weeks": 16,
+  "next_action": "create_summary",
+  "can_generate_next_week": true,
+  "current_week_plan_id": "overview_001_5",
+  "target_type": "race_run",
+  "methodology_id": "paceriz",
+  "next_week_info": {
+    "week_number": 6,
+    "has_plan": false,
+    "can_generate": true,
+    "requires_current_week_summary": true
+  }
+}

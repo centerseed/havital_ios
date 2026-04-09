@@ -1,19 +1,50 @@
 appId: com.havital.Havital.dev
 ---
-# 子流程：清除 app 數據 → Demo 登入 → 進入 onboarding（模擬全新用戶）
+# 子流程：登出 → Demo 登入 → 進入 onboarding（模擬全新用戶）
 # 後置：在 onboarding 個人最佳成績頁面
+#
+# 重要設計決策：
+# - 不使用 clearState: true，因為 iOS 26 的 HealthKit 授權 sheet 是
+#   系統級 UI（out-of-process），Maestro 無法互動。clearState 會重置
+#   privacy 設定，導致 HealthKit sheet 每次都出現。
+# - 改為保留 app 狀態，手動登出再登入，避免觸發系統權限彈窗。
+# - 需要在 simulator 上至少執行過一次手動 HealthKit 授權。
 
-# 清除 app 數據並重啟（模擬首次安裝）
+# 重啟 app（保留 state）
 - launchApp:
     stopApp: true
-    clearState: true
+    clearState: false
 
-# 處理通知權限彈窗（clearState 後首次啟動會出現）
+# 處理可能的系統彈窗
 - tapOn:
     text: "允許"
     optional: true
+- tapOn:
+    text: "好"
+    optional: true
 
-# 等待登入頁出現
+# 嘗試登出（如果在主畫面）
+# 使用 repeat 確保這些步驟在登入頁時被安全跳過
+- tapOn:
+    text: "更多"
+    optional: true
+- tapOn:
+    text: "個人資料"
+    optional: true
+- scrollUntilVisible:
+    element: "登出"
+    direction: DOWN
+    timeout: 5000
+    optional: true
+- tapOn:
+    text: "登出"
+    optional: true
+# 登出確認 dialog（可能不出現）
+- tapOn:
+    text: "確認"
+    optional: true
+
+# 等待登入頁出現（兩條路徑都會到達這裡）
 - extendedWaitUntil:
     visible:
       id: "Login_DemoButton"
@@ -23,12 +54,12 @@ appId: com.havital.Havital.dev
 - tapOn:
     id: "Login_DemoButton"
 
-# 等待進入主頁面（Demo 全新用戶會到空狀態「尚未建立訓練計畫」）
+# 等待進入主頁面
 - extendedWaitUntil:
     visible: "更多"
     timeout: 30000
 
-# 透過「更多 → 個人資料 → 重新設定目標」觸發 onboarding
+# 透過「更多 → 個人資料 → 重新開始完整 Onboarding」觸發 onboarding
 - tapOn: "更多"
 - tapOn: "個人資料"
 - extendedWaitUntil:
@@ -37,11 +68,56 @@ appId: com.havital.Havital.dev
 - scrollUntilVisible:
     element: "重新設定目標"
     direction: DOWN
-    timeout: 10000
+    timeout: 15000
 - tapOn: "重新設定目標"
-- tapOn: "確認"
 
-# 等待進入 onboarding 第一步
+# 確認 dialog（「確定要重新開始目標設定流程嗎？」）
+- tapOn:
+    text: "確認"
+    optional: true
+
+# 等待進入 onboarding（可能直接進 PB，也可能有 intro 頁）
+- extendedWaitUntil:
+    visible:
+      text: "歡迎來到|開始設定|個人最佳成績"
+    timeout: 30000
+
+# Step 1: Intro → 點擊「開始設定」（如果有 intro 頁）
+- tapOn:
+    text: "開始設定"
+    optional: true
+
+# Step 2: 數據來源選擇（如果出現）
+- tapOn:
+    id: "DataSourceOption_appleHealth"
+    optional: true
+- tapOn:
+    id: "OnboardingContinueButton"
+    optional: true
+
+# HealthKit 系統授權 sheet（如果出現）
+- tapOn:
+    text: "開啟全部"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element: "允許"
+    direction: DOWN
+    timeout: 5000
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Step 3: 心率區間設定（如果出現）
+- tapOn:
+    text: "下一步"
+    optional: true
+
+# 等待進入 PB（個人最佳成績）步驟
 - extendedWaitUntil:
     visible: "個人最佳成績"
     timeout: 30000

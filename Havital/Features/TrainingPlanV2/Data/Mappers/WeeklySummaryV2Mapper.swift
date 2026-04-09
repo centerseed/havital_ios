@@ -292,8 +292,7 @@ enum WeeklySummaryV2Mapper {
             items: dto.items.map { toAdjustmentItem(from: $0) },
             summary: dto.summary,
             methodologyConstraintsConsidered: dto.methodologyConstraintsConsidered,
-            basedOnFlags: dto.basedOnFlags,
-            customizationRecommendations: dto.customizationRecommendations.map { toCustomizationRecommendation(from: $0) }
+            basedOnFlags: dto.basedOnFlags
         )
     }
 
@@ -311,22 +310,7 @@ enum WeeklySummaryV2Mapper {
         )
     }
 
-    private static func toCustomizationRecommendation(from dto: CustomizationRecommendationDTO) -> CustomizationRecommendation {
-        return CustomizationRecommendation(
-            recommendationType: dto.recommendationType,
-            slotType: dto.slotType,
-            originalType: dto.originalType,
-            recommendedType: dto.recommendedType,
-            currentValue: dto.currentValue,
-            recommendedValue: dto.recommendedValue,
-            adjustmentPercentage: dto.adjustmentPercentage,
-            targetDays: dto.targetDays,
-            durationWeeks: dto.durationWeeks,
-            reason: dto.reason,
-            confidence: dto.confidence,
-            basedOn: dto.basedOn
-        )
-    }
+    // toCustomizationRecommendation 已移除（2026-04-05）— customization_recommendations 廢棄
 
     private static func toRestWeekAssessment(from dto: RestWeekAssessmentDTO) -> RestWeekAssessment {
         return RestWeekAssessment(

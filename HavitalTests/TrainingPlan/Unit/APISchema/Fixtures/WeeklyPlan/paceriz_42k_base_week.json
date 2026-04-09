@@ -1,0 +1,161 @@
+{
+  "plan_id": "overview_001_3",
+  "overview_id": "overview_001",
+  "week_of_training": 3,
+  "id": "plan_legacy_id",
+  "purpose": "Build aerobic base with progressive mileage increase",
+  "week_of_plan": 3,
+  "total_weeks": 16,
+  "total_distance_km": 45.0,
+  "total_distance_display": null,
+  "total_distance_unit": null,
+  "total_distance_reason": "Base phase: gradual volume build targeting 45km",
+  "design_reason": [
+    "Progressive overload principle",
+    "80/20 intensity distribution per Paceriz methodology"
+  ],
+  "days": [
+    {
+      "day_index": 1,
+      "day_target": "Easy recovery run",
+      "reason": "Active recovery from weekend long run",
+      "tips": "Keep heart rate in Zone 2",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 6.0,
+        "duration_minutes": 36,
+        "pace": "6:00",
+        "heart_rate_range": { "min": 130, "max": 145 },
+        "description": "Easy aerobic run at conversational pace",
+        "target_intensity": "low"
+      },
+      "warmup": null,
+      "cooldown": null
+    },
+    {
+      "day_index": 2,
+      "day_target": "Rest day",
+      "reason": "Recovery between training days",
+      "tips": null,
+      "category": "rest"
+    },
+    {
+      "day_index": 3,
+      "day_target": "Tempo run with warmup and cooldown",
+      "reason": "Develop lactate threshold",
+      "tips": "Maintain steady effort throughout tempo portion",
+      "category": "run",
+      "primary": {
+        "run_type": "tempo",
+        "distance_km": 8.0,
+        "duration_minutes": 40,
+        "pace": "5:00",
+        "heart_rate_range": { "min": 160, "max": 170 },
+        "description": "Sustained tempo at threshold pace",
+        "target_intensity": "medium"
+      },
+      "warmup": {
+        "distance_km": 2.0,
+        "duration_minutes": 12,
+        "pace": "6:00",
+        "intensity": "low",
+        "description": "Easy warmup jog"
+      },
+      "cooldown": {
+        "distance_km": 1.5,
+        "duration_minutes": 10,
+        "pace": "6:30",
+        "intensity": "low",
+        "description": "Easy cooldown jog"
+      }
+    },
+    {
+      "day_index": 4,
+      "day_target": "Easy run",
+      "reason": "Active recovery",
+      "tips": null,
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 5.0,
+        "duration_minutes": 30,
+        "pace": "6:00",
+        "description": "Easy aerobic run",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 5,
+      "day_target": "Strength training",
+      "reason": "Build running-specific strength",
+      "tips": "Focus on form over weight",
+      "category": "strength",
+      "primary": {
+        "strength_type": "runner_specific",
+        "exercises": [
+          {
+            "exercise_id": "squat_001",
+            "name": "Barbell Squat",
+            "sets": 3,
+            "reps": 10,
+            "weight_kg": 40.0,
+            "rest_seconds": 90,
+            "description": "Full depth squat"
+          },
+          {
+            "exercise_id": "lunge_001",
+            "name": "Walking Lunges",
+            "sets": 3,
+            "reps_range": "8-12",
+            "description": "Alternating walking lunges"
+          }
+        ],
+        "duration_minutes": 45,
+        "description": "Runner-specific strength circuit"
+      }
+    },
+    {
+      "day_index": 6,
+      "day_target": "Easy run",
+      "reason": "Pre-long run shakeout",
+      "tips": null,
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 5.0,
+        "duration_minutes": 30,
+        "pace": "6:00",
+        "description": "Easy shakeout run",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 7,
+      "day_target": "Long slow distance",
+      "reason": "Build aerobic endurance",
+      "tips": "Fuel every 45 minutes",
+      "category": "run",
+      "primary": {
+        "run_type": "lsd",
+        "distance_km": 18.0,
+        "duration_minutes": 120,
+        "pace": "6:40",
+        "heart_rate_range": { "min": 135, "max": 150 },
+        "description": "Long slow distance run",
+        "target_intensity": "low"
+      }
+    }
+  ],
+  "intensity_total_minutes": {
+    "low": 180,
+    "medium": 40,
+    "high": 0
+  },
+  "created_at": "2026-01-21T15:24:26.194000+00:00",
+  "updated_at": "2026-01-21T15:24:26.194000+00:00",
+  "stage_id": "base",
+  "methodology_id": "paceriz",
+  "data_version": "2.1",
+  "api_version": "2.0"
+}

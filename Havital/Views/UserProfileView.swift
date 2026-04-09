@@ -3,6 +3,7 @@ import FirebaseAuth
 import HealthKit
 
 struct UserProfileView: View {
+    @Binding var isShowing: Bool
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     // Clean Architecture: Use AuthenticationViewModel from environment
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
@@ -16,7 +17,8 @@ struct UserProfileView: View {
     @State private var currentWeekDistance: Int = 0  // 新增當前週跑量
     @State private var weeklyDistance: Int = 0
     @State private var showTrainingDaysEditor = false
-    @State private var showOnboardingConfirmation = false  // 重新 OnBoarding 確認對話框狀態
+    // Note: reset goal confirmation uses UIKit UIAlertController (see showResetGoalAlert)
+    // because SwiftUI .alert button actions don't fire in iOS 26 sheet context
     @State private var showDeleteAccountConfirmation = false  // 刪除帳戶確認對話框狀態
     @State private var isDeletingAccount = false  // 刪除帳戶加載狀態
     @State private var showDataSourceSwitchConfirmation = false  // 數據源切換確認對話框
@@ -54,7 +56,7 @@ struct UserProfileView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(NSLocalizedString("common.done", comment: "Done")) {
-                    dismiss()
+                    isShowing = false
                 }
             }
         }
@@ -134,20 +136,6 @@ struct UserProfileView: View {
         }
         .sheet(isPresented: $showDebugFailedWorkouts) {
             DebugFailedWorkoutsView()
-        }
-        // 重新 OnBoarding 確認對話框
-        .confirmationDialog(
-            NSLocalizedString("profile.reset_goal_confirm_title", comment: "Are you sure you want to restart the goal setting process?"),
-            isPresented: $showOnboardingConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(NSLocalizedString("common.confirm", comment: "Confirm"), role: .destructive) {
-                // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
-                authViewModel.startReonboarding()
-            }
-            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
-        } message: {
-            Text(NSLocalizedString("profile.reset_goal_confirm_message", comment: "This will reset all your training settings and require you to reconfigure your training preferences. Your current training plan will be cleared and cannot be recovered."))
         }
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
@@ -457,7 +445,7 @@ struct UserProfileView: View {
     private var logoutSection: some View {
         Section {
             Button(action: {
-                showOnboardingConfirmation = true
+                showResetGoalAlert()
             }) {
                 HStack {
                     Image(systemName: "arrow.clockwise")
@@ -1010,6 +998,35 @@ struct UserProfileView: View {
         .id("\(type.rawValue)-row")
     }
     
+    // UIKit alert workaround: SwiftUI .alert/.confirmationDialog button actions
+    // don't fire in iOS 26 when presented inside List > NavigationView > sheet.
+    private func showResetGoalAlert() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else { return }
+        // Find the topmost presented view controller
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        let alert = UIAlertController(
+            title: NSLocalizedString("profile.reset_goal_confirm_title", comment: ""),
+            message: NSLocalizedString("profile.reset_goal_confirm_message", comment: ""),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(
+            title: NSLocalizedString("common.cancel", comment: ""),
+            style: .cancel
+        ))
+        let vm = authViewModel
+        alert.addAction(UIAlertAction(
+            title: NSLocalizedString("common.confirm", comment: ""),
+            style: .destructive
+        ) { _ in
+            vm.startReonboarding()
+        })
+        topVC.present(alert, animated: true)
+    }
+
     // 處理數據源切換邏輯
     private func switchDataSource(to newDataSource: DataSourceType) {
         Task {
@@ -1209,6 +1226,6 @@ struct UserProfileView: View {
 
 #Preview {
     NavigationStack {
-        UserProfileView()
+        UserProfileView(isShowing: .constant(true))
     }
 }

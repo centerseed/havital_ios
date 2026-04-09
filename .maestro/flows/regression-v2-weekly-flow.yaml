@@ -10,6 +10,7 @@ tags:
 # 說明：Week 1 直接到「產生週課表」；Week 2+ 先到「產生週回顧」再到「產生下週課表」
 
 # 重啟 app 確保乾淨狀態
+# 注意：此 flow 前提為「App 已登入，有課表資料」，不可在 suite 跑完 reonboarding 後單獨執行
 - launchApp:
     stopApp: true
     clearState: false

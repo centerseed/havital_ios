@@ -1,0 +1,44 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：訓練計畫概覽頁面驗證
+# 依據：TEST-SPEC-01 Section 4.1 — Plan Overview 驗證
+# 前提：App 已登入，有課表資料（V2 用戶）
+# 驗證：
+#   1. 概覽頁面可導航並載入
+#   2. 目標賽事資訊可見
+#   3. 訓練階段結構顯示（stages）
+#   4. 支援賽事區塊存在
+
+# === Step 1: 導航到訓練計畫概覽 ===
+- tapOn: "更多"
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽"
+
+# 等待概覽頁載入
+- extendedWaitUntil:
+    visible:
+      text: "目標賽事|我的訓練目標|訓練階段"
+    timeout: 15000
+
+# === Step 2: 驗證目標賽事區塊 ===
+- assertVisible:
+    text: "目標賽事|我的訓練目標"
+
+# === Step 2.5: 切換到「訓練計畫」分頁（階段資訊在 Tab 1）===
+- tapOn:
+    text: "訓練計畫|Training Plan"
+
+# === Step 3: 驗證訓練階段資訊存在（可選，Beginner 目標可能無階段名）===
+- scrollUntilVisible:
+    element:
+      text: "轉換期|基礎期|強化期|巔峰期|減量期|維持期|發展期|週"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+
+# === Step 4: 驗證支援賽事區塊存在（可選，Beginner/Maintenance 可能無此區塊）===
+- scrollUntilVisible:
+    element: "支援賽事"
+    direction: DOWN
+    timeout: 10000
+    optional: true

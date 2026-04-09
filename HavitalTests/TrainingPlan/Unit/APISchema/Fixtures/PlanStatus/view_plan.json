@@ -1,0 +1,24 @@
+{
+  "current_week": 3,
+  "total_weeks": 16,
+  "next_action": "view_plan",
+  "can_generate_next_week": false,
+  "current_week_plan_id": "overview_001_3",
+  "previous_week_summary_id": "summary_002",
+  "target_type": "race_run",
+  "methodology_id": "paceriz",
+  "next_week_info": {
+    "week_number": 4,
+    "has_plan": false,
+    "can_generate": false,
+    "requires_current_week_summary": true,
+    "next_action": "create_summary"
+  },
+  "metadata": {
+    "training_start_date": "2026-01-06T00:00:00Z",
+    "current_week_start_date": "2026-01-20T00:00:00Z",
+    "current_week_end_date": "2026-01-26T23:59:59Z",
+    "user_timezone": "Asia/Taipei",
+    "server_time": "2026-01-22T10:30:00Z"
+  }
+}

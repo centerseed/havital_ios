@@ -348,18 +348,24 @@
 
 // MARK: - Training Types
 "training.type.easy" = "輕鬆跑";
+"training.type.easy_run" = "輕鬆跑";
 "training.type.tempo" = "節奏跑";
 "training.type.interval" = "間歇訓練";
+"training.type.paceriz_interval" = "間歇";
 "interval.static_rest" = "原地休息";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";
+"training.type.recovery_run" = "恢復跑";
 "training.type.race" = "比賽";
 "training.type.fartlek" = "法特雷克";
 "training.type.hill" = "爬坡訓練";
 "training.type.speed" = "速度訓練";
 "training.type.lsd" = "長距離輕鬆跑";
+"training.type.long_slow_distance" = "長距離輕鬆跑";
 "training.type.threshold" = "閾值跑";
 "training.type.progression" = "漸進跑";
+"training.type.progressive_run" = "漸進跑";
+"training.type.long_run" = "長距離跑";
 "training.type.combination" = "組合訓練";
 "training.type.rest" = "休息";
 "training.type.cross_training" = "交叉訓練";
@@ -375,6 +381,7 @@
 "training.type.short_interval" = "短間歇";
 "training.type.long_interval" = "長間歇";
 "training.type.norwegian_4x4" = "挪威4x4";
+"training.type.norwegian_singles" = "挪威單次訓練";
 "training.type.yasso_800" = "亞索800";
 // 新增組合訓練類型（fartlek 已存在）
 "training.type.fast_finish" = "快速完成跑";
@@ -767,6 +774,14 @@
 "onboarding.goal_date" = "目標日期";
 "onboarding.weeks_until_race" = "距離賽事週數：%d";
 "onboarding.race_distance" = "賽事距離";
+"onboarding.race_distance.nav_title" = "目標賽事";
+"onboarding.race_distance.title" = "你休賽季後預計參加的目標賽事？";
+"onboarding.race_distance.subtitle" = "這將幫助我們設定合理的訓練里程碑";
+"onboarding.race_distance.marathon" = "全馬（42K）";
+"onboarding.race_distance.half_marathon" = "半馬（21K）";
+"onboarding.race_distance.10k" = "10K";
+"onboarding.race_distance.5k" = "5K";
+"onboarding.race_distance.unsure" = "不確定（略過）";
 "onboarding.select_distance" = "選擇距離";
 "onboarding.target_finish_time" = "目標完賽時間";
 "onboarding.target_time_description" = "設定你希望達到的時間。";

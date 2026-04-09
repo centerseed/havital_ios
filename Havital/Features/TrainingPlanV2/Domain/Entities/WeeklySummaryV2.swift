@@ -515,13 +515,11 @@ struct NextWeekAdjustmentsV2: Codable, Equatable {
     let summary: String
     let methodologyConstraintsConsidered: Bool
     let basedOnFlags: [String]
-    let customizationRecommendations: [CustomizationRecommendation]
 
     enum CodingKeys: String, CodingKey {
         case items, summary
         case methodologyConstraintsConsidered = "methodology_constraints_considered"
         case basedOnFlags = "based_on_flags"
-        case customizationRecommendations = "customization_recommendations"
     }
 }
 
@@ -546,34 +544,9 @@ struct AdjustmentItemV2: Codable, Equatable {
     }
 }
 
-struct CustomizationRecommendation: Codable, Equatable {
-    let recommendationType: String
-    let slotType: String?
-    let originalType: String?
-    let recommendedType: String?
-    let currentValue: String?
-    let recommendedValue: String?
-    let adjustmentPercentage: Double?
-    let targetDays: [Int]?
-    let durationWeeks: Int?
-    let reason: String
-    let confidence: Double
-    let basedOn: [String]
-
-    enum CodingKeys: String, CodingKey {
-        case recommendationType = "recommendation_type"
-        case slotType = "slot_type"
-        case originalType = "original_type"
-        case recommendedType = "recommended_type"
-        case currentValue = "current_value"
-        case recommendedValue = "recommended_value"
-        case adjustmentPercentage = "adjustment_percentage"
-        case targetDays = "target_days"
-        case durationWeeks = "duration_weeks"
-        case reason, confidence
-        case basedOn = "based_on"
-    }
-}
+// CustomizationRecommendation 已移除（2026-04-05）
+// 後端 customization_recommendations 欄位廢棄，不再由 LLM 填充。
+// 統一使用 AdjustmentItemV2 作為建議結構。
 
 // MARK: - RestWeekAssessment
 /// 休息週建議

@@ -1,0 +1,127 @@
+{
+  "plan_id": "overview_sw_1",
+  "purpose": "Session wrapper format test",
+  "total_distance_km": 30.0,
+  "days": [
+    {
+      "day_index": 1,
+      "day_target": "Easy run via session wrapper",
+      "reason": "Test session wrapper format",
+      "category": "run",
+      "session": {
+        "primary": {
+          "run_type": "easy",
+          "distance_km": 6.0,
+          "duration_minutes": 36,
+          "pace": "6:00",
+          "description": "Easy run delivered via session wrapper",
+          "target_intensity": "low"
+        },
+        "supplementary": [
+          {
+            "strength_type": "core",
+            "exercises": [
+              {
+                "name": "Plank",
+                "sets": 3,
+                "duration_seconds": 60,
+                "description": "Core stability"
+              }
+            ],
+            "duration_minutes": 10,
+            "description": "Post-run core work"
+          }
+        ]
+      },
+      "warmup": {
+        "distance_km": 1.0,
+        "duration_minutes": 7,
+        "pace": "7:00",
+        "intensity": "low"
+      },
+      "cooldown": {
+        "distance_km": 1.0,
+        "duration_minutes": 7,
+        "pace": "7:00",
+        "intensity": "low"
+      }
+    },
+    {
+      "day_index": 2,
+      "day_target": "Rest",
+      "reason": "Recovery"
+    },
+    {
+      "day_index": 3,
+      "day_target": "Interval with flat primary",
+      "reason": "Compare flat vs wrapper",
+      "category": "run",
+      "primary": {
+        "run_type": "interval",
+        "distance_km": 8.0,
+        "duration_minutes": 45,
+        "description": "Flat primary format interval",
+        "target_intensity": "high",
+        "interval": {
+          "repeats": 4,
+          "work_distance_km": 0.8,
+          "work_pace": "4:00",
+          "work_description": "Fast 800m",
+          "recovery_distance_km": 0.4,
+          "recovery_duration_minutes": 2,
+          "recovery_pace": "6:00",
+          "recovery_description": "Jog recovery"
+        }
+      },
+      "supplementary": [
+        {
+          "cross_type": "yoga",
+          "duration_minutes": 20,
+          "intensity": "low",
+          "description": "Post-run yoga stretching"
+        }
+      ]
+    },
+    {
+      "day_index": 4,
+      "day_target": "Rest",
+      "reason": "Recovery"
+    },
+    {
+      "day_index": 5,
+      "day_target": "Rest",
+      "reason": "Recovery"
+    },
+    {
+      "day_index": 6,
+      "day_target": "Easy run",
+      "reason": "Shakeout",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 5.0,
+        "duration_minutes": 30,
+        "pace": "6:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 7,
+      "day_target": "Long run",
+      "reason": "Endurance",
+      "category": "run",
+      "session": {
+        "primary": {
+          "run_type": "long_run",
+          "distance_km": 15.0,
+          "duration_minutes": 100,
+          "pace": "6:40",
+          "description": "Long run via session wrapper",
+          "target_intensity": "low"
+        }
+      }
+    }
+  ],
+  "methodology_id": "paceriz",
+  "api_version": "2.0"
+}

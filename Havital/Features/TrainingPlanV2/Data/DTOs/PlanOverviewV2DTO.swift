@@ -147,11 +147,11 @@ struct PlanOverviewV2DTO: Codable {
         methodologyVersion = try container.decodeIfPresent(String.self, forKey: .methodologyVersion)
         milestoneBasis = try container.decodeIfPresent(String.self, forKey: .milestoneBasis)
 
-        if let createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAt) {
+        if let createdAtString = try? container.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = createdAtString
-        } else if let createdAtInt = try container.decodeIfPresent(Int.self, forKey: .createdAt) {
+        } else if let createdAtInt = try? container.decodeIfPresent(Int.self, forKey: .createdAt) {
             createdAt = String(createdAtInt)
-        } else if let createdAtDouble = try container.decodeIfPresent(Double.self, forKey: .createdAt) {
+        } else if let createdAtDouble = try? container.decodeIfPresent(Double.self, forKey: .createdAt) {
             createdAt = String(Int(createdAtDouble))
         } else {
             createdAt = nil

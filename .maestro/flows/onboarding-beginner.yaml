@@ -47,11 +47,9 @@ tags:
 
 - runFlow: ../subflows/verify-plan-generated.yaml
 
-# === 課表合理性驗證 ===
-- assertVisible: "輕鬆跑"
-- assertNotVisible: "間歇訓練"
-- assertNotVisible: "節奏跑"
-- assertNotVisible: "巡航間歇"
+# === 課表合理性驗證（方法論特定） ===
+# 依據：complete-10k-workout-spec.md — 不允許任何 tempo/threshold/interval
+- runFlow: ../subflows/verify-methodology-beginner.yaml
 
 # === 品質指南驗證 ===
 - runFlow: ../subflows/verify-plan-quality.yaml

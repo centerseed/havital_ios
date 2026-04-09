@@ -42,12 +42,10 @@ tags:
 
 - runFlow: ../subflows/verify-plan-generated.yaml
 
-# === 課表合理性驗證 ===
-- scrollUntilVisible:
-    element: "輕鬆跑"
-    direction: UP
-    timeout: 5000
+# === 課表合理性驗證（方法論特定） ===
+# 依據：norwegian-workout-spec.md — base 階段以輕鬆跑為主
 - assertNotVisible: "間歇訓練"
+- runFlow: ../subflows/verify-methodology-race-base.yaml
 
 # === 品質指南驗證 ===
 - runFlow: ../subflows/verify-plan-quality.yaml

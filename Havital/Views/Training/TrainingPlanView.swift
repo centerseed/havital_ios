@@ -250,7 +250,12 @@ struct TrainingPlanView: View {
         }
         .sheet(isPresented: $showUserProfile) {
             NavigationView {
-                UserProfileView()
+                UserProfileView(isShowing: $showUserProfile)
+            }
+        }
+        .onChange(of: authViewModel.isReonboardingMode) { newValue in
+            if newValue {
+                showUserProfile = false
             }
         }
         .sheet(isPresented: $viewModel.isLoadingAnimation) {

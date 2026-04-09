@@ -49,9 +49,9 @@ tags:
 
 - runFlow: ../subflows/verify-plan-generated.yaml
 
-# === 課表合理性驗證 ===
-- assertVisible: "輕鬆跑"
-- assertNotVisible: "間歇訓練"
+# === 課表合理性驗證（方法論特定） ===
+# 依據：aerobic-endurance-workout-spec.md — 不允許 interval/tempo/threshold/race_pace
+- runFlow: ../subflows/verify-methodology-maintenance.yaml
 
 # === 品質指南驗證 ===
 - runFlow: ../subflows/verify-plan-quality.yaml

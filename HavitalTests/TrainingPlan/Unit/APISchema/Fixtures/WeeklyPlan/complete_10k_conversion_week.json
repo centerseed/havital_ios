@@ -1,0 +1,97 @@
+{
+  "plan_id": "overview_10k_2",
+  "overview_id": "overview_10k",
+  "week_of_training": 2,
+  "purpose": "Conversion phase: build running habit with easy runs only",
+  "week_of_plan": 2,
+  "total_weeks": 12,
+  "total_distance_km": 20.0,
+  "design_reason": [
+    "Complete 10K methodology: no quality sessions in conversion phase",
+    "Focus on building consistent running habit"
+  ],
+  "days": [
+    {
+      "day_index": 1,
+      "day_target": "Easy run",
+      "reason": "Aerobic base building",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 4.0,
+        "duration_minutes": 28,
+        "pace": "7:00",
+        "description": "Easy conversational pace",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 2,
+      "day_target": "Rest",
+      "reason": "Recovery day",
+      "category": "rest"
+    },
+    {
+      "day_index": 3,
+      "day_target": "Easy run",
+      "reason": "Aerobic base",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 5.0,
+        "duration_minutes": 35,
+        "pace": "7:00",
+        "description": "Easy run",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 4,
+      "day_target": "Cross training",
+      "reason": "Active recovery with low impact",
+      "category": "cross",
+      "primary": {
+        "cross_type": "cycling",
+        "duration_minutes": 30,
+        "intensity": "low",
+        "description": "Easy cycling for active recovery"
+      }
+    },
+    {
+      "day_index": 5,
+      "day_target": "Rest",
+      "reason": "Recovery",
+      "category": "rest"
+    },
+    {
+      "day_index": 6,
+      "day_target": "Easy run",
+      "reason": "Pre-long run shakeout",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 4.0,
+        "duration_minutes": 28,
+        "pace": "7:00",
+        "target_intensity": "low"
+      }
+    },
+    {
+      "day_index": 7,
+      "day_target": "Long easy run",
+      "reason": "Build endurance gradually",
+      "category": "run",
+      "primary": {
+        "run_type": "easy",
+        "distance_km": 7.0,
+        "duration_minutes": 50,
+        "pace": "7:00",
+        "description": "Longest run of the week at easy pace",
+        "target_intensity": "low"
+      }
+    }
+  ],
+  "stage_id": "conversion",
+  "methodology_id": "complete_10k",
+  "api_version": "2.0"
+}

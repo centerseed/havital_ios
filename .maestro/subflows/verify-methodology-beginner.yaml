@@ -1,0 +1,55 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：新手方法論 (complete_10k / complete_5k) 課表品質驗證
+# 依據：complete-10k-workout-spec.md / complete-5k-workout-spec.md
+# 前提：在每日訓練頁面，課表已載入
+# 驗證：
+#   1. 不允許任何 tempo / threshold / interval 類刺激
+#   2. 強度分布應為 100% low
+#   3. 只有輕鬆跑和休息（conversion/base 階段特性）
+#   4. 必須有休息日（至少 3 天休息）
+
+# === 1. 禁止出現的高強度訓練類型 ===
+- assertNotVisible:
+    text: "間歇訓練"
+    optional: false
+- assertNotVisible:
+    text: "節奏跑"
+    optional: false
+- assertNotVisible:
+    text: "巡航間歇"
+    optional: false
+- assertNotVisible:
+    text: "配速跑"
+    optional: false
+- assertNotVisible:
+    text: "漸速跑"
+    optional: false
+
+# === 2. 必須有輕鬆跑 ===
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 10000
+- assertVisible: "輕鬆跑"
+
+# === 3. 強度分布驗證：low 應為主要比例 ===
+- scrollUntilVisible:
+    element: "週跑量和訓練強度"
+    direction: UP
+    timeout: 10000
+
+# 低強度應佔所有訓練日（beginner 規格：low=1.0 / medium=0.0 / high=0.0）
+# 驗證 "低" 標籤存在且有非零值
+- assertVisible:
+    text: "低 \\d+/\\d+"
+
+# === 4. 七天完整 + 足夠休息日 ===
+- scrollUntilVisible:
+    element: "星期日"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element: "休息"
+    direction: UP
+    timeout: 10000

@@ -11,6 +11,7 @@ tags:
 # 注意：SupportingRacesCard 的 + 按鈕是 plus.circle 圖示，無文字
 
 # 重啟 app 確保乾淨狀態
+# 注意：此 flow 前提為「App 已登入，有課表資料」，不可在 suite 跑完 reonboarding 後單獨執行
 - launchApp:
     stopApp: true
     clearState: false
@@ -18,12 +19,12 @@ tags:
 # 等待主畫面載入
 - extendedWaitUntil:
     visible:
-      text: "每日訓練|訓練計劃"
+      text: "每日訓練|訓練計劃|我的訓練目標"
     timeout: 45000
 
 # 確認有課表存在
 - assertVisible:
-    text: "每日訓練|訓練計劃"
+    text: "每日訓練|訓練計劃|我的訓練目標"
 
 # === Step 1: 導航到訓練總覽（內含支援賽事區塊）===
 

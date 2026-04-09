@@ -32,9 +32,51 @@ enum WeeklyPreviewV2Mapper {
             isRecovery: dto.isRecovery ?? false,
             milestoneRef: dto.milestoneRef,
             intensityRatio: dto.intensityRatio.map { toIntensityDistribution(from: $0) },
-            qualityOptions: dto.qualityOptions?.map { $0.trainingType } ?? [],
+            qualityOptions: dto.qualityOptions?.map { displayType(for: $0) } ?? [],
             longRun: dto.longRun?.trainingType
         )
+    }
+
+    /// 特殊 variant（編輯課表可選的獨立類型）保留原始 trainingType，其餘用 category
+    private static let specialVariants: Set<String> = [
+        "yasso_800", "norwegian_4x4",
+        "cruise_intervals", "short_interval", "long_interval",
+        "hill_repeats", "fast_finish", "race_pace", "mp_long_run", "progressive_long_run"
+    ]
+
+    /// Backend phase-level category key → localization 基礎訓練類型
+    /// Backend 的 category 是 YAML phase 中的 slot 名稱（如 threshold_long），
+    /// 而非 workout template 的基礎類型（如 threshold），需要正規化才能 localize。
+    private static let categoryBaseTypeMap: [String: String] = [
+        // Norwegian
+        "lt1_calibration": "threshold",
+        "threshold_long": "threshold",
+        "threshold_short": "threshold",
+        "threshold_maintenance": "threshold",
+        // Polarized
+        "neuromuscular": "strides",
+        "vo2max_long": "interval",
+        "vo2max_short": "interval",
+        "vo2max_maintenance": "interval",
+        // Paceriz
+        "speed_development": "interval",
+        "threshold_work": "threshold",
+        "interval_work": "interval",
+        "speed_maintenance": "interval",
+        // Speed Endurance
+        "aerobic_quality": "fartlek",
+        "threshold_quality_1": "tempo",
+        "threshold_quality_2": "threshold",
+        // Hansons
+        "optional_quality": "strides",
+        "race_specific": "race_pace",
+    ]
+
+    private static func displayType(for option: QualityOptionDTO) -> String {
+        if specialVariants.contains(option.trainingType) {
+            return option.trainingType
+        }
+        return categoryBaseTypeMap[option.category] ?? option.category
     }
 
     private static func toIntensityDistribution(from dto: IntensityDistributionDTO) -> IntensityDistributionV2 {

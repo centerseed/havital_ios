@@ -13,7 +13,7 @@ struct LanguageSettingsView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var showRestartAlert = false
+    // showRestartAlert removed — using UIKit UIAlertController (iOS 26 SwiftUI alert bug)
 
     init() {
         _selectedLanguage = State(initialValue: LanguageManager.shared.currentLanguage)
@@ -25,42 +25,24 @@ struct LanguageSettingsView: View {
             List {
                 // Language Section
                 Section(header: Text(L10n.Settings.language.localized)) {
-                    ForEach(SupportedLanguage.allCases, id: \.self) { language in
-                        HStack {
-                            Text(language.displayName)
-                            Spacer()
-                            if selectedLanguage == language {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if selectedLanguage != language {
-                                selectedLanguage = language
-                            }
+                    Picker(L10n.Settings.language.localized, selection: $selectedLanguage) {
+                        ForEach(SupportedLanguage.allCases, id: \.self) { language in
+                            Text(language.displayName).tag(language)
                         }
                     }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
                 }
-                
+
                 // Unit Section
                 Section(header: Text(L10n.Settings.units.localized)) {
-                    ForEach(UnitSystem.allCases, id: \.self) { unit in
-                        HStack {
-                            Text(unit.displayName)
-                            Spacer()
-                            if selectedUnit == unit {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if selectedUnit != unit {
-                                selectedUnit = unit
-                            }
+                    Picker(L10n.Settings.units.localized, selection: $selectedUnit) {
+                        ForEach(UnitSystem.allCases, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
                         }
                     }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
                 }
                 
                 // Info Section
@@ -97,19 +79,8 @@ struct LanguageSettingsView: View {
                 }
             }
         }
-        .alert(L10n.Language.changeConfirm.localized, isPresented: $showRestartAlert) {
-            Button(L10n.Common.cancel.localized, role: .cancel) {
-                // Reset selection
-                selectedLanguage = languageManager.currentLanguage
-            }
-            Button(L10n.Common.confirm.localized) {
-                Task {
-                    await performLanguageChange()
-                }
-            }
-        } message: {
-            Text(L10n.Language.restartMessage.localized)
-        }
+        // Note: showRestartAlert is handled by showLanguageChangeAlert() using UIKit
+        // because SwiftUI .alert button actions don't fire in iOS 26 sheet context
         .alert(L10n.Error.unknown.localized, isPresented: $showError) {
             Button(L10n.Common.done.localized) { }
         } message: {
@@ -134,7 +105,7 @@ struct LanguageSettingsView: View {
     private func saveSettings() {
         // Language change requires restart confirmation
         if selectedLanguage != languageManager.currentLanguage {
-            showRestartAlert = true
+            showLanguageChangeAlert()
             return
         }
         // Unit change does not require restart
@@ -147,6 +118,31 @@ struct LanguageSettingsView: View {
         // Nothing changed — dismiss on next runloop to avoid NavigationView dismiss conflict
         let dismissAction = dismiss
         Task { @MainActor in dismissAction() }
+    }
+
+    // UIKit alert workaround: SwiftUI .alert button actions don't fire in iOS 26 sheet context
+    private func showLanguageChangeAlert() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else { return }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        let alert = UIAlertController(
+            title: L10n.Language.changeConfirm.localized,
+            message: L10n.Language.restartMessage.localized,
+            preferredStyle: .alert
+        )
+        let mgr = languageManager
+        alert.addAction(UIAlertAction(title: L10n.Common.cancel.localized, style: .cancel) { _ in
+            self.selectedLanguage = mgr.currentLanguage
+        })
+        alert.addAction(UIAlertAction(title: L10n.Common.confirm.localized, style: .default) { _ in
+            Task {
+                await self.performLanguageChange()
+            }
+        })
+        topVC.present(alert, animated: true)
     }
 
     private func performUnitChange() async {

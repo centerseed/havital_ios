@@ -44,6 +44,7 @@ struct TrainingPlanV2View: View {
                         // 3️⃣ 週時間軸
                         WeekTimelineViewV2(viewModel: viewModel, plan: weeklyPlan)
 
+
                     case .noWeeklyPlan:
                         GenerateWeeklyPlanPromptView(
                             isWeekOne: viewModel.currentWeek == 1,
@@ -222,7 +223,12 @@ struct TrainingPlanV2View: View {
             }
             .sheet(isPresented: $showUserProfile) {
                 NavigationView {
-                    UserProfileView()
+                    UserProfileView(isShowing: $showUserProfile)
+                }
+            }
+            .onChange(of: authViewModel.isReonboardingMode) { newValue in
+                if newValue {
+                    showUserProfile = false
                 }
             }
             .sheet(isPresented: $showEditSchedule) {

@@ -236,6 +236,17 @@ struct TrainingProgressViewV2: View {
                     .fontWeight(isCurrentWeek ? .bold : .regular)
                     .foregroundColor(isCurrentWeek ? .primary : (isFutureWeek && summariesLoaded ? Color.secondary.opacity(0.5) : .secondary))
 
+                if let skeleton = skeletonWeek {
+                    HStack(spacing: 3) {
+                        Image(systemName: "figure.run")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("\(Int(skeleton.targetKmDisplay ?? skeleton.targetKm)) \(skeleton.distanceUnit ?? "km")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 Spacer()
 
                 HStack(spacing: 8) {
@@ -289,17 +300,8 @@ struct TrainingProgressViewV2: View {
             }
 
             if let skeleton = skeletonWeek {
-                HStack(spacing: 12) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "figure.run")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("\(Int(skeleton.targetKmDisplay ?? skeleton.targetKm)) \(skeleton.distanceUnit ?? "km")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    if skeleton.isRecovery {
+                if skeleton.isRecovery {
+                    HStack(spacing: 12) {
                         Text(NSLocalizedString("training.recovery_week", comment: "恢復週"))
                             .font(.caption2)
                             .foregroundColor(.green)
@@ -307,9 +309,9 @@ struct TrainingProgressViewV2: View {
                             .padding(.vertical, 2)
                             .background(Color.green.opacity(0.1))
                             .cornerRadius(4)
-                    }
 
-                    Spacer()
+                        Spacer()
+                    }
                 }
 
                 let longRunDisplay = TrainingTypeDisplayName.longRunDisplay(skeleton.longRun)

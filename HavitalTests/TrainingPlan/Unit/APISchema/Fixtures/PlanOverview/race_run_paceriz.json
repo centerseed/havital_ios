@@ -1,0 +1,102 @@
+{
+  "id": "overview_001",
+  "target_id": "target_race_42k",
+  "target_type": "race_run",
+  "target_description": "Berlin Marathon 2026",
+  "methodology_id": "paceriz",
+  "total_weeks": 16,
+  "start_from_stage": "base",
+  "race_date": 1790352000,
+  "distance_km": 42.195,
+  "distance_km_display": 26.22,
+  "distance_unit": "miles",
+  "target_pace": "5:00",
+  "target_time": 12660,
+  "is_main_race": true,
+  "target_name": "Berlin Marathon",
+  "methodology_overview": {
+    "name": "Paceriz",
+    "philosophy": "Progressive overload with balanced intensity distribution",
+    "intensity_style": "balanced",
+    "intensity_description": "75% low / 20% moderate / 5% high intensity"
+  },
+  "target_evaluate": "Achievable goal based on current fitness",
+  "approach_summary": "16-week progressive plan building from 40km to 70km peak volume",
+  "training_stages": [
+    {
+      "stage_id": "base",
+      "stage_name": "Base Building",
+      "stage_description": "Establish aerobic foundation",
+      "week_start": 1,
+      "week_end": 4,
+      "training_focus": "Aerobic endurance and running economy",
+      "target_weekly_km_range": { "low": 35.0, "high": 45.0 },
+      "target_weekly_km_range_display": {
+        "low_display": 21.75,
+        "high_display": 27.96,
+        "distance_unit": "miles"
+      },
+      "intensity_ratio": { "low": 0.80, "medium": 0.15, "high": 0.05 },
+      "key_workouts": ["easy_run", "long_run", "tempo"]
+    },
+    {
+      "stage_id": "build",
+      "stage_name": "Build Phase",
+      "stage_description": "Increase volume and introduce quality sessions",
+      "week_start": 5,
+      "week_end": 10,
+      "training_focus": "Volume progression and lactate threshold",
+      "target_weekly_km_range": { "low": 45.0, "high": 60.0 },
+      "intensity_ratio": { "low": 0.75, "medium": 0.20, "high": 0.05 },
+      "key_workouts": ["tempo", "threshold", "long_run"]
+    },
+    {
+      "stage_id": "peak",
+      "stage_name": "Peak Phase",
+      "stage_description": "Maximum training stimulus",
+      "week_start": 11,
+      "week_end": 13,
+      "training_focus": "Race-specific fitness",
+      "target_weekly_km_range": { "low": 60.0, "high": 75.0 },
+      "intensity_ratio": { "low": 0.70, "medium": 0.20, "high": 0.10 },
+      "key_workouts": ["interval", "progression", "long_run"]
+    },
+    {
+      "stage_id": "taper",
+      "stage_name": "Taper",
+      "stage_description": "Reduce volume to maximize freshness",
+      "week_start": 14,
+      "week_end": 16,
+      "training_focus": "Recovery and race preparation",
+      "target_weekly_km_range": { "low": 25.0, "high": 45.0 },
+      "intensity_ratio": { "low": 0.80, "medium": 0.15, "high": 0.05 },
+      "key_workouts": ["easy_run", "race_pace"]
+    }
+  ],
+  "milestones": [
+    {
+      "week": 4,
+      "milestone_type": "volume",
+      "title": "Base Phase Complete",
+      "description": "Aerobic foundation established",
+      "is_key_milestone": true
+    },
+    {
+      "week": 10,
+      "milestone_type": "fitness",
+      "title": "Peak Fitness Target",
+      "description": "Threshold pace at target level",
+      "is_key_milestone": true
+    },
+    {
+      "week": 16,
+      "milestone_type": "race",
+      "title": "Race Day",
+      "description": "Berlin Marathon",
+      "is_key_milestone": true
+    }
+  ],
+  "created_at": "2026-01-01T00:00:00Z",
+  "methodology_version": "3.0",
+  "milestone_basis": "intended_race_distance"
+}

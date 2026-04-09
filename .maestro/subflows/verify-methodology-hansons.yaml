@@ -1,0 +1,59 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：漢森馬拉松方法論課表品質驗證
+# 依據：hansons-workout-spec.md
+# 前提：在每日訓練頁面，課表已載入（base 階段）
+# 驗證：
+#   1. base 階段無速度間歇、無節奏跑
+#   2. 漢森不使用傳統 LSD
+#   3. 長跑上限 25km（漢森特色）
+
+# === 0. Scroll to top（確保 assertNotVisible 在正確 viewport）===
+- scrollUntilVisible:
+    element: "每日訓練"
+    direction: UP
+    timeout: 10000
+
+# === 1. 禁止出現的訓練類型（base 階段限定，賽事日期短可能跳過 base）===
+- assertNotVisible:
+    text: "間歇訓練"
+    optional: true
+- assertNotVisible:
+    text: "間歇跑"
+    optional: true
+- assertNotVisible:
+    text: "節奏跑"
+    optional: true
+- assertNotVisible:
+    text: "巡航間歇"
+    optional: true
+- assertNotVisible:
+    text: "比賽配速跑"
+    optional: true
+
+# === 2. 必須有輕鬆跑系列（輕鬆跑或長距離輕鬆跑）===
+- scrollUntilVisible:
+    element:
+      text: "輕鬆跑|長距離輕鬆跑"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    text: "輕鬆跑|長距離輕鬆跑"
+
+# === 3. 強度分布驗證 ===
+- scrollUntilVisible:
+    element: "週跑量和訓練強度"
+    direction: UP
+    timeout: 10000
+- assertVisible:
+    text: "低 \\d+/\\d+"
+
+# === 4. 七天完整 + 休息日 ===
+- scrollUntilVisible:
+    element: "星期日"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element: "休息"
+    direction: UP
+    timeout: 10000

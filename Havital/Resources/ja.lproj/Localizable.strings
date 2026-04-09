@@ -348,18 +348,24 @@
 
 // MARK: - Training Types
 "training.type.easy" = "イージーラン";
+"training.type.easy_run" = "イージーラン";
 "training.type.tempo" = "テンポラン";
 "training.type.interval" = "インターバル走";
+"training.type.paceriz_interval" = "インターバル";
 "interval.static_rest" = "その場休憩";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";
+"training.type.recovery_run" = "リカバリーラン";
 "training.type.race" = "レース";
 "training.type.fartlek" = "ファルトレク";
 "training.type.hill" = "ヒルトレーニング";
 "training.type.speed" = "スピードワーク";
 "training.type.lsd" = "LSDラン";
+"training.type.long_slow_distance" = "LSDラン";
 "training.type.threshold" = "閾値ラン";
 "training.type.progression" = "プログレッションラン";
+"training.type.progressive_run" = "プログレッシブラン";
+"training.type.long_run" = "ロング走";
 "training.type.combination" = "コンビネーションラン";
 "training.type.rest" = "レスト";
 "training.type.cross_training" = "クロストレーニング";
@@ -386,6 +392,7 @@
 "training.type.short_interval" = "ショートインターバル";
 "training.type.long_interval" = "ロングインターバル";
 "training.type.norwegian_4x4" = "ノルウェー4x4";
+"training.type.norwegian_singles" = "ノルウェーシングル";
 "training.type.yasso_800" = "ヤッソ800";
 // 新しいコンビネーショントレーニングタイプ（fartlek は既存）
 "training.type.fast_finish" = "ファストフィニッシュラン";
@@ -772,6 +779,14 @@
 "onboarding.goal_date" = "目標日";
 "onboarding.weeks_until_race" = "レースまでの週数：%d";
 "onboarding.race_distance" = "レース距離";
+"onboarding.race_distance.nav_title" = "目標レース";
+"onboarding.race_distance.title" = "オフシーズン後に参加予定のレースは？";
+"onboarding.race_distance.subtitle" = "適切なトレーニング目標の設定に役立ちます";
+"onboarding.race_distance.marathon" = "フルマラソン（42K）";
+"onboarding.race_distance.half_marathon" = "ハーフマラソン（21K）";
+"onboarding.race_distance.10k" = "10K";
+"onboarding.race_distance.5k" = "5K";
+"onboarding.race_distance.unsure" = "わからない（スキップ）";
 "onboarding.select_distance" = "距離を選択";
 "onboarding.target_finish_time" = "目標完走時間";
 "onboarding.target_time_description" = "達成したい時間を設定してください。";

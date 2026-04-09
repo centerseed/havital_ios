@@ -1,0 +1,129 @@
+{
+  "plan_id": "overview_001",
+  "methodology_id": "paceriz",
+  "total_weeks": 12,
+  "weeks": [
+    {
+      "week": 1,
+      "stage_id": "base",
+      "target_km": 35.0,
+      "is_recovery": false,
+      "intensity_ratio": { "low": 0.80, "medium": 0.15, "high": 0.05 },
+      "quality_options": [
+        { "category": "threshold", "training_type": "tempo" }
+      ],
+      "long_run": { "max_km": 14.0, "training_type": "lsd" },
+      "week_in_phase": 1,
+      "total_phase_weeks": 4
+    },
+    {
+      "week": 2,
+      "stage_id": "base",
+      "target_km": 38.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "threshold", "training_type": "tempo" }
+      ],
+      "long_run": { "max_km": 16.0, "training_type": "lsd" }
+    },
+    {
+      "week": 3,
+      "stage_id": "base",
+      "target_km": 40.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "threshold", "training_type": "tempo" }
+      ],
+      "long_run": { "max_km": 18.0, "training_type": "lsd" }
+    },
+    {
+      "week": 4,
+      "stage_id": "base",
+      "target_km": 30.0,
+      "is_recovery": true,
+      "milestone_ref": "base_complete",
+      "long_run": { "max_km": 12.0, "training_type": "lsd" }
+    },
+    {
+      "week": 5,
+      "stage_id": "build",
+      "target_km": 45.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "threshold", "training_type": "threshold" },
+        { "category": "speed", "training_type": "interval" }
+      ],
+      "long_run": { "max_km": 20.0, "training_type": "lsd" }
+    },
+    {
+      "week": 6,
+      "stage_id": "build",
+      "target_km": 48.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "threshold", "training_type": "tempo" },
+        { "category": "speed", "training_type": "interval" }
+      ],
+      "long_run": { "max_km": 22.0, "training_type": "progression" }
+    },
+    {
+      "week": 7,
+      "stage_id": "build",
+      "target_km": 50.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "threshold", "training_type": "threshold" }
+      ],
+      "long_run": { "max_km": 24.0, "training_type": "lsd" }
+    },
+    {
+      "week": 8,
+      "stage_id": "build",
+      "target_km": 38.0,
+      "is_recovery": true,
+      "long_run": { "max_km": 16.0, "training_type": "lsd" }
+    },
+    {
+      "week": 9,
+      "stage_id": "peak",
+      "target_km": 55.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "speed", "training_type": "interval" },
+        { "category": "race_specific", "training_type": "race_pace" }
+      ],
+      "long_run": { "max_km": 28.0, "training_type": "progression" }
+    },
+    {
+      "week": 10,
+      "stage_id": "peak",
+      "target_km": 58.0,
+      "is_recovery": false,
+      "milestone_ref": "peak_fitness",
+      "quality_options": [
+        { "category": "speed", "training_type": "interval" }
+      ],
+      "long_run": { "max_km": 30.0, "training_type": "progression" }
+    },
+    {
+      "week": 11,
+      "stage_id": "taper",
+      "target_km": 40.0,
+      "is_recovery": false,
+      "quality_options": [
+        { "category": "race_specific", "training_type": "race_pace" }
+      ],
+      "long_run": { "max_km": 18.0, "training_type": "lsd" }
+    },
+    {
+      "week": 12,
+      "stage_id": "taper",
+      "target_km": 25.0,
+      "is_recovery": false,
+      "milestone_ref": "race_day",
+      "long_run": { "max_km": 10.0, "training_type": "easy" }
+    }
+  ],
+  "created_at": "1704067200",
+  "updated_at": "1704067200"
+}

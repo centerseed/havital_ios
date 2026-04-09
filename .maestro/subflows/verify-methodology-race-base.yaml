@@ -1,0 +1,48 @@
+appId: com.havital.Havital.dev
+---
+# 子流程：賽事訓練 base 階段課表品質驗證（通用，適用 paceriz/polarized 等）
+# 依據：paceriz-workout-spec.md, polarized-workout-spec.md
+# 前提：在每日訓練頁面，課表已載入，用戶處於 base/conversion 階段
+# 驗證：
+#   1. 有輕鬆跑（base 階段核心）
+#   2. 可能有長距離跑（LSD）
+#   3. 強度分布以 low 為主（base 階段特性）
+#   4. 七天完整 + 休息日
+
+# === 1. 必須有輕鬆跑 ===
+- scrollUntilVisible:
+    element: "輕鬆跑"
+    direction: UP
+    timeout: 10000
+- assertVisible: "輕鬆跑"
+
+# === 2. 強度分布驗證 ===
+- scrollUntilVisible:
+    element: "週跑量和訓練強度"
+    direction: UP
+    timeout: 10000
+
+# 低強度應為主要比例（base 階段 paceriz: low=0.80-1.00）
+- assertVisible:
+    text: "低 \\d+/\\d+"
+
+# === 3. 距離顯示 ===
+- assertVisible:
+    text: "km|miles"
+
+# === 4. 心率區間存在（可選） ===
+- scrollUntilVisible:
+    element: "HR \\d+-\\d+"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+
+# === 5. 七天完整 + 休息日 ===
+- scrollUntilVisible:
+    element: "星期日"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element: "休息"
+    direction: UP
+    timeout: 10000
