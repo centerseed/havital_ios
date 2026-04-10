@@ -80,6 +80,12 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
     /// 可用方法論列表（用於方法論切換 UI）
     @Published var availableMethodologies: [MethodologyV2] = []
 
+    /// 付費牆觸發（nil 表示未觸發）
+    @Published var paywallTrigger: PaywallTrigger?
+
+    /// 是否顯示 Rizo 配額超出 Banner
+    @Published var showRizoQuotaExceededBanner: Bool = false
+
     // MARK: - Computed Properties
 
     /// 是否正在載入
@@ -498,8 +504,16 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
                 await MainActor.run { self.isLoadingAnimation = false }
                 return
             }
-            Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
-            await MainActor.run {
+            let domainError = error.toDomainError()
+            switch domainError {
+            case .subscriptionRequired:
+                self.paywallTrigger = .apiGated
+                self.isLoadingAnimation = false
+            case .rizoQuotaExceeded:
+                self.showRizoQuotaExceededBanner = true
+                self.isLoadingAnimation = false
+            default:
+                Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
                 self.isLoadingAnimation = false
                 self.planStatus = .error(error)
             }
@@ -580,8 +594,16 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
                 await MainActor.run { self.isLoadingAnimation = false }
                 return
             }
-            Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
-            await MainActor.run {
+            let domainError = error.toDomainError()
+            switch domainError {
+            case .subscriptionRequired:
+                self.paywallTrigger = .apiGated
+                self.isLoadingAnimation = false
+            case .rizoQuotaExceeded:
+                self.showRizoQuotaExceededBanner = true
+                self.isLoadingAnimation = false
+            default:
+                Logger.error("[TrainingPlanV2VM] ❌ 週課表產生失敗: \(error.localizedDescription)")
                 self.isLoadingAnimation = false
                 self.planStatus = .error(error)
             }
@@ -912,11 +934,15 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             Logger.debug("[TrainingPlanV2VM] 週摘要產生被取消，忽略")
         } catch {
             if (error as NSError).code == NSURLErrorCancelled { return }
-            Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
-            if let domainError = error as? DomainError {
+            let domainError = error.toDomainError()
+            switch domainError {
+            case .subscriptionRequired:
+                self.paywallTrigger = .apiGated
+            case .rizoQuotaExceeded:
+                self.showRizoQuotaExceededBanner = true
+            default:
+                Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
                 weeklySummary = .error(domainError)
-            } else {
-                weeklySummary = .error(.networkFailure(error.localizedDescription))
             }
         }
     }
@@ -952,8 +978,16 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
         } catch {
             stopLoadingAnimation()
             if (error as NSError).code == NSURLErrorCancelled { return }
-            Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
-            networkError = error
+            let domainError = error.toDomainError()
+            switch domainError {
+            case .subscriptionRequired:
+                self.paywallTrigger = .apiGated
+            case .rizoQuotaExceeded:
+                self.showRizoQuotaExceededBanner = true
+            default:
+                Logger.error("[TrainingPlanV2VM] ❌ 週摘要產生失敗: \(error.localizedDescription)")
+                networkError = error
+            }
         }
     }
 

@@ -262,6 +262,11 @@ final class AuthenticationViewModel: ObservableObject {
 
             Logger.debug("[AuthViewModel] Sign out succeeded")
 
+            // Clear subscription cache (ADR-001)
+            let subscriptionRepository: SubscriptionRepository = DependencyContainer.shared.resolve()
+            subscriptionRepository.clearCache()
+            await SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+
             // Publish user logout event
             CacheEventBus.shared.publish(.userLogout)
 

@@ -46,6 +46,9 @@ struct AppDependencyBootstrap {
 
         // 7. TrainingPlanV2 模組 (依賴 UserProfile)
         registerTrainingPlanV2Module()
+
+        // 8. Subscription 模組 (Authentication 之後)
+        registerSubscriptionModule()
     }
 
     // MARK: - Individual Module Registration
@@ -132,6 +135,18 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerTrainingPlanV2Dependencies()
         Logger.debug("[Bootstrap] ✅ TrainingPlanV2 module registered")
+    }
+
+    /// 註冊 Subscription 模組
+    /// 包含: SubscriptionRepository, DataSources
+    private static func registerSubscriptionModule() {
+        guard !DependencyContainer.shared.isRegistered(SubscriptionRepository.self) else {
+            Logger.debug("[Bootstrap] Subscription module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerSubscriptionModule()
+        Logger.debug("[Bootstrap] ✅ Subscription module registered")
     }
 
     // MARK: - Testing Support

@@ -36,6 +36,9 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
     /// 週回顧錯誤
     @Published var summaryError: Error?
 
+    /// 付費牆觸發（nil 表示未觸發）
+    @Published var paywallTrigger: PaywallTrigger?
+
     // MARK: - Dependencies
 
     private let repository: TrainingPlanRepository
@@ -172,12 +175,17 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
             isGenerating = false
         } catch {
             let domainError = error.toDomainError()
-
-            // 取消錯誤不更新 UI
-            if case .cancellation = domainError {
+            switch domainError {
+            case .cancellation:
                 Logger.debug("[WeeklySummaryVM] Task cancelled")
                 isGenerating = false
                 return
+            case .subscriptionRequired:
+                self.paywallTrigger = .apiGated
+                isGenerating = false
+                return
+            default:
+                break
             }
 
             summaryState = .error(domainError)
@@ -210,9 +218,16 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
             isGenerating = false
         } catch {
             let domainError = error.toDomainError()
-            if case .cancellation = domainError {
+            switch domainError {
+            case .cancellation:
                 isGenerating = false
                 return
+            case .subscriptionRequired:
+                self.paywallTrigger = .apiGated
+                isGenerating = false
+                return
+            default:
+                break
             }
 
             summaryState = .error(domainError)

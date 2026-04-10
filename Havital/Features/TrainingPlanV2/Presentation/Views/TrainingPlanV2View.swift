@@ -341,6 +341,9 @@ struct TrainingPlanV2View: View {
                 FeedbackReportView(userEmail: "")
             }
         }
+        .sheet(item: $viewModel.paywallTrigger) { trigger in
+            PaywallView(trigger: trigger)
+        }
         .task {
             await viewModel.initialize()
         }
@@ -393,6 +396,28 @@ struct TrainingPlanV2View: View {
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .animation(.easeInOut, value: viewModel.networkError as? NSError)
+            }
+        }
+        // Rizo 配額超出 Banner
+        .overlay(alignment: .top) {
+            if viewModel.showRizoQuotaExceededBanner {
+                VStack {
+                    Text(NSLocalizedString("rizo.quota_exceeded_banner", comment: "Rizo AI quota exceeded"))
+                        .font(AppFont.bodySmall())
+                        .padding()
+                        .background(Color.orange.opacity(0.9))
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.top, 60)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                viewModel.showRizoQuotaExceededBanner = false
+                            }
+                        }
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut, value: viewModel.showRizoQuotaExceededBanner)
             }
         }
     }

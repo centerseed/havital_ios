@@ -22,6 +22,10 @@ enum DomainError: Error, Equatable, LocalizedError {
     case validationFailure(String)
     case dataCorruption(String)
 
+    // MARK: - 訂閱相關
+    case subscriptionRequired    // 403 + subscription_required
+    case rizoQuotaExceeded       // 429 + rizo_quota_exceeded
+
     // MARK: - 取消（不應顯示 ErrorView）
     case cancellation
 
@@ -51,6 +55,10 @@ enum DomainError: Error, Equatable, LocalizedError {
             return message
         case .dataCorruption(let message):
             return NSLocalizedString("error.data_corruption", comment: "") + ": \(message)"
+        case .subscriptionRequired:
+            return NSLocalizedString("error.subscription_required", comment: "Subscription required")
+        case .rizoQuotaExceeded:
+            return NSLocalizedString("error.rizo_quota_exceeded", comment: "Rizo quota exceeded")
         case .cancellation:
             return nil // 取消不需要顯示
         case .unknown(let message):
@@ -85,6 +93,8 @@ enum DomainError: Error, Equatable, LocalizedError {
             return true
         case .unauthorized, .forbidden, .badRequest, .notFound, .validationFailure, .dataCorruption:
             return false
+        case .subscriptionRequired, .rizoQuotaExceeded:
+            return false
         case .cancellation:
             return false
         case .unknown:
@@ -94,10 +104,12 @@ enum DomainError: Error, Equatable, LocalizedError {
 
     // MARK: - 是否應該顯示 ErrorView
     var shouldShowErrorView: Bool {
-        if case .cancellation = self {
+        switch self {
+        case .cancellation, .subscriptionRequired, .rizoQuotaExceeded:
             return false
+        default:
+            return true
         }
-        return true
     }
 }
 
@@ -165,6 +177,10 @@ extension HTTPError {
             return .unauthorized
         case .forbidden:
             return .forbidden
+        case .subscriptionRequired:
+            return .subscriptionRequired
+        case .rizoQuotaExceeded:
+            return .rizoQuotaExceeded
         case .notFound(let message):
             return .notFound(message)
         case .httpError(let code, let message):

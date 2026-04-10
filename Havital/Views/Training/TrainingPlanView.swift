@@ -485,6 +485,12 @@ struct TrainingPlanView: View {
                 FeedbackReportView(userEmail: "")
             }
         }
+        .sheet(item: Binding(
+            get: { viewModel.summaryVM.paywallTrigger },
+            set: { viewModel.summaryVM.paywallTrigger = $0 }
+        )) { trigger in
+            PaywallView(trigger: trigger)
+        }
     }
 
     // 判斷是否為中文語言

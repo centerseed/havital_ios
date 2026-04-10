@@ -7,6 +7,7 @@ struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     // Clean Architecture: Use AuthenticationViewModel from environment
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
+    @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var healthKitManager = HealthKitManager()
@@ -39,6 +40,7 @@ struct UserProfileView: View {
     var body: some View {
         List {
             profileSection
+            subscriptionSection
             weeklyDistanceSection
             dataSourceSection
             heartRateSection
@@ -219,6 +221,60 @@ struct UserProfileView: View {
             } else if let error = viewModel.error {
                 errorView(error)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var subscriptionSection: some View {
+        Section {
+            HStack {
+                Label(NSLocalizedString("profile.subscription.plan", comment: "Plan"), systemImage: "crown")
+                Spacer()
+                Text(subscriptionPlanDisplayName)
+                    .foregroundColor(.secondary)
+            }
+
+            if let status = subscriptionState.currentStatus {
+                if status.status == .trial, let expiresAt = status.expiresAt {
+                    let days = max(0, Int((expiresAt - Date().timeIntervalSince1970) / 86400))
+                    HStack {
+                        Label(NSLocalizedString("profile.subscription.trial_remaining", comment: "Trial"), systemImage: "clock")
+                        Spacer()
+                        Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), days))
+                            .foregroundColor(.orange)
+                    }
+                } else if status.status == .active, let expiresAt = status.expiresAt {
+                    HStack {
+                        Label(NSLocalizedString("profile.subscription.expires", comment: "Expires"), systemImage: "calendar")
+                        Spacer()
+                        Text(Date(timeIntervalSince1970: expiresAt), style: .date)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                if status.billingIssue {
+                    Label(NSLocalizedString("profile.subscription.billing_issue", comment: "Billing Issue"), systemImage: "exclamationmark.triangle")
+                        .foregroundColor(.red)
+                }
+            }
+        } header: {
+            Text(NSLocalizedString("profile.subscription.section_title", comment: "Subscription"))
+        }
+    }
+
+    private var subscriptionPlanDisplayName: String {
+        guard let status = subscriptionState.currentStatus else {
+            return NSLocalizedString("profile.subscription.free", comment: "Free")
+        }
+        switch status.status {
+        case .active:
+            return status.planType ?? "Premium"
+        case .trial:
+            return NSLocalizedString("profile.subscription.trial", comment: "Trial")
+        case .expired:
+            return NSLocalizedString("profile.subscription.expired", comment: "Expired")
+        case .none:
+            return NSLocalizedString("profile.subscription.free", comment: "Free")
         }
     }
 
