@@ -304,15 +304,15 @@ actor DefaultHTTPClient: HTTPClient {
             case 401:
                 throw HTTPError.unauthorized(errorBody)
             case 403:
-                if let payload = try? Self.errorPayloadDecoder.decode(SubscriptionErrorPayload.self, from: data) {
-                    throw HTTPError.subscriptionRequired(payload)
+                if let wrapper = try? Self.errorPayloadDecoder.decode(SubscriptionErrorDetailWrapper.self, from: data) {
+                    throw HTTPError.subscriptionRequired(wrapper.detail)
                 }
                 throw HTTPError.forbidden(errorBody)
             case 404:
                 throw HTTPError.notFound(errorBody)
             case 429:
-                if let payload = try? Self.errorPayloadDecoder.decode(RizoUsagePayload.self, from: data) {
-                    throw HTTPError.rizoQuotaExceeded(payload)
+                if let wrapper = try? Self.errorPayloadDecoder.decode(RizoUsageDetailWrapper.self, from: data) {
+                    throw HTTPError.rizoQuotaExceeded(wrapper.detail)
                 }
                 throw HTTPError.httpError(429, errorBody)
             case 500...599:

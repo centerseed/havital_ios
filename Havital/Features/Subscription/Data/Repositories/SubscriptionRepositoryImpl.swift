@@ -1,4 +1,5 @@
 import Foundation
+import RevenueCat
 
 // MARK: - SubscriptionRepositoryImpl
 /// 訂閱 Repository 實作 - Data Layer
@@ -30,7 +31,17 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             return SubscriptionMapper.toEntity(from: cachedDTO)
         }
         Logger.debug("[SubscriptionRepositoryImpl] getStatus: cache miss, fetching from API")
-        return try await fetchAndCache()
+        do {
+            return try await fetchAndCache()
+        } catch {
+            // Stale-on-error: 離線或 API 失敗時，回傳過期的 cache 而非拋錯
+            // 避免已付費用戶因網路問題被誤顯示付費牆
+            if let staleDTO = localDataSource.getStatus() {
+                Logger.debug("[SubscriptionRepositoryImpl] getStatus: network error, using stale cache")
+                return SubscriptionMapper.toEntity(from: staleDTO)
+            }
+            throw error
+        }
     }
 
     func refreshStatus() async throws -> SubscriptionStatusEntity {
@@ -48,20 +59,59 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         Logger.debug("[SubscriptionRepositoryImpl] cache cleared")
     }
 
-    // MARK: - ADR-002 Stubs (RevenueCat not yet configured)
+    // MARK: - RevenueCat 購買功能
 
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity] {
-        Logger.debug("[SubscriptionRepositoryImpl] fetchOfferings: stub — RevenueCat not configured")
-        return []
+        Logger.debug("[SubscriptionRepositoryImpl] fetchOfferings: calling RevenueCat")
+        let offerings = try await Purchases.shared.offerings()
+        return offerings.all.values.map { offering in
+            let packages = offering.availablePackages.map { package -> SubscriptionPackageEntity in
+                let period: SubscriptionPeriod = package.packageType == .annual ? .yearly : .monthly
+                return SubscriptionPackageEntity(
+                    id: package.identifier,
+                    productId: package.storeProduct.productIdentifier,
+                    localizedPrice: package.localizedPriceString,
+                    period: period
+                )
+            }
+            return SubscriptionOfferingEntity(
+                id: offering.identifier,
+                title: offering.serverDescription,
+                description: offering.serverDescription,
+                packages: packages
+            )
+        }
     }
 
     func purchase(offeringId: String, packageId: String) async throws -> PurchaseResultEntity {
-        Logger.debug("[SubscriptionRepositoryImpl] purchase: stub — RevenueCat not configured")
-        return .failed(DomainError.unknown("RevenueCat not configured"))
+        Logger.debug("[SubscriptionRepositoryImpl] purchase: offeringId=\(offeringId) packageId=\(packageId)")
+        let offerings = try await Purchases.shared.offerings()
+        guard let offering = offerings.offering(identifier: offeringId),
+              let package = offering.package(identifier: packageId) else {
+            return .failed(DomainError.unknown("Package not found: \(offeringId)/\(packageId)"))
+        }
+        do {
+            let (_, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: package)
+            if userCancelled { return .cancelled }
+            return customerInfo.entitlements[RevenueCatConfig.premiumEntitlement]?.isActive == true
+                ? .success
+                : .pendingProcessing
+        } catch let error as RevenueCat.ErrorCode {
+            switch error {
+            case .purchaseCancelledError: return .cancelled
+            case .paymentPendingError: return .pendingProcessing
+            default: return .failed(error)
+            }
+        }
     }
 
     func restorePurchases() async throws {
-        Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: stub — RevenueCat not configured")
+        Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: calling RevenueCat")
+        let customerInfo = try await Purchases.shared.restorePurchases()
+        if customerInfo.entitlements[RevenueCatConfig.premiumEntitlement]?.isActive == true {
+            Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: active entitlement, refreshing backend status")
+            _ = try await refreshStatus()
+        }
     }
 
     // MARK: - Private

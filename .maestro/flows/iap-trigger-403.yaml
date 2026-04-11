@@ -1,0 +1,73 @@
+appId: com.havital.Havital.dev
+---
+# IAP 403 觸發測試
+# 前提：
+#   1. demo 帳號已設為 expired（Scripts/iap_admin.sh set-expired）
+#   2. demo UID 已在 iap_test_uids 白名單中
+#   3. 第 1 週課表已被刪除（curl DELETE）
+
+# 重啟 app 讓它重新拉 plan status
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# 處理系統彈窗
+- tapOn:
+    text: "關閉"
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+# 如果在登入頁，做 Demo 登入
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+# 等待主頁面載入
+- extendedWaitUntil:
+    visible: "訓練計劃"
+    timeout: 30000
+
+# 確保在訓練計劃 tab
+- tapOn: "訓練計劃"
+
+# 等待頁面載入完成
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 15000
+
+# 截圖：觸發前狀態
+- takeScreenshot: iap_before_trigger
+
+# 等待「產生週課表」按鈕出現（課表已刪除，應該顯示此按鈕）
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 15000
+
+# 點擊「產生週課表」觸發 POST /v2/plan/weekly → 403
+- tapOn: "產生週課表"
+
+# 等待 PaywallView 彈出
+- extendedWaitUntil:
+    visible:
+      text: "需要訂閱才能使用此功能|升級以解鎖|Upgrade"
+    timeout: 15000
+
+# B1 + B2 驗證：PaywallView 彈出 + header 文案
+- takeScreenshot: iap_b1b2_paywall_visible
+
+# B5：點關閉按鈕
+- tapOn:
+    text: "關閉"
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# B5 驗證：PaywallView dismiss
+- takeScreenshot: iap_b5_after_dismiss
+
+# 確認回到主頁面
+- assertVisible: "我的訓練目標"

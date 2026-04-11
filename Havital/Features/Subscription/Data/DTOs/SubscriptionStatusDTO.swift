@@ -8,7 +8,7 @@ struct SubscriptionStatusDTO: Codable {
     // MARK: - Properties
 
     let status: String
-    let expiresAt: TimeInterval?
+    let expiresAt: String?
     let planType: String?
     let rizoUsage: RizoUsageDTO?
     let billingIssue: Bool?

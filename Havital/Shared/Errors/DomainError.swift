@@ -23,7 +23,8 @@ enum DomainError: Error, Equatable, LocalizedError {
     case dataCorruption(String)
 
     // MARK: - 訂閱相關
-    case subscriptionRequired    // 403 + subscription_required
+    case subscriptionRequired    // 403 + subscription_required（一般過期）
+    case trialExpired            // 403 + subscription_required（試用期到期）
     case rizoQuotaExceeded       // 429 + rizo_quota_exceeded
 
     // MARK: - 取消（不應顯示 ErrorView）
@@ -57,6 +58,8 @@ enum DomainError: Error, Equatable, LocalizedError {
             return NSLocalizedString("error.data_corruption", comment: "") + ": \(message)"
         case .subscriptionRequired:
             return NSLocalizedString("error.subscription_required", comment: "Subscription required")
+        case .trialExpired:
+            return NSLocalizedString("error.trial_expired", comment: "Trial period has ended")
         case .rizoQuotaExceeded:
             return NSLocalizedString("error.rizo_quota_exceeded", comment: "Rizo quota exceeded")
         case .cancellation:
@@ -93,7 +96,7 @@ enum DomainError: Error, Equatable, LocalizedError {
             return true
         case .unauthorized, .forbidden, .badRequest, .notFound, .validationFailure, .dataCorruption:
             return false
-        case .subscriptionRequired, .rizoQuotaExceeded:
+        case .subscriptionRequired, .trialExpired, .rizoQuotaExceeded:
             return false
         case .cancellation:
             return false
@@ -105,7 +108,7 @@ enum DomainError: Error, Equatable, LocalizedError {
     // MARK: - 是否應該顯示 ErrorView
     var shouldShowErrorView: Bool {
         switch self {
-        case .cancellation, .subscriptionRequired, .rizoQuotaExceeded:
+        case .cancellation, .subscriptionRequired, .trialExpired, .rizoQuotaExceeded:
             return false
         default:
             return true

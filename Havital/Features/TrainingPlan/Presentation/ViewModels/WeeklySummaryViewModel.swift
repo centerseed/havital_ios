@@ -59,6 +59,16 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
         return summaryState.isLoading || summariesState.isLoading
     }
 
+    // MARK: - Subscription Helpers
+
+    private func resolvePaywallTrigger() -> PaywallTrigger {
+        if let lastStatus = SubscriptionStateManager.shared.currentStatus,
+           lastStatus.status == .trial {
+            return .trialExpired
+        }
+        return .apiGated
+    }
+
     // MARK: - Initialization
 
     init(repository: TrainingPlanRepository) {
@@ -180,8 +190,8 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
                 Logger.debug("[WeeklySummaryVM] Task cancelled")
                 isGenerating = false
                 return
-            case .subscriptionRequired:
-                self.paywallTrigger = .apiGated
+            case .subscriptionRequired, .trialExpired:
+                self.paywallTrigger = resolvePaywallTrigger()
                 isGenerating = false
                 return
             default:
@@ -222,8 +232,8 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
             case .cancellation:
                 isGenerating = false
                 return
-            case .subscriptionRequired:
-                self.paywallTrigger = .apiGated
+            case .subscriptionRequired, .trialExpired:
+                self.paywallTrigger = resolvePaywallTrigger()
                 isGenerating = false
                 return
             default:

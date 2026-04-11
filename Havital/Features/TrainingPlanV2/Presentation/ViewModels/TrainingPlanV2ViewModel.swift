@@ -506,8 +506,8 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             }
             let domainError = error.toDomainError()
             switch domainError {
-            case .subscriptionRequired:
-                self.paywallTrigger = .apiGated
+            case .subscriptionRequired, .trialExpired:
+                self.paywallTrigger = resolvePaywallTrigger()
                 self.isLoadingAnimation = false
             case .rizoQuotaExceeded:
                 self.showRizoQuotaExceededBanner = true
@@ -596,8 +596,8 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             }
             let domainError = error.toDomainError()
             switch domainError {
-            case .subscriptionRequired:
-                self.paywallTrigger = .apiGated
+            case .subscriptionRequired, .trialExpired:
+                self.paywallTrigger = resolvePaywallTrigger()
                 self.isLoadingAnimation = false
             case .rizoQuotaExceeded:
                 self.showRizoQuotaExceededBanner = true
@@ -936,8 +936,8 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             if (error as NSError).code == NSURLErrorCancelled { return }
             let domainError = error.toDomainError()
             switch domainError {
-            case .subscriptionRequired:
-                self.paywallTrigger = .apiGated
+            case .subscriptionRequired, .trialExpired:
+                self.paywallTrigger = resolvePaywallTrigger()
             case .rizoQuotaExceeded:
                 self.showRizoQuotaExceededBanner = true
             default:
@@ -980,8 +980,8 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
             if (error as NSError).code == NSURLErrorCancelled { return }
             let domainError = error.toDomainError()
             switch domainError {
-            case .subscriptionRequired:
-                self.paywallTrigger = .apiGated
+            case .subscriptionRequired, .trialExpired:
+                self.paywallTrigger = resolvePaywallTrigger()
             case .rizoQuotaExceeded:
                 self.showRizoQuotaExceededBanner = true
             default:
@@ -1141,6 +1141,18 @@ final class TrainingPlanV2ViewModel: ObservableObject, TaskManageable {
                 self.networkError = error
             }
         }
+    }
+
+    // MARK: - Subscription Helpers
+
+    /// 根據用戶的上次訂閱狀態決定 PaywallTrigger
+    /// trial 過期 → .trialExpired（文案更友善）；一般過期 → .apiGated
+    private func resolvePaywallTrigger() -> PaywallTrigger {
+        if let lastStatus = SubscriptionStateManager.shared.currentStatus,
+           lastStatus.status == .trial {
+            return .trialExpired
+        }
+        return .apiGated
     }
 
     // MARK: - Debug Actions
