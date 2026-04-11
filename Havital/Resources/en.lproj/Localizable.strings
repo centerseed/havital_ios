@@ -238,6 +238,8 @@
 "profile.training_info" = "Training Info";
 "profile.heart_rate_info" = "Heart Rate Info";
 "profile.pace_zones" = "Pace Zones";
+"profile.physiology" = "Physiology";
+"common.not_set" = "Not Set";
 "profile.data_sources" = "Data Sources";
 "profile.settings" = "Settings";
 "profile.name" = "Name";
@@ -252,6 +254,17 @@
 "profile.max_hr" = "Max Heart Rate";
 "profile.weekly_mileage" = "Weekly Mileage";
 "profile.edit_profile" = "Edit Profile";
+
+// MARK: - Profile Subscription Section
+"profile.subscription.section_title" = "Subscription";
+"profile.subscription.plan" = "Plan";
+"profile.subscription.free" = "Free";
+"profile.subscription.trial" = "Trial";
+"profile.subscription.expired" = "Expired";
+"profile.subscription.trial_remaining" = "Trial Remaining";
+"profile.subscription.days_remaining" = "%d days";
+"profile.subscription.expires" = "Expires";
+"profile.subscription.billing_issue" = "Billing Issue";
 
 // MARK: - Data Sources
 "datasource.title" = "Data Sources";
@@ -2376,3 +2389,14 @@
 "time.quick.2m" = "2min";
 "time.quick.3m" = "3min";
 "edit_schedule.select_rest_time" = "Select Rest Time";
+
+// MARK: - Paywall
+"paywall.title" = "Upgrade";
+"paywall.restore_purchases" = "Restore Purchases";
+"paywall.header.api_gated" = "Subscription required to use this feature";
+"paywall.header.trial_expired" = "Trial period has ended";
+"paywall.header.feature_locked" = "Upgrade to unlock full features";
+"paywall.trial_days_remaining" = "%d days remaining in trial";
+"paywall.offerings_coming_soon" = "Subscription plans coming soon";
+"paywall.plan.yearly" = "Yearly";
+"paywall.plan.monthly" = "Monthly";

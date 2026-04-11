@@ -238,6 +238,8 @@
 "profile.training_info" = "トレーニング情報";
 "profile.heart_rate_info" = "心拍数情報";
 "profile.pace_zones" = "ペースゾーン";
+"profile.physiology" = "生理指標";
+"common.not_set" = "未設定";
 "profile.data_sources" = "データソース";
 "profile.settings" = "設定";
 "profile.name" = "名前";
@@ -252,6 +254,17 @@
 "profile.max_hr" = "最大心拍数";
 "profile.weekly_mileage" = "週間走行距離";
 "profile.edit_profile" = "プロフィールを編集";
+
+// MARK: - Profile Subscription Section
+"profile.subscription.section_title" = "サブスクリプション";
+"profile.subscription.plan" = "プラン";
+"profile.subscription.free" = "無料";
+"profile.subscription.trial" = "トライアル";
+"profile.subscription.expired" = "期限切れ";
+"profile.subscription.trial_remaining" = "トライアル残り";
+"profile.subscription.days_remaining" = "%d日";
+"profile.subscription.expires" = "有効期限";
+"profile.subscription.billing_issue" = "請求の問題";
 
 // MARK: - Data Sources
 "datasource.title" = "データソース";
@@ -2373,3 +2386,14 @@
 "time.quick.2m" = "2分";
 "time.quick.3m" = "3分";
 "edit_schedule.select_rest_time" = "休憩時間を選択";
+
+// MARK: - Paywall
+"paywall.title" = "アップグレード";
+"paywall.restore_purchases" = "購入を復元";
+"paywall.header.api_gated" = "この機能を使用するにはサブスクリプションが必要です";
+"paywall.header.trial_expired" = "トライアル期間が終了しました";
+"paywall.header.feature_locked" = "アップグレードして全機能を解放";
+"paywall.trial_days_remaining" = "トライアル残り%d日";
+"paywall.offerings_coming_soon" = "サブスクリプションプランは近日公開";
+"paywall.plan.yearly" = "年間プラン";
+"paywall.plan.monthly" = "月間プラン";

@@ -32,6 +32,8 @@ struct UserProfileView: View {
     @State private var showLanguageSettings = false
     @State private var showTimezoneSettings = false
     @State private var showDebugFailedWorkouts = false
+    @State private var showIAPTestConsole = false
+    @State private var showPaceZoneDetail = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -39,18 +41,26 @@ struct UserProfileView: View {
     
     var body: some View {
         List {
+            // Group 1: 帳戶 — 用戶每次進來都看的
             profileSection
             subscriptionSection
-            weeklyDistanceSection
+
+            // Group 2: 訓練設定 — 偶爾調整
+            trainingSettingsSection
+
+            // Group 3: 數據來源 — 設定一次很少改
             dataSourceSection
-            heartRateSection
-            paceZoneSection
-            trainingDaysSection
+
+            // Group 4: 生理指標 — 參考用，收成導航入口
+            physiologySection
+
+            // Group 5: 系統設定 + 帳戶操作
             settingsSection
-            logoutSection
-            appVersionSection
+            accountActionsSection
+
             #if DEBUG
-            developerSection
+            // Group 6: 開發者工具 — 收成一行入口
+            debugSection
             #endif
         }
         .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
@@ -136,9 +146,30 @@ struct UserProfileView: View {
         .sheet(isPresented: $showTimezoneSettings) {
             TimezoneSettingsView(currentTimezone: viewModel.timezonePreference)
         }
+        .sheet(isPresented: $showPaceZoneDetail) {
+            NavigationStack {
+                List {
+                    paceZoneSection
+                }
+                .navigationTitle(NSLocalizedString("profile.pace_zones", comment: "Pace Zones"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(NSLocalizedString("common.done", comment: "Done")) {
+                            showPaceZoneDetail = false
+                        }
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $showDebugFailedWorkouts) {
             DebugFailedWorkoutsView()
         }
+        #if DEBUG
+        .sheet(isPresented: $showIAPTestConsole) {
+            IAPTestConsoleView()
+        }
+        #endif
         .onReceive(garminManager.$garminAlreadyBoundMessage) { msg in
             showGarminAlreadyBoundAlert = (msg != nil)
         }
@@ -255,6 +286,7 @@ struct UserProfileView: View {
                 if status.billingIssue {
                     Label(NSLocalizedString("profile.subscription.billing_issue", comment: "Billing Issue"), systemImage: "exclamationmark.triangle")
                         .foregroundColor(.red)
+                        .accessibilityIdentifier("BillingIssue_Warning")
                 }
             }
         } header: {
@@ -311,6 +343,192 @@ struct UserProfileView: View {
             }
         }
     }
+
+    // MARK: - Group 2: 訓練設定（週跑量 + 訓練日合併）
+
+    @ViewBuilder
+    private var trainingSettingsSection: some View {
+        if let userData = viewModel.userData {
+            Section(header: Text(NSLocalizedString("profile.training_info", comment: "Training Info"))) {
+                // 週跑量
+                HStack {
+                    Label(NSLocalizedString("profile.weekly_mileage", comment: "Weekly Mileage"), systemImage: "figure.walk")
+                        .foregroundColor(.blue)
+                    Spacer()
+                    Text({
+                        let dist = UnitManager.shared.convertedDistance(Double(userData.currentWeekDistance ?? 0))
+                        return "\(Int(dist)) \(UnitManager.shared.currentUnitSystem.distanceSuffix)"
+                    }())
+                        .fontWeight(.medium)
+                }
+
+                Button(action: {
+                    currentWeekDistance = Int(userData.currentWeekDistance ?? 0)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        weeklyDistance = Int(userData.currentWeekDistance ?? 0)
+                        showWeeklyDistanceEditor = true
+                    }
+                }) {
+                    HStack {
+                        Text(NSLocalizedString("training.edit_volume", comment: "Edit Weekly Volume"))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(AppFont.caption())
+                    }
+                }
+
+                // 訓練日（摘要 + 編輯入口合併）
+                Button(action: { showTrainingDaysEditor = true }) {
+                    HStack {
+                        Label(NSLocalizedString("onboarding.training_days", comment: "Training Days"), systemImage: "calendar")
+                        Spacer()
+                        Text(trainingDaysSummary(userData))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(AppFont.caption())
+                    }
+                }
+            }
+        }
+    }
+
+    /// 訓練日摘要文字（如「週二 週四 週六」）
+    private func trainingDaysSummary(_ userData: User) -> String {
+        guard let days = userData.preferWeekDays, !days.isEmpty else {
+            return NSLocalizedString("common.not_set", comment: "Not Set")
+        }
+        return days.sorted().map { viewModel.weekdayShortName(for: $0) }.joined(separator: " ")
+    }
+
+    // MARK: - Group 4: 生理指標（收成導航入口）
+
+    @ViewBuilder
+    private var physiologySection: some View {
+        if let userData = viewModel.userData {
+            Section(header: Text(NSLocalizedString("profile.physiology", comment: "Physiology"))) {
+                // 心率區間 — 摘要行 + 點進去看詳情
+                Button(action: { showZoneEditor = true }) {
+                    HStack {
+                        Label(NSLocalizedString("training.heart_rate_zone", comment: "HR Zone"), systemImage: "heart.fill")
+                            .foregroundColor(.red)
+                        Spacer()
+                        if let maxHr = userData.maxHr, let restHr = userData.relaxingHr {
+                            Text("\(restHr)-\(maxHr) bpm")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(AppFont.caption())
+                    }
+                }
+
+                // 配速區間 — 摘要行
+                if viewModel.currentVDOT > 0 {
+                    Button(action: { showPaceZoneDetail = true }) {
+                        HStack {
+                            Label(NSLocalizedString("profile.pace_zones", comment: "Pace Zones"), systemImage: "timer")
+                                .foregroundColor(.blue)
+                            Spacer()
+                            Text("VDOT \(String(format: "%.1f", viewModel.currentVDOT))")
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(AppFont.caption())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Group 5: 帳戶操作（登出 + 版本 + 刪除合併）
+
+    @ViewBuilder
+    private var accountActionsSection: some View {
+        Section {
+            Button(action: {
+                showResetGoalAlert()
+            }) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text(NSLocalizedString("profile.reset_goal", comment: "Reset Goal"))
+                }
+            }
+
+            Button(role: .destructive) {
+                Task {
+                    do {
+                        try await viewModel.signOut()
+                        dismiss()
+                    } catch {
+                        print("登出失敗: \(error)")
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    Text(NSLocalizedString("common.logout", comment: "Log Out"))
+                }
+            }
+
+            HStack {
+                Spacer()
+                Text(NSLocalizedString("settings.version", comment: "Version") + " \(appVersion)")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+
+            Button(role: .destructive) {
+                showDeleteAccountConfirmation = true
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text(NSLocalizedString("settings.delete_account", comment: "Delete Account"))
+                    if isDeletingAccount {
+                        Spacer()
+                        ProgressView()
+                            .padding(.leading, 8)
+                    }
+                }
+            }
+            .disabled(isDeletingAccount)
+        }
+    }
+
+    #if DEBUG
+    // MARK: - Group 6: 開發者工具（收成一行）
+
+    @ViewBuilder
+    private var debugSection: some View {
+        Section {
+            NavigationLink {
+                debugDetailView
+            } label: {
+                HStack {
+                    Image(systemName: "wrench.and.screwdriver")
+                        .foregroundColor(.purple)
+                    Text(NSLocalizedString("userprofile.text_0", comment: "Developer Tools"))
+                }
+            }
+        }
+    }
+
+    /// 開發者工具詳情頁
+    private var debugDetailView: some View {
+        List {
+            developerSection
+        }
+        .navigationTitle("Developer Tools")
+    }
+    #endif
+
+    // MARK: - Legacy sections (kept for reference, replaced by new groups)
 
     @ViewBuilder
     private var heartRateSection: some View {
@@ -660,6 +878,16 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.red)
+
+            Button {
+                showIAPTestConsole = true
+            } label: {
+                HStack {
+                    Image(systemName: "crown")
+                    Text("IAP Test Console")
+                }
+            }
+            .foregroundColor(.blue)
 
             Divider()
 

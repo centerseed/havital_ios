@@ -238,6 +238,8 @@
 "profile.training_info" = "訓練資訊";
 "profile.heart_rate_info" = "心率資訊";
 "profile.pace_zones" = "配速區間";
+"profile.physiology" = "生理指標";
+"common.not_set" = "未設定";
 "profile.data_sources" = "數據來源";
 "profile.settings" = "設定";
 "profile.name" = "姓名";
@@ -252,6 +254,17 @@
 "profile.max_hr" = "最大心率";
 "profile.weekly_mileage" = "週跑量";
 "profile.edit_profile" = "編輯個人資料";
+
+// MARK: - Profile Subscription Section
+"profile.subscription.section_title" = "訂閱";
+"profile.subscription.plan" = "方案";
+"profile.subscription.free" = "免費";
+"profile.subscription.trial" = "試用";
+"profile.subscription.expired" = "已過期";
+"profile.subscription.trial_remaining" = "試用剩餘";
+"profile.subscription.days_remaining" = "%d 天";
+"profile.subscription.expires" = "到期日";
+"profile.subscription.billing_issue" = "帳單問題";
 
 // MARK: - Data Sources
 "datasource.title" = "數據來源";
@@ -2402,3 +2415,14 @@
 "time.quick.2m" = "2分";
 "time.quick.3m" = "3分";
 "edit_schedule.select_rest_time" = "選擇休息時間";
+
+// MARK: - Paywall
+"paywall.title" = "升級";
+"paywall.restore_purchases" = "恢復購買";
+"paywall.header.api_gated" = "需要訂閱才能使用此功能";
+"paywall.header.trial_expired" = "試用期已結束";
+"paywall.header.feature_locked" = "升級以解鎖完整功能";
+"paywall.trial_days_remaining" = "%d 天試用期剩餘";
+"paywall.offerings_coming_soon" = "付費方案即將推出";
+"paywall.plan.yearly" = "年訂閱";
+"paywall.plan.monthly" = "月訂閱";
