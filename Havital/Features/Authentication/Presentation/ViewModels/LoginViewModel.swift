@@ -205,6 +205,13 @@ final class LoginViewModel: ObservableObject {
         // Publish user data change event
         CacheEventBus.shared.publish(.dataChanged(.user))
 
+        // 登入後拉取訂閱狀態（更新 SubscriptionStateManager）
+        Task {
+            let subscriptionRepository: SubscriptionRepository = DependencyContainer.shared.resolve()
+            _ = try? await subscriptionRepository.refreshStatus()
+            Logger.debug("[LoginViewModel] ✅ 訂閱狀態已刷新")
+        }
+
         Logger.debug("[LoginViewModel] Authentication event published for user: \(user.uid)")
     }
 

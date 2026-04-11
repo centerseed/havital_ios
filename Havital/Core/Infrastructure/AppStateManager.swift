@@ -63,6 +63,11 @@ class AppStateManager: ObservableObject {
     private let workoutRepository: WorkoutRepository
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
+    // Lazy resolve: SubscriptionRepository 在 DI 註冊完成後才可用
+    private var subscriptionRepository: SubscriptionRepository {
+        DependencyContainer.shared.resolve()
+    }
+
     private init() {
         // Initialize repositories via DI
         self.authSessionRepository = DependencyContainer.shared.resolve()
@@ -202,6 +207,7 @@ class AppStateManager: ObservableObject {
             print("⚠️ AppStateManager: 用戶未認證，跳過資料載入")
             userDataSource = .unbound
             subscriptionStatus = .free
+            await SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
             return
         }
         
@@ -231,7 +237,9 @@ class AppStateManager: ObservableObject {
 
             // 使用同步後的數據源設定
             userDataSource = UserPreferencesManager.shared.dataSourcePreference
-            subscriptionStatus = .free // 暫時設為免費版，未來可從 user.data 中獲取
+
+            // 從 API 拉取訂閱狀態（更新 SubscriptionStateManager + 本地緩存）
+            await loadSubscriptionStatus()
 
             print("✅ AppStateManager: 用戶資料同步完成")
             print("   - 最終數據源: \(userDataSource.rawValue)")
@@ -250,7 +258,8 @@ class AppStateManager: ObservableObject {
 
             // 使用本地設定作為備用
             userDataSource = UserPreferencesManager.shared.dataSourcePreference
-            subscriptionStatus = .free
+            // 嘗試用 cached subscription status，避免離線時誤顯示免費
+            await loadSubscriptionStatus()
 
             Logger.firebase("用戶資料載入失敗，使用本地設定", level: .error, labels: [
                 "module": "AppStateManager",
@@ -262,6 +271,38 @@ class AppStateManager: ObservableObject {
         }
     }
     
+    /// 載入訂閱狀態（從 API 或緩存）
+    /// 更新 SubscriptionStateManager（UI 訂閱）和 AppStateManager.subscriptionStatus
+    private func loadSubscriptionStatus() async {
+        do {
+            let status = try await subscriptionRepository.getStatus()
+            subscriptionStatus = resolveLocalSubscriptionStatus(from: status)
+            Logger.debug("[AppStateManager] 訂閱狀態載入成功: \(status.status.rawValue)")
+        } catch {
+            // 網路失敗時 getStatus() 有 stale-on-error fallback，
+            // 只有完全無緩存時才會到這裡
+            if let cached = subscriptionRepository.getCachedStatus() {
+                subscriptionStatus = resolveLocalSubscriptionStatus(from: cached)
+                Logger.debug("[AppStateManager] 使用緩存訂閱狀態: \(cached.status.rawValue)")
+            } else {
+                subscriptionStatus = .free
+                Logger.debug("[AppStateManager] 無訂閱資訊，預設免費")
+            }
+        }
+    }
+
+    /// 將 Domain Entity 的訂閱狀態映射為 AppStateManager 的本地枚舉
+    private func resolveLocalSubscriptionStatus(from entity: SubscriptionStatusEntity) -> SubscriptionStatus {
+        switch entity.status {
+        case .active, .trial:
+            return .premium
+        case .expired:
+            return .expired
+        case .none:
+            return .free
+        }
+    }
+
     /// Phase 3: 設置服務
     private func setupServices() async {
         print("⚙️ AppStateManager: 開始設置服務")
