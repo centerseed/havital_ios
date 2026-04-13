@@ -1,0 +1,98 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P2
+---
+# R5: Rizo Quota Exceeded -> Orange Banner
+#
+# Precondition (set by wrapper):
+#   - Backend: set-subscribed + set-rizo-quota 200 (exhausted)
+#   - App: has training plan, has NO weekly plan for current week
+#
+# Test flow:
+#   1. Launch app, demo login
+#   2. Navigate to training plan
+#   3. Trigger an AI generation action (weekly summary / next week / weekly plan)
+#      -> backend returns 429 -> orange banner
+#   4. Assert orange banner appears with Rizo quota message
+#
+# Critical assertions (all non-optional):
+#   - RizoQuota_Banner identifier is visible
+#   - Banner text contains quota exceeded message
+#
+# IMPORTANT: The banner auto-dismisses after 3 seconds.
+# The assertion must fire before that timeout.
+
+# Step 1: Launch and login
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# Step 2: Ensure at least one generation trigger is present
+- extendedWaitUntil:
+    visible: "產生週回顧|產生下週課表|產生週課表|接受調整並產生下週課表|Generate Weekly Summary|Generate Next Week Plan|Generate Weekly Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 20000
+
+# Step 3: Trigger generation action (fallback order)
+- runFlow:
+    when:
+      visible: "產生週回顧|Generate Weekly Summary"
+    commands:
+      - tapOn:
+          text: "產生週回顧|Generate Weekly Summary"
+
+- runFlow:
+    when:
+      visible: "產生下週課表|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    commands:
+      - tapOn:
+          text: "產生下週課表|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+
+- runFlow:
+    when:
+      visible: "產生週課表|Generate Weekly Plan"
+    commands:
+      - tapOn:
+          text: "產生週課表|Generate Weekly Plan"
+
+# CRITICAL ASSERTION: Rizo quota banner must appear
+# Banner auto-dismisses after 3s, so timeout is tight
+- extendedWaitUntil:
+    visible:
+      id: "RizoQuota_Banner"
+    timeout: 10000
+
+# CRITICAL ASSERTION: Banner is visible
+- assertVisible:
+    id: "RizoQuota_Banner"
+
+# CRITICAL ASSERTION: Banner text must indicate quota exceeded.
+# Match localized text or fallback key if localization is missing.
+- assertVisible:
+    text: "Rizo|quota|配額|使用次數已達上限|rizo\\.quota_exceeded_banner"
+
+# Screenshot immediately (before auto-dismiss)
+- takeScreenshot: ".maestro/screenshots/R5_rizo_quota_banner.png"
+
+# CRITICAL ASSERTION: PaywallView should NOT appear (quota != subscription issue)
+- assertNotVisible:
+    id: "Paywall_Header"

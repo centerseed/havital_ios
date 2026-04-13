@@ -294,7 +294,10 @@ class AppStateManager: ObservableObject {
     /// 將 Domain Entity 的訂閱狀態映射為 AppStateManager 的本地枚舉
     private func resolveLocalSubscriptionStatus(from entity: SubscriptionStatusEntity) -> SubscriptionStatus {
         switch entity.status {
-        case .active, .trial:
+        case .active, .trial, .gracePeriod:
+            return .premium
+        case .cancelled:
+            // cancelled 但未到期，仍有服務權限
             return .premium
         case .expired:
             return .expired

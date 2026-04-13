@@ -1,0 +1,72 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P0
+---
+# R3: Billing Issue Red Warning Banner
+#
+# Precondition (set by wrapper):
+#   - Backend: set-subscribed + set-billing-issue true
+#
+# Test flow:
+#   1. Launch app, demo login
+#   2. Navigate to Profile (via "More" menu)
+#   3. Scroll to subscription section
+#   4. Assert billing issue warning is visible (NON-OPTIONAL)
+#   5. Assert warning text contains "billing issue" localized text
+#
+# Critical assertions (all non-optional):
+#   - BillingIssue_Warning identifier is visible
+#   - Warning text matches localized "billing issue" string
+#   - Warning is red (visual -- screenshot evidence)
+
+# Step 1: Launch and login
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+# Wait for main screen
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+# Step 2: Navigate to Profile
+- tapOn:
+    text: "更多|More|もっと見る"
+
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+
+- extendedWaitUntil:
+    visible: "個人資料|Profile|プロフィール"
+    timeout: 10000
+
+# Step 3: Scroll to subscription section where billing warning appears
+- scrollUntilVisible:
+    element:
+      id: "BillingIssue_Warning"
+    direction: DOWN
+    timeout: 15000
+
+# Step 4: CRITICAL ASSERTION -- Billing issue warning must be visible
+- assertVisible:
+    id: "BillingIssue_Warning"
+
+# CRITICAL ASSERTION: Warning text must contain billing issue message
+# zh-Hant localization
+- assertVisible:
+    text: "帳單問題|Billing issue|請更新付款方式|更新付款方式"
+
+# Step 5: Screenshot for evidence
+- takeScreenshot: ".maestro/screenshots/R3_billing_issue_visible.png"

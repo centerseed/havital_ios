@@ -3,7 +3,7 @@ import SwiftUI
 /// V2 訓練計畫概覽 Sheet
 /// 使用 Tab 顯示不同資訊：賽事資訊 & 訓練計畫概覽
 struct PlanOverviewSheetV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @StateObject private var targetViewModel = TargetFeatureViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
@@ -134,6 +134,11 @@ struct PlanOverviewSheetV2: View {
                     }
                 } else {
                     Logger.error("[🐛 TARGET_UPDATE] ❌ 無法解析 userInfo！")
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
+                Task {
+                    await targetViewModel.forceRefresh()
                 }
             }
             .sheet(isPresented: $showEditMainTarget) {
@@ -369,7 +374,7 @@ private struct TargetInfoTabV2: View {
 
 private struct TrainingOverviewTabV2: View {
     let overview: PlanOverviewV2
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @State private var selectedStageIndex: Int? = nil
     @State private var showMethodologySheet = false
     @State private var isChangingMethodology = false

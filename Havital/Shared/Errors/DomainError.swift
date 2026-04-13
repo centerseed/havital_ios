@@ -108,7 +108,7 @@ enum DomainError: Error, Equatable, LocalizedError {
     // MARK: - 是否應該顯示 ErrorView
     var shouldShowErrorView: Bool {
         switch self {
-        case .cancellation, .subscriptionRequired, .trialExpired, .rizoQuotaExceeded:
+        case .cancellation, .subscriptionRequired, .trialExpired, .rizoQuotaExceeded, .forbidden:
             return false
         default:
             return true
@@ -145,14 +145,9 @@ extension Error {
             }
         }
 
-        // NSError 取消錯誤
-        let nsError = self as NSError
-        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-            return .cancellation
-        }
-
-        // CancellationError
-        if self is CancellationError {
+        // 統一取消錯誤檢查（涵蓋 CancellationError, NSURLErrorCancelled,
+        // SystemError.taskCancelled, HTTPError.cancelled, APIError 等所有類型）
+        if self.isCancellationError {
             return .cancellation
         }
 

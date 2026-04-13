@@ -1,0 +1,44 @@
+appId: com.havital.Havital.dev
+tags:
+  - boundary
+  - layer-b
+  - beginner
+---
+# B3: beginner + 24 weeks + 7 training days
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+- tapOn:
+    id: "GoalType_beginner"
+- tapOn:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    id: "TrainingWeeks_24"
+    optional: true
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+- tapOn:
+    id: "TrainingDay_1"
+- tapOn:
+    id: "TrainingDay_2"
+- tapOn:
+    id: "TrainingDay_3"
+- tapOn:
+    id: "TrainingDay_4"
+- tapOn:
+    id: "TrainingDay_5"
+- tapOn:
+    id: "TrainingDay_6"
+- tapOn:
+    id: "TrainingDay_7"
+
+- runFlow: ../subflows/assert-preference-persistence.yaml
+- runFlow: ../subflows/verify-methodology-beginner.yaml

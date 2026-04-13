@@ -1,0 +1,58 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - critical
+---
+# IAP debug smoke:
+# 1) Demo login
+# 2) Go to profile developer section
+# 3) Open IAP Test Console and apply expired scenario
+# 4) Verify operation + refresh succeeded and snapshot contains expired
+
+- runFlow: demo-login-only.yaml
+
+- runFlow: ../subflows/nav-to-profile.yaml
+
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "IAP Test Console"
+
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element: "Set Expired"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "Set Expired"
+
+# Scroll to App Snapshot section
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+# Wait for IAPConsole_AppStatus to show "expired"
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- assertVisible:
+    id: "IAPConsole_AppStatus"
+
+- tapOn: "Refresh Detail \\+ App Status"
+
+# After refresh, App Snapshot should still show expired
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 30000
+
+- assertVisible:
+    id: "IAPConsole_AppStatus"

@@ -62,11 +62,17 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
     // MARK: - Subscription Helpers
 
     private func resolvePaywallTrigger() -> PaywallTrigger {
-        if let lastStatus = SubscriptionStateManager.shared.currentStatus,
-           lastStatus.status == .trial {
-            return .trialExpired
+        guard let lastStatus = SubscriptionStateManager.shared.currentStatus else {
+            return .apiGated
         }
-        return .apiGated
+        switch lastStatus.status {
+        case .trial:
+            return .trialExpired
+        case .cancelled:
+            return .resubscribe
+        case .active, .gracePeriod, .expired, .none:
+            return .apiGated
+        }
     }
 
     // MARK: - Initialization

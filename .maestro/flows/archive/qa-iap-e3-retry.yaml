@@ -1,0 +1,18 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP E3: subscribed 後點「重試」驗證功能解鎖
+# 前置：app 顯示 error.forbidden，後端已改為 subscribed
+
+# 截圖：重試前
+- takeScreenshot: QA/screenshots/e3_before_retry
+
+# 點「重試」按鈕
+- tapOn: "重試"
+
+# 等待課表載入成功
+- extendedWaitUntil:
+    visible: "每日訓練"
+    timeout: 20000
+
+# 截圖：E3 PASS 證據
+- takeScreenshot: QA/screenshots/e3_after_retry_success

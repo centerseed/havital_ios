@@ -26,6 +26,15 @@
 # 然後手動打開 Simulator 中的 App，查看日誌
 ```
 
+### Sandbox 相容建議（避免 SwiftPM 解析權限錯誤）
+
+所有自動化腳本已改為共用 `./Scripts/run_xcodebuild.sh`，請優先使用該入口避免
+`SourcePackages`、Module Cache 權限寫入失敗：
+
+```bash
+./Scripts/run_xcodebuild.sh -project Havital.xcodeproj -scheme Havital test
+```
+
 ## 驗證內容
 
 ### 自動檢查項目

@@ -9,17 +9,12 @@ tags:
 # 注意：Maestro 的 longPress + swipe 無法可靠模擬 SwiftUI List drag，
 #      本 flow 驗證進入拖動模式後取消，不實際儲存排序結果。
 
-# 重啟 app 確保乾淨狀態
-- launchApp:
-    stopApp: true
-    clearState: false
-- extendedWaitUntil:
-    visible: "每日訓練"
-    timeout: 45000
+# 重啟 app 並收斂到主課表頁
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # 確認初始狀態
 - assertVisible: "每日訓練"
-- assertVisible: "輕鬆跑"
+- assertVisible: "星期一|Monday"
 
 # 進編輯
 - tapOn: "更多"
@@ -41,10 +36,8 @@ tags:
 - tapOn:
     text: "放棄變更"
     optional: true
-- extendedWaitUntil:
-    visible: "每日訓練"
-    timeout: 15000
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # 驗證
 - assertVisible: "每日訓練"
-- assertVisible: "輕鬆跑"
+- assertVisible: "星期一|Monday"

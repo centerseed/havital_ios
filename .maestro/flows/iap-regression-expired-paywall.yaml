@@ -1,0 +1,106 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P0
+---
+# R1: Expired -> 403 -> PaywallView
+#
+# Precondition (set by wrapper):
+#   - Backend: set-expired (user subscription is expired)
+#   - App: has training plan, has NO weekly plan for current week
+#
+# Test flow:
+#   1. Launch app, demo login
+#   2. Navigate to training plan (should see "generate weekly plan" button)
+#   3. Tap generate -> backend returns 403 -> PaywallView appears
+#   4. Assert PaywallView header text (NON-OPTIONAL -- must match exactly)
+#   5. Assert close button works, returns to training plan
+#
+# Critical assertions (all non-optional):
+#   - PaywallView header: "Need subscription to use this feature" (zh-Hant)
+#   - PaywallView is dismissible
+#   - After dismiss, user is back on training plan screen
+
+# Step 1: Launch and login
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# Handle possible system dialogs
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+# If already logged in, skip login
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+# If Profile sheet is still open, dismiss it first.
+- tapOn:
+    text: "完成|Done"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# Wait for main screen
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+# Step 2: Navigate to training plan tab if needed
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# Step 3: We need to be in noWeeklyPlan state to see generate button.
+# The wrapper script should have ensured this via admin API or the plan
+# was already deleted. Wait for the generate button.
+- extendedWaitUntil:
+    visible: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 15000
+
+# Step 4: Tap generate -- should trigger 403 -> PaywallView
+- tapOn:
+    text: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+
+# Step 5: CRITICAL ASSERTION -- PaywallView must appear
+# This is the core test. If PaywallView doesn't appear, the flow FAILS.
+- extendedWaitUntil:
+    visible:
+      id: "Paywall_Header"
+    timeout: 20000
+
+# CRITICAL ASSERTION: Header text must be the apiGated message
+# zh-Hant: "Need subscription" text
+- assertVisible:
+    text: "需要訂閱才能使用此功能|需要訂閱|Need subscription to use this feature|Need subscription"
+
+# CRITICAL ASSERTION: Close button must be present
+- assertVisible:
+    id: "Paywall_CloseButton"
+
+# Step 6: Screenshot for evidence
+- takeScreenshot: ".maestro/screenshots/R1_paywall_appeared.png"
+
+# Step 7: Dismiss PaywallView
+- tapOn:
+    id: "Paywall_CloseButton"
+
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# CRITICAL ASSERTION: After dismiss, app must remain operable
+- extendedWaitUntil:
+    visible: "每日訓練|訓練計劃|訓練計畫|更多|Daily Training|Training Plan|More|もっと見る|產生週課表|產生下週課表|Generate Weekly Plan|Generate Next Week Plan"
+    timeout: 15000
+
+# CRITICAL ASSERTION: PaywallView is gone
+- assertNotVisible:
+    id: "Paywall_Header"
+
+- takeScreenshot: ".maestro/screenshots/R1_after_dismiss.png"

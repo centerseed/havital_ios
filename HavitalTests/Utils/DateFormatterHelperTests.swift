@@ -16,31 +16,32 @@ final class DateFormatterHelperTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        // 確保測試環境乾淨
-        // 直接操作 preferences 以避免非同步更新問題
-        Task { @MainActor in
-            UserPreferencesManager.shared.preferences = nil
-        }
+        setPreferences(nil)
     }
 
     override func tearDown() {
-        // 清理測試數據
-        Task { @MainActor in
-            UserPreferencesManager.shared.preferences = nil
-        }
+        setPreferences(nil)
         super.tearDown()
     }
     
+    private func setPreferences(_ preferences: UserPreferences?) {
+        let expectation = XCTestExpectation(description: "Update user preferences")
+        Task { @MainActor in
+            UserPreferencesManager.shared.preferences = preferences
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
+
     // Helper to synchronously set timezone
     private func setTimezone(_ identifier: String?) {
-        let prefs = UserPreferences(
-            language: "en",
-            timezone: identifier ?? TimeZone.current.identifier
-        )
-        // 直接更新屬性以確保同步
-        Task { @MainActor in
-            UserPreferencesManager.shared.preferences = prefs
+        guard let identifier else {
+            setPreferences(nil)
+            return
         }
+
+        let prefs = UserPreferences(language: "en", timezone: identifier)
+        setPreferences(prefs)
     }
 
     // MARK: - 時區設定測試
@@ -67,19 +68,7 @@ final class DateFormatterHelperTests: XCTestCase {
 
     func testFormatterUsesCurrentTimezoneWhenUserTimezoneNotSet() {
         // Given: 未設定用戶時區
-        setTimezone(nil) // 這會設為 nil 嗎？看 Helper 實現是設為 current。
-        // 修正：我們需要讓 UserPreferencesManager.shared.preferences?.timezone 為 nil 才能測試這個分支
-        // 但 UserPreferences 結構體中 timezone 是 String (非 Optional)。
-        // 查看 UserPreferencesManager 源碼，timezonePreference 是可選的，get 時取 preferences?.timezone
-        // 如果 preferences 為 nil，則 getOrCreatePreferences() 會用 current。
-        
-        Task { @MainActor in
-            UserPreferencesManager.shared.preferences = nil
-        }
-        
-        let expectation = XCTestExpectation(description: "Wait for preferences clear")
-        DispatchQueue.main.async { expectation.fulfill() }
-        wait(for: [expectation], timeout: 1.0)
+        setTimezone(nil)
 
         // When: 創建 formatter
         let formatter = DateFormatterHelper.formatter(dateFormat: "HH:mm")
@@ -301,7 +290,7 @@ final class DateFormatterHelperTests: XCTestCase {
 
     func testGetCurrentTimezoneInfo() {
         // Given: 設定用戶時區為台北
-        UserPreferenceManager.shared.timezonePreference = "Asia/Taipei"
+        setTimezone("Asia/Taipei")
 
         // When: 獲取時區資訊
         let info = DateFormatterHelper.getCurrentTimezoneInfo()
@@ -315,7 +304,7 @@ final class DateFormatterHelperTests: XCTestCase {
 
     func testHandleInvalidTimezoneIdentifier() {
         // Given: 無效的時區 ID
-        UserPreferenceManager.shared.timezonePreference = "Invalid/Timezone"
+        setTimezone("Invalid/Timezone")
 
         // When: 創建 formatter
         let formatter = DateFormatterHelper.formatter(dateFormat: "HH:mm")

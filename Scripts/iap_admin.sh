@@ -41,32 +41,51 @@ get_token() {
 api_get() {
     local path="$1"
     local token
+    local response
     token=$(get_token)
-    curl -sf -H "Authorization: Bearer $token" "${API_BASE}/${path}" | python3 -m json.tool
+    response=$(curl -sf -H "Authorization: Bearer $token" "${API_BASE}/${path}")
+    print_response "$response"
 }
 
 api_post() {
     local path="$1"
     local body="$2"
     local token
+    local response
     token=$(get_token)
-    curl -sf -X POST \
+    response=$(curl -sf -X POST \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -d "$body" \
-        "${API_BASE}/${path}" | python3 -m json.tool
+        "${API_BASE}/${path}")
+    print_response "$response"
 }
 
 api_put() {
     local path="$1"
     local body="$2"
     local token
+    local response
     token=$(get_token)
-    curl -sf -X PUT \
+    response=$(curl -sf -X PUT \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -d "$body" \
-        "${API_BASE}/${path}" | python3 -m json.tool
+        "${API_BASE}/${path}")
+    print_response "$response"
+}
+
+print_response() {
+    local response="${1:-}"
+    if [ -z "$response" ]; then
+        echo "{}"
+        return 0
+    fi
+    if echo "$response" | python3 -m json.tool >/dev/null 2>&1; then
+        echo "$response" | python3 -m json.tool
+    else
+        echo "$response"
+    fi
 }
 
 # --- 指令 ---
@@ -96,6 +115,33 @@ cmd_set_subscribed() {
         "{\"status\":\"subscribed\",\"expires_at\":\"$expires_at\",\"reason\":\"QA testing: force subscribed\"}"
 }
 
+cmd_set_monthly() {
+    local days="${2:-30}"
+    local expires_at
+    expires_at=$(date -u -v+"${days}"d +"%Y-%m-%dT%H:%M:%SZ")
+    echo "🗓️ 設定用戶為 monthly: ${TARGET_UID} (+${days}d, expires_at: ${expires_at})"
+    api_post "${ADMIN_PATH}/${TARGET_UID}/set-expires" \
+        "{\"status\":\"subscribed\",\"plan_type\":\"monthly\",\"expires_at\":\"$expires_at\",\"reason\":\"QA testing: force monthly\"}"
+}
+
+cmd_set_yearly() {
+    local days="${2:-365}"
+    local expires_at
+    expires_at=$(date -u -v+"${days}"d +"%Y-%m-%dT%H:%M:%SZ")
+    echo "📅 設定用戶為 yearly: ${TARGET_UID} (+${days}d, expires_at: ${expires_at})"
+    api_post "${ADMIN_PATH}/${TARGET_UID}/set-expires" \
+        "{\"status\":\"subscribed\",\"plan_type\":\"yearly\",\"expires_at\":\"$expires_at\",\"reason\":\"QA testing: force yearly\"}"
+}
+
+cmd_set_cancelled() {
+    local days="${2:-7}"
+    local expires_at
+    expires_at=$(date -u -v+"${days}"d +"%Y-%m-%dT%H:%M:%SZ")
+    echo "⛔ 設定用戶為 cancelled(仍有效至到期): ${TARGET_UID} (+${days}d, expires_at: ${expires_at})"
+    api_post "${ADMIN_PATH}/${TARGET_UID}/set-expires" \
+        "{\"status\":\"cancelled\",\"plan_type\":\"monthly\",\"expires_at\":\"$expires_at\",\"reason\":\"QA testing: force cancelled\"}"
+}
+
 cmd_set_trial() {
     local expires_at
     expires_at=$(date -u -v+14d +"%Y-%m-%dT%H:%M:%SZ")
@@ -106,8 +152,8 @@ cmd_set_trial() {
 
 cmd_clear_override() {
     echo "🧹 清除 override: ${TARGET_UID}"
-    api_post "${ADMIN_PATH}/${TARGET_UID}/clear-override" \
-        "{\"reason\":\"QA testing: clear override\"}"
+    api_post "${ADMIN_PATH}/${TARGET_UID}/override" \
+        "{\"override\":false,\"reason\":\"QA testing: clear override\"}"
 }
 
 cmd_set_rizo_quota() {
@@ -133,6 +179,9 @@ usage() {
     echo "  config              查詢全域 IAP 設定"
     echo "  set-expired         設為已過期（後端會回 403）"
     echo "  set-subscribed      設為已訂閱（功能解鎖）"
+    echo "  set-monthly [days]  設為月訂（預設 +30 天）"
+    echo "  set-yearly [days]   設為年訂（預設 +365 天）"
+    echo "  set-cancelled [days]  設為已取消續訂但未到期（預設 +7 天）"
     echo "  set-trial           設為試用中（14 天）"
     echo "  clear-override      清除 override，還原自然狀態"
     echo "  set-rizo-quota [N]  設定 Rizo 用量（預設 200 = 耗盡，0 = 重置）"
@@ -148,6 +197,9 @@ case "${1:-}" in
     config)             cmd_config ;;
     set-expired)        cmd_set_expired ;;
     set-subscribed)     cmd_set_subscribed ;;
+    set-monthly)        cmd_set_monthly "$@" ;;
+    set-yearly)         cmd_set_yearly "$@" ;;
+    set-cancelled)      cmd_set_cancelled "$@" ;;
     set-trial)          cmd_set_trial ;;
     clear-override)     cmd_clear_override ;;
     set-rizo-quota)     cmd_set_rizo_quota "$@" ;;

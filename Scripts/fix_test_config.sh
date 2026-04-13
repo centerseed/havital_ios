@@ -7,6 +7,7 @@ echo "🔧 修復 Xcode 測試配置..."
 echo ""
 
 PROJECT_DIR="/Users/wubaizong/havital/apps/ios/Havital"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
 # 顏色
@@ -28,7 +29,7 @@ echo ""
 # 檢查 TEST_HOST 設置
 echo "📋 檢查 TEST_HOST 配置..."
 
-TEST_HOST_VALUE=$(xcodebuild -project Havital.xcodeproj -scheme Havital -showBuildSettings | grep "TEST_HOST = " | head -1)
+TEST_HOST_VALUE=$("$SCRIPT_DIR/run_xcodebuild.sh" -project Havital.xcodeproj -scheme Havital -showBuildSettings | grep "TEST_HOST = " | head -1)
 
 if echo "$TEST_HOST_VALUE" | grep -q "Paceriz.app"; then
     echo -e "${YELLOW}⚠️  發現問題: TEST_HOST 指向 Paceriz.app${NC}"
@@ -88,7 +89,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "運行測試..."
 
     # 嘗試運行測試
-    xcodebuild test \
+    "$SCRIPT_DIR/run_xcodebuild.sh" test \
         -project Havital.xcodeproj \
         -scheme Havital \
         -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \

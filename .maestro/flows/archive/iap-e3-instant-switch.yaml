@@ -1,0 +1,84 @@
+appId: com.havital.Havital.dev
+---
+# E3: expired → subscribed 即時切換測試
+# 驗證：切換後端狀態後，app 回前景自動刷新，功能立即解鎖
+#
+# 前提：後端是 expired 狀態
+# 流程：
+#   1. 確認 expired 狀態（觸發 403 看到 PaywallView）
+#   2. 關閉 PaywallView
+#   3. 切換後端為 subscribed（由外部 shell 完成）
+#   4. 回前景 → app 自動 refreshStatus
+#   5. 再次觸發同操作 → 應該成功
+
+# 重啟 app
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# 處理系統彈窗
+- tapOn:
+    text: "關閉"
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+# Demo 登入
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "訓練計劃"
+    timeout: 30000
+
+- tapOn: "訓練計劃"
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 15000
+
+# Step 1: 確認 expired（觸發 403）
+- tapOn: "產生週課表"
+- extendedWaitUntil:
+    visible:
+      text: "需要訂閱才能使用此功能|升級以解鎖"
+    timeout: 15000
+
+- takeScreenshot: e3_step1_expired_paywall
+
+# 關閉 PaywallView
+- tapOn: "關閉"
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Step 2: 切換後端為 subscribed
+# Maestro 的 runScript 不支援 shell，用 runFlow 方式不行
+# 改為：先暫停讓外部切換，然後 app 回前景
+# 實際做法：用 launchApp 送到背景再回來，模擬前景刷新
+- runScript:
+    script: |
+      java.lang.Runtime.getRuntime().exec(["/bin/bash", "-c", "/Users/wubaizong/havital/apps/ios/Havital/Scripts/iap_admin.sh set-subscribed"] as String[]).waitFor()
+
+# 模擬 app 回前景（launchApp 不 stop）
+- launchApp:
+    stopApp: false
+    clearState: false
+
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 15000
+
+# Step 3: 再次嘗試產生課表 — 應該成功
+- tapOn: "產生週課表"
+
+# 等待成功（不應該出現 PaywallView）
+- extendedWaitUntil:
+    visible:
+      text: "週課表已產生|每日訓練|課表"
+    timeout: 30000
+
+- takeScreenshot: e3_step3_subscribed_success

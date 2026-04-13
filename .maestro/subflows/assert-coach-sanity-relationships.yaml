@@ -1,0 +1,18 @@
+appId: com.havital.Havital.dev
+---
+# Guardrail helper: coach-facing UI sanity without recomputing backend formulas.
+- assertVisible:
+    text: "每日訓練|Daily Training|Training Plan"
+
+- runFlow: assert-weekly-plan-7days.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "輕鬆跑|長距離輕鬆跑|Easy Run|Long Easy Run|LSD"
+    direction: UP
+    timeout: 10000
+
+- assertVisible:
+    text: "輕鬆跑|長距離輕鬆跑|Easy Run|Long Easy Run|LSD"
+
+- runFlow: assert-workout-card-structure.yaml

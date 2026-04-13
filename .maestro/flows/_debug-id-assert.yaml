@@ -1,0 +1,4 @@
+appId: com.havital.Havital.dev
+---
+- assertVisible:
+    id: "IAPConsole_StatusMessage"

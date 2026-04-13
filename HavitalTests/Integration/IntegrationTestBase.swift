@@ -150,4 +150,21 @@ extension IntegrationTestBase {
     func getUseCase<T>() -> T {
         return DependencyContainer.shared.resolve()
     }
+
+    /// 訓練計畫相關整合測試需要有效訂閱；若 demo 帳號已過期則改為 skip，
+    /// 避免外部帳號狀態讓整包測試持續紅燈。
+    func requireActiveTrainingPlanAccess() async throws {
+        if !DependencyContainer.shared.isRegistered(SubscriptionRepository.self) {
+            DependencyContainer.shared.registerSubscriptionModule()
+        }
+
+        let repository: SubscriptionRepository = DependencyContainer.shared.resolve()
+        let status = try await repository.refreshStatus()
+
+        let hasAccess = status.status == .active || status.status == .trial
+        try XCTSkipIf(
+            !hasAccess,
+            "Demo subscription status is \(status.status.rawValue). Training plan integration tests require active access."
+        )
+    }
 }

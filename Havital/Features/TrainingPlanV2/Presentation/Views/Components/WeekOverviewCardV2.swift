@@ -2,7 +2,7 @@ import SwiftUI
 
 /// V2 週總覽卡片 - 顯示本週跑量和強度分配
 struct WeekOverviewCardV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @ObservedObject private var unitManager = UnitManager.shared
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlanV2

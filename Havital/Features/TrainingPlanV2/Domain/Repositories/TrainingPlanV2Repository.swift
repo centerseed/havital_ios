@@ -142,6 +142,17 @@ protocol TrainingPlanV2Repository {
     /// - Parameter summaryId: 週摘要 ID
     func deleteWeeklySummary(summaryId: String) async throws
 
+    // MARK: - Synchronous Cache Read (for instant UI restore)
+
+    /// 同步讀取快取的 Plan Status（無 await，不觸發網路請求）
+    func getCachedPlanStatus() -> PlanStatusV2Response?
+
+    /// 同步讀取快取的 Plan Overview
+    func getCachedOverview() -> PlanOverviewV2?
+
+    /// 同步讀取快取的週課表
+    func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2?
+
     // MARK: - Cache Management
 
     /// 清除所有緩存

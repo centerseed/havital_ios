@@ -1,0 +1,94 @@
+appId: com.havital.Havital
+tags:
+  - iap
+  - user_path
+  - critical
+---
+# 正常用戶路徑：過期帳號仍可操作（Prod app）
+# 目的：
+# 1) 設定頁可看到訂閱狀態（含已過期）
+# 2) 回到訓練頁觸發受限操作時，會出現 Paywall（而不是無反應）
+# 3) 關閉 Paywall 後 App 仍可繼續操作
+
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- tapOn:
+    text: "不再提醒|Not Now|後で|Skip"
+    optional: true
+- tapOn:
+    text: "明天再提醒我|Remind me tomorrow|明日リマインド"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "更多|More|もっと見る|訓練計劃|訓練計畫|Training Plan|每日訓練|Daily Training"
+    timeout: 30000
+- tapOn:
+    text: "更多|More|もっと見る"
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+
+- extendedWaitUntil:
+    visible: "個人資料|Profile|プロフィール|訂閱|Subscription|サブスクリプション"
+    timeout: 15000
+
+- assertVisible:
+    text: "已過期|Expired|過期|subscription\\.status\\.expired|訂閱|Subscription|サブスクリプション"
+
+- assertVisible:
+    id: "Subscription_UpgradeButton"
+- tapOn:
+    id: "Subscription_UpgradeButton"
+- extendedWaitUntil:
+    visible:
+      id: "Paywall_Header"
+    timeout: 15000
+- assertVisible:
+    text: "升級以解鎖完整功能|Upgrade to unlock full features|アップグレードして全機能を解放"
+- tapOn:
+    id: "Paywall_CloseButton"
+
+- tapOn:
+    text: "完成|Done|閉じる|Close"
+    optional: true
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+- back:
+    optional: true
+
+- extendedWaitUntil:
+    visible: "更多|More|もっと見る|訓練計劃|訓練計畫|Training Plan|每日訓練|Daily Training"
+    timeout: 15000
+
+- extendedWaitUntil:
+    visible: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 20000
+- tapOn:
+    text: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+
+- extendedWaitUntil:
+    visible:
+      text: "需要訂閱|升級|Upgrade|Need subscription"
+    timeout: 20000
+- assertVisible:
+    id: "Paywall_CloseButton"
+
+- tapOn:
+    id: "Paywall_CloseButton"
+- extendedWaitUntil:
+    visible: "更多|More|もっと見る|訓練計劃|訓練計畫|Training Plan|每日訓練|Daily Training"
+    timeout: 15000
+- assertNotVisible:
+    id: "Paywall_Header"

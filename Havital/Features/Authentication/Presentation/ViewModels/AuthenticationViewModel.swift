@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import FirebaseAuth
 import Combine
+import RevenueCat
 
 // MARK: - Authentication ViewModel
 /// Global authentication state manager
@@ -47,6 +48,9 @@ final class AuthenticationViewModel: ObservableObject {
 
     // 防止重複調用 fetchCurrentUserData
     private var isFetchingUserData = false
+    private var syncedRevenueCatAppUserID: String?
+    private var pendingRevenueCatAppUserID: String?
+    private var revenueCatIdentitySyncTask: Task<Void, Never>?
 
     // MARK: - Singleton
 
@@ -74,6 +78,9 @@ final class AuthenticationViewModel: ObservableObject {
 
         // Load onboarding status from UserDefaults
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+
+        // 確保 RevenueCat identity 與目前登入使用者一致
+        scheduleRevenueCatIdentitySync(for: currentUser?.uid)
     }
 
     /// Convenience initializer using DependencyContainer
@@ -95,6 +102,7 @@ final class AuthenticationViewModel: ObservableObject {
         if let handle = authStateHandle {
             Auth.auth().removeStateDidChangeListener(handle)
         }
+        revenueCatIdentitySyncTask?.cancel()
         cancellables.removeAll()
     }
 
@@ -123,19 +131,25 @@ final class AuthenticationViewModel: ObservableObject {
                 self.isAuthenticated = self.authSessionRepository.isAuthenticated()
 
                 // Fetch user data if authenticated
-                if firebaseUser != nil {
+                let targetRevenueCatUserID: String?
+                if let firebaseUser {
                     await self.fetchCurrentUserData()
+                    targetRevenueCatUserID = firebaseUser.uid
                 } else {
                     // For demo mode, check if we have a cached user
                     // Demo mode has no Firebase session but may have a cached user
                     if let cachedUser = self.authSessionRepository.getCurrentUser() {
                         Logger.debug("[AuthViewModel] Demo mode: keeping cached user")
                         self.currentUser = cachedUser
+                        targetRevenueCatUserID = cachedUser.uid
                     } else {
                         // Clear user data if signed out
                         self.currentUser = nil
+                        targetRevenueCatUserID = nil
                     }
                 }
+
+                self.scheduleRevenueCatIdentitySync(for: targetRevenueCatUserID)
 
                 // Publish authentication state change event
                 CacheEventBus.shared.publish(.dataChanged(.user))
@@ -172,6 +186,8 @@ final class AuthenticationViewModel: ObservableObject {
                     Logger.debug("[AuthViewModel] ✅ Onboarding status updated: \(user.hasCompletedOnboarding)")
                 }
             }
+
+            self.scheduleRevenueCatIdentitySync(for: self.currentUser?.uid)
         }
 
         // ✅ Subscribe to re-onboarding completed event
@@ -199,6 +215,8 @@ final class AuthenticationViewModel: ObservableObject {
                 self.currentUser = nil
                 self.hasCompletedOnboarding = false
             }
+
+            self.scheduleRevenueCatIdentitySync(for: nil)
         }
     }
 
@@ -265,10 +283,11 @@ final class AuthenticationViewModel: ObservableObject {
             // Clear subscription cache (ADR-001)
             let subscriptionRepository: SubscriptionRepository = DependencyContainer.shared.resolve()
             subscriptionRepository.clearCache()
-            await SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+            SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
 
             // Publish user logout event
             CacheEventBus.shared.publish(.userLogout)
+            scheduleRevenueCatIdentitySync(for: nil)
 
         } catch {
             isLoading = false
@@ -360,5 +379,98 @@ final class AuthenticationViewModel: ObservableObject {
     /// - Throws: AuthenticationError if refresh fails
     func refreshIdToken() async throws -> String {
         return try await authSessionRepository.refreshIdToken()
+    }
+
+    // MARK: - RevenueCat Identity Sync
+
+    private func scheduleRevenueCatIdentitySync(for appUserID: String?) {
+        pendingRevenueCatAppUserID = appUserID
+
+        guard revenueCatIdentitySyncTask == nil else { return }
+
+        revenueCatIdentitySyncTask = Task { [weak self] in
+            guard let self else { return }
+            await self.runRevenueCatIdentitySyncLoop()
+        }
+    }
+
+    private func runRevenueCatIdentitySyncLoop() async {
+        while !Task.isCancelled {
+            let targetUserID = pendingRevenueCatAppUserID
+            await syncRevenueCatIdentity(for: targetUserID)
+
+            if targetUserID == pendingRevenueCatAppUserID {
+                break
+            }
+        }
+
+        revenueCatIdentitySyncTask = nil
+
+        // 同步失敗時不立即重排程，避免 tight retry loop（離線或 RevenueCat 斷線時燒 CPU/電量）
+        // 下次前景恢復或登入狀態變更時會自然觸發新的 sync
+        if pendingRevenueCatAppUserID != syncedRevenueCatAppUserID {
+            Logger.debug("[AuthViewModel] RevenueCat sync incomplete, will retry on next foreground/auth event")
+        }
+    }
+
+    private func syncRevenueCatIdentity(for appUserID: String?) async {
+        guard Purchases.isConfigured else {
+            Logger.debug("[AuthViewModel] RevenueCat not configured yet, skip identity sync")
+            return
+        }
+
+        let currentRevenueCatUserID = Purchases.shared.appUserID
+        if appUserID == syncedRevenueCatAppUserID || appUserID == currentRevenueCatUserID {
+            syncedRevenueCatAppUserID = appUserID
+            return
+        }
+
+        if let appUserID {
+            do {
+                try await revenueCatLogIn(appUserID: appUserID)
+                syncedRevenueCatAppUserID = appUserID
+                Logger.debug("[AuthViewModel] RevenueCat identity synced: \(appUserID)")
+            } catch {
+                Logger.error("[AuthViewModel] RevenueCat logIn failed: \(error.localizedDescription)")
+            }
+            return
+        }
+
+        guard !currentRevenueCatUserID.hasPrefix("$RCAnonymousID:") else {
+            syncedRevenueCatAppUserID = nil
+            return
+        }
+
+        do {
+            try await revenueCatLogOut()
+            syncedRevenueCatAppUserID = nil
+            Logger.debug("[AuthViewModel] RevenueCat identity reset to anonymous")
+        } catch {
+            Logger.error("[AuthViewModel] RevenueCat logOut failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func revenueCatLogIn(appUserID: String) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Purchases.shared.logIn(appUserID) { _, _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
+    }
+
+    private func revenueCatLogOut() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Purchases.shared.logOut { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
     }
 }

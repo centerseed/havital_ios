@@ -1,0 +1,20 @@
+appId: com.havital.Havital.dev
+---
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "IAP Test Console"
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Set Expired"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Set Expired"
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 80%"
+    duration: 800
+- takeScreenshot: /tmp/after-set-expired

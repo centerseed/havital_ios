@@ -1,0 +1,19 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP C1: 點「產生週課表」→ 預期 403 → PaywallView 彈出
+# 前置：app 顯示「週課表尚未產生」/ 「產生週課表」按鈕
+
+# 截圖：觸發前狀態
+- takeScreenshot: QA/screenshots/c1_before_generate
+
+# 點擊「產生週課表」按鈕
+- tapOn: "產生週課表"
+
+# 等待 PaywallView 出現（API 回 403 → paywallTrigger = .apiGated）
+# PaywallView header 在 apiGated 時顯示 paywall.header.api_gated 本地化字串
+- extendedWaitUntil:
+    visible: "需要訂閱才能使用此功能"
+    timeout: 20000
+
+# 截圖作為 C1 PASS 證據
+- takeScreenshot: QA/screenshots/c1_paywall_appeared

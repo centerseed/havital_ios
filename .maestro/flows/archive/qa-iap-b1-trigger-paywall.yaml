@@ -1,0 +1,43 @@
+appId: com.havital.Havital.dev
+---
+# QA B1: 透過 Debug menu 觸發 generateWeeklySummary → 403 → PaywallView
+
+# 確認在訓練計畫頁面
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 15000
+
+- takeScreenshot: ".maestro/screenshots/b1_trigger_01_before_menu.png"
+
+# 點右上角 ... 按鈕（ellipsis.circle，使用右上角座標）
+- tapOn:
+    point: "96%,11%"
+
+- extendedWaitUntil:
+    visible: "Debug 工具"
+    timeout: 5000
+
+- takeScreenshot: ".maestro/screenshots/b1_trigger_02_menu_open.png"
+
+# 點 "Debug 工具"（submenu）
+- tapOn:
+    text: "Debug 工具"
+
+- extendedWaitUntil:
+    visible: "產生週回顧"
+    timeout: 5000
+
+- takeScreenshot: ".maestro/screenshots/b1_trigger_03_debug_submenu.png"
+
+# 點 "產生週回顧"
+- tapOn:
+    text: "產生週回顧"
+
+- takeScreenshot: ".maestro/screenshots/b1_trigger_04_generating.png"
+
+# 等待 PaywallView 出現（navigation title 是 "升級"）
+- extendedWaitUntil:
+    visible: "升級|Upgrade|アップグレード"
+    timeout: 30000
+
+- takeScreenshot: ".maestro/screenshots/b1_05_paywall_appeared.png"

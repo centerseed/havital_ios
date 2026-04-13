@@ -1,0 +1,44 @@
+appId: com.havital.Havital.dev
+---
+# QA B1: 觸發週課表刪除 → 產生 → 403 → PaywallView
+
+# 確認在訓練計畫頁面
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 15000
+
+# 點右上角 ... 按鈕（Training Plan toolbar, 右上角）
+- tapOn:
+    point: "96%,12%"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: ".maestro/screenshots/b1_menu_try.png"
+
+# 嘗試用 emoji 找 debug 工具
+- tapOn:
+    text: "🐛 Debug 工具"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: ".maestro/screenshots/b1_debug_submenu.png"
+
+- tapOn:
+    text: "🗑️ 刪除當前週課表"
+
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 10000
+
+- takeScreenshot: ".maestro/screenshots/b1_no_plan_state.png"
+
+- tapOn:
+    text: "產生週課表"
+
+- extendedWaitUntil:
+    visible: "升級|Upgrade|アップグレード"
+    timeout: 30000
+
+- takeScreenshot: ".maestro/screenshots/B1_paywall_appeared.png"

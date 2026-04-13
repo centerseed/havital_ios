@@ -1,0 +1,31 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP PaywallView 驗收測試（B1/B2/B4/B5）
+# 前提：demo 帳號已設為 expired 狀態（後端回 403）
+# 前提：已登入 demo 帳號（訓練計畫頁面）
+
+# --- 確認已在訓練計畫頁面（Demo login 後預設就在這） ---
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 10000
+
+- takeScreenshot: ".maestro/screenshots/b1_01_training_plan_before.png"
+
+# --- 滾動到底部看有沒有產生按鈕 ---
+- swipe:
+    startX: 200
+    startY: 600
+    endX: 200
+    endY: 200
+    duration: "0.5"
+
+- takeScreenshot: ".maestro/screenshots/b1_02_after_scroll.png"
+
+- swipe:
+    startX: 200
+    startY: 600
+    endX: 200
+    endY: 200
+    duration: "0.5"
+
+- takeScreenshot: ".maestro/screenshots/b1_03_after_scroll2.png"

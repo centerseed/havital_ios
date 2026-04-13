@@ -45,6 +45,8 @@ enum SubscriptionStatus: String {
     case expired
     case trial
     case none
+    case cancelled
+    case gracePeriod
 }
 
 // MARK: - RizoUsage

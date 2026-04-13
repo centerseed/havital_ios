@@ -34,6 +34,7 @@ struct UserProfileView: View {
     @State private var showDebugFailedWorkouts = false
     @State private var showIAPTestConsole = false
     @State private var showPaceZoneDetail = false
+    @State private var paywallTrigger: PaywallTrigger?
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -88,8 +89,8 @@ struct UserProfileView: View {
             }.value
         }
         .task {
-            viewModel.fetchUserProfile()
             viewModel.loadVDOT()
+            viewModel.fetchUserProfile()
             await TrackedTask("UserProfileView: loadHeartRateZonesOnAppear") {
                 await viewModel.loadHeartRateZones()
             }.value
@@ -164,6 +165,9 @@ struct UserProfileView: View {
         }
         .sheet(isPresented: $showDebugFailedWorkouts) {
             DebugFailedWorkoutsView()
+        }
+        .sheet(item: $paywallTrigger) { trigger in
+            PaywallView(trigger: trigger)
         }
         #if DEBUG
         .sheet(isPresented: $showIAPTestConsole) {
@@ -258,6 +262,7 @@ struct UserProfileView: View {
     @ViewBuilder
     private var subscriptionSection: some View {
         Section {
+            // 方案名稱
             HStack {
                 Label(NSLocalizedString("profile.subscription.plan", comment: "Plan"), systemImage: "crown")
                 Spacer()
@@ -266,31 +271,164 @@ struct UserProfileView: View {
             }
 
             if let status = subscriptionState.currentStatus {
-                if status.status == .trial, let expiresAt = status.expiresAt {
-                    let days = max(0, Int((expiresAt - Date().timeIntervalSince1970) / 86400))
-                    HStack {
-                        Label(NSLocalizedString("profile.subscription.trial_remaining", comment: "Trial"), systemImage: "clock")
-                        Spacer()
-                        Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), days))
-                            .foregroundColor(.orange)
+                // 狀態輔助資訊（依 Spec UI 矩陣）
+                switch status.status {
+                case .trial:
+                    if let expiresAt = status.expiresAt {
+                        let days = remainingDays(until: expiresAt)
+                        HStack {
+                            Label(NSLocalizedString("profile.subscription.trial_remaining", comment: "Trial"), systemImage: "clock")
+                            Spacer()
+                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), days))
+                                .foregroundColor(.orange)
+                        }
                     }
-                } else if status.status == .active, let expiresAt = status.expiresAt {
-                    HStack {
-                        Label(NSLocalizedString("profile.subscription.expires", comment: "Expires"), systemImage: "calendar")
-                        Spacer()
-                        Text(Date(timeIntervalSince1970: expiresAt), style: .date)
-                            .foregroundColor(.secondary)
+
+                case .active:
+                    if let expiresAt = status.expiresAt {
+                        HStack {
+                            Label(NSLocalizedString("profile.subscription.expires", comment: "Expires"), systemImage: "calendar")
+                            Spacer()
+                            Text(Date(timeIntervalSince1970: expiresAt), style: .date)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Label(NSLocalizedString("profile.subscription.remaining", comment: "Remaining"), systemImage: "hourglass")
+                            Spacer()
+                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), remainingDays(until: expiresAt)))
+                                .foregroundColor(.secondary)
+                        }
                     }
+
+                case .gracePeriod:
+                    Label(NSLocalizedString("profile.subscription.grace_period", comment: "Billing processing, service unaffected"), systemImage: "exclamationmark.triangle")
+                        .foregroundColor(.yellow)
+                        .accessibilityIdentifier("GracePeriod_Warning")
+
+                case .cancelled:
+                    if let expiresAt = status.expiresAt {
+                        HStack {
+                            Label(NSLocalizedString("profile.subscription.valid_until", comment: "Service valid until"), systemImage: "calendar.badge.clock")
+                            Spacer()
+                            Text(Date(timeIntervalSince1970: expiresAt), style: .date)
+                                .foregroundColor(.orange)
+                        }
+                        HStack {
+                            Label(NSLocalizedString("profile.subscription.remaining", comment: "Remaining"), systemImage: "hourglass")
+                            Spacer()
+                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), remainingDays(until: expiresAt)))
+                                .foregroundColor(.orange)
+                        }
+                    }
+
+                case .expired, .none:
+                    EmptyView()
                 }
 
-                if status.billingIssue {
+                // billing_issue 警告（gracePeriod 以外的 billing issue）
+                if status.billingIssue && status.status != .gracePeriod {
                     Label(NSLocalizedString("profile.subscription.billing_issue", comment: "Billing Issue"), systemImage: "exclamationmark.triangle")
                         .foregroundColor(.red)
                         .accessibilityIdentifier("BillingIssue_Warning")
                 }
             }
+
+            // 主要按鈕
+            subscriptionPrimaryAction
+
+            // 次要按鈕：管理訂閱（跳轉 Apple）
+            if shouldShowManageSubscription {
+                Button {
+                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label(NSLocalizedString("profile.subscription.manage", comment: "Manage Subscription"), systemImage: "gear")
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityIdentifier("Subscription_ManageButton")
+            }
         } header: {
             Text(NSLocalizedString("profile.subscription.section_title", comment: "Subscription"))
+        }
+    }
+
+    @ViewBuilder
+    private var subscriptionPrimaryAction: some View {
+        let status = subscriptionState.currentStatus
+        switch status?.status {
+        case .trial, .some(.none), .expired, nil:
+            // 升級 / 重新訂閱
+            Button {
+                paywallTrigger = paywallEntryTrigger
+            } label: {
+                Label(
+                    status?.status == .expired
+                        ? NSLocalizedString("profile.subscription.resubscribe", comment: "Resubscribe")
+                        : NSLocalizedString("paywall.title", comment: "Upgrade"),
+                    systemImage: "crown.fill"
+                )
+                .foregroundColor(.orange)
+            }
+            .accessibilityIdentifier("Subscription_UpgradeButton")
+
+        case .active:
+            // 變更方案
+            Button {
+                paywallTrigger = .changePlan
+            } label: {
+                Label(NSLocalizedString("profile.subscription.change_plan", comment: "Change Plan"), systemImage: "arrow.triangle.2.circlepath")
+                    .foregroundColor(.orange)
+            }
+            .accessibilityIdentifier("Subscription_ChangePlanButton")
+
+        case .cancelled:
+            // 重新訂閱
+            Button {
+                paywallTrigger = .resubscribe
+            } label: {
+                Label(NSLocalizedString("profile.subscription.resubscribe", comment: "Resubscribe"), systemImage: "crown.fill")
+                    .foregroundColor(.orange)
+            }
+            .accessibilityIdentifier("Subscription_ResubscribeButton")
+
+        case .gracePeriod:
+            // 管理訂閱（帳務問題，主按鈕導向 Apple）
+            Button {
+                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Label(NSLocalizedString("profile.subscription.manage", comment: "Manage Subscription"), systemImage: "gear")
+                    .foregroundColor(.orange)
+            }
+            .accessibilityIdentifier("Subscription_ManageButton_Primary")
+        }
+    }
+
+    /// 是否顯示次要的「管理訂閱」按鈕（跳轉 Apple 訂閱管理）
+    private var shouldShowManageSubscription: Bool {
+        guard let status = subscriptionState.currentStatus else { return false }
+        switch status.status {
+        case .active, .cancelled:
+            // gracePeriod 的管理已在主按鈕
+            return true
+        case .trial, .expired, .none, .gracePeriod:
+            return false
+        }
+    }
+
+    private var paywallEntryTrigger: PaywallTrigger {
+        guard let status = subscriptionState.currentStatus else { return .featureLocked }
+        switch status.status {
+        case .expired:
+            return .resubscribe
+        case .trial, .none, .gracePeriod:
+            return .featureLocked
+        case .cancelled:
+            return .resubscribe
+        case .active:
+            return .changePlan
         }
     }
 
@@ -299,15 +437,22 @@ struct UserProfileView: View {
             return NSLocalizedString("profile.subscription.free", comment: "Free")
         }
         switch status.status {
-        case .active:
+        case .active, .gracePeriod:
             return status.planType ?? "Premium"
         case .trial:
             return NSLocalizedString("profile.subscription.trial", comment: "Trial")
+        case .cancelled:
+            return NSLocalizedString("profile.subscription.cancelled", comment: "Cancelled")
         case .expired:
             return NSLocalizedString("profile.subscription.expired", comment: "Expired")
         case .none:
             return NSLocalizedString("profile.subscription.free", comment: "Free")
         }
+    }
+
+    private func remainingDays(until expiresAt: TimeInterval) -> Int {
+        let remainingSeconds = max(0, expiresAt - Date().timeIntervalSince1970)
+        return Int(ceil(remainingSeconds / 86400.0))
     }
 
     @ViewBuilder

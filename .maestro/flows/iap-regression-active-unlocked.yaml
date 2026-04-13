@@ -1,0 +1,50 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P1
+---
+# IAP Active state should allow generation (no paywall)
+#
+# Precondition:
+#   - Backend status is active-like (subscribed/cancelled-not-expired)
+#   - No weekly plan for current week
+
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+- tapOn:
+    text: "完成|Done"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 20000
+
+- tapOn:
+    text: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+
+- extendedWaitUntil:
+    visible: "每日訓練|週課表|Day "
+    timeout: 30000
+
+- assertNotVisible:
+    id: "Paywall_Header"

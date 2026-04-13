@@ -1,0 +1,34 @@
+appId: com.havital.Havital.dev
+tags:
+  - consistency
+  - layer-c
+  - weekly-plan
+---
+# Overview-to-weekly consistency guardrail
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+
+- tapOn: "更多"
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽"
+
+- runFlow: ../subflows/assert-plan-overview-integrity.yaml
+
+- tapOn:
+    text: "訓練計畫|Training Plan"
+    optional: true
+
+- scrollUntilVisible:
+    element:
+      text: "轉換期|基礎期|強化期|巔峰期|減量期|維持期|發展期|週"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+
+- tapOn:
+    text: "關閉|Close"
+    optional: true
+- back:
+    optional: true
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+
+- runFlow: ../subflows/assert-weekly-plan-7days.yaml

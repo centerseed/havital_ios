@@ -18,6 +18,7 @@ final class TrainingPlanFlowIntegrationTests: IntegrationTestBase {
         
         // 確保已經認證
         ensureAuthenticated()
+        try await requireActiveTrainingPlanAccess()
         
         // 確保依賴已註冊 (強制註冊以避免測試間的狀態污染)
         DependencyContainer.shared.registerTrainingPlanModule()

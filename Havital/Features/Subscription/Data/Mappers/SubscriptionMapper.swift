@@ -11,16 +11,29 @@ enum SubscriptionMapper {
     /// - Parameter dto: API 響應的 DTO
     /// - Returns: Domain Layer 業務實體
     static func toEntity(from dto: SubscriptionStatusDTO) -> SubscriptionStatusEntity {
-        let status = resolveStatus(from: dto.status)
+        var status = resolveStatus(from: dto.status)
         let rizoUsage = dto.rizoUsage.map { RizoUsage(used: $0.used, limit: $0.limit) }
         let expiresAt = dto.expiresAt.flatMap { parseISO8601ToTimeInterval($0) }
+        let billingIssue = dto.billingIssue ?? false
+
+        // active + billingIssue → gracePeriod（Apple billing retry 期間，服務不中斷但帳務異常）
+        if status == .active && billingIssue {
+            status = .gracePeriod
+        }
+
+        // cancelled 到期後應視為 expired（避免取消後逾期仍顯示可用）
+        if status == .cancelled,
+           let expiresAt,
+           expiresAt <= Date().timeIntervalSince1970 {
+            status = .expired
+        }
 
         return SubscriptionStatusEntity(
             status: status,
             expiresAt: expiresAt,
             planType: dto.planType,
             rizoUsage: rizoUsage,
-            billingIssue: dto.billingIssue ?? false
+            billingIssue: billingIssue
         )
     }
 
@@ -39,6 +52,9 @@ enum SubscriptionMapper {
         switch rawValue.lowercased() {
         case SubscriptionStatus.active.rawValue:
             return .active
+        case "subscribed":
+            // Backend canonical paid state.
+            return .active
         case SubscriptionStatus.expired.rawValue:
             return .expired
         case SubscriptionStatus.trial.rawValue:
@@ -46,8 +62,12 @@ enum SubscriptionMapper {
         case "trial_active":
             return .trial
         case "cancelled":
-            // 後端可能回傳 cancelled，表示尚未到期但已 cancel 申請中；此時仍視為 active 狀態以維持 UI 可用性
-            return .active
+            return .cancelled
+        case "revoked", "revoke":
+            // Apple 退款 / revoke 事件視為到期（曾訂閱者）
+            return .expired
+        case "grace_period":
+            return .gracePeriod
         default:
             return .none
         }

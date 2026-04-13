@@ -1,0 +1,38 @@
+appId: com.havital.Havital.dev
+tags:
+  - boundary
+  - layer-b
+  - race_run
+  - paceriz
+---
+# B2: race_run + paceriz + 2 training days
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "RaceSetup_SaveButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "Methodology_paceriz"
+    timeout: 15000
+- tapOn:
+    id: "Methodology_paceriz"
+- tapOn:
+    id: "Methodology_NextButton"
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "TrainingDay_6"
+
+- runFlow: ../subflows/assert-preference-persistence.yaml
+- runFlow: ../subflows/assert-coach-sanity-relationships.yaml

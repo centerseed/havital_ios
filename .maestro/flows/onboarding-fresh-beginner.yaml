@@ -47,7 +47,8 @@ tags:
     optional: true
 
 # === Step 4: 訓練偏好 ===
-- assertVisible: "訓練偏好設定"
+- assertVisible:
+    id: "TrainingDays_SaveButton"
 - tapOn:
     id: "TrainingDays_SaveButton"
 

@@ -120,6 +120,29 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         try await super.tearDown()
     }
 
+    private func loadOverviewFixture(named name: String) throws -> PlanOverviewV2 {
+        let data = try Self.loadFixtureData(directory: "PlanOverview", name: name)
+        let dto = try JSONDecoder().decode(PlanOverviewV2DTO.self, from: data)
+        return PlanOverviewV2Mapper.toEntity(from: dto)
+    }
+
+    private func loadWeeklyPlanFixture(named name: String) throws -> WeeklyPlanV2 {
+        let data = try Self.loadFixtureData(directory: "WeeklyPlan", name: name)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dto = try decoder.decode(WeeklyPlanV2DTO.self, from: data)
+        return WeeklyPlanV2Mapper.toEntity(from: dto)
+    }
+
+    private static func loadFixtureData(directory: String, name: String) throws -> Data {
+        let testDir = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let fixtureURL = testDir
+            .appendingPathComponent("APISchema/Fixtures/\(directory)/\(name).json")
+        return try Data(contentsOf: fixtureURL)
+    }
+
     // MARK: - loadWeeklySummary Tests
 
     func testLoadWeeklySummary_Success_SetsLoadedState() async {
@@ -388,5 +411,264 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
 
         // Then
         XCTAssertEqual(weekToGenerate, 7)
+    }
+
+    func testNextWeekButtonVisibility_showsWhenNextWeekCanGenerate_evenIfCurrentWeekPlanIsNotReady() {
+        let nextWeekInfo = NextWeekInfoV2(
+            weekNumber: 2,
+            hasPlan: false,
+            canGenerate: true,
+            requiresCurrentWeekSummary: true,
+            nextAction: "create_summary"
+        )
+
+        XCTAssertTrue(
+            TrainingPlanV2View.shouldShowNextWeekButton(
+                nextWeekInfo: nextWeekInfo,
+                selectedWeek: 1,
+                currentWeek: 1
+            )
+        )
+    }
+
+    func testRefreshWeeklyPlan_whenViewingNextWeek_refreshesSelectedWeekInsteadOfCurrentWeek() async throws {
+        mockRepository.planStatusToReturn = PlanStatusV2Response(
+            currentWeek: 1,
+            totalWeeks: 12,
+            nextAction: "view_plan",
+            canGenerateNextWeek: true,
+            currentWeekPlanId: "overview_001_1",
+            previousWeekSummaryId: "summary_week_1",
+            targetType: "race",
+            methodologyId: nil,
+            nextWeekInfo: NextWeekInfoV2(
+                weekNumber: 2,
+                hasPlan: false,
+                canGenerate: true,
+                requiresCurrentWeekSummary: false,
+                nextAction: "create_plan"
+            ),
+            metadata: nil
+        )
+        mockRepository.overviewToReturn = try loadOverviewFixture(named: "race_run_paceriz")
+        mockRepository.weeklyPlanV2ToReturn = try loadWeeklyPlanFixture(named: "paceriz_42k_base_week")
+
+        sut.planOverview = mockRepository.overviewToReturn
+        sut.currentWeek = 1
+        sut.selectedWeek = 2
+
+        await sut.refreshWeeklyPlan()
+
+        XCTAssertEqual(mockRepository.refreshWeeklyPlanCallCount, 1)
+        XCTAssertEqual(mockRepository.lastRefreshedWeeklyPlanWeekOfTraining, 2)
+        XCTAssertEqual(mockRepository.getWeeklyPlanCallCount, 0)
+        XCTAssertEqual(sut.selectedWeek, 2)
+        if case .ready = sut.planStatus {
+            // expected
+        } else {
+            XCTFail("Expected refreshed selected week to remain visible, got \(sut.planStatus)")
+        }
+    }
+}
+
+@MainActor
+final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
+
+    private var sut: TrainingPlanV2ViewModel!
+    private var workoutRepository: MockWorkoutRepository!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        workoutRepository = MockWorkoutRepository()
+
+        let container = DependencyContainer.shared
+        if !container.isRegistered(TrainingVersionRouter.self) {
+            container.registerTrainingVersionRouter()
+        }
+        let versionRouter: TrainingVersionRouter = container.resolve()
+
+        sut = TrainingPlanV2ViewModel(
+            repository: StartupStatusFailureButCachedPlanRepository(),
+            workoutRepository: workoutRepository,
+            versionRouter: versionRouter
+        )
+    }
+
+    override func tearDown() async throws {
+        sut = nil
+        workoutRepository = nil
+        try await super.tearDown()
+    }
+
+    func test_initialize_whenStartupNetworkFailsButCachedPlanExists_shouldStillShowCachedPlan() async {
+        await sut.initialize()
+
+        if case .ready(let plan) = sut.planStatus {
+            XCTAssertEqual(plan.id, "overview_001_3")
+            XCTAssertEqual(plan.effectiveWeek, 3)
+        } else {
+            XCTFail("Expected cached weekly plan to remain visible, got \(sut.planStatus)")
+        }
+    }
+}
+
+private final class StartupStatusFailureButCachedPlanRepository: TrainingPlanV2Repository {
+
+    private let cachedOverview: PlanOverviewV2
+    private let cachedPlan: WeeklyPlanV2
+
+    init() {
+        do {
+            cachedOverview = try StartupStatusFailureButCachedPlanRepository.loadOverviewFixture(named: "race_run_paceriz")
+            cachedPlan = try StartupStatusFailureButCachedPlanRepository.loadWeeklyPlanFixture(named: "paceriz_42k_base_week")
+        } catch {
+            fatalError("Failed to load V2 fixtures for regression test: \(error)")
+        }
+    }
+
+    func getPlanStatus() async throws -> PlanStatusV2Response {
+        throw DomainError.noConnection
+    }
+
+    func getTargetTypes() async throws -> [TargetTypeV2] { [] }
+
+    func getMethodologies(targetType: String?) async throws -> [MethodologyV2] { [] }
+
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2 {
+        cachedOverview
+    }
+
+    func createOverviewForNonRace(
+        targetType: String,
+        trainingWeeks: Int,
+        availableDays: Int?,
+        methodologyId: String?,
+        startFromStage: String?,
+        intendedRaceDistanceKm: Int?
+    ) async throws -> PlanOverviewV2 {
+        cachedOverview
+    }
+
+    func getOverview() async throws -> PlanOverviewV2 {
+        cachedOverview
+    }
+
+    func refreshOverview() async throws -> PlanOverviewV2 {
+        cachedOverview
+    }
+
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2 {
+        cachedOverview
+    }
+
+    func generateWeeklyPlan(
+        weekOfTraining: Int,
+        forceGenerate: Bool?,
+        promptVersion: String?,
+        methodology: String?
+    ) async throws -> WeeklyPlanV2 {
+        cachedPlan
+    }
+
+    func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
+        cachedPlan
+    }
+
+    func fetchWeeklyPlan(planId: String) async throws -> WeeklyPlanV2 {
+        cachedPlan
+    }
+
+    func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2 {
+        cachedPlan
+    }
+
+    func refreshWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
+        cachedPlan
+    }
+
+    func deleteWeeklyPlan(planId: String) async throws {}
+
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        WeeklyPreviewV2(
+            id: "overview_001",
+            methodologyId: "paceriz",
+            weeks: [],
+            createdAt: nil,
+            updatedAt: nil
+        )
+    }
+
+    func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {
+        throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
+    }
+
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
+        []
+    }
+
+    func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
+        throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
+    }
+
+    func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
+        throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
+    }
+
+    func deleteWeeklySummary(summaryId: String) async throws {}
+
+    func getCachedPlanStatus() -> PlanStatusV2Response? {
+        PlanStatusV2Response(
+            currentWeek: 3,
+            totalWeeks: 16,
+            nextAction: "view_plan",
+            canGenerateNextWeek: false,
+            currentWeekPlanId: cachedPlan.id,
+            previousWeekSummaryId: nil,
+            targetType: "race",
+            methodologyId: "paceriz",
+            nextWeekInfo: nil,
+            metadata: nil
+        )
+    }
+
+    func getCachedOverview() -> PlanOverviewV2? {
+        cachedOverview
+    }
+
+    func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2? {
+        week == 3 ? cachedPlan : nil
+    }
+
+    func clearCache() async {}
+
+    func clearOverviewCache() async {}
+
+    func clearWeeklyPlanCache(weekOfTraining: Int?) async {}
+
+    func clearWeeklySummaryCache(weekOfPlan: Int?) async {}
+
+    func preloadData() async {}
+
+    private static func loadOverviewFixture(named name: String) throws -> PlanOverviewV2 {
+        let data = try loadFixtureData(directory: "PlanOverview", name: name)
+        let dto = try JSONDecoder().decode(PlanOverviewV2DTO.self, from: data)
+        return PlanOverviewV2Mapper.toEntity(from: dto)
+    }
+
+    private static func loadWeeklyPlanFixture(named name: String) throws -> WeeklyPlanV2 {
+        let data = try loadFixtureData(directory: "WeeklyPlan", name: name)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dto = try decoder.decode(WeeklyPlanV2DTO.self, from: data)
+        return WeeklyPlanV2Mapper.toEntity(from: dto)
+    }
+
+    private static func loadFixtureData(directory: String, name: String) throws -> Data {
+        let testDir = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let fixtureURL = testDir
+            .appendingPathComponent("APISchema/Fixtures/\(directory)/\(name).json")
+        return try Data(contentsOf: fixtureURL)
     }
 }

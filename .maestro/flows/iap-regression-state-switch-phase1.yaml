@@ -1,0 +1,79 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P1
+---
+# R4 Phase 1: Confirm Expired State (PaywallView appears)
+#
+# Precondition (set by wrapper):
+#   - Backend: set-expired
+#
+# Test flow:
+#   1. Launch app, demo login
+#   2. Navigate to training plan
+#   3. Tap generate weekly plan -> 403 -> PaywallView
+#   4. Assert PaywallView appears (confirms expired state works)
+#   5. Dismiss PaywallView
+#
+# After this flow, wrapper switches backend to subscribed,
+# then runs phase2 to verify instant unlock.
+
+# Step 1: Launch and login
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- tapOn:
+    text: "完成|Done"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# Step 2: Trigger 403
+- extendedWaitUntil:
+    visible: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 15000
+
+- tapOn:
+    text: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+
+# CRITICAL ASSERTION: PaywallView must appear (expired state confirmed)
+- extendedWaitUntil:
+    visible:
+      id: "Paywall_Header"
+    timeout: 20000
+
+- assertVisible:
+    text: "需要訂閱才能使用此功能|需要訂閱|Need subscription to use this feature|Need subscription"
+
+- takeScreenshot: ".maestro/screenshots/R4_phase1_paywall.png"
+
+# Dismiss PaywallView
+- tapOn:
+    id: "Paywall_CloseButton"
+
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- extendedWaitUntil:
+    visible: "每日訓練|訓練計劃|訓練計畫|更多|Daily Training|Training Plan|More|もっと見る|產生週課表|產生下週課表|Generate Weekly Plan|Generate Next Week Plan"
+    timeout: 15000

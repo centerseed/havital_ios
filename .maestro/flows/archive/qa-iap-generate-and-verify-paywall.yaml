@@ -1,0 +1,49 @@
+appId: com.havital.Havital.dev
+---
+# QA B1/B2/B4/B5: 驗收 PaywallView（前提：週課表已刪除，顯示「產生週課表」按鈕）
+
+# 確認頁面狀態
+- extendedWaitUntil:
+    visible: "週課表尚未產生"
+    timeout: 10000
+
+- takeScreenshot: ".maestro/screenshots/B1_00_no_plan_confirmed.png"
+
+# B1: 點「產生週課表」按鈕（觸發 API call → 403 → PaywallView）
+- tapOn:
+    text: "產生週課表"
+
+- takeScreenshot: ".maestro/screenshots/B1_01_after_tap.png"
+
+# 等待 loading 動畫或直接跳到 PaywallView
+# Navigation title 是 "升級"（繁中）
+- extendedWaitUntil:
+    visible: "升級|Upgrade|アップグレード"
+    timeout: 30000
+
+- takeScreenshot: ".maestro/screenshots/B1_02_paywall_appeared.png"
+
+# B2: 驗收 apiGated header 文案
+- assertVisible:
+    text: "需要訂閱才能使用此功能"
+
+- assertVisible:
+    id: "crown.fill"
+
+- takeScreenshot: ".maestro/screenshots/B2_01_header_verified.png"
+
+# B4: 記錄 offerings section 狀態（截圖，不斷言）
+- takeScreenshot: ".maestro/screenshots/B4_01_offerings_state.png"
+
+# B5: 點關閉按鈕
+- tapOn:
+    text: "關閉"
+
+- waitForAnimationToEnd
+
+# 確認 PaywallView 已 dismiss，回到訓練計畫頁面
+- extendedWaitUntil:
+    visible: "週課表尚未產生"
+    timeout: 10000
+
+- takeScreenshot: ".maestro/screenshots/B5_01_after_dismiss.png"

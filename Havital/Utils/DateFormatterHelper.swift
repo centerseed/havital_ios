@@ -27,7 +27,7 @@ struct DateFormatterHelper {
         // ✅ 統一使用用戶設定的時區
         if useUserTimezone {
             if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-                formatter.timeZone = TimeZone(identifier: userTimezone)
+                formatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
             } else {
                 // 如果用戶未設定時區，使用設備當前時區
                 formatter.timeZone = TimeZone.current
@@ -72,7 +72,7 @@ struct DateFormatterHelper {
         formatter.locale = locale
 
         if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-            formatter.timeZone = TimeZone(identifier: userTimezone)
+            formatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
         } else {
             formatter.timeZone = TimeZone.current
         }
@@ -180,7 +180,7 @@ struct DateFormatterHelper {
             let weekdayFormatter = DateFormatter()
             weekdayFormatter.dateFormat = "EEEE HH:mm"
             if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-                weekdayFormatter.timeZone = TimeZone(identifier: userTimezone)
+                weekdayFormatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
             }
             return weekdayFormatter.string(from: date)
         }

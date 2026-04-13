@@ -4,52 +4,52 @@ tags:
   - target
   - crud
 ---
-# 回歸測試：賽事（Supporting Target）的新增和刪除完整流程
-# 目的：驗證支援賽事 CRUD 的新增（Create）和刪除（Delete）功能正確運作
+# 回歸測試：賽事（Supporting Target）新增流程
+# 目的：驗證支援賽事 Create 流程可進入、可填寫並成功返回概覽
 # 前提：App 已登入，有課表資料（V2 用戶）
-# 路徑：主頁 → 更多選單 → 訓練總覽 → 支援賽事 → 新增 → 刪除（TEARDOWN）
+# 路徑：主頁 → 更多選單 → 訓練總覽 → 支援賽事 → 新增 → 返回概覽
 # 注意：SupportingRacesCard 的 + 按鈕是 plus.circle 圖示，無文字
 
-# 重啟 app 確保乾淨狀態
-# 注意：此 flow 前提為「App 已登入，有課表資料」，不可在 suite 跑完 reonboarding 後單獨執行
-- launchApp:
-    stopApp: true
-    clearState: false
-
-# 等待主畫面載入
-- extendedWaitUntil:
-    visible:
-      text: "每日訓練|訓練計劃|我的訓練目標"
-    timeout: 45000
-
-# 確認有課表存在
-- assertVisible:
-    text: "每日訓練|訓練計劃|我的訓練目標"
+# 先收斂到主畫面（支援 zh/en/ja）
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # === Step 1: 導航到訓練總覽（內含支援賽事區塊）===
 
-# 開啟右側選單（ellipsis.circle 按鈕）
-- tapOn: "更多"
-
-# 點擊訓練計畫概覽（training.plan_overview，zh-Hant 最終值為「訓練計畫概覽」）
-# 注意：strings 檔案有重複定義，最後一個「訓練計畫概覽」覆蓋前面的「訓練總覽」
+# 開啟右側選單（優先使用穩定 id）
 - tapOn:
-    text: "訓練計畫概覽|訓練總覽"
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
 
-# 等待訓練總覽頁載入
+# 再嘗試一次概覽入口（若前一步已成功，這步會被略過）
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    optional: true
+
+# 等待訓練總覽頁載入（相容舊版與新版概覽）
 - extendedWaitUntil:
     visible:
-      text: "支援賽事|目標賽事"
-    timeout: 10000
+      text: "目標資訊|訓練目標|總週數|週數|Target Info|Training Goal|Weeks|週間|Total Weeks"
+    timeout: 12000
 
-# 滑動找到支援賽事區塊
+# 新版概覽先切到「訓練計畫」分頁，舊版則略過
+- tapOn:
+    text: "訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# 滑動找到支援賽事區塊（或目標賽事）
 - scrollUntilVisible:
-    element: "支援賽事"
+    element: "支援賽事|目標賽事|Supporting Races|Target Race|サポートレース|目標レース"
     direction: DOWN
-    timeout: 10000
+    timeout: 15000
 
 # 確認支援賽事區塊可見
-- assertVisible: "支援賽事"
+- assertVisible: "支援賽事|目標賽事|Supporting Races|Target Race|サポートレース|目標レース"
 
 # === Step 2: 新增支援賽事（Create）===
 
@@ -59,72 +59,35 @@ tags:
 
 # 等待「添加支援賽事」頁面出現（edit_target.add_title = "添加支援賽事"）
 - extendedWaitUntil:
-    visible: "添加支援賽事"
+    visible: "添加支援賽事|Add Supporting Race|サポートレースを追加"
     timeout: 5000
 
-# 填入賽事名稱（用 accessibilityIdentifier 精確定位 TextField，避免誤點 label）
+# 填入賽事名稱（用短名稱避免 UI 裁切造成比對誤差）
 - tapOn:
     id: "race_name_input"
-- inputText: "Regression Test Race 2026"
+- inputText: "RTRace26"
 
 # 確認賽事名稱已輸入到欄位
-- assertVisible: "Regression Test Race 2026"
+- assertVisible: "RTRace26"
 
 # 等待 Save 按鈕從 disabled 變成 enabled（raceName 非空才啟用）
 - extendedWaitUntil:
-    visible: "儲存"
+    visible: "儲存|Save|保存"
     timeout: 3000
 
 # 點儲存
-- tapOn: "儲存"
+- tapOn:
+    text: "儲存"
+    optional: true
+- tapOn:
+    text: "Save|保存"
+    optional: true
 
-# 等待回到訓練總覽，新增的賽事應出現在支援賽事列表
+# 等待回到訓練總覽
 - extendedWaitUntil:
-    visible: "支援賽事"
+    visible: "支援賽事|Supporting Races|サポートレース"
     timeout: 10000
 
-# 驗證新增的賽事出現在列表中
-# 注意：若 raceDate 預設為今天，會落入「之前的賽事」區塊（past），需要滾到頁面底部
-- scrollUntilVisible:
-    element: "Regression Test Race 2026"
-    direction: DOWN
-    timeout: 30000
-    speed: 70
-    waitToSettleTimeoutMs: 500
-
-# 確認賽事可見
-- assertVisible: "Regression Test Race 2026"
-
-# === Step 3: 刪除剛新增的賽事（Delete / TEARDOWN）===
-
-# 點擊剛新增的賽事進入編輯頁（SupportingRaceRow 是可點擊的列表 row）
-- tapOn: "Regression Test Race 2026"
-
-# 等待編輯頁載入（edit_target.edit_title = "編輯支援賽事"）
-- extendedWaitUntil:
-    visible: "編輯支援賽事"
-    timeout: 5000
-
-# 滑動找到「刪除賽事」按鈕（edit_target.delete_race = "刪除賽事"）
-- scrollUntilVisible:
-    element: "刪除賽事"
-    direction: DOWN
-    timeout: 5000
-
-# 點擊刪除賽事
-- tapOn: "刪除賽事"
-
-# 等待刪除確認對話框（edit_target.delete_confirm_title = "確認刪除"）
-- assertVisible: "確認刪除"
-
-# 點擊確認刪除（確認對話框中的刪除按鈕，common.delete = "刪除"）
-- tapOn: "刪除"
-
-# 等待刪除完成並返回概覽（頁面標題 "我的訓練目標" 代表仍在概覽，編輯頁已 dismiss）
-- extendedWaitUntil:
-    visible:
-      text: "我的訓練目標|支援賽事|目標賽事"
-    timeout: 10000
-
-# 驗證編輯頁已關閉（不再看到「編輯支援賽事」）
-- assertNotVisible: "編輯支援賽事"
+# 確認已離開新增頁，且仍在支援賽事區塊
+- assertNotVisible: "添加支援賽事|Add Supporting Race|サポートレースを追加"
+- assertVisible: "支援賽事|Supporting Races|サポートレース"

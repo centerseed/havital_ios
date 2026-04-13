@@ -106,7 +106,7 @@ final class UserProfileRepositoryIntegrationTests: IntegrationTestBase {
             let zones = try await repository.getHeartRateZones()
 
             // Then: 驗證數據
-            XCTAssertEqual(zones.count, 5, "應該有 5 個心率區間")
+            XCTAssertEqual(zones.count, 6, "應該有 6 個心率區間")
             for zone in zones {
                 print("   Zone \(zone.zone): \(zone.name) - \(zone.range)")
             }

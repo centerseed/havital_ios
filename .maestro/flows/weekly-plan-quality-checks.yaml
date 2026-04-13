@@ -6,9 +6,7 @@ tags:
 # 週課表品質驗證（獨立 flow）
 # 前提：App 已登入且有課表資料
 
-- extendedWaitUntil:
-    visible: "每日訓練"
-    timeout: 30000
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 - assertVisible: "星期一"
 

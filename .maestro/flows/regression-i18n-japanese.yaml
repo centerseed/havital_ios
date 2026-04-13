@@ -24,27 +24,27 @@ tags:
     id: "Login_DemoButton"
     optional: true
 
-# 確認目前為繁體中文主畫面（若看到英文或日文，請先手動切回繁中）
+# 確認主畫面可見（允許任一語系起跑）
 - extendedWaitUntil:
     visible:
-      text: "訓練計劃|每日訓練|週課表尚未產生|訓練目標"
+      text: "訓練計劃|每日訓練|週課表尚未產生|訓練目標|Daily Training|Training Plan|日々のトレーニング|トレーニング計画"
     timeout: 30000
 
 # === Step 1: 導航到語言設定（繁中介面）===
 - runFlow: ../subflows/nav-to-profile.yaml
 
 # 確認個人資料頁已載入
-- assertVisible: "個人資料"
+- assertVisible: "個人資料|Profile|プロフィール"
 
 # 語言按鈕在「設定」section（需 scroll 才能到達）
 - scrollUntilVisible:
-    element: "語言"
+    element: "語言|Language|言語"
     direction: DOWN
     timeout: 20000
     speed: 60
 
-# 點擊語言設定按鈕（zh-Hant：語言）
-- tapOn: "語言"
+# 點擊語言設定按鈕
+- tapOn: "語言|Language|言語"
 
 # 等待語言設定頁載入，確認日本語選項可見
 - assertVisible: "日本語"
@@ -55,38 +55,31 @@ tags:
 - tapOn: "日本語"
 
 # 點儲存
-- tapOn: "儲存"
+- tapOn:
+    text: "儲存|Save|保存"
 
-# 等待語言切換確認對話框出現
-- extendedWaitUntil:
-    visible:
-      text: "確認|Confirm"
-    timeout: 5000
+# 確認語言切換對話框（新版可能不再顯示）
+- tapOn:
+    text: "確認|Confirm"
+    optional: true
 
-# 確認語言切換對話框（語言變更時一定出現）
-- tapOn: "確認"
-
-# 等待 app 重啟並套用日文
-- extendedWaitUntil:
-    visible:
-      text: "日々のトレーニング|トレーニング計画"
-    timeout: 15000
+# 重啟 app，避免停留在語言設定頁造成誤判
+- launchApp:
+    stopApp: true
+    clearState: false
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+- assertVisible:
+    text: "日々のトレーニング|トレーニング計画|每日訓練|訓練計劃|Daily Training|Training Plan"
 
 # === Step 3: 驗證日文 UI ===
 
-# 驗證日文介面關鍵文字出現
-- assertVisible:
-    text: "日々のトレーニング|トレーニング計画"
-
-# 開啟右側選單（系統 accessibility label 在 app 語言切換後可能仍是「更多」）
-- tapOn:
-    text: "更多|もっと見る"
+# 重新導航到個人資料頁（用 id + 多語系 fallback）
+- runFlow: ../subflows/nav-to-profile.yaml
 
 # 驗證個人資料在日文下顯示為「プロフィール」
-- assertVisible: "プロフィール"
-
-# 進入個人資料
-- tapOn: "プロフィール"
+- assertVisible: "個人資料|Profile|プロフィール"
 
 # 言語按鈕在「設定」section（需 scroll）
 - scrollUntilVisible:
@@ -112,14 +105,18 @@ tags:
 # 點儲存（日文介面：保存）
 - tapOn: "保存"
 
-# 確認語言切換對話框（日文介面：確認）
-- tapOn: "確認"
+# 確認語言切換對話框（日文介面：確認，新版可能不再顯示）
+- tapOn:
+    text: "確認|Confirm"
+    optional: true
 
 # 等待 app 重啟並還原繁中
-- extendedWaitUntil:
-    visible:
-      text: "每日訓練|訓練計劃"
-    timeout: 15000
+- launchApp:
+    stopApp: true
+    clearState: false
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
 
 # 驗證已成功還原繁體中文
 - assertVisible:

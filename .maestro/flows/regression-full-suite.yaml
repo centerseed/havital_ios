@@ -10,11 +10,37 @@ tags:
 
 # === Phase 1: 建立全新用戶 + 課表 ===
 - runFlow: ../subflows/logout-and-demo-login.yaml
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
 
-- assertVisible: "訓練目標"
-- tapOn: "新手入門"
+# Reonboarding 可能跳過 PB/週跑量/目標選擇，直接到訓練總覽
+# 以下步驟全部 optional，適應兩種路徑
+
+# PB 步驟（reonboarding 可能跳過）
+- swipe:
+    start: "46%, 65%"
+    end: "46%, 50%"
+    duration: 300
+    optional: true
+- swipe:
+    start: "46%, 65%"
+    end: "46%, 50%"
+    duration: 300
+    optional: true
+- tapOn:
+    id: "PersonalBest_ContinueButton"
+    optional: true
+
+# 週跑量步驟
+- tapOn:
+    id: "WeeklyDistance_ContinueButton"
+    optional: true
+- tapOn:
+    text: "略過"
+    optional: true
+
+# 目標選擇
+- tapOn:
+    text: "新手入門"
+    optional: true
 - tapOn:
     text: "下一步"
     optional: true
@@ -39,10 +65,15 @@ tags:
 - tapOn:
     text: "下一步"
     optional: true
-
-- assertVisible: "訓練偏好設定"
 - tapOn:
     id: "TrainingDays_SaveButton"
+    optional: true
+
+# 等待到達訓練總覽或每日訓練（兩種路徑的交會點）
+- extendedWaitUntil:
+    visible:
+      text: "訓練總覽|確認並生成|每日訓練|需要產生週回顧"
+    timeout: 20000
 
 - runFlow: ../subflows/verify-plan-generated.yaml
 

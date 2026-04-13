@@ -42,7 +42,8 @@ tags:
     optional: true
 
 # 訓練偏好設定
-- assertVisible: "訓練偏好設定"
+- assertVisible:
+    id: "TrainingDays_SaveButton"
 - tapOn:
     id: "TrainingDays_SaveButton"
 

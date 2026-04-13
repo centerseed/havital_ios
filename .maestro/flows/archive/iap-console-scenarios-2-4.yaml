@@ -1,0 +1,130 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - qa-temp
+---
+# QA Temp: 場景 2 (subscribed), 3 (trial), 4 (clear override)
+# 前提：app 已 demo login，在主畫面
+
+- runFlow: ../subflows/nav-to-profile.yaml
+
+# ─── 場景 2: subscribed ───────────────────────────────
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "IAP Test Console"
+
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element: "Set Subscribed"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "Set Subscribed"
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-2-console
+
+- tapOn: "Close"
+
+# Return to profile, scroll to top to see subscription section
+- scrollUntilVisible:
+    element: "訂閱|Subscription"
+    direction: UP
+    timeout: 15000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-2-profile
+
+# ─── 場景 3: trial ────────────────────────────────────
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "IAP Test Console"
+
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element: "Set Trial"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "Set Trial"
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-3-console
+
+- tapOn: "Close"
+
+- scrollUntilVisible:
+    element: "訂閱|Subscription"
+    direction: UP
+    timeout: 15000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-3-profile
+
+# ─── 場景 4: clear override ───────────────────────────
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "IAP Test Console"
+
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element: "Clear Override"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "Clear Override"
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-4-console
+
+- tapOn: "Close"
+
+- scrollUntilVisible:
+    element: "訂閱|Subscription"
+    direction: UP
+    timeout: 15000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-4-profile

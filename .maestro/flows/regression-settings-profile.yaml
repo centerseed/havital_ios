@@ -24,55 +24,56 @@ tags:
 # 等待主畫面載入
 - extendedWaitUntil:
     visible:
-      text: "每日訓練|訓練計劃|週課表尚未產生|訓練目標"
+      text: "每日訓練|訓練計劃|週課表尚未產生|訓練目標|Daily Training|Training Plan|日々のトレーニング|トレーニング計画"
     timeout: 45000
 
 # === Step 1: 導航到個人資料（使用 subflow）===
 - runFlow: ../subflows/nav-to-profile.yaml
 
 # 確認個人資料頁已載入
-- assertVisible: "個人資料"
+- assertVisible: "個人資料|Profile|プロフィール"
 
 # === Step 2: 驗證訓練資訊 section 存在（位於頁面頂部）===
 # 訓練資訊是個人資料頁最早出現的 section header
-- assertVisible: "訓練資訊"
+- assertVisible: "訓練資訊|Training Info|トレーニング情報"
 
 # === Step 3: 滑動找到設定 section ===
 # 注意：設定 section 在頁面中段，前面有數據來源、心率資訊、配速區間、訓練日等多個 section
 # 需要更長的 timeout（20000ms）和較快的速度
 - scrollUntilVisible:
-    element: "設定"
+    element: "設定|Settings"
     direction: DOWN
     timeout: 20000
     speed: 60
 
 # 確認設定 section 可見
-- assertVisible: "設定"
+- assertVisible: "設定|Settings"
 
 # 確認語言設定按鈕可見（settings.language = "語言"）
-- assertVisible: "語言"
+- assertVisible: "語言|Language|言語"
 
 # 確認時區設定按鈕可見（settings.timezone = "時區"）
-- assertVisible: "時區"
+- assertVisible: "時區|Timezone|タイムゾーン"
 
 # === Step 4: 滑動找到重新設定目標按鈕 ===
 - scrollUntilVisible:
-    element: "重新設定目標"
+    element: "重新設定目標|Reset Goal|目標を再設定"
     direction: DOWN
-    timeout: 10000
+    timeout: 20000
+    speed: 50
 
 # 確認重新設定目標按鈕存在
-- assertVisible: "重新設定目標"
+- assertVisible: "重新設定目標|Reset Goal|目標を再設定"
 
 # === Step 5: 進入語言設定頁，驗證 3 種語言選項 ===
 # 先滑回語言設定按鈕（它在重新設定目標上方）
 - scrollUntilVisible:
-    element: "語言"
+    element: "語言|Language|言語"
     direction: UP
     timeout: 10000
 
 # 點擊語言設定
-- tapOn: "語言"
+- tapOn: "語言|Language|言語"
 
 # 確認語言設定頁載入——三種語言選項固定以各自語言名稱顯示，不受 UI 語言影響
 - assertVisible: "繁體中文"
@@ -80,22 +81,22 @@ tags:
 - assertVisible: "日本語"
 
 # 返回個人資料（點左上角取消）
-- tapOn: "取消"
+- tapOn: "取消|Cancel|キャンセル"
 
 # 確認回到個人資料頁（語言按鈕應可見）
-- assertVisible: "語言"
+- assertVisible: "語言|Language|言語"
 
 # === Step 6: 進入時區設定頁，驗證時區選擇器存在 ===
-- tapOn: "時區"
+- tapOn: "時區|Timezone|タイムゾーン"
 
 # 確認時區設定頁載入（timezone.current 或 timezone 常用區段至少一個可見）
 - extendedWaitUntil:
     visible:
-      text: "目前時區|常用時區"
+      text: "目前時區|常用時區|Current Timezone|Popular Timezones|現在のタイムゾーン|よく使うタイムゾーン"
     timeout: 8000
 
 # 返回個人資料
-- tapOn: "取消"
+- tapOn: "取消|Cancel|キャンセル"
 
 # 確認回到個人資料頁
-- assertVisible: "時區"
+- assertVisible: "時區|Timezone|タイムゾーン"

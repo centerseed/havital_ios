@@ -26,6 +26,7 @@ final class TargetToOverviewIntegrationTests: IntegrationTestBase {
         try await super.setUp()
 
         ensureAuthenticated()
+        try await requireActiveTrainingPlanAccess()
 
         // 註冊依賴
         DependencyContainer.shared.registerTargetDependencies()

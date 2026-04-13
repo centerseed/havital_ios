@@ -25,7 +25,7 @@
       }
     },
     {
-      "parallelizable" : true,
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:Havital.xcodeproj",
         "identifier" : "CFB67D0B2D07047800F672E3",

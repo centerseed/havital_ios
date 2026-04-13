@@ -6,6 +6,8 @@ import FirebaseRemoteConfig
 import BackgroundTasks
 import UserNotifications
 import FirebaseAuth
+import RevenueCat
+import StoreKit
 
 /// 判斷當前是否為 Debug 建置
 private var isDebugBuild: Bool {
@@ -49,9 +51,42 @@ struct HavitalApp: App {
             FirebaseApp.configure()
         }
 
-        // 2. ✅ Clean Architecture: 使用集中式 Bootstrap 註冊所有模組依賴
+        // 2. 初始化 RevenueCat（Firebase 之後，DI 之前）
+        Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
+        print("✅ RevenueCat 已初始化")
+
+        #if DEBUG
+        // 🧪 StoreKit diagnostic: 僅 DEBUG 檢查本地產品是否可被讀取
+        Task {
+            do {
+                let products = try await StoreKit.Product.products(for: ["paceriz.sub.monthly", "paceriz.sub.yearly"])
+                print("🧪 StoreKit direct test: \(products.count) products found")
+                for p in products {
+                    print("🧪 Product: \(p.id) - \(p.displayPrice) - \(p.subscription?.subscriptionPeriod.debugDescription ?? "no period")")
+                }
+            } catch {
+                print("🧪 StoreKit direct test ERROR: \(error)")
+            }
+        }
+        #endif
+
+        // 3. ✅ Clean Architecture: 使用集中式 Bootstrap 註冊所有模組依賴
         AppDependencyBootstrap.registerAllModules()
         print("📦 所有模組依賴已優先註冊")
+
+        #if DEBUG
+        if CommandLine.arguments.contains("-useStoreKitTestRepository") {
+            DependencyContainer.shared.replace(
+                StoreKitTestSubscriptionRepository() as SubscriptionRepository,
+                for: SubscriptionRepository.self
+            )
+            print("🧪 [UI Test] 已切換為 StoreKitTestSubscriptionRepository")
+        }
+        if CommandLine.arguments.contains("-ui_testing_training_v2_gates") {
+            UITestTrainingPlanV2GateHarness.registerDependencies()
+            print("🧪 [UI Test] 已切換為 TrainingPlanV2 gating 測試依賴")
+        }
+        #endif
 
         // 🔍 DEBUG: 驗證 MonthlyStatsRepository 是否註冊
         let testRepo: MonthlyStatsRepository? = DependencyContainer.shared.tryResolve()
@@ -119,8 +154,12 @@ struct HavitalApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if isRunningTests {
+            if isRunningTests && !shouldRenderRealUIInTests {
                 Text("Running Tests...")
+            } else if shouldLaunchTrainingPlanV2GatesUITestHarness {
+                trainingPlanV2GateHarnessView
+            } else if shouldLaunchPaywallUITestHarness {
+                UITestPaywallHostView()
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -144,6 +183,10 @@ struct HavitalApp: App {
 
                                     // Step 3: 檢查並初始化時區設定（僅限已認證用戶）
                                     await checkAndInitializeTimezone()
+
+                                    #if DEBUG
+                                    await IAPTestHarness.shared.bootstrapFromLaunchScenarioIfNeeded()
+                                    #endif
 
                                     print("✅ HavitalApp: 初始化流程完成")
                                 }
@@ -203,6 +246,10 @@ struct HavitalApp: App {
                     Task {
                         await checkForPendingHealthUpdates()
                     }
+                    // P0-4: 前景恢復時刷新訂閱狀態
+                    Task {
+                        await refreshSubscriptionOnForeground()
+                    }
                 } else {
                     print("📱 應用首次啟動變為 active，跳過刷新（已在初始化時載入）")
                     hasLaunched = true
@@ -215,7 +262,54 @@ struct HavitalApp: App {
     private var isRunningTests: Bool {
         NSClassFromString("XCTestCase") != nil
     }
-    
+
+    private var shouldRenderRealUIInTests: Bool {
+        let arguments = CommandLine.arguments
+        return arguments.contains("-ui_testing")
+            || arguments.contains("-resetOnboarding")
+            || arguments.contains("-iapTestMode")
+            || arguments.contains("-iapScenario")
+            || arguments.contains("-ui_testing_paywall")
+            || arguments.contains("-useStoreKitTestRepository")
+            || arguments.contains("-ui_testing_training_v2_gates")
+    }
+
+    private var shouldLaunchPaywallUITestHarness: Bool {
+        CommandLine.arguments.contains("-ui_testing_paywall")
+    }
+
+    private var shouldLaunchTrainingPlanV2GatesUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_training_v2_gates")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var trainingPlanV2GateHarnessView: some View {
+        #if DEBUG
+        UITestTrainingPlanV2GateHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    /// P0-4: 前景恢復時刷新訂閱狀態，偵測降級
+    private func refreshSubscriptionOnForeground() async {
+        guard AppStateManager.shared.isUserAuthenticated else { return }
+        let repo: SubscriptionRepository? = DependencyContainer.shared.tryResolve()
+        guard let repo else { return }
+        do {
+            let status = try await repo.refreshStatus()
+            Logger.debug("[HavitalApp] 前景恢復：訂閱狀態已刷新")
+            // P1-9/P1-10: 前景恢復時也檢查提醒
+            await SubscriptionReminderManager.shared.checkAndShowReminder(status: status)
+        } catch {
+            Logger.debug("[HavitalApp] 前景恢復：訂閱狀態刷新失敗 \(error.localizedDescription)")
+        }
+    }
+
     /// 基於已確定用戶狀態的權限設置
     func setupPermissionsBasedOnUserState() async {
         print("🔐 HavitalApp: 開始基於用戶狀態設置權限")

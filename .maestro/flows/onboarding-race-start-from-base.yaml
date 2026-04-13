@@ -5,10 +5,9 @@ tags:
   - race_run
   - start-stage
 ---
-# T7: 賽事 + Paceriz + 從基礎期開始（P1）
+# B8 precursor: race_run paceriz start-from-base
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
 - assertVisible: "訓練目標"
 - tapOn: "賽事訓練"
@@ -47,17 +46,10 @@ tags:
     text: "下一步"
     optional: true
 
-- assertVisible: "訓練偏好設定"
-- tapOn:
-    id: "TrainingDays_SaveButton"
-
-- runFlow: ../subflows/verify-plan-generated.yaml
+- runFlow: ../subflows/assert-preference-persistence.yaml
 
 # === 課表合理性驗證 ===
-# base 階段：輕鬆跑為主，禁止節奏跑
-# 注意：strides（加速跑/大步跑）在 base 後期允許，app 可能顯示為「間歇訓練」
-- assertVisible: "輕鬆跑"
-- assertNotVisible: "節奏跑"
+# 使用通用 race base 驗證，避免單一文案造成誤判
+- runFlow: ../subflows/verify-methodology-race-base.yaml
 
-# === 品質指南驗證 ===
-- runFlow: ../subflows/verify-plan-quality.yaml
+- runFlow: ../subflows/assert-coach-sanity-relationships.yaml

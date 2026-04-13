@@ -1,0 +1,89 @@
+appId: com.havital.Havital.dev
+---
+# QA B1/B2/B4/B5: 完整 PaywallView 驗收測試
+# 步驟：demo login → 訓練計畫 → Debug menu → 刪除週課表 → 產生週課表 → 403 → PaywallView
+
+# Step 1: Demo login
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- extendedWaitUntil:
+    visible:
+      id: "Login_DemoButton"
+    timeout: 15000
+
+- tapOn:
+    id: "Login_DemoButton"
+
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 30000
+
+- takeScreenshot: ".maestro/screenshots/B1_01_after_login.png"
+
+# Step 2: 打開 ... menu（右上角，96%, 11%）
+- tapOn:
+    point: "96%,11%"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: ".maestro/screenshots/B1_02_menu_open.png"
+
+# Step 3: 點 Debug 工具（在 menu 底部，座標約 50% y）
+# Debug 工具是 menu 中第 7 個 item（含 2 個分隔線），約在 49% y
+- tapOn:
+    point: "55%,49%"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: ".maestro/screenshots/B1_03_debug_submenu.png"
+
+# Step 4: 點「刪除當前週課表」（submenu 第 2 項，約 55% y）
+- tapOn:
+    point: "55%,55%"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: ".maestro/screenshots/B1_04_after_delete.png"
+
+# Step 5: 等待 noWeeklyPlan 狀態
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 15000
+
+- takeScreenshot: ".maestro/screenshots/B1_05_no_plan_state.png"
+
+# Step 6: 點「產生週課表」按鈕（觸發 403）
+- tapOn:
+    text: "產生週課表"
+
+- takeScreenshot: ".maestro/screenshots/B1_06_after_generate_tap.png"
+
+# Step 7: 等待 PaywallView 出現
+- extendedWaitUntil:
+    visible: "升級|Upgrade|アップグレード"
+    timeout: 30000
+
+- takeScreenshot: ".maestro/screenshots/B1_07_paywall_appeared.png"
+
+# === B2: apiGated header 文案驗證 ===
+- assertVisible:
+    text: "需要訂閱才能使用此功能"
+
+- takeScreenshot: ".maestro/screenshots/B2_header_crown.png"
+
+# === B4: Offerings section 狀態 ===
+- takeScreenshot: ".maestro/screenshots/B4_offerings_section.png"
+
+# === B5: 關閉按鈕 ===
+- tapOn:
+    text: "關閉|Close"
+
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 10000
+
+- takeScreenshot: ".maestro/screenshots/B5_after_dismiss.png"

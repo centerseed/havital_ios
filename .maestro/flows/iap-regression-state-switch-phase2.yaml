@@ -1,0 +1,75 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P1
+---
+# R4 Phase 2: Verify Subscribed Unlock (after state switch)
+#
+# Precondition (set by wrapper between phase1 and phase2):
+#   - Backend: set-subscribed (switched from expired)
+#   - App: was just showing training plan with PaywallView dismissed
+#
+# Test flow:
+#   1. Relaunch app (simulates foreground return -> auto refresh)
+#   2. Navigate to training plan
+#   3. Tap generate weekly plan -> should SUCCEED (no paywall)
+#   4. Assert weekly plan generation starts or succeeds
+#
+# Critical: PaywallView must NOT appear after state switch.
+
+# Step 1: Relaunch to trigger status refresh
+- launchApp:
+    stopApp: false
+    clearState: false
+
+# Handle possible system dialogs
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- tapOn:
+    text: "完成|Done"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# Step 2: Wait for generate button (should still be in noWeeklyPlan state)
+- extendedWaitUntil:
+    visible: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 15000
+
+# Step 3: Tap generate -- should succeed this time (subscribed)
+- tapOn:
+    text: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+
+# CRITICAL ASSERTION: PaywallView must NOT appear
+# Wait a reasonable time for either plan generation or paywall
+# If paywall appears, the test structure catches it as unexpected
+
+# Wait for success indicators: loading animation then plan content
+# The plan generation may take time, so we wait for either the weekly
+# plan content or the loading state, but NOT the paywall
+- extendedWaitUntil:
+    visible: "每日訓練|週課表|Day "
+    timeout: 45000
+
+# CRITICAL ASSERTION: PaywallView should NOT be showing
+- assertNotVisible:
+    id: "Paywall_Header"
+
+- takeScreenshot: ".maestro/screenshots/R4_phase2_unlocked.png"

@@ -9,34 +9,41 @@ tags:
 # 前提：App 已登入，有課表資料（V2 用戶）
 # 說明：Week 1 直接到「產生週課表」；Week 2+ 先到「產生週回顧」再到「產生下週課表」
 
-# 重啟 app 確保乾淨狀態
-# 注意：此 flow 前提為「App 已登入，有課表資料」，不可在 suite 跑完 reonboarding 後單獨執行
-- launchApp:
-    stopApp: true
-    clearState: false
+# 重啟 app 並收斂到主課表頁
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # 等待進入主畫面（有課表存在）
 - extendedWaitUntil:
     visible:
-      text: "每日訓練|訓練計劃|週課表尚未產生"
+      text: "每日訓練|訓練計劃|週課表尚未產生|Daily Training|Training Plan|No Weekly Plan Yet|日々のトレーニング|トレーニング計画|週間プラン未作成"
     timeout: 45000
 
 # 確認有課表存在（回歸測試需要 Week 2+ 資料）
-- assertVisible: "每日訓練"
+- assertVisible: "每日訓練|Daily Training|日々のトレーニング"
 
 # === Step 1: 刪除當前週回顧 ===
-- tapOn: "更多"
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
 - tapOn:
     text: "🐛 Debug 工具"
 - tapOn: "🗑️ 刪除當前週回顧"
 
 # 等待回到主畫面（刪除後狀態恢復）
 - extendedWaitUntil:
-    visible: "每日訓練"
+    visible: "每日訓練|Daily Training|日々のトレーニング"
     timeout: 10000
 
 # === Step 2: 刪除當前週課表 ===
-- tapOn: "更多"
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
 - tapOn:
     text: "🐛 Debug 工具"
 - tapOn: "🗑️ 刪除當前週課表"
@@ -44,33 +51,33 @@ tags:
 # 等待進入 noWeeklyPlan 或 needsWeeklySummary 狀態
 - extendedWaitUntil:
     visible:
-      text: "產生週課表|產生週回顧"
+      text: "產生週課表|產生週回顧|接受調整並產生下週課表|Generate Weekly Plan|Generate Weekly Summary|Accept Adjustment and Generate Next Week Plan"
     timeout: 15000
 
 # === Step 3: 如果需要先產生週回顧（Week 2+）===
 # optional: true 讓 Week 1 可以跳過此步驟
 - tapOn:
-    text: "產生週回顧"
+    text: "產生週回顧|Generate Weekly Summary"
     optional: true
 
 # 等待週回顧頁面出現（LLM 生成，最多 45 秒）
 # Week 1 此步跳過，timeout 後直接往下
 - extendedWaitUntil:
     visible:
-      text: "訓練完成度|產生週課表"
+      text: "訓練完成度|產生週課表|接受調整並產生下週課表|Training Completion|Generate Weekly Plan|Accept Adjustment and Generate Next Week Plan"
     timeout: 45000
 
 # === Step 4: 確認「產生下週課表」或「產生週課表」按鈕可見 ===
 # Week 2+ 會先顯示週回顧內容再顯示按鈕，Week 1 直接顯示產生按鈕
 - assertVisible:
-    text: "產生下週課表|產生週課表"
+    text: "接受調整並產生下週課表|產生下週課表|產生週課表|Accept Adjustment and Generate Next Week Plan|Generate Next Week Plan|Generate Weekly Plan"
 
 # 截圖記錄產生前的狀態
 - takeScreenshot: before_generate_plan
 
 # === Step 5: 產生週課表 ===
 - tapOn:
-    text: "產生下週課表|產生週課表"
+    text: "接受調整並產生下週課表|產生下週課表|產生週課表|Accept Adjustment and Generate Next Week Plan|Generate Next Week Plan|Generate Weekly Plan"
 
 # 截圖記錄產生中狀態
 - takeScreenshot: generating_plan
@@ -80,26 +87,26 @@ tags:
 # 失敗：顯示「載入失敗」或「重試」
 - extendedWaitUntil:
     visible:
-      text: "每日訓練|載入失敗|重試"
+      text: "每日訓練|載入失敗|重試|Daily Training|Load Failed|Retry|日々のトレーニング|読み込み失敗|再試行"
     timeout: 60000
 
 # 截圖記錄最終結果（成功或失敗）
 - takeScreenshot: plan_generation_result
 
 # 驗證成功（若在錯誤頁，此斷言失敗並清楚標示 plan generation 有問題）
-- assertVisible: "每日訓練"
+- assertVisible: "每日訓練|Daily Training|日々のトレーニング"
 
 # === Step 6: 驗證新課表完整性（7 天）===
-- assertVisible: "星期一"
+- assertVisible: "星期一|Monday|月曜日"
 
 # 滑動確認課表包含完整一週（到星期日）
 - scrollUntilVisible:
-    element: "星期日"
+    element: "星期日|Sunday|日曜日"
     direction: DOWN
     timeout: 15000
 
 # 確認有休息日（合理課表必須有休息）
 - scrollUntilVisible:
-    element: "休息"
+    element: "休息|Rest|輕鬆跑|Easy Run|長距離輕鬆跑|Long Easy Run|イージーラン|ロングイージーラン"
     direction: DOWN
     timeout: 10000

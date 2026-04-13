@@ -15,5 +15,5 @@ appId: com.havital.Havital.dev
     id: "Login_DemoButton"
 
 - extendedWaitUntil:
-    visible: "更多"
+    visible: "更多|More|もっと見る"
     timeout: 30000

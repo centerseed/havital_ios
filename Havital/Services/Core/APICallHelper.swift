@@ -72,7 +72,7 @@ struct APICallHelper {
     /// This method handles:
     /// 1. HTTP request via HTTPClient
     /// 2. Response parsing via ResponseProcessor
-    /// 3. Cancellation error detection and conversion to SystemError.taskCancelled
+    /// 3. Unified cancellation detection (without type re-wrapping)
     /// 4. Logging for debugging
     ///
     /// - Parameters:
@@ -81,7 +81,7 @@ struct APICallHelper {
     ///   - method: HTTP method (defaults to GET)
     ///   - body: Request body data (optional)
     /// - Returns: Parsed response of type T
-    /// - Throws: SystemError.taskCancelled for cancelled requests, or original error
+    /// - Throws: Original error from lower layers
     func call<T: Codable>(
         _ type: T.Type,
         path: String,
@@ -104,7 +104,7 @@ struct APICallHelper {
     ///   - path: API endpoint path
     ///   - method: HTTP method (defaults to DELETE)
     ///   - body: Request body data (optional)
-    /// - Throws: SystemError.taskCancelled for cancelled requests, or original error
+    /// - Throws: Original error from lower layers
     func callNoResponse(
         path: String,
         method: HTTPMethod = .DELETE,
@@ -125,21 +125,11 @@ struct APICallHelper {
     /// previously duplicated across 30+ files.
     ///
     /// - Parameter error: The original error
-    /// - Returns: Processed error (SystemError.taskCancelled or original)
+    /// - Returns: Original error (type preserved)
     private func handleError(_ error: Error) -> Error {
-        // Check for cancellation using the unified isCancellationError extension
         if error.isCancellationError {
-            Logger.debug("[\(moduleName)] Task cancelled, converting to SystemError.taskCancelled")
-            return SystemError.taskCancelled
+            Logger.debug("[\(moduleName)] Task cancelled, preserving original error type")
         }
-
-        // Check for APIError.isCancelled (for backward compatibility)
-        if let apiError = error as? APIError, apiError.isCancelled {
-            Logger.debug("[\(moduleName)] APIError cancelled, converting to SystemError.taskCancelled")
-            return SystemError.taskCancelled
-        }
-
-        // Return original error
         return error
     }
 }

@@ -2,13 +2,14 @@ appId: com.havital.Havital.dev
 tags:
   - onboarding
   - p2
+  - boundary
+  - layer-b
   - race_run
   - start-stage
 ---
-# T8: 賽事 + Paceriz + 從強化期開始（P2）
+# B8: race_run paceriz start-from-build
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
 - assertVisible: "訓練目標"
 - tapOn: "賽事訓練"
@@ -47,22 +48,13 @@ tags:
     text: "下一步"
     optional: true
 
-- assertVisible: "訓練偏好設定"
-- tapOn:
-    id: "TrainingDays_SaveButton"
-
-- runFlow: ../subflows/verify-plan-generated.yaml
+- runFlow: ../subflows/assert-preference-persistence.yaml
 
 # === 課表合理性驗證 ===
-# build 期必須有間歇（verify-plan-generated 滑到底後需要 scroll 找元素）
+# build 期應出現至少一種強度課（間歇/節奏/巡航間歇）
 - scrollUntilVisible:
-    element: "輕鬆跑"
-    direction: UP
-    timeout: 5000
-- scrollUntilVisible:
-    element: "間歇訓練"
+    element: "間歇訓練|節奏跑|巡航間歇|Tempo Run|Interval"
     direction: DOWN
-    timeout: 5000
+    timeout: 10000
 
-# === 品質指南驗證 ===
-- runFlow: ../subflows/verify-plan-quality.yaml
+- runFlow: ../subflows/assert-workout-card-structure.yaml

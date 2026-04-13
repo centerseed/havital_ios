@@ -2,7 +2,7 @@ import SwiftUI
 
 /// V2 訓練進度卡片 - 顯示整體訓練週數進度
 struct TrainingProgressCardV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
     @State private var showTrainingProgress = false
 

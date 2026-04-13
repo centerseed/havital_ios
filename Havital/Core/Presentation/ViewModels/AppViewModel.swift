@@ -126,16 +126,11 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
         // 更新上次活躍的週一
         lastActiveMonday = currentMonday
 
-        // 各刷新各自開 Task 並行，互不阻塞
-        Task { [weak self] in
-            guard let self else { return }
-            _ = try? await workoutRepository.refreshWorkouts()
-        }
+        async let refreshWorkoutsTask = workoutRepository.refreshWorkouts()
+        async let refreshSubscriptionTask = subscriptionRepository.refreshStatus()
 
-        Task { [weak self] in
-            guard let self else { return }
-            _ = try? await subscriptionRepository.refreshStatus()
-        }
+        _ = try? await refreshWorkoutsTask
+        _ = try? await refreshSubscriptionTask
     }
 
     /// 手動刷新數據（下拉刷新等）

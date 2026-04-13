@@ -1,0 +1,93 @@
+appId: com.havital.Havital.dev
+---
+# Shared onboarding entry:
+# advance from login, main app, or any onboarding intermediate step to Goal Type.
+
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- tapOn:
+    text: "更多"
+    optional: true
+- tapOn:
+    text: "個人資料"
+    optional: true
+- scrollUntilVisible:
+    element: "重新設定目標"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "重新設定目標"
+    optional: true
+- tapOn:
+    text: "確認"
+    optional: true
+
+- tapOn:
+    id: "OnboardingStartButton"
+    optional: true
+
+- tapOn:
+    id: "DataSourceOption_appleHealth"
+    optional: true
+- tapOn:
+    id: "OnboardingContinueButton"
+    optional: true
+
+- tapOn:
+    text: "開啟全部"
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+- tapOn:
+    id: "HeartRateZone_ContinueButton"
+    optional: true
+- tapOn:
+    text: "略過"
+    optional: true
+
+- assertVisible:
+    text: "個人最佳成績"
+    optional: true
+- swipe:
+    start: "46%, 65%"
+    end: "46%, 50%"
+    duration: 300
+- swipe:
+    start: "46%, 65%"
+    end: "46%, 50%"
+    duration: 300
+- tapOn:
+    id: "PersonalBest_ContinueButton"
+    optional: true
+
+- assertVisible:
+    text: "您的週跑量"
+    optional: true
+- tapOn:
+    id: "WeeklyDistance_ContinueButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    text: "略過"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "訓練目標"
+    timeout: 30000
+- assertVisible:
+    id: "GoalType_NextButton"

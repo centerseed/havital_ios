@@ -118,7 +118,7 @@ final class TrainingPlanRemoteDataSourceTests: XCTestCase {
         let responseData = TrainingPlanTestFixtures.weeklyPlanAPIResponseData(expectedPlan)
 
         mockHTTPClient.setResponse(
-            for: "/plan/race_run/weekly/v2",
+            for: "/plan/race_run/weekly",
             method: .POST,
             data: responseData
         )
@@ -134,7 +134,7 @@ final class TrainingPlanRemoteDataSourceTests: XCTestCase {
         XCTAssertEqual(result.id, expectedPlan.id, "Plan ID should match")
         XCTAssertEqual(result.weekOfPlan, expectedPlan.weekOfPlan, "Week should match")
         XCTAssertEqual(mockHTTPClient.requestCount, 1, "Should make exactly one request")
-        XCTAssertTrue(mockHTTPClient.wasPathCalled("/plan/race_run/weekly/v2", method: .POST))
+        XCTAssertTrue(mockHTTPClient.wasPathCalled("/plan/race_run/weekly", method: .POST))
 
         // Verify request body
         if let lastRequest = mockHTTPClient.lastRequest, let body = lastRequest.body {
@@ -149,7 +149,7 @@ final class TrainingPlanRemoteDataSourceTests: XCTestCase {
         let responseData = TrainingPlanTestFixtures.weeklyPlanAPIResponseData(expectedPlan)
 
         mockHTTPClient.setResponse(
-            for: "/plan/race_run/weekly/v2",
+            for: "/plan/race_run/weekly",
             method: .POST,
             data: responseData
         )

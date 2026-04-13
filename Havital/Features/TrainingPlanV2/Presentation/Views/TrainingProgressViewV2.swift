@@ -2,7 +2,7 @@ import SwiftUI
 
 /// V2 訓練進度 Sheet - 顯示各階段週次列表，支援週次切換與歷史回顧
 struct TrainingProgressViewV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedStageIndex: Int? = nil
 

@@ -103,9 +103,10 @@ struct LanguageSettingsView: View {
     }
     
     private func saveSettings() {
-        // Language change requires restart confirmation
+        // iOS 26 sheet + UIKit alert 容易出現確認彈窗未觸發，導致語言實際未套用。
+        // 這裡改為直接執行語言切換流程，避免使用者（與自動測試）卡在未生效狀態。
         if selectedLanguage != languageManager.currentLanguage {
-            showLanguageChangeAlert()
+            performLanguageChange()
             return
         }
         // Unit change does not require restart
@@ -162,26 +163,21 @@ struct LanguageSettingsView: View {
         }
     }
     
-    private func performLanguageChange() async {
+    private func performLanguageChange() {
         isLoading = true
-        
-        do {
-            // Sync with backend first
-            try await updateBackendPreferences()
-            
-            // Update language preference and trigger app restart
-            await MainActor.run {
-                self.isLoading = false
-                self.dismiss()
-                
-                // Use LanguageManager's automatic restart functionality
-                LanguageManager.shared.performLanguageChangeWithRestart(to: selectedLanguage)
-            }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-                errorMessage = error.localizedDescription
-                showError = true
+        let languageToApply = selectedLanguage
+
+        // 先套用本地語言，避免等待網路導致 UI 長時間停在舊語言
+        self.isLoading = false
+        self.dismiss()
+        LanguageManager.shared.performLanguageChangeWithRestart(to: languageToApply)
+
+        // 後端同步改為背景執行，不阻塞本地體驗
+        Task {
+            do {
+                try await self.updateBackendPreferences()
+            } catch {
+                Logger.firebase("Language backend sync failed after local apply: \(error.localizedDescription)", level: .warn)
             }
         }
     }

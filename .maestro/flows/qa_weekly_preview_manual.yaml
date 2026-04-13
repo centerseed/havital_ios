@@ -1,34 +1,29 @@
 appId: com.havital.Havital.dev
 ---
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+- tapOn: "更多"
 - tapOn:
-    text: "訓練計劃"
-- extendedWaitUntil:
-    visible: "每日訓練"
-    timeout: 5000
-- scrollUntilVisible:
-    element: "週訓練骨架"
-    direction: DOWN
-    timeout: 10000
-- takeScreenshot: qa_card_visible
-- tapOn: "週訓練骨架"
+    text: "訓練計畫概覽|訓練總覽"
 - extendedWaitUntil:
     visible:
-      text: ".*各週訓練骨架.*"
-    timeout: 5000
+      text: "我的訓練目標|訓練總覽|Training Overview"
+    timeout: 15000
+- takeScreenshot: qa_card_visible
 - takeScreenshot: qa_sheet_opened
 - assertVisible:
-    text: ".*實際課表.*動態調整.*"
+    text: "目標賽事|支援賽事|總週數|賽事日期|目標配速"
+- scrollUntilVisible:
+    element:
+      text: "訓練時間軸|基礎期|強化期|巔峰期|減量期|維持期|發展期"
+    direction: DOWN
+    timeout: 10000
+    optional: true
 - assertVisible:
-    text: ".*第 1 週.*"
-- assertVisible:
-    text: ".*km.*"
-- assertVisible:
-    text: "長跑"
-- assertVisible:
-    text: "品質課"
+    text: "確認並生成第一週計劃|產生週課表|產生下週課表|接受調整並產生下週課表"
+    optional: true
 - takeScreenshot: qa_sheet_content
 - tapOn: "關閉"
 - extendedWaitUntil:
-    visible: "每日訓練"
+    visible: "每日訓練|Daily Training|Training Plan"
     timeout: 5000
 - takeScreenshot: qa_after_close

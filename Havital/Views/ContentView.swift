@@ -6,10 +6,13 @@ struct ContentView: View {
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @ObservedObject private var appStateManager = AppStateManager.shared
+    @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
+    @ObservedObject private var reminderManager = SubscriptionReminderManager.shared
 
     // 訓練版本路由狀態
     @State private var trainingVersion: String = "v1"
     @State private var isCheckingVersion: Bool = true
+    @State private var reminderPaywallTrigger: PaywallTrigger?
 
     var body: some View {
         // 移除高頻日誌：body 每次重新評估都會觸發
@@ -204,6 +207,70 @@ struct ContentView: View {
             Text(L10n.ContentView.dataSourceRequiredMessage.localized)
         }
         .garminReconnectionAlert() // 添加 Garmin 重新連接警告
+        // P0-4: 狀態降級非阻斷通知
+        .onChange(of: subscriptionState.recentDowngrade) { _, downgrade in
+            guard let downgrade else { return }
+            Logger.debug("[ContentView] 訂閱狀態降級: \(downgrade.from.rawValue) → \(downgrade.to.rawValue)")
+            // 降級通知透過 reminder 系統顯示，觸發 expired 提醒
+            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+            subscriptionState.clearDowngrade()
+        }
+        // P1-9/P1-10: 訂閱到期提醒
+        .onAppear {
+            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+        }
+        .onChange(of: subscriptionState.currentStatus?.status) { _, _ in
+            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+        }
+        .alert(
+            subscriptionReminderTitle,
+            isPresented: Binding(
+                get: { reminderManager.pendingReminder != nil },
+                set: { if !$0 { reminderManager.dismissReminder() } }
+            )
+        ) {
+            Button(NSLocalizedString("paywall.title", comment: "Upgrade")) {
+                switch reminderManager.pendingReminder {
+                case .expired:
+                    reminderPaywallTrigger = .apiGated
+                case .trialExpiring:
+                    reminderPaywallTrigger = .trialExpired
+                case nil:
+                    reminderPaywallTrigger = .featureLocked
+                }
+                reminderManager.dismissReminder()
+            }
+            Button(NSLocalizedString("common.later", comment: "Later"), role: .cancel) {
+                reminderManager.dismissReminder()
+            }
+        } message: {
+            Text(subscriptionReminderMessage)
+        }
+        .sheet(item: $reminderPaywallTrigger) { trigger in
+            PaywallView(trigger: trigger)
+        }
+    }
+
+    private var subscriptionReminderTitle: String {
+        switch reminderManager.pendingReminder {
+        case .trialExpiring:
+            return NSLocalizedString("reminder.trial_expiring_title", comment: "Trial Expiring Soon")
+        case .expired:
+            return NSLocalizedString("reminder.expired_title", comment: "Subscription Expired")
+        case nil:
+            return ""
+        }
+    }
+
+    private var subscriptionReminderMessage: String {
+        switch reminderManager.pendingReminder {
+        case .trialExpiring(let days):
+            return String(format: NSLocalizedString("reminder.trial_expiring_message", comment: ""), days)
+        case .expired:
+            return NSLocalizedString("reminder.expired_message", comment: "")
+        case nil:
+            return ""
+        }
     }
 
 

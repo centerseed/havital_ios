@@ -1,0 +1,18 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP: Demo 登入（不清除狀態，從當前畫面操作）
+# 前置：App 在登入畫面
+
+- extendedWaitUntil:
+    visible:
+      id: "Login_DemoButton"
+    timeout: 15000
+
+- tapOn:
+    id: "Login_DemoButton"
+
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 30000
+
+- takeScreenshot: QA/screenshots/c1_logged_in

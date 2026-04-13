@@ -22,7 +22,7 @@ private enum SectionID: Hashable {
 /// V2 週訓練摘要畫面（漸進式揭露單頁 ScrollView）
 /// Hero 成績區塊永遠展開，三個折疊 section 按需展開
 struct WeeklySummaryV2View: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     let weekOfPlan: Int
     var onGenerateNextWeek: (() -> Void)?
     var onSetNewGoal: (() -> Void)?

@@ -1,0 +1,44 @@
+appId: com.havital.Havital.dev
+---
+# Guardrail helper: delete/regenerate should recover to a clean weekly-plan state.
+- assertVisible:
+    text: "每日訓練|Daily Training|Training Plan"
+
+- tapOn: "更多"
+- tapOn:
+    text: "🐛 Debug 工具"
+- tapOn: "🗑️ 刪除當前週回顧"
+
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|Daily Training|Training Plan"
+    timeout: 10000
+
+- tapOn: "更多"
+- tapOn:
+    text: "🐛 Debug 工具"
+- tapOn: "🗑️ 刪除當前週課表"
+
+- extendedWaitUntil:
+    visible:
+      text: "產生週回顧|產生週課表|產生下週課表|接受調整並產生下週課表"
+    timeout: 15000
+
+- tapOn:
+    text: "產生週回顧"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "訓練完成度|產生週課表|產生下週課表|接受調整並產生下週課表"
+    timeout: 45000
+
+- tapOn:
+    text: "接受調整並產生下週課表|產生下週課表|產生週課表"
+
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|Daily Training|Training Plan"
+    timeout: 60000
+
+- runFlow: assert-weekly-plan-7days.yaml

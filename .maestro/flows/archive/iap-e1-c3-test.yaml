@@ -1,0 +1,49 @@
+appId: com.havital.Havital.dev
+---
+# E1: billing_issue 紅色警告 + C3: Rizo 429 橘色 banner
+# 前提：
+#   Scripts/iap_admin.sh set-billing-issue true（E1）
+#   Scripts/iap_admin.sh set-rizo-quota 200（C3，在 E1 之後執行）
+
+# === E1: billing_issue 測試 ===
+
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "關閉"
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "訓練計劃"
+    timeout: 30000
+
+# 導航到 Profile：右上角「更多」→「個人資料」
+- tapOn:
+    text: "更多"
+
+- tapOn:
+    text: "個人資料"
+
+- extendedWaitUntil:
+    visible: "個人資料"
+    timeout: 10000
+
+# 滑到訂閱區域
+- scrollUntilVisible:
+    element: "帳單問題|Billing"
+    direction: DOWN
+    timeout: 10000
+
+# E1 驗證：紅色帳單警告可見
+- takeScreenshot: e1_billing_issue_visible

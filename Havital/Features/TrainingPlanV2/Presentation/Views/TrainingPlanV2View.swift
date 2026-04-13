@@ -1,9 +1,10 @@
 import SwiftUI
+import Observation
 
 /// V2 訓練計畫主頁面
 /// 設計原則：與 V1 保持一致的 UI/UX，使用 V2 的資料模型
 struct TrainingPlanV2View: View {
-    @StateObject private var viewModel: TrainingPlanV2ViewModel
+    @State private var viewModel: TrainingPlanV2ViewModel
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPlanOverview = false
@@ -18,15 +19,51 @@ struct TrainingPlanV2View: View {
 
     init(viewModel: TrainingPlanV2ViewModel? = nil) {
         if let viewModel = viewModel {
-            _viewModel = StateObject(wrappedValue: viewModel)
+            _viewModel = State(initialValue: viewModel)
         } else {
-            _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeTrainingPlanV2ViewModel())
+            _viewModel = State(initialValue: DependencyContainer.shared.makeTrainingPlanV2ViewModel())
         }
+    }
+
+    private var userProfileMenuTitle: String {
+        switch LanguageManager.shared.currentLanguage {
+        case .traditionalChinese:
+            return "個人資料"
+        case .english:
+            return "Profile"
+        case .japanese:
+            return "プロフィール"
+        }
+    }
+
+    static func shouldShowNextWeekButton(
+        nextWeekInfo: NextWeekInfoV2?,
+        selectedWeek: Int,
+        currentWeek: Int
+    ) -> Bool {
+        guard let nextWeekInfo,
+              nextWeekInfo.canGenerate,
+              !nextWeekInfo.hasPlan,
+              selectedWeek == currentWeek else {
+            return false
+        }
+
+        return true
+    }
+
+    private var shouldShowNextWeekButton: Bool {
+        Self.shouldShowNextWeekButton(
+            nextWeekInfo: viewModel.planStatusResponse?.nextWeekInfo,
+            selectedWeek: viewModel.selectedWeek,
+            currentWeek: viewModel.currentWeek
+        )
     }
 
     // MARK: - Body
 
     var body: some View {
+        @Bindable var bindableViewModel = viewModel
+
         NavigationStack {
             ZStack {
                 Color(UIColor.systemGroupedBackground)
@@ -87,9 +124,8 @@ struct TrainingPlanV2View: View {
                     }
 
                     // 🆕 產生下週課表按鈕（週六日顯示，或 DEV 環境可提前產生）
-                    if let nextWeekInfo = viewModel.planStatusResponse?.nextWeekInfo,
-                       nextWeekInfo.canGenerate && !nextWeekInfo.hasPlan,
-                       viewModel.selectedWeek == viewModel.currentWeek {
+                    if shouldShowNextWeekButton,
+                       let nextWeekInfo = viewModel.planStatusResponse?.nextWeekInfo {
                         GenerateNextWeekButtonV2(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
                             .transition(.opacity)
                     }
@@ -121,8 +157,6 @@ struct TrainingPlanV2View: View {
             .refreshable {
                 await viewModel.refreshWeeklyPlan()
             }
-            .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -140,7 +174,7 @@ struct TrainingPlanV2View: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: { showUserProfile = true }) {
-                            Label(NSLocalizedString("training.user_profile", comment: "User Profile"), systemImage: "person.circle")
+                            Label(userProfileMenuTitle, systemImage: "person.circle")
                         }
 
                         Button(action: { showPlanOverview = true }) {
@@ -212,8 +246,8 @@ struct TrainingPlanV2View: View {
                 PlanOverviewSheetV2(viewModel: viewModel)
             }
             // ✅ 全屏 Loading 動畫
-            .sheet(isPresented: $viewModel.isLoadingAnimation) {
-                if viewModel.isLoadingWeeklySummary {
+            .sheet(isPresented: $bindableViewModel.isLoadingAnimation) {
+                if bindableViewModel.isLoadingWeeklySummary {
                     LoadingAnimationView(type: .generateReview, totalDuration: 30.0)
                         .ignoresSafeArea()
                 } else {
@@ -250,7 +284,7 @@ struct TrainingPlanV2View: View {
                     )
                 }
             }
-            .sheet(isPresented: $viewModel.showWeeklySummary) {
+            .sheet(isPresented: $bindableViewModel.showWeeklySummary) {
                 NavigationStack {
                     // ⚠️ 週回顧應該顯示「已產生的週」，通常是 currentWeek - 1（上週）
                     // 如果 weeklySummary 已載入，從 summary 中取得週數；否則預設為 currentWeek - 1
@@ -341,18 +375,12 @@ struct TrainingPlanV2View: View {
                 FeedbackReportView(userEmail: "")
             }
         }
-        .sheet(item: $viewModel.paywallTrigger) { trigger in
+        .sheet(item: $bindableViewModel.paywallTrigger) { trigger in
             PaywallView(trigger: trigger)
         }
-        .task {
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
             await viewModel.initialize()
-        }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            if oldPhase == .background && newPhase == .active {
-                Task {
-                    await viewModel.initialize()
-                }
-            }
         }
         // 成功訊息 Toast
         .overlay(alignment: .top) {
@@ -409,6 +437,7 @@ struct TrainingPlanV2View: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .padding(.top, 60)
+                        .accessibilityIdentifier("RizoQuota_Banner")
                         .onAppear {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                                 viewModel.showRizoQuotaExceededBanner = false
@@ -621,7 +650,7 @@ private struct TrainingCompletedView: View {
 
 /// 產生下週課表按鈕（V2 版本，照搬 V1 流程）
 private struct GenerateNextWeekButtonV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     let nextWeekInfo: NextWeekInfoV2
     @State private var showConfirmation = false
 
@@ -725,7 +754,7 @@ private struct ErrorView: View {
 
 /// 簡易週選擇器（V2 版本）
 private struct WeekSelectorSheetV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @Binding var isPresented: Bool
 
     var body: some View {

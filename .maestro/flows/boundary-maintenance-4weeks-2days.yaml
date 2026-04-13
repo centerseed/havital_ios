@@ -1,0 +1,40 @@
+appId: com.havital.Havital.dev
+tags:
+  - boundary
+  - layer-b
+  - maintenance
+---
+# B4: maintenance + 4 weeks + 2 training days
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+- tapOn:
+    id: "GoalType_maintenance"
+- tapOn:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "Methodology_aerobic_endurance"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+- tapOn:
+    id: "TrainingWeeks_4"
+    optional: true
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+
+- tapOn:
+    text: "不確定（略過）|不確定 \\(略過\\)"
+    optional: true
+- tapOn:
+    id: "MaintenanceRaceDistance_NextButton"
+    optional: true
+
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "TrainingDay_6"
+
+- runFlow: ../subflows/assert-preference-persistence.yaml
+- runFlow: ../subflows/verify-methodology-maintenance.yaml

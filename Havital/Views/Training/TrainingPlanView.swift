@@ -156,6 +156,31 @@ struct TrainingPlanView: View {
     @State private var showHeartRateSetupFullScreen = false
     @State private var showContactPaceriz = false
     @State private var showFeedbackReport = false
+
+    static func shouldShowNextWeekButton(
+        nextWeekInfo: NextWeekInfo?,
+        selectedWeek: Int,
+        currentWeek: Int,
+        allowEarlyNextWeekGeneration: Bool
+    ) -> Bool {
+        guard let nextWeekInfo,
+              (nextWeekInfo.canGenerate || allowEarlyNextWeekGeneration),
+              !nextWeekInfo.hasPlan,
+              selectedWeek == currentWeek else {
+            return false
+        }
+
+        return true
+    }
+
+    private var shouldShowNextWeekButton: Bool {
+        Self.shouldShowNextWeekButton(
+            nextWeekInfo: viewModel.nextWeekInfo,
+            selectedWeek: viewModel.selectedWeek,
+            currentWeek: viewModel.currentWeek,
+            allowEarlyNextWeekGeneration: FeatureFlagManager.shared.allowEarlyNextWeekGeneration
+        )
+    }
     @ObservedObject private var userPreferenceManager = UserPreferencesManager.shared
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
 
@@ -548,10 +573,8 @@ struct TrainingPlanView: View {
 
             // 🆕 產生下週課表按鈕（週六日顯示，或 DEV 環境可提前產生）
             // 條件：canGenerate=true（後端判斷週六日）或 DEV 環境開啟 allowEarlyNextWeekGeneration
-            if let nextWeekInfo = viewModel.nextWeekInfo,
-               (nextWeekInfo.canGenerate || FeatureFlagManager.shared.allowEarlyNextWeekGeneration),
-               !nextWeekInfo.hasPlan,
-               viewModel.selectedWeek == viewModel.currentWeek {
+            if shouldShowNextWeekButton,
+               let nextWeekInfo = viewModel.nextWeekInfo {
                 GenerateNextWeekButton(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
                     .padding(.horizontal)
                     .transition(.opacity)

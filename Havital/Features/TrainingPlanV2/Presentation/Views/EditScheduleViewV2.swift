@@ -6,7 +6,7 @@ import Foundation
 /// UI 結構與 V1 EditScheduleView 一致，不依賴 V1 TrainingPlanViewModel
 struct EditScheduleViewV2: View {
     @ObservedObject var editViewModel: EditScheduleV2ViewModel
-    @ObservedObject var planViewModel: TrainingPlanV2ViewModel
+    var planViewModel: TrainingPlanV2ViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingUnsavedChangesAlert = false
     @State private var hasUnsavedChanges = false

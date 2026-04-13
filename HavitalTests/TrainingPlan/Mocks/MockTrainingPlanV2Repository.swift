@@ -26,6 +26,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var deleteWeeklySummaryCallCount = 0
     var getWeeklyPreviewCallCount = 0
     var clearCacheCallCount = 0
+    var lastRequestedWeeklyPlanWeekOfTraining: Int?
+    var lastRefreshedWeeklyPlanWeekOfTraining: Int?
 
     // MARK: - Return Values
 
@@ -61,6 +63,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         deleteWeeklySummaryCallCount = 0
         getWeeklyPreviewCallCount = 0
         clearCacheCallCount = 0
+        lastRequestedWeeklyPlanWeekOfTraining = nil
+        lastRefreshedWeeklyPlanWeekOfTraining = nil
         errorToThrow = nil
     }
 
@@ -143,6 +147,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         getWeeklyPlanCallCount += 1
+        lastRequestedWeeklyPlanWeekOfTraining = weekOfTraining
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
@@ -170,6 +175,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func refreshWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         refreshWeeklyPlanCallCount += 1
+        lastRefreshedWeeklyPlanWeekOfTraining = weekOfTraining
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
@@ -226,6 +232,18 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func deleteWeeklySummary(summaryId: String) async throws {
         deleteWeeklySummaryCallCount += 1
         if let error = errorToThrow { throw error }
+    }
+
+    func getCachedPlanStatus() -> PlanStatusV2Response? {
+        planStatusToReturn
+    }
+
+    func getCachedOverview() -> PlanOverviewV2? {
+        overviewToReturn
+    }
+
+    func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2? {
+        weeklyPlanV2ToReturn
     }
 
     func clearCache() async {

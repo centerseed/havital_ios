@@ -110,9 +110,9 @@ final class UserProfileRepositoryImplTests: XCTestCase {
         let result = try await repository.getHeartRateZones()
         
         // Then
-        XCTAssertEqual(result.count, 5)
+        XCTAssertEqual(result.count, 6)
         XCTAssertNotNil(mockLocalDataSource.heartRateZonesToReturn)
-        XCTAssertEqual(mockLocalDataSource.heartRateZonesToReturn?.count, 5)
+        XCTAssertEqual(mockLocalDataSource.heartRateZonesToReturn?.count, 6)
     }
     
     // MARK: - Targets Tests
