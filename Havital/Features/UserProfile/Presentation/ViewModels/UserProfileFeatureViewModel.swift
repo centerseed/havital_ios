@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 import FirebaseAuth
 
 // MARK: - UserProfileFeatureViewModel
@@ -181,6 +182,9 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     // MARK: - Task Management
     let taskRegistry = TaskRegistry()
 
+    // MARK: - Combine
+    private var cancellables = Set<AnyCancellable>()
+
     // MARK: - Initialization
 
     init(
@@ -209,6 +213,13 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         self.authService = authService
 
         checkAuthenticationStatus()
+
+        VDOTManager.shared.$statistics
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] statistics in
+                self?.currentVDOT = statistics?.latestDynamicVdot ?? 0
+            }
+            .store(in: &cancellables)
     }
 
     /// Convenience initializer using DependencyContainer
@@ -257,6 +268,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// Load current VDOT value from VDOTManager
     func loadVDOT() {
+        VDOTManager.shared.loadLocalCacheSync()
         currentVDOT = VDOTManager.shared.currentVDOT
     }
 
