@@ -272,6 +272,8 @@
 "profile.subscription.manage" = "サブスクリプション管理";
 "profile.subscription.resubscribe" = "再購読";
 "profile.subscription.change_plan" = "プラン変更";
+"profile.subscription.plan.yearly" = "年間サブスク";
+"profile.subscription.plan.monthly" = "月間サブスク";
 
 // MARK: - Data Sources
 "datasource.title" = "データソース";
@@ -2406,7 +2408,7 @@
 "paywall.purchase_success_start" = "使い始める";
 "paywall.purchase_success_trial_note" = "有料プランはトライアル終了後に適用されます";
 "reminder.trial_expiring_title" = "トライアル期間まもなく終了";
-"reminder.trial_expiring_message" = "トライアル期間は残り%d日です。アップグレードして全機能を引き続きご利用ください。";
+"reminder.trial_expiring_message" = "トライアル残り%1$d日（%2$@まで）。\n\n今すぐ購読してもトライアルには影響しません。請求はトライアル終了後に開始されます。";
 "reminder.expired_title" = "サブスクリプション期限切れ";
 "reminder.expired_message" = "サブスクリプションが期限切れです。一部の機能がご利用いただけなくなりました。";
 "paywall.trial_days_remaining" = "トライアル残り%d日";

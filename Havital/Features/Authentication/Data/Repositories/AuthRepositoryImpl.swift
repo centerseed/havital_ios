@@ -255,14 +255,15 @@ final class AuthRepositoryImpl: AuthRepository {
             Logger.debug("[AuthRepository] 🎯 Demo token stored. SessionRepo ID: \(ObjectIdentifier(authSessionRepository as AnyObject))")
 
             // Step 3: Create AuthUser from demo response
+            let forceOnboardingInUITest = CommandLine.arguments.contains("-resetOnboarding")
             let authUser = AuthUser(
                 uid: demoResponse.uid,
                 email: demoResponse.email,
                 displayName: demoResponse.displayName,
                 photoURL: nil,
                 isAuthenticated: true,
-                hasCompletedOnboarding: true,  // Demo users skip onboarding
-                onboardingMode: .none
+                hasCompletedOnboarding: !forceOnboardingInUITest,
+                onboardingMode: forceOnboardingInUITest ? .initial : .none
             )
 
             // Step 4: Cache the user

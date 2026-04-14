@@ -158,6 +158,8 @@ struct HavitalApp: App {
                 Text("Running Tests...")
             } else if shouldLaunchTrainingPlanV2GatesUITestHarness {
                 trainingPlanV2GateHarnessView
+            } else if shouldLaunchLoadingCacheUITestHarness {
+                loadingCacheUITestHarnessView
             } else if shouldLaunchPaywallUITestHarness {
                 paywallUITestHarnessView
             } else {
@@ -272,6 +274,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_paywall")
             || arguments.contains("-useStoreKitTestRepository")
             || arguments.contains("-ui_testing_training_v2_gates")
+            || arguments.contains("-ui_testing_loading_cache")
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {
@@ -296,6 +299,23 @@ struct HavitalApp: App {
         CommandLine.arguments.contains("-ui_testing_training_v2_gates")
         #else
         false
+        #endif
+    }
+
+    private var shouldLaunchLoadingCacheUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_loading_cache")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var loadingCacheUITestHarnessView: some View {
+        #if DEBUG
+        LocalUITestTrainingLoadingCacheHostView()
+        #else
+        EmptyView()
         #endif
     }
 
@@ -702,6 +722,193 @@ struct HavitalApp: App {
         }
     }
 }
+
+#if DEBUG
+private enum LocalUITestLoadingScenario: String {
+    case cacheThenRefreshSuccess = "cache_then_refresh_success"
+    case cacheThenRefreshFailure = "cache_then_refresh_failure"
+    case noCacheSuccess = "no_cache_success"
+    case noCacheFailure = "no_cache_failure"
+
+    static func current() -> LocalUITestLoadingScenario {
+        let raw = ProcessInfo.processInfo.environment["UITEST_LOADING_SCENARIO"]?.lowercased()
+            ?? LocalUITestLoadingScenario.cacheThenRefreshSuccess.rawValue
+        return LocalUITestLoadingScenario(rawValue: raw) ?? .cacheThenRefreshSuccess
+    }
+}
+
+private enum LocalUITestLoadingOutcome {
+    case success
+    case failure
+
+    static func fromEnvironment(_ key: String, defaultValue: LocalUITestLoadingOutcome = .success) -> LocalUITestLoadingOutcome {
+        let raw = ProcessInfo.processInfo.environment[key]?.lowercased()
+        guard let raw else { return defaultValue }
+        return raw == "failure" ? .failure : .success
+    }
+}
+
+private final class LocalUITestTrainingLoadingCacheViewModel: ObservableObject {
+    @Published var cacheStatus = "idle"
+    @Published var refreshStatus = "idle"
+    @Published var visibleDistance = "--"
+    @Published var nonBlockingBanner = "none"
+    @Published var actionTapCount = 0
+    @Published var refreshTick = 0
+    @Published var blockingOverlayVisible = false
+
+    private let scenario = LocalUITestLoadingScenario.current()
+    private let cacheDistance: String
+    private let refreshedDistance: String
+    private let manualRefreshedDistance: String
+    private let refreshDelayNanos: UInt64
+    private let manualOutcome: LocalUITestLoadingOutcome
+    private var didStart = false
+    private var inFlightTask: Task<Void, Never>?
+
+    init() {
+        cacheDistance = ProcessInfo.processInfo.environment["UITEST_LOADING_CACHE_DISTANCE"] ?? "5.0"
+        refreshedDistance = ProcessInfo.processInfo.environment["UITEST_LOADING_REFRESH_DISTANCE"] ?? "12.0"
+        manualRefreshedDistance = ProcessInfo.processInfo.environment["UITEST_LOADING_MANUAL_REFRESH_DISTANCE"] ?? "18.0"
+
+        let delayMsRaw = ProcessInfo.processInfo.environment["UITEST_LOADING_REFRESH_DELAY_MS"] ?? "1200"
+        let delayMs = UInt64(delayMsRaw) ?? 1200
+        refreshDelayNanos = delayMs * 1_000_000
+
+        manualOutcome = LocalUITestLoadingOutcome.fromEnvironment("UITEST_LOADING_MANUAL_OUTCOME", defaultValue: .success)
+    }
+
+    deinit {
+        inFlightTask?.cancel()
+    }
+
+    func startIfNeeded() {
+        guard !didStart else { return }
+        didStart = true
+
+        switch scenario {
+        case .cacheThenRefreshSuccess:
+            cacheStatus = "cache_hit"
+            visibleDistance = cacheDistance
+            performRefresh(isManual: false, outcome: .success)
+        case .cacheThenRefreshFailure:
+            cacheStatus = "cache_hit"
+            visibleDistance = cacheDistance
+            performRefresh(isManual: false, outcome: .failure)
+        case .noCacheSuccess:
+            cacheStatus = "cache_miss"
+            visibleDistance = "--"
+            performRefresh(isManual: false, outcome: .success)
+        case .noCacheFailure:
+            cacheStatus = "cache_miss"
+            visibleDistance = "--"
+            performRefresh(isManual: false, outcome: .failure)
+        }
+    }
+
+    func triggerManualRefresh() {
+        guard refreshStatus != "refreshing" else { return }
+        performRefresh(isManual: true, outcome: manualOutcome)
+    }
+
+    func tapUserAction() {
+        actionTapCount += 1
+    }
+
+    private func performRefresh(isManual: Bool, outcome: LocalUITestLoadingOutcome) {
+        inFlightTask?.cancel()
+        refreshStatus = "refreshing"
+        nonBlockingBanner = "none"
+        blockingOverlayVisible = false
+        refreshTick += 1
+
+        inFlightTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: self.refreshDelayNanos)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                switch outcome {
+                case .success:
+                    self.visibleDistance = isManual ? self.manualRefreshedDistance : self.refreshedDistance
+                    self.cacheStatus = "fresh"
+                    self.refreshStatus = "idle"
+                    self.nonBlockingBanner = "none"
+                case .failure:
+                    self.refreshStatus = "failed_non_blocking"
+                    self.nonBlockingBanner = "refresh_failed"
+                }
+            }
+        }
+    }
+}
+
+private struct LocalUITestTrainingLoadingCacheHostView: View {
+    @StateObject private var viewModel = LocalUITestTrainingLoadingCacheViewModel()
+
+    var body: some View {
+        ZStack {
+            VStack(spacing: 16) {
+                Text("UITest Loading Cache Host")
+                    .font(.headline)
+                    .accessibilityIdentifier("UITest_Loading_HostTitle")
+
+                Text("scenario:\(LocalUITestLoadingScenario.current().rawValue)")
+                    .font(.subheadline)
+                    .accessibilityIdentifier("UITest_Loading_Scenario")
+
+                VStack(spacing: 8) {
+                    Text("main_content_visible")
+                        .accessibilityIdentifier("UITest_Loading_MainContent")
+                    Text("cache_status:\(viewModel.cacheStatus)")
+                        .accessibilityIdentifier("UITest_Loading_CacheStatus")
+                    Text("refresh_status:\(viewModel.refreshStatus)")
+                        .accessibilityIdentifier("UITest_Loading_RefreshStatus")
+                    Text("distance_km:\(viewModel.visibleDistance)")
+                        .accessibilityIdentifier("UITest_Loading_Distance")
+                    Text("refresh_tick:\(viewModel.refreshTick)")
+                        .accessibilityIdentifier("UITest_Loading_RefreshTick")
+                    Text("action_tap_count:\(viewModel.actionTapCount)")
+                        .accessibilityIdentifier("UITest_Loading_ActionTapCount")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(16)
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(12)
+
+                if viewModel.nonBlockingBanner != "none" {
+                    Text(viewModel.nonBlockingBanner)
+                        .foregroundColor(.orange)
+                        .accessibilityIdentifier("UITest_Loading_NonBlockingBanner")
+                }
+
+                HStack(spacing: 12) {
+                    Button("Manual Refresh") {
+                        viewModel.triggerManualRefresh()
+                    }
+                    .disabled(viewModel.refreshStatus == "refreshing")
+                    .accessibilityIdentifier("UITest_Loading_ManualRefreshButton")
+
+                    Button("Try User Action") {
+                        viewModel.tapUserAction()
+                    }
+                    .accessibilityIdentifier("UITest_Loading_UserActionButton")
+                }
+            }
+            .padding(20)
+
+            if viewModel.blockingOverlayVisible {
+                Color.black.opacity(0.2)
+                    .ignoresSafeArea()
+                    .accessibilityIdentifier("UITest_Loading_BlockingOverlay")
+            }
+        }
+        .onAppear {
+            viewModel.startIfNeeded()
+        }
+    }
+}
+#endif
 
 // MARK: - 背景任務排程
 

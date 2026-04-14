@@ -12,6 +12,7 @@ struct SubscriptionStatusDTO: Codable {
     let planType: String?
     let rizoUsage: RizoUsageDTO?
     let billingIssue: Bool?
+    let enforcementEnabled: Bool?
 
     // MARK: - CodingKeys
 
@@ -21,6 +22,7 @@ struct SubscriptionStatusDTO: Codable {
         case planType = "plan_type"
         case rizoUsage = "rizo_usage"
         case billingIssue = "billing_issue"
+        case enforcementEnabled = "enforcement_enabled"
     }
 }
 

@@ -197,7 +197,8 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
                 isGenerating = false
                 return
             case .subscriptionRequired, .trialExpired:
-                self.paywallTrigger = resolvePaywallTrigger()
+                guard SubscriptionStateManager.shared.isEnforcementEnabled else { break }
+                paywallTrigger = resolvePaywallTrigger()
                 isGenerating = false
                 return
             default:
@@ -239,7 +240,8 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
                 isGenerating = false
                 return
             case .subscriptionRequired, .trialExpired:
-                self.paywallTrigger = resolvePaywallTrigger()
+                guard SubscriptionStateManager.shared.isEnforcementEnabled else { break }
+                paywallTrigger = resolvePaywallTrigger()
                 isGenerating = false
                 return
             default:

@@ -233,7 +233,9 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         entity: SubscriptionStatusEntity,
         source: String
     ) async -> SubscriptionStatusEntity {
-        guard entity.status == .none || entity.status == .expired || entity.status == .trial else {
+        let needsStatusReconcile = entity.status == .none || entity.status == .expired || entity.status == .trial
+        let needsPeriodResolution = entity.status == .active && entity.planType != "yearly" && entity.planType != "monthly"
+        guard needsStatusReconcile || needsPeriodResolution else {
             return entity
         }
         do {
@@ -242,14 +244,21 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                   entitlement.isActive else {
                 return entity
             }
+            let productId = entitlement.productIdentifier
+            let resolvedPlanType = (productId.contains("yearly") || productId.contains("annual")) ? "yearly" : "monthly"
+            let resolvedStatus: SubscriptionStatus = needsStatusReconcile ? .active : entity.status
             let reconciled = SubscriptionStatusEntity(
-                status: .active,
+                status: resolvedStatus,
                 expiresAt: entitlement.expirationDate?.timeIntervalSince1970 ?? entity.expiresAt,
-                planType: entity.planType ?? "premium",
+                planType: resolvedPlanType,
                 rizoUsage: entity.rizoUsage,
                 billingIssue: entity.billingIssue
             )
-            Logger.debug("[SubscriptionRepositoryImpl] \(source): API says \(entity.status.rawValue), reconciled to active from RevenueCat entitlement")
+            if needsStatusReconcile {
+                Logger.debug("[SubscriptionRepositoryImpl] \(source): API says \(entity.status.rawValue), reconciled to active from RevenueCat entitlement")
+            } else {
+                Logger.debug("[SubscriptionRepositoryImpl] \(source): resolved planType=\(resolvedPlanType) from productId=\(productId)")
+            }
             return reconciled
         } catch {
             Logger.debug("[SubscriptionRepositoryImpl] \(source): RevenueCat reconcile skipped: \(error.localizedDescription)")
@@ -263,7 +272,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             expiresAt: entity.expiresAt.map(iso8601String(from:)),
             planType: entity.planType,
             rizoUsage: entity.rizoUsage.map { RizoUsageDTO(used: $0.used, limit: $0.limit) },
-            billingIssue: entity.billingIssue
+            billingIssue: entity.billingIssue,
+            enforcementEnabled: entity.enforcementEnabled
         )
     }
 

@@ -49,22 +49,53 @@ final class TrainingPlanV2IAPGateUITests: XCTestCase {
             updateOverviewError: "none"
         )
 
-        let button = app.buttons["UITest_TPV2_GeneratePlanButton"]
-        XCTAssertTrue(button.waitForExistence(timeout: 8), "Generate plan action button should exist")
-        button.tap()
+        tapActionButtonAndAssertNonBlockingNoPaywall(
+            actionButtonId: "UITest_TPV2_GeneratePlanButton",
+            doneActionToken: "done_generate_plan",
+            reason: "server error"
+        )
+    }
 
-        let lastActionLabel = app.staticTexts["UITest_TPV2_LastActionLabel"]
-        XCTAssertTrue(lastActionLabel.waitForExistence(timeout: 8), "Last action label should exist")
-        let donePredicate = NSPredicate(format: "label CONTAINS %@", "done_generate_plan")
-        let doneExpectation = XCTNSPredicateExpectation(predicate: donePredicate, object: lastActionLabel)
-        XCTAssertEqual(
-            XCTWaiter().wait(for: [doneExpectation], timeout: 10),
-            .completed,
-            "Action should complete for non-paywall server error path"
+    func testGenerateWeeklyPlan_WhenDataCorruption_DoesNotShowPaywallOrBlock() {
+        launchApp(
+            generatePlanError: "data_corruption",
+            generateSummaryError: "none",
+            updateOverviewError: "none"
         )
 
-        let paywallCloseButton = app.buttons["Paywall_CloseButton"]
-        XCTAssertFalse(paywallCloseButton.waitForExistence(timeout: 2), "Server error path should not open paywall")
+        tapActionButtonAndAssertNonBlockingNoPaywall(
+            actionButtonId: "UITest_TPV2_GeneratePlanButton",
+            doneActionToken: "done_generate_plan",
+            reason: "decode/data corruption"
+        )
+    }
+
+    func testGenerateWeeklySummary_WhenDataCorruption_DoesNotShowPaywallOrBlock() {
+        launchApp(
+            generatePlanError: "none",
+            generateSummaryError: "data_corruption",
+            updateOverviewError: "none"
+        )
+
+        tapActionButtonAndAssertNonBlockingNoPaywall(
+            actionButtonId: "UITest_TPV2_GenerateSummaryButton",
+            doneActionToken: "done_generate_summary",
+            reason: "decode/data corruption"
+        )
+    }
+
+    func testRegenerateOverview_WhenDataCorruption_DoesNotShowPaywallOrBlock() {
+        launchApp(
+            generatePlanError: "none",
+            generateSummaryError: "none",
+            updateOverviewError: "data_corruption"
+        )
+
+        tapActionButtonAndAssertNonBlockingNoPaywall(
+            actionButtonId: "UITest_TPV2_RegenerateOverviewButton",
+            doneActionToken: "done_regenerate_overview",
+            reason: "decode/data corruption"
+        )
     }
 
     private func launchApp(
@@ -93,5 +124,28 @@ final class TrainingPlanV2IAPGateUITests: XCTestCase {
 
         let paywallCloseButton = app.buttons["Paywall_CloseButton"]
         XCTAssertTrue(paywallCloseButton.waitForExistence(timeout: 10), "Paywall should appear after subscription-gated action")
+    }
+
+    private func tapActionButtonAndAssertNonBlockingNoPaywall(
+        actionButtonId: String,
+        doneActionToken: String,
+        reason: String
+    ) {
+        let button = app.buttons[actionButtonId]
+        XCTAssertTrue(button.waitForExistence(timeout: 8), "Action button \(actionButtonId) should exist")
+        button.tap()
+
+        let lastActionLabel = app.staticTexts["UITest_TPV2_LastActionLabel"]
+        XCTAssertTrue(lastActionLabel.waitForExistence(timeout: 8), "Last action label should exist")
+        let donePredicate = NSPredicate(format: "label CONTAINS %@", doneActionToken)
+        let doneExpectation = XCTNSPredicateExpectation(predicate: donePredicate, object: lastActionLabel)
+        XCTAssertEqual(
+            XCTWaiter().wait(for: [doneExpectation], timeout: 10),
+            .completed,
+            "Action should complete for \(reason) path without blocking"
+        )
+
+        let paywallCloseButton = app.buttons["Paywall_CloseButton"]
+        XCTAssertFalse(paywallCloseButton.waitForExistence(timeout: 2), "\(reason) path should not open paywall")
     }
 }

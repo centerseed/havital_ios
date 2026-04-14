@@ -122,6 +122,25 @@ actor APIClient {
                 print("🔍 原始 API 回應:")
                 print(responseString)
                 print("🔍 解析錯誤: \(finalError)")
+
+                let responsePreview = String(responseString.prefix(1000))
+                Logger.firebase(
+                    "APIClient decode failed",
+                    level: .error,
+                    labels: [
+                        "cloud_logging": "true",
+                        "module": "APIClient",
+                        "operation": "decode_failure"
+                    ],
+                    jsonPayload: [
+                        "path": path,
+                        "method": method,
+                        "expected_type": String(describing: T.self),
+                        "error_type": String(describing: Swift.type(of: finalError)),
+                        "error_description": finalError.localizedDescription,
+                        "response_preview": responsePreview
+                    ]
+                )
                 
                 // 特別檢查是否為運動詳情請求
                 if path.contains("/v2/workouts/") && !path.contains("stats") {

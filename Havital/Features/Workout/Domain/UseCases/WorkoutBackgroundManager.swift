@@ -618,6 +618,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 請求 HealthKit 授權（核心功能，失敗會 throw）
     private func requestHealthKitAuthorizationCore() async throws {
+        if CommandLine.arguments.contains("-skipHealthKitAuth") {
+            print("🧪 [UI Test] -skipHealthKitAuth detected, bypass WorkoutBackgroundManager HealthKit authorization request")
+            return
+        }
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             var typesToRead: Set<HKObjectType> = [HKObjectType.workoutType()]
             if let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) {

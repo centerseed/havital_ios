@@ -33,7 +33,8 @@ enum SubscriptionMapper {
             expiresAt: expiresAt,
             planType: dto.planType,
             rizoUsage: rizoUsage,
-            billingIssue: billingIssue
+            billingIssue: billingIssue,
+            enforcementEnabled: dto.enforcementEnabled ?? false
         )
     }
 

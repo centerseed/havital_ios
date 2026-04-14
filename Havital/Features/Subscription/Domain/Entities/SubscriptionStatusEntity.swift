@@ -22,6 +22,9 @@ struct SubscriptionStatusEntity {
     /// 是否有帳單問題（如付款失敗）
     let billingIssue: Bool
 
+    /// 後端是否開啟訂閱執行（false = 軟上線期間，paywall 靜默）
+    let enforcementEnabled: Bool
+
     // MARK: - Initialization
 
     init(
@@ -29,13 +32,15 @@ struct SubscriptionStatusEntity {
         expiresAt: TimeInterval? = nil,
         planType: String? = nil,
         rizoUsage: RizoUsage? = nil,
-        billingIssue: Bool = false
+        billingIssue: Bool = false,
+        enforcementEnabled: Bool = false
     ) {
         self.status = status
         self.expiresAt = expiresAt
         self.planType = planType
         self.rizoUsage = rizoUsage
         self.billingIssue = billingIssue
+        self.enforcementEnabled = enforcementEnabled
     }
 }
 
@@ -47,6 +52,7 @@ extension SubscriptionStatusEntity: Equatable {
             && lhs.planType == rhs.planType
             && lhs.rizoUsage == rhs.rizoUsage
             && lhs.billingIssue == rhs.billingIssue
+            && lhs.enforcementEnabled == rhs.enforcementEnabled
     }
 }
 

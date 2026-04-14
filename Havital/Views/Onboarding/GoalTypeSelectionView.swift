@@ -86,6 +86,7 @@ struct GoalTypeSelectionView: View {
                         ) {
                             viewModel.selectedGoalType = .specificRace
                         }
+                        .accessibilityIdentifier("GoalType_race_run")
                         .padding(.horizontal)
 
                         GoalTypeCard(
@@ -96,6 +97,7 @@ struct GoalTypeSelectionView: View {
                         ) {
                             viewModel.selectedGoalType = .beginner5k
                         }
+                        .accessibilityIdentifier("GoalType_beginner")
                         .padding(.horizontal)
                     }
 

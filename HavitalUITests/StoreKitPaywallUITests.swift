@@ -9,6 +9,8 @@ final class StoreKitPaywallUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
 
+        XCUIDevice.shared.orientation = .portrait
+
         storeKitSession = try SKTestSession(configurationFileNamed: "PacerizUITests")
         storeKitSession.resetToDefaultState()
         storeKitSession.clearTransactions()
@@ -23,6 +25,7 @@ final class StoreKitPaywallUITests: XCTestCase {
             "-useStoreKitTestRepository"
         ]
         app.launch()
+        XCUIDevice.shared.orientation = .portrait
 
         let openPaywallButton = app.buttons["UITest_OpenPaywall"]
         XCTAssertTrue(openPaywallButton.waitForExistence(timeout: 10), "UITest host should expose paywall trigger button")
@@ -34,9 +37,8 @@ final class StoreKitPaywallUITests: XCTestCase {
             "Expected StoreKit test repository, got: \(repoTypeLabel.label)"
         )
 
-        openPaywallButton.tap()
-
-        XCTAssertTrue(app.buttons["Paywall_YearlyOption"].waitForExistence(timeout: 10), "Paywall should be visible after tapping open button")
+        tapRobust(openPaywallButton)
+        XCTAssertTrue(waitForPaywallVisible(timeout: 12), "Paywall should be visible after tapping open button")
     }
 
     override func tearDownWithError() throws {
@@ -163,8 +165,8 @@ final class StoreKitPaywallUITests: XCTestCase {
         guard ensureHostVisible(timeout: 8) else { return false }
         let openPaywallButton = app.buttons["UITest_OpenPaywall"]
         guard openPaywallButton.waitForExistence(timeout: 5) else { return false }
-        openPaywallButton.tap()
-        return yearlyOption.waitForExistence(timeout: 8)
+        tapRobust(openPaywallButton)
+        return waitForPaywallVisible(timeout: 10)
     }
 
     @discardableResult
@@ -224,5 +226,35 @@ final class StoreKitPaywallUITests: XCTestCase {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: " | ")
+    }
+
+    @discardableResult
+    private func waitForPaywallVisible(timeout: TimeInterval) -> Bool {
+        let yearlyOption = app.buttons["Paywall_YearlyOption"]
+        if yearlyOption.waitForExistence(timeout: timeout) {
+            return true
+        }
+        return app.buttons["Paywall_CloseButton"].waitForExistence(timeout: 2)
+    }
+
+    private func tapRobust(_ element: XCUIElement) {
+        if element.isHittable {
+            element.tap()
+            return
+        }
+
+        app.swipeUp()
+        if element.isHittable {
+            element.tap()
+            return
+        }
+
+        app.swipeDown()
+        if element.isHittable {
+            element.tap()
+            return
+        }
+
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 }

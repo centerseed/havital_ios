@@ -272,6 +272,8 @@
 "profile.subscription.manage" = "管理訂閱";
 "profile.subscription.resubscribe" = "重新訂閱";
 "profile.subscription.change_plan" = "變更方案";
+"profile.subscription.plan.yearly" = "年訂閱";
+"profile.subscription.plan.monthly" = "月訂閱";
 
 // MARK: - Data Sources
 "datasource.title" = "數據來源";
@@ -2435,7 +2437,7 @@
 "paywall.purchase_success_start" = "開始使用";
 "paywall.purchase_success_trial_note" = "付費方案將在試用結束後啟用";
 "reminder.trial_expiring_title" = "試用即將到期";
-"reminder.trial_expiring_message" = "您的試用期還剩 %d 天，升級以繼續使用完整功能。";
+"reminder.trial_expiring_message" = "試用期還剩 %1$d 天（%2$@ 到期）。\n\n現在訂閱不影響試用期，訂閱將於試用期結束後才開始計費。";
 "reminder.expired_title" = "訂閱已到期";
 "reminder.expired_message" = "您的訂閱已到期，部分功能將無法使用。立即升級以繼續使用。";
 "paywall.trial_days_remaining" = "%d 天試用期剩餘";

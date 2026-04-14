@@ -185,7 +185,7 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         }
     }
 
-    func testLoadWeeklySummary_NonDomainError_WrapsAsNetworkFailure() async {
+    func testLoadWeeklySummary_NonDomainError_MapsToUnknown() async {
         // Given
         mockRepository.errorToThrow = NSError(domain: "test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"])
 
@@ -194,10 +194,10 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
 
         // Then
         if case .error(let error) = sut.weeklySummary {
-            if case .networkFailure = error {
-                // OK - non-domain errors are wrapped as networkFailure
+            if case .unknown(let message) = error {
+                XCTAssertEqual(message, "Unknown error")
             } else {
-                XCTFail("Expected .networkFailure wrapper, got \(error)")
+                XCTFail("Expected .unknown wrapper, got \(error)")
             }
         } else {
             XCTFail("Expected .error state")
@@ -242,6 +242,38 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
             XCTFail("Expected .error state")
         }
         XCTAssertNil(sut.successToast)
+    }
+
+    func testLoadWeeklySummary_DataCorruption_SetsEmptyAndDoesNotBlock() async {
+        // Given
+        mockRepository.errorToThrow = DomainError.dataCorruption("decode mismatch")
+
+        // When
+        await sut.loadWeeklySummary(weekOfPlan: 1)
+
+        // Then
+        if case .empty = sut.weeklySummary {
+            // expected
+        } else {
+            XCTFail("Expected .empty state for non-blocking data corruption, got \(sut.weeklySummary)")
+        }
+        XCTAssertEqual(sut.successToast, NSLocalizedString("error.data_corruption", comment: "Data corruption"))
+    }
+
+    func testGenerateWeeklySummary_DataCorruption_SetsEmptyAndDoesNotBlock() async {
+        // Given
+        mockRepository.errorToThrow = DomainError.dataCorruption("decode mismatch")
+
+        // When
+        await sut.generateWeeklySummary()
+
+        // Then
+        if case .empty = sut.weeklySummary {
+            // expected
+        } else {
+            XCTFail("Expected .empty state for non-blocking data corruption, got \(sut.weeklySummary)")
+        }
+        XCTAssertEqual(sut.successToast, NSLocalizedString("error.data_corruption", comment: "Data corruption"))
     }
 
     // MARK: - State Transition Tests

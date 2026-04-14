@@ -181,9 +181,11 @@ final class AuthenticationViewModel: ObservableObject {
             // Update onboarding status from user data
             if let user = self.currentUser {
                 await MainActor.run {
-                    self.hasCompletedOnboarding = user.hasCompletedOnboarding
-                    UserDefaults.standard.set(user.hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
-                    Logger.debug("[AuthViewModel] ✅ Onboarding status updated: \(user.hasCompletedOnboarding)")
+                    let forceOnboardingInUITest = CommandLine.arguments.contains("-resetOnboarding")
+                    let resolvedOnboardingStatus = forceOnboardingInUITest ? false : user.hasCompletedOnboarding
+                    self.hasCompletedOnboarding = resolvedOnboardingStatus
+                    UserDefaults.standard.set(resolvedOnboardingStatus, forKey: "hasCompletedOnboarding")
+                    Logger.debug("[AuthViewModel] ✅ Onboarding status updated: \(resolvedOnboardingStatus)")
                 }
             }
 

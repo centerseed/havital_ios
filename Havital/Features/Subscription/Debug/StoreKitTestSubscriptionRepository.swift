@@ -63,6 +63,40 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
             return $0.period == .yearly
         }
 
+        if sorted.isEmpty, isPaywallUITestMode {
+            return [SubscriptionOfferingEntity(
+                id: "storekit_local_fallback",
+                title: "Paceriz Premium",
+                description: "StoreKit Local Test Fallback",
+                packages: [
+                    SubscriptionPackageEntity(
+                        id: "paceriz.sub.yearly",
+                        productId: "paceriz.sub.yearly",
+                        localizedPrice: "$59.99",
+                        price: 59.99,
+                        currencyCode: "USD",
+                        localeIdentifier: "en_US",
+                        period: .yearly,
+                        billingPeriodValue: 1,
+                        billingPeriodUnit: .year,
+                        officialOffer: nil
+                    ),
+                    SubscriptionPackageEntity(
+                        id: "paceriz.sub.monthly",
+                        productId: "paceriz.sub.monthly",
+                        localizedPrice: "$9.99",
+                        price: 9.99,
+                        currencyCode: "USD",
+                        localeIdentifier: "en_US",
+                        period: .monthly,
+                        billingPeriodValue: 1,
+                        billingPeriodUnit: .month,
+                        officialOffer: nil
+                    )
+                ]
+            )]
+        }
+
         guard !sorted.isEmpty else { return [] }
 
         return [SubscriptionOfferingEntity(

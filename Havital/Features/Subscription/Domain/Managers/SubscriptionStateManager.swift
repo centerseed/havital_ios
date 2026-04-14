@@ -15,6 +15,11 @@ final class SubscriptionStateManager: ObservableObject {
 
     private init() {}
 
+    /// 後端是否開啟訂閱執行（false = 軟上線期間，不顯示 paywall）
+    var isEnforcementEnabled: Bool {
+        currentStatus?.enforcementEnabled ?? false
+    }
+
     func update(_ status: SubscriptionStatusEntity) {
         if let previous = currentStatus {
             guard status != previous else { return }

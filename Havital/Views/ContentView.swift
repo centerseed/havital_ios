@@ -264,8 +264,11 @@ struct ContentView: View {
 
     private var subscriptionReminderMessage: String {
         switch reminderManager.pendingReminder {
-        case .trialExpiring(let days):
-            return String(format: NSLocalizedString("reminder.trial_expiring_message", comment: ""), days)
+        case .trialExpiring(let days, let endsAt):
+            let dateStr = endsAt.map {
+                DateFormatter.localizedString(from: Date(timeIntervalSince1970: $0), dateStyle: .medium, timeStyle: .none)
+            } ?? ""
+            return String(format: NSLocalizedString("reminder.trial_expiring_message", comment: ""), days, dateStr)
         case .expired:
             return NSLocalizedString("reminder.expired_message", comment: "")
         case nil:

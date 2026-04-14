@@ -28,6 +28,11 @@ class HealthKitManager: ObservableObject, TaskManageable {
     // MARK: - 初始化和授權
     
     func requestAuthorization() async throws {
+        if CommandLine.arguments.contains("-skipHealthKitAuth") {
+            print("🧪 [UI Test] -skipHealthKitAuth detected, bypass HealthKit authorization request")
+            return
+        }
+
         guard HKHealthStore.isHealthDataAvailable() else {
             print("HealthKit 不可用")
             throw HealthError.notAvailable

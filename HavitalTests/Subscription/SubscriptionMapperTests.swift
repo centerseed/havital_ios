@@ -9,12 +9,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .active)
+        XCTAssertEqual(entity.status, SubscriptionStatus.active)
     }
 
     func testToEntity_mapsTrialActiveToTrial() {
@@ -23,12 +24,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: nil,
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .trial)
+        XCTAssertEqual(entity.status, SubscriptionStatus.trial)
     }
 
     func testToEntity_mapsCancelledToCancelled() {
@@ -37,12 +39,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .cancelled)
+        XCTAssertEqual(entity.status, SubscriptionStatus.cancelled)
     }
 
     func testToEntity_mapsActiveWithBillingIssueToGracePeriod() {
@@ -51,12 +54,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: true
+            billingIssue: true,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .gracePeriod)
+        XCTAssertEqual(entity.status, SubscriptionStatus.gracePeriod)
         XCTAssertTrue(entity.billingIssue)
     }
 
@@ -66,12 +70,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .gracePeriod)
+        XCTAssertEqual(entity.status, SubscriptionStatus.gracePeriod)
     }
 
     func testToEntity_mapsRevokedToExpired() {
@@ -80,12 +85,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .expired)
+        XCTAssertEqual(entity.status, SubscriptionStatus.expired)
     }
 
     func testToEntity_mapsRevokeToExpired() {
@@ -94,12 +100,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2026-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .expired)
+        XCTAssertEqual(entity.status, SubscriptionStatus.expired)
     }
 
     func testToEntity_mapsCancelledWithPastExpiryToExpired() {
@@ -108,12 +115,13 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2020-01-01T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .expired)
+        XCTAssertEqual(entity.status, SubscriptionStatus.expired)
     }
 
     func testToEntity_keepsCancelledWhenExpiryInFuture() {
@@ -122,11 +130,12 @@ final class SubscriptionMapperTests: XCTestCase {
             expiresAt: "2099-12-31T00:00:00Z",
             planType: "monthly",
             rizoUsage: nil,
-            billingIssue: false
+            billingIssue: false,
+            enforcementEnabled: false
         )
 
         let entity = SubscriptionMapper.toEntity(from: dto)
 
-        XCTAssertEqual(entity.status, .cancelled)
+        XCTAssertEqual(entity.status, SubscriptionStatus.cancelled)
     }
 }

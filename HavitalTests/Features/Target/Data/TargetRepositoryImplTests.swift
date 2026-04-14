@@ -25,6 +25,21 @@ final class TargetRepositoryImplTests: XCTestCase {
         mockLocalDS = nil
         super.tearDown()
     }
+
+    private func waitForBackgroundRefresh(
+        timeoutNanoseconds: UInt64 = 1_000_000_000
+    ) async {
+        let interval: UInt64 = 20_000_000
+        var elapsed: UInt64 = 0
+
+        while elapsed < timeoutNanoseconds {
+            if mockRemoteDS.getTargetCallCount > 0 || mockRemoteDS.getTargetsCallCount > 0 {
+                return
+            }
+            try? await Task.sleep(nanoseconds: interval)
+            elapsed += interval
+        }
+    }
     
     // MARK: - getTargets Tests
     
@@ -42,8 +57,7 @@ final class TargetRepositoryImplTests: XCTestCase {
         XCTAssertEqual(mockLocalDS.getTargetsCallCount, 1)
         
         // Background refresh should be triggered
-        // Wait a bit for detached task
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+        await waitForBackgroundRefresh()
         XCTAssertEqual(mockRemoteDS.getTargetsCallCount, 1, "Background refresh should have been called")
         XCTAssertEqual(mockLocalDS.saveTargetsCallCount, 1, "Cache should have been updated after background refresh")
     }
@@ -80,7 +94,7 @@ final class TargetRepositoryImplTests: XCTestCase {
         XCTAssertEqual(mockLocalDS.getTargetCallCount, 1)
         
         // Background refresh
-        try await Task.sleep(nanoseconds: 100_000_000)
+        await waitForBackgroundRefresh()
         XCTAssertEqual(mockRemoteDS.getTargetCallCount, 1)
         XCTAssertEqual(mockLocalDS.saveTargetCallCount, 1)
     }

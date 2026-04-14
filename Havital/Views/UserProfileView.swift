@@ -44,7 +44,9 @@ struct UserProfileView: View {
         List {
             // Group 1: 帳戶 — 用戶每次進來都看的
             profileSection
-            subscriptionSection
+            if subscriptionState.isEnforcementEnabled {
+                subscriptionSection
+            }
 
             // Group 2: 訓練設定 — 偶爾調整
             trainingSettingsSection
@@ -273,31 +275,8 @@ struct UserProfileView: View {
             if let status = subscriptionState.currentStatus {
                 // 狀態輔助資訊（依 Spec UI 矩陣）
                 switch status.status {
-                case .trial:
-                    if status.expiresAt != nil {
-                        HStack {
-                            Label(NSLocalizedString("profile.subscription.trial_remaining", comment: "Trial"), systemImage: "clock")
-                            Spacer()
-                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), status.daysRemaining))
-                                .foregroundColor(.orange)
-                        }
-                    }
-
-                case .active:
-                    if let expiresAt = status.expiresAt {
-                        HStack {
-                            Label(NSLocalizedString("profile.subscription.expires", comment: "Expires"), systemImage: "calendar")
-                            Spacer()
-                            Text(Date(timeIntervalSince1970: expiresAt), style: .date)
-                                .foregroundColor(.secondary)
-                        }
-                        HStack {
-                            Label(NSLocalizedString("profile.subscription.remaining", comment: "Remaining"), systemImage: "hourglass")
-                            Spacer()
-                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), status.daysRemaining))
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                case .trial, .active:
+                    EmptyView()
 
                 case .gracePeriod:
                     Label(NSLocalizedString("profile.subscription.grace_period", comment: "Billing processing, service unaffected"), systemImage: "exclamationmark.triangle")
@@ -312,15 +291,19 @@ struct UserProfileView: View {
                             Text(Date(timeIntervalSince1970: expiresAt), style: .date)
                                 .foregroundColor(.orange)
                         }
+                    }
+
+                case .expired:
+                    if let expiresAt = status.expiresAt {
                         HStack {
-                            Label(NSLocalizedString("profile.subscription.remaining", comment: "Remaining"), systemImage: "hourglass")
+                            Label(NSLocalizedString("profile.subscription.expires", comment: "Expires"), systemImage: "calendar.badge.exclamationmark")
                             Spacer()
-                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), status.daysRemaining))
-                                .foregroundColor(.orange)
+                            Text(Date(timeIntervalSince1970: expiresAt), style: .date)
+                                .foregroundColor(.red)
                         }
                     }
 
-                case .expired, .none:
+                case .none:
                     EmptyView()
                 }
 
@@ -437,13 +420,27 @@ struct UserProfileView: View {
         }
         switch status.status {
         case .active, .gracePeriod:
-            return status.planType ?? "Premium"
+            switch status.planType {
+            case "yearly":
+                return NSLocalizedString("profile.subscription.plan.yearly", comment: "年訂閱")
+            case "monthly":
+                return NSLocalizedString("profile.subscription.plan.monthly", comment: "月訂閱")
+            default:
+                return "Paceriz Premium"
+            }
         case .trial:
             return NSLocalizedString("profile.subscription.trial", comment: "Trial")
         case .cancelled:
             return NSLocalizedString("profile.subscription.cancelled", comment: "Cancelled")
         case .expired:
-            return NSLocalizedString("profile.subscription.expired", comment: "Expired")
+            switch status.planType {
+            case "yearly":
+                return NSLocalizedString("profile.subscription.plan.yearly", comment: "年訂閱")
+            case "monthly":
+                return NSLocalizedString("profile.subscription.plan.monthly", comment: "月訂閱")
+            default:
+                return NSLocalizedString("profile.subscription.expired", comment: "Expired")
+            }
         case .none:
             return NSLocalizedString("profile.subscription.free", comment: "Free")
         }

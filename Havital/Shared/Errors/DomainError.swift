@@ -131,6 +131,24 @@ extension Error {
             return httpError.toDomainError()
         }
 
+        // ParseError 轉換（API decode/schema mismatch）
+        if let parseError = self as? ParseError {
+            switch parseError {
+            case .decodingFailed(let detail):
+                let field = detail.missingField ?? "unknown"
+                return .dataCorruption("decode_failed(type=\(detail.expectedType), field=\(field), path=\(detail.codingPath))")
+            case .fallbackFailed(let message):
+                return .dataCorruption("fallback_failed(\(message))")
+            case .invalidData(let message):
+                return .dataCorruption(message)
+            }
+        }
+
+        // 直接 DecodingError（未包成 ParseError 的情況）
+        if self is DecodingError {
+            return .dataCorruption(localizedDescription)
+        }
+
         // URLError 轉換
         if let urlError = self as? URLError {
             switch urlError.code {

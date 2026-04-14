@@ -272,6 +272,8 @@
 "profile.subscription.manage" = "Manage Subscription";
 "profile.subscription.resubscribe" = "Resubscribe";
 "profile.subscription.change_plan" = "Change Plan";
+"profile.subscription.plan.yearly" = "Annual";
+"profile.subscription.plan.monthly" = "Monthly";
 
 // MARK: - Data Sources
 "datasource.title" = "Data Sources";
@@ -2409,7 +2411,7 @@
 "paywall.purchase_success_start" = "Start Using";
 "paywall.purchase_success_trial_note" = "Paid plan activates after trial ends";
 "reminder.trial_expiring_title" = "Trial Expiring Soon";
-"reminder.trial_expiring_message" = "Your trial expires in %d days. Upgrade to keep using all features.";
+"reminder.trial_expiring_message" = "Your trial ends in %1$d days (%2$@).\n\nSubscribing now won't affect your trial — billing starts only after the trial ends.";
 "reminder.expired_title" = "Subscription Expired";
 "reminder.expired_message" = "Your subscription has expired. Some features are no longer available. Upgrade to continue.";
 "paywall.trial_days_remaining" = "%d days remaining in trial";

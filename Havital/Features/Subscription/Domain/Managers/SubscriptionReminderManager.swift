@@ -3,7 +3,7 @@ import Foundation
 // MARK: - SubscriptionReminderManager
 /// 訂閱到期提醒管理器 - Domain 層
 /// 控制 trial 即將到期和 expired 提醒的顯示頻率
-/// - trial: 剩餘 <= 3 天，每日最多一次
+/// - trial: 剩餘 <= 7 天，每日最多一次
 /// - expired: 每次 App 啟動一次，同 session 不重複
 @MainActor
 final class SubscriptionReminderManager: ObservableObject {
@@ -28,6 +28,11 @@ final class SubscriptionReminderManager: ObservableObject {
     /// 檢查並產生提醒（App 啟動或前景恢復時呼叫）
     func checkAndShowReminder(status: SubscriptionStatusEntity?) {
         guard let status else {
+            pendingReminder = nil
+            return
+        }
+
+        guard SubscriptionStateManager.shared.isEnforcementEnabled else {
             pendingReminder = nil
             return
         }
@@ -65,7 +70,7 @@ final class SubscriptionReminderManager: ObservableObject {
         }
         let remainingDays = status.daysRemaining
 
-        guard remainingDays <= 3 && remainingDays > 0 else {
+        guard remainingDays <= 7 && remainingDays > 0 else {
             pendingReminder = nil
             return
         }
@@ -79,7 +84,7 @@ final class SubscriptionReminderManager: ObservableObject {
         }
 
         UserDefaults.standard.set(today, forKey: Keys.lastTrialReminderDate)
-        pendingReminder = .trialExpiring(daysRemaining: remainingDays)
+        pendingReminder = .trialExpiring(daysRemaining: remainingDays, trialEndsAt: status.expiresAt)
     }
 
     private func checkExpiredReminder() {
@@ -94,12 +99,12 @@ final class SubscriptionReminderManager: ObservableObject {
 
 // MARK: - SubscriptionReminder
 enum SubscriptionReminder: Identifiable, Equatable {
-    case trialExpiring(daysRemaining: Int)
+    case trialExpiring(daysRemaining: Int, trialEndsAt: TimeInterval?)
     case expired
 
     var id: String {
         switch self {
-        case .trialExpiring(let days): return "trial_\(days)"
+        case .trialExpiring(let days, _): return "trial_\(days)"
         case .expired: return "expired"
         }
     }
