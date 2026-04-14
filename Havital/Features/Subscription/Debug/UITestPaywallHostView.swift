@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 struct UITestPaywallHostView: View {
@@ -33,3 +34,4 @@ struct UITestPaywallHostView: View {
         }
     }
 }
+#endif

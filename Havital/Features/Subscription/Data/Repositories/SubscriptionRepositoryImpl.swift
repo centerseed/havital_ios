@@ -12,6 +12,9 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     private let remoteDataSource: SubscriptionRemoteDataSourceProtocol
     private let localDataSource: SubscriptionLocalDataSourceProtocol
 
+    /// 快取最近一次 fetchOfferings 結果，避免 purchase 時重複拉取
+    private var cachedOfferings: Offerings?
+
     // MARK: - Initialization
 
     init(
@@ -71,6 +74,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         Logger.debug("[SubscriptionRepositoryImpl] fetchOfferings: calling RevenueCat")
         do {
             let offerings = try await Purchases.shared.offerings()
+            cachedOfferings = offerings
             let entities = offerings.all.values.map { offering in
                 let packages = offering.availablePackages.map { package -> SubscriptionPackageEntity in
                     let period: SubscriptionPeriod = package.packageType == .annual ? .yearly : .monthly
@@ -176,7 +180,12 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     func purchase(offeringId: String, packageId: String) async throws -> PurchaseResultEntity {
         Logger.debug("[SubscriptionRepositoryImpl] purchase: offeringId=\(offeringId) packageId=\(packageId)")
-        let offerings = try await Purchases.shared.offerings()
+        let offerings: Offerings
+        if let cached = cachedOfferings {
+            offerings = cached
+        } else {
+            offerings = try await Purchases.shared.offerings()
+        }
         guard let offering = offerings.offering(identifier: offeringId),
               let package = offering.package(identifier: packageId) else {
             return .failed(DomainError.unknown("Package not found: \(offeringId)/\(packageId)"))
@@ -258,10 +267,14 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         )
     }
 
-    private func iso8601String(from timestamp: TimeInterval) -> String {
+    private static let iso8601Formatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.string(from: Date(timeIntervalSince1970: timestamp))
+        return formatter
+    }()
+
+    private func iso8601String(from timestamp: TimeInterval) -> String {
+        Self.iso8601Formatter.string(from: Date(timeIntervalSince1970: timestamp))
     }
 
     private func mapOfferType(_ type: StoreProductDiscount.DiscountType) -> SubscriptionOfferType {
@@ -297,7 +310,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     ) -> SubscriptionOfficialOffer? {
         guard !discounts.isEmpty else { return nil }
         let regularPriceValue = NSDecimalNumber(decimal: regularPrice).doubleValue
-        let baseDays = periodLengthInDays(value: basePeriodValue, unit: basePeriodUnit)
+        let baseDays = basePeriodUnit.lengthInDays(value: basePeriodValue)
 
         let bestDiscount = discounts.max { lhs, rhs in
             let leftScore = offerScore(discount: lhs, regularPrice: regularPriceValue, baseDays: baseDays)
@@ -314,10 +327,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             return 1_000_000
         }
 
-        let offerPeriodDays = periodLengthInDays(
-            value: discount.subscriptionPeriod.value,
-            unit: mapOfferPeriodUnit(discount.subscriptionPeriod.unit)
-        )
+        let offerPeriodUnit = mapOfferPeriodUnit(discount.subscriptionPeriod.unit)
+        let offerPeriodDays = offerPeriodUnit.lengthInDays(value: discount.subscriptionPeriod.value)
         let totalPeriods = Double(max(1, discount.numberOfPeriods))
         let offerTotalDays = offerPeriodDays * totalPeriods
         guard regularPrice > 0, baseDays > 0, offerTotalDays > 0 else { return 0 }
@@ -342,19 +353,6 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         return savingsRatio
     }
 
-    private func periodLengthInDays(value: Int, unit: SubscriptionOfferPeriodUnit) -> Double {
-        let units = Double(max(1, value))
-        switch unit {
-        case .day:
-            return units
-        case .week:
-            return units * 7
-        case .month:
-            return units * 30.4375
-        case .year:
-            return units * 365.25
-        }
-    }
 
     private func mapOfferPaymentMode(_ mode: StoreProductDiscount.PaymentMode) -> SubscriptionOfferPaymentMode {
         switch mode {

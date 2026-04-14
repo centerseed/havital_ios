@@ -58,4 +58,15 @@ enum SubscriptionOfferPeriodUnit: String {
     case week
     case month
     case year
+
+    /// 將期間長度轉換為天數（用於折扣計算）
+    func lengthInDays(value: Int) -> Double {
+        let units = Double(max(1, value))
+        switch self {
+        case .day:   return units
+        case .week:  return units * 7
+        case .month: return units * 30.4375
+        case .year:  return units * 365.25
+        }
+    }
 }

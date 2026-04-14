@@ -59,12 +59,11 @@ final class SubscriptionReminderManager: ObservableObject {
     // MARK: - Private
 
     private func checkTrialReminder(status: SubscriptionStatusEntity) {
-        guard let expiresAt = status.expiresAt else {
+        guard status.expiresAt != nil else {
             pendingReminder = nil
             return
         }
-        let remainingSeconds = expiresAt - Date().timeIntervalSince1970
-        let remainingDays = Int(ceil(remainingSeconds / 86400.0))
+        let remainingDays = status.daysRemaining
 
         guard remainingDays <= 3 && remainingDays > 0 else {
             pendingReminder = nil

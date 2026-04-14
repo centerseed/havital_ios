@@ -159,7 +159,7 @@ struct HavitalApp: App {
             } else if shouldLaunchTrainingPlanV2GatesUITestHarness {
                 trainingPlanV2GateHarnessView
             } else if shouldLaunchPaywallUITestHarness {
-                UITestPaywallHostView()
+                paywallUITestHarnessView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -275,7 +275,20 @@ struct HavitalApp: App {
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {
+        #if DEBUG
         CommandLine.arguments.contains("-ui_testing_paywall")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var paywallUITestHarnessView: some View {
+        #if DEBUG
+        UITestPaywallHostView()
+        #else
+        EmptyView()
+        #endif
     }
 
     private var shouldLaunchTrainingPlanV2GatesUITestHarness: Bool {

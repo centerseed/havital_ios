@@ -17,6 +17,7 @@ final class SubscriptionStateManager: ObservableObject {
 
     func update(_ status: SubscriptionStatusEntity) {
         if let previous = currentStatus {
+            guard status != previous else { return }
             let downgrade = detectDowngrade(from: previous.status, to: status.status)
             if downgrade != nil {
                 recentDowngrade = downgrade

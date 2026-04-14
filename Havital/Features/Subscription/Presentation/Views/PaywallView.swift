@@ -7,7 +7,6 @@ struct PaywallView: View {
     @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPackageId: String? = nil
-    @State private var purchaseErrorMessage: String? = nil
     @State private var showPurchaseSuccess = false
 
     init(trigger: PaywallTrigger) {
@@ -64,17 +63,11 @@ struct PaywallView: View {
             }
             .task { await viewModel.loadOfferings() }
             .onChange(of: viewModel.purchaseState) { _, newState in
-                switch newState {
-                case .success:
+                if case .success = newState {
                     showPurchaseSuccess = true
-                    // 3 秒後自動關閉（Spec P1-8）
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         if showPurchaseSuccess { dismiss() }
                     }
-                case .failed(let message):
-                    purchaseErrorMessage = message
-                case .idle, .purchasing:
-                    break
                 }
             }
             .overlay {
@@ -85,21 +78,22 @@ struct PaywallView: View {
             .alert(
                 NSLocalizedString("paywall.purchase_error_title", comment: "Purchase Error"),
                 isPresented: Binding(
-                    get: { purchaseErrorMessage != nil },
+                    get: {
+                        if case .failed = viewModel.purchaseState { return true }
+                        return false
+                    },
                     set: { isPresented in
-                        if !isPresented {
-                            purchaseErrorMessage = nil
-                            viewModel.purchaseState = .idle
-                        }
+                        if !isPresented { viewModel.purchaseState = .idle }
                     }
                 )
             ) {
                 Button(NSLocalizedString("common.ok", comment: "OK")) {
-                    purchaseErrorMessage = nil
                     viewModel.purchaseState = .idle
                 }
             } message: {
-                Text(purchaseErrorMessage ?? "")
+                if case .failed(let message) = viewModel.purchaseState {
+                    Text(message)
+                }
             }
         }
     }
@@ -378,8 +372,8 @@ struct PaywallView: View {
         guard let offer = package.officialOffer else { return nil }
         if offer.paymentMode == .freeTrial { return 100 }
 
-        let baseDays = periodLengthInDays(value: package.billingPeriodValue, unit: package.billingPeriodUnit)
-        let offerSinglePeriodDays = periodLengthInDays(value: offer.periodValue, unit: offer.periodUnit)
+        let baseDays = package.billingPeriodUnit.lengthInDays(value: package.billingPeriodValue)
+        let offerSinglePeriodDays = offer.periodUnit.lengthInDays(value: offer.periodValue)
         let offerTotalPeriods = max(1, offer.numberOfPeriods)
         let offerTotalDays = offerSinglePeriodDays * Double(offerTotalPeriods)
 
@@ -405,19 +399,6 @@ struct PaywallView: View {
         return percent > 0 ? percent : nil
     }
 
-    private func periodLengthInDays(value: Int, unit: SubscriptionOfferPeriodUnit) -> Double {
-        let units = Double(max(1, value))
-        switch unit {
-        case .day:
-            return units
-        case .week:
-            return units * 7
-        case .month:
-            return units * 30.4375
-        case .year:
-            return units * 365.25
-        }
-    }
 }
 
 private struct OfficialOfferDisplayInfo {

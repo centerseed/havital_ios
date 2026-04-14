@@ -39,6 +39,27 @@ struct SubscriptionStatusEntity {
     }
 }
 
+// MARK: - Equatable
+extension SubscriptionStatusEntity: Equatable {
+    static func == (lhs: SubscriptionStatusEntity, rhs: SubscriptionStatusEntity) -> Bool {
+        lhs.status == rhs.status
+            && lhs.expiresAt == rhs.expiresAt
+            && lhs.planType == rhs.planType
+            && lhs.rizoUsage == rhs.rizoUsage
+            && lhs.billingIssue == rhs.billingIssue
+    }
+}
+
+// MARK: - Convenience
+extension SubscriptionStatusEntity {
+    /// 到期日距今剩餘天數（無到期日或已過期回傳 0）
+    var daysRemaining: Int {
+        guard let expiresAt else { return 0 }
+        let remaining = max(0, expiresAt - Date().timeIntervalSince1970)
+        return Int(ceil(remaining / 86400.0))
+    }
+}
+
 // MARK: - SubscriptionStatus
 enum SubscriptionStatus: String {
     case active
@@ -50,7 +71,7 @@ enum SubscriptionStatus: String {
 }
 
 // MARK: - RizoUsage
-struct RizoUsage {
+struct RizoUsage: Equatable {
     let used: Int
     let limit: Int
 

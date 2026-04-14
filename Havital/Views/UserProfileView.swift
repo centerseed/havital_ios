@@ -274,12 +274,11 @@ struct UserProfileView: View {
                 // 狀態輔助資訊（依 Spec UI 矩陣）
                 switch status.status {
                 case .trial:
-                    if let expiresAt = status.expiresAt {
-                        let days = remainingDays(until: expiresAt)
+                    if status.expiresAt != nil {
                         HStack {
                             Label(NSLocalizedString("profile.subscription.trial_remaining", comment: "Trial"), systemImage: "clock")
                             Spacer()
-                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), days))
+                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), status.daysRemaining))
                                 .foregroundColor(.orange)
                         }
                     }
@@ -295,7 +294,7 @@ struct UserProfileView: View {
                         HStack {
                             Label(NSLocalizedString("profile.subscription.remaining", comment: "Remaining"), systemImage: "hourglass")
                             Spacer()
-                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), remainingDays(until: expiresAt)))
+                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), status.daysRemaining))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -316,7 +315,7 @@ struct UserProfileView: View {
                         HStack {
                             Label(NSLocalizedString("profile.subscription.remaining", comment: "Remaining"), systemImage: "hourglass")
                             Spacer()
-                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), remainingDays(until: expiresAt)))
+                            Text(String(format: NSLocalizedString("profile.subscription.days_remaining", comment: "%d days"), status.daysRemaining))
                                 .foregroundColor(.orange)
                         }
                     }
@@ -450,10 +449,6 @@ struct UserProfileView: View {
         }
     }
 
-    private func remainingDays(until expiresAt: TimeInterval) -> Int {
-        let remainingSeconds = max(0, expiresAt - Date().timeIntervalSince1970)
-        return Int(ceil(remainingSeconds / 86400.0))
-    }
 
     @ViewBuilder
     private var weeklyDistanceSection: some View {

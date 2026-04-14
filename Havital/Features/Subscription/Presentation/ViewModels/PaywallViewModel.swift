@@ -53,7 +53,7 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                 ? .success
                 : .failed(NSLocalizedString("paywall.restore_no_active_subscription", comment: "No active subscription found"))
         } catch {
-            if error.isCancellationError || (error as NSError).code == NSURLErrorCancelled {
+            if error.isCancellationError {
                 purchaseState = .idle
                 return
             }
@@ -109,9 +109,8 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     var trialDaysRemaining: Int? {
         guard let status = SubscriptionStateManager.shared.currentStatus,
               status.status == .trial,
-              let expiresAt = status.expiresAt else { return nil }
-        let remaining = max(0, expiresAt - Date().timeIntervalSince1970)
-        return Int(ceil(remaining / 86400.0))
+              status.expiresAt != nil else { return nil }
+        return status.daysRemaining
     }
 
     /// Restore Purchases 顯示規則（Spec 矩陣）
