@@ -106,6 +106,34 @@ supersedes: null
 - **Acceptance Criteria**：
   - Given 方案有折扣，When 顯示方案卡片，Then 可額外顯示節省資訊（百分比或金額）且與原價/特價一致。
 
+## AC ID Index
+
+本 spec 原始結構以需求章節編排；以下 AC ID 為正式引用索引，供派工、review 與 QA 使用。
+
+| AC ID | 對應需求 |
+|------|----------|
+| AC-IAP-01a | IAP 畫面至少顯示月訂與年訂兩個方案 |
+| AC-IAP-01b | 有折扣時同時顯示原價與特價 |
+| AC-IAP-01c | 無折扣時只顯示單一價格 |
+| AC-IAP-01d | 價格幣別與週期單位完整可辨識 |
+| AC-IAP-01e | 月訂 / 年訂價格資訊結構一致 |
+| AC-IAP-02a | trial 期間購買時付費生效銜接試用結束 |
+| AC-IAP-02b | trial 期間買月訂，到期日 = 試用結束 + 月週期 |
+| AC-IAP-02c | trial 期間買年訂，到期日 = 試用結束 + 年週期 |
+| AC-IAP-02d | trial 期間購買後可見不重疊的試用 / 付費期間 |
+| AC-IAP-02e | 非 trial 狀態購買時依購買當下起算 |
+| AC-IAP-03a | 非 trial 完成購買後最終收斂為 active |
+| AC-IAP-03b | 同步中顯示處理中語意，不誤判失敗 |
+| AC-IAP-03c | 重進 App 後狀態與最新訂閱真相一致 |
+| AC-IAP-03d | trial 期間購買後重進 App 仍可顯示 trial_active，但要有已購買提示 |
+| AC-IAP-04a | expired 開 app 或回前景顯示到期提醒 |
+| AC-IAP-04b | expired 觸發 AI 受限功能時導向升級 |
+| AC-IAP-04c | active / trial_active 不得被 AI gate 誤擋 |
+| AC-IAP-04d | billing_issue 仍允許使用並非阻斷提示 |
+| AC-IAP-05a | trial_active 在 IAP 畫面可見不吃試用天數文案 |
+| AC-IAP-05b | trial 期間購買成功後可見權益說明 |
+| AC-IAP-06 | 有折扣時可顯示節省資訊 |
+
 ## 明確不包含
 
 - 不定義 RevenueCat / StoreKit / 後端計費實作細節

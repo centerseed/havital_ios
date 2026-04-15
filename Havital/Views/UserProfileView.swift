@@ -66,6 +66,7 @@ struct UserProfileView: View {
             debugSection
             #endif
         }
+        .accessibilityIdentifier("Profile_Screen")
         .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -73,6 +74,7 @@ struct UserProfileView: View {
                 Button(NSLocalizedString("common.done", comment: "Done")) {
                     isShowing = false
                 }
+                .accessibilityIdentifier("Profile_DoneButton")
             }
         }
         // 保留 DataSyncView sheet 供未來使用（目前已停用）
@@ -460,14 +462,7 @@ struct UserProfileView: View {
         case .cancelled:
             return NSLocalizedString("profile.subscription.cancelled", comment: "Cancelled")
         case .expired:
-            switch status.planType {
-            case "yearly":
-                return NSLocalizedString("profile.subscription.plan.yearly", comment: "年訂閱")
-            case "monthly":
-                return NSLocalizedString("profile.subscription.plan.monthly", comment: "月訂閱")
-            default:
-                return NSLocalizedString("profile.subscription.expired", comment: "Expired")
-            }
+            return NSLocalizedString("profile.subscription.expired", comment: "Expired")
         case .none:
             return NSLocalizedString("profile.subscription.free", comment: "Free")
         }
@@ -623,6 +618,7 @@ struct UserProfileView: View {
                     Text(NSLocalizedString("profile.reset_goal", comment: "Reset Goal"))
                 }
             }
+            .accessibilityIdentifier("Profile_ResetGoalButton")
 
             Button(role: .destructive) {
                 Task {
@@ -643,7 +639,7 @@ struct UserProfileView: View {
             HStack {
                 Spacer()
                 Text(NSLocalizedString("settings.version", comment: "Version") + " \(appVersion)")
-                    .font(.footnote)
+                    .font(AppFont.footnote())
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -890,6 +886,7 @@ struct UserProfileView: View {
                     Text(NSLocalizedString("profile.reset_goal", comment: "Reset Goal"))
                 }
             }
+            .accessibilityIdentifier("Profile_ResetGoalButton")
 
             Button(role: .destructive) {
                 Task {
@@ -915,7 +912,7 @@ struct UserProfileView: View {
             HStack {
                 Spacer()
                 Text(NSLocalizedString("settings.version", comment: "Version") + " \(appVersion)")
-                    .font(.footnote)
+                    .font(AppFont.footnote())
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -947,18 +944,18 @@ struct UserProfileView: View {
                     Image(systemName: "info.circle.fill")
                         .foregroundColor(.blue)
                     Text("Training Version Debug")
-                        .font(.headline)
+                        .font(AppFont.headline())
                 }
 
                 if let userData = viewModel.userData {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("User.trainingVersion:")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(userData.trainingVersion ?? "nil (default: v1)")
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .fontWeight(.bold)
                                 .foregroundColor(userData.trainingVersion == "v2" ? .green : .orange)
                         }
@@ -977,7 +974,7 @@ struct UserProfileView: View {
                             HStack {
                                 Image(systemName: "play.circle")
                                 Text("Test Version Router")
-                                    .font(.caption)
+                                    .font(AppFont.caption())
                             }
                         }
                         .buttonStyle(.bordered)

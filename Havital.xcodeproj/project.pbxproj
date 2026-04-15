@@ -7,6 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000000000001 /* AnalyticsEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* AnalyticsEvent.swift */; };
+		A1B2C3D4E5F6000000000002 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* AnalyticsService.swift */; };
+		A1B2C3D4E5F6000000000003 /* AnalyticsUserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000013 /* AnalyticsUserDefaults.swift */; };
+		A1B2C3D4E5F6000000000004 /* AttributionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* AttributionManager.swift */; };
+		A1B2C3D4E5F6000000000005 /* FirebaseAnalyticsServiceImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* FirebaseAnalyticsServiceImpl.swift */; };
+		A1B2C3D4E5F6000000000006 /* UITestOnboardingHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000016 /* UITestOnboardingHarness.swift */; };
+		A1B2C3D4E5F6000000000007 /* RaceDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000017 /* RaceDTO.swift */; };
+		A1B2C3D4E5F6000000000008 /* RaceRemoteDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000018 /* RaceRemoteDataSource.swift */; };
+		A1B2C3D4E5F6000000000009 /* RaceMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000019 /* RaceMapper.swift */; };
+		A1B2C3D4E5F600000000000A /* RaceRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001A /* RaceRepositoryImpl.swift */; };
+		A1B2C3D4E5F600000000000B /* RaceEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001B /* RaceEvent.swift */; };
+		A1B2C3D4E5F600000000000C /* RaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001C /* RaceRepository.swift */; };
 		CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F9882E34D87600C7E5ED /* FirebaseMessaging */; };
 		CF19F98B2E34D8D200C7E5ED /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */; };
 		CFCABFC22F88A07700E3D25A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CFCABFC12F88A07700E3D25A /* RevenueCat */; };
@@ -42,6 +54,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F6000000000011 /* AnalyticsEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsEvent.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000012 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsService.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000013 /* AnalyticsUserDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsUserDefaults.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000014 /* AttributionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AttributionManager.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000015 /* FirebaseAnalyticsServiceImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000016 /* UITestOnboardingHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000017 /* RaceDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/DTOs/RaceDTO.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000018 /* RaceRemoteDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000019 /* RaceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/Mappers/RaceMapper.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001A /* RaceRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001B /* RaceEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Entities/RaceEvent.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001C /* RaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Repositories/RaceRepository.swift; sourceTree = SOURCE_ROOT; };
 		CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Havital.xctestplan; sourceTree = "<group>"; };
 		CFB67CF02D07047500F672E3 /* paceriz_dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = paceriz_dev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D022D07047800F672E3 /* HavitalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -366,6 +390,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F6000000000001 /* AnalyticsEvent.swift in Sources */,
+				A1B2C3D4E5F6000000000002 /* AnalyticsService.swift in Sources */,
+				A1B2C3D4E5F6000000000003 /* AnalyticsUserDefaults.swift in Sources */,
+				A1B2C3D4E5F6000000000004 /* AttributionManager.swift in Sources */,
+				A1B2C3D4E5F6000000000005 /* FirebaseAnalyticsServiceImpl.swift in Sources */,
+				A1B2C3D4E5F6000000000006 /* UITestOnboardingHarness.swift in Sources */,
+				A1B2C3D4E5F6000000000007 /* RaceDTO.swift in Sources */,
+				A1B2C3D4E5F6000000000008 /* RaceRemoteDataSource.swift in Sources */,
+				A1B2C3D4E5F6000000000009 /* RaceMapper.swift in Sources */,
+				A1B2C3D4E5F600000000000A /* RaceRepositoryImpl.swift in Sources */,
+				A1B2C3D4E5F600000000000B /* RaceEvent.swift in Sources */,
+				A1B2C3D4E5F600000000000C /* RaceRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

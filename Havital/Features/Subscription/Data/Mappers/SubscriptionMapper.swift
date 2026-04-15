@@ -21,8 +21,8 @@ enum SubscriptionMapper {
             status = .gracePeriod
         }
 
-        // cancelled 到期後應視為 expired（避免取消後逾期仍顯示可用）
-        if status == .cancelled,
+        // 任何帶 expiresAt 的付費狀態，只要已過期就應視為 expired
+        if [.active, .trial, .gracePeriod, .cancelled].contains(status),
            let expiresAt,
            expiresAt <= Date().timeIntervalSince1970 {
             status = .expired

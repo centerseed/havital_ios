@@ -32,9 +32,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         if !localDataSource.isExpired(), let cachedDTO = localDataSource.getStatus() {
             Logger.debug("[SubscriptionRepositoryImpl] getStatus: cache hit")
             let cachedEntity = SubscriptionMapper.toEntity(from: cachedDTO)
-            let reconciled = await reconcileWithRevenueCatIfNeeded(entity: cachedEntity, source: "cache")
-            await SubscriptionStateManager.shared.update(reconciled)
-            return reconciled
+            await SubscriptionStateManager.shared.update(cachedEntity)
+            return cachedEntity
         }
         Logger.debug("[SubscriptionRepositoryImpl] getStatus: cache miss, fetching from API")
         do {
@@ -45,9 +44,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             if let staleDTO = localDataSource.getStatus() {
                 Logger.debug("[SubscriptionRepositoryImpl] getStatus: network error, using stale cache")
                 let staleEntity = SubscriptionMapper.toEntity(from: staleDTO)
-                let reconciled = await reconcileWithRevenueCatIfNeeded(entity: staleEntity, source: "stale_cache")
-                await SubscriptionStateManager.shared.update(reconciled)
-                return reconciled
+                await SubscriptionStateManager.shared.update(staleEntity)
+                return staleEntity
             }
             throw error
         }
@@ -191,17 +189,17 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             return .failed(DomainError.unknown("Package not found: \(offeringId)/\(packageId)"))
         }
         do {
-            let (_, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: package)
+            let (_, _, userCancelled) = try await Purchases.shared.purchase(package: package)
             if userCancelled { return .cancelled }
-            return customerInfo.entitlements[RevenueCatConfig.premiumEntitlement]?.isActive == true
-                ? .success
-                : .pendingProcessing
+            return try await waitForBackendAuthorizedStatus()
         } catch let error as RevenueCat.ErrorCode {
             switch error {
             case .purchaseCancelledError: return .cancelled
             case .paymentPendingError: return .pendingProcessing
             default: return .failed(error)
             }
+        } catch {
+            return .failed(error)
         }
     }
 
@@ -210,7 +208,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         let customerInfo = try await Purchases.shared.restorePurchases()
         if customerInfo.entitlements[RevenueCatConfig.premiumEntitlement]?.isActive == true {
             Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: active entitlement, refreshing backend status")
-            _ = try await refreshStatus()
+            _ = try await waitForBackendAuthorizedStatus()
         }
     }
 
@@ -219,72 +217,30 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     private func fetchAndCache() async throws -> SubscriptionStatusEntity {
         let dto = try await remoteDataSource.fetchStatus()
         let apiEntity = SubscriptionMapper.toEntity(from: dto)
-        let entity = await reconcileWithRevenueCatIfNeeded(entity: apiEntity, source: "api")
-        if entity.status == apiEntity.status {
-            localDataSource.saveStatus(dto)
-        } else {
-            localDataSource.saveStatus(makeStatusDTO(from: entity))
-        }
-        await SubscriptionStateManager.shared.update(entity)
-        return entity
+        localDataSource.saveStatus(dto)
+        await SubscriptionStateManager.shared.update(apiEntity)
+        return apiEntity
     }
 
-    private func reconcileWithRevenueCatIfNeeded(
-        entity: SubscriptionStatusEntity,
-        source: String
-    ) async -> SubscriptionStatusEntity {
-        let needsStatusReconcile = entity.status == .none || entity.status == .expired || entity.status == .trial
-        let needsPeriodResolution = entity.status == .active && entity.planType != "yearly" && entity.planType != "monthly"
-        guard needsStatusReconcile || needsPeriodResolution else {
-            return entity
-        }
-        do {
-            let customerInfo = try await Purchases.shared.customerInfo()
-            guard let entitlement = customerInfo.entitlements[RevenueCatConfig.premiumEntitlement],
-                  entitlement.isActive else {
-                return entity
+    private func waitForBackendAuthorizedStatus(
+        maxAttempts: Int = 15,
+        delaySeconds: UInt64 = 2
+    ) async throws -> PurchaseResultEntity {
+        for attempt in 0..<maxAttempts {
+            if attempt > 0 {
+                try await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
             }
-            let productId = entitlement.productIdentifier
-            let resolvedPlanType = (productId.contains("yearly") || productId.contains("annual")) ? "yearly" : "monthly"
-            let resolvedStatus: SubscriptionStatus = needsStatusReconcile ? .active : entity.status
-            let reconciled = SubscriptionStatusEntity(
-                status: resolvedStatus,
-                expiresAt: entitlement.expirationDate?.timeIntervalSince1970 ?? entity.expiresAt,
-                planType: resolvedPlanType,
-                rizoUsage: entity.rizoUsage,
-                billingIssue: entity.billingIssue
-            )
-            if needsStatusReconcile {
-                Logger.debug("[SubscriptionRepositoryImpl] \(source): API says \(entity.status.rawValue), reconciled to active from RevenueCat entitlement")
-            } else {
-                Logger.debug("[SubscriptionRepositoryImpl] \(source): resolved planType=\(resolvedPlanType) from productId=\(productId)")
+
+            let status = try await fetchAndCache()
+            switch status.status {
+            case .active, .trial, .cancelled, .gracePeriod:
+                return .success
+            case .expired, .none:
+                continue
             }
-            return reconciled
-        } catch {
-            Logger.debug("[SubscriptionRepositoryImpl] \(source): RevenueCat reconcile skipped: \(error.localizedDescription)")
-            return entity
         }
-    }
 
-    private func makeStatusDTO(from entity: SubscriptionStatusEntity) -> SubscriptionStatusDTO {
-        SubscriptionStatusDTO(
-            status: entity.status.rawValue,
-            expiresAt: entity.expiresAt.map(iso8601String(from:)),
-            planType: entity.planType,
-            rizoUsage: entity.rizoUsage.map { RizoUsageDTO(used: $0.used, limit: $0.limit) },
-            billingIssue: entity.billingIssue,
-            enforcementEnabled: entity.enforcementEnabled
-        )
-    }
-
-    private static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private func iso8601String(from timestamp: TimeInterval) -> String {
-        Self.iso8601Formatter.string(from: Date(timeIntervalSince1970: timestamp))
+        return .pendingProcessing
     }
 
     private func mapOfferType(_ type: StoreProductDiscount.DiscountType) -> SubscriptionOfferType {

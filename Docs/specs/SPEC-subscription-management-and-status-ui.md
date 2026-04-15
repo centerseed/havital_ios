@@ -190,6 +190,62 @@ Paceriz 目前的訂閱體驗存在一個關鍵斷層：用戶付費後，無法
   - Given 用戶點擊引導提示，When 系統處理，Then 導向 Paywall。
   - Given 用戶忽略引導提示，When 提示自動消失或用戶關閉，Then 不影響任何功能使用。
 
+## AC ID Index
+
+本 spec 的原始結構以需求章節編排；以下 AC ID 為正式引用索引，供派工、review 與 QA 使用。
+
+| AC ID | 對應需求 |
+|------|----------|
+| AC-SUB-01a | active 用戶在 Profile 顯示管理訂閱 |
+| AC-SUB-01b | cancelled 用戶在 Profile 顯示管理訂閱 |
+| AC-SUB-01c | 點擊管理訂閱跳轉 Apple 訂閱頁 |
+| AC-SUB-01d | trial / expired / none 不顯示管理訂閱 |
+| AC-SUB-02a | 後端 `cancelled` 不再映射為 `active` |
+| AC-SUB-02b | cancelled 在 Profile 顯示到期日與剩餘天數 |
+| AC-SUB-02c | cancelled 未到期前功能照常可用 |
+| AC-SUB-02d | cancelled 到期後轉為 expired |
+| AC-SUB-02e | cancelled 顯示重新訂閱 + 管理訂閱 |
+| AC-SUB-03a | Profile 區塊遵循訂閱狀態矩陣 |
+| AC-SUB-03b | active 可從 Profile 進入變更方案 |
+| AC-SUB-03c | cancelled 進入 Paywall 為重新訂閱語境 |
+| AC-SUB-03d | cancelled 觸發 AI 功能時仍放行 |
+| AC-SUB-03e | active + billing_issue 放行並提示 |
+| AC-SUB-03f | grace_period 放行並提示 |
+| AC-SUB-03g | grace_period 在 Profile 顯示帳務處理中 |
+| AC-SUB-03h | expired Restore 成功後更新狀態並關閉 Paywall |
+| AC-SUB-03i | expired Restore 找不到記錄時顯示提示並保留 Paywall |
+| AC-SUB-04a | session 中 cancelled 到期不打斷當前操作 |
+| AC-SUB-04b | 從 Apple 取消後回前景需刷新狀態 |
+| AC-SUB-04c | AI 使用中到期不打斷當前操作 |
+| AC-SUB-04d | 狀態降級時顯示非阻斷通知 |
+| AC-SUB-05a | revoke 映射為 expired |
+| AC-SUB-05b | revoke 後 Profile 顯示已到期與重新訂閱 |
+| AC-SUB-05c | revoke 在 session 中遵循狀態降級規則 |
+| AC-SUB-06a | 離線時使用快取中的有效訂閱狀態 |
+| AC-SUB-06b | 網路錯誤不得誤判為訂閱過期 |
+| AC-SUB-06c | 離線且 active 時 AI 不導向 Paywall，而顯示離線提示 |
+| AC-SUB-06d | 恢復網路後在背景刷新並處理狀態變更 |
+| AC-SUB-07a | active 用戶可進入變更方案並看到升降級選項 |
+| AC-SUB-07b | 升級成功後立即反映新方案 |
+| AC-SUB-07c | 降級排程後顯示待切換資訊 |
+| AC-SUB-07d | 等待降級期間功能完全放行 |
+| AC-SUB-08a | 購買成功先顯示確認畫面 |
+| AC-SUB-08b | 確認畫面 3 秒或手動後關閉 |
+| AC-SUB-08c | 試用中購買成功顯示權益說明 |
+| AC-SUB-08d | 後端同步延遲不影響成功回饋 |
+| AC-SUB-09a | trial 剩餘 <= 3 天時顯示到期提醒 |
+| AC-SUB-09b | trial 剩餘 > 3 天時不顯示提醒 |
+| AC-SUB-09c | 同一天 trial 提醒最多顯示一次 |
+| AC-SUB-09d | 從 trial 提醒點擊升級導向 Paywall |
+| AC-SUB-09e | 關閉 trial 提醒後不影響使用 |
+| AC-SUB-10a | expired 開 app 時顯示到期提醒 |
+| AC-SUB-10b | 同一 session 不重複顯示 expired 提醒 |
+| AC-SUB-10c | expired 觸發 AI 功能直接導向 Paywall |
+| AC-SUB-11a | 新 trial 用戶首次進入主頁顯示引導提示 |
+| AC-SUB-11b | 首次引導只顯示一次 |
+| AC-SUB-11c | 點擊引導提示導向 Paywall |
+| AC-SUB-11d | 忽略引導提示不影響功能 |
+
 ## 明確不包含
 
 - 不定義 Apple 訂閱管理頁面內的行為（那是 Apple 系統 UI）
