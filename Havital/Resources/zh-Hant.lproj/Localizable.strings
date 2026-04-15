@@ -940,6 +940,8 @@
 "onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
 "onboarding.weekly_volume_label" = "週跑量約為：%.0f 公里";
 "onboarding.km_label" = "%.0f 公里";
+"onboarding.quick_select_label" = "快速選擇";
+"onboarding.fine_tune_label" = "微調（每步 1 公里）";
 "onboarding.weekly_distance_title" = "您的週跑量";
 "onboarding.skip" = "略過";
 
@@ -1032,6 +1034,7 @@
 "hr_zone.understand" = "了解";
 "hr_zone.max_heart_rate_display" = "最大心率";
 "hr_zone.resting_heart_rate_display" = "靜息心率";
+"hr_zone.default_values_hint" = "目前使用預設值，日後連接心率裝置或進行體能測試後再更新，可獲得更精準的訓練建議";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "恢復";

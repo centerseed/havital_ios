@@ -66,6 +66,22 @@ final class OnboardingFlowTests: OnboardingE2ETestBase {
         // GoalType
         let goalNext = app.descendants(matching: .any)["GoalType_NextButton"]
         XCTAssertTrue(goalNext.waitForExistence(timeout: 15), "GoalType page should appear")
-        // Don't proceed further — smoke test verified all common steps are visible
+
+        let selected = goalTypePage.selectGoalTypeIfVisible("race_run", timeout: 10)
+        XCTAssertTrue(selected, "Race goal type should be selectable")
+        goalTypePage.tapNext()
+
+        raceSetupPage.verifyOptimizedLayout()
+    }
+
+    /// Optimized race setup should keep a fixed CTA and expose at least one actionable entry point.
+    func testRaceSetup_OptimizedLayout_ShowsPrimaryActions() {
+        performCommonSteps()
+
+        let selected = goalTypePage.selectGoalTypeIfVisible("race_run", timeout: 10)
+        XCTAssertTrue(selected, "Race goal type should be selectable")
+        goalTypePage.tapNext()
+
+        raceSetupPage.verifyOptimizedLayout()
     }
 }

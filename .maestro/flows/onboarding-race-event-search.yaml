@@ -1,0 +1,78 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - race_run
+  - race-event-selection
+  - search
+---
+# 賽事搜尋與篩選功能驗證
+# 測試範圍：P0-10 AC3（搜尋）、AC4（距離篩選）、AC5（地區切換）、AC10（過期賽事規則）
+
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+# === 進入賽事列表 ===
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "從賽事資料庫選擇"
+    timeout: 15000
+- tapOn:
+    text: "從賽事資料庫選擇"
+
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事"
+    timeout: 15000
+
+# === 測試地區切換（P0-10 AC5）===
+# 切到日本
+- tapOn:
+    text: "日本"
+# 等待列表更新
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事"
+    timeout: 5000
+
+# 切回台灣
+- tapOn:
+    text: "台灣"
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事"
+    timeout: 5000
+
+# === 測試距離篩選（P0-10 AC4）===
+- tapOn:
+    text: "半馬"
+    optional: true
+# 重設篩選
+- tapOn:
+    text: "全部"
+    optional: true
+
+# === 測試搜尋（P0-10 AC3）===
+# 注意：.searchable 的搜尋欄需要先點擊才能輸入
+- tapOn:
+    text: "搜尋賽事.*"
+    optional: true
+- inputText: "馬拉松"
+# 等待 debounce 300ms 後結果更新
+- extendedWaitUntil:
+    visible:
+      text: ".*馬拉松.*"
+    timeout: 5000
+    optional: true
+
+# 清除搜尋
+- clearText
+- tapOn:
+    text: "取消"
+    optional: true
+
+# === 返回 ===
+- back

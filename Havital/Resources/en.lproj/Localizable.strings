@@ -946,6 +946,8 @@
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
 "onboarding.weekly_volume_label" = "Estimated weekly volume: %.0f km";
 "onboarding.km_label" = "%.0f km";
+"onboarding.quick_select_label" = "Quick Select";
+"onboarding.fine_tune_label" = "Fine-tune (1 km steps)";
 "onboarding.weekly_distance_title" = "Your Weekly Running Volume";
 "onboarding.skip" = "Skip";
 
@@ -1038,6 +1040,7 @@
 "hr_zone.understand" = "Understand";
 "hr_zone.max_heart_rate_display" = "Max Heart Rate";
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
+"hr_zone.default_values_hint" = "Using estimated values for now. Update after connecting a heart rate device or fitness test for more accurate training recommendations";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "Recovery";

@@ -168,18 +168,14 @@ class OnboardingE2ETestBase: XCTestCase {
     // MARK: - Goal-Specific Flows
 
     private func handleRaceRunFlow(config: OnboardingTestConfig) {
+        raceSetupPage.verifyOptimizedLayout()
+
         // Race Setup - use defaults for now (marathon 4h)
         raceSetupPage.tapSave()
 
-        // Start Stage may or may not appear depending on weeks remaining
-        // Check if StartStage_NextButton appears
-        let startStageButton = app.descendants(matching: .any)["StartStage_NextButton"]
-        if startStageButton.waitForExistence(timeout: 5) {
-            startStagePage.tapNext()
-        }
-
-        // Methodology selection (appears if multiple methodologies)
+        // Updated flow order: race setup → methodology → optional start stage.
         handleMethodologySelection(config: config)
+        handleStartStageIfNeeded()
 
         // Training Days
         handleTrainingDays(config: config)
@@ -231,6 +227,13 @@ class OnboardingE2ETestBase: XCTestCase {
             methodologyPage.tapNext()
         }
         // If methodology page doesn't appear, it was skipped (single methodology)
+    }
+
+    private func handleStartStageIfNeeded() {
+        let startStageButton = app.descendants(matching: .any)["StartStage_NextButton"].firstMatch
+        if startStageButton.waitForExistence(timeout: 6) {
+            startStagePage.tapNext()
+        }
     }
 
     private func handleTrainingWeeks(config: OnboardingTestConfig) {

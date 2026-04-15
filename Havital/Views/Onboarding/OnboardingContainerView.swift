@@ -6,10 +6,16 @@ struct OnboardingContainerView: View {
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
     // Clean Architecture: Use AuthenticationViewModel from environment
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
-    @StateObject private var viewModel = UserProfileFeatureViewModel()
+    @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
+    @StateObject private var viewModel: OnboardingFeatureViewModel
 
     // 從外部傳入模式，確保初始化時就能決定正確的根視圖，避免 Race Condition
     let isReonboarding: Bool
+
+    init(isReonboarding: Bool) {
+        self.isReonboarding = isReonboarding
+        _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
+    }
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
@@ -25,7 +31,15 @@ struct OnboardingContainerView: View {
             .navigationDestination(for: OnboardingCoordinator.Step.self) { step in
                 destinationView(for: step)
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                // Progress bar pinned below the navigation bar, full-width, 4pt tall.
+                // Wrapped in a VStack so the safeAreaInset has a defined size.
+                VStack(spacing: 0) {
+                    OnboardingProgressBar(progress: coordinator.currentProgress)
+                }
+            }
         }
+        .environmentObject(viewModel)
         .fullScreenCover(isPresented: $coordinator.isCompleting) {
             LoadingAnimationView(messages: [
                 NSLocalizedString("onboarding.analyzing_preferences", comment: "正在分析您的訓練偏好"),
@@ -55,7 +69,7 @@ struct OnboardingContainerView: View {
             HeartRateZoneInfoView(mode: .onboarding(targetDistance: coordinator.targetDistance))
         case .backfillPrompt:
             BackfillPromptContentView(
-                dataSource: viewModel.currentDataSource,
+                dataSource: userProfileViewModel.currentDataSource,
                 targetDistance: coordinator.targetDistance
             )
         case .personalBest:
@@ -66,6 +80,8 @@ struct OnboardingContainerView: View {
             GoalTypeSelectionView()
         case .raceSetup:
             OnboardingView()
+        case .raceEventList:
+            RaceEventListView()
         case .startStage:
             StartStageSelectionView(
                 weeksRemaining: coordinator.weeksRemaining,
@@ -87,7 +103,7 @@ struct OnboardingContainerView: View {
             )
         case .dataSync:
             DataSyncView(
-                dataSource: viewModel.currentDataSource,
+                dataSource: userProfileViewModel.currentDataSource,
                 mode: .onboarding,
                 onboardingTargetDistance: coordinator.targetDistance
             )

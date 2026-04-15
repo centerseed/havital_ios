@@ -95,41 +95,50 @@ struct PersonalBestView: View {
                         }
                         .pickerStyle(.menu)
 
-                        HStack {
+                        HStack(alignment: .center, spacing: 4) {
                             Picker(NSLocalizedString("onboarding.time_hours", comment: "Hours"), selection: $viewModel.personalBestHours) {
                                 ForEach(0...6, id: \.self) { hour in
-                                    Text("\(hour)")
+                                    Text("\(hour)").tag(hour)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: 120)
+                            .clipped()
+
                             Text("hrs")
                                 .fixedSize()
                                 .font(AppFont.caption())
+                                .foregroundColor(.secondary)
 
                             Picker(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"), selection: $viewModel.personalBestMinutes) {
                                 ForEach(0...59, id: \.self) { minute in
-                                    Text("\(minute)")
+                                    Text(String(format: "%02d", minute)).tag(minute)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: 120)
+                            .clipped()
+
                             Text("min")
                                 .fixedSize()
                                 .font(AppFont.caption())
+                                .foregroundColor(.secondary)
 
                             Picker(NSLocalizedString("onboarding.time_seconds", comment: "Seconds"), selection: $viewModel.personalBestSeconds) {
                                 ForEach(0...59, id: \.self) { second in
-                                    Text("\(second)")
+                                    Text(String(format: "%02d", second)).tag(second)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: 120)
+                            .clipped()
+
                             Text("sec")
                                 .fixedSize()
                                 .font(AppFont.caption())
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 4)
 
                         if !viewModel.currentPace.isEmpty {
                             HStack {

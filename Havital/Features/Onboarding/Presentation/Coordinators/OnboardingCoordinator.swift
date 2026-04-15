@@ -17,6 +17,7 @@ class OnboardingCoordinator: ObservableObject {
         case weeklyDistance
         case goalType
         case raceSetup
+        case raceEventList
         case startStage
         case methodologySelection
         case trainingWeeksSetup
@@ -35,6 +36,7 @@ class OnboardingCoordinator: ObservableObject {
             case .weeklyDistance: return "Weekly Distance"
             case .goalType: return "Goal Type"
             case .raceSetup: return "Race Setup"
+            case .raceEventList: return NSLocalizedString("onboarding.race_event_list_nav_title", comment: "選擇賽事")
             case .startStage: return "Start Stage"
             case .methodologySelection: return NSLocalizedString("onboarding.methodology_nav_title", comment: "Training Methodology")
             case .trainingWeeksSetup: return NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration")
@@ -108,6 +110,19 @@ class OnboardingCoordinator: ObservableObject {
     /// Re-onboarding 的起始步驟（用於判斷 Back 按鈕行為）
     private var reonboardingStartStep: Step?
 
+    /// 已到達的最高步驟深度（用於進度指示器「只進不退」規則）
+    private var highestReachedDepth: Int = 0
+
+    // MARK: - Computed Properties
+
+    /// 進度指示器數值（0.0 ... 1.0），只進不退。
+    /// 估算步驟數為 10（考慮分支路徑的中位數），介面使用時無需精確。
+    var currentProgress: Double {
+        let estimatedTotalSteps = 10.0
+        let depth = Double(highestReachedDepth)
+        return min(depth / estimatedTotalSteps, 1.0)
+    }
+
     // MARK: - Private
 
     private var cancellables = Set<AnyCancellable>()
@@ -126,6 +141,8 @@ class OnboardingCoordinator: ObservableObject {
     /// 導航到下一步
     func navigate(to step: Step) {
         navigationPath.append(step)
+        // 進度只進不退：更新最高到達深度
+        highestReachedDepth = max(highestReachedDepth, navigationPath.count)
         print("[OnboardingCoordinator] 導航到: \(step.title), 路徑深度: \(navigationPath.count)")
     }
 
@@ -232,6 +249,7 @@ class OnboardingCoordinator: ObservableObject {
     /// 重置所有狀態
     func reset() {
         navigationPath.removeAll()
+        highestReachedDepth = 0
         targetDistance = 21.0975
         selectedTargetId = nil
         isBeginner = false
@@ -290,6 +308,9 @@ class OnboardingCoordinator: ObservableObject {
             return nil 
         case .raceSetup:
             // OnboardingView 會處理邏輯決定去 .startStage 還是 .trainingDays
+            return nil
+        case .raceEventList:
+            // RaceEventListView 選完後呼叫 goBack() 返回 raceSetup
             return nil
         case .startStage:
             return .trainingDays

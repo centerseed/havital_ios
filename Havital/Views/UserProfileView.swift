@@ -275,33 +275,43 @@ struct UserProfileView: View {
             if let status = subscriptionState.currentStatus {
                 // 狀態輔助資訊（依 Spec UI 矩陣）
                 switch status.status {
-                case .trial, .active:
+                case .trial:
                     EmptyView()
 
+                case .active:
+                    subscriptionDateRow(
+                        title: NSLocalizedString("profile.subscription.expires", comment: "Expires"),
+                        systemImage: "calendar.badge.clock",
+                        expiresAt: status.expiresAt,
+                        color: .secondary
+                    )
+
                 case .gracePeriod:
+                    subscriptionDateRow(
+                        title: NSLocalizedString("profile.subscription.expires", comment: "Expires"),
+                        systemImage: "calendar.badge.clock",
+                        expiresAt: status.expiresAt,
+                        color: .secondary
+                    )
                     Label(NSLocalizedString("profile.subscription.grace_period", comment: "Billing processing, service unaffected"), systemImage: "exclamationmark.triangle")
                         .foregroundColor(.yellow)
                         .accessibilityIdentifier("GracePeriod_Warning")
 
                 case .cancelled:
-                    if let expiresAt = status.expiresAt {
-                        HStack {
-                            Label(NSLocalizedString("profile.subscription.valid_until", comment: "Service valid until"), systemImage: "calendar.badge.clock")
-                            Spacer()
-                            Text(Date(timeIntervalSince1970: expiresAt), style: .date)
-                                .foregroundColor(.orange)
-                        }
-                    }
+                    subscriptionDateRow(
+                        title: NSLocalizedString("profile.subscription.valid_until", comment: "Service valid until"),
+                        systemImage: "calendar.badge.clock",
+                        expiresAt: status.expiresAt,
+                        color: .orange
+                    )
 
                 case .expired:
-                    if let expiresAt = status.expiresAt {
-                        HStack {
-                            Label(NSLocalizedString("profile.subscription.expires", comment: "Expires"), systemImage: "calendar.badge.exclamationmark")
-                            Spacer()
-                            Text(Date(timeIntervalSince1970: expiresAt), style: .date)
-                                .foregroundColor(.red)
-                        }
-                    }
+                    subscriptionDateRow(
+                        title: NSLocalizedString("profile.subscription.expires", comment: "Expires"),
+                        systemImage: "calendar.badge.exclamationmark",
+                        expiresAt: status.expiresAt,
+                        color: .red
+                    )
 
                 case .none:
                     EmptyView()
@@ -385,6 +395,23 @@ struct UserProfileView: View {
                     .foregroundColor(.orange)
             }
             .accessibilityIdentifier("Subscription_ManageButton_Primary")
+        }
+    }
+
+    @ViewBuilder
+    private func subscriptionDateRow(
+        title: String,
+        systemImage: String,
+        expiresAt: TimeInterval?,
+        color: Color
+    ) -> some View {
+        if let expiresAt {
+            HStack {
+                Label(title, systemImage: systemImage)
+                Spacer()
+                Text(Date(timeIntervalSince1970: expiresAt), style: .date)
+                    .foregroundColor(color)
+            }
         }
     }
 

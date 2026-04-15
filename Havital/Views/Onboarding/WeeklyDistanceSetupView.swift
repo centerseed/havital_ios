@@ -24,49 +24,66 @@ struct WeeklyDistanceSetupView: View {
         _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
     }
 
-    // Slider max value - always use maxWeeklyDistance (180km)
-    private var sliderMaxDistance: Double {
-        return maxWeeklyDistance
-    }
+    // Quick-select preset distances
+    private let presetDistances: [Double] = [10, 20, 30, 40, 50, 60]
 
     var body: some View {
         Form {
-            Section(
-                footer: Text(NSLocalizedString("onboarding.weekly_distance_description", comment: "Weekly Distance Description"))
-            ) {
+            Section {
                 Text(NSLocalizedString("onboarding.adjust_weekly_volume", comment: "Adjust Weekly Volume"))
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
-                    .padding(.bottom, 10)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    // Weekly distance label with stepper
-                    HStack {
-                        Text(String(format: NSLocalizedString("onboarding.weekly_volume_label", comment: "Weekly Volume Label"), viewModel.weeklyDistance))
-                            .fontWeight(.medium)
-                        Spacer()
-                        Stepper("", value: $viewModel.weeklyDistance, in: minimumWeeklyDistance...sliderMaxDistance, step: 1)
-                            .labelsHidden()
-                    }
+                // Large current value display
+                Text(String(format: "%.0f km", viewModel.weeklyDistance))
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
+                    .accessibilityIdentifier("WeeklyDistance_Display")
+            }
 
-                    Slider(
-                        value: $viewModel.weeklyDistance,
-                        in: minimumWeeklyDistance...sliderMaxDistance,
-                        step: 1
-                    )
-                    .accessibilityIdentifier("WeeklyDistance_Slider")
-
-                    HStack {
-                        Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), minimumWeeklyDistance))
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(String(format: NSLocalizedString("onboarding.km_label", comment: "KM Label"), sliderMaxDistance))
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
+            // Quick-select preset buttons
+            Section(header: Text(NSLocalizedString("onboarding.quick_select_label", comment: "Quick Select"))) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                    ForEach(presetDistances, id: \.self) { distance in
+                        Button(action: {
+                            viewModel.weeklyDistance = distance
+                        }) {
+                            Text(String(format: "%.0f km", distance))
+                                .font(AppFont.bodySmall())
+                                .fontWeight(.medium)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(
+                                    viewModel.weeklyDistance == distance
+                                        ? Color.accentColor
+                                        : Color(.systemGray5)
+                                )
+                                .foregroundColor(
+                                    viewModel.weeklyDistance == distance
+                                        ? .white
+                                        : .primary
+                                )
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("WeeklyDistance_Preset_\(Int(distance))")
                     }
                 }
-                .padding(.vertical, 5)
+                .padding(.vertical, 4)
+            }
+
+            // Fine-tune with stepper
+            Section(footer: Text(NSLocalizedString("onboarding.weekly_distance_description", comment: "Weekly Distance Description"))) {
+                HStack {
+                    Text(NSLocalizedString("onboarding.fine_tune_label", comment: "Fine Tune"))
+                        .font(AppFont.bodySmall())
+                    Spacer()
+                    Stepper("", value: $viewModel.weeklyDistance, in: minimumWeeklyDistance...maxWeeklyDistance, step: 1)
+                        .labelsHidden()
+                        .accessibilityIdentifier("WeeklyDistance_Stepper")
+                }
             }
 
             if let error = viewModel.error {

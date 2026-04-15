@@ -282,6 +282,32 @@ class GoalTypePage: BasePage {
 // MARK: - Race Setup Page
 
 class RaceSetupPage: BasePage {
+    @discardableResult
+    func waitUntilVisible(timeout: TimeInterval = 15) -> Bool {
+        let screen = app.descendants(matching: .any)["RaceSetup_Screen"].firstMatch
+        if screen.waitForExistence(timeout: timeout) {
+            return true
+        }
+
+        let saveButton = app.descendants(matching: .any)["RaceSetup_SaveButton"].firstMatch
+        return saveButton.waitForExistence(timeout: 2)
+    }
+
+    func verifyOptimizedLayout() {
+        XCTAssertTrue(waitUntilVisible(), "Race setup screen should appear")
+
+        let saveButton = app.descendants(matching: .any)["RaceSetup_SaveButton"].firstMatch
+        XCTAssertTrue(saveButton.exists, "Race setup screen should expose a fixed primary CTA")
+
+        let browseDatabaseButton = app.descendants(matching: .any)["RaceSetup_BrowseDatabaseButton"].firstMatch
+        let targetTimeEditorButton = app.descendants(matching: .any)["RaceSetup_TargetTimeEditorButton"].firstMatch
+
+        XCTAssertTrue(
+            browseDatabaseButton.exists || targetTimeEditorButton.exists,
+            "Race setup screen should show either the database entry card or the target-time editor entry point"
+        )
+    }
+
     func setDistanceAndTime(distanceKm: Int, hours: Int, minutes: Int) {
         // Tap the edit button to open the distance/time editor sheet
         // The distance/time is edited via a sheet
@@ -297,8 +323,9 @@ class RaceSetupPage: BasePage {
     }
 
     func tapSave() {
+        XCTAssertTrue(waitUntilVisible(), "Race setup screen should appear before saving")
         let button = waitForElement("RaceSetup_SaveButton", timeout: 10)
-        button.tap()
+        tapRobust(button)
     }
 }
 

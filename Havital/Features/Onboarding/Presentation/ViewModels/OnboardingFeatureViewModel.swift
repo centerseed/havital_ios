@@ -24,6 +24,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
     private let targetRepository: TargetRepository
     private let trainingPlanRepository: TrainingPlanRepository
     private let trainingPlanV2Repository: TrainingPlanV2Repository
+    private let raceRepository: RaceRepository
 
     // MARK: - Shared State (across all steps)
 
@@ -111,20 +112,107 @@ final class OnboardingFeatureViewModel: ObservableObject {
         "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
     ]
 
+    // MARK: - Race Setup State (merged from OnboardingViewModel)
+
+    /// 賽事名稱（手動輸入）
+    @Published var raceName: String = ""
+
+    /// 賽事日期
+    @Published var raceDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+
+    /// 選擇的距離（字串，用於 Picker 匹配）
+    @Published var selectedDistance: String = "42.195"
+
+    /// 目標完賽時數
+    @Published var targetHours: Int = 4
+
+    /// 目標完賽分鐘數
+    @Published var targetMinutes: Int = 0
+
+    /// 起始階段選擇相關狀態
+    @Published var selectedStartStage: TrainingStagePhase? = nil
+    @Published var shouldShowStageSelection: Bool = false
+
+    /// 未來目標選擇相關狀態
+    @Published var availableTargets: [Target] = []
+    @Published var selectedTargetKey: String?
+    @Published var isLoadingTargets: Bool = false
+
+    // MARK: - Race API State
+
+    /// 從 API 載入的精選賽事列表
+    @Published var raceEvents: [RaceEvent] = []
+
+    /// 賽事 API 是否可用
+    @Published var isRaceAPIAvailable: Bool = true
+
+    /// 賽事列表載入中
+    @Published var isLoadingRaces: Bool = false
+
+    /// 用戶選擇的賽事
+    @Published var selectedRaceEvent: RaceEvent? = nil
+
+    /// 用戶選擇的賽事距離
+    @Published var selectedRaceDistance: RaceDistance? = nil
+
+    /// 選擇的地區
+    @Published var selectedRegion: String = "tw"
+
+    // MARK: - Computed Properties (Race Setup)
+
+    /// 可選距離字典（用於 RaceSetup）
+    var availableDistances: [String: String] {
+        [
+            "5": NSLocalizedString("distance.5k", comment: "5K"),
+            "10": NSLocalizedString("distance.10k", comment: "10K"),
+            "21.0975": NSLocalizedString("distance.half_marathon", comment: "Half Marathon"),
+            "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
+        ]
+    }
+
+    /// 使用「週邊界」演算法計算訓練週數（與後端一致）
+    var trainingWeeks: Int {
+        return TrainingWeeksCalculator.calculateTrainingWeeks(
+            startDate: Date(),
+            raceDate: raceDate
+        )
+    }
+
+    /// 保留舊的計算方式用於對比（僅供參考）
+    var actualWeeksRemaining: Double {
+        let (_, weeks) = TrainingWeeksCalculator.calculateActualDateDifference(
+            startDate: Date(),
+            raceDate: raceDate
+        )
+        return weeks
+    }
+
+    /// 目標配速
+    var targetPace: String {
+        let totalSeconds = targetHours * 3600 + targetMinutes * 60
+        let distanceKm = Double(selectedDistance) ?? 42.195
+        let paceSeconds = Int(Double(totalSeconds) / distanceKm)
+        let paceMinutes = paceSeconds / 60
+        let paceRemainingSeconds = paceSeconds % 60
+        return String(format: "%d:%02d", paceMinutes, paceRemainingSeconds)
+    }
+
     // MARK: - Initialization
 
     init(
         userProfileRepository: UserProfileRepository,
         targetRepository: TargetRepository,
         trainingPlanRepository: TrainingPlanRepository,
-        trainingPlanV2Repository: TrainingPlanV2Repository
+        trainingPlanV2Repository: TrainingPlanV2Repository,
+        raceRepository: RaceRepository
     ) {
         self.userProfileRepository = userProfileRepository
         self.targetRepository = targetRepository
         self.trainingPlanRepository = trainingPlanRepository
         self.trainingPlanV2Repository = trainingPlanV2Repository
+        self.raceRepository = raceRepository
 
-        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2)")
+        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2 + Race)")
     }
 
     /// Convenience initializer for DI
@@ -134,7 +222,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
             userProfileRepository: container.resolve(),
             targetRepository: container.resolve(),
             trainingPlanRepository: container.resolve(),
-            trainingPlanV2Repository: container.resolve()
+            trainingPlanV2Repository: container.resolve(),
+            raceRepository: container.resolve()
         )
     }
 
@@ -651,6 +740,136 @@ final class OnboardingFeatureViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Race Setup Methods (merged from OnboardingViewModel)
+
+    /// 從後端載入用戶的所有未來目標（只載入主要賽事 isMainRace=true）
+    func loadAvailableTargets() async {
+        isLoadingTargets = true
+
+        do {
+            let allTargets = try await targetRepository.getTargets()
+
+            let now = Date()
+            let futureMainTargets = allTargets.filter { target in
+                let targetDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+                return targetDate > now && target.isMainRace
+            }
+
+            self.availableTargets = futureMainTargets
+            Logger.debug("[OnboardingFeatureVM] 成功載入 \(futureMainTargets.count) 個未來主要目標")
+        } catch is CancellationError {
+            // Ignore cancellation
+        } catch {
+            Logger.warn("[OnboardingFeatureVM] 載入目標失敗: \(error.localizedDescription)")
+            // 不顯示錯誤，因為新用戶可能沒有目標
+        }
+
+        isLoadingTargets = false
+    }
+
+    /// 建立或更新主要賽事目標
+    func createRaceTarget() async -> Bool {
+        isLoading = true
+        self.error = nil
+
+        do {
+            if let selectedTargetId = selectedTargetKey, hasSelectedTargetBeenModified() {
+                // 更新已選擇的目標
+                let updatedTarget = Target(
+                    id: selectedTargetId,
+                    type: "race_run",
+                    name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
+                    distanceKm: Int(Double(selectedDistance) ?? 42.195),
+                    targetTime: targetHours * 3600 + targetMinutes * 60,
+                    targetPace: targetPace,
+                    raceDate: Int(raceDate.timeIntervalSince1970),
+                    isMainRace: true,
+                    trainingWeeks: trainingWeeks
+                )
+                _ = try await targetRepository.updateTarget(id: selectedTargetId, target: updatedTarget)
+                Logger.debug("[OnboardingFeatureVM] 目標已更新: \(updatedTarget.name)")
+            } else if selectedTargetKey == nil {
+                // 創建新的主要目標
+                let target = Target(
+                    id: UUID().uuidString,
+                    type: "race_run",
+                    name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
+                    distanceKm: Int(Double(selectedDistance) ?? 42.195),
+                    targetTime: targetHours * 3600 + targetMinutes * 60,
+                    targetPace: targetPace,
+                    raceDate: Int(raceDate.timeIntervalSince1970),
+                    isMainRace: true,
+                    trainingWeeks: trainingWeeks
+                )
+                let createdTarget = try await targetRepository.createTarget(target)
+                selectedTargetKey = createdTarget.id
+                Logger.debug("[OnboardingFeatureVM] 新目標創建成功: \(createdTarget.name), id: \(createdTarget.id)")
+            } else {
+                // 選擇了目標但沒有改動，直接跳過
+                Logger.debug("[OnboardingFeatureVM] 使用先前的目標賽事，不需要創建或更新")
+            }
+
+            isLoading = false
+            return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
+        } catch {
+            self.error = error.localizedDescription
+            isLoading = false
+            return false
+        }
+    }
+
+    /// 當用戶選擇已有的目標時，填入表單
+    func selectTarget(_ target: Target) {
+        selectedTargetKey = target.id
+        raceName = target.name
+        raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+        selectedDistance = normalizeDistanceForPicker(target.distanceKm)
+
+        let totalSeconds = target.targetTime
+        targetHours = totalSeconds / 3600
+        targetMinutes = (totalSeconds % 3600) / 60
+
+        Logger.debug("[OnboardingFeatureVM] 選擇已有目標: \(target.name), 距離: \(target.distanceKm)km -> \(selectedDistance)")
+    }
+
+    // MARK: - Race API Methods
+
+    /// 從 API 載入精選賽事
+    func loadCuratedRaces() async {
+        isLoadingRaces = true
+        do {
+            raceEvents = try await raceRepository.getRaces(
+                region: selectedRegion,
+                distanceMin: nil,
+                distanceMax: nil,
+                dateFrom: nil,
+                dateTo: nil,
+                query: nil,
+                curatedOnly: true,
+                limit: 50,
+                offset: nil
+            )
+            isRaceAPIAvailable = !raceEvents.isEmpty
+        } catch {
+            isRaceAPIAvailable = false
+            Logger.warn("[Onboarding] Race API unavailable: \(error.localizedDescription)")
+        }
+        isLoadingRaces = false
+    }
+
+    /// 用戶從賽事資料庫選擇賽事，自動填入目標設定
+    func selectRaceEvent(_ event: RaceEvent, distance: RaceDistance) {
+        selectedRaceEvent = event
+        selectedRaceDistance = distance
+        // 自動填入賽事資訊到手動表單
+        raceName = event.name
+        raceDate = event.eventDate
+        selectedDistance = normalizeDistanceForPicker(Int(distance.distanceKm))
+    }
+
     // MARK: - Private Helpers
 
     private func normalizeDistanceKey(_ key: String) -> String {
@@ -666,6 +885,30 @@ final class OnboardingFeatureViewModel: ObservableObject {
         if distance == 21 { return 21.0975 }
         if distance == 42 { return 42.195 }
         return distance
+    }
+
+    private func normalizeDistanceForPicker(_ distanceKm: Int) -> String {
+        switch distanceKm {
+        case 5: return "5"
+        case 10: return "10"
+        case 21: return "21.0975"
+        case 42: return "42.195"
+        default: return String(distanceKm)
+        }
+    }
+
+    private func hasSelectedTargetBeenModified() -> Bool {
+        guard let selectedTargetId = selectedTargetKey else { return false }
+        guard let selectedTarget = availableTargets.first(where: { $0.id == selectedTargetId }) else {
+            return false
+        }
+
+        let nameChanged = raceName != selectedTarget.name
+        let distanceChanged = Int(Double(selectedDistance) ?? 42.195) != selectedTarget.distanceKm
+        let timeChanged = (targetHours * 3600 + targetMinutes * 60) != selectedTarget.targetTime
+        let dateChanged = Int(raceDate.timeIntervalSince1970) != selectedTarget.raceDate
+
+        return nameChanged || distanceChanged || timeChanged || dateChanged
     }
 }
 
@@ -688,12 +931,16 @@ extension DependencyContainer {
         if !isRegistered(TrainingPlanV2Repository.self) {
             registerTrainingPlanV2Dependencies()
         }
+        if !isRegistered(RaceRepository.self) {
+            registerRaceModule()
+        }
 
         return OnboardingFeatureViewModel(
             userProfileRepository: resolve(),
             targetRepository: resolve(),
             trainingPlanRepository: resolve(),
-            trainingPlanV2Repository: resolve()
+            trainingPlanV2Repository: resolve(),
+            raceRepository: resolve()
         )
     }
 }

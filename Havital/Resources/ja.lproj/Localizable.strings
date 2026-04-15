@@ -945,6 +945,8 @@
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
 "onboarding.weekly_volume_label" = "推定週間量：%.0f km";
 "onboarding.km_label" = "%.0f km";
+"onboarding.quick_select_label" = "クイック選択";
+"onboarding.fine_tune_label" = "微調整（1 km単位）";
 "onboarding.weekly_distance_title" = "あなたの週間ランニング量";
 "onboarding.skip" = "スキップ";
 
@@ -1037,6 +1039,7 @@
 "hr_zone.understand" = "理解しました";
 "hr_zone.max_heart_rate_display" = "最大心拍数";
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
+"hr_zone.default_values_hint" = "現在は推定値を使用しています。心拍計デバイスの接続または体力テスト後に更新すると、より精度の高いトレーニング提案が得られます";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "リカバリー";
