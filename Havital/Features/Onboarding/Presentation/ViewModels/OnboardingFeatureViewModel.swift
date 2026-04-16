@@ -26,6 +26,10 @@ final class OnboardingFeatureViewModel: ObservableObject {
     private let trainingPlanV2Repository: TrainingPlanV2Repository
     private let raceRepository: RaceRepository
 
+    private var analyticsService: AnalyticsService {
+        DependencyContainer.shared.resolve()
+    }
+
     // MARK: - Shared State (across all steps)
 
     /// Target race distance in km
@@ -40,7 +44,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
     @Published var personalBestMinutes: Int = 0
     @Published var personalBestSeconds: Int = 0
     @Published var selectedPBDistance: String = "5"
-    @Published var hasPersonalBest: Bool = true
+    @Published var hasPersonalBest: Bool = false
     @Published var availablePersonalBests: [String: [PersonalBestRecordV2]] = [:]
     @Published var selectedPersonalBestKey: String?
 
@@ -237,11 +241,22 @@ final class OnboardingFeatureViewModel: ObservableObject {
             let user = try await userProfileRepository.getUserProfile()
 
             if let personalBestV2 = user.personalBestV2,
-               let raceRunData = personalBestV2["race_run"] {
+               let raceRunData = personalBestV2["race_run"],
+               !raceRunData.isEmpty {
                 self.availablePersonalBests = raceRunData
+                self.hasPersonalBest = true
+                prefillClosestPersonalBestIfAvailable()
                 Logger.debug("[OnboardingFeatureVM] Loaded \(raceRunData.count) PB distances")
+            } else {
+                clearPersonalBestSelection()
+                hasPersonalBest = false
+                availablePersonalBests = [:]
+                Logger.debug("[OnboardingFeatureVM] No PB found, defaulting hasPersonalBest to false")
             }
         } catch {
+            clearPersonalBestSelection()
+            hasPersonalBest = false
+            availablePersonalBests = [:]
             Logger.debug("[OnboardingFeatureVM] Failed to load PBs: \(error.localizedDescription)")
             // Don't show error - new users may not have PBs
         }
@@ -362,6 +377,15 @@ final class OnboardingFeatureViewModel: ObservableObject {
     }
 
     // MARK: - Goal Type Methods
+
+    /// Called from GoalTypeSelectionView for non-race paths where no additional race info is collected.
+    func trackTargetSetForNonRace(targetType: TargetTypeV2) {
+        analyticsService.track(.onboardingTargetSet(
+            targetType: targetType.id,
+            raceId: nil,
+            distanceKm: nil
+        ))
+    }
 
     /// Load V2 target types from API
     func loadTargetTypes() async {
@@ -506,18 +530,27 @@ final class OnboardingFeatureViewModel: ObservableObject {
             // Recovery path:
             // Some backend deployments may have succeeded in creating the overview
             // but returned a payload that fails DTO extraction on POST.
-            // Try fetching active overview once before surfacing error to UI.
+            // Retry fetching active overview before surfacing error to UI.
             do {
-                let recoveredOverview = try await trainingPlanV2Repository.refreshOverview()
+                let recoveredOverview = try await recoverOverviewAfterCreateFailure()
                 self.trainingOverviewV2 = recoveredOverview
-                Logger.warn("[OnboardingFeatureVM] ⚠️ POST create failed but recovered active overview via GET: \(recoveredOverview.id)")
+                Logger.warn("[OnboardingFeatureVM] ⚠️ POST create failed but recovered active overview via retry GET: \(recoveredOverview.id)")
                 isLoading = false
                 return recoveredOverview
             } catch {
-                self.error = error.localizedDescription
-                Logger.error("[OnboardingFeatureVM] ❌ Recovery via GET /v2/plan/overview also failed: \(error.localizedDescription)")
+                let previewOverview = await buildLocalPreviewOverview(
+                    targetType: targetType,
+                    trainingWeeks: trainingWeeks,
+                    targetId: targetId,
+                    startFromStage: startFromStage,
+                    methodologyId: resolvedMethodologyId,
+                    intendedRaceDistanceKm: intendedRaceDistanceKm
+                )
+
+                self.trainingOverviewV2 = previewOverview
+                Logger.warn("[OnboardingFeatureVM] ⚠️ Recovery via GET /v2/plan/overview failed. Falling back to local preview overview: \(previewOverview.id)")
                 isLoading = false
-                return nil
+                return previewOverview
             }
         }
     }
@@ -544,6 +577,12 @@ final class OnboardingFeatureViewModel: ObservableObject {
             _ = try await targetRepository.createTarget(target)
             isBeginner = true
             Logger.debug("[OnboardingFeatureVM] Beginner 5K goal created")
+
+            analyticsService.track(.onboardingTargetSet(
+                targetType: "beginner",
+                raceId: nil,
+                distanceKm: 5.0
+            ))
 
             isLoading = false
             return true
@@ -809,6 +848,13 @@ final class OnboardingFeatureViewModel: ObservableObject {
                 Logger.debug("[OnboardingFeatureVM] 使用先前的目標賽事，不需要創建或更新")
             }
 
+            let distanceKm = Double(selectedDistance) ?? 42.195
+            analyticsService.track(.onboardingTargetSet(
+                targetType: "race_run",
+                raceId: selectedTargetKey,
+                distanceKm: distanceKm
+            ))
+
             isLoading = false
             return true
         } catch is CancellationError {
@@ -823,6 +869,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     /// 當用戶選擇已有的目標時，填入表單
     func selectTarget(_ target: Target) {
+        selectedRaceEvent = nil
+        selectedRaceDistance = nil
         selectedTargetKey = target.id
         raceName = target.name
         raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
@@ -862,12 +910,22 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     /// 用戶從賽事資料庫選擇賽事，自動填入目標設定
     func selectRaceEvent(_ event: RaceEvent, distance: RaceDistance) {
+        // 清除先前選擇的既有 target，確保 createRaceTarget() 走 CREATE 分支
+        // 而非因為 selectedTargetKey 殘留而跳過 API 呼叫
+        selectedTargetKey = nil
         selectedRaceEvent = event
         selectedRaceDistance = distance
         // 自動填入賽事資訊到手動表單
         raceName = event.name
         raceDate = event.eventDate
         selectedDistance = normalizeDistanceForPicker(Int(distance.distanceKm))
+    }
+
+    /// 清除賽事資料庫選擇，回到手動輸入模式。
+    /// 保留已帶入的欄位，讓使用者能直接微調而不是重填。
+    func clearSelectedRace() {
+        selectedRaceEvent = nil
+        selectedRaceDistance = nil
     }
 
     // MARK: - Private Helpers
@@ -897,10 +955,151 @@ final class OnboardingFeatureViewModel: ObservableObject {
         }
     }
 
+    private func clearPersonalBestSelection() {
+        selectedPersonalBestKey = nil
+        personalBestHours = 0
+        personalBestMinutes = 0
+        personalBestSeconds = 0
+    }
+
+    private func prefillClosestPersonalBestIfAvailable() {
+        let keys = Array(availablePersonalBests.keys)
+        guard !keys.isEmpty else { return }
+
+        if let exactMatch = keys.first(where: { normalizeDistanceKey($0) == selectedPBDistance }) {
+            selectPersonalBest(distanceKey: exactMatch)
+            return
+        }
+
+        let target = targetDistance
+        let closestKey = keys
+            .compactMap { key -> (String, Double)? in
+                guard let distance = Double(key) else { return nil }
+                return (key, distance)
+            }
+            .min { lhs, rhs in
+                let lhsDelta = abs(lhs.1 - target)
+                let rhsDelta = abs(rhs.1 - target)
+                if lhsDelta == rhsDelta {
+                    return lhs.1 < rhs.1
+                }
+                return lhsDelta < rhsDelta
+            }?
+            .0
+
+        if let closestKey {
+            selectPersonalBest(distanceKey: closestKey)
+        }
+    }
+
+    private func recoverOverviewAfterCreateFailure() async throws -> PlanOverviewV2 {
+        let retryDelays: [UInt64] = [
+            500_000_000,
+            1_000_000_000,
+            2_000_000_000,
+            4_000_000_000
+        ]
+
+        var lastError: Error?
+
+        for (index, delay) in retryDelays.enumerated() {
+            if index > 0 {
+                try await Task.sleep(nanoseconds: delay)
+            }
+
+            do {
+                Logger.warn("[OnboardingFeatureVM] Recovery attempt \(index + 1)/\(retryDelays.count) via GET /v2/plan/overview")
+                return try await trainingPlanV2Repository.refreshOverview()
+            } catch {
+                lastError = error
+                Logger.warn("[OnboardingFeatureVM] Recovery attempt \(index + 1) failed: \(error.localizedDescription)")
+            }
+        }
+
+        throw lastError ?? DomainError.unknown("Failed to recover plan overview")
+    }
+
+    private func buildLocalPreviewOverview(
+        targetType: TargetTypeV2,
+        trainingWeeks: Int?,
+        targetId: String?,
+        startFromStage: String?,
+        methodologyId: String?,
+        intendedRaceDistanceKm: Int?
+    ) async -> PlanOverviewV2 {
+        let resolvedMethodology = selectedMethodology
+            ?? availableMethodologies.first(where: { $0.id == methodologyId })
+            ?? availableMethodologies.first(where: { $0.id == targetType.defaultMethodology })
+
+        let methodologyOverview = resolvedMethodology.map {
+            MethodologyOverviewV2(
+                name: $0.name,
+                philosophy: $0.description,
+                intensityStyle: "balanced",
+                intensityDescription: $0.description
+            )
+        }
+
+        var resolvedTargetName: String?
+        var resolvedRaceDate: Int?
+        var resolvedDistanceKm: Double?
+        var resolvedTargetPace: String?
+        var resolvedTargetTime: Int?
+        var resolvedTotalWeeks = trainingWeeks ?? 0
+
+        if targetType.isRaceRunTarget, let targetId {
+            if let target = try? await targetRepository.getTarget(id: targetId) {
+                resolvedTargetName = target.name
+                resolvedRaceDate = target.raceDate
+                resolvedDistanceKm = Double(target.distanceKm)
+                resolvedTargetPace = target.targetPace
+                resolvedTargetTime = target.targetTime
+                if resolvedTotalWeeks <= 0 {
+                    resolvedTotalWeeks = target.trainingWeeks
+                }
+            }
+        }
+
+        if resolvedTotalWeeks <= 0 {
+            resolvedTotalWeeks = max(trainingWeeks ?? 0, 1)
+        }
+
+        if resolvedDistanceKm == nil, let intendedRaceDistanceKm {
+            resolvedDistanceKm = Double(intendedRaceDistanceKm)
+        }
+
+        return PlanOverviewV2(
+            id: "local_preview_\(UUID().uuidString)",
+            targetId: targetId,
+            targetType: targetType.id,
+            targetDescription: targetType.isRaceRunTarget ? nil : targetType.description,
+            methodologyId: methodologyId ?? resolvedMethodology?.id ?? targetType.defaultMethodology,
+            totalWeeks: resolvedTotalWeeks,
+            startFromStage: startFromStage,
+            raceDate: resolvedRaceDate,
+            distanceKm: resolvedDistanceKm,
+            distanceKmDisplay: nil,
+            distanceUnit: nil,
+            targetPace: resolvedTargetPace,
+            targetTime: resolvedTargetTime,
+            isMainRace: targetType.isRaceRunTarget ? true : nil,
+            targetName: resolvedTargetName,
+            methodologyOverview: methodologyOverview,
+            targetEvaluate: nil,
+            approachSummary: nil,
+            trainingStages: [],
+            milestones: [],
+            createdAt: Date(),
+            methodologyVersion: nil,
+            milestoneBasis: nil
+        )
+    }
+
     private func hasSelectedTargetBeenModified() -> Bool {
         guard let selectedTargetId = selectedTargetKey else { return false }
         guard let selectedTarget = availableTargets.first(where: { $0.id == selectedTargetId }) else {
-            return false
+            // 找不到原始 target 無法比較，視為已修改以觸發 UPDATE 而非靜默跳過
+            return true
         }
 
         let nameChanged = raceName != selectedTarget.name
