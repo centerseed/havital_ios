@@ -113,15 +113,28 @@ final class PaywallViewModelTests: XCTestCase {
 
         XCTAssertFalse(sut.shouldShowRestoreButton)
     }
+
+    func testPurchase_WhenAlreadyOptimisticallyUnlocked_DoesNotForceBackendRefresh() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(offeringId: "default", packageId: "$rc_monthly")
+
+        XCTAssertEqual(repository.purchaseCallCount, 1)
+        XCTAssertEqual(repository.refreshStatusCallCount, 0)
+        XCTAssertEqual(sut.purchaseState, .success)
+    }
 }
 
 private final class MockSubscriptionRepository: SubscriptionRepository {
     var statusToReturn = SubscriptionStatusEntity(status: .none)
+    var purchaseResult: PurchaseResultEntity = .success
     var restoreError: Error?
     var refreshError: Error?
 
     private(set) var refreshStatusCallCount = 0
     private(set) var restorePurchasesCallCount = 0
+    private(set) var purchaseCallCount = 0
 
     func getStatus() async throws -> SubscriptionStatusEntity {
         statusToReturn
@@ -146,7 +159,8 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
     }
 
     func purchase(offeringId _: String, packageId _: String) async throws -> PurchaseResultEntity {
-        .success
+        purchaseCallCount += 1
+        return purchaseResult
     }
 
     func restorePurchases() async throws {

@@ -383,6 +383,27 @@ final class AuthenticationViewModel: ObservableObject {
         return try await authSessionRepository.refreshIdToken()
     }
 
+    func ensureRevenueCatIdentitySynced() async -> Bool {
+        let targetUserID = currentUser?.uid ?? authSessionRepository.getCurrentUser()?.uid
+        scheduleRevenueCatIdentitySync(for: targetUserID)
+        await revenueCatIdentitySyncTask?.value
+
+        guard Purchases.isConfigured else {
+            return true
+        }
+
+        let currentRevenueCatUserID = Purchases.shared.appUserID
+        if let targetUserID {
+            let isSynced = syncedRevenueCatAppUserID == targetUserID || currentRevenueCatUserID == targetUserID
+            if !isSynced {
+                Logger.error("[AuthViewModel] RevenueCat identity sync verification failed: target=\(targetUserID), current=\(currentRevenueCatUserID)")
+            }
+            return isSynced
+        }
+
+        return currentRevenueCatUserID.hasPrefix("$RCAnonymousID:")
+    }
+
     // MARK: - RevenueCat Identity Sync
 
     private func scheduleRevenueCatIdentitySync(for appUserID: String?) {

@@ -131,6 +131,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     // MARK: - Private
 
     private func refreshStatusWithRetry() async -> Bool {
+        if let status = SubscriptionStateManager.shared.currentStatus,
+           isUnlockedStatus(status.status) {
+            return true
+        }
+
         let retryDelaysSeconds: [UInt64] = [0, 1, 2, 4, 6]
         for delay in retryDelaysSeconds {
             if delay > 0 {
@@ -139,7 +144,7 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             do {
                 let status = try await subscriptionRepository.refreshStatus()
                 Logger.debug("[PaywallViewModel] refreshStatusWithRetry: status=\(status.status.rawValue)")
-                if status.status == .active || status.status == .trial || status.status == .cancelled || status.status == .gracePeriod {
+                if isUnlockedStatus(status.status) {
                     return true
                 }
             } catch {
@@ -147,5 +152,9 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             }
         }
         return false
+    }
+
+    private func isUnlockedStatus(_ status: SubscriptionStatus) -> Bool {
+        status == .active || status == .trial || status == .cancelled || status == .gracePeriod
     }
 }

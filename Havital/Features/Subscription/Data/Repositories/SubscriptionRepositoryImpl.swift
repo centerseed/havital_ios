@@ -189,8 +189,18 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             return .failed(DomainError.unknown("Package not found: \(offeringId)/\(packageId)"))
         }
         do {
-            let (_, _, userCancelled) = try await Purchases.shared.purchase(package: package)
+            guard await AuthenticationViewModel.shared.ensureRevenueCatIdentitySynced() else {
+                return .failed(DomainError.validationFailure("Unable to verify subscription identity. Please try again."))
+            }
+
+            let (_, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: package)
             if userCancelled { return .cancelled }
+            if await publishOptimisticStatusIfPossible(from: customerInfo) {
+                Task {
+                    _ = try? await self.waitForBackendAuthorizedStatus()
+                }
+                return .success
+            }
             return try await waitForBackendAuthorizedStatus()
         } catch let error as RevenueCat.ErrorCode {
             switch error {
@@ -205,10 +215,16 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     func restorePurchases() async throws {
         Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: calling RevenueCat")
+        guard await AuthenticationViewModel.shared.ensureRevenueCatIdentitySynced() else {
+            throw DomainError.validationFailure("Unable to verify subscription identity. Please try again.")
+        }
         let customerInfo = try await Purchases.shared.restorePurchases()
         if customerInfo.entitlements[RevenueCatConfig.premiumEntitlement]?.isActive == true {
+            _ = await publishOptimisticStatusIfPossible(from: customerInfo)
             Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: active entitlement, refreshing backend status")
-            _ = try await waitForBackendAuthorizedStatus()
+            Task {
+                _ = try? await self.waitForBackendAuthorizedStatus()
+            }
         }
     }
 
@@ -241,6 +257,45 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         }
 
         return .pendingProcessing
+    }
+
+    private func publishOptimisticStatusIfPossible(from customerInfo: CustomerInfo) async -> Bool {
+        guard let entitlement = customerInfo.entitlements[RevenueCatConfig.premiumEntitlement],
+              entitlement.isActive else {
+            return false
+        }
+
+        let dto = SubscriptionStatusDTO(
+            status: "subscribed",
+            expiresAt: entitlement.expirationDate.map { Self.iso8601String(from: $0) },
+            planType: resolvePlanType(from: entitlement.productIdentifier),
+            rizoUsage: nil,
+            billingIssue: false,
+            enforcementEnabled: localDataSource.getStatus()?.enforcementEnabled ?? true
+        )
+        localDataSource.saveStatus(dto)
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+        await SubscriptionStateManager.shared.update(entity)
+        Logger.debug("[SubscriptionRepositoryImpl] optimistic unlock published: status=\(entity.status.rawValue)")
+        return true
+    }
+
+    private func resolvePlanType(from productIdentifier: String?) -> String? {
+        guard let productIdentifier = productIdentifier?.lowercased() else { return nil }
+        if productIdentifier.contains("year") || productIdentifier.contains("annual") {
+            return "yearly"
+        }
+        if productIdentifier.contains("month") {
+            return "monthly"
+        }
+        return nil
+    }
+
+    private static func iso8601String(from date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
     }
 
     private func mapOfferType(_ type: StoreProductDiscount.DiscountType) -> SubscriptionOfferType {
