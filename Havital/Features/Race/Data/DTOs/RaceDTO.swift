@@ -30,13 +30,30 @@ struct RaceDTO: Codable {
 
 // MARK: - RaceDistanceDTO
 /// 賽事距離 DTO - Data Layer
+/// API 回傳 "label" 欄位（可能為 null），需要 fallback 到距離名稱
 struct RaceDistanceDTO: Codable {
     let distanceKm: Double
-    let name: String
+    let label: String?
 
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
-        case name
+        case label
+    }
+
+    /// 顯示名稱：優先用 label，fallback 到距離描述
+    var displayName: String {
+        if let label = label, !label.isEmpty {
+            return label
+        }
+        return RaceDistanceDTO.defaultName(for: distanceKm)
+    }
+
+    private static func defaultName(for km: Double) -> String {
+        if abs(km - 42.195) < 0.1 { return NSLocalizedString("race_distance.marathon", comment: "全程馬拉松") }
+        if abs(km - 21.0975) < 0.1 { return NSLocalizedString("race_distance.half_marathon", comment: "半程馬拉松") }
+        if abs(km - 10.0) < 0.1 { return "10K" }
+        if abs(km - 5.0) < 0.1 { return "5K" }
+        return String(format: "%.1f km", km)
     }
 }
 

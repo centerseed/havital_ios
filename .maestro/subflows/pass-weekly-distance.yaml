@@ -1,13 +1,14 @@
 appId: com.havital.Havital.dev
 ---
 # 子流程：通過週跑量頁面（用預設值）
-- assertVisible: "您的週跑量"
+- assertVisible:
+    id: "WeeklyDistance_ContinueButton"
 - tapOn:
     id: "WeeklyDistance_ContinueButton"
     optional: true
 - tapOn:
-    text: "下一步"
+    text: "下一步|Next Step|次のステップ"
     optional: true
 - tapOn:
-    text: "略過"
+    text: "略過|Skip|スキップ"
     optional: true

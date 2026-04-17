@@ -148,14 +148,24 @@ final class BackendAuthDataSource {
     // MARK: - Demo Login
 
     /// Demo login for development and testing
+    /// - Parameter reviewerPasscode: Reviewer access passcode
     /// - Returns: Demo user information
     /// - Throws: AuthenticationError.backendSyncFailed if login fails
-    func demoLogin() async throws -> DemoUserDTO {
+    func demoLogin(reviewerPasscode: String) async throws -> DemoUserDTO {
         do {
+            let bodyData = try JSONEncoder().encode(
+                ReviewerDemoLoginRequest(reviewerPasscode: reviewerPasscode)
+            )
+
             // Make HTTP request
             let rawData = try await httpClient.request(
                 path: Endpoint.demoLogin,
-                method: .POST
+                method: .POST,
+                body: bodyData,
+                customHeaders: [
+                    "X-Reviewer-Passcode": reviewerPasscode,
+                    "X-Reviewer-Access-Flow": "ios_hidden_gate"
+                ]
             )
 
             // Parse response using DemoLoginResponse from EmailAuthModels
@@ -173,6 +183,16 @@ final class BackendAuthDataSource {
                 displayName: response.data.user.displayName,
                 idToken: response.data.idToken
             )
+        } catch let error as HTTPError {
+            switch error {
+            case .unauthorized, .forbidden, .badRequest(_):
+                throw AuthenticationError.invalidCredentials
+            case .noConnection, .timeout, .networkError(_):
+                throw AuthenticationError.networkFailure
+            default:
+                Logger.error("Demo login failed: \(error.localizedDescription)")
+                throw AuthenticationError.backendSyncFailed("Demo login failed: \(error.localizedDescription)")
+            }
         } catch let error as AuthenticationError {
             throw error
         } catch {
@@ -190,4 +210,12 @@ struct DemoUserDTO {
     let email: String
     let displayName: String
     let idToken: String
+}
+
+private struct ReviewerDemoLoginRequest: Encodable {
+    let reviewerPasscode: String
+
+    enum CodingKeys: String, CodingKey {
+        case reviewerPasscode = "reviewer_passcode"
+    }
 }

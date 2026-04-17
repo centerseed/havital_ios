@@ -23,9 +23,9 @@ appId: com.havital.Havital.dev
     text: "好"
     optional: true
 
-# 若已在登入頁，直接 demo 登入；否則略過
-- tapOn:
-    id: "Login_DemoButton"
+# 若已在登入頁，直接走 reviewer demo gate；否則略過
+- runFlow:
+    file: reviewer-demo-login.yaml
     optional: true
 
 # 關閉可能殘留的 modal/sheet（如 TrainingOverview、WeeklySummary 等）

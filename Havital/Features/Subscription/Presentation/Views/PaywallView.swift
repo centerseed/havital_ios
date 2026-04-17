@@ -41,8 +41,8 @@ struct PaywallView: View {
                         Button(NSLocalizedString("paywall.restore_purchases", comment: "Restore Purchases")) {
                             Task { try? await viewModel.restorePurchases() }
                         }
-                        .font(.footnote)
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
                         .accessibilityIdentifier("Paywall_RestoreButton")
                         .padding(.bottom, 24)
                     }
@@ -58,10 +58,11 @@ struct PaywallView: View {
                 }
                 ToolbarItem(placement: .principal) {
                     Text(NSLocalizedString("paywall.title", comment: "Upgrade"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                 }
             }
             .task { await viewModel.loadOfferings() }
+            .onAppear { viewModel.trackPaywallView() }
             .onChange(of: viewModel.purchaseState) { _, newState in
                 if case .success = newState {
                     showPurchaseSuccess = true
@@ -107,15 +108,15 @@ struct PaywallView: View {
 
             VStack(spacing: 20) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 64))
+                    .font(AppFont.systemScaled(size: 64))
                     .foregroundColor(.green)
 
                 Text(NSLocalizedString("paywall.purchase_success_title", comment: "Purchase Successful"))
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(AppFont.systemScaled(size: 22, weight: .bold, design: .rounded))
 
                 if let planName = subscriptionState.currentStatus?.planType {
                     Text(planName)
-                        .font(.subheadline)
+                        .font(AppFont.subheadline())
                         .foregroundColor(.secondary)
                 }
 
@@ -123,7 +124,7 @@ struct PaywallView: View {
                    let status = subscriptionState.currentStatus,
                    status.status == .trial {
                     Text(NSLocalizedString("paywall.purchase_success_trial_note", comment: "Paid plan activates after trial ends"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
@@ -133,7 +134,7 @@ struct PaywallView: View {
                     dismiss()
                 } label: {
                     Text(NSLocalizedString("paywall.purchase_success_start", comment: "Start Using"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -169,7 +170,7 @@ struct PaywallView: View {
                     )
                     .frame(width: 88, height: 88)
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 38, weight: .medium))
+                    .font(AppFont.systemScaled(size: 38, weight: .medium))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [Color(red: 1.0, green: 0.7, blue: 0.1), Color(red: 0.95, green: 0.45, blue: 0.0)],
@@ -180,13 +181,14 @@ struct PaywallView: View {
             }
 
             Text(headerTitle)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(AppFont.systemScaled(size: 22, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.center)
 
             Text(NSLocalizedString("paywall.subtitle", comment: "解鎖專屬訓練計畫，突破個人極限"))
-                .font(.subheadline)
+                .font(AppFont.body())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .lineSpacing(2)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("Paywall_Header")
@@ -208,7 +210,8 @@ struct PaywallView: View {
         HStack(spacing: 8) {
             Image(systemName: "clock.fill").foregroundColor(.orange)
             Text(String(format: NSLocalizedString("paywall.trial_days_remaining", comment: ""), daysRemaining))
-                .font(.subheadline.weight(.medium))
+                .font(AppFont.subheadline())
+                .fontWeight(.medium)
                 .foregroundColor(.orange)
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
@@ -275,9 +278,9 @@ struct PaywallView: View {
         case .error:
             VStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.title2).foregroundColor(.secondary)
+                    .font(AppFont.title2()).foregroundColor(.secondary)
                 Text(NSLocalizedString("paywall.offerings_unavailable", comment: ""))
-                    .foregroundColor(.secondary).font(.subheadline).multilineTextAlignment(.center)
+                    .foregroundColor(.secondary).font(AppFont.subheadline()).multilineTextAlignment(.center)
             }
             .padding(.vertical, 32)
             .accessibilityIdentifier("Paywall_OfferingsUnavailable")
@@ -418,15 +421,15 @@ private struct FeatureRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
+                .font(AppFont.systemScaled(size: 15, weight: .semibold))
                 .foregroundColor(.orange)
                 .frame(width: 22)
             Text(text)
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.primary)
             Spacer()
             Image(systemName: "checkmark")
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.systemScaled(size: 12, weight: .bold))
                 .foregroundColor(Color(red: 0.2, green: 0.7, blue: 0.35))
         }
         .padding(.horizontal, 16)
@@ -450,7 +453,7 @@ private struct YearlyCard: View {
                 HStack {
                     Spacer()
                     Text("★  \(NSLocalizedString("paywall.badge.best_value", comment: "最超值"))  ★")
-                        .font(.system(size: 12, weight: .black))
+                        .font(AppFont.systemScaled(size: 12, weight: .black))
                         .foregroundColor(.white)
                         .kerning(0.5)
                     Spacer()
@@ -462,7 +465,7 @@ private struct YearlyCard: View {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(NSLocalizedString("paywall.plan.yearly", comment: "年訂閱"))
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(AppFont.systemScaled(size: 15, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                         if let offerInfo {
                             Text(
@@ -471,33 +474,36 @@ private struct YearlyCard: View {
                                     offerInfo.originalPriceText
                                 )
                             )
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.white.opacity(0.72))
                             .strikethrough()
                         }
                         Text(offerInfo?.displayPriceText ?? package.localizedPrice)
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(AppFont.systemScaled(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         if let offerInfo {
                             Text(NSLocalizedString("paywall.offer.badge_official", comment: "Official Offer"))
-                                .font(.caption2.weight(.bold))
+                                .font(AppFont.caption2())
+                                .fontWeight(.bold)
                                 .foregroundColor(.white.opacity(0.95))
                             Text(offerInfo.detailText)
-                                .font(.caption2.weight(.semibold))
+                                .font(AppFont.caption2())
+                                .fontWeight(.semibold)
                                 .foregroundColor(.white.opacity(0.9))
                             if let discountPercentText = offerInfo.discountPercentText {
                                 Text(discountPercentText)
-                                    .font(.caption2.weight(.semibold))
+                                    .font(AppFont.caption2())
+                                    .fontWeight(.semibold)
                                     .foregroundColor(.white.opacity(0.9))
                             }
                             if let endDateText = offerInfo.endDateText {
                                 Text(endDateText)
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.white.opacity(0.82))
                             }
                         }
                         Text(NSLocalizedString("paywall.plan.yearly_note", comment: "年繳方案說明"))
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.white.opacity(0.75))
                     }
                     Spacer()
@@ -505,7 +511,7 @@ private struct YearlyCard: View {
                         ProgressView().tint(.white)
                     } else {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(AppFont.systemScaled(size: 15, weight: .semibold))
                             .foregroundColor(.white.opacity(0.7))
                     }
                 }
@@ -544,7 +550,7 @@ private struct MonthlyCard: View {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(NSLocalizedString("paywall.plan.monthly", comment: "月訂閱"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.systemScaled(size: 15, weight: .semibold))
                         .foregroundColor(.secondary)
                     if let offerInfo {
                         Text(
@@ -553,28 +559,31 @@ private struct MonthlyCard: View {
                                 offerInfo.originalPriceText
                             )
                         )
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .strikethrough()
                     }
                     Text(offerInfo?.displayPriceText ?? package.localizedPrice)
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(AppFont.systemScaled(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                     if let offerInfo {
                         Text(NSLocalizedString("paywall.offer.badge_official", comment: "Official Offer"))
-                            .font(.caption2.weight(.bold))
+                            .font(AppFont.caption2())
+                            .fontWeight(.bold)
                             .foregroundColor(.orange)
                         Text(offerInfo.detailText)
-                            .font(.caption2.weight(.semibold))
+                            .font(AppFont.caption2())
+                            .fontWeight(.semibold)
                             .foregroundColor(.secondary)
                         if let discountPercentText = offerInfo.discountPercentText {
                             Text(discountPercentText)
-                                .font(.caption2.weight(.semibold))
+                                .font(AppFont.caption2())
+                                .fontWeight(.semibold)
                                 .foregroundColor(.secondary)
                         }
                         if let endDateText = offerInfo.endDateText {
                             Text(endDateText)
-                                .font(.caption2)
+                                .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -584,7 +593,7 @@ private struct MonthlyCard: View {
                     ProgressView().tint(.orange)
                 } else {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.systemScaled(size: 15, weight: .semibold))
                         .foregroundColor(.secondary)
                 }
             }

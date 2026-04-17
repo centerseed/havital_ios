@@ -31,6 +31,9 @@ enum AuthenticationError: Error, Equatable {
 
     /// Onboarding completion required
     case onboardingRequired
+
+    /// App version is too old and must be updated
+    case forceUpdateRequired(updateUrl: String?)
 }
 
 // MARK: - Conversion to DomainError
@@ -55,6 +58,8 @@ extension AuthenticationError {
             return .notFound("User not found")
         case .onboardingRequired:
             return .validationFailure("Onboarding must be completed")
+        case .forceUpdateRequired(let url):
+            return .forceUpdateRequired(updateUrl: url)
         }
     }
 }
@@ -81,6 +86,8 @@ extension AuthenticationError: LocalizedError {
             return "User not found"
         case .onboardingRequired:
             return "Onboarding must be completed"
+        case .forceUpdateRequired:
+            return "App 版本過舊，請前往 App Store 更新"
         }
     }
 }

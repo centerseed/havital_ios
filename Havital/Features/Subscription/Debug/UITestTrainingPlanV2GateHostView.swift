@@ -64,7 +64,7 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
     private let generateSummaryError = UITestGateErrorKind.fromEnvironment("UITEST_TPV2_GENERATE_SUMMARY_ERROR")
     private let updateOverviewError = UITestGateErrorKind.fromEnvironment("UITEST_TPV2_UPDATE_OVERVIEW_ERROR")
 
-    func getPlanStatus() async throws -> PlanStatusV2Response {
+    func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
         PlanStatusV2Response(
             currentWeek: 1,
             totalWeeks: 12,
@@ -339,15 +339,15 @@ struct UITestTrainingPlanV2GateHostView: View {
 
         VStack(spacing: 16) {
             Text("UITest TrainingPlanV2 Gate Host")
-                .font(.headline)
+                .font(AppFont.headline())
                 .accessibilityIdentifier("UITest_TPV2_HostTitle")
 
             Text("trigger:\(String(describing: viewModel.paywallTrigger))")
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .accessibilityIdentifier("UITest_TPV2_PaywallTriggerLabel")
 
             Text("last_action:\(lastAction)")
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .accessibilityIdentifier("UITest_TPV2_LastActionLabel")
 
             Button("Generate Weekly Plan") {
@@ -545,11 +545,11 @@ struct UITestTrainingLoadingCacheHostView: View {
         ZStack {
             VStack(spacing: 16) {
                 Text("UITest Loading Cache Host")
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .accessibilityIdentifier("UITest_Loading_HostTitle")
 
                 Text("scenario:\(UITestLoadingScenario.current().rawValue)")
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
                     .accessibilityIdentifier("UITest_Loading_Scenario")
 
                 VStack(spacing: 8) {

@@ -35,13 +35,13 @@ struct SharedErrorView: View {
             VStack(spacing: 12) {
                 // 標題
                 Text(title ?? errorTitle)
-                    .font(.title2)
+                    .font(AppFont.title2())
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
 
                 // 詳細說明
                 Text(error.userFriendlyMessage)
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 4)
@@ -54,7 +54,7 @@ struct SharedErrorView: View {
                         Image(systemName: "arrow.clockwise")
                         Text(NSLocalizedString("common.retry", comment: "Retry"))
                     }
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -71,7 +71,7 @@ struct SharedErrorView: View {
 
     private var errorIcon: some View {
         Image(systemName: iconName)
-            .font(.system(size: 48))
+            .font(AppFont.systemScaled(size: 48))
             .foregroundColor(iconColor)
     }
 

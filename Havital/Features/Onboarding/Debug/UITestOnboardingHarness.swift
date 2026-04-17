@@ -132,7 +132,7 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
     private var cachedOverview: PlanOverviewV2?
     private var cachedWeeklyPlan: WeeklyPlanV2?
 
-    func getPlanStatus() async throws -> PlanStatusV2Response {
+    func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
         let currentWeekPlanId = cachedWeeklyPlan?.effectivePlanId
         return PlanStatusV2Response(
             currentWeek: 1,

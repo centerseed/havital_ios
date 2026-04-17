@@ -7,26 +7,17 @@ import ObjectiveC
 @MainActor
 class LanguageManager: ObservableObject {
     static let shared = LanguageManager()
-    
+
     private static let languageKey = "app_language_preference"
     private static let languageChangedNotification = NSNotification.Name("LanguageDidChange")
-    
-    @Published var currentLanguage: SupportedLanguage {
-        didSet {
-            if currentLanguage != oldValue {
-                saveLanguagePreference()
-                applyLanguage()
-                syncWithBackend()
-                // 通知 HTTPClient 語言已變更，之後的請求會使用新的 Accept-Language 標頭
-                Logger.firebase("Language changed to: \(currentLanguage.apiCode)", level: .info)
-                // 更新 AppFont 的語言緩存
-                AppFont.updateLanguage(currentLanguage)
-            }
-        }
-    }
-    
+
+    /// 語言同步失敗時發布，LanguageSettingsView 監聽後顯示 alert
+    @Published var lastSyncError: String?
+
+    @Published private(set) var currentLanguage: SupportedLanguage
+
     private var cancellables = Set<AnyCancellable>()
-    
+
     private init() {
         // Load saved language preference or use system default
         if let savedLanguage = UserDefaults.standard.string(forKey: Self.languageKey),
@@ -37,7 +28,7 @@ class LanguageManager: ObservableObject {
             let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
             self.currentLanguage = SupportedLanguage(rawValue: preferredLanguage) ?? .traditionalChinese
         }
-        
+
         // Apply the language on init (but don't sync with backend during init)
         applyLanguageWithoutBackendSync()
 
@@ -48,135 +39,123 @@ class LanguageManager: ObservableObject {
         Logger.debug("LanguageManager initialized with: \(currentLanguage.rawValue) (API: \(currentLanguage.apiCode))")
     }
     
-    /// Apply language without backend sync (for initialization)
-    private func applyLanguageWithoutBackendSync() {
-        // Set the app's language
-        UserDefaults.standard.set([currentLanguage.rawValue], forKey: "AppleLanguages")
-        UserDefaults.standard.synchronize()
-        
-        // Force refresh the main bundle's localization
-        Bundle.setLanguage(currentLanguage.rawValue)
-        
-        // Post notification for UI updates
-        NotificationCenter.default.post(
-            name: Self.languageChangedNotification,
-            object: currentLanguage
-        )
-        
-        Logger.firebase("Language applied on init: \(currentLanguage.rawValue)", level: .info)
-    }
-    
-    /// Save language preference to UserDefaults
-    private func saveLanguagePreference() {
-        UserDefaults.standard.set(currentLanguage.rawValue, forKey: Self.languageKey)
-        Logger.firebase("Language preference saved: \(currentLanguage.rawValue)", level: .info)
-    }
-    
-    /// Apply the selected language to the app
-    private func applyLanguage() {
-        // Set the app's language
-        UserDefaults.standard.set([currentLanguage.rawValue], forKey: "AppleLanguages")
-        UserDefaults.standard.synchronize()
-        
-        // Force refresh the main bundle's localization
-        Bundle.setLanguage(currentLanguage.rawValue)
-        
-        // Post notification for UI updates
-        NotificationCenter.default.post(
-            name: Self.languageChangedNotification,
-            object: currentLanguage
-        )
-        
-        Logger.firebase("Language applied: \(currentLanguage.rawValue)", level: .info)
-    }
-    
-    /// Sync language preference with backend
-    private func syncWithBackend() {
-        Task {
-            await APICallTracker.$currentSource.withValue("LanguageManager: syncWithBackend") {
-                do {
-                    try await self.updateLanguagePreference(self.currentLanguage.apiCode)
-                    Logger.firebase("Language synced with backend: \(self.currentLanguage.apiCode)", level: .info)
-                } catch {
-                    // 任務取消是正常行為，不記錄錯誤
-                    if error.isCancellationError {
-                        Logger.debug("語言同步任務被取消，忽略錯誤")
-                        return
-                    }
-                    Logger.firebase("Failed to sync language with backend: \(error.localizedDescription)", level: .error)
-                }
+    // MARK: - Language Change (Single Path)
+
+    /// 唯一的語言切換入口。先同步後端，成功後套用本地並 restart。
+    /// 失敗則回滾本地語言並透過 `lastSyncError` 通知 UI。
+    func changeLanguageWithBackendSync(to newLanguage: SupportedLanguage) async {
+        let previousLanguage = currentLanguage
+        guard newLanguage != previousLanguage else { return }
+
+        do {
+            try await syncLanguageToBackend(newLanguage.apiCode)
+            // 後端成功 → 套用本地
+            applyLocalLanguage(newLanguage)
+            Logger.firebase("Language changed and synced: \(newLanguage.apiCode)", level: .info)
+        } catch {
+            if error.isCancellationError {
+                Logger.debug("語言同步任務被取消，忽略錯誤")
+                return
             }
+            // 後端失敗 → 回滾，發布錯誤讓 UI 顯示
+            Logger.firebase("Failed to sync language with backend: \(error.localizedDescription)", level: .error)
+            lastSyncError = error.localizedDescription
         }
     }
-    
-    /// Fetch user preferences from backend
+
+    /// Fetch user preferences from backend and apply language locally
     func fetchUserPreferences() async throws {
         let httpClient = DefaultHTTPClient.shared
-        let data = try await httpClient.request(path: "/user/preferences", method: .GET)
+        let data = try await httpClient.request(
+            path: "/user/preferences",
+            method: .GET
+        )
 
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let languageCode = json["language"] as? String,
-           let language = SupportedLanguage(apiCode: languageCode) {
-            await MainActor.run {
-                self.currentLanguage = language
-            }
+        // 後端回傳結構: { "language": "zh-TW", ... } 或巢狀在 "data" 裡
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            Logger.firebase("fetchUserPreferences: response is not a JSON object", level: .warn)
+            return
         }
+
+        // 嘗試頂層 language，再嘗試 data.language
+        let languageCode: String? = {
+            if let code = json["language"] as? String { return code }
+            if let nested = json["data"] as? [String: Any],
+               let code = nested["language"] as? String { return code }
+            return nil
+        }()
+
+        guard let code = languageCode,
+              let language = SupportedLanguage(apiCode: code) else {
+            Logger.firebase("fetchUserPreferences: unrecognised language in response", level: .warn)
+            return
+        }
+
+        applyLocalLanguage(language)
     }
-    
-    /// Update language preference on backend
-    private func updateLanguagePreference(_ languageCode: String) async throws {
+
+    // MARK: - Apply from External Source
+
+    /// 後端已確認的語言套用到本地（供 Repository / Legacy Manager 呼叫）。
+    /// 不觸碰後端，僅更新本地狀態。
+    func applyFromBackend(_ language: SupportedLanguage) {
+        applyLocalLanguage(language)
+    }
+
+    // MARK: - Private Helpers
+
+    /// 套用語言到本地（UserDefaults + Bundle + 通知），不觸碰後端
+    private func applyLocalLanguage(_ language: SupportedLanguage) {
+        currentLanguage = language
+        UserDefaults.standard.set(language.rawValue, forKey: Self.languageKey)
+        UserDefaults.standard.set([language.rawValue], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+
+        Bundle.setLanguage(language.rawValue)
+
+        NotificationCenter.default.post(
+            name: Self.languageChangedNotification,
+            object: language
+        )
+
+        AppFont.updateLanguage(language)
+        Logger.firebase("Language applied locally: \(language.rawValue)", level: .info)
+    }
+
+    /// Apply language without backend sync (for initialization)
+    private func applyLanguageWithoutBackendSync() {
+        UserDefaults.standard.set([currentLanguage.rawValue], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+        Bundle.setLanguage(currentLanguage.rawValue)
+        NotificationCenter.default.post(
+            name: Self.languageChangedNotification,
+            object: currentLanguage
+        )
+        Logger.firebase("Language applied on init: \(currentLanguage.rawValue)", level: .info)
+    }
+
+    /// PUT /user/preferences with language code
+    private func syncLanguageToBackend(_ languageCode: String) async throws {
         let body = ["language": languageCode]
         let bodyData = try JSONSerialization.data(withJSONObject: body)
 
         let httpClient = DefaultHTTPClient.shared
-        _ = try await httpClient.request(path: "/user/preferences", method: .PUT, body: bodyData)
-    }
-    
-    /// Change app language with confirmation and automatic restart
-    func changeLanguage(to language: SupportedLanguage, completion: @escaping (Bool) -> Void) {
-        // Show confirmation alert
-        let alert = UIAlertController(
-            title: L10n.Language.title.localized,
-            message: L10n.Language.changeConfirm.localized,
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(
-            title: L10n.Common.cancel.localized,
-            style: .cancel
-        ) { _ in
-            completion(false)
-        })
-        
-        alert.addAction(UIAlertAction(
-            title: L10n.Common.confirm.localized,
-            style: .default
-        ) { [weak self] _ in
-            self?.performLanguageChange(to: language)
-            completion(true)
-        })
-        
-        // Present alert
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(alert, animated: true)
+        _ = try await APICallTracker.$currentSource.withValue("LanguageManager: syncLanguageToBackend") {
+            try await httpClient.request(path: "/user/preferences", method: .PUT, body: bodyData)
         }
     }
     
-    /// Perform language change and restart app
-    private func performLanguageChange(to language: SupportedLanguage) {
-        // Update language
-        self.currentLanguage = language
-        
-        // Schedule app restart after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.restartApp()
-        }
-    }
-    
-    /// Public method for direct language change with restart (used by settings)
-    func performLanguageChangeWithRestart(to language: SupportedLanguage) {
-        performLanguageChange(to: language)
+    /// 唯一公開方法：同步後端 → 套用本地 → restart。
+    /// 由 LanguageSettingsView 呼叫。成功回傳 true，失敗回傳 false（已回滾）。
+    func performLanguageChangeWithRestart(to language: SupportedLanguage) async -> Bool {
+        await changeLanguageWithBackendSync(to: language)
+
+        // 如果有錯誤表示同步失敗，已回滾
+        if lastSyncError != nil { return false }
+
+        // 成功 → restart
+        restartApp()
+        return true
     }
     
     /// Restart the application

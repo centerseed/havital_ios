@@ -4,19 +4,14 @@
 //
 //  Training Weeks selection onboarding step
 //  For non-race targets (beginner, maintenance)
+//  Refactored to use shared OnboardingFeatureViewModel via @EnvironmentObject
 //
 
 import SwiftUI
 
 struct TrainingWeeksSetupView: View {
-    @StateObject private var viewModel: OnboardingFeatureViewModel
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
 
-    init() {
-        _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
-    }
-
-    // 訓練週數範圍
     private let minWeeks = 4
     private let maxWeeks = 24
     private let recommendedWeeks: [String: Int] = [
@@ -24,57 +19,52 @@ struct TrainingWeeksSetupView: View {
         "maintenance": 12
     ]
 
-    // 週數選項（常用週數）
     private let quickOptions = [4, 8, 12, 16, 20, 24]
 
     @State private var selectedWeeks: Int = 12
     @State private var showCustomPicker = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Main content area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Title and description
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(NSLocalizedString("onboarding.training_weeks_title", comment: "Training Duration"))
-                            .font(AppFont.title2())
-                            .fontWeight(.bold)
+        OnboardingPageTemplate(
+            ctaTitle: NSLocalizedString("onboarding.continue", comment: "Continue"),
+            ctaEnabled: true,
+            isLoading: false,
+            skipTitle: nil,
+            ctaAccessibilityId: "TrainingWeeks_NextButton",
+            ctaAction: {
+                saveAndNavigate()
+            },
+            skipAction: nil
+        ) {
+            VStack(alignment: .leading, spacing: 24) {
+                // Title and description
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(NSLocalizedString("onboarding.training_weeks_title", comment: "Training Duration"))
+                        .font(AppFont.title2())
+                        .fontWeight(.bold)
 
-                        Text(NSLocalizedString("onboarding.training_weeks_description", comment: "How many weeks do you plan to train?"))
-                            .font(AppFont.bodySmall())
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 20)
-
-                    // Selected weeks display
-                    selectedWeeksCard
-
-                    // Quick options
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(NSLocalizedString("onboarding.quick_options", comment: "Quick Options"))
-                            .font(AppFont.headline())
-                            .padding(.horizontal)
-
-                        quickOptionsGrid
-                    }
-
-                    // Custom picker toggle
-                    customPickerSection
-
-                    // Bottom padding
-                    Color.clear.frame(height: 100)
+                    Text(NSLocalizedString("onboarding.training_weeks_description", comment: "How many weeks do you plan to train?"))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
                 }
-            }
+                .padding(.top, 20)
 
-            // Bottom button
-            bottomButton
+                selectedWeeksCard
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(NSLocalizedString("onboarding.quick_options", comment: "Quick Options"))
+                        .font(AppFont.headline())
+
+                    quickOptionsGrid
+                }
+
+                customPickerSection
+            }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("TrainingWeeks_Screen")
         .navigationTitle(NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration"))
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // 根據目標類型設定推薦週數
             if let targetTypeId = coordinator.selectedTargetTypeId,
                let recommended = recommendedWeeks[targetTypeId] {
                 selectedWeeks = recommended
@@ -96,7 +86,7 @@ struct TrainingWeeksSetupView: View {
 
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text("\(selectedWeeks)")
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .font(AppFont.systemScaled(size: 48, weight: .bold, design: .rounded))
                             .foregroundColor(.accentColor)
 
                         Text(NSLocalizedString("common.weeks", comment: "weeks"))
@@ -107,7 +97,6 @@ struct TrainingWeeksSetupView: View {
 
                 Spacer()
 
-                // Recommended badge
                 if let targetTypeId = coordinator.selectedTargetTypeId,
                    let recommended = recommendedWeeks[targetTypeId],
                    selectedWeeks == recommended {
@@ -122,13 +111,11 @@ struct TrainingWeeksSetupView: View {
                 }
             }
 
-            // Info message
             infoMessage
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
-        .padding(.horizontal)
     }
 
     // MARK: - Info Message
@@ -167,7 +154,6 @@ struct TrainingWeeksSetupView: View {
                 quickOptionButton(weeks: weeks)
             }
         }
-        .padding(.horizontal)
     }
 
     @ViewBuilder
@@ -183,7 +169,7 @@ struct TrainingWeeksSetupView: View {
         }) {
             VStack(spacing: 4) {
                 Text("\(weeks)")
-                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .font(AppFont.systemScaled(size: 24, weight: .semibold, design: .rounded))
                     .foregroundColor(isSelected ? .accentColor : .primary)
 
                 Text(NSLocalizedString("common.weeks", comment: "weeks"))
@@ -251,31 +237,6 @@ struct TrainingWeeksSetupView: View {
                 .cornerRadius(12)
             }
         }
-        .padding(.horizontal)
-    }
-
-    // MARK: - Bottom Button
-    @ViewBuilder
-    private var bottomButton: some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            Button(action: {
-                saveAndNavigate()
-            }) {
-                Text(NSLocalizedString("onboarding.continue", comment: "Continue"))
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .accessibilityIdentifier("TrainingWeeks_NextButton")
-            .padding(.horizontal)
-            .padding(.vertical, 16)
-        }
-        .background(Color(.systemGroupedBackground))
     }
 
     // MARK: - Actions

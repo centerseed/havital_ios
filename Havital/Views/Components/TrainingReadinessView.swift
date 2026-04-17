@@ -146,7 +146,7 @@ struct TrainingReadinessView: View {
                     HStack(alignment: .center, spacing: 32) {
                         // Overall Score
                         Text(viewModel.overallScoreFormatted)
-                            .font(.system(size: 48, weight: .bold))
+                            .font(AppFont.systemScaled(size: 48, weight: .bold))
                             .foregroundColor(scoreColor)
 
                         // Estimated Race Time (if available)
@@ -156,7 +156,7 @@ struct TrainingReadinessView: View {
                                     .font(AppFont.captionSmall())
                                     .foregroundColor(.secondary)
                                 Text(estimatedTime)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(AppFont.monospacedBody())
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
                             }
@@ -269,7 +269,7 @@ struct TrainingReadinessView: View {
             // Score
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(String(format: "%.0f", score))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(AppFont.systemScaled(size: 32, weight: .bold))
                     .foregroundColor(color)
 
                 if let trend = trend {
@@ -325,7 +325,7 @@ struct TrainingReadinessView: View {
             HStack(alignment: .center, spacing: 8) {
                 // Score
                 Text(String(format: "%.0f", score))
-                    .font(.system(size: 36, weight: .bold))
+                    .font(AppFont.systemScaled(size: 36, weight: .bold))
                     .foregroundColor(color)
                     .fixedSize()
 
@@ -375,7 +375,7 @@ struct TrainingReadinessView: View {
 
             // Score
             Text(String(format: "%.0f", metric.score))
-                .font(.system(size: 32, weight: .bold))
+                .font(AppFont.systemScaled(size: 32, weight: .bold))
                 .foregroundColor(.orange)
 
             // TSB Info
@@ -433,7 +433,7 @@ struct TrainingReadinessView: View {
             HStack(alignment: .center, spacing: 8) {
                 // Score
                 Text(String(format: "%.0f", metric.score))
-                    .font(.system(size: 36, weight: .bold))
+                    .font(AppFont.systemScaled(size: 36, weight: .bold))
                     .foregroundColor(.orange)
                     .fixedSize()
 
@@ -569,7 +569,7 @@ struct TrainingReadinessMetricsExplanationView: View {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.TrainingReadiness.metricsExplanation.localized)
-                            .font(.largeTitle)
+                            .font(AppFont.largeTitle())
                             .fontWeight(.bold)
 
                         Text(L10n.TrainingReadiness.metricsSubtitle.localized)

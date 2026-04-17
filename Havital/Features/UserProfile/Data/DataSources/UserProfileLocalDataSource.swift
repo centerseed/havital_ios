@@ -50,6 +50,7 @@ final class UserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
         self.defaults = defaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
+        CacheEventBus.shared.register(self)
     }
 
     // MARK: - User Profile Cache
@@ -211,5 +212,21 @@ final class UserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
             size += data.count
         }
         return size
+    }
+}
+
+// MARK: - Cacheable Protocol Conformance
+extension UserProfileLocalDataSource: Cacheable {
+
+    var cacheIdentifier: String {
+        return "UserProfileLocalDataSource"
+    }
+
+    func clearCache() {
+        clearAll()
+    }
+
+    func isExpired() -> Bool {
+        return isUserProfileExpired() && isTargetsExpired() && isHeartRateZonesExpired()
     }
 }

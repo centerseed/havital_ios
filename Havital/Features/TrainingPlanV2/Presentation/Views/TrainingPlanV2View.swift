@@ -75,11 +75,6 @@ struct TrainingPlanV2View: View {
                     .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
-                    // Announcement Banner（AC-ANN-01）
-                    if let banner = announcementViewModel.bannerAnnouncement {
-                        AnnouncementBannerView(announcement: banner)
-                    }
-
                     switch viewModel.planStatus {
                     case .ready(let weeklyPlan):
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
@@ -180,6 +175,27 @@ struct TrainingPlanV2View: View {
                     }
                 }
 
+                // 右側：訊息中心鈴鐺（含未讀 badge）
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showMessageCenter = true }) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell")
+                                .foregroundColor(.primary)
+                            if announcementViewModel.unreadCount > 0 {
+                                Text(announcementViewModel.unreadCount > 99 ? "99+" : "\(announcementViewModel.unreadCount)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Color.red)
+                                    .clipShape(Capsule())
+                                    .offset(x: 8, y: -6)
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier("TrainingPlan_BellButton")
+                }
+
                 // 右側選單
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -206,11 +222,6 @@ struct TrainingPlanV2View: View {
                         Button(action: { showWeekSelector = true }) {
                             Label(NSLocalizedString("training.switch_week", comment: "切換週數"), systemImage: "list.number")
                         }
-
-                        Button(action: { showMessageCenter = true }) {
-                            Label("訊息中心", systemImage: "bell")
-                        }
-                        .accessibilityIdentifier("TrainingPlan_Menu_MessageCenter")
 
                         Divider()
 
@@ -404,7 +415,7 @@ struct TrainingPlanV2View: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.initialize()
-            announcementViewModel.loadBannerAnnouncement()
+            announcementViewModel.loadUnreadCount()
         }
         // 成功訊息 Toast
         .overlay(alignment: .top) {

@@ -34,14 +34,14 @@ struct RaceDistanceSelectionSheet: View {
 
                 // 距離選項列表
                 VStack(spacing: 0) {
-                    ForEach(race.distances.sorted(by: { $0.distanceKm < $1.distanceKm })) { distance in
+                    ForEach(Array(race.distances.sorted(by: { $0.distanceKm < $1.distanceKm }).enumerated()), id: \.element.id) { index, distance in
                         Button(action: {
                             onDistanceSelected(distance)
                             dismiss()
                         }) {
                             HStack(spacing: 16) {
                                 Image(systemName: "circle")
-                                    .font(.system(size: 20))
+                                    .font(AppFont.systemScaled(size: 20))
                                     .foregroundColor(.accentColor)
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -57,13 +57,14 @@ struct RaceDistanceSelectionSheet: View {
                                 Spacer()
 
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 14))
+                                    .font(AppFont.systemScaled(size: 14))
                                     .foregroundColor(.secondary.opacity(0.5))
                             }
                             .padding(.horizontal, 24)
                             .padding(.vertical, 16)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("RaceDistanceOption_\(index)")
 
                         if distance.id != race.distances.sorted(by: { $0.distanceKm < $1.distanceKm }).last?.id {
                             Divider()
@@ -81,6 +82,7 @@ struct RaceDistanceSelectionSheet: View {
                     Button(NSLocalizedString("common.cancel", comment: "取消")) {
                         dismiss()
                     }
+                    .accessibilityIdentifier("RaceDistanceSelection_CancelButton")
                 }
             }
         }

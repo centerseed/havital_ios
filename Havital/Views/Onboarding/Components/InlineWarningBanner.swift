@@ -27,7 +27,7 @@ struct InlineWarningBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 16))
+                .font(AppFont.systemScaled(size: 16))
                 .foregroundColor(.orange)
                 .padding(.top, 1)
 

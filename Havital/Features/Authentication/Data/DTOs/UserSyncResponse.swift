@@ -13,10 +13,27 @@ struct UserSyncResponse: Codable {
     /// Whether user should complete onboarding flow
     let shouldCompleteOnboarding: Bool
 
+    /// Version check information from backend
+    let versionCheck: VersionCheckDTO?
+
     enum CodingKeys: String, CodingKey {
         case user
-        case onboardingStatus = "onboarding_status"
+        case onboardingStatus         = "onboarding_status"
         case shouldCompleteOnboarding = "should_complete_onboarding"
+        case versionCheck             = "version_check"
+    }
+}
+
+// MARK: - Version Check DTO
+struct VersionCheckDTO: Codable {
+    let minAppVersion: String?
+    let forceUpdate: Bool
+    let updateUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case minAppVersion = "min_app_version"
+        case forceUpdate   = "force_update"
+        case updateUrl     = "update_url"
     }
 }
 

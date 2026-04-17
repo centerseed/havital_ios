@@ -11,7 +11,8 @@ tags:
 - runFlow: ../subflows/ensure-goal-type-screen.yaml
 
 # === Step 1: 選擇賽事目標類型 ===
-- assertVisible: "訓練目標"
+- assertVisible:
+    id: "GoalType_NextButton"
 - tapOn:
     id: "GoalType_race_run"
 - tapOn:
@@ -20,12 +21,12 @@ tags:
 # === Step 2: 賽事設定頁 — 驗證兩個入口（P0-10 AC1）===
 - extendedWaitUntil:
     visible:
-      text: "從賽事資料庫選擇"
+      id: "RaceSetup_BrowseDatabaseButton"
     timeout: 15000
 
 # === Step 3: 點擊「從賽事資料庫選擇」進入列表 ===
 - tapOn:
-    text: "從賽事資料庫選擇"
+    id: "RaceSetup_BrowseDatabaseButton"
 
 # === Step 4: 賽事列表頁驗證（P0-10 AC2）===
 - extendedWaitUntil:
@@ -47,13 +48,11 @@ tags:
 # === Step 5: 選擇一個賽事 ===
 # 點擊第一個賽事卡片
 - tapOn:
-    text: ".*馬拉松.*|.*Marathon.*|.*路跑.*"
-    index: 0
-    optional: true
+    id: "RaceEventCard_0"
 
 # 如果有多距離 Sheet 彈出（P0-10 AC6），選第一個距離
 - tapOn:
-    text: "全程馬拉松|半程馬拉松|42|21|10K|5K"
+    id: "RaceDistanceOption_0"
     optional: true
 
 # === Step 6: 回到賽事設定頁 — 驗證自動填入（P0-10 AC7）===
@@ -64,7 +63,7 @@ tags:
 
 # 驗證已選賽事摘要卡可見
 - assertVisible:
-    text: "更換賽事"
+    id: "RaceSetup_ChangeRaceButton"
 
 # === Step 7: 按下一步繼續（P0-10 AC9）===
 - tapOn:

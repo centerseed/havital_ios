@@ -81,6 +81,12 @@ final class AuthRepositoryImpl: AuthRepository {
             )
             let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
 
+            // Step 5.5: [Version Gate] Intercept forceUpdate before mapping
+            if let vc = syncResponse.versionCheck, vc.forceUpdate {
+                Logger.warn("[AuthRepository] 🚫 Force update required. minVersion=\(vc.minAppVersion ?? "?") updateUrl=\(vc.updateUrl ?? "?")")
+                throw AuthenticationError.forceUpdateRequired(updateUrl: vc.updateUrl)
+            }
+
             // Step 6: Map DTO → AuthUser Entity
             Logger.debug("[AuthRepository] Step 6: Mapping to AuthUser Entity")
             let authUser = FirebaseUserMapper.toDomain(
@@ -149,6 +155,12 @@ final class AuthRepositoryImpl: AuthRepository {
             )
             let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
 
+            // Step 5.5: [Version Gate] Intercept forceUpdate before mapping
+            if let vc = syncResponse.versionCheck, vc.forceUpdate {
+                Logger.warn("[AuthRepository] 🚫 Force update required. minVersion=\(vc.minAppVersion ?? "?") updateUrl=\(vc.updateUrl ?? "?")")
+                throw AuthenticationError.forceUpdateRequired(updateUrl: vc.updateUrl)
+            }
+
             // Step 6: Map DTO → AuthUser Entity
             Logger.debug("[AuthRepository] Step 6: Mapping to AuthUser Entity")
             let authUser = FirebaseUserMapper.toDomain(
@@ -209,6 +221,12 @@ final class AuthRepositoryImpl: AuthRepository {
             )
             let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
 
+            // Step 5.5: [Version Gate] Intercept forceUpdate before mapping
+            if let vc = syncResponse.versionCheck, vc.forceUpdate {
+                Logger.warn("[AuthRepository] 🚫 Force update required. minVersion=\(vc.minAppVersion ?? "?") updateUrl=\(vc.updateUrl ?? "?")")
+                throw AuthenticationError.forceUpdateRequired(updateUrl: vc.updateUrl)
+            }
+
             // Step 6: Map DTO → AuthUser Entity
             Logger.debug("[AuthRepository] Step 6: Mapping to AuthUser Entity")
             let authUser = FirebaseUserMapper.toDomain(
@@ -240,12 +258,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
     /// Demo login for development/testing
     /// Calls backend /login/demo API and returns authenticated user
-    func demoLogin() async throws -> AuthUser {
+    func demoLogin(reviewerPasscode: String) async throws -> AuthUser {
         do {
             Logger.debug("[AuthRepository] Starting demo login")
 
             // Step 1: Call demo login API
-            let demoResponse = try await backendAuth.demoLogin()
+            let demoResponse = try await backendAuth.demoLogin(reviewerPasscode: reviewerPasscode)
 
             Logger.debug("[AuthRepository] Demo login API succeeded, UID: \(demoResponse.uid)")
 

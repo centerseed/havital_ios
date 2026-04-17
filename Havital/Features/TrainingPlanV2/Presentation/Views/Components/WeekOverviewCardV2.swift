@@ -38,10 +38,10 @@ struct WeekOverviewCardV2: View {
             HStack {
                 Image(systemName: "chart.pie.fill")
                     .foregroundColor(.blue)
-                    .font(.headline)
+                    .font(AppFont.headline())
 
                 Text(NSLocalizedString("training_plan.weekly_volume_and_intensity", comment: "週跑量和訓練強度"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
             }
 
@@ -67,24 +67,24 @@ struct WeekOverviewCardV2: View {
                     VStack(spacing: 2) {
                         HStack(spacing: 1) {
                             Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.currentWeekDistance)))
-                                .font(.system(size: 17, weight: .bold))
+                                .font(AppFont.systemScaled(size: 17, weight: .bold))
                                 .foregroundColor(.primary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
 
                             Text("/")
-                                .font(.system(size: 13))
+                                .font(AppFont.systemScaled(size: 13))
                                 .foregroundColor(.secondary)
 
                             Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
-                                .font(.system(size: 13))
+                                .font(AppFont.systemScaled(size: 13))
                                 .foregroundColor(.secondary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
                         }
 
                         Text(unitManager.currentUnitSystem.distanceSuffix)
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                     }
                     .offset(y: 3)
@@ -100,14 +100,14 @@ struct WeekOverviewCardV2: View {
                         HStack(spacing: 6) {
                             Image(systemName: "target")
                                 .foregroundColor(.blue)
-                                .font(.subheadline)
+                                .font(AppFont.subheadline())
 
                             Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                                .font(.subheadline)
+                                .font(AppFont.subheadline())
                                 .foregroundColor(.primary)
 
                             Image(systemName: "chevron.right")
-                                .font(.caption2)
+                                .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 6)
@@ -124,14 +124,14 @@ struct WeekOverviewCardV2: View {
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
                                 .foregroundColor(.green)
-                                .font(.subheadline)
+                                .font(AppFont.subheadline())
 
                             Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
-                                .font(.subheadline)
+                                .font(AppFont.subheadline())
                                 .foregroundColor(.primary)
 
                             Image(systemName: "chevron.right")
-                                .font(.caption2)
+                                .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 6)
@@ -220,7 +220,7 @@ struct CompactIntensityBarV2: View {
         VStack(alignment: .leading, spacing: 4) {
             // 標籤和數字
             Text("\(label) \(current)/\(target)")
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
 
             // 自定義進度條
@@ -258,15 +258,15 @@ struct WeekTargetDetailViewV2: View {
                     HStack(spacing: 8) {
                         Image(systemName: "target")
                             .foregroundColor(.blue)
-                            .font(.title3)
+                            .font(AppFont.title3())
 
                         Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                            .font(.headline)
+                            .font(AppFont.headline())
                             .foregroundColor(.primary)
                     }
 
                     Text(purpose)
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.leading, 4)
@@ -283,10 +283,10 @@ struct WeekTargetDetailViewV2: View {
                         HStack(spacing: 8) {
                             Image(systemName: "lightbulb.circle.fill")
                                 .foregroundColor(.orange)
-                                .font(.title3)
+                                .font(AppFont.title3())
 
                             Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-                                .font(.headline)
+                                .font(AppFont.headline())
                                 .foregroundColor(.primary)
                         }
 
@@ -294,12 +294,12 @@ struct WeekTargetDetailViewV2: View {
                             ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
                                 HStack(alignment: .top, spacing: 10) {
                                     Text("\(index + 1).")
-                                        .font(.body)
+                                        .font(AppFont.body())
                                         .fontWeight(.medium)
                                         .foregroundColor(.orange)
 
                                     Text(reason)
-                                        .font(.body)
+                                        .font(AppFont.body())
                                         .foregroundColor(.primary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }

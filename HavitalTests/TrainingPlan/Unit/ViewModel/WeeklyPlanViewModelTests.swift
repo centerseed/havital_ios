@@ -237,11 +237,149 @@ final class WeeklyPlanViewModelTests: XCTestCase {
     func testAvailableWeeks_returnsCorrectRange() {
         // Given
         sut.currentWeek = 3
-        
+
         // When
         let weeks = sut.availableWeeks
-        
+
         // Then
         XCTAssertEqual(weeks, [1, 2, 3])
+    }
+
+    // MARK: - A-3: V2 User Early Return on V1 WeeklyPlanViewModel
+
+    /// 建一個 V2 SUT，測試專用。V1 原 sut（`setUp` 建立）持續用於向後相容測試。
+    private func makeV2SUT() -> (WeeklyPlanViewModel, MockTrainingPlanRepository, MockTrainingVersionRouter) {
+        let mockRepo = MockTrainingPlanRepository()
+        let router = MockTrainingVersionRouter()
+        router.isV2Result = true
+        let vm = WeeklyPlanViewModel(repository: mockRepo, versionRouter: router)
+        return (vm, mockRepo, router)
+    }
+
+    func testLoadWeeklyPlan_v2User_earlyReturn_noRepoCall_stateIsIncorrectVersionRouting() async {
+        let (vm, mockRepo, _) = makeV2SUT()
+
+        // Seed overview so currentPlanId is not nil — guard must fire BEFORE planId check
+        mockRepo.overviewToReturn = TrainingPlanTestFixtures.trainingOverview
+        // Can't safely call loadOverview (V2 guard would also fire); poke state directly via selectedWeek
+        vm.selectedWeek = 1
+
+        await vm.loadWeeklyPlan()
+
+        XCTAssertEqual(mockRepo.getWeeklyPlanCallCount, 0, "V2 user must not reach V1 repository")
+        guard case .error(let err) = vm.state,
+              case .incorrectVersionRouting(let ctx) = err else {
+            XCTFail("Expected state = .error(.incorrectVersionRouting), got \(vm.state)")
+            return
+        }
+        XCTAssertTrue(ctx.contains("loadWeeklyPlan"))
+    }
+
+    func testRefreshWeeklyPlan_v2User_earlyReturn_noRepoCall() async {
+        let (vm, mockRepo, _) = makeV2SUT()
+        vm.selectedWeek = 1
+
+        await vm.refreshWeeklyPlan()
+
+        XCTAssertEqual(mockRepo.refreshWeeklyPlanCallCount, 0)
+        guard case .error(.incorrectVersionRouting(let ctx)) = vm.state else {
+            XCTFail("Expected incorrectVersionRouting, got \(vm.state)")
+            return
+        }
+        XCTAssertTrue(ctx.contains("refreshWeeklyPlan"))
+    }
+
+    func testGenerateWeeklyPlan_v2User_earlyReturn_noRepoCall() async {
+        let (vm, mockRepo, _) = makeV2SUT()
+
+        await vm.generateWeeklyPlan(targetWeek: 1)
+
+        XCTAssertEqual(mockRepo.createWeeklyPlanCallCount, 0)
+        guard case .error(.incorrectVersionRouting(let ctx)) = vm.state else {
+            XCTFail("Expected incorrectVersionRouting, got \(vm.state)")
+            return
+        }
+        XCTAssertTrue(ctx.contains("generateWeeklyPlan"))
+    }
+
+    func testModifyWeeklyPlan_v2User_earlyReturn_noRepoCall() async {
+        let (vm, mockRepo, _) = makeV2SUT()
+        let plan = TrainingPlanTestFixtures.weeklyPlan1
+
+        await vm.modifyWeeklyPlan(plan)
+
+        XCTAssertEqual(mockRepo.modifyWeeklyPlanCallCount, 0)
+        guard case .error(.incorrectVersionRouting(let ctx)) = vm.state else {
+            XCTFail("Expected incorrectVersionRouting, got \(vm.state)")
+            return
+        }
+        XCTAssertTrue(ctx.contains("modifyWeeklyPlan"))
+    }
+
+    func testLoadOverview_v2User_earlyReturn_noRepoCall_overviewStateIsError() async {
+        let (vm, mockRepo, _) = makeV2SUT()
+
+        await vm.loadOverview()
+
+        XCTAssertEqual(mockRepo.getOverviewCallCount, 0)
+        guard case .error(.incorrectVersionRouting(let ctx)) = vm.overviewState else {
+            XCTFail("Expected overviewState = .error(.incorrectVersionRouting), got \(vm.overviewState)")
+            return
+        }
+        XCTAssertTrue(ctx.contains("loadOverview"))
+    }
+
+    func testLoadOverview_v1User_normalFlow_noGuardTriggered() async {
+        // sut 使用 default setUp（AlwaysV1Router fallback → V1 user）
+        mockRepository.overviewToReturn = TrainingPlanTestFixtures.trainingOverview
+
+        await sut.loadOverview()
+
+        XCTAssertEqual(mockRepository.getOverviewCallCount, 1)
+        if case .loaded = sut.overviewState {} else {
+            XCTFail("V1 user path should complete normally, got \(sut.overviewState)")
+        }
+    }
+
+    // MARK: - A-6: SWR Decode Failure Observability
+
+    func testSWR_decodeFailureWithCache_setsDebugBadge_keepsState() async {
+        // Seed cached data
+        mockRepository.overviewToReturn = TrainingPlanTestFixtures.trainingOverview
+        await sut.loadOverview()
+        mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
+        await sut.loadWeeklyPlan()
+        XCTAssertNotNil(sut.weeklyPlan, "precondition: cache must exist")
+        XCTAssertFalse(sut.debugDecodeFailureBadge)
+
+        // Now simulate background refresh that fails (decode failure / server error)
+        mockRepository.weeklyPlanToReturn = nil
+        mockRepository.errorToThrow = DomainError.dataCorruption("decode_failed(type=WeeklyPlan)")
+
+        await sut.refreshWeeklyPlan()
+
+        // Cache retained
+        XCTAssertNotNil(sut.weeklyPlan, "cache must be preserved after SWR failure")
+        if case .loaded = sut.state {} else {
+            XCTFail("state should remain .loaded with stale cache, got \(sut.state)")
+        }
+        // Badge turned on
+        XCTAssertTrue(sut.debugDecodeFailureBadge,
+                      "A-6: debug badge must be set when SWR refresh fails with cache")
+    }
+
+    func testSWR_cancellation_doesNotSetBadge() async {
+        mockRepository.overviewToReturn = TrainingPlanTestFixtures.trainingOverview
+        await sut.loadOverview()
+        mockRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
+        await sut.loadWeeklyPlan()
+
+        mockRepository.weeklyPlanToReturn = nil
+        mockRepository.errorToThrow = DomainError.cancellation
+
+        await sut.refreshWeeklyPlan()
+
+        XCTAssertFalse(sut.debugDecodeFailureBadge,
+                       "Cancellation must not be treated as decode failure")
     }
 }

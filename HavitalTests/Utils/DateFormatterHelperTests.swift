@@ -149,6 +149,24 @@ final class DateFormatterHelperTests: XCTestCase {
         XCTAssertEqual(formatted, "2024-11-19")
     }
 
+    func testFormatSubscriptionExpiryDate_usesUTCCalendarDate() {
+        // Given: UTC 到期時間 2026-04-15 15:00:00Z
+        // 在東京時區會是 2026-04-16 00:00:00，但 UI 應維持顯示 2026/04/15
+        let date = Date(timeIntervalSince1970: 1776265200)
+
+        // When: 用戶時區是東京
+        setTimezone("Asia/Tokyo")
+
+        let expectation = XCTestExpectation(description: "Wait for preferences update")
+        DispatchQueue.main.async { expectation.fulfill() }
+        wait(for: [expectation], timeout: 1.0)
+
+        let formatted = DateFormatterHelper.formatSubscriptionExpiryDate(date)
+
+        // Then: 應固定使用 UTC calendar date
+        XCTAssertEqual(formatted, "2026/04/15")
+    }
+
     // MARK: - 跨時區測試
 
     func testTimezoneConversionFromUTCToTokyo() {

@@ -105,12 +105,10 @@ struct EditScheduleViewV2: View {
 
     private func saveChanges() async {
         do {
-            let savedPlan = try await editViewModel.saveEdits()
-            await MainActor.run {
-                planViewModel.weeklyPlan = savedPlan
-                planViewModel.planStatus = .ready(savedPlan)
-                dismiss()
-            }
+            _ = try await editViewModel.saveEdits()
+            // savedPlan 已存在 editViewModel.savedPlan，
+            // 由父 view 在 sheet onDismiss 時讀取更新 planStatus
+            dismiss()
         } catch {
             // 錯誤已在 ViewModel 記錄，不需要額外處理
             Logger.error("[EditScheduleViewV2] saveChanges failed: \(error.localizedDescription)")

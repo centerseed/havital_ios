@@ -1,5 +1,19 @@
 import Foundation
 
+// MARK: - TrainingVersionRouting Protocol
+/// 訓練計劃版本路由器對外介面
+/// 抽出 protocol 的目的：
+/// - 讓上層（ViewModel / Decorator）依賴 protocol 而非具體類別，符合 DI 原則
+/// - 單元測試可注入 mock，不需要完整的 UserProfileRepository 鏈路
+protocol TrainingVersionRouting {
+    /// 獲取當前使用者的訓練計劃版本（"v1" 或 "v2"，錯誤時回 "v1"）
+    func getTrainingVersion() async -> String
+    /// 檢查當前使用者是否為 V2 版本
+    func isV2User() async -> Bool
+    /// 檢查當前使用者是否為 V1 版本
+    func isV1User() async -> Bool
+}
+
 // MARK: - TrainingVersionRouter
 /// 訓練計劃版本路由器
 /// 職責：根據 User 的 training_version 欄位判斷應使用 V1 或 V2 API
@@ -12,7 +26,7 @@ import Foundation
 /// - "v2" → 使用 Training Plan V2 API
 /// - "v1" 或 null → 使用 Training Plan V1 API（預設）
 /// - 錯誤時預設使用 V1（向下相容）
-final class TrainingVersionRouter {
+final class TrainingVersionRouter: TrainingVersionRouting {
 
     // MARK: - Dependencies
 
@@ -58,10 +72,17 @@ final class TrainingVersionRouter {
 extension DependencyContainer {
 
     /// 註冊 TrainingVersionRouter
+    /// - 同時註冊具體類別 `TrainingVersionRouter.self` 與 protocol `TrainingVersionRouting.self`
+    /// - 具備 idempotency（已註冊時跳過），允許在 V1 與 V2 模組註冊前後重複呼叫
     func registerTrainingVersionRouter() {
+        guard !isRegistered(TrainingVersionRouter.self) else {
+            Logger.debug("[DI] TrainingVersionRouter already registered, skipping")
+            return
+        }
         let userProfileRepo: UserProfileRepository = resolve()
         let router = TrainingVersionRouter(userProfileRepository: userProfileRepo)
         register(router, for: TrainingVersionRouter.self)
-        Logger.debug("[DI] TrainingVersionRouter registered")
+        register(router as TrainingVersionRouting, forProtocol: TrainingVersionRouting.self)
+        Logger.debug("[DI] TrainingVersionRouter registered (concrete + protocol)")
     }
 }

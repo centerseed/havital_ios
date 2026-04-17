@@ -46,7 +46,7 @@ struct PersonalBestCelebrationView: View {
                     }
 
                     Text(formatTime(update.newTime))
-                        .font(.system(size: 48, weight: .bold))
+                        .font(AppFont.systemScaled(size: 48, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [.blue, .purple],

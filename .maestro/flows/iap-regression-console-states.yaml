@@ -34,8 +34,8 @@ tags:
 - tapOn:
     text: "好"
     optional: true
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 # Wait for any app screen to be ready (login, main, or profile)

@@ -340,7 +340,8 @@ struct TrainingProgressView: View {
                         }
                         Text("\(Int(percent))%")
                             .fixedSize()
-                            .font(.footnote.bold())
+                            .font(AppFont.footnote())
+                            .fontWeight(.bold)
                             .foregroundColor(.blue)
                     }
                 }
@@ -361,9 +362,9 @@ struct TrainingProgressView: View {
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "doc.text.magnifyingglass")
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppFont.systemScaled(size: 12, weight: .medium))
                                 Text(L10n.TrainingProgress.review.localized)
-                                    .font(.footnote)
+                                    .font(AppFont.footnote())
                                     .fontWeight(.medium)
                             }
                             .fixedSize()
@@ -389,9 +390,9 @@ struct TrainingProgressView: View {
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "calendar")
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppFont.systemScaled(size: 12, weight: .medium))
                                 Text(L10n.TrainingProgress.schedule.localized)
-                                    .font(.footnote)
+                                    .font(AppFont.footnote())
                                     .fontWeight(.medium)
                             }
                             .fixedSize()
@@ -413,7 +414,7 @@ struct TrainingProgressView: View {
                                 ProgressView()
                                     .scaleEffect(0.8)
                                 Text(L10n.Common.loading.localized)
-                                    .font(.footnote)
+                                    .font(AppFont.footnote())
                                     .fontWeight(.medium)
                             }
                             .fixedSize()
@@ -432,9 +433,9 @@ struct TrainingProgressView: View {
                             } label: {
                                 HStack(alignment: .center, spacing: 4) {
                                     Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                                     Text(L10n.Common.retry.localized)
-                                        .font(.footnote)
+                                        .font(AppFont.footnote())
                                         .fontWeight(.medium)
                                 }
                                 .fixedSize()
@@ -455,9 +456,9 @@ struct TrainingProgressView: View {
                             } label: {
                                 HStack(alignment: .center, spacing: 4) {
                                     Image(systemName: "plus.circle")
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                                     Text(L10n.TrainingProgress.generateSchedule.localized)
-                                        .font(.footnote)
+                                        .font(AppFont.footnote())
                                         .fontWeight(.medium)
                                 }
                                 .fixedSize()
@@ -478,9 +479,9 @@ struct TrainingProgressView: View {
                             } label: {
                                 HStack(alignment: .center, spacing: 4) {
                                     Image(systemName: "doc.text.magnifyingglass")
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                                     Text(L10n.Training.getWeeklyReview.localized)
-                                        .font(.footnote)
+                                        .font(AppFont.footnote())
                                         .fontWeight(.medium)
                                 }
                                 .fixedSize()

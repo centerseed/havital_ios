@@ -5,10 +5,8 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
 
     // MARK: - Published
 
-    @Published var bannerAnnouncement: Announcement?
     @Published var allAnnouncements: [Announcement] = []
     @Published var unreadCount: Int = 0
-    @Published var isLoadingBanner: Bool = false
     @Published var isLoadingCenter: Bool = false
 
     // MARK: - TaskManageable
@@ -29,35 +27,19 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
         cancelAllTasks()
     }
 
-    // MARK: - Home Banner
+    // MARK: - Unread Count
 
-    /// App 啟動後呼叫，載入並顯示最新未讀公告 Banner（AC-ANN-01）
-    func loadBannerAnnouncement() {
+    /// App 啟動後呼叫，只計算未讀數量供 toolbar bell badge 使用。
+    /// 不自動 markSeen — 使用者進入訊息中心時才批次標已讀（見 loadMessageCenter）。
+    func loadUnreadCount() {
         Task { [weak self] in
             guard let self else { return }
-            await self.executeTask(id: TaskID("load_banner")) { [weak self] in
+            await self.executeTask(id: TaskID("load_unread_count")) { [weak self] in
                 guard let self else { return }
-                await MainActor.run { self.isLoadingBanner = true }
-                defer {
-                    Task { @MainActor [weak self] in
-                        self?.isLoadingBanner = false
-                    }
-                }
-
                 let announcements = try await self.repository.fetchAnnouncements()
-                let unread = announcements
-                    .filter { !$0.isSeen }
-                    .sorted { $0.publishedAt > $1.publishedAt }
-
+                let unread = announcements.filter { !$0.isSeen }.count
                 await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.unreadCount = unread.count
-                    self.bannerAnnouncement = unread.first
-                }
-
-                // Banner 顯示後立刻標記已讀（AC-ANN-02）
-                if let banner = unread.first {
-                    try await self.repository.markSeen(id: banner.id)
+                    self?.unreadCount = unread
                 }
             }
         }

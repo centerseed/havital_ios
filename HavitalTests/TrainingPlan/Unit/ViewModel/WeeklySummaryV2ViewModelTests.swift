@@ -558,7 +558,7 @@ private final class StartupStatusFailureButCachedPlanRepository: TrainingPlanV2R
         }
     }
 
-    func getPlanStatus() async throws -> PlanStatusV2Response {
+    func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
         throw DomainError.noConnection
     }
 

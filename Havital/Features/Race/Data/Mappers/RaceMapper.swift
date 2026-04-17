@@ -42,7 +42,7 @@ enum RaceMapper {
 
     /// 將 RaceDistanceDTO 轉換為 RaceDistance Entity
     private static func toDistanceEntity(from dto: RaceDistanceDTO) -> RaceDistance {
-        RaceDistance(distanceKm: dto.distanceKm, name: dto.name)
+        RaceDistance(distanceKm: dto.distanceKm, name: dto.displayName)
     }
 
     // MARK: - Date Helpers

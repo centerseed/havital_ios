@@ -1,0 +1,12 @@
+appId: com.havital.Havital.dev
+---
+- tapOn:
+    text: "不允許|Don't Allow|許可しない"
+    optional: true
+
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
+- assertVisible:
+    id: "Login_ReviewerAccessTrigger"

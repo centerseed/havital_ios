@@ -411,7 +411,7 @@ struct UserProfileView: View {
             HStack {
                 Label(title, systemImage: systemImage)
                 Spacer()
-                Text(Date(timeIntervalSince1970: expiresAt), style: .date)
+                Text(DateFormatterHelper.formatSubscriptionExpiryDate(Date(timeIntervalSince1970: expiresAt)))
                     .foregroundColor(color)
             }
         }
@@ -1049,6 +1049,17 @@ struct UserProfileView: View {
                 }
             }
             .foregroundColor(.blue)
+
+            // A-0b: V2 Fixture Export（DEBUG-only）
+            NavigationLink {
+                V2FixtureExportView()
+            } label: {
+                HStack {
+                    Image(systemName: "square.and.arrow.up.on.square")
+                        .foregroundColor(.blue)
+                    Text("V2 Fixture Export")
+                }
+            }
 
             Divider()
 

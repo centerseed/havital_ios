@@ -16,8 +16,8 @@ tags:
 - tapOn:
     text: "好"
     optional: true
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 - tapOn:

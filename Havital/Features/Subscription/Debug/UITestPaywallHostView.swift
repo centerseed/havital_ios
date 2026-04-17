@@ -12,14 +12,14 @@ struct UITestPaywallHostView: View {
     var body: some View {
         VStack(spacing: 16) {
             Text("UITest Paywall Host")
-                .font(.headline)
+                .font(AppFont.headline())
 
             Text("status:\(subscriptionState.currentStatus?.status.rawValue ?? "none")")
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .accessibilityIdentifier("UITest_SubscriptionStatus")
 
             Text("repo:\(repositoryTypeName)")
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .accessibilityIdentifier("UITest_SubscriptionRepositoryType")
 

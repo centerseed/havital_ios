@@ -38,64 +38,64 @@ struct WarmupCooldownView: View {
         HStack(spacing: 4) {
             // 圖標標示
             Text(type.icon)
-                .font(.caption)
+                .font(AppFont.caption())
 
             // 類型標籤
             Text(type.label)
-                .font(.caption)
+                .font(AppFont.caption())
                 .fontWeight(.medium)
 
             // 距離
             if let distanceKm = segment.distanceKm {
                 Text("•")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(String(format: "%.1fkm", distanceKm))
-                    .font(.caption)
+                    .font(AppFont.caption())
             } else if let distanceM = segment.distanceM {
                 Text("•")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(String(format: "%dm", distanceM))
-                    .font(.caption)
+                    .font(AppFont.caption())
             }
 
             // 配速
             if let pace = segment.pace {
                 Text("•")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(pace)
-                    .font(.caption)
+                    .font(AppFont.caption())
             }
 
             // 心率區間
             if let hrRange = segment.heartRateRange, hrRange.isValid,
                let displayText = hrRange.displayText {
                 Text("•")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text("HR \(displayText)")
-                    .font(.caption)
+                    .font(AppFont.caption())
             }
 
             // 強度
             if let intensity = segment.intensity {
                 Text("•")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(intensity)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .italic()
             }
 
             // 描述
             if let description = segment.description, !description.isEmpty {
                 Text("•")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(description)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }

@@ -14,7 +14,7 @@ protocol AppStateManagerProtocol: ObservableObject {
     var currentState: AppStateManager.AppState { get }
     var isUserAuthenticated: Bool { get }
     var userDataSource: DataSourceType { get }
-    var subscriptionStatus: AppStateManager.SubscriptionStatus { get } // Assuming SubscriptionStatus is public or internal
+    var subscriptionStatus: AppStateManager.LocalSubscriptionStatus { get }
     var initializationProgress: Double { get }
     
     func initializeApp() async
@@ -25,5 +25,4 @@ protocol AppStateManagerProtocol: ObservableObject {
 
 // Ensure AppStateManager conforms to the protocol
 extension AppStateManager: AppStateManagerProtocol {}
-
 

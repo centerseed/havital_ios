@@ -37,6 +37,7 @@ final class SubscriptionLocalDataSource: SubscriptionLocalDataSourceProtocol {
         self.defaults = defaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
+        CacheEventBus.shared.register(self)
     }
 
     // MARK: - Read
@@ -91,5 +92,24 @@ final class SubscriptionLocalDataSource: SubscriptionLocalDataSourceProtocol {
         defaults.removeObject(forKey: Keys.statusData)
         defaults.removeObject(forKey: Keys.timestamp)
         Logger.debug("[SubscriptionLocalDS] Cache cleared")
+    }
+}
+
+// MARK: - Cacheable Protocol Conformance
+extension SubscriptionLocalDataSource: Cacheable {
+
+    var cacheIdentifier: String {
+        return "SubscriptionLocalDataSource"
+    }
+
+    func clearCache() {
+        clearAll()
+    }
+
+    func getCacheSize() -> Int {
+        if let data = defaults.data(forKey: "subscription_status_v1") {
+            return data.count
+        }
+        return 0
     }
 }

@@ -38,29 +38,25 @@ struct BackfillPromptContentView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            ScrollView {
-                VStack(spacing: 32) {
-                    // 頂部圖示和標題
-                    headerSection
-
-                    // 說明區塊
-                    descriptionSection
-
-                    // 好處列表
-                    benefitsSection
-
-                    Spacer(minLength: 40)
-
-                    // 底部按鈕
-                    actionButtons
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 40)
-                .padding(.bottom, 30)
+        OnboardingPageTemplate(
+            ctaTitle: NSLocalizedString("onboarding.backfill_prompt.confirm_button", comment: "Yes, Get My Data"),
+            ctaEnabled: true,
+            isLoading: false,
+            skipTitle: NSLocalizedString("onboarding.backfill_prompt.skip_button", comment: "Skip for Now"),
+            ctaAccessibilityId: "BackfillPrompt_ConfirmButton",
+            ctaAction: {
+                viewModel.confirmBackfill()
+            },
+            skipAction: {
+                viewModel.skipBackfill()
             }
-
-            Spacer()
+        ) {
+            VStack(spacing: 32) {
+                headerSection
+                descriptionSection
+                benefitsSection
+            }
+            .padding(.top, 40)
         }
         .onChange(of: viewModel.isNavigatingToSync) { oldValue, newValue in
             if newValue {
@@ -76,10 +72,8 @@ struct BackfillPromptContentView: View {
 
     // MARK: - View Components
 
-    /// 頂部圖示和標題區塊
     private var headerSection: some View {
         VStack(spacing: 20) {
-            // 資料來源圖示
             ZStack {
                 Circle()
                     .fill(Color.accentColor.opacity(0.1))
@@ -106,7 +100,6 @@ struct BackfillPromptContentView: View {
         }
     }
 
-    /// 說明區塊
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -130,7 +123,6 @@ struct BackfillPromptContentView: View {
         )
     }
 
-    /// 好處列表區塊
     private var benefitsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(NSLocalizedString("onboarding.backfill_prompt.why_it_helps", comment: "Why it helps?"))
@@ -158,7 +150,6 @@ struct BackfillPromptContentView: View {
         }
     }
 
-    /// 單個好處項目
     private func benefitItem(icon: String, title: String, description: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
@@ -178,37 +169,6 @@ struct BackfillPromptContentView: View {
             }
         }
     }
-
-    /// 底部按鈕區塊
-    private var actionButtons: some View {
-        VStack(spacing: 12) {
-            // 主要按鈕：同意同步
-            Button(action: {
-                viewModel.confirmBackfill()
-            }) {
-                Text(NSLocalizedString("onboarding.backfill_prompt.confirm_button", comment: "Yes, Get My Data"))
-                    .font(AppFont.headline())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .cornerRadius(12)
-            }
-
-            // 次要按鈕：跳過
-            Button(action: {
-                viewModel.skipBackfill()
-            }) {
-                Text(NSLocalizedString("onboarding.backfill_prompt.skip_button", comment: "Skip for Now"))
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
-        }
-    }
 }
 
 // MARK: - Preview
@@ -216,15 +176,12 @@ struct BackfillPromptContentView: View {
 struct BackfillPromptView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            // Garmin 預覽
             BackfillPromptView(dataSource: .garmin, targetDistance: 21.0975)
                 .previewDisplayName("Garmin")
 
-            // Strava 預覽
             BackfillPromptView(dataSource: .strava, targetDistance: 42.195)
                 .previewDisplayName("Strava")
 
-            // 深色模式
             BackfillPromptView(dataSource: .garmin, targetDistance: 5.0)
                 .preferredColorScheme(.dark)
                 .previewDisplayName("Dark Mode")

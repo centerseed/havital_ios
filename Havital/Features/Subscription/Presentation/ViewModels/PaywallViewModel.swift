@@ -32,12 +32,18 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     // MARK: - Dependencies
 
     private let subscriptionRepository: SubscriptionRepository
+    private let analyticsService: AnalyticsService
 
     // MARK: - Initialization
 
-    init(trigger: PaywallTrigger, subscriptionRepository: SubscriptionRepository? = nil) {
+    init(
+        trigger: PaywallTrigger,
+        subscriptionRepository: SubscriptionRepository? = nil,
+        analyticsService: AnalyticsService? = nil
+    ) {
         self.trigger = trigger
         self.subscriptionRepository = subscriptionRepository ?? DependencyContainer.shared.resolve()
+        self.analyticsService = analyticsService ?? DependencyContainer.shared.resolve()
     }
 
     deinit { cancelAllTasks() }
@@ -63,6 +69,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     }
 
     func purchase(offeringId: String, packageId: String) async {
+        let planType = packageId.lowercased().contains("yearly") || offeringId.lowercased().contains("yearly")
+            ? "yearly"
+            : "monthly"
+        analyticsService.track(.paywallTapSubscribe(planType: planType))
+
         purchaseState = .purchasing
         do {
             let result = try await subscriptionRepository.purchase(offeringId: offeringId, packageId: packageId)
@@ -73,6 +84,7 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                     ? .success
                     : .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
             case .cancelled:
+                // User-cancelled is intentional — not a failure.
                 purchaseState = .failed(
                     NSLocalizedString(
                         "paywall.purchase_cancelled_retry",
@@ -85,9 +97,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                     ? .success
                     : .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
             case .failed(let error):
+                analyticsService.track(.purchaseFail(errorType: classifyPurchaseError(error)))
                 purchaseState = .failed(error.localizedDescription)
             }
         } catch {
+            analyticsService.track(.purchaseFail(errorType: classifyPurchaseError(error)))
             purchaseState = .failed(error.localizedDescription)
         }
     }
@@ -105,11 +119,15 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     // MARK: - Computed Properties
 
     /// 試用期剩餘天數（僅 .trial 狀態時非 nil）
-    /// 直接從 SubscriptionStateManager 讀取以確保即時性
+    /// 優先採用後端計算的 `trialRemainingDays`（SSOT），
+    /// 若後端未提供則 fallback 到本地以 `expiresAt` 計算的 `daysRemaining`。
     var trialDaysRemaining: Int? {
         guard let status = SubscriptionStateManager.shared.currentStatus,
-              status.status == .trial,
-              status.expiresAt != nil else { return nil }
+              status.status == .trial else { return nil }
+        if let backendValue = status.trialRemainingDays {
+            return backendValue
+        }
+        guard status.expiresAt != nil else { return nil }
         return status.daysRemaining
     }
 
@@ -128,7 +146,30 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         }
     }
 
+    // MARK: - Analytics
+
+    func trackPaywallView() {
+        analyticsService.track(.paywallView(
+            trigger: trigger.analyticsString,
+            trialRemainingDays: trialDaysRemaining
+        ))
+    }
+
     // MARK: - Private
+
+    private func classifyPurchaseError(_ error: Error) -> String {
+        let desc = error.localizedDescription.lowercased()
+        if desc.contains("network") || desc.contains("timeout") || desc.contains("connection") {
+            return "network_error"
+        }
+        if desc.contains("payment") || desc.contains("declined") || desc.contains("billing") {
+            return "payment_declined"
+        }
+        if desc.contains("store") || desc.contains("storekit") {
+            return "store_error"
+        }
+        return "unknown"
+    }
 
     private func refreshStatusWithRetry() async -> Bool {
         if let status = SubscriptionStateManager.shared.currentStatus,
@@ -136,7 +177,9 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             return true
         }
 
-        let retryDelaysSeconds: [UInt64] = [0, 1, 2, 4, 6]
+        // P1-4: 與 SubscriptionRepositoryImpl.refreshStatus 的 15×2s=30s retry 策略對齊
+        // （原本 [0,1,2,4,6]=13s 不夠 webhook 抵達）
+        let retryDelaysSeconds: [UInt64] = [0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
         for delay in retryDelaysSeconds {
             if delay > 0 {
                 try? await Task.sleep(nanoseconds: delay * 1_000_000_000)

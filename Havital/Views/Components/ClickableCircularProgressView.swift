@@ -40,7 +40,7 @@ struct ClickableCircularProgressView: View {
                 // 中心文字
                 VStack(spacing: 2) {
                     Text("\(currentWeek)")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(AppFont.systemScaled(size: 22, weight: .bold))
                     
                     Text("/ \(totalWeeks)")
                         .font(AppFont.caption())

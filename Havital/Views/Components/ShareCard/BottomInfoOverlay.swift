@@ -25,10 +25,10 @@ struct BottomInfoOverlay: View {
                     // 主標題區域（如果標題為空字串則不顯示）
                     if !data.achievementTitle.isEmpty {
                         Text(data.achievementTitle)
-                            .font(.system(size: 48, weight: .semibold))
+                            .font(AppFont.systemScaled(size: 48, weight: .semibold))
                             .foregroundColor(.white)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            .minimumScaleFactor(0.85)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.horizontal, 42)
                             .padding(.vertical, 20)
@@ -43,7 +43,7 @@ struct BottomInfoOverlay: View {
                         if let distance = data.workout.distanceMeters {
                             VStack(spacing: 6) {
                                 Text(String(format: "%.2f", distance / 1000))
-                                    .font(.system(size: 54, weight: .semibold))
+                                    .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text("距離 (km)")
                                     .font(AppFont.dataSmall())
@@ -54,7 +54,7 @@ struct BottomInfoOverlay: View {
                         // 總計時間
                         VStack(spacing: 6) {
                             Text(data.workout.formattedDuration)
-                                .font(.system(size: 54, weight: .semibold))
+                                .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                 .foregroundColor(.white)
                             Text("總計時間")
                                 .font(AppFont.dataSmall())
@@ -65,7 +65,7 @@ struct BottomInfoOverlay: View {
                         if let paceText = getPaceText() {
                             VStack(spacing: 6) {
                                 Text(paceText)
-                                    .font(.system(size: 54, weight: .semibold))
+                                    .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text("平均配速")
                                     .font(AppFont.dataSmall())
@@ -187,15 +187,15 @@ struct ShareCardDataItem: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(AppFont.systemScaled(size: 20))
                 .foregroundColor(.white.opacity(0.9))
 
             Text(label)
-                .font(.system(size: 14, weight: .medium))
+                .font(AppFont.systemScaled(size: 14, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
 
             Text(value)
-                .font(.system(size: 20, weight: .semibold))
+                .font(AppFont.systemScaled(size: 20, weight: .semibold))
                 .foregroundColor(.white)
         }
         .frame(maxWidth: .infinity)

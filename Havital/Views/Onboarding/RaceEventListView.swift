@@ -41,6 +41,17 @@ private enum DistanceFilter: String, CaseIterable {
             return !knownDistances.contains(where: { abs(distanceKm - $0) < 0.1 })
         }
     }
+
+    var accessibilityId: String {
+        switch self {
+        case .all: return "RaceEventList_Filter_all"
+        case .fullMarathon: return "RaceEventList_Filter_full_marathon"
+        case .halfMarathon: return "RaceEventList_Filter_half_marathon"
+        case .tenK: return "RaceEventList_Filter_10k"
+        case .fiveK: return "RaceEventList_Filter_5k"
+        case .other: return "RaceEventList_Filter_other"
+        }
+    }
 }
 
 // MARK: - RaceEventListView
@@ -150,6 +161,7 @@ struct RaceEventListView: View {
             Text(NSLocalizedString("region.japan", comment: "日本")).tag("jp")
         }
         .pickerStyle(.segmented)
+        .accessibilityIdentifier("RaceEventList_RegionPicker")
     }
 
     private var distanceFilterChips: some View {
@@ -158,7 +170,8 @@ struct RaceEventListView: View {
                 ForEach(DistanceFilter.allCases, id: \.self) { filter in
                     DistanceFilterChip(
                         title: filter.localizedTitle,
-                        isSelected: selectedDistanceFilter == filter
+                        isSelected: selectedDistanceFilter == filter,
+                        accessibilityId: filter.accessibilityId
                     ) {
                         selectedDistanceFilter = filter
                     }
@@ -172,8 +185,8 @@ struct RaceEventListView: View {
     private var raceList: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                ForEach(filteredRaces) { race in
-                    RaceEventCard(race: race) {
+                ForEach(Array(filteredRaces.enumerated()), id: \.element.id) { index, race in
+                    RaceEventCard(race: race, accessibilityId: "RaceEventCard_\(index)") {
                         handleRaceSelection(race)
                     }
 
@@ -205,7 +218,7 @@ struct RaceEventListView: View {
             Spacer()
 
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 48))
+                .font(AppFont.systemScaled(size: 48))
                 .foregroundColor(.secondary.opacity(0.4))
 
             Text(NSLocalizedString("onboarding.race_list_empty", comment: "找不到符合條件的賽事"))
@@ -236,6 +249,7 @@ struct RaceEventListView: View {
 private struct DistanceFilterChip: View {
     let title: String
     let isSelected: Bool
+    let accessibilityId: String
     let action: () -> Void
 
     var body: some View {
@@ -252,6 +266,7 @@ private struct DistanceFilterChip: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityId)
     }
 }
 
@@ -259,6 +274,7 @@ private struct DistanceFilterChip: View {
 
 private struct RaceEventCard: View {
     let race: RaceEvent
+    let accessibilityId: String
     let onTap: () -> Void
 
     private var dateString: String {
@@ -346,7 +362,7 @@ private struct RaceEventCard: View {
                         .multilineTextAlignment(.center)
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12))
+                        .font(AppFont.systemScaled(size: 12))
                         .foregroundColor(.secondary.opacity(0.5))
                         .padding(.top, 4)
                 }
@@ -355,6 +371,7 @@ private struct RaceEventCard: View {
             .padding(.vertical, 14)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityId)
     }
 }
 

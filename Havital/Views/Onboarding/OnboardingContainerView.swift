@@ -40,6 +40,9 @@ struct OnboardingContainerView: View {
             }
         }
         .environmentObject(viewModel)
+        .onAppear {
+            coordinator.trackOnboardingStart()
+        }
         .fullScreenCover(isPresented: $coordinator.isCompleting) {
             LoadingAnimationView(messages: [
                 NSLocalizedString("onboarding.analyzing_preferences", comment: "正在分析您的訓練偏好"),

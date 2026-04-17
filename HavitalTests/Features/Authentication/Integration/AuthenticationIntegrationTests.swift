@@ -6,6 +6,10 @@ import XCTest
 /// Uses Demo account to avoid external authentication dependencies (Google/Apple)
 @MainActor
 final class AuthenticationIntegrationTests: XCTestCase {
+    private var reviewerPasscode: String {
+        ProcessInfo.processInfo.environment["HAVITAL_REVIEWER_PASSCODE"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
 
     // MARK: - System Under Test
 
@@ -77,18 +81,34 @@ final class AuthenticationIntegrationTests: XCTestCase {
         try await super.tearDown()
     }
 
+    private func requireReviewerPasscode(
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> String {
+        let passcode = reviewerPasscode
+        try XCTSkipIf(
+            passcode.isEmpty,
+            "Set HAVITAL_REVIEWER_PASSCODE to run reviewer demo login integration tests.",
+            file: file,
+            line: line
+        )
+        return passcode
+    }
+
     // MARK: - Demo Login Integration Tests
 
     /// Test complete demo login flow from ViewModel to backend API
     /// This tests the entire authentication pipeline:
     /// LoginViewModel → AuthRepository → BackendAuthDataSource → Backend API
     func testDemoLogin_CompleteFlow() async throws {
+        let passcode = try requireReviewerPasscode()
+
         // Given - Initial state
         XCTAssertEqual(loginViewModel.state, .empty)
         XCTAssertNil(loginViewModel.authenticatedUser)
 
         // When - Perform demo login
-        await loginViewModel.demoLogin()
+        await loginViewModel.demoLogin(passcode: passcode)
 
         // Then - Verify successful authentication
         XCTAssertFalse(loginViewModel.hasError, "Demo login should not produce error")
@@ -118,11 +138,13 @@ final class AuthenticationIntegrationTests: XCTestCase {
 
     /// Test demo login updates AuthCoordinatorViewModel state
     func testDemoLogin_UpdatesAuthCoordinator() async throws {
+        let passcode = try requireReviewerPasscode()
+
         // Given - AuthCoordinator starts in loading state
         XCTAssertEqual(authCoordinatorViewModel.authState, .loading)
 
         // When - Perform demo login through LoginViewModel
-        await loginViewModel.demoLogin()
+        await loginViewModel.demoLogin(passcode: passcode)
 
         // Then - Verify LoginViewModel has user
         guard let loginUser = loginViewModel.authenticatedUser else {
@@ -161,8 +183,10 @@ final class AuthenticationIntegrationTests: XCTestCase {
 
     /// Test sign out flow clears authentication state
     func testSignOut_ClearsAuthenticationState() async throws {
+        let passcode = try requireReviewerPasscode()
+
         // Given - First perform demo login
-        await loginViewModel.demoLogin()
+        await loginViewModel.demoLogin(passcode: passcode)
 
         guard loginViewModel.authenticatedUser != nil else {
             XCTFail("Precondition failed: Need authenticated user for sign out test")
@@ -186,8 +210,10 @@ final class AuthenticationIntegrationTests: XCTestCase {
 
     /// Test sign out clears local cache
     func testSignOut_ClearsCache() async throws {
+        let passcode = try requireReviewerPasscode()
+
         // Given - Demo login and verify cache populated
-        await loginViewModel.demoLogin()
+        await loginViewModel.demoLogin(passcode: passcode)
 
         guard let user = loginViewModel.authenticatedUser else {
             XCTFail("Precondition failed: Need authenticated user")
@@ -212,8 +238,10 @@ final class AuthenticationIntegrationTests: XCTestCase {
 
     /// Test session can be restored from cache
     func testSessionRestoration_FromCache() async throws {
+        let passcode = try requireReviewerPasscode()
+
         // Given - Demo login to populate cache
-        await loginViewModel.demoLogin()
+        await loginViewModel.demoLogin(passcode: passcode)
 
         guard let originalUser = loginViewModel.authenticatedUser else {
             XCTFail("Precondition failed: Need authenticated user")
@@ -283,10 +311,12 @@ final class AuthenticationIntegrationTests: XCTestCase {
 
     /// Test multiple login attempts don't cause race conditions
     func testConcurrentDemoLogins_NoRaceCondition() async throws {
+        let passcode = try requireReviewerPasscode()
+
         // Given - Multiple concurrent login tasks
-        let task1 = Task { await self.loginViewModel.demoLogin() }
-        let task2 = Task { await self.loginViewModel.demoLogin() }
-        let task3 = Task { await self.loginViewModel.demoLogin() }
+        let task1 = Task { await self.loginViewModel.demoLogin(passcode: passcode) }
+        let task2 = Task { await self.loginViewModel.demoLogin(passcode: passcode) }
+        let task3 = Task { await self.loginViewModel.demoLogin(passcode: passcode) }
 
         // When - Wait for all to complete
         await task1.value

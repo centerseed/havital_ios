@@ -12,7 +12,14 @@ enum SubscriptionMapper {
     /// - Returns: Domain Layer 業務實體
     static func toEntity(from dto: SubscriptionStatusDTO) -> SubscriptionStatusEntity {
         var status = resolveStatus(from: dto.status)
-        let rizoUsage = dto.rizoUsage.map { RizoUsage(used: $0.used, limit: $0.limit) }
+        let rizoUsage = dto.rizoUsage.map {
+            RizoUsage(
+                used: $0.used,
+                limit: $0.limit,
+                remaining: $0.remaining,
+                resetsAt: $0.resetsAt
+            )
+        }
         let expiresAt = dto.expiresAt.flatMap { parseISO8601ToTimeInterval($0) }
         let billingIssue = dto.billingIssue ?? false
 
@@ -34,7 +41,11 @@ enum SubscriptionMapper {
             planType: dto.planType,
             rizoUsage: rizoUsage,
             billingIssue: billingIssue,
-            enforcementEnabled: dto.enforcementEnabled ?? false
+            enforcementEnabled: dto.enforcementEnabled ?? false,
+            trialRemainingDays: dto.trialRemainingDays,
+            isEarlyBird: dto.isEarlyBird,
+            hasOverride: dto.hasOverride,
+            inIntroTrial: dto.inIntroTrial
         )
     }
 

@@ -14,6 +14,8 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
     @Published var currentVDOT: Double?
     @Published var isSaving: Bool = false
     @Published var saveError: Error?
+    /// 儲存成功後的課表，供父 view 在 onDismiss 時讀取
+    @Published var savedPlan: WeeklyPlanV2?
 
     // MARK: - Dependencies
 
@@ -119,8 +121,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 updates: request
             )
 
-            // 注意：updateWeeklyPlan 已將最新課表存入快取，不在此清除快取或發送 CacheEventBus
-            // 避免 race condition：saveChanges() 會直接更新 planViewModel.planStatus
+            // 注意：updateWeeklyPlan 已將最新課表存入快取
+            // savedPlan 供父 view 在 sheet onDismiss 時讀取更新
+            self.savedPlan = savedPlan
 
             Logger.debug("[EditScheduleV2VM] ✅ Saved plan: \(savedPlan.effectivePlanId)")
             return savedPlan

@@ -138,4 +138,67 @@ final class SubscriptionMapperTests: XCTestCase {
 
         XCTAssertEqual(entity.status, SubscriptionStatus.cancelled)
     }
+
+    // MARK: - New contract fields (Phase 2)
+
+    func testMapsInIntroTrialFlagToEntity() {
+        let dto = SubscriptionStatusDTO(
+            status: "trial_active",
+            expiresAt: "2099-12-31T00:00:00Z",
+            planType: "monthly",
+            rizoUsage: nil,
+            billingIssue: false,
+            enforcementEnabled: true,
+            trialRemainingDays: 5,
+            isEarlyBird: true,
+            hasOverride: false,
+            inIntroTrial: true
+        )
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        XCTAssertEqual(entity.inIntroTrial, true)
+        XCTAssertEqual(entity.isEarlyBird, true)
+        XCTAssertEqual(entity.hasOverride, false)
+    }
+
+    func testTrialRemainingDaysFromDTOIsPreserved() {
+        let dto = SubscriptionStatusDTO(
+            status: "trial_active",
+            expiresAt: "2099-12-31T00:00:00Z",
+            trialRemainingDays: 9
+        )
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        XCTAssertEqual(entity.trialRemainingDays, 9)
+    }
+
+    func testMapsRizoUsageRemainingAndResetsAtToEntity() throws {
+        let dto = SubscriptionStatusDTO(
+            status: "subscribed",
+            rizoUsage: RizoUsageDTO(used: 3, limit: 10, remaining: 7, resetsAt: "2026-04-22T00:00:00Z")
+        )
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        let rizo = try XCTUnwrap(entity.rizoUsage)
+        XCTAssertEqual(rizo.used, 3)
+        XCTAssertEqual(rizo.limit, 10)
+        XCTAssertEqual(rizo.remaining, 7)
+        XCTAssertEqual(rizo.resetsAt, "2026-04-22T00:00:00Z")
+    }
+
+    func testRizoUsageFallsBackToLimitMinusUsedWhenRemainingNil() throws {
+        let dto = SubscriptionStatusDTO(
+            status: "subscribed",
+            rizoUsage: RizoUsageDTO(used: 4, limit: 10)
+        )
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        let rizo = try XCTUnwrap(entity.rizoUsage)
+        XCTAssertEqual(rizo.remaining, 6, "remaining should fall back to max(0, limit - used)")
+        XCTAssertNil(rizo.resetsAt)
+    }
 }

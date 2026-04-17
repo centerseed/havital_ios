@@ -49,6 +49,7 @@ struct HeartRateZoneInfoView: View {
 
     var body: some View {
         contentView
+            .accessibilityIdentifier("HeartRateZone_Screen")
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(isOnboardingMode)
@@ -102,7 +103,7 @@ struct HeartRateZoneInfoView: View {
         Text(isOnboardingMode ?
              NSLocalizedString("onboarding.heart_rate_description", comment: "Heart rate description") :
              NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
-            .font(.footnote)
+            .font(AppFont.footnote())
             .foregroundColor(.secondary)
             .padding(.horizontal)
             .padding(.top)

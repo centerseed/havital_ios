@@ -18,10 +18,10 @@ tags:
 
 - extendedWaitUntil:
     visible:
-      text: "從賽事資料庫選擇"
+      id: "RaceSetup_BrowseDatabaseButton"
     timeout: 15000
 - tapOn:
-    text: "從賽事資料庫選擇"
+    id: "RaceSetup_BrowseDatabaseButton"
 
 - extendedWaitUntil:
     visible:
@@ -48,11 +48,11 @@ tags:
 
 # === 測試距離篩選（P0-10 AC4）===
 - tapOn:
-    text: "半馬"
+    id: "RaceEventList_Filter_half_marathon"
     optional: true
 # 重設篩選
 - tapOn:
-    text: "全部"
+    id: "RaceEventList_Filter_all"
     optional: true
 
 # === 測試搜尋（P0-10 AC3）===

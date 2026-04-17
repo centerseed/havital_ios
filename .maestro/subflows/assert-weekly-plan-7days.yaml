@@ -2,19 +2,19 @@ appId: com.havital.Havital.dev
 ---
 # Guardrail helper: verify the weekly plan renders all seven days and includes a rest/easy anchor.
 - assertVisible:
-    text: "每日訓練|Daily Training|Training Plan"
+    id: "TrainingPlan_MenuButton"
 
 - assertVisible:
-    text: "星期一|Monday"
+    text: "星期一|Monday|月曜日"
 
 - scrollUntilVisible:
     element:
-      text: "星期日|Sunday"
+      text: "星期日|Sunday|日曜日"
     direction: DOWN
     timeout: 15000
 
 - scrollUntilVisible:
     element:
-      text: "休息|Rest|輕鬆跑|Easy Run|長距離輕鬆跑|Long Easy Run"
+      text: "休息|Rest|輕鬆跑|Easy Run|長距離輕鬆跑|Long Easy Run|休養|イージーラン"
     direction: UP
     timeout: 10000

@@ -13,7 +13,16 @@ final class SubscriptionStateManager: ObservableObject {
     /// View 層可觀察此屬性來顯示非阻斷通知
     @Published private(set) var recentDowngrade: StatusDowngrade?
 
-    private init() {}
+    private init() {
+        CacheEventBus.shared.subscribe(forIdentifier: "SubscriptionStateManager") { [weak self] reason in
+            if case .userLogout = reason {
+                Task { @MainActor in
+                    self?.update(SubscriptionStatusEntity(status: .none))
+                    self?.clearDowngrade()
+                }
+            }
+        }
+    }
 
     /// 後端是否開啟訂閱執行（false = 軟上線期間，不顯示 paywall）
     var isEnforcementEnabled: Bool {

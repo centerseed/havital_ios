@@ -52,9 +52,12 @@ actor EmailAuthService {
     }
 
     /// Demo 登入
-    func demoLogin() async throws -> DemoLoginResponse {
+    func demoLogin(reviewerPasscode: String) async throws -> DemoLoginResponse {
+        let body = ["reviewer_passcode": reviewerPasscode]
+        let bodyData = try JSONEncoder().encode(body)
         return try await APIClient.shared.request(DemoLoginResponse.self,
                                                   path: "/login/demo",
-                                                  method: "POST")
+                                                  method: "POST",
+                                                  body: bodyData)
     }
 }

@@ -5,6 +5,7 @@ set -euo pipefail
 ARTIFACT_ROOT="${MAESTRO_ARTIFACT_ROOT:-$HOME/.maestro/tests}"
 MAESTRO_BIN="${MAESTRO_BIN:-$HOME/.maestro/bin/maestro}"
 MAESTRO_REINSTALL_DRIVER="${MAESTRO_REINSTALL_DRIVER:-0}"
+MAESTRO_LOCAL_ENV_FILE="${MAESTRO_LOCAL_ENV_FILE:-$(cd "$(dirname "$0")/.." && pwd)/.env.local}"
 
 usage() {
   cat <<'EOF'
@@ -17,6 +18,15 @@ Behavior:
   - On failing runs, keep only screenshot-❌-*.png as evidence and delete warning screenshots.
   - Always keep ai-report/html/json/log files.
 EOF
+}
+
+load_local_env() {
+  if [ -f "$MAESTRO_LOCAL_ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$MAESTRO_LOCAL_ENV_FILE"
+    set +a
+  fi
 }
 
 list_artifact_dirs() {
@@ -90,6 +100,7 @@ run_test_with_cleanup() {
 
 main() {
   [ $# -gt 0 ] || { usage; exit 1; }
+  load_local_env
 
   case "$1" in
     test)

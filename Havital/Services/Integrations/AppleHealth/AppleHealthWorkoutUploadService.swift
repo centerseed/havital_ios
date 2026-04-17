@@ -10,6 +10,21 @@ enum AppleHealthWorkoutUploadError: Error {
 class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     static let shared = AppleHealthWorkoutUploadService()
     private init() {}
+
+    typealias FirebaseLogHandler = (_ message: String, _ level: LogLevel, _ labels: [String: String], _ jsonPayload: [String: Any]?) -> Void
+
+    struct BatchUploadErrorHandling {
+        let shouldLogToCloud: Bool
+        let shouldMarkWorkoutFailed: Bool
+        let diagnosticMessage: String
+    }
+
+    struct DetailedUploadErrorHandling {
+        let shouldLogToCloud: Bool
+        let level: LogLevel?
+        let action: String?
+        let diagnosticMessage: String
+    }
     
     private let healthKitManager = HealthKitManager()
     private let workoutUploadTracker = WorkoutUploadTracker.shared
@@ -142,14 +157,24 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         print("🚀 [TaskRegistry] 開始上傳任務 - WorkoutID: \(workoutId), Force: \(force), RetryHeartRate: \(retryHeartRate)")
         
-        guard let result = await executeTask(id: taskId, operation: { [weak self] in
-            guard let self = self else { throw WorkoutV2ServiceError.invalidWorkoutData }
+        let taskResult = await executeTask(id: taskId, operation: { [weak self] in
+            guard let self = self else { return Result<UploadResult, Error>.failure(WorkoutV2ServiceError.invalidWorkoutData) }
             print("🔄 [TaskRegistry] 執行上傳操作 - WorkoutID: \(workoutId)")
-            return try await self.performUploadWorkout(workout, force: force, retryHeartRate: retryHeartRate, source: source, device: device)
-        }) else {
-            print("❌ [TaskRegistry] 上傳任務返回nil - WorkoutID: \(workoutId)")
-            throw WorkoutV2ServiceError.invalidWorkoutData
-        }
+            do {
+                let result = try await self.performUploadWorkout(
+                    workout,
+                    force: force,
+                    retryHeartRate: retryHeartRate,
+                    source: source,
+                    device: device
+                )
+                return .success(result)
+            } catch {
+                return .failure(error)
+            }
+        })
+
+        let result = try Self.resolveUploadTaskResult(taskResult, workoutId: workoutId)
         
         print("✅ [TaskRegistry] 上傳任務完成 - WorkoutID: \(workoutId), 結果: \(result)")
         return result
@@ -400,20 +425,21 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 try? await Task.sleep(nanoseconds: 200_000_000)
             } catch {
                 failed += 1
-                let errorMsg = error.localizedDescription
-                let isCancelled = errorMsg.contains("cancelled")
+                let handling = Self.reportBatchUploadFailure(error, workoutId: workoutId)
 
-                if isCancelled {
-                    print("⏰ [批次上傳] \(workoutId) 超時或被取消，跳過")
-                } else {
+                if handling.shouldLogToCloud {
+                    let errorMsg = error.localizedDescription
                     print("❌ [批次上傳] \(workoutId) 上傳失敗: \(errorMsg)")
-                    Logger.firebase(
-                        "Workout 上傳失敗",
-                        level: .error,
-                        labels: ["module": "AppleHealthUpload", "action": "batch_upload_failed", "cloud_logging": "true"],
-                        jsonPayload: ["workoutId": workoutId, "error": errorMsg]
-                    )
                     // ★ 修復 Bug 1：記錄失敗，避免無限重試
+                    if handling.shouldMarkWorkoutFailed {
+                        workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, apiVersion: .v2)
+                    }
+                } else {
+                    print("ℹ️ [批次上傳] \(workoutId) \(handling.diagnosticMessage)")
+                }
+
+                if handling.shouldMarkWorkoutFailed && !handling.shouldLogToCloud {
+                    let errorMsg = error.localizedDescription
                     workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, apiVersion: .v2)
                 }
 
@@ -1020,31 +1046,16 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         errorReport["data_quality"] = dataQualityAnalysis
         
-        // 如果是取消操作，不視為錯誤記錄（忽略上傳到 Firebase）
-        if error.isCancellationError || (error as NSError).code == NSURLErrorCancelled {
-            print("ℹ️ [詳細錯誤分析] 上傳任務已取消，不發送錯誤報告")
+        let handling = Self.reportDetailedUploadError(
+            error,
+            derivedErrorType: errorType,
+            workoutType: workoutData.type,
+            errorReport: errorReport
+        )
+        if !handling.shouldLogToCloud {
+            print("ℹ️ [詳細錯誤分析] \(handling.diagnosticMessage)")
             return
         }
-
-        // 使用 Firebase 記錄錯誤 - 標記需要上傳到雲端
-        // 只記錄非預期的錯誤為 error，預期的錯誤記為 warning
-        let shouldLogAsError = !isExpectedError(error)
-        Logger.firebase(
-            "Apple Health 運動記錄 V2 API 上傳失敗 - 詳細分析",
-            level: shouldLogAsError ? .error : .warn,
-            labels: [
-                "module": "AppleHealthWorkoutUploadService",
-                "action": "workout_upload_error",
-                "error_type": errorType,
-                "workout_type": workoutData.type,
-                "device_manufacturer": (errorReport["device_details"] as? [String: String])?["manufacturer"] ?? "unknown",
-                "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown",
-                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
-                "build_number": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
-                "cloud_logging": "true"  // 標記需要上傳到雲端
-            ],
-            jsonPayload: errorReport
-        )
         
         // 本地 debug 日誌
         print("❌ [詳細錯誤分析] AppleHealthWorkoutUploadService 上傳失敗")
@@ -1147,7 +1158,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     }
     
     /// 檢查是否為預期的錯誤（不應記為 error）
-    private func isExpectedError(_ error: Error) -> Bool {
+    static func isExpectedUploadError(_ error: Error) -> Bool {
         // Use standardized isCancellationError extension for cancellation checks
         if error.isCancellationError { return true }
 
@@ -1165,6 +1176,120 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         if (error as NSError).code == 429 { return true }
         
         return false
+    }
+
+    static func classifyBatchUploadError(_ error: Error) -> BatchUploadErrorHandling {
+        if error.isCancellationError {
+            return BatchUploadErrorHandling(
+                shouldLogToCloud: false,
+                shouldMarkWorkoutFailed: false,
+                diagnosticMessage: "上傳已取消，跳過 error reporting"
+            )
+        }
+
+        return BatchUploadErrorHandling(
+            shouldLogToCloud: true,
+            shouldMarkWorkoutFailed: true,
+            diagnosticMessage: "上傳失敗"
+        )
+    }
+
+    @discardableResult
+    static func reportBatchUploadFailure(
+        _ error: Error,
+        workoutId: String,
+        logger: FirebaseLogHandler = defaultFirebaseLogger
+    ) -> BatchUploadErrorHandling {
+        let handling = classifyBatchUploadError(error)
+        guard handling.shouldLogToCloud else {
+            return handling
+        }
+
+        logger(
+            "Workout 上傳失敗",
+            .error,
+            ["module": "AppleHealthUpload", "action": "batch_upload_failed", "cloud_logging": "true"],
+            ["workoutId": workoutId, "error": error.localizedDescription]
+        )
+        return handling
+    }
+
+    static func classifyDetailedUploadError(_ error: Error, derivedErrorType: String) -> DetailedUploadErrorHandling {
+        if error.isCancellationError {
+            return DetailedUploadErrorHandling(
+                shouldLogToCloud: false,
+                level: nil,
+                action: nil,
+                diagnosticMessage: "上傳任務已取消，不發送錯誤報告"
+            )
+        }
+
+        return DetailedUploadErrorHandling(
+            shouldLogToCloud: true,
+            level: isExpectedUploadError(error) ? .warn : .error,
+            action: "workout_upload_error",
+            diagnosticMessage: "上傳失敗：\(derivedErrorType)"
+        )
+    }
+
+    @discardableResult
+    static func reportDetailedUploadError(
+        _ error: Error,
+        derivedErrorType: String,
+        workoutType: String,
+        errorReport: [String: Any],
+        logger: FirebaseLogHandler = defaultFirebaseLogger
+    ) -> DetailedUploadErrorHandling {
+        let handling = classifyDetailedUploadError(error, derivedErrorType: derivedErrorType)
+        guard handling.shouldLogToCloud else {
+            return handling
+        }
+
+        logger(
+            "Apple Health 運動記錄 V2 API 上傳失敗 - 詳細分析",
+            handling.level ?? .error,
+            [
+                "module": "AppleHealthWorkoutUploadService",
+                "action": handling.action ?? "workout_upload_error",
+                "error_type": derivedErrorType,
+                "workout_type": workoutType,
+                "device_manufacturer": (errorReport["device_details"] as? [String: String])?["manufacturer"] ?? "unknown",
+                "source_bundle_id": (errorReport["source_details"] as? [String: String])?["bundle_id"] ?? "unknown",
+                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+                "build_number": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
+                "cloud_logging": "true"
+            ],
+            errorReport
+        )
+        return handling
+    }
+
+    static func resolveUploadTaskResult(_ taskResult: Result<UploadResult, Error>?, workoutId: String) throws -> UploadResult {
+        guard let taskResult else {
+            print("❌ [TaskRegistry] 上傳任務返回nil - WorkoutID: \(workoutId)")
+            throw WorkoutV2ServiceError.invalidWorkoutData
+        }
+
+        switch taskResult {
+        case .success(let uploadResult):
+            return uploadResult
+        case .failure(let error):
+            throw error
+        }
+    }
+
+    private static func defaultFirebaseLogger(
+        message: String,
+        level: LogLevel,
+        labels: [String: String],
+        jsonPayload: [String: Any]?
+    ) {
+        Logger.firebase(
+            message,
+            level: level,
+            labels: labels,
+            jsonPayload: jsonPayload
+        )
     }
     
     /// 檢測是否為第三方數據源（Garmin, Polar, Strava 等）

@@ -132,8 +132,28 @@ class OnboardingCoordinator: ObservableObject {
         DependencyContainer.shared.makeCompleteOnboardingUseCase()
     }()
 
+    // Lazy resolve — coordinator is a singleton so it cannot take constructor deps.
+    private var analyticsService: AnalyticsService {
+        DependencyContainer.shared.resolve()
+    }
+
     private init() {
-        // 移除原有的監聽器，狀態重置將由 completeOnboarding 或 ContentView 的 sheet logic 統一處理
+        CacheEventBus.shared.subscribe(forIdentifier: "OnboardingCoordinator") { [weak self] reason in
+            if case .userLogout = reason {
+                Task { @MainActor in
+                    self?.reset()
+                }
+            }
+        }
+    }
+
+    /// Call once when the onboarding session begins for a new user (not re-onboarding).
+    func trackOnboardingStart() {
+        guard !isReonboarding else { return }
+        UserDefaults.standard.analyticsOnboardingStartTime = Date().timeIntervalSince1970
+        let source = AttributionManager.shared.source
+        let campaignId = AttributionManager.shared.campaignId
+        analyticsService.track(.onboardingStart(source: source, campaignId: campaignId))
     }
 
     // MARK: - Navigation Methods
@@ -202,7 +222,8 @@ class OnboardingCoordinator: ObservableObject {
                 targetId: selectedTargetId,
                 methodologyId: resolvedMethodologyId,
                 trainingWeeks: trainingWeeks,
-                availableDays: availableDays
+                availableDays: availableDays,
+                previewOverviewId: trainingPlanOverviewV2?.id
             )
 
             let output = try await completeOnboardingUseCase.execute(input: input)
@@ -220,10 +241,26 @@ class OnboardingCoordinator: ObservableObject {
             isCompleting = false
             print("[OnboardingCoordinator] Loading 動畫已關閉")
 
+            if !output.wasReonboarding {
+                let startTime = UserDefaults.standard.analyticsOnboardingStartTime
+                let durationSeconds = startTime > 0
+                    ? Int(Date().timeIntervalSince1970 - startTime)
+                    : 0
+                analyticsService.track(.onboardingComplete(durationSeconds: durationSeconds))
+            }
+
             // 清理 UI 狀態
             if output.wasReonboarding {
                 // Re-onboarding 模式：關閉 sheet 並通知所有訂閱者刷新資料
                 print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
+
+                // ⚠️ 順序很重要：必須先清除 user profile cache，再設定 isReonboardingMode = false。
+                // 設定 isReonboardingMode = false 會觸發 ContentView.checkTrainingVersion()，
+                // 該方法透過 TrainingVersionRouter → UserProfileRepository（cache-first）讀取版本。
+                // 若 cache 未清除，會返回 stale v1 profile，導致 UI 顯示 v1 訓練計畫。
+                let localDS: UserProfileLocalDataSourceProtocol = DependencyContainer.shared.resolve()
+                localDS.clearUserProfile()
+
                 AuthenticationViewModel.shared.isReonboardingMode = false
                 CacheEventBus.shared.publish(.onboardingCompleted)
             } else {

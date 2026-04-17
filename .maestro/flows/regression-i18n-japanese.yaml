@@ -20,8 +20,8 @@ tags:
     clearState: false
 
 # Demo 登入（若登入態未保留）
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 # 確認主畫面可見（允許任一語系起跑）
@@ -67,8 +67,8 @@ tags:
 - launchApp:
     stopApp: true
     clearState: false
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 - assertVisible:
     text: "日々のトレーニング|トレーニング計画|每日訓練|訓練計劃|Daily Training|Training Plan"
@@ -114,8 +114,8 @@ tags:
 - launchApp:
     stopApp: true
     clearState: false
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 # 驗證已成功還原繁體中文

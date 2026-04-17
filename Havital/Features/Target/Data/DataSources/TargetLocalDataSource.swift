@@ -40,6 +40,7 @@ final class TargetLocalDataSource: TargetLocalDataSourceProtocol {
         self.defaults = defaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
+        CacheEventBus.shared.register(self)
     }
 
     // MARK: - Targets Cache
@@ -132,5 +133,17 @@ final class TargetLocalDataSource: TargetLocalDataSourceProtocol {
             return data.count
         }
         return 0
+    }
+}
+
+// MARK: - Cacheable Protocol Conformance
+extension TargetLocalDataSource: Cacheable {
+
+    var cacheIdentifier: String {
+        return "TargetLocalDataSource"
+    }
+
+    func clearCache() {
+        clearAll()
     }
 }

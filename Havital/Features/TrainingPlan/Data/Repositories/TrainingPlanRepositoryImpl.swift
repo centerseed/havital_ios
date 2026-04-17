@@ -3,6 +3,10 @@ import Foundation
 // MARK: - TrainingPlan Repository Implementation
 /// 實作 TrainingPlanRepository 協議
 /// 使用雙軌緩存策略：立即顯示緩存 + 背景更新
+///
+/// - Warning: V1 legacy. V2 users must use `TrainingPlanV2Repository`.
+///   生產環境已由 `V1RepositoryGuardDecorator` 包覆（見 `Data/Safeguards/`），V2 用戶會在此之前被攔截。
+/// - Note: Scheduled for `@available(*, deprecated)` warning on 2026-07-17.
 final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
 
     // MARK: - Dependencies
@@ -351,18 +355,28 @@ final class TrainingPlanRepositoryImpl: TrainingPlanRepository {
 extension DependencyContainer {
 
     /// 註冊 TrainingPlan 模組依賴
+    ///
+    /// **A-4 深度防禦**：V1 Repository 對外以 `V1RepositoryGuardDecorator` 包裹暴露，
+    /// 若 `TrainingVersionRouting` 已註冊則啟用 guard；否則（例如部分測試 setup）
+    /// 退回裸 impl 以保持向下相容。
     func registerTrainingPlanModule() {
         // DataSources
         register(TrainingPlanRemoteDataSource(), for: TrainingPlanRemoteDataSource.self)
         register(TrainingPlanLocalDataSource(), for: TrainingPlanLocalDataSource.self)
 
         // Repository
-        let repository = TrainingPlanRepositoryImpl(
+        let impl = TrainingPlanRepositoryImpl(
             remoteDataSource: resolve(),
             localDataSource: resolve()
         )
-        register(repository as TrainingPlanRepository, forProtocol: TrainingPlanRepository.self)
 
-        Logger.debug("[DI] TrainingPlan module registered")
+        if let router: TrainingVersionRouting = tryResolve() {
+            let guarded = V1RepositoryGuardDecorator(wrapped: impl, versionRouter: router)
+            register(guarded as TrainingPlanRepository, forProtocol: TrainingPlanRepository.self)
+            Logger.debug("[DI] TrainingPlan module registered (V1RepositoryGuardDecorator enabled)")
+        } else {
+            register(impl as TrainingPlanRepository, forProtocol: TrainingPlanRepository.self)
+            Logger.debug("[DI] TrainingPlan module registered (raw impl — no TrainingVersionRouting)")
+        }
     }
 }

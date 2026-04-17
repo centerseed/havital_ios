@@ -32,7 +32,7 @@ struct SharedEmptyStateView: View {
         VStack(spacing: 20) {
             // 圖示
             Image(systemName: iconName)
-                .font(.system(size: 48))
+                .font(AppFont.systemScaled(size: 48))
                 .foregroundColor(.secondary)
                 .padding(.top, 8)
 
@@ -40,14 +40,14 @@ struct SharedEmptyStateView: View {
                 // 標題（可選）
                 if let title = title {
                     Text(title)
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                 }
 
                 // 說明文字
                 Text(message)
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 4)
@@ -60,7 +60,7 @@ struct SharedEmptyStateView: View {
                         Image(systemName: "plus.circle")
                         Text(actionTitle)
                     }
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)

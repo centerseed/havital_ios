@@ -1,0 +1,47 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - race_run
+  - race-event-selection
+  - visual-check
+---
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "RaceSetup_BrowseDatabaseButton"
+    timeout: 20000
+- tapOn:
+    id: "RaceSetup_BrowseDatabaseButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事"
+    timeout: 20000
+
+- tapOn:
+    id: "RaceEventCard_0"
+
+- tapOn:
+    id: "RaceDistanceOption_0"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "距離賽事.*天"
+    timeout: 12000
+
+- assertVisible:
+    id: "RaceSetup_ChangeRaceButton"
+- takeScreenshot: "onboarding_race_setup_selected"
+
+- tapOn:
+    id: "RaceSetup_SaveButton"
+- runFlow: ../subflows/assert-onboarding-branch.yaml

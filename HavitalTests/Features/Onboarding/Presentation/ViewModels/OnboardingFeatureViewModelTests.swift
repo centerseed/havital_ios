@@ -16,6 +16,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
     var mockTrainingPlanRepository: MockTrainingPlanRepository!
     var mockTrainingPlanV2Repository: MockTrainingPlanV2Repository!
     private var mockRaceRepository: MockRaceRepository!
+    var mockVersionRouter: MockTrainingVersionRouter!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -26,6 +27,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         mockTrainingPlanRepository = MockTrainingPlanRepository()
         mockTrainingPlanV2Repository = MockTrainingPlanV2Repository()
         mockRaceRepository = MockRaceRepository()
+        mockVersionRouter = MockTrainingVersionRouter()
 
         // Initialize ViewModel with Mocks
         sut = OnboardingFeatureViewModel(
@@ -33,13 +35,14 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
             targetRepository: mockTargetRepository,
             trainingPlanRepository: mockTrainingPlanRepository,
             trainingPlanV2Repository: mockTrainingPlanV2Repository,
-            raceRepository: mockRaceRepository
+            raceRepository: mockRaceRepository,
+            versionRouter: mockVersionRouter
         )
-        
+
         // Clear UserDefaults
         UserDefaults.standard.removeObject(forKey: "onboarding_hasPersonalBest")
     }
-    
+
     override func tearDown() async throws {
         sut = nil
         mockUserProfileRepository = nil
@@ -47,6 +50,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         mockTrainingPlanRepository = nil
         mockTrainingPlanV2Repository = nil
         mockRaceRepository = nil
+        mockVersionRouter = nil
         UserDefaults.standard.removeObject(forKey: "onboarding_hasPersonalBest")
         try await super.tearDown()
     }
@@ -495,6 +499,181 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(mockTargetRepository.createTargetCallCount, 1)
         XCTAssertEqual(mockTargetRepository.updateTargetCallCount, 0)
         XCTAssertNotNil(sut.selectedTargetKey)
+    }
+
+    // MARK: - A-1 / A-2 Version Routing Tests
+
+    func testLoadTrainingOverview_V2User_CallsV2RepoNotV1() async throws {
+        // Given
+        mockVersionRouter.isV2Result = true
+        let v2Overview = try Self.loadV2OverviewFixture()
+        mockTrainingPlanV2Repository.overviewToReturn = v2Overview
+
+        // When
+        await sut.loadTrainingOverview()
+
+        // Then
+        XCTAssertEqual(mockTrainingPlanV2Repository.getOverviewCallCount, 1, "V2 user must hit V2 repo exactly once")
+        XCTAssertEqual(mockTrainingPlanRepository.getOverviewCallCount, 0, "V2 user must NOT hit V1 repo")
+        XCTAssertEqual(sut.trainingOverviewV2?.id, v2Overview.id)
+        XCTAssertNil(sut.trainingOverview, "V1 entity slot must stay nil for V2 user")
+        XCTAssertNil(sut.error)
+    }
+
+    func testLoadTrainingOverview_V1User_CallsV1RepoNotV2() async {
+        // Given
+        mockVersionRouter.isV2Result = false
+        let mockV1Overview = TrainingPlanOverview(
+            id: "v1_overview_xyz",
+            mainRaceId: "race_1",
+            targetEvaluate: "ok",
+            totalWeeks: 12,
+            trainingHighlight: "h",
+            trainingPlanName: "n",
+            trainingStageDescription: [],
+            createdAt: "2024"
+        )
+        mockTrainingPlanRepository.overviewToReturn = mockV1Overview
+
+        // When
+        await sut.loadTrainingOverview()
+
+        // Then
+        XCTAssertEqual(mockTrainingPlanRepository.getOverviewCallCount, 1, "V1 user must hit V1 repo")
+        XCTAssertEqual(mockTrainingPlanV2Repository.getOverviewCallCount, 0, "V1 user must NOT hit V2 repo")
+        XCTAssertEqual(sut.trainingOverview?.id, "v1_overview_xyz")
+        XCTAssertNil(sut.trainingOverviewV2)
+    }
+
+    func testLoadTrainingOverview_V2User_RepoThrows_SetsUserFriendlyErrorMessage() async {
+        // Given
+        mockVersionRouter.isV2Result = true
+        mockTrainingPlanV2Repository.errorToThrow = TrainingPlanV2Error.overviewNotFound
+
+        // When
+        await sut.loadTrainingOverview()
+
+        // Then
+        XCTAssertNotNil(sut.error, "V2 failure must surface an error string")
+        XCTAssertFalse(sut.error?.isEmpty ?? true, "Error string must not be empty")
+        XCTAssertNil(sut.trainingOverviewV2, "No overview must be cached on failure")
+        XCTAssertEqual(mockTrainingPlanRepository.getOverviewCallCount, 0, "V1 repo must not be touched for V2 user")
+    }
+
+    func testLoadTrainingOverview_RouterReturnsV1_FallsBackToV1Path() async {
+        // Simulates cold start race / nil trainingVersion: router defaults to v1
+        // Given
+        mockVersionRouter.isV2Result = false
+        mockTrainingPlanRepository.overviewToReturn = TrainingPlanOverview(
+            id: "fallback_v1",
+            mainRaceId: "",
+            targetEvaluate: "",
+            totalWeeks: 8,
+            trainingHighlight: "",
+            trainingPlanName: "",
+            trainingStageDescription: [],
+            createdAt: "2024"
+        )
+
+        // When
+        await sut.loadTrainingOverview()
+
+        // Then
+        XCTAssertEqual(mockVersionRouter.isV2UserCallCount, 1, "Must consult router")
+        XCTAssertEqual(mockTrainingPlanRepository.getOverviewCallCount, 1)
+        XCTAssertEqual(mockTrainingPlanV2Repository.getOverviewCallCount, 0)
+        XCTAssertEqual(sut.trainingOverview?.id, "fallback_v1")
+    }
+
+    func testCompleteOnboarding_V2User_CallsV2GenerateWeeklyNotV1CreateWeekly() async throws {
+        // Given
+        mockVersionRouter.isV2Result = true
+        mockTrainingPlanV2Repository.weeklyPlanV2ToReturn = try Self.loadV2WeeklyPlanFixture()
+        sut.isBeginner = false
+
+        // When
+        let result = await sut.completeOnboarding(startFromStage: "base")
+
+        // Then
+        XCTAssertTrue(result)
+        XCTAssertEqual(mockTrainingPlanV2Repository.generateWeeklyPlanCallCount, 1)
+        XCTAssertEqual(mockTrainingPlanRepository.createWeeklyPlanCallCount, 0, "V2 user must NOT hit V1 createWeeklyPlan")
+    }
+
+    func testCompleteOnboarding_V1User_CallsV1CreateWeeklyPlanNotV2() async {
+        // Given
+        mockVersionRouter.isV2Result = false
+        mockTrainingPlanRepository.weeklyPlanToReturn = TrainingPlanTestFixtures.weeklyPlan1
+        sut.isBeginner = true
+
+        // When
+        let result = await sut.completeOnboarding(startFromStage: "base")
+
+        // Then
+        XCTAssertTrue(result)
+        XCTAssertEqual(mockTrainingPlanRepository.createWeeklyPlanCallCount, 1)
+        XCTAssertEqual(mockTrainingPlanV2Repository.generateWeeklyPlanCallCount, 0)
+    }
+
+    func testCompleteOnboarding_V2User_BeginnerFlag_CompletesSuccessfully() async throws {
+        // Given
+        mockVersionRouter.isV2Result = true
+        mockTrainingPlanV2Repository.weeklyPlanV2ToReturn = try Self.loadV2WeeklyPlanFixture()
+        sut.isBeginner = true
+
+        // When
+        _ = await sut.completeOnboarding(startFromStage: nil)
+
+        // Then — beginner path runs the V2 generateWeeklyPlan.
+        // Methodology value ("beginner" vs "paceriz") is passed through but the mock does not capture it;
+        // extending the mock is scope creep. Decorator + log provide the second-level check.
+        XCTAssertEqual(mockTrainingPlanV2Repository.generateWeeklyPlanCallCount, 1)
+    }
+
+    func testCompleteOnboarding_V2User_RepoThrows_ReturnsFalseAndSetsFriendlyError() async {
+        // Given
+        mockVersionRouter.isV2Result = true
+        mockTrainingPlanV2Repository.generateWeeklyPlanErrors = [
+            TrainingPlanV2Error.weeklyPlanGenerationFailed(week: 1, reason: "LLM busy")
+        ]
+
+        // When
+        let result = await sut.completeOnboarding(startFromStage: nil)
+
+        // Then
+        XCTAssertFalse(result)
+        XCTAssertNotNil(sut.error)
+        XCTAssertEqual(mockTrainingPlanRepository.createWeeklyPlanCallCount, 0)
+    }
+
+    // MARK: - A-1/A-2 Helpers
+
+    /// Load a real PlanOverviewV2 fixture so we rely on the same DTO → Entity path as production.
+    private static func loadV2OverviewFixture() throws -> PlanOverviewV2 {
+        let data = try loadFixtureData(directory: "PlanOverview", name: "race_run_paceriz")
+        let dto = try JSONDecoder().decode(PlanOverviewV2DTO.self, from: data)
+        return PlanOverviewV2Mapper.toEntity(from: dto)
+    }
+
+    private static func loadV2WeeklyPlanFixture() throws -> WeeklyPlanV2 {
+        let data = try loadFixtureData(directory: "WeeklyPlan", name: "paceriz_42k_base_week")
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dto = try decoder.decode(WeeklyPlanV2DTO.self, from: data)
+        return WeeklyPlanV2Mapper.toEntity(from: dto)
+    }
+
+    private static func loadFixtureData(directory: String, name: String) throws -> Data {
+        // Fixtures live at HavitalTests/TrainingPlan/Unit/APISchema/Fixtures/<dir>/<name>.json
+        let thisFile = URL(fileURLWithPath: #file)
+        // Walk up to HavitalTests/ then descend to the fixtures folder
+        var dir = thisFile.deletingLastPathComponent()
+        while dir.lastPathComponent != "HavitalTests" && dir.path != "/" {
+            dir = dir.deletingLastPathComponent()
+        }
+        let fixtureURL = dir
+            .appendingPathComponent("TrainingPlan/Unit/APISchema/Fixtures/\(directory)/\(name).json")
+        return try Data(contentsOf: fixtureURL)
     }
 
     // MARK: - Helpers

@@ -10,7 +10,9 @@ struct ContentView: View {
     @ObservedObject private var reminderManager = SubscriptionReminderManager.shared
 
     // 訓練版本路由狀態
-    @State private var trainingVersion: String = "v1"
+    // A-3b: 初始值改為 nil，避免 cold start race 期間誤 render V1 TrainingPlanView。
+    // 在 `checkTrainingVersion()` 完成前，`trainingPlanTab()` 一律顯示 ProgressView。
+    @State private var trainingVersion: String? = nil
     @State private var isCheckingVersion: Bool = true
     @State private var reminderPaywallTrigger: PaywallTrigger?
 
@@ -31,6 +33,10 @@ struct ContentView: View {
                             ]
                         )
                     }
+            }
+            // 如果需要強制更新，顯示強制更新畫面（不可關閉）
+            else if authViewModel.requiresForceUpdate {
+                ForceUpdateView(updateUrl: authViewModel.forceUpdateUrl)
             }
             // 如果用戶未認證，顯示登入畫面
             else if !authViewModel.isAuthenticated {
@@ -283,15 +289,17 @@ struct ContentView: View {
     /// 訓練計劃 Tab - 根據版本動態選擇 V1 或 V2
     @ViewBuilder
     private func trainingPlanTab() -> some View {
-        if isCheckingVersion {
-            // 正在檢查版本時顯示載入指示器
+        if isCheckingVersion || trainingVersion == nil {
+            // A-3b: 版本尚未確定（含 cold start 期間 trainingVersion == nil），顯示 loading，
+            // 避免 V2 用戶先 mount V1 TrainingPlanView，間接觸發 V1 WeeklyPlanViewModel → /plan/race_run/*
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityIdentifier("TrainingVersionCheck_Loading")
         } else if trainingVersion == "v2" {
             // V2 版本
             TrainingPlanV2View()
         } else {
-            // V1 版本（預設）
+            // V1 版本（確定為 v1 才走此分支）
             TrainingPlanView()
         }
     }

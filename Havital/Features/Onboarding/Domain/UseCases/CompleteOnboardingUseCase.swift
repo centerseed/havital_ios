@@ -61,6 +61,10 @@ final class CompleteOnboardingUseCase {
         /// Available training days per week (V2)
         let availableDays: Int?
 
+        /// Preview overview ID from onboarding UI.
+        /// Local fallback previews use `local_preview_*` and need a real overview before weekly generation.
+        let previewOverviewId: String?
+
         /// Check if this is a V2 flow
         var isV2Flow: Bool {
             return targetTypeId != nil
@@ -150,16 +154,23 @@ final class CompleteOnboardingUseCase {
     private func executeV2Flow(input: Input) async throws -> Output {
         Logger.debug("[CompleteOnboardingUseCase] Executing V2 flow...")
 
-        guard input.targetTypeId != nil else {
+        guard let targetTypeId = input.targetTypeId else {
             throw OnboardingError.weeklyPlanCreationFailed("Missing targetTypeId for V2 flow")
         }
 
-        // Note: V2 Overview 已經在 TrainingDaysSetupView 中透過 POST /v2/plan/overview 創建
-        // 這裡只需要產生第一週的 weekly plan
-        Logger.debug("[CompleteOnboardingUseCase] V2 Overview already created in TrainingDaysSetupView, generating first week plan...")
+        let needsRealOverview = input.previewOverviewId?.hasPrefix("local_preview_") ?? true
+        let overview: PlanOverviewV2
+
+        if needsRealOverview {
+            Logger.debug("[CompleteOnboardingUseCase] Creating real V2 overview before weekly generation...")
+            overview = try await createOverviewV2(input: input, targetTypeId: targetTypeId)
+        } else {
+            Logger.debug("[CompleteOnboardingUseCase] Reusing existing V2 overview: \(input.previewOverviewId ?? "nil")")
+            overview = try await trainingPlanV2Repository.getOverview()
+        }
 
         // Generate first week's plan
-        let weeklyPlan = try await createFirstWeekPlanV2(methodologyId: input.methodologyId)
+        let weeklyPlan = try await createFirstWeekPlanV2(methodologyId: input.methodologyId, overview: overview)
         Logger.debug("[CompleteOnboardingUseCase] V2 weekly plan created: \(weeklyPlan.id)")
 
         return Output(
@@ -234,7 +245,7 @@ final class CompleteOnboardingUseCase {
     }
 
     /// Create the first week's training plan (V2)
-    private func createFirstWeekPlanV2(methodologyId: String?) async throws -> WeeklyPlanV2 {
+    private func createFirstWeekPlanV2(methodologyId: String?, overview: PlanOverviewV2) async throws -> WeeklyPlanV2 {
         Logger.debug("[CompleteOnboardingUseCase] Creating V2 first week plan...")
 
         do {
@@ -250,9 +261,70 @@ final class CompleteOnboardingUseCase {
             return weeklyPlan
 
         } catch {
+            if shouldRetryWeeklyGenerationWithFallback(error: error, overview: overview) {
+                Logger.warn("[CompleteOnboardingUseCase] Weekly generation failed with PlanExpander. Retrying fallback stages...")
+
+                let fallbackStages = fallbackStartStages(for: overview)
+                let fallbackMethodologyId = overview.methodologyId ?? methodologyId
+                var lastRetryError: Error = error
+
+                for fallbackStage in fallbackStages {
+                    do {
+                        Logger.warn("[CompleteOnboardingUseCase] Retrying weekly generation with start stage: \(fallbackStage)")
+                        let updatedOverview = try await trainingPlanV2Repository.updateOverview(
+                            overviewId: overview.id,
+                            startFromStage: fallbackStage,
+                            methodologyId: fallbackMethodologyId
+                        )
+
+                        let weeklyPlan = try await trainingPlanV2Repository.generateWeeklyPlan(
+                            weekOfTraining: 1,
+                            forceGenerate: false,
+                            promptVersion: nil,
+                            methodology: fallbackMethodologyId
+                        )
+
+                        Logger.warn(
+                            "[CompleteOnboardingUseCase] Weekly generation recovered by switching start stage from \(overview.startFromStage ?? "nil") to \(updatedOverview.startFromStage ?? fallbackStage)"
+                        )
+                        return weeklyPlan
+                    } catch {
+                        lastRetryError = error
+                        Logger.warn("[CompleteOnboardingUseCase] Retry with stage \(fallbackStage) failed: \(error.localizedDescription)")
+                    }
+                }
+
+                Logger.error("[CompleteOnboardingUseCase] All fallback stages failed for overview \(overview.id)")
+                throw OnboardingError.weeklyPlanCreationFailed("V2 Weekly plan creation failed: \(lastRetryError.localizedDescription)")
+            }
+
             Logger.error("[CompleteOnboardingUseCase] Failed to create V2 weekly plan: \(error.localizedDescription)")
             throw OnboardingError.weeklyPlanCreationFailed("V2 Weekly plan creation failed: \(error.localizedDescription)")
         }
+    }
+
+    private func shouldRetryWeeklyGenerationWithFallback(error: Error, overview: PlanOverviewV2) -> Bool {
+        guard overview.isRaceRunTarget else { return false }
+        return error.localizedDescription.lowercased().contains("planexpander")
+    }
+
+    private func fallbackStartStages(for overview: PlanOverviewV2) -> [String] {
+        let weeksRemaining = max(overview.totalWeeks, 1)
+        let currentStage = overview.startFromStage
+
+        let orderedStages: [TrainingStagePhase]
+        if weeksRemaining <= 5 {
+            orderedStages = [.peak, .build, .base]
+        } else if weeksRemaining < 12 {
+            orderedStages = [.build, .peak, .base]
+        } else {
+            orderedStages = [.base, .build, .peak]
+        }
+
+        return orderedStages
+            .filter { TrainingPlanCalculator.isStageAvailable($0, weeksRemaining: weeksRemaining) }
+            .map(\.apiIdentifier)
+            .filter { $0 != currentStage }
     }
 
     // MARK: - Common Methods

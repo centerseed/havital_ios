@@ -22,6 +22,7 @@ class OnboardingE2ETestBase: XCTestCase {
     var startStagePage: StartStagePage!
     var methodologyPage: MethodologyPage!
     var trainingWeeksPage: TrainingWeeksPage!
+    var maintenanceRaceDistancePage: MaintenanceRaceDistancePage!
     var trainingDaysPage: TrainingDaysPage!
     var trainingOverviewPage: TrainingOverviewPage!
 
@@ -35,6 +36,9 @@ class OnboardingE2ETestBase: XCTestCase {
         app = XCUIApplication()
         app.launchArguments.append("-resetOnboarding")
         app.launchArguments.append("-skipHealthKitAuth")
+        app.launchArguments.append("-ui_testing_onboarding")
+        app.launchArguments.append("-reviewerAccessPressDuration")
+        app.launchArguments.append("1.0")
 
         // Initialize page objects
         loginPage = LoginPage(app: app, testCase: self)
@@ -48,6 +52,7 @@ class OnboardingE2ETestBase: XCTestCase {
         startStagePage = StartStagePage(app: app, testCase: self)
         methodologyPage = MethodologyPage(app: app, testCase: self)
         trainingWeeksPage = TrainingWeeksPage(app: app, testCase: self)
+        maintenanceRaceDistancePage = MaintenanceRaceDistancePage(app: app, testCase: self)
         trainingDaysPage = TrainingDaysPage(app: app, testCase: self)
         trainingOverviewPage = TrainingOverviewPage(app: app, testCase: self)
 
@@ -96,6 +101,13 @@ class OnboardingE2ETestBase: XCTestCase {
         super.tearDown()
     }
 
+    func captureScreenshot(_ label: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = label
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     // MARK: - Common Flow Steps
 
     /// Login and navigate through the common initial steps
@@ -103,10 +115,15 @@ class OnboardingE2ETestBase: XCTestCase {
         // Login
         loginPage.loginWithDemo()
 
-        // Intro
-        introPage.tapStart()
+        // Intro may be skipped in the optimized flow and land directly on data source.
+        let introStartButton = app.buttons["OnboardingStartButton"].firstMatch
+        if introStartButton.waitForExistence(timeout: 5) {
+            introPage.verifyLayout()
+        }
+        introPage.enterOnboardingIfNeeded()
 
         // Data Source - select Apple Health
+        dataSourcePage.verifyLayout()
         dataSourcePage.selectAppleHealth()
         dataSourcePage.tapContinue()
 
@@ -117,6 +134,7 @@ class OnboardingE2ETestBase: XCTestCase {
         // Heart Rate Zone may be skipped by backend/user state, so continue only if visible
         let hrContinue = app.buttons["HeartRateZone_ContinueButton"].firstMatch
         if hrContinue.waitForExistence(timeout: 15) {
+            heartRateZonePage.verifyLayout()
             heartRateZonePage.tapRobust(hrContinue)
         } else {
             print("ℹ️ [UI Test] HeartRateZone step not shown, continuing flow")
@@ -125,6 +143,7 @@ class OnboardingE2ETestBase: XCTestCase {
         // Personal Best may also be skipped in some account states
         let pbContinue = app.buttons["PersonalBest_ContinueButton"].firstMatch
         if pbContinue.waitForExistence(timeout: 15) {
+            personalBestPage.verifyLayout()
             personalBestPage.tapContinue()
         } else {
             print("ℹ️ [UI Test] PersonalBest step not shown, continuing flow")
@@ -133,10 +152,51 @@ class OnboardingE2ETestBase: XCTestCase {
         // Weekly Distance can be skipped when profile already has this data
         let weeklyDistanceContinue = app.descendants(matching: .any)["WeeklyDistance_ContinueButton"].firstMatch
         if weeklyDistanceContinue.waitForExistence(timeout: 15) {
+            weeklyDistancePage.verifyLayout()
             weeklyDistancePage.tapRobust(weeklyDistanceContinue)
         } else {
             print("ℹ️ [UI Test] WeeklyDistance step not shown, continuing flow")
         }
+    }
+
+    func navigateToRaceSetup() {
+        performCommonSteps()
+
+        goalTypePage.verifyLayout()
+        let selected = goalTypePage.selectGoalTypeIfVisible("race_run", timeout: 10)
+        XCTAssertTrue(selected, "Race goal type should be selectable")
+        goalTypePage.tapNext()
+
+        raceSetupPage.verifyOptimizedLayout()
+    }
+
+    func advanceRaceFlowToTrainingOverview(methodology preferredMethodology: String? = "paceriz") {
+        raceSetupPage.tapSave()
+
+        let methodologyScreen = app.descendants(matching: .any)["Methodology_Screen"].firstMatch
+        if methodologyScreen.waitForExistence(timeout: 10) {
+            methodologyPage.verifyLayout()
+            XCTAssertTrue(
+                methodologyPage.ensureMethodologySelection(preferred: preferredMethodology, timeout: 8),
+                "Race flow should expose a selectable methodology or a ready default selection"
+            )
+            captureScreenshot("methodology-screen")
+            methodologyPage.tapNext()
+        }
+
+        let startStageScreen = app.descendants(matching: .any)["StartStage_Screen"].firstMatch
+        if startStageScreen.waitForExistence(timeout: 8) {
+            startStagePage.verifyLayout()
+            captureScreenshot("start-stage-screen")
+            startStagePage.tapNext()
+        }
+
+        trainingDaysPage.verifyLayout()
+        trainingDaysPage.deselectAllThenSelect([1, 3, 5, 6])
+        XCTAssertTrue(trainingDaysPage.tapSaveWithScroll(), "Training days screen should allow saving")
+
+        trainingOverviewPage.verifyLayout()
+        captureScreenshot("training-overview-screen")
     }
 
     /// Run a full onboarding E2E test with the given config
@@ -145,6 +205,7 @@ class OnboardingE2ETestBase: XCTestCase {
 
         // Goal Type step can be skipped in some account states.
         if goalTypePage.isStepVisible(timeout: 8) {
+            goalTypePage.verifyLayout()
             let selected = goalTypePage.selectGoalTypeIfVisible(config.goalType, timeout: 12)
             XCTAssertTrue(selected, "Goal type \(config.goalType) should be selectable when GoalType step is visible")
             goalTypePage.tapNext()
@@ -205,6 +266,9 @@ class OnboardingE2ETestBase: XCTestCase {
         // Training Weeks
         handleTrainingWeeks(config: config)
 
+        // Maintenance intended race distance
+        handleMaintenanceRaceDistanceIfNeeded()
+
         // Training Days
         handleTrainingDays(config: config)
 
@@ -215,14 +279,13 @@ class OnboardingE2ETestBase: XCTestCase {
     // MARK: - Step Handlers
 
     private func handleMethodologySelection(config: OnboardingTestConfig) {
-        let methodologyButton = app.descendants(matching: .any)["Methodology_NextButton"]
-        if methodologyButton.waitForExistence(timeout: 6) {
+        let methodologyScreen = app.descendants(matching: .any)["Methodology_Screen"].firstMatch
+        if methodologyScreen.waitForExistence(timeout: 8) {
             // Methodology page appeared
-            if let methodology = config.methodology {
-                let selected = methodologyPage.selectMethodologyIfVisible(methodology, timeout: 4)
-                if !selected {
-                    print("ℹ️ [UI Test] Methodology_\(methodology) not shown, using current default selection")
-                }
+            methodologyPage.verifyLayout()
+            let selected = methodologyPage.ensureMethodologySelection(preferred: config.methodology, timeout: 8)
+            if !selected, let methodology = config.methodology {
+                print("ℹ️ [UI Test] Methodology_\(methodology) not shown and no default selection detected")
             }
             methodologyPage.tapNext()
         }
@@ -230,19 +293,30 @@ class OnboardingE2ETestBase: XCTestCase {
     }
 
     private func handleStartStageIfNeeded() {
-        let startStageButton = app.descendants(matching: .any)["StartStage_NextButton"].firstMatch
-        if startStageButton.waitForExistence(timeout: 6) {
+        let startStageScreen = app.descendants(matching: .any)["StartStage_Screen"].firstMatch
+        if startStageScreen.waitForExistence(timeout: 8) {
+            startStagePage.verifyLayout()
             startStagePage.tapNext()
         }
     }
 
     private func handleTrainingWeeks(config: OnboardingTestConfig) {
-        let weeksButton = app.descendants(matching: .any)["TrainingWeeks_NextButton"]
-        if weeksButton.waitForExistence(timeout: 6) {
+        if trainingWeeksPage.isStepVisible(timeout: 10) {
+            trainingWeeksPage.verifyLayout()
             if let weeks = config.trainingWeeks {
                 trainingWeeksPage.selectWeeks(weeks)
             }
             trainingWeeksPage.tapNext()
+        }
+    }
+
+    private func handleMaintenanceRaceDistanceIfNeeded() {
+        let screen = app.descendants(matching: .any)["MaintenanceRaceDistance_Screen"].firstMatch
+        if screen.waitForExistence(timeout: 8) {
+            maintenanceRaceDistancePage.verifyLayout()
+            let selected = maintenanceRaceDistancePage.selectOptionIfVisible("halfMarathon", timeout: 4)
+            XCTAssertTrue(selected, "Maintenance race distance option should be selectable")
+            maintenanceRaceDistancePage.tapNext()
         }
     }
 
@@ -259,6 +333,8 @@ class OnboardingE2ETestBase: XCTestCase {
             return
         }
 
+        trainingDaysPage.verifyLayout()
+
         // Select training days
         trainingDaysPage.deselectAllThenSelect(config.trainingDays)
 
@@ -269,9 +345,11 @@ class OnboardingE2ETestBase: XCTestCase {
 
     private func handleTrainingOverview(config: OnboardingTestConfig) {
         // Overview can also be skipped when plan already exists for this account.
+        let overviewScreen = app.descendants(matching: .any)["TrainingOverview_Screen"].firstMatch
         let generateButton = app.descendants(matching: .any)["TrainingOverview_GenerateButton"].firstMatch
-        if generateButton.waitForExistence(timeout: 8) {
-            trainingOverviewPage.tapRobust(generateButton)
+        if overviewScreen.waitForExistence(timeout: 12) || generateButton.waitForExistence(timeout: 4) {
+            trainingOverviewPage.verifyLayout()
+            trainingOverviewPage.tapGenerate()
             trainingOverviewPage.waitForPlanGeneration(timeout: 60)
             sleep(3)
             return
@@ -433,6 +511,7 @@ class OnboardingE2ETestBase: XCTestCase {
             "WeeklyDistance_ContinueButton",
             "Methodology_NextButton",
             "TrainingWeeks_NextButton",
+            "TrainingWeeks_12",
         ]
         for marker in onboardingScreenMarkers {
             if app.descendants(matching: .any)[marker].firstMatch.exists {
@@ -446,15 +525,24 @@ class OnboardingE2ETestBase: XCTestCase {
     private func isOnboardingContinuationScreenVisible() -> Bool {
         let actionableMarkers = [
             "OnboardingContinueButton",
+            "GoalType_CTAContainer",
             "GoalType_NextButton",
             "GoalType_race_run",
             "GoalType_maintenance",
             "GoalType_beginner",
+            "RaceSetup_SaveButton_Container",
             "RaceSetup_SaveButton",
+            "StartStage_CTAContainer",
             "StartStage_NextButton",
+            "Methodology_CTAContainer",
             "Methodology_NextButton",
+            "TrainingWeeks_CTAContainer",
             "TrainingWeeks_NextButton",
+            "TrainingWeeks_12",
             "TrainingDays_SaveButton",
+            "MaintenanceRaceDistance_CTAContainer",
+            "MaintenanceRaceDistance_NextButton",
+            "TrainingOverview_CTAContainer",
             "TrainingOverview_GenerateButton",
         ]
 

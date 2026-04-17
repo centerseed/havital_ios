@@ -83,7 +83,8 @@ final class FirebaseUserMapperTests: XCTestCase {
                 mode: mode,
                 completedAt: nil
             ),
-            shouldCompleteOnboarding: !isCompleted
+            shouldCompleteOnboarding: !isCompleted,
+            versionCheck: nil
         )
     }
 }

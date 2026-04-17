@@ -18,6 +18,7 @@ struct RaceDistanceTimeEditorSheet: View {
 
     // 可用距離選項
     let availableDistances: [String: String]
+    let isDistanceEditable: Bool
 
     // 計算當前配速
     private var currentPace: String {
@@ -39,17 +40,18 @@ struct RaceDistanceTimeEditorSheet: View {
             VStack(spacing: 0) {
                 // 主要內容區域
                 Form {
-                    // 距離選擇
-                    Section(header: Text(NSLocalizedString("onboarding.race_distance", comment: "Race Distance"))) {
-                        Picker(NSLocalizedString("onboarding.select_distance", comment: "Select Distance"),
-                               selection: $selectedDistance) {
-                            ForEach(Array(availableDistances.keys.sorted()), id: \.self) { key in
-                                Text(availableDistances[key] ?? key)
-                                    .tag(key)
+                    if isDistanceEditable {
+                        Section(header: Text(NSLocalizedString("onboarding.race_distance", comment: "Race Distance"))) {
+                            Picker(NSLocalizedString("onboarding.select_distance", comment: "Select Distance"),
+                                   selection: $selectedDistance) {
+                                ForEach(Array(availableDistances.keys.sorted()), id: \.self) { key in
+                                    Text(availableDistances[key] ?? key)
+                                        .tag(key)
+                                }
                             }
+                            .pickerStyle(.inline)
+                            .accessibilityIdentifier("RaceSetup_DistancePicker")
                         }
-                        .pickerStyle(.inline)
-                        .accessibilityIdentifier("RaceSetup_DistancePicker")
                     }
 
                     // 目標完賽時間
@@ -110,7 +112,11 @@ struct RaceDistanceTimeEditorSheet: View {
                     }
                 }
             }
-            .navigationTitle(NSLocalizedString("onboarding.edit_distance_time", comment: "編輯距離與時間"))
+            .navigationTitle(
+                isDistanceEditable
+                ? NSLocalizedString("onboarding.edit_distance_time", comment: "編輯距離與時間")
+                : NSLocalizedString("onboarding.edit_target_time", comment: "編輯目標時間")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -137,27 +143,27 @@ struct RaceDistanceTimeEditorSheet: View {
         switch distance {
         case 5:
             return [
-                "15-20 分鐘 (精英跑者)",
-                "20-30 分鐘 (進階跑者)",
-                "30-40 分鐘 (休閒跑者)"
+                NSLocalizedString("race_time_ref.5k_elite", comment: "5K 精英跑者參考時間"),
+                NSLocalizedString("race_time_ref.5k_advanced", comment: "5K 進階跑者參考時間"),
+                NSLocalizedString("race_time_ref.5k_casual", comment: "5K 休閒跑者參考時間")
             ]
         case 10:
             return [
-                "30-40 分鐘 (精英跑者)",
-                "45-60 分鐘 (進階跑者)",
-                "60-75 分鐘 (休閒跑者)"
+                NSLocalizedString("race_time_ref.10k_elite", comment: "10K 精英跑者參考時間"),
+                NSLocalizedString("race_time_ref.10k_advanced", comment: "10K 進階跑者參考時間"),
+                NSLocalizedString("race_time_ref.10k_casual", comment: "10K 休閒跑者參考時間")
             ]
         case 21.0975:
             return [
-                "1:05-1:30 (精英跑者)",
-                "1:30-2:00 (進階跑者)",
-                "2:00-2:30 (休閒跑者)"
+                NSLocalizedString("race_time_ref.half_marathon_elite", comment: "半馬精英跑者參考時間"),
+                NSLocalizedString("race_time_ref.half_marathon_advanced", comment: "半馬進階跑者參考時間"),
+                NSLocalizedString("race_time_ref.half_marathon_casual", comment: "半馬休閒跑者參考時間")
             ]
         case 42.195:
             return [
-                "2:30-3:30 (精英跑者)",
-                "3:30-4:30 (進階跑者)",
-                "4:30-6:00 (休閒跑者)"
+                NSLocalizedString("race_time_ref.marathon_elite", comment: "全馬精英跑者參考時間"),
+                NSLocalizedString("race_time_ref.marathon_advanced", comment: "全馬進階跑者參考時間"),
+                NSLocalizedString("race_time_ref.marathon_casual", comment: "全馬休閒跑者參考時間")
             ]
         default:
             return []
@@ -177,7 +183,8 @@ struct RaceDistanceTimeEditorSheet_Previews: PreviewProvider {
                 "10": "10K",
                 "21.0975": "半程馬拉松",
                 "42.195": "全程馬拉松"
-            ]
+            ],
+            isDistanceEditable: true
         )
     }
 }

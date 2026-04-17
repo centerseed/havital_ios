@@ -40,7 +40,7 @@ struct DataSyncView: View {
                 VStack(spacing: 16) {
                     // 數據源圖標
                     Image(systemName: dataSource == .appleHealth ? "heart.fill" : "clock.arrow.circlepath")
-                        .font(.system(size: 60))
+                        .font(AppFont.systemScaled(size: 60))
                         .foregroundColor(dataSource == .appleHealth ? .red : .blue)
 
                     VStack(spacing: 8) {
@@ -139,7 +139,7 @@ struct DataSyncView: View {
     private var completedView: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 50))
+                .font(AppFont.systemScaled(size: 50))
                 .foregroundColor(.green)
             
             VStack(spacing: 8) {
@@ -162,7 +162,7 @@ struct DataSyncView: View {
     private var errorView: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
+                .font(AppFont.systemScaled(size: 50))
                 .foregroundColor(.red)
             
             VStack(spacing: 8) {

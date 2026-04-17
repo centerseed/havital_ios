@@ -26,6 +26,7 @@ MAESTRO_RETRY_COUNT="${MAESTRO_RETRY_COUNT:-2}"
 MAESTRO_REINSTALL_DRIVER="${MAESTRO_REINSTALL_DRIVER:-0}"
 IAP_UID="${IAP_TEST_UID:-ZyIP5VxEapePp0P2erZx18WYGK92}"
 IAP_API_BASE="${IAP_API_BASE:-https://api-service-yd7nv64yya-de.a.run.app}"
+MAESTRO_LOCAL_ENV_FILE="${MAESTRO_LOCAL_ENV_FILE:-$PROJECT_ROOT/Havital/.maestro/.env.local}"
 
 # Colors
 RED='\033[0;31m'
@@ -40,6 +41,15 @@ SKIP_COUNT=0
 RESULTS=()
 
 # --- Helpers ---
+
+load_local_env() {
+    if [ -f "$MAESTRO_LOCAL_ENV_FILE" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$MAESTRO_LOCAL_ENV_FILE"
+        set +a
+    fi
+}
 
 log_step() {
     echo -e "${CYAN}[STEP]${NC} $1"
@@ -261,6 +271,8 @@ run_r1_expired_paywall() {
     run_admin clear-override || failed=1
     return "$failed"
 }
+
+load_local_env
 
 run_r2_console_states() {
     local failed=0

@@ -92,6 +92,8 @@ struct OnboardingBottomCTA: View {
 
             Spacer().frame(height: OnboardingLayout.ctaBottomPadding)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(ctaAccessibilityId.map { "\($0)_Container" } ?? "Onboarding_CTA_Container")
         .background(Color(.systemBackground))
     }
 }

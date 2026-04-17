@@ -114,6 +114,61 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertFalse(sut.shouldShowRestoreButton)
     }
 
+    // MARK: - trialDaysRemaining (Phase 2 contract)
+
+    func testTrialDaysRemainingUsesBackendValueWhenPresent() {
+        // 後端權威值 12 天；expiresAt 可能早於或晚於都無所謂——App 必須直接採用後端值。
+        let expiresAt = Date().addingTimeInterval(3 * 86400).timeIntervalSince1970
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                expiresAt: expiresAt,
+                trialRemainingDays: 12
+            )
+        )
+
+        XCTAssertEqual(sut.trialDaysRemaining, 12)
+    }
+
+    func testTrialDaysRemainingFallsBackToExpiresAtWhenNil() {
+        // 後端未提供 trial_remaining_days（舊版後端）——fallback 到 expiresAt 計算的 daysRemaining。
+        let expiresAt = Date().addingTimeInterval(5 * 86400 + 3600).timeIntervalSince1970
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                expiresAt: expiresAt,
+                trialRemainingDays: nil
+            )
+        )
+
+        // daysRemaining 用 ceil；5.04 天會算成 6 天
+        XCTAssertEqual(sut.trialDaysRemaining, 6)
+    }
+
+    func testTrialDaysRemainingReturnsNilWhenNotTrialStatus() {
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .active,
+                expiresAt: Date().addingTimeInterval(10 * 86400).timeIntervalSince1970,
+                trialRemainingDays: 7
+            )
+        )
+
+        XCTAssertNil(sut.trialDaysRemaining)
+    }
+
+    func testTrialDaysRemainingReturnsNilWhenTrialAndNoBackendValueNoExpiresAt() {
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                expiresAt: nil,
+                trialRemainingDays: nil
+            )
+        )
+
+        XCTAssertNil(sut.trialDaysRemaining)
+    }
+
     func testPurchase_WhenAlreadyOptimisticallyUnlocked_DoesNotForceBackendRefresh() async {
         repository.purchaseResult = .success
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))

@@ -20,8 +20,8 @@ tags:
 - tapOn:
     text: "好"
     optional: true
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 # 進設定頁（正常入口）

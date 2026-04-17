@@ -4,8 +4,6 @@ struct LanguageSettingsView: View {
     @StateObject private var languageManager = LanguageManager.shared
     @StateObject private var unitManager = UnitManager.shared
     @StateObject private var viewModel = UserProfileFeatureViewModel()
-    // Clean Architecture: Use AuthenticationViewModel from environment
-    @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedLanguage: SupportedLanguage
@@ -91,59 +89,30 @@ struct LanguageSettingsView: View {
     private var languageInfoFooter: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L10n.Language.syncMessage.localized)
-                .font(.footnote)
+                .font(AppFont.footnote())
                 .foregroundColor(.secondary)
 
             if selectedLanguage != languageManager.currentLanguage {
                 Text(L10n.Language.restartRequiredMessage.localized)
-                    .font(.footnote)
+                    .font(AppFont.footnote())
                     .foregroundColor(.orange)
             }
         }
     }
     
     private func saveSettings() {
-        // iOS 26 sheet + UIKit alert 容易出現確認彈窗未觸發，導致語言實際未套用。
-        // 這裡改為直接執行語言切換流程，避免使用者（與自動測試）卡在未生效狀態。
         if selectedLanguage != languageManager.currentLanguage {
             performLanguageChange()
             return
         }
         // Unit change does not require restart
         if selectedUnit != unitManager.currentUnitSystem {
-            Task {
-                await performUnitChange()
-            }
+            Task { await performUnitChange() }
             return
         }
-        // Nothing changed — dismiss on next runloop to avoid NavigationView dismiss conflict
+        // Nothing changed
         let dismissAction = dismiss
         Task { @MainActor in dismissAction() }
-    }
-
-    // UIKit alert workaround: SwiftUI .alert button actions don't fire in iOS 26 sheet context
-    private func showLanguageChangeAlert() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootVC = windowScene.windows.first?.rootViewController else { return }
-        var topVC = rootVC
-        while let presented = topVC.presentedViewController {
-            topVC = presented
-        }
-        let alert = UIAlertController(
-            title: L10n.Language.changeConfirm.localized,
-            message: L10n.Language.restartMessage.localized,
-            preferredStyle: .alert
-        )
-        let mgr = languageManager
-        alert.addAction(UIAlertAction(title: L10n.Common.cancel.localized, style: .cancel) { _ in
-            self.selectedLanguage = mgr.currentLanguage
-        })
-        alert.addAction(UIAlertAction(title: L10n.Common.confirm.localized, style: .default) { _ in
-            Task {
-                await self.performLanguageChange()
-            }
-        })
-        topVC.present(alert, animated: true)
     }
 
     private func performUnitChange() async {
@@ -162,67 +131,25 @@ struct LanguageSettingsView: View {
             }
         }
     }
-    
+
+    /// 單一路徑：await 後端 200 → 套用本地 → restart。失敗則回滾並顯示 alert。
     private func performLanguageChange() {
         isLoading = true
         let languageToApply = selectedLanguage
 
-        // 先套用本地語言，避免等待網路導致 UI 長時間停在舊語言
-        self.isLoading = false
-        self.dismiss()
-        LanguageManager.shared.performLanguageChangeWithRestart(to: languageToApply)
-
-        // 後端同步改為背景執行，不阻塞本地體驗
         Task {
-            do {
-                try await self.updateBackendPreferences()
-            } catch {
-                Logger.firebase("Language backend sync failed after local apply: \(error.localizedDescription)", level: .warn)
+            let success = await languageManager.performLanguageChangeWithRestart(to: languageToApply)
+            await MainActor.run {
+                isLoading = false
+                if !success {
+                    // 回滾 picker 選擇
+                    selectedLanguage = languageManager.currentLanguage
+                    errorMessage = languageManager.lastSyncError ?? L10n.Error.server.localized
+                    languageManager.lastSyncError = nil
+                    showError = true
+                }
+                // success 時 LanguageManager 已觸發 restart，不需 dismiss
             }
-        }
-    }
-    
-    // Note: Unit preference methods removed until backend supports imperial units
-    
-    private func updateBackendPreferences() async throws {
-        // Create request to update preferences
-        guard let url = URL(string: "\(APIConfig.baseURL)/user/preferences") else {
-            Logger.firebase("無效的 URL", level: .error, labels: [
-                "module": "LanguageSettingsView",
-                "action": "updateBackendPreferences"
-            ])
-            return
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add authentication token if available
-        do {
-            // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
-            let token = try await authViewModel.getIdToken()
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        } catch {
-            Logger.firebase("Failed to get auth token: \(error.localizedDescription)", level: .warn)
-        }
-        
-        // Prepare request body
-        let body: [String: Any] = [
-            "language": selectedLanguage.apiCode
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        // Send request
-        let (_, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(
-                domain: "LanguageSettings",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey: L10n.Error.server.localized]
-            )
         }
     }
 }

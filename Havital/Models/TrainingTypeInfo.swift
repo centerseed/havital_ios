@@ -172,10 +172,10 @@ struct TrainingTypeInfo {
             return TrainingTypeInfo(
                 icon: "🇳🇴",
                 title: NSLocalizedString("training_type_info.norwegian_4x4.title", comment: "挪威4x4 Norwegian 4x4"),
-                howToRun: NSLocalizedString("training_type_info.norwegian_4x4.how_to_run", comment: "進行4組4分鐘的高強度跑，每組之間休息3分鐘。保持穩定的乳酸閾值配速，不要衝太快——應該覺得「努力，但能撐完所有組」。"),
-                whyRun: NSLocalizedString("training_type_info.norwegian_4x4.why_run", comment: "挪威4x4是提升最大攝氧量（VO₂max）最有效率的訓練。科學研究顯示，這種方法能在短時間內提升心肺功能約7%，是賽前強化的關鍵課。"),
-                logic: NSLocalizedString("training_type_info.norwegian_4x4.logic", comment: "以乳酸閾值強度（88% VO₂max）進行，刺激有氧系統與無氧能力。4分鐘足夠長以挑戰心肺，3分鐘恢復讓你能完成所有組。這個設計讓身體在高強度下累積更多訓練量。"),
-                role: NSLocalizedString("training_type_info.norwegian_4x4.role", comment: "通常在建強期或比賽準備期使用，每週最多1次。前後搭配輕鬆跑，並確保充分恢復。不適合連續多週進行，需要配合恢復週調整。")
+                howToRun: NSLocalizedString("training_type_info.norwegian_4x4.how_to_run", comment: "進行4組4分鐘的高強度跑，每組之間休息3分鐘。保持穩定的VO₂max配速（92% 最大心率），衝刺但控制節奏——應該覺得「非常努力，但能撐完所有組」。"),
+                whyRun: NSLocalizedString("training_type_info.norwegian_4x4.why_run", comment: "挪威4x4用來提升高強度下的心肺輸出，讓你更能承受接近極限的配速。它特別適合需要加強速度天花板與比賽衝刺能力的階段。"),
+                logic: NSLocalizedString("training_type_info.norwegian_4x4.logic", comment: "屬於高強度間歇訓練，主打VO₂max區間。4分鐘工作時間足以把心肺系統推上來，3分鐘恢復則幫助你在後續組數維持品質，累積有效的高強度訓練量。"),
+                role: NSLocalizedString("training_type_info.norwegian_4x4.role", comment: "通常安排在建強期或比賽準備期，每週最多1次。前後建議搭配輕鬆跑與恢復日，避免連續多週都維持高壓負荷。")
             )
 
         case .shortInterval:

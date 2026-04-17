@@ -36,8 +36,8 @@ tags:
     optional: true
 
 # If already logged in, skip login
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 # If Profile sheet is still open, dismiss it first.

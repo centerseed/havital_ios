@@ -80,11 +80,11 @@ struct DraggableTextOverlay: View {
         HStack(spacing: overlay.iconName != nil ? 12 : 0) {
             if let iconName = overlay.iconName {
                 Image(systemName: iconName)
-                    .font(.system(size: overlay.iconSize, weight: .bold))
+                    .font(AppFont.systemScaled(size: overlay.iconSize, weight: .bold))
                     .foregroundColor(overlay.textColor)
             }
             Text(overlay.text)
-                .font(.system(size: overlay.fontSize, weight: overlay.fontWeight))
+                .font(AppFont.systemScaled(size: overlay.fontSize, weight: overlay.fontWeight))
                 .foregroundColor(overlay.textColor)
         }
         .padding(.horizontal, 12)

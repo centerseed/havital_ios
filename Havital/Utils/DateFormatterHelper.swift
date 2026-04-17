@@ -87,6 +87,17 @@ struct DateFormatterHelper {
         return formatter(dateFormat: "yyyy-MM-dd").string(from: date)
     }
 
+    /// 格式化訂閱到期日，固定使用 UTC calendar date，避免本地時區跨日誤差。
+    /// - Parameter date: API 回傳的到期時間點
+    /// - Returns: 格式化後的字串，例如："2025/11/19"
+    static func formatSubscriptionExpiryDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.string(from: date)
+    }
+
     /// 格式化為完整日期時間，包含秒（yyyy-MM-dd HH:mm:ss）
     /// - Parameter date: 要格式化的日期
     /// - Returns: 格式化後的字串，例如："2025-11-19 14:30:00"

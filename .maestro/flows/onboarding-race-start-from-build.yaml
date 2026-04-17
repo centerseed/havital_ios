@@ -11,8 +11,10 @@ tags:
 
 - runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-- assertVisible: "訓練目標"
-- tapOn: "賽事訓練"
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_race_run"
 - tapOn:
     text: "下一步"
     optional: true
@@ -27,6 +29,16 @@ tags:
     text: "下一步"
     optional: true
 
+- tapOn:
+    id: "Methodology_paceriz"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
 # 起始階段 → 強化期
 - tapOn:
     id: "StartStage_build"
@@ -36,16 +48,6 @@ tags:
     optional: true
 - tapOn:
     text: "繼續"
-    optional: true
-
-- tapOn:
-    id: "Methodology_paceriz"
-    optional: true
-- tapOn:
-    id: "Methodology_NextButton"
-    optional: true
-- tapOn:
-    text: "下一步"
     optional: true
 
 - runFlow: ../subflows/assert-preference-persistence.yaml

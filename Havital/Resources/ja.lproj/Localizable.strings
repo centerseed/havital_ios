@@ -707,6 +707,7 @@
 "common.later" = "後で";
 "common.reload" = "再読み込み";
 "common.ok" = "OK";
+"common.select" = "選択";
 "common.minutes_format" = "%d 分";
 
 // MARK: - Workout Details
@@ -798,8 +799,11 @@
 "onboarding.goal_description" = "特定のレースがない場合は、「初回5K完走」や「10Kスピード向上」などの挑戦目標を設定できます。";
 "onboarding.or_select_existing_target" = "以前に設定した目標レース";
 "onboarding.goal_name_placeholder" = "目標名（例：台北マラソンまたはマイ5Kチャレンジ）";
+"onboarding.goal_name_label" = "目標名";
+"onboarding.goal_prefilled_from_race" = "レースデータベースから反映済みです。編集する場合は手動入力に戻してください。";
 "onboarding.goal_date" = "目標日";
 "onboarding.weeks_until_race" = "レースまでの週数：%d";
+"onboarding.weeks_until_race_label" = "レースまでの週数";
 "onboarding.race_distance" = "レース距離";
 "onboarding.race_distance.nav_title" = "目標レース";
 "onboarding.race_distance.title" = "オフシーズン後に参加予定のレースは？";
@@ -817,6 +821,7 @@
 "onboarding.average_pace" = "平均ペース：%@ /km";
 "onboarding.next_step" = "次のステップ";
 "onboarding.distance_and_target_time" = "距離と目標タイム";
+"onboarding.edit_target_time" = "目標タイムを編集";
 "onboarding.distance_time_hint" = "タップしてレース距離と目標完走時間を編集";
 "onboarding.edit_distance_time" = "距離とタイムを編集";
 "onboarding.common_times_reference" = "参考タイム";
@@ -1266,9 +1271,9 @@
 // MARK: - 新しいVO2max向上トレーニング情報
 "training_type_info.norwegian_4x4.title" = "ノルウェー4×4";
 "training_type_info.norwegian_4x4.how_to_run" = "4分間の高強度走を4セット行い（92% 最大心拍数）、各セット間に3分間のイージーラン回復を挟む。VO₂max ペースを安定して維持します。「非常に大変だけれど全セット完走できる」という感覚が目安です。";
-"training_type_info.norwegian_4x4.why_run" = "ノルウェー4×4はVO₂maxを向上させる最も効率的なトレーニング方法です。科学的研究では、このプロトコルが短期間で有酸素能力を約7%向上させることが示されており、レース前の重要なワークアウトです。";
-"training_type_info.norwegian_4x4.logic" = "VO₂max強度（92% 最大心拍数、95-100% VO₂max）で実施し、有酸素系と無酸素系の両方を最高レベルまで刺激します。4分間は心肺に十分な負荷をかけるのに長く、3分間の回復により全セット完了できます。この設計により最大強度でのトレーニング量が大きく蓄積されます。";
-"training_type_info.norwegian_4x4.role" = "通常、ビルドアップ期またはレース準備期に使用し、最大週1回に制限。イージーランと組み合わせ、十分な回復を確保してください。連続した週の実施には不向きで、回復週とのバランスが必要です。";
+"training_type_info.norwegian_4x4.why_run" = "ノルウェー4×4は、高強度でも押し切れる心肺出力を高めるためのトレーニングです。スピードの上限を引き上げたい時期や、レース終盤の粘りを強くしたい時期に特に向いています。";
+"training_type_info.norwegian_4x4.logic" = "VO₂max帯を狙う高強度インターバルです。4分間の負荷で心肺をしっかり引き上げ、3分間の回復で後半の本数も質を落としにくくし、効果的な高強度ボリュームを積み上げます。";
+"training_type_info.norwegian_4x4.role" = "通常はビルドアップ期やレース準備期に配置し、頻度は週1回までが目安です。前後はイージーランや回復日と組み合わせ、全体負荷が高くなりすぎないようにします。";
 
 "training_type_info.short_interval.title" = "短間隔走";
 "training_type_info.short_interval.how_to_run" = "短距離（400-600m）の高強度走を6-10本実施し、各本間に1-2分のイージーラン回復を挟む。全力でスプリントし、呼吸をしっかり上げます。";
@@ -2061,6 +2066,11 @@
 "hrvtrendchart.hrv" = "HRVの問題を診断";
 "login.demo_mode" = "デモモードを表示";
 "login.for_apple_review" = "Apple審査用";
+"login.reviewer_access_title" = "審査用アクセス";
+"login.reviewer_access_message" = "デモアカウントを有効化するには審査用パスコードを入力してください。";
+"login.reviewer_passcode_placeholder" = "審査用パスコード";
+"login.activate_demo_access" = "デモアクセスを有効化";
+"login.reviewer_access_failed" = "審査用アクセスの有効化に失敗しました";
 "misc.reset" = "リセット";
 "misc.syncing" = "同期中...";
 "myachievement.text_0" = "フィットネス指数 & トレーニング・ストレス・バランス";
@@ -2444,3 +2454,4 @@
 "paywall.restore_no_active_subscription" = "復元できる有効なサブスクリプションが見つかりません";
 "paywall.purchase_pending_processing" = "購入を処理中です。少し待ってから再度「購入を復元」をお試しください。";
 "paywall.purchase_cancelled_retry" = "Appleアカウントへのサインインは完了しました。購入を完了するには、もう一度プランをタップしてください。";
+"onboarding.clear_selected_race" = "手動入力に戻る";

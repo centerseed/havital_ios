@@ -25,6 +25,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
     private let trainingPlanRepository: TrainingPlanRepository
     private let trainingPlanV2Repository: TrainingPlanV2Repository
     private let raceRepository: RaceRepository
+    private let versionRouter: TrainingVersionRouting
 
     private var analyticsService: AnalyticsService {
         DependencyContainer.shared.resolve()
@@ -208,26 +209,30 @@ final class OnboardingFeatureViewModel: ObservableObject {
         targetRepository: TargetRepository,
         trainingPlanRepository: TrainingPlanRepository,
         trainingPlanV2Repository: TrainingPlanV2Repository,
-        raceRepository: RaceRepository
+        raceRepository: RaceRepository,
+        versionRouter: TrainingVersionRouting
     ) {
         self.userProfileRepository = userProfileRepository
         self.targetRepository = targetRepository
         self.trainingPlanRepository = trainingPlanRepository
         self.trainingPlanV2Repository = trainingPlanV2Repository
         self.raceRepository = raceRepository
+        self.versionRouter = versionRouter
 
-        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2 + Race)")
+        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2 + Race + VersionRouter)")
     }
 
     /// Convenience initializer for DI
     convenience init() {
         let container = DependencyContainer.shared
+        container.registerTrainingVersionRouter()
         self.init(
             userProfileRepository: container.resolve(),
             targetRepository: container.resolve(),
             trainingPlanRepository: container.resolve(),
             trainingPlanV2Repository: container.resolve(),
-            raceRepository: container.resolve()
+            raceRepository: container.resolve(),
+            versionRouter: container.resolve() as TrainingVersionRouting
         )
     }
 
@@ -726,24 +731,64 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     // MARK: - Training Overview Methods
 
-    /// Load training overview
+    /// Load training overview（依據版本路由器分流到 V1 / V2 Repository）
+    ///
+    /// V2 primary 防線：V2 用戶走 `trainingPlanV2Repository.getOverview()`；
+    /// V1 用戶維持原本 `trainingPlanRepository.getOverview()`。
+    /// Decorator 為 double safety，這裡的分流才是主要防線。
     func loadTrainingOverview() async {
         isLoading = true
         error = nil
 
-        do {
-            let overview = try await trainingPlanRepository.getOverview()
-            trainingOverview = overview
-            Logger.debug("[OnboardingFeatureVM] Training overview loaded: \(overview.id)")
-        } catch {
-            self.error = error.localizedDescription
+        if await versionRouter.isV2User() {
+            do {
+                let overviewV2 = try await trainingPlanV2Repository.getOverview()
+                trainingOverviewV2 = overviewV2
+                Logger.firebase(
+                    "onboarding_load_overview_v2",
+                    level: .info,
+                    labels: [
+                        "cloud_logging": "true",
+                        "module": "OnboardingVM",
+                        "operation": "load_overview_v2"
+                    ],
+                    jsonPayload: [
+                        "uid": AuthenticationService.shared.user?.uid ?? "",
+                        "overview_id": overviewV2.id,
+                        "tracking": "OnboardingFeatureVM: loadTrainingOverviewV2"
+                    ]
+                )
+                Logger.debug("[OnboardingFeatureVM] V2 training overview loaded: \(overviewV2.id)")
+            } catch {
+                self.error = error.toDomainError().userFriendlyMessage
+                Logger.warn("[OnboardingFeatureVM] V2 loadTrainingOverview failed: \(error.localizedDescription)")
+            }
+        } else {
+            do {
+                let overview = try await trainingPlanRepository.getOverview()
+                trainingOverview = overview
+                Logger.debug("[OnboardingFeatureVM: loadTrainingOverviewV1] Training overview loaded: \(overview.id)")
+            } catch {
+                self.error = error.localizedDescription
+            }
         }
 
         isLoading = false
     }
 
     /// Load target pace from main race
+    ///
+    /// V2 用戶：優先從 `trainingOverviewV2.targetPace` 讀（overview 已嵌入 pace），
+    /// 沒有則 fallback "6:00"（PlanOverviewV2 沒有 `mainRaceId` 欄位，對應的是 `targetId`）。
+    /// V1 用戶：維持原本從 `trainingOverview.mainRaceId` 拉 target。
     func loadTargetPace() async -> String {
+        if await versionRouter.isV2User() {
+            if let overview = trainingOverviewV2, let pace = overview.targetPace, !pace.isEmpty {
+                return pace
+            }
+            return "6:00"
+        }
+
         guard let overview = trainingOverview, !overview.mainRaceId.isEmpty else {
             return "6:00"
         }
@@ -757,10 +802,48 @@ final class OnboardingFeatureViewModel: ObservableObject {
         }
     }
 
-    /// Complete onboarding by creating weekly plan
+    /// Complete onboarding by creating weekly plan（依據版本路由器分流）
+    ///
+    /// V2 用戶：呼叫 `trainingPlanV2Repository.generateWeeklyPlan(weekOfTraining: 1, ...)`，
+    /// methodology 視 `isBeginner` 決定：beginner → "beginner"，否則 "paceriz"。
+    /// V1 用戶：維持原本 `trainingPlanRepository.createWeeklyPlan(...)`。
     func completeOnboarding(startFromStage: String?) async -> Bool {
         isLoading = true
         error = nil
+
+        if await versionRouter.isV2User() {
+            do {
+                _ = try await trainingPlanV2Repository.generateWeeklyPlan(
+                    weekOfTraining: 1,
+                    forceGenerate: false,
+                    promptVersion: "v2",
+                    methodology: isBeginner ? "beginner" : "paceriz"
+                )
+
+                Logger.firebase(
+                    "onboarding_complete_v2",
+                    level: .info,
+                    labels: [
+                        "cloud_logging": "true",
+                        "module": "OnboardingVM",
+                        "operation": "complete_onboarding_v2"
+                    ],
+                    jsonPayload: [
+                        "uid": AuthenticationService.shared.user?.uid ?? "",
+                        "is_beginner": isBeginner,
+                        "tracking": "OnboardingFeatureVM: completeOnboardingV2"
+                    ]
+                )
+                Logger.debug("[OnboardingFeatureVM] V2 weekly plan generated, onboarding complete")
+                isLoading = false
+                return true
+            } catch {
+                self.error = error.toDomainError().userFriendlyMessage
+                Logger.warn("[OnboardingFeatureVM] V2 completeOnboarding failed: \(error.localizedDescription)")
+                isLoading = false
+                return false
+            }
+        }
 
         do {
             _ = try await trainingPlanRepository.createWeeklyPlan(
@@ -769,7 +852,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
                 isBeginner: isBeginner
             )
 
-            Logger.debug("[OnboardingFeatureVM] Weekly plan created, onboarding complete")
+            Logger.debug("[OnboardingFeatureVM: completeOnboardingV1] Weekly plan created, onboarding complete")
             isLoading = false
             return true
         } catch {
@@ -1133,13 +1216,15 @@ extension DependencyContainer {
         if !isRegistered(RaceRepository.self) {
             registerRaceModule()
         }
+        registerTrainingVersionRouter()
 
         return OnboardingFeatureViewModel(
             userProfileRepository: resolve(),
             targetRepository: resolve(),
             trainingPlanRepository: resolve(),
             trainingPlanV2Repository: resolve(),
-            raceRepository: resolve()
+            raceRepository: resolve(),
+            versionRouter: resolve() as TrainingVersionRouting
         )
     }
 }

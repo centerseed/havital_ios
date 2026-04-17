@@ -98,7 +98,7 @@ struct CalendarSyncSetupView: View {
                             .padding(.horizontal)
                             
                             Text(L10n.CalendarSyncSetup.adjustNote.localized)
-                                .font(.footnote)
+                                .font(AppFont.footnote())
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal)
                         }

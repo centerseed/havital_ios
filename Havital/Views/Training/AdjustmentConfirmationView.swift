@@ -71,7 +71,7 @@ struct AdjustmentConfirmationView: View {
             Text(adjustmentItems.isEmpty ?
                  NSLocalizedString("adjustment.description_no_items", comment: "Description when no adjustment items") :
                  NSLocalizedString("adjustment.description_with_items", comment: "Description when adjustment items exist"))
-                .font(.callout)
+                .font(AppFont.callout())
                 .foregroundColor(.secondary)
         }
         .padding()
@@ -83,7 +83,7 @@ struct AdjustmentConfirmationView: View {
         VStack(spacing: 12) {
             if adjustmentItems.isEmpty {
                 Text(NSLocalizedString("adjustment.no_suggestions", comment: "No adjustment suggestions available"))
-                    .font(.callout)
+                    .font(AppFont.callout())
                     .foregroundColor(.secondary)
                     .padding()
             } else {
@@ -112,7 +112,7 @@ struct AdjustmentConfirmationView: View {
                             .lineLimit(2...6)
                     } else {
                         Text(adjustmentItems[index].content)
-                            .font(.callout)
+                            .font(AppFont.callout())
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }

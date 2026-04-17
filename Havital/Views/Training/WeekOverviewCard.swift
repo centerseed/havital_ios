@@ -50,17 +50,17 @@ struct WeekOverviewCard: View {
                     VStack(spacing: 2) {
                         HStack(spacing: 1) {
                             Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.currentWeekDistance)))
-                                .font(.system(size: 17, weight: .bold))
+                                .font(AppFont.systemScaled(size: 17, weight: .bold))
                                 .foregroundColor(.primary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
 
                             Text("/")
-                                .font(.system(size: 13))
+                                .font(AppFont.systemScaled(size: 13))
                                 .foregroundColor(.secondary)
 
                             Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
-                                .font(.system(size: 13))
+                                .font(AppFont.systemScaled(size: 13))
                                 .foregroundColor(.secondary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)

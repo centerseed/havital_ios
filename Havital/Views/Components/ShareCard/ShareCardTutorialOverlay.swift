@@ -17,11 +17,11 @@ struct ShareCardTutorialOverlay: View {
                 // 標題
                 VStack(spacing: 12) {
                     Image(systemName: "hand.tap.fill")
-                        .font(.system(size: 50))
+                        .font(AppFont.systemScaled(size: 50))
                         .foregroundColor(.white)
 
                     Text("分享卡編輯指南")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(AppFont.systemScaled(size: 28, weight: .bold))
                         .foregroundColor(.white)
                 }
                 .padding(.top, 50)
@@ -61,7 +61,7 @@ struct ShareCardTutorialOverlay: View {
                 // 關閉按鈕
                 Button(action: onDismiss) {
                     Text("開始編輯")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(AppFont.systemScaled(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
@@ -90,11 +90,11 @@ struct TutorialItem: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppFont.systemScaled(size: 18, weight: .semibold))
                     .foregroundColor(.white)
 
                 Text(description)
-                    .font(.system(size: 15))
+                    .font(AppFont.systemScaled(size: 15))
                     .foregroundColor(.white.opacity(0.8))
             }
         }

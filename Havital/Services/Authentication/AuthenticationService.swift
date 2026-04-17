@@ -357,13 +357,13 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
     }
 
     @MainActor // Ensure UI updates are on the main thread
-    func demoLogin() async {
+    func demoLogin(reviewerPasscode: String) async {
         await executeTask(id: TaskID("demo_login")) {
-            await self.performDemoLogin()
+            await self.performDemoLogin(reviewerPasscode: reviewerPasscode)
         }
     }
 
-    private func performDemoLogin() async {
+    private func performDemoLogin(reviewerPasscode: String) async {
         await MainActor.run {
             isLoading = true
             loginError = nil
@@ -372,7 +372,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
         do {
             // 步驟 1: 呼叫 Demo 登入 API
             print("🔵 [Demo Login] 步驟 1: 呼叫 /login/demo API")
-            let response = try await EmailAuthService.shared.demoLogin()
+            let response = try await EmailAuthService.shared.demoLogin(reviewerPasscode: reviewerPasscode)
 
             guard response.success else {
                 print("❌ [Demo Login] API 返回 success=false")
@@ -778,71 +778,16 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
         cancellables.removeAll()
     }
     
+    @available(*, deprecated, message: "Use AuthenticationViewModel.shared.signOut() instead")
     func signOut() async throws {
-        // 登出時只清除本地 Garmin 狀態，不解除後端綁定
-        // 這樣用戶重新登入時可以恢復 Garmin 連接
-        let isGarminConnected = await MainActor.run { GarminManager.shared.isConnected }
-        if isGarminConnected {
-            print("🔄 登出時清除本地 Garmin 狀態（保留後端連接）")
-            await GarminManager.shared.disconnect(remote: false)
-        }
-        
-        // ⚠️ 重要: 先設置 isAuthenticated = false,避免顯示 onboarding
+        await AuthenticationViewModel.shared.signOut()
+        // Sync legacy in-memory state for any remaining callers
         isAuthenticated = false
-
-        try Auth.auth().signOut()
-        try GIDSignIn.sharedInstance.signOut()
-
-        // 清除用戶ID追蹤
-        setUserIDForAnalytics(nil)
-
-        // 在登出時重置各種狀態
         appUser = nil
         hasCompletedOnboarding = false
         isReonboardingMode = false
-        isReonboardingMode = false
-        demoIdToken = nil // 清除 Demo token
-        
-        // Clean Architecture: Clear Demo Token in Repository
+        demoIdToken = nil
         authSessionRepository.setDemoToken(nil)
-
-        print("🔄 已清除所有認證狀態（包括 Demo token）")
-        
-        // 清除所有 UserDefaults
-        if let bundleID = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: bundleID)
-            UserDefaults.standard.synchronize()
-        }
-        
-        // 重置 connection check session flags，下次登入重新檢查
-        await GarminManager.shared.resetSessionCheck()
-        await StravaManager.shared.resetSessionCheck()
-
-        // 使用 CacheEventBus 統一清除所有快取
-        CacheEventBus.shared.invalidateCache(for: .userLogout)
-
-        // 清除非快取相關的本地存儲
-        await UserPreferencesManager.shared.clearAllData()
-        WorkoutV2Service.shared.clearWorkoutSummaryCache()
-        WorkoutUploadTracker.shared.clearUploadedWorkouts()
-        SyncNotificationManager.shared.reset()
-        
-        // 清除 Keychain 中的敏感資料
-        let secItemClasses = [
-            kSecClassGenericPassword,
-            kSecClassInternetPassword,
-            kSecClassCertificate,
-            kSecClassKey,
-            kSecClassIdentity
-        ]
-        for secItemClass in secItemClasses {
-            let query: [String: Any] = [kSecClass as String: secItemClass]
-            SecItemDelete(query as CFDictionary)
-        }
-        if let domain = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: domain)
-            UserDefaults.standard.synchronize()
-        }
     }
     
     // Get the current ID token

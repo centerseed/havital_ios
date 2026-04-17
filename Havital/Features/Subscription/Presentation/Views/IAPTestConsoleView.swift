@@ -51,7 +51,7 @@ struct IAPTestConsoleView: View {
             }
 
             Text(harness.statusMessage)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundStyle(.secondary)
                 .accessibilityIdentifier("IAPConsole_StatusMessage")
                 .accessibilityLabel(harness.statusMessage)
@@ -159,7 +159,7 @@ struct IAPTestConsoleView: View {
 
                 // Stable status-value selector for Maestro assertions.
                 Text("App status value: \(status.status.rawValue)")
-                    .font(.caption2)
+                    .font(AppFont.caption2())
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("IAPConsole_AppStatus_\(status.status.rawValue)")
                 LabeledContent("Plan", value: status.planType ?? "nil")
@@ -188,14 +188,15 @@ struct IAPTestConsoleView: View {
                 ForEach(harness.lastAuditLogs.prefix(5)) { log in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(log.action ?? "unknown")
-                            .font(.subheadline.weight(.semibold))
+                            .font(AppFont.subheadline())
+                            .fontWeight(.semibold)
                         if let reason = log.reason, !reason.isEmpty {
                             Text(reason)
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundStyle(.secondary)
                         }
                         Text(log.createdAt ?? log.id)
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 2)

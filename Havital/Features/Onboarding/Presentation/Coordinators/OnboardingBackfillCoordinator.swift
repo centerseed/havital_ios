@@ -23,7 +23,13 @@ class OnboardingBackfillCoordinator: ObservableObject {
     private let workoutV2Service = WorkoutV2Service.shared
     private let userDefaults = UserDefaults.standard
 
-    private init() {}
+    private init() {
+        CacheEventBus.shared.subscribe(forIdentifier: "OnboardingBackfillCoordinator") { [weak self] reason in
+            if case .userLogout = reason {
+                self?.resetBackfillState()
+            }
+        }
+    }
 
     // MARK: - Public Methods
 

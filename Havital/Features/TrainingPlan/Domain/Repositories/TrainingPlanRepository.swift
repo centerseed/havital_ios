@@ -3,6 +3,11 @@ import Foundation
 // MARK: - TrainingPlan Repository Protocol
 /// 定義訓練計畫數據存取介面
 /// Domain Layer - 只定義介面，不涉及實作細節
+///
+/// - Warning: V1 legacy. V2 users must use `TrainingPlanV2Repository`.
+///   Bug triage policy：除登入失敗 / crash 等嚴重情況外，V1 bug 僅 log，不修。
+/// - Note: Scheduled for `@available(*, deprecated)` warning on 2026-07-17。
+///   本階段（Phase A）刻意只加 doc comment，不啟用 compile warning 以避免 warning 爆量。
 protocol TrainingPlanRepository {
 
     // MARK: - Weekly Plan

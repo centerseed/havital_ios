@@ -14,6 +14,9 @@ struct WeeklyPlanModifyRequest: Encodable {
 // MARK: - TrainingPlan Remote DataSource
 /// 負責與後端 API 通信，獲取訓練計畫數據
 /// Data Layer - 只處理 HTTP 請求和響應
+///
+/// - Warning: V1 legacy. V2 users must use `TrainingPlanV2RemoteDataSource`。
+/// - Note: Scheduled for `@available(*, deprecated)` warning on 2026-07-17.
 final class TrainingPlanRemoteDataSource {
 
     // MARK: - Dependencies

@@ -17,8 +17,8 @@ tags:
     clearState: false
 
 # Demo 登入（若未登入）
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 
 # 等待主畫面載入

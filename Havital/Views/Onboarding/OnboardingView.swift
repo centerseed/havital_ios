@@ -24,58 +24,23 @@ struct OnboardingView: View {
             },
             skipAction: nil
         ) {
-            VStack(spacing: OnboardingLayout.sectionSpacing) {
-                // MARK: - 賽事資料庫入口（只在 API 可用時顯示）
-                if viewModel.isRaceAPIAvailable {
-                    if let selectedRace = viewModel.selectedRaceEvent,
-                       let selectedDistance = viewModel.selectedRaceDistance {
-                        // State 2: 已選賽事 — 顯示摘要卡 + 更換賽事
-                        VStack(spacing: 8) {
-                            selectedRaceSummaryCard(race: selectedRace, distance: selectedDistance)
+            VStack(alignment: .leading, spacing: OnboardingLayout.sectionSpacing) {
+                primaryGoalConfigurationSection
 
-                            Button(action: {
-                                coordinator.navigate(to: .raceEventList)
-                            }) {
-                                Text(NSLocalizedString("onboarding.change_race", comment: "更換賽事"))
-                                    .font(AppFont.bodySmall())
-                                    .foregroundColor(.accentColor)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("RaceSetup_ChangeRaceButton")
-                        }
-                    } else {
-                        // State 1: 尚未選賽事 — 顯示資料庫入口 + 分隔線
-                        VStack(spacing: 16) {
-                            raceDatabaseEntryCard
-
-                            HStack(spacing: 12) {
-                                Rectangle()
-                                    .fill(Color(.systemGray4))
-                                    .frame(height: 1)
-                                Text(NSLocalizedString("onboarding.or_manual_input", comment: "或手動輸入"))
-                                    .font(AppFont.caption())
-                                    .foregroundColor(.secondary)
-                                    .fixedSize()
-                                Rectangle()
-                                    .fill(Color(.systemGray4))
-                                    .frame(height: 1)
-                            }
-                        }
-                    }
+                if viewModel.isRaceAPIAvailable || !viewModel.availableTargets.isEmpty {
+                    sourceOptionsSection
                 }
-                // State 3 (isRaceAPIAvailable == false): 不渲染卡片，直接顯示手動輸入
 
-                // MARK: - 主要內容區域
-                if viewModel.selectedRaceEvent != nil {
-                    // State 2: 已選賽事 — 只顯示目標完賽時間編輯
-                    targetFinishTimeSection
-                } else {
-                    // State 1 / State 3: 顯示完整手動輸入表單
-                    manualInputForm
+                if let error = viewModel.error {
+                    Text(error)
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.red)
                 }
             }
             .padding(.top, 8)
+            .accessibilityIdentifier(raceSetupModeIdentifier)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("RaceSetup_Screen")
         .navigationTitle(NSLocalizedString("onboarding.set_training_goal", comment: "Set Training Goal"))
         .alert(NSLocalizedString("start_stage.time_too_short_title", comment: "時間較為緊迫"),
@@ -92,7 +57,8 @@ struct OnboardingView: View {
                 selectedDistance: $viewModel.selectedDistance,
                 targetHours: $viewModel.targetHours,
                 targetMinutes: $viewModel.targetMinutes,
-                availableDistances: viewModel.availableDistances
+                availableDistances: viewModel.availableDistances,
+                isDistanceEditable: !isCatalogRaceSelected
             )
         }
         .task {
@@ -104,349 +70,552 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - 賽事資料庫入口卡片（State 1）
-
-    private var raceDatabaseEntryCard: some View {
-        Button(action: {
-            coordinator.navigate(to: .raceEventList)
-        }) {
-            HStack(spacing: 16) {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 50)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(NSLocalizedString("onboarding.browse_race_database", comment: "從賽事資料庫選擇"))
-                        .font(AppFont.headline())
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.leading)
-
-                    Text(NSLocalizedString("onboarding.browse_race_database_desc", comment: "瀏覽即將舉辦的賽事，快速設定目標"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.leading)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary.opacity(0.6))
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.accentColor.opacity(0.06))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.accentColor, lineWidth: 2)
-            )
+    private var raceSetupModeIdentifier: String {
+        if viewModel.selectedRaceEvent != nil {
+            return "RaceSetup_Mode_SelectedRace"
         }
-        .buttonStyle(PlainButtonStyle())
-        .accessibilityIdentifier("RaceSetup_BrowseDatabaseButton")
+        if viewModel.isRaceAPIAvailable {
+            return "RaceSetup_Mode_DatabaseOrManual"
+        }
+        return "RaceSetup_Mode_ManualOnly"
     }
 
-    // MARK: - 已選賽事摘要卡（State 2）
-
-    @ViewBuilder
-    private func selectedRaceSummaryCard(race: RaceEvent, distance: RaceDistance) -> some View {
-        let dateString: String = {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .long
-            formatter.timeStyle = .none
-            formatter.locale = Locale.current
-            return formatter.string(from: race.eventDate)
-        }()
-
-        VStack(alignment: .leading, spacing: 12) {
-            Text(race.name)
-                .font(AppFont.headline())
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .lineLimit(2)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Label(race.city, systemImage: "mappin.circle.fill")
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.white.opacity(0.9))
-
-                Label(dateString, systemImage: "calendar")
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.white.opacity(0.9))
-
-                Label(distance.name, systemImage: "figure.run")
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.white.opacity(0.9))
-            }
-
-            HStack {
-                Text(String(format: NSLocalizedString("race_card.days_countdown", comment: "還有 %d 天"), race.daysUntilEvent))
-                    .font(AppFont.caption())
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white.opacity(0.2))
-                    )
-                Spacer()
-            }
-
-            if race.isTimeTight {
-                InlineWarningBanner(
-                    title: NSLocalizedString("onboarding.tight_schedule_title", comment: "時間較緊迫"),
-                    message: NSLocalizedString("onboarding.tight_schedule_message",
-                                               comment: "距離賽事不足 4 週，系統會根據可用時間自動調整訓練計畫。")
+    private func sectionHeader(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(AppFont.systemScaled(size: 13))
+                .foregroundColor(.accentColor)
+                .frame(width: 24, height: 24)
+                .background(
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.12))
                 )
-            }
+
+            Text(title)
+                .font(AppFont.body())
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.accentColor)
-        )
-        .accessibilityIdentifier("RaceSetup_SelectedRaceCard")
     }
 
-    // MARK: - 目標完賽時間區塊（State 2 使用）
+    private var primaryGoalConfigurationSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader(NSLocalizedString("onboarding.your_running_goal", comment: "Your Running Goal"),
+                          systemImage: "flag.checkered")
 
-    private var targetFinishTimeSection: some View {
-        Button(action: {
-            showDistanceTimeEditor = true
-        }) {
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "clock")
-                            .foregroundColor(.accentColor)
-                            .frame(width: 24)
+            SectionCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    goalNameSourceSection
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time"))
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%d:%02d:00", viewModel.targetHours, viewModel.targetMinutes))
-                                .font(AppFont.headline())
-                                .foregroundColor(.primary)
-                        }
+                    scheduleRowsSection
+
+                    if let selectedRace = viewModel.selectedRaceEvent,
+                       selectedRace.isTimeTight {
+                        InlineWarningBanner(
+                            title: NSLocalizedString("onboarding.tight_schedule_title", comment: "時間較緊迫"),
+                            message: NSLocalizedString("onboarding.tight_schedule_message",
+                                                       comment: "距離賽事不足 4 週，系統會根據可用時間自動調整訓練計畫。")
+                        )
                     }
 
                     Divider()
-                        .padding(.leading, 32)
 
+                    targetFinishSummaryCard
+                }
+            }
+            .accessibilityIdentifier("RaceSetup_ManualInputForm")
+        }
+    }
+
+    @ViewBuilder
+    private var goalNameSourceSection: some View {
+        if isCatalogRaceSelected || viewModel.isRaceAPIAvailable {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 12) {
+                    goalNameFieldSection
+                    raceSourcePanel
+                        .frame(width: 168, alignment: .topLeading)
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    goalNameFieldSection
+                    raceSourcePanel
+                }
+            }
+        } else {
+            goalNameFieldSection
+        }
+    }
+
+    @ViewBuilder
+    private var sourceOptionsSection: some View {
+        if !viewModel.availableTargets.isEmpty {
+            existingTargetsSection
+        }
+    }
+
+    private var existingTargetsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader(NSLocalizedString("onboarding.or_select_existing_target",
+                                            comment: "先前設定的目標賽事"),
+                          systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+
+            SectionCard {
+                ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        Image(systemName: "speedometer")
-                            .foregroundColor(.accentColor)
-                            .frame(width: 24)
+                        ForEach(viewModel.availableTargets.sorted { a, b in
+                            Date(timeIntervalSince1970: TimeInterval(a.raceDate)) <
+                            Date(timeIntervalSince1970: TimeInterval(b.raceDate))
+                        }, id: \.id) { target in
+                            Button(action: {
+                                viewModel.selectTarget(target)
+                            }) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(target.name)
+                                        .font(AppFont.bodySmall())
+                                        .fontWeight(.semibold)
+                                        .lineLimit(2)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(NSLocalizedString("common.pace", comment: "Pace"))
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                            Text(UnitManager.shared.formatPaceString(viewModel.targetPace))
-                                .font(AppFont.headline())
-                                .foregroundColor(.primary)
+                                    Text("\(target.distanceKm)km")
+                                        .font(AppFont.captionSmall())
+                                        .foregroundColor(isExistingTargetSelected(target) ? .white.opacity(0.88) : .secondary)
+                                }
+                                .frame(width: 148, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(isExistingTargetSelected(target) ? Color.accentColor : Color(.systemGray6))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isExistingTargetSelected(target) ? Color.accentColor : Color(.systemGray4), lineWidth: 1)
+                                )
+                                .foregroundColor(isExistingTargetSelected(target) ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+    }
+
+    private func isExistingTargetSelected(_ target: Target) -> Bool {
+        viewModel.selectedRaceEvent == nil && viewModel.selectedTargetKey == target.id
+    }
+
+    private var isCatalogRaceSelected: Bool {
+        viewModel.selectedRaceEvent != nil && viewModel.selectedRaceDistance != nil
+    }
+
+    private var formattedRaceDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale.current
+        return formatter.string(from: viewModel.raceDate)
+    }
+
+    private var formattedWeeksUntilRace: String {
+        String(viewModel.trainingWeeks)
+    }
+
+    private var formattedWeeksUntilRaceText: String {
+        String(format: NSLocalizedString("onboarding.weeks_until_race", comment: "距離賽事週數：%d"), viewModel.trainingWeeks)
+    }
+
+    private var formattedSelectedRaceCountdown: String {
+        guard let selectedRace = viewModel.selectedRaceEvent else { return "" }
+        return String.localizedStringWithFormat(
+            NSLocalizedString("race_card.days_countdown", comment: "還有 %d 天"),
+            selectedRace.daysUntilEvent
+        )
+    }
+
+    private var goalNameFieldSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(NSLocalizedString("onboarding.goal_name_label", comment: "目標名稱"))
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 10) {
+                Image(systemName: isCatalogRaceSelected ? "checkmark.seal.fill" : "text.cursor")
+                    .foregroundColor(.accentColor)
+
+                TextField(NSLocalizedString("onboarding.target_race_example", comment: "Target race example"),
+                          text: $viewModel.raceName)
+                    .textContentType(.name)
+                    .font(AppFont.body())
+                    .disabled(isCatalogRaceSelected)
+                    .accessibilityIdentifier("RaceSetup_RaceNameField")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.secondarySystemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isCatalogRaceSelected ? Color.accentColor.opacity(0.28) : Color(.systemGray4),
+                            lineWidth: 1)
+            )
+
+            if isCatalogRaceSelected {
+                Text(NSLocalizedString("onboarding.goal_prefilled_from_race",
+                                       comment: "已由賽事資料庫帶入，可改回手動輸入後編輯"))
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var raceSourcePanel: some View {
+        if let selectedRace = viewModel.selectedRaceEvent,
+           let selectedDistance = viewModel.selectedRaceDistance {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(selectedRace.name)
+                            .font(AppFont.bodySmall())
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                            .lineLimit(2)
+
+                        Text(selectedDistance.name)
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text(formattedSelectedRaceCountdown)
+                        .font(AppFont.captionSmall())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                }
+
+                raceSourceInfoRow(systemImage: "calendar", text: formattedRaceDate)
+                raceSourceInfoRow(systemImage: "mappin.and.ellipse", text: selectedRace.city)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        compactRaceActionButton(
+                            title: NSLocalizedString("onboarding.change_race", comment: "更換賽事"),
+                            foreground: .accentColor,
+                            background: Color.accentColor.opacity(0.08),
+                            accessibilityId: "RaceSetup_ChangeRaceButton"
+                        ) {
+                            coordinator.navigate(to: .raceEventList)
+                        }
+
+                        compactRaceActionButton(
+                            title: NSLocalizedString("onboarding.clear_selected_race", comment: "改回手動輸入"),
+                            foreground: .secondary,
+                            background: Color(.systemGray6),
+                            accessibilityId: "RaceSetup_ClearRaceButton"
+                        ) {
+                            viewModel.clearSelectedRace()
+                        }
+                    }
+
+                    VStack(spacing: 8) {
+                        compactRaceActionButton(
+                            title: NSLocalizedString("onboarding.change_race", comment: "更換賽事"),
+                            foreground: .accentColor,
+                            background: Color.accentColor.opacity(0.08),
+                            accessibilityId: "RaceSetup_ChangeRaceButton"
+                        ) {
+                            coordinator.navigate(to: .raceEventList)
+                        }
+
+                        compactRaceActionButton(
+                            title: NSLocalizedString("onboarding.clear_selected_race", comment: "改回手動輸入"),
+                            foreground: .secondary,
+                            background: Color(.systemGray6),
+                            accessibilityId: "RaceSetup_ClearRaceButton"
+                        ) {
+                            viewModel.clearSelectedRace()
                         }
                     }
                 }
-                .padding(.vertical, 4)
-
-                Spacer()
-
-                VStack(spacing: 4) {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.accentColor)
-                    Text(NSLocalizedString("common.edit", comment: "Edit"))
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.accentColor)
-                }
-                .padding(.leading, 8)
             }
-            .padding()
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                    .fill(Color(.secondarySystemBackground))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color(.systemGray4), lineWidth: 1)
             )
+            .accessibilityIdentifier("RaceSetup_SelectedRaceCard")
+        } else if viewModel.isRaceAPIAvailable {
+            raceDatabaseEntryCard
+        }
+    }
+
+    private func compactRaceActionButton(
+        title: String,
+        foreground: Color,
+        background: Color,
+        accessibilityId: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(AppFont.caption())
+                .fontWeight(.semibold)
+                .foregroundColor(foreground)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(background)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityId)
+    }
+
+    private func raceSourceInfoRow(systemImage: String, text: String) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(AppFont.caption())
+            .foregroundColor(.secondary)
+            .lineLimit(1)
+    }
+
+    private var raceDatabaseEntryCard: some View {
+        Button(action: {
+            coordinator.navigate(to: .raceEventList)
+        }) {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(NSLocalizedString("onboarding.browse_race_database", comment: "從賽事資料庫選擇"),
+                      systemImage: "trophy.fill")
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.accentColor)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(NSLocalizedString("onboarding.browse_race_database_desc", comment: "瀏覽即將舉辦的賽事，快速設定目標"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(3)
+                }
+
+                HStack(spacing: 6) {
+                    Text(NSLocalizedString("common.select", comment: "Select"))
+                        .font(AppFont.caption())
+                        .fontWeight(.semibold)
+                    Image(systemName: "chevron.right")
+                        .font(AppFont.systemScaled(size: 12))
+                }
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.accentColor.opacity(0.10))
+                )
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.accentColor.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+            )
+            .accessibilityIdentifier("RaceSetup_BrowseDatabaseCard")
+        }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityIdentifier("RaceSetup_BrowseDatabaseButton")
+    }
+
+    private var scheduleRowsSection: some View {
+        VStack(spacing: 8) {
+            if isCatalogRaceSelected {
+                goalDetailRow(
+                    title: NSLocalizedString("onboarding.goal_date", comment: "Goal Date"),
+                    value: formattedRaceDate,
+                    systemImage: "calendar"
+                )
+            } else {
+                goalDatePickerRow
+            }
+
+            if isCatalogRaceSelected {
+                goalDetailRow(
+                    title: NSLocalizedString("onboarding.weeks_until_race_label", comment: "距離賽事週數"),
+                    value: formattedWeeksUntilRaceText,
+                    systemImage: "calendar.badge.clock"
+                )
+            } else {
+                goalDetailRow(
+                    title: NSLocalizedString("onboarding.weeks_until_race_label", comment: "距離賽事週數"),
+                    value: formattedWeeksUntilRace,
+                    systemImage: "calendar.badge.clock"
+                )
+            }
+        }
+    }
+
+    private var goalDatePickerRow: some View {
+        HStack(spacing: 12) {
+            Label(NSLocalizedString("onboarding.goal_date", comment: "Goal Date"),
+                  systemImage: "calendar")
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            DatePicker("",
+                      selection: $viewModel.raceDate,
+                      in: Date()...,
+                      displayedComponents: .date)
+                .labelsHidden()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color(.systemGray4), lineWidth: 1)
+        )
+    }
+
+    private func goalDetailRow(title: String, value: String, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .font(AppFont.bodySmall())
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color(.systemGray4), lineWidth: 1)
+        )
+    }
+
+    private var targetFinishSummaryCard: some View {
+        Button(action: {
+            showDistanceTimeEditor = true
+        }) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text(
+                        isCatalogRaceSelected
+                        ? NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time")
+                        : NSLocalizedString("onboarding.distance_and_target_time", comment: "距離與目標時間")
+                    )
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+
+                    Spacer()
+
+                    Label(NSLocalizedString("common.edit", comment: "Edit"),
+                          systemImage: "slider.horizontal.3")
+                        .font(AppFont.caption())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.accentColor.opacity(0.10))
+                        )
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 20) {
+                        if !isCatalogRaceSelected {
+                            targetSettingValue(
+                                title: NSLocalizedString("onboarding.race_distance", comment: "Race Distance"),
+                                value: viewModel.availableDistances[viewModel.selectedDistance] ?? viewModel.selectedDistance
+                            )
+                        }
+
+                        targetSettingValue(
+                            title: NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time"),
+                            value: String(format: "%d:%02d:00", viewModel.targetHours, viewModel.targetMinutes)
+                        )
+
+                        Spacer(minLength: 0)
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        if !isCatalogRaceSelected {
+                            targetSettingValue(
+                                title: NSLocalizedString("onboarding.race_distance", comment: "Race Distance"),
+                                value: viewModel.availableDistances[viewModel.selectedDistance] ?? viewModel.selectedDistance
+                            )
+                        }
+
+                        targetSettingValue(
+                            title: NSLocalizedString("onboarding.target_finish_time", comment: "Target Finish Time"),
+                            value: String(format: "%d:%02d:00", viewModel.targetHours, viewModel.targetMinutes)
+                        )
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Text(NSLocalizedString("common.pace", comment: "Pace"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+
+                    Text(UnitManager.shared.formatPaceString(viewModel.targetPace))
+                        .font(AppFont.bodySmall())
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                }
+            }
+            .padding(.vertical, 4)
+            .accessibilityIdentifier("RaceSetup_TargetTimeSection")
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("RaceSetup_TargetTimeEditorButton")
     }
 
-    // MARK: - 手動輸入表單（State 1 / State 3）
+    private func targetSettingValue(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
 
-    private var manualInputForm: some View {
-        VStack(spacing: 0) {
-            Form {
-                Section(
-                    header: Text(NSLocalizedString("onboarding.your_running_goal", comment: "Your Running Goal")),
-                    footer: Text(NSLocalizedString("onboarding.goal_description", comment: "Goal description"))
-                ) {
-                    if !viewModel.availableTargets.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(NSLocalizedString("onboarding.or_select_existing_target",
-                                                  comment: "或選擇已設定的未來賽事"))
-                                .font(AppFont.bodySmall())
-                                .foregroundColor(.secondary)
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(viewModel.availableTargets.sorted { a, b in
-                                        Date(timeIntervalSince1970: TimeInterval(a.raceDate)) <
-                                        Date(timeIntervalSince1970: TimeInterval(b.raceDate))
-                                    }, id: \.id) { target in
-                                        Button(action: {
-                                            viewModel.selectTarget(target)
-                                        }) {
-                                            VStack(spacing: 4) {
-                                                Text(target.name)
-                                                    .font(AppFont.caption())
-                                                    .fontWeight(.semibold)
-                                                    .lineLimit(1)
-                                                Text("\(target.distanceKm)km")
-                                                    .font(AppFont.captionSmall())
-                                            }
-                                            .frame(minWidth: 80)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 10)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 10)
-                                                    .fill(viewModel.selectedTargetKey == target.id
-                                                          ? Color.accentColor : Color(.systemGray6))
-                                            )
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 10)
-                                                    .stroke(viewModel.selectedTargetKey == target.id
-                                                            ? Color.accentColor : Color(.systemGray3),
-                                                            lineWidth: 1.5)
-                                            )
-                                            .foregroundColor(viewModel.selectedTargetKey == target.id
-                                                             ? .white : .primary)
-                                            .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-
-                    TextField(NSLocalizedString("onboarding.target_race_example", comment: "Target race example"),
-                              text: $viewModel.raceName)
-                        .textContentType(.name)
-
-                    DatePicker(NSLocalizedString("onboarding.goal_date", comment: "Goal Date"),
-                              selection: $viewModel.raceDate,
-                              in: Date()...,
-                              displayedComponents: .date)
-
-                    Text(String(format: NSLocalizedString("onboarding.weeks_until_race",
-                                                          comment: "Weeks until race"),
-                                viewModel.trainingWeeks))
-                        .foregroundColor(.secondary)
-                }
-
-                Section(
-                    header: Text(NSLocalizedString("onboarding.distance_and_target_time",
-                                                  comment: "距離與目標時間"))
-                ) {
-                    Button(action: {
-                        showDistanceTimeEditor = true
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "figure.run")
-                                        .foregroundColor(.accentColor)
-                                        .frame(width: 24)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(NSLocalizedString("onboarding.race_distance",
-                                                              comment: "Race Distance"))
-                                            .font(AppFont.caption())
-                                            .foregroundColor(.secondary)
-                                        Text(viewModel.availableDistances[viewModel.selectedDistance]
-                                             ?? viewModel.selectedDistance)
-                                            .font(AppFont.headline())
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-
-                                Divider()
-                                    .padding(.leading, 32)
-
-                                HStack(spacing: 8) {
-                                    Image(systemName: "clock")
-                                        .foregroundColor(.accentColor)
-                                        .frame(width: 24)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(NSLocalizedString("onboarding.target_finish_time",
-                                                              comment: "Target Finish Time"))
-                                            .font(AppFont.caption())
-                                            .foregroundColor(.secondary)
-                                        Text(String(format: "%d:%02d:00",
-                                                    viewModel.targetHours, viewModel.targetMinutes))
-                                            .font(AppFont.headline())
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-
-                                Divider()
-                                    .padding(.leading, 32)
-
-                                HStack(spacing: 8) {
-                                    Image(systemName: "speedometer")
-                                        .foregroundColor(.accentColor)
-                                        .frame(width: 24)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(NSLocalizedString("common.pace", comment: "Pace"))
-                                            .font(AppFont.caption())
-                                            .foregroundColor(.secondary)
-                                        Text(UnitManager.shared.formatPaceString(viewModel.targetPace))
-                                            .font(AppFont.headline())
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
-
-                            Spacer()
-
-                            VStack(spacing: 4) {
-                                Image(systemName: "pencil.circle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.accentColor)
-                                Text(NSLocalizedString("common.edit", comment: "Edit"))
-                                    .font(AppFont.captionSmall())
-                                    .foregroundColor(.accentColor)
-                            }
-                            .padding(.leading, 8)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("RaceSetup_TargetTimeEditorButton")
-                }
-
-                if let error = viewModel.error {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                    }
-                }
-            }
-            .frame(minHeight: 500)
+            Text(value)
+                .font(AppFont.body())
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
     }
 

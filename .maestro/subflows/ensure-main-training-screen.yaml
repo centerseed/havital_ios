@@ -5,8 +5,8 @@ appId: com.havital.Havital.dev
     stopApp: false
     clearState: false
 
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: reviewer-demo-login.yaml
     optional: true
 
 # Dismiss modal-like pages if they are already open.

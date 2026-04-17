@@ -14,6 +14,10 @@ import XCTest
 /// - 提供真實 API 調用能力
 @MainActor
 class IntegrationTestBase: XCTestCase {
+    private var reviewerPasscode: String {
+        ProcessInfo.processInfo.environment["HAVITAL_REVIEWER_PASSCODE"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
 
     // MARK: - Properties
 
@@ -31,6 +35,11 @@ class IntegrationTestBase: XCTestCase {
     /// 測試前設置 - 執行 Demo 登錄
     override func setUp() async throws {
         try await super.setUp()
+
+        try XCTSkipIf(
+            reviewerPasscode.isEmpty,
+            "Set HAVITAL_REVIEWER_PASSCODE to run integration tests that depend on reviewer demo login."
+        )
 
         print("🧪 ========================================")
         print("🧪 集成測試初始化開始 (Instance Setup)")
@@ -66,7 +75,7 @@ class IntegrationTestBase: XCTestCase {
 
         Task {
             // 使用 AuthenticationService 進行登入，確保 Token 被正確設置給 HTTPClient
-            await AuthenticationService.shared.demoLogin()
+            await AuthenticationService.shared.demoLogin(reviewerPasscode: self.reviewerPasscode)
 
             // 檢查認證狀態
             if AuthenticationService.shared.isAuthenticated {

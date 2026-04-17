@@ -4,6 +4,7 @@
 //
 //  訓練起始階段選擇頁面
 //  當用戶的賽事時間較短時（2-12週），提供智能推薦起始階段
+//  Refactored to use shared OnboardingFeatureViewModel via @EnvironmentObject
 //
 
 import SwiftUI
@@ -12,7 +13,7 @@ struct StartStageSelectionView: View {
     let weeksRemaining: Int
     let targetDistanceKm: Double
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
-    @StateObject private var viewModel = OnboardingFeatureViewModel()
+    @EnvironmentObject private var viewModel: OnboardingFeatureViewModel
 
     @State private var selectedStage: TrainingStagePhase?
     @State private var recommendation: StartStageRecommendation
@@ -22,7 +23,6 @@ struct StartStageSelectionView: View {
         self.weeksRemaining = weeksRemaining
         self.targetDistanceKm = targetDistanceKm
 
-        // 初始化推薦結果
         let rec = TrainingPlanCalculator.recommendStartStage(
             weeksRemaining: weeksRemaining,
             targetDistanceKm: targetDistanceKm
@@ -32,82 +32,95 @@ struct StartStageSelectionView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Form {
-                // 時間提示區塊
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "clock.fill")
-                                .foregroundColor(.orange)
-                            Text(NSLocalizedString("start_stage.time_notice_title", comment: "訓練時間提醒"))
-                                .font(AppFont.headline())
-                        }
-
-                        Text(String(format: NSLocalizedString("start_stage.time_notice", comment: "你的賽事在 %d 週後"),
-                                   weeksRemaining))
-                            .font(AppFont.bodySmall())
-                            .foregroundColor(.secondary)
-
-                        // 訓練習慣提醒（重要）
-                        // 只在有基礎期選項時顯示（即有足夠週數時）
-                        if hasBaseStageOption {
-                            HStack(alignment: .top, spacing: 8) {
-                                Image(systemName: "info.circle.fill")
-                                    .foregroundColor(.blue)
-                                    .font(AppFont.bodySmall())
-
-                                Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
-                                    .font(AppFont.caption())
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                    }
-                    .padding(.vertical, 8)
+        OnboardingPageTemplate(
+            ctaTitle: NSLocalizedString("start_stage.continue", comment: "繼續"),
+            ctaEnabled: selectedStage != nil,
+            isLoading: false,
+            skipTitle: nil,
+            ctaAccessibilityId: "StartStage_NextButton",
+            ctaAction: {
+                coordinator.selectedStartStage = selectedStage?.apiIdentifier
+                if let stage = selectedStage {
+                    UserDefaults.standard.set(stage.apiIdentifier, forKey: OnboardingCoordinator.startStageUserDefaultsKey)
+                } else {
+                    UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
                 }
+                coordinator.navigate(to: .trainingDays)
+            },
+            skipAction: nil
+        ) {
+            VStack(alignment: .leading, spacing: OnboardingLayout.sectionSpacing) {
+                // 時間提示區塊
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "clock.fill")
+                            .foregroundColor(.orange)
+                        Text(NSLocalizedString("start_stage.time_notice_title", comment: "訓練時間提醒"))
+                            .font(AppFont.headline())
+                    }
+
+                    Text(String(format: NSLocalizedString("start_stage.time_notice", comment: "你的賽事在 %d 週後"),
+                               weeksRemaining))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+
+                    if hasBaseStageOption {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.blue)
+                                .font(AppFont.bodySmall())
+
+                            Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(.vertical, 8)
 
                 // 推薦階段
-                Section {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // 推薦標籤
-                        HStack {
-                            Text(NSLocalizedString("start_stage.recommendation", comment: "推薦起始階段"))
-                                .font(AppFont.caption())
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 4)
-                                .background(Color.accentColor)
-                                .cornerRadius(12)
-                            Spacer()
-                        }
-                        .padding(.bottom, 12)
-
-                        // 推薦階段選項卡
-                        StageOptionCard(
-                            stageName: recommendation.stageName,
-                            reason: recommendation.reason,
-                            riskLevel: recommendation.riskLevel,
-                            isRecommended: true,
-                            isSelected: selectedStage == recommendation.recommendedStage
-                        )
-                        .accessibilityIdentifier("StartStage_\(recommendation.recommendedStage.apiIdentifier)")
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedStage = recommendation.recommendedStage
-                        }
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text(NSLocalizedString("start_stage.recommendation", comment: "推薦起始階段"))
+                            .font(AppFont.caption())
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(Color.accentColor)
+                            .cornerRadius(12)
+                        Spacer()
                     }
-                    .padding(.vertical, 8)
+                    .padding(.bottom, 12)
+
+                    StageOptionCard(
+                        stageName: recommendation.stageName,
+                        reason: recommendation.reason,
+                        riskLevel: recommendation.riskLevel,
+                        isRecommended: true,
+                        isSelected: selectedStage == recommendation.recommendedStage
+                    )
+                    .accessibilityIdentifier("StartStage_\(recommendation.recommendedStage.apiIdentifier)")
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        selectedStage = recommendation.recommendedStage
+                    }
                 }
+                .padding(.vertical, 8)
 
                 // 其他選項
                 if !recommendation.alternatives.isEmpty {
-                    Section(header: Text(NSLocalizedString("start_stage.other_options", comment: "其他選項"))) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(NSLocalizedString("start_stage.other_options", comment: "其他選項"))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+
                         ForEach(recommendation.alternatives) { alternative in
                             VStack(alignment: .leading, spacing: 0) {
                                 StageAlternativeCard(
@@ -126,7 +139,12 @@ struct StartStageSelectionView: View {
                 }
 
                 // 週數分配預覽
-                Section(header: Text(NSLocalizedString("start_stage.training_distribution", comment: "訓練週數分配"))) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(NSLocalizedString("start_stage.training_distribution", comment: "訓練週數分配"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+
                     if let stage = selectedStage {
                         let distribution = TrainingPlanCalculator.calculateTrainingPeriods(
                             trainingWeeks: weeksRemaining,
@@ -138,54 +156,25 @@ struct StartStageSelectionView: View {
                     }
                 }
             }
-
-            // 底部繼續按鈕
-            VStack {
-                Button(action: {
-                    coordinator.selectedStartStage = selectedStage?.apiIdentifier
-                    if let stage = selectedStage {
-                        UserDefaults.standard.set(stage.apiIdentifier, forKey: OnboardingCoordinator.startStageUserDefaultsKey)
-                    } else {
-                        UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
-                    }
-                    // 方法論已在前一步完成，起始階段選擇後直接進入訓練日設定，避免循環導航
-                    coordinator.navigate(to: .trainingDays)
-                }) {
-                    Text(NSLocalizedString("start_stage.continue", comment: "繼續"))
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                }
-                .accessibilityIdentifier("StartStage_NextButton")
-                .padding()
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-                .padding(.horizontal)
-                .padding(.bottom, 30)
-            }
-            .background(Color(.systemGroupedBackground))
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("StartStage_Screen")
         .navigationTitle(NSLocalizedString("start_stage.title", comment: "訓練計劃起始階段"))
-        .navigationBarTitleDisplayMode(.inline)
         .task {
-            // ⭐ 載入 V2 target types 並設置正確類型
             await viewModel.loadTargetTypes()
 
             if let targetTypeId = coordinator.selectedTargetTypeId,
                let targetType = viewModel.availableTargetTypes.first(where: { $0.id == targetTypeId }) {
                 viewModel.selectedTargetTypeV2 = targetType
-                Logger.debug("[StartStageSelectionView] ✅ Set selectedTargetTypeV2 to: \(targetType.id)")
+                Logger.debug("[StartStageSelectionView] Set selectedTargetTypeV2 to: \(targetType.id)")
             } else if let raceRunType = viewModel.availableTargetTypes.first(where: { $0.isRaceRunTarget }) {
-                // Fallback：這個 view 目前只由 race 流程導航到，保留 fallback 防禦
                 viewModel.selectedTargetTypeV2 = raceRunType
-                Logger.debug("[StartStageSelectionView] ✅ Fallback: Set selectedTargetTypeV2 to race_run: \(raceRunType.id)")
+                Logger.debug("[StartStageSelectionView] Fallback: Set selectedTargetTypeV2 to race_run: \(raceRunType.id)")
             }
         }
     }
 
-    /// 判斷是否有基礎期選項可用（用於條件顯示提醒訊息）
     private var hasBaseStageOption: Bool {
-        // 基礎期選項只在有足夠週數時提供（≥6週）
         return recommendation.alternatives.contains { $0.stage == .base }
     }
 }
@@ -200,7 +189,6 @@ struct StageOptionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 階段名稱
             HStack {
                 Text(stageName)
                     .font(AppFont.title3())
@@ -215,13 +203,11 @@ struct StageOptionCard: View {
                 }
             }
 
-            // 推薦理由
             Text(reason)
                 .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // 風險等級標籤
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(AppFont.caption())
@@ -298,7 +284,6 @@ struct TrainingDistributionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 週數長條圖
             GeometryReader { geometry in
                 HStack(spacing: 0) {
                     if distribution.baseWeeks > 0 {
@@ -329,7 +314,6 @@ struct TrainingDistributionView: View {
             .frame(height: 30)
             .cornerRadius(8)
 
-            // 階段說明
             VStack(alignment: .leading, spacing: 6) {
                 if distribution.baseWeeks > 0 {
                     StageDistributionRow(

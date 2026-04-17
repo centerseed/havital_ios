@@ -516,6 +516,23 @@ struct TrainingPlanView: View {
         )) { trigger in
             PaywallView(trigger: trigger)
         }
+        // A-6: DEBUG-only badge — Maestro 可斷言 SWR decode 失敗保留 cache 的情境
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            if viewModel.weeklyPlanVM.debugDecodeFailureBadge {
+                Text("decode-failed")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.red.opacity(0.85))
+                    .foregroundColor(.white)
+                    .cornerRadius(4)
+                    .padding(.top, 4)
+                    .padding(.trailing, 8)
+                    .accessibilityIdentifier("DecodeFailureBadge_Debug")
+            }
+        }
+        #endif
     }
 
     // 判斷是否為中文語言
@@ -601,6 +618,7 @@ struct TrainingPlanView: View {
                     }) {
                         Label(NSLocalizedString("profile.title", comment: "Profile"), systemImage: "person.circle")
                     }
+                    .accessibilityIdentifier("TrainingPlan_Menu_Profile")
                     
                     Button(action: {
                         showTrainingOverview = true
@@ -638,6 +656,7 @@ struct TrainingPlanView: View {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)
                 }
+                .accessibilityIdentifier("TrainingPlan_MenuButton")
             }
         }
     }

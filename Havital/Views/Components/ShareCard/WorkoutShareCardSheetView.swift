@@ -720,11 +720,11 @@ struct ToolbarButtonLabel: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 22))
+                .font(AppFont.systemScaled(size: 22))
                 .foregroundColor(.primary)
                 .frame(width: 24, height: 24)
             Text(label)
-                .font(.system(size: 11))
+                .font(AppFont.systemScaled(size: 12))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

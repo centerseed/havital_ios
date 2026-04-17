@@ -59,7 +59,8 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
                             Text(point.date.formatted(.dateTime.month().day()))
                                 .font(AppFont.caption())
                             Text(String(format: "%.1f", point.value))
-                                .font(.caption.bold())
+                                .font(AppFont.caption())
+                                .fontWeight(.bold)
                         }
                         .padding(8)
                         .background(

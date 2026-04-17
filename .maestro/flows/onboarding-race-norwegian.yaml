@@ -9,7 +9,8 @@ tags:
 
 - runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-- assertVisible: "訓練目標"
+- assertVisible:
+    id: "GoalType_NextButton"
 - tapOn:
     id: "GoalType_race_run"
 - tapOn:

@@ -38,9 +38,10 @@ struct EmptyStateView: View {
                     .foregroundColor(.primary)
                 
                 Text(customMessage ?? type.description)
-                    .font(AppFont.bodySmall())
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .lineSpacing(2)
             }
             
             if showRetryButton, let onRetry = onRetry {

@@ -3,19 +3,23 @@ appId: com.havital.Havital.dev
 # Guardrail helper: overview must expose core metadata before generation.
 - extendedWaitUntil:
     visible:
-      text: "我的訓練目標|訓練總覽|Training Overview|Training Plan"
+      id: "TrainingOverview_Screen"
     timeout: 45000
 
 - assertVisible:
-    text: "我的訓練目標|訓練總覽|Training Overview|Training Plan"
+    id: "TrainingOverview_Screen"
 
 - assertVisible:
-    text: "總週數|訓練週數|賽事日期|目標配速|目標完賽時間"
+    text: "我的訓練目標|訓練總覽|訓練計畫概覽|Training Overview|Training Plan|Training Plan Overview|トレーニング概要|トレーニング計画概要"
+    optional: true
+
+- assertVisible:
+    text: "總週數|訓練週數|賽事日期|目標配速|目標完賽時間|Total Weeks|Race Date|Target Pace|Target Finish Time|総週数|レース日|目標ペース|目標タイム"
 
 - assertVisible:
     id: "TrainingOverview_MethodologyLabel"
     optional: true
 
 - assertVisible:
-    text: "確認並生成第一週計劃|產生週課表|產生下週課表|接受調整並產生下週課表"
+    text: "確認並生成第一週計劃|產生週課表|產生下週課表|接受調整並產生下週課表|Confirm and Generate First Week|Generate Weekly Plan|Generate Next Week|Accept Changes and Generate Next Week|確認して第1週を生成|週プランを生成|次週を生成|調整を反映して次週を生成"
     optional: true

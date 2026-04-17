@@ -20,23 +20,23 @@ struct TrainingProgressCardV2: View {
                 HStack {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                         .foregroundColor(.blue)
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     Text(NSLocalizedString("training.progress", comment: "Training Progress"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
 
                     Spacer()
 
                     if let overview = viewModel.planOverview {
                         Text(String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.effectiveWeek, overview.totalWeeks))
-                            .font(.subheadline)
+                            .font(AppFont.subheadline())
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
                     }
 
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
@@ -59,14 +59,14 @@ struct TrainingProgressCardV2: View {
                             .frame(width: 10, height: 10)
 
                         Text(currentStage.stageName)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
 
                         Spacer()
 
                         Text(String(format: NSLocalizedString("training_plan_overview.week_range", comment: ""), currentStage.weekStart, currentStage.weekEnd))
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                     }
                 }

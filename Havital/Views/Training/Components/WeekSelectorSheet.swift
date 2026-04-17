@@ -64,7 +64,8 @@ struct WeekSelectorSheet: View {
                                     }
                                     Text("\(Int(percent))%")
                                         .fixedSize()
-                                        .font(.footnote.bold())
+                                        .font(AppFont.footnote())
+                                        .fontWeight(.bold)
                                         .foregroundColor(.blue)
                                 }
                             }
@@ -83,9 +84,9 @@ struct WeekSelectorSheet: View {
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "doc.text.magnifyingglass")
-                                                .font(.system(size: 12, weight: .medium))
+                                                .font(AppFont.systemScaled(size: 12, weight: .medium))
                                             Text(L10n.WeekSelector.review.localized)
-                                                .font(.footnote)
+                                                .font(AppFont.footnote())
                                                 .fontWeight(.medium)
                                         }
                                         .fixedSize() 
@@ -109,9 +110,9 @@ struct WeekSelectorSheet: View {
                                     } label: {
                                         HStack(alignment: .center, spacing: 4) {
                                             Image(systemName: "calendar")
-                                                .font(.system(size: 12, weight: .medium))
+                                                .font(AppFont.systemScaled(size: 12, weight: .medium))
                                             Text(L10n.WeekSelector.schedule.localized)
-                                                .font(.footnote)
+                                                .font(AppFont.footnote())
                                                 .fontWeight(.medium)
                                         }
                                         .fixedSize() 

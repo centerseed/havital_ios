@@ -5,34 +5,83 @@ appId: com.havital.Havital.dev
 
 - launchApp:
     stopApp: true
-    clearState: false
+    clearState: true
+    arguments:
+      "-ui_testing_onboarding": true
+      "-resetOnboarding": true
+      "-skipHealthKitAuth": true
+      "-reviewerAccessPressDuration": "1.0"
+
+- runFlow:
+    file: reviewer-demo-login.yaml
+    optional: true
 
 - tapOn:
-    id: "Login_DemoButton"
+    text: "稍後|Later|後で"
+    optional: true
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|完了"
     optional: true
 
-- tapOn:
-    text: "更多"
+- runFlow:
+    file: nav-to-profile.yaml
     optional: true
-- tapOn:
-    text: "個人資料"
-    optional: true
+
 - scrollUntilVisible:
-    element: "重新設定目標"
+    element:
+      id: "Profile_ResetGoalButton"
     direction: DOWN
     timeout: 15000
     optional: true
 - tapOn:
-    text: "重新設定目標"
+    id: "Profile_ResetGoalButton"
     optional: true
 - tapOn:
-    text: "確認"
+    text: "重新設定目標|Reset Goal|目標を再設定"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "確認要重新開始目標設定流程嗎|Are you sure you want to restart the goal setup flow\\?|目標設定を再開しますか"
+    timeout: 5000
+    optional: true
+- tapOn:
+    text: "確認|Confirm"
     optional: true
 
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-ui_testing_onboarding": true
+      "-resetOnboarding": true
+      "-skipHealthKitAuth": true
+      "-reviewerAccessPressDuration": "1.0"
+
+- runFlow:
+    file: reviewer-demo-login.yaml
+    optional: true
+
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "OnboardingStartButton"
+    timeout: 30000
+    optional: true
 - tapOn:
     id: "OnboardingStartButton"
     optional: true
+- tapOn:
+    text: "開始設定|Start Setup|設定開始"
+    optional: true
 
+- extendedWaitUntil:
+    visible:
+      id: "DataSourceOption_appleHealth"
+    timeout: 15000
+    optional: true
 - tapOn:
     id: "DataSourceOption_appleHealth"
     optional: true
@@ -41,53 +90,55 @@ appId: com.havital.Havital.dev
     optional: true
 
 - tapOn:
-    text: "開啟全部"
+    text: "開啟全部|Turn On All|すべてをオンにする"
     optional: true
 - tapOn:
-    text: "允許"
+    text: "允許|Allow|許可"
     optional: true
 - tapOn:
-    text: "好"
+    text: "好|OK"
     optional: true
 
+- extendedWaitUntil:
+    visible:
+      text: "個人最佳成績|Personal Best|パーソナルベスト|您的週跑量|Weekly Distance|週間走行距離|訓練目標|Training Goal|トレーニング目標"
+    timeout: 15000
+    optional: true
 - tapOn:
     id: "HeartRateZone_ContinueButton"
     optional: true
 - tapOn:
-    text: "略過"
+    text: "略過|Skip|スキップ"
     optional: true
 
 - assertVisible:
-    text: "個人最佳成績"
+    id: "PersonalBest_Screen"
     optional: true
-- swipe:
-    start: "46%, 65%"
-    end: "46%, 50%"
-    duration: 300
-- swipe:
-    start: "46%, 65%"
-    end: "46%, 50%"
-    duration: 300
-- tapOn:
-    id: "PersonalBest_ContinueButton"
+- runFlow:
+    file: pass-pb-step.yaml
     optional: true
 
+- extendedWaitUntil:
+    visible:
+      id: "WeeklyDistance_Screen"
+    timeout: 15000
+    optional: true
 - assertVisible:
-    text: "您的週跑量"
+    id: "WeeklyDistance_Screen"
     optional: true
 - tapOn:
     id: "WeeklyDistance_ContinueButton"
     optional: true
 - tapOn:
-    text: "下一步"
+    text: "下一步|Next Step|次のステップ"
     optional: true
 - tapOn:
-    text: "略過"
+    text: "略過|Skip|スキップ"
     optional: true
 
 - extendedWaitUntil:
     visible:
-      text: "訓練目標"
+      id: "GoalType_Screen"
     timeout: 30000
 - assertVisible:
     id: "GoalType_NextButton"

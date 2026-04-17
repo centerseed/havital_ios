@@ -53,7 +53,7 @@ struct WeekPreviewRowV2: View {
 
                     if week.isRecovery {
                         Text(NSLocalizedString("training.recovery_week", comment: "Recovery Week"))
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.green)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -63,7 +63,7 @@ struct WeekPreviewRowV2: View {
 
                     HStack(spacing: 3) {
                         Image(systemName: "figure.run")
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                         Text("\(Int(week.targetKmDisplay ?? week.targetKm)) \(week.distanceUnit ?? "km")")
                             .font(AppFont.caption())
@@ -81,7 +81,7 @@ struct WeekPreviewRowV2: View {
                     // 長跑
                     VStack(alignment: .leading, spacing: 2) {
                         Text(NSLocalizedString("training.workout_type.long_run", comment: "Long Run"))
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                         Text(TrainingTypeDisplayName.longRunDisplay(week.longRun))
                             .font(AppFont.caption())
@@ -91,7 +91,7 @@ struct WeekPreviewRowV2: View {
                     // 品質課
                     VStack(alignment: .leading, spacing: 2) {
                         Text(NSLocalizedString("training.quality_session", comment: "Quality Session"))
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                         Text(TrainingTypeDisplayName.qualityOptionsDisplay(week.qualityOptions))
                             .font(AppFont.caption())
@@ -162,7 +162,7 @@ struct IntensityBarView: View {
                 .fill(color)
                 .frame(width: 6, height: 6)
             Text(text)
-                .font(.caption2)
+                .font(AppFont.caption2())
                 .foregroundColor(.secondary)
         }
     }
