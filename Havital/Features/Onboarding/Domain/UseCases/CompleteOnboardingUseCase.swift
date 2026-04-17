@@ -65,6 +65,10 @@ final class CompleteOnboardingUseCase {
         /// Local fallback previews use `local_preview_*` and need a real overview before weekly generation.
         let previewOverviewId: String?
 
+        /// Intended race distance in km for maintenance/beginner flows where the user picked a target race distance upfront.
+        /// Used when the UseCase has to rebuild a real overview (preview was `local_preview_*`).
+        let intendedRaceDistanceKm: Int?
+
         /// Check if this is a V2 flow
         var isV2Flow: Bool {
             return targetTypeId != nil
@@ -228,14 +232,14 @@ final class CompleteOnboardingUseCase {
                     throw OnboardingError.weeklyPlanCreationFailed("Missing trainingWeeks for non-race target type")
                 }
 
-                Logger.debug("[CompleteOnboardingUseCase] Creating \(targetTypeId) overview with \(trainingWeeks) weeks, methodology: \(input.methodologyId ?? "default")")
+                Logger.debug("[CompleteOnboardingUseCase] Creating \(targetTypeId) overview with \(trainingWeeks) weeks, methodology: \(input.methodologyId ?? "default"), intendedRaceDistanceKm: \(input.intendedRaceDistanceKm.map(String.init) ?? "nil")")
                 return try await trainingPlanV2Repository.createOverviewForNonRace(
                     targetType: targetTypeId,
                     trainingWeeks: trainingWeeks,
                     availableDays: input.availableDays,
                     methodologyId: input.methodologyId,
                     startFromStage: input.startFromStage,
-                    intendedRaceDistanceKm: nil
+                    intendedRaceDistanceKm: input.intendedRaceDistanceKm
                 )
             }
         } catch {
@@ -266,6 +270,7 @@ final class CompleteOnboardingUseCase {
 
                 let fallbackStages = fallbackStartStages(for: overview)
                 let fallbackMethodologyId = overview.methodologyId ?? methodologyId
+                let originalStage = overview.startFromStage
                 var lastRetryError: Error = error
 
                 for fallbackStage in fallbackStages {
@@ -294,7 +299,20 @@ final class CompleteOnboardingUseCase {
                     }
                 }
 
-                Logger.error("[CompleteOnboardingUseCase] All fallback stages failed for overview \(overview.id)")
+                Logger.error("[CompleteOnboardingUseCase] All fallback stages failed for overview \(overview.id). Attempting to revert startFromStage to original: \(originalStage ?? "nil")")
+                // Best-effort revert: fallback 迴圈每次 updateOverview 都改寫了後端 overview。
+                // 全部失敗時，若不還原，使用者下次回來後端 startFromStage 會卡在最後一次嘗試的值，
+                // 不再反映他原本選擇。失敗不阻斷 error propagation。
+                do {
+                    _ = try await trainingPlanV2Repository.updateOverview(
+                        overviewId: overview.id,
+                        startFromStage: originalStage,
+                        methodologyId: fallbackMethodologyId
+                    )
+                    Logger.warn("[CompleteOnboardingUseCase] Overview stage reverted to original: \(originalStage ?? "nil")")
+                } catch {
+                    Logger.error("[CompleteOnboardingUseCase] Failed to revert overview stage: \(error.localizedDescription). Overview \(overview.id) left at last attempted stage.")
+                }
                 throw OnboardingError.weeklyPlanCreationFailed("V2 Weekly plan creation failed: \(lastRetryError.localizedDescription)")
             }
 

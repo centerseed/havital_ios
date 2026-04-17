@@ -223,7 +223,8 @@ class OnboardingCoordinator: ObservableObject {
                 methodologyId: resolvedMethodologyId,
                 trainingWeeks: trainingWeeks,
                 availableDays: availableDays,
-                previewOverviewId: trainingPlanOverviewV2?.id
+                previewOverviewId: trainingPlanOverviewV2?.id,
+                intendedRaceDistanceKm: intendedRaceDistanceKm
             )
 
             let output = try await completeOnboardingUseCase.execute(input: input)

@@ -14,6 +14,9 @@ struct ContentView: View {
     // 在 `checkTrainingVersion()` 完成前，`trainingPlanTab()` 一律顯示 ProgressView。
     @State private var trainingVersion: String? = nil
     @State private var isCheckingVersion: Bool = true
+    // A-3b race guard: 每次 checkTrainingVersion() 遞增此 token。
+    // Task 完成時只有 token 仍匹配才寫回 state，避免舊 Task 覆寫新結果（re-onboarding / 快速帳號切換 race）。
+    @State private var versionCheckToken: Int = 0
     @State private var reminderPaywallTrigger: PaywallTrigger?
 
     var body: some View {
@@ -306,6 +309,8 @@ struct ContentView: View {
 
     /// 檢查訓練版本
     private func checkTrainingVersion() {
+        versionCheckToken &+= 1
+        let token = versionCheckToken
         Task {
             let container = DependencyContainer.shared
 
@@ -318,6 +323,10 @@ struct ContentView: View {
             let version = await router.getTrainingVersion()
 
             await MainActor.run {
+                guard token == self.versionCheckToken else {
+                    Logger.debug("[ContentView] Stale training version result discarded (token=\(token), current=\(self.versionCheckToken))")
+                    return
+                }
                 self.trainingVersion = version
                 self.isCheckingVersion = false
                 Logger.debug("[ContentView] Training version detected: \(version)")

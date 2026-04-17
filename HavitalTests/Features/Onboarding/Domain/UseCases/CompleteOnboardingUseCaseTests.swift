@@ -52,13 +52,15 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
             methodologyId: nil,
             trainingWeeks: nil,
             availableDays: nil,
-            previewOverviewId: nil
+            previewOverviewId: nil,
+            intendedRaceDistanceKm: nil
         )
     }
 
     private func makeV2Input(
         startFromStage: String? = "build",
-        previewOverviewId: String? = "overview_1"
+        previewOverviewId: String? = "overview_1",
+        intendedRaceDistanceKm: Int? = nil
     ) -> CompleteOnboardingUseCase.Input {
         CompleteOnboardingUseCase.Input(
             startFromStage: startFromStage,
@@ -69,7 +71,8 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
             methodologyId: "paceriz",
             trainingWeeks: nil,
             availableDays: 4,
-            previewOverviewId: previewOverviewId
+            previewOverviewId: previewOverviewId,
+            intendedRaceDistanceKm: intendedRaceDistanceKm
         )
     }
 
