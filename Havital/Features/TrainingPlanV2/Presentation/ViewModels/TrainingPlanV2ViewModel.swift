@@ -273,7 +273,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     /// 靜默拉取 Plan Status（錯誤不破壞 UI）
     private func refreshPlanStatusQuietly() async {
         do {
-            let status = try await repository.getPlanStatus()
+            let status = try await repository.getPlanStatus(forceRefresh: true)
             let isFirstLoad = self.planStatusResponse == nil
             self.planStatusResponse = status
             self.currentWeek = status.currentWeek
@@ -376,7 +376,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     /// 用於成功操作後需要取得 nextWeekInfo 但不想覆蓋已設定好的 planStatus 的場景
     private func refreshPlanStatusResponse() async {
         do {
-            let status = try await repository.getPlanStatus()
+            let status = try await repository.getPlanStatus(forceRefresh: true)
             await MainActor.run {
                 self.planStatusResponse = status
                 self.currentWeek = status.currentWeek

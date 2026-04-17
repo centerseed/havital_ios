@@ -24,30 +24,24 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     // MARK: - Plan Status
 
-    func getPlanStatus() async throws -> PlanStatusV2Response {
-        Logger.debug("[TrainingPlanV2Repo] Getting plan status")
+    func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
+        Logger.debug("[TrainingPlanV2Repo] Getting plan status (forceRefresh=\(forceRefresh))")
+
+        if forceRefresh {
+            return try await fetchAndCachePlanStatus(operation: "forceRefresh", markCooldown: true)
+        }
 
         if let cached = localDataSource.getPlanStatus() {
-            let isExpired = localDataSource.isPlanStatusExpired()
-            Logger.debug("[TrainingPlanV2Repo] Plan status cache \(isExpired ? "stale" : "hit")")
-
-            Task.detached(priority: .background) { [weak self] in
-                await self?.refreshPlanStatusInBackground()
+            Logger.debug("[TrainingPlanV2Repo] Plan status cache hit")
+            if localDataSource.shouldRefresh(.planStatus) {
+                Task.detached(priority: .background) { [weak self] in
+                    await self?.refreshPlanStatusInBackground()
+                }
             }
-
             return cached
         }
 
-        do {
-            let response = try await remoteDataSource.getPlanStatus()
-            localDataSource.savePlanStatus(response)
-            Logger.info("[TrainingPlanV2Repo] ✅ Plan status: week \(response.currentWeek)/\(response.totalWeeks), nextAction=\(response.nextAction)")
-            return response
-        } catch {
-            logErrorToCloud(module: "PlanStatus", operation: "fetch", error: error)
-            // 將錯誤轉換為 DomainError
-            throw error.toDomainError()
-        }
+        return try await fetchAndCachePlanStatus(operation: "fetch", markCooldown: false)
     }
 
     // MARK: - Target Types & Methodologies
@@ -469,11 +463,25 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         }
     }
 
+    /// AC-7: only mark cooldown on success; failures must not reset the timer.
+    private func fetchAndCachePlanStatus(operation: String, markCooldown: Bool) async throws -> PlanStatusV2Response {
+        do {
+            let response = try await remoteDataSource.getPlanStatus()
+            localDataSource.savePlanStatus(response)
+            if markCooldown {
+                localDataSource.markRefreshed(.planStatus)
+            }
+            Logger.info("[TrainingPlanV2Repo] ✅ Plan status (\(operation)): week \(response.currentWeek)/\(response.totalWeeks), nextAction=\(response.nextAction)")
+            return response
+        } catch {
+            logErrorToCloud(module: "PlanStatus", operation: operation, error: error)
+            throw error.toDomainError()
+        }
+    }
+
     private func refreshPlanStatusInBackground() async {
         do {
-            let status = try await remoteDataSource.getPlanStatus()
-            localDataSource.savePlanStatus(status)
-            Logger.debug("[TrainingPlanV2Repo] Background refresh completed for plan status")
+            _ = try await fetchAndCachePlanStatus(operation: "backgroundRefresh", markCooldown: true)
         } catch {
             Logger.debug("[TrainingPlanV2Repo] Background refresh failed for plan status: \(error)")
         }

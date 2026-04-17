@@ -8,6 +8,11 @@ protocol TrainingPlanV2LocalDataSourceProtocol {
     func isPlanStatusExpired() -> Bool
     func clearPlanStatus()
 
+    // Background Refresh Cooldown
+    func shouldRefresh(_ resource: CooldownResource) -> Bool
+    func markRefreshed(_ resource: CooldownResource)
+    func invalidateCooldown(_ resource: CooldownResource)
+
     // Plan Overview Cache
     func getOverview() -> PlanOverviewV2?
     func saveOverview(_ overview: PlanOverviewV2)
@@ -67,17 +72,27 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     private let defaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let clock: V2Clock
+
+    /// In-memory cooldown timestamps keyed by resource.
+    /// Uses TimeInterval (not Date) as value to comply with project constraints.
+    private var cooldownTimestamps: [CooldownResource: TimeInterval] = [:]
+    /// Guards `cooldownTimestamps` — Track B runs on `Task.detached`, reads happen on caller threads.
+    private let cooldownLock = NSLock()
 
     // MARK: - Initialization
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, clock: V2Clock = SystemV2Clock()) {
         self.defaults = defaults
+        self.clock = clock
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
 
         // Configure encoders for Date handling
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
+
+        CacheEventBus.shared.register(self)
     }
 
     // MARK: - Overview Cache
@@ -319,10 +334,63 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         Logger.info("[TrainingPlanV2LocalDS] All caches cleared")
     }
 
+    // MARK: - Background Refresh Cooldown
+
+    /// Returns true when the resource's cooldown has expired (or never been set),
+    /// meaning a background refresh should be triggered.
+    func shouldRefresh(_ resource: CooldownResource) -> Bool {
+        cooldownLock.lock()
+        let lastRefreshedInterval = cooldownTimestamps[resource]
+        cooldownLock.unlock()
+        guard let lastRefreshedInterval else { return true }
+        let elapsed = clock.now().timeIntervalSince1970 - lastRefreshedInterval
+        return elapsed >= resource.duration
+    }
+
+    /// Records a successful background refresh, starting the cooldown timer.
+    func markRefreshed(_ resource: CooldownResource) {
+        let now = clock.now().timeIntervalSince1970
+        cooldownLock.lock()
+        cooldownTimestamps[resource] = now
+        cooldownLock.unlock()
+        Logger.debug("[TrainingPlanV2LocalDS] Cooldown marked for \(resource)")
+    }
+
+    /// Clears the cooldown for a resource, so the next cache-hit will trigger a refresh.
+    func invalidateCooldown(_ resource: CooldownResource) {
+        cooldownLock.lock()
+        cooldownTimestamps.removeValue(forKey: resource)
+        cooldownLock.unlock()
+        Logger.debug("[TrainingPlanV2LocalDS] Cooldown invalidated for \(resource)")
+    }
+
     private func clearAllWeeklyPreviews() {
         let allKeys = defaults.dictionaryRepresentation().keys
         for key in allKeys where key.hasPrefix(Keys.weeklyPreviewPrefix) {
             defaults.removeObject(forKey: key)
         }
+    }
+}
+
+// MARK: - Cacheable Protocol Conformance
+extension TrainingPlanV2LocalDataSource: Cacheable {
+
+    var cacheIdentifier: String {
+        return "TrainingPlanV2LocalDataSource"
+    }
+
+    func clearCache() {
+        clearAll()
+    }
+
+    func getCacheSize() -> Int {
+        var size = 0
+        if let data = defaults.data(forKey: "training_plan_v2_plan_status_cache") { size += data.count }
+        if let data = defaults.data(forKey: "training_plan_v2_overview_cache") { size += data.count }
+        return size
+    }
+
+    func isExpired() -> Bool {
+        return isPlanStatusExpired() && isOverviewExpired()
     }
 }
