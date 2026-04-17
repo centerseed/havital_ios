@@ -165,18 +165,8 @@ struct TrainingPlanV2View: View {
             .navigationTitle(viewModel.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // 左側按鈕 - 快速進入計畫概覽
+                // 左側：訊息中心鈴鐺（含未讀 badge）
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        showPlanOverview = true
-                    }) {
-                        Image(systemName: "doc.text.below.ecg")
-                            .foregroundColor(.primary)
-                    }
-                }
-
-                // 右側：訊息中心鈴鐺（含未讀 badge）
-                ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showMessageCenter = true }) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bell")
@@ -412,10 +402,19 @@ struct TrainingPlanV2View: View {
         .sheet(item: $bindableViewModel.paywallTrigger) { trigger in
             PaywallView(trigger: trigger)
         }
+        .sheet(item: $announcementViewModel.currentPopup) { announcement in
+            AnnouncementPopupView(
+                announcement: announcement,
+                onCTA: { announcementViewModel.handlePopupCTA(announcement) },
+                onDismiss: { announcementViewModel.dismissCurrentPopup() }
+            )
+        }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.initialize()
-            announcementViewModel.loadUnreadCount()
+            if authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
+                announcementViewModel.loadAnnouncementsIfNeeded()
+            }
         }
         // 成功訊息 Toast
         .overlay(alignment: .top) {

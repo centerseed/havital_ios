@@ -1046,32 +1046,16 @@ final class OnboardingFeatureViewModel: ObservableObject {
     }
 
     private func prefillClosestPersonalBestIfAvailable() {
-        let keys = Array(availablePersonalBests.keys)
-        guard !keys.isEmpty else { return }
-
-        if let exactMatch = keys.first(where: { normalizeDistanceKey($0) == selectedPBDistance }) {
-            selectPersonalBest(distanceKey: exactMatch)
-            return
-        }
-
-        let target = targetDistance
-        let closestKey = keys
+        let longestKey = availablePersonalBests.keys
             .compactMap { key -> (String, Double)? in
                 guard let distance = Double(key) else { return nil }
                 return (key, distance)
             }
-            .min { lhs, rhs in
-                let lhsDelta = abs(lhs.1 - target)
-                let rhsDelta = abs(rhs.1 - target)
-                if lhsDelta == rhsDelta {
-                    return lhs.1 < rhs.1
-                }
-                return lhsDelta < rhsDelta
-            }?
+            .max { $0.1 < $1.1 }?
             .0
 
-        if let closestKey {
-            selectPersonalBest(distanceKey: closestKey)
+        if let longestKey {
+            selectPersonalBest(distanceKey: longestKey)
         }
     }
 
