@@ -1,0 +1,37 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP C1: 打開 Debug 選單並刪除當前週課表
+# 前提：App 已在 Training Plan V2 頁面，已登入
+
+# 先確認在主畫面（關掉任何 sheet）
+- tapOn:
+    text: "完成"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1000
+
+# 直接用文字 tapOn 選 "Debug 工具"（menu 需要先展開才能選到）
+# 先打開 menu 再等選項出現
+- tapOn:
+    point: "95%,9%"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 此時 menu 應已展開，直接 tapOn 子選單 label
+- tapOn: "🐛 Debug 工具"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 截圖看子選單狀態
+- takeScreenshot: QA/screenshots/c1_12_debug_submenu
+
+# 點刪除當前週課表
+- tapOn: "🗑️ 刪除當前週課表"
+
+# 等操作完成後回到主畫面
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 20000
+
+# 截圖確認 noWeeklyPlan 狀態
+- takeScreenshot: QA/screenshots/c1_13_no_weekly_plan

@@ -28,6 +28,7 @@ Havital/Resources/APIKeys.plist
 # Claude Code & ZenOS governance (local tooling, not product code)
 .claude/
 skills/
+.maestro/.env.local
 
 # QA screenshots (temporary test artifacts)
 *.png

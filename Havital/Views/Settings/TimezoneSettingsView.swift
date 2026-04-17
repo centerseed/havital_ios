@@ -111,12 +111,12 @@ struct TimezoneSettingsView: View {
     private var timezoneInfoFooter: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L10n.Timezone.syncMessage.localized)
-                .font(.footnote)
+                .font(AppFont.footnote())
                 .foregroundColor(.secondary)
 
             if selectedTimezone != viewModel.timezonePreference {
                 Text(L10n.Timezone.changeWarningMessage.localized)
-                    .font(.footnote)
+                    .font(AppFont.footnote())
                     .foregroundColor(.orange)
             }
         }

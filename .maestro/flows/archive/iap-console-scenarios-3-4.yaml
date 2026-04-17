@@ -1,0 +1,87 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - qa-temp
+---
+# QA Temp: 場景 3 (trial), 4 (clear override)
+# 前提：app 在 Profile 頁面，subscribed 狀態
+
+# ─── 場景 3: trial ────────────────────────────────────
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "IAP Test Console"
+
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element: "Set Trial"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "Set Trial"
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-3-console
+
+- tapOn: "Close"
+
+- scrollUntilVisible:
+    element: "訂閱|Subscription"
+    direction: UP
+    timeout: 15000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-3-profile
+
+# ─── 場景 4: clear override ───────────────────────────
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "IAP Test Console"
+
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element: "Clear Override"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "Clear Override"
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-4-console
+
+- tapOn: "Close"
+
+- scrollUntilVisible:
+    element: "訂閱|Subscription"
+    direction: UP
+    timeout: 15000
+
+- takeScreenshot: /Users/wubaizong/Downloads/iap-test-4-profile

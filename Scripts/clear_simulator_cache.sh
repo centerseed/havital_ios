@@ -40,7 +40,7 @@ APP_DATA_DIR=$(xcrun simctl get_app_container "$SIMULATOR_UUID" "$APP_BUNDLE_ID"
 if [ -z "$APP_DATA_DIR" ]; then
     echo -e "${YELLOW}⚠️  App 未安裝在 Simulator 中${NC}"
     echo "請先運行 App 一次，或使用以下命令安裝:"
-    echo "  xcodebuild build -project Havital.xcodeproj -scheme Havital -destination 'platform=iOS Simulator,name=$SIMULATOR_NAME'"
+    echo "  ./Scripts/run_xcodebuild.sh build -project Havital.xcodeproj -scheme Havital -destination 'platform=iOS Simulator,name=$SIMULATOR_NAME'"
     exit 1
 fi
 

@@ -9,16 +9,19 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     private let remoteDataSource: UserPreferencesRemoteDataSourceProtocol
     private let localDataSource: UserPreferencesLocalDataSourceProtocol
     private let heartRateZonesManager: HeartRateZonesManager
+    private let authSessionRepository: AuthSessionRepository
 
     // MARK: - Initialization
     init(
         remoteDataSource: UserPreferencesRemoteDataSourceProtocol = UserPreferencesRemoteDataSource(),
         localDataSource: UserPreferencesLocalDataSourceProtocol = UserPreferencesLocalDataSource(),
-        heartRateZonesManager: HeartRateZonesManager = .shared
+        heartRateZonesManager: HeartRateZonesManager = .shared,
+        authSessionRepository: AuthSessionRepository? = nil
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
         self.heartRateZonesManager = heartRateZonesManager
+        self.authSessionRepository = authSessionRepository ?? DependencyContainer.shared.resolve()
     }
 
     // MARK: - Preferences Access
@@ -58,7 +61,7 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
         if let language = language,
            let supportedLanguage = SupportedLanguage(rawValue: language) {
             await MainActor.run {
-                LanguageManager.shared.currentLanguage = supportedLanguage
+                LanguageManager.shared.applyFromBackend(supportedLanguage)
             }
         }
 
@@ -229,7 +232,7 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
             try await remoteDataSource.updateLanguage(language.rawValue)
             localDataSource.languagePreference = language.rawValue
             await MainActor.run {
-                LanguageManager.shared.currentLanguage = language
+                LanguageManager.shared.applyFromBackend(language)
             }
         } catch {
             Logger.error("[UserPreferencesRepo] Failed to update language: \(error)")
@@ -303,6 +306,13 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     private func refreshInBackground() async {
         do {
             let preferences = try await remoteDataSource.getPreferences()
+
+            // Guard: skip cache write if user has logged out during the API call
+            guard authSessionRepository.getCurrentUser() != nil else {
+                Logger.debug("[UserPreferencesRepo] Background refresh skipped — user logged out")
+                return
+            }
+
             localDataSource.savePreferences(preferences)
             Logger.debug("[UserPreferencesRepo] Background refresh success")
         } catch {

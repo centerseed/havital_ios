@@ -1,0 +1,28 @@
+appId: com.havital.Havital.dev
+---
+# Shared entry: converge to logged-in "Daily Training" screen.
+- launchApp:
+    stopApp: false
+    clearState: false
+
+- runFlow:
+    file: reviewer-demo-login.yaml
+    optional: true
+
+# Dismiss modal-like pages if they are already open.
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done"
+    optional: true
+
+# If tab is not focused, switch to training plan tab.
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画|日々のトレーニング"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|Daily Training|Training Plan|日々のトレーニング|トレーニング計画|需要產生週回顧|需要產生週課表"
+    timeout: 25000
+
+- assertVisible:
+    text: "每日訓練|Daily Training|Training Plan|日々のトレーニング|トレーニング計画|需要產生週回顧|需要產生週課表"

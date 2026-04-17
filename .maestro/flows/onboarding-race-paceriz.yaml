@@ -5,26 +5,24 @@ tags:
   - race_run
   - paceriz
 ---
-# T1: 賽事 + Paceriz 平衡訓練法
+# A1: race_run paceriz smoke gate
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-- assertVisible: "訓練目標"
-- tapOn: "賽事訓練"
+- assertVisible:
+    id: "GoalType_NextButton"
 - tapOn:
-    text: "下一步"
-    optional: true
+    id: "GoalType_race_run"
 - tapOn:
     id: "GoalType_NextButton"
-    optional: true
 
-# 賽事設定
+- runFlow: ../subflows/assert-onboarding-branch.yaml
+- assertVisible:
+    id: "RaceSetup_SaveButton"
 - tapOn:
     id: "RaceSetup_SaveButton"
-    optional: true
 
-# 方法論 → paceriz（等 API 載入）
+- runFlow: ../subflows/assert-onboarding-branch.yaml
 - extendedWaitUntil:
     visible:
       id: "Methodology_paceriz"
@@ -34,20 +32,18 @@ tags:
 - tapOn:
     id: "Methodology_NextButton"
 
-# 起始階段（若時間緊張才出現，在 Methodology 之後）
+- runFlow: ../subflows/assert-onboarding-branch.yaml
 - tapOn:
     id: "StartStage_NextButton"
     optional: true
 
-- assertVisible: "訓練偏好設定"
-- tapOn:
-    id: "TrainingDays_SaveButton"
+- runFlow: ../subflows/assert-onboarding-branch.yaml
+- runFlow: ../subflows/assert-preference-persistence.yaml
 
-- runFlow: ../subflows/verify-plan-generated.yaml
-
-# === 課表合理性驗證（方法論特定） ===
-# 依據：paceriz-workout-spec.md — base 階段以輕鬆跑和 LSD 為主
-- runFlow: ../subflows/verify-methodology-race-base.yaml
-
-# === 品質指南驗證 ===
-- runFlow: ../subflows/verify-plan-quality.yaml
+- assertVisible:
+    text: "每日訓練|Daily Training|Training Plan"
+- assertVisible:
+    text: "星期.*"
+- assertVisible:
+    text: "間歇|節奏|輕鬆跑|長距離|休息"
+- runFlow: ../subflows/assert-workout-card-structure.yaml

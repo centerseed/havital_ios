@@ -179,7 +179,7 @@ final class TrainingPlanRepositoryImplTests: XCTestCase {
         // Configure API response
         let newPlan = TrainingPlanTestFixtures.weeklyPlan2
         let responseData = TrainingPlanTestFixtures.weeklyPlanAPIResponseData(newPlan)
-        mockHTTPClient.setResponse(for: "/plan/race_run/weekly/v2", method: .POST, data: responseData)
+        mockHTTPClient.setResponse(for: "/plan/race_run/weekly", method: .POST, data: responseData)
 
         // When: Create new weekly plan
         let result = try await sut.createWeeklyPlan(week: 2, startFromStage: nil, isBeginner: false)
@@ -393,5 +393,172 @@ final class TrainingPlanRepositoryImplTests: XCTestCase {
         // Verify cache is updated
         let cachedPlan = localDataSource.getWeeklyPlan(planId: planId)
         XCTAssertEqual(cachedPlan?.id, modifiedPlan.id)
+    }
+}
+
+final class TrainingPlanV2RepositoryRegressionTests: XCTestCase {
+
+    private var sut: TrainingPlanV2RepositoryImpl!
+    private var remoteDataSource: FailingTrainingPlanV2RemoteDataSource!
+    private var localDataSource: TrainingPlanV2LocalDataSource!
+    private var mockUserDefaults: MockUserDefaults!
+
+    override func setUp() {
+        super.setUp()
+        mockUserDefaults = MockUserDefaults()
+        remoteDataSource = FailingTrainingPlanV2RemoteDataSource()
+        localDataSource = TrainingPlanV2LocalDataSource(defaults: mockUserDefaults)
+        sut = TrainingPlanV2RepositoryImpl(
+            remoteDataSource: remoteDataSource,
+            localDataSource: localDataSource
+        )
+    }
+
+    override func tearDown() {
+        sut = nil
+        remoteDataSource = nil
+        localDataSource = nil
+        mockUserDefaults = nil
+        super.tearDown()
+    }
+
+    func test_getOverview_whenOnlyStaleCacheExistsAndAPIUnavailable_shouldReturnCachedOverview() async throws {
+        let cachedOverview = try loadOverviewEntityFixture(named: "race_run_paceriz")
+        localDataSource.saveOverview(cachedOverview)
+        mockUserDefaults.set(
+            Date(timeIntervalSinceNow: -7200),
+            forKey: "training_plan_v2_overview_cache_timestamp"
+        )
+        remoteDataSource.overviewError = DomainError.noConnection
+
+        let result = try await sut.getOverview()
+
+        XCTAssertEqual(result.id, cachedOverview.id)
+    }
+
+    func test_getWeeklyPlan_whenOnlyStaleCacheExistsAndAPIUnavailable_shouldReturnCachedPlan() async throws {
+        let cachedPlan = try loadWeeklyPlanEntityFixture(named: "paceriz_42k_base_week")
+        localDataSource.saveWeeklyPlan(cachedPlan, week: 1)
+        mockUserDefaults.set(
+            Date(timeIntervalSinceNow: -10800),
+            forKey: "training_plan_v2_weekly_1_timestamp"
+        )
+        remoteDataSource.weeklyPlanError = DomainError.noConnection
+
+        let result = try await sut.getWeeklyPlan(weekOfTraining: 1, overviewId: "overview_001")
+
+        XCTAssertEqual(result.id, cachedPlan.id)
+        XCTAssertEqual(result.effectiveWeek, cachedPlan.effectiveWeek)
+    }
+
+    private func loadOverviewEntityFixture(named name: String) throws -> PlanOverviewV2 {
+        let data = try loadFixtureData(
+            directory: "PlanOverview",
+            name: name
+        )
+        let dto = try JSONDecoder().decode(PlanOverviewV2DTO.self, from: data)
+        return PlanOverviewV2Mapper.toEntity(from: dto)
+    }
+
+    private func loadWeeklyPlanEntityFixture(named name: String) throws -> WeeklyPlanV2 {
+        let data = try loadFixtureData(
+            directory: "WeeklyPlan",
+            name: name
+        )
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dto = try decoder.decode(WeeklyPlanV2DTO.self, from: data)
+        return WeeklyPlanV2Mapper.toEntity(from: dto)
+    }
+
+    private func loadFixtureData(directory: String, name: String) throws -> Data {
+        let testDir = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let fixtureURL = testDir
+            .appendingPathComponent("APISchema/Fixtures/\(directory)/\(name).json")
+        return try Data(contentsOf: fixtureURL)
+    }
+}
+
+private final class FailingTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtocol {
+
+    var overviewError: Error?
+    var weeklyPlanError: Error?
+
+    func getTargetTypes() async throws -> [TargetTypeV2] {
+        fatalError("Unexpected call to getTargetTypes()")
+    }
+
+    func getMethodologies(targetType: String?) async throws -> [MethodologyV2] {
+        fatalError("Unexpected call to getMethodologies(targetType:)")
+    }
+
+    func getPlanStatus() async throws -> PlanStatusV2Response {
+        fatalError("Unexpected call to getPlanStatus()")
+    }
+
+    func createOverviewForRace(targetId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO {
+        fatalError("Unexpected call to createOverviewForRace(targetId:startFromStage:methodologyId:)")
+    }
+
+    func createOverviewForNonRace(
+        targetType: String,
+        trainingWeeks: Int,
+        availableDays: Int?,
+        methodologyId: String?,
+        startFromStage: String?,
+        intendedRaceDistanceKm: Int?
+    ) async throws -> PlanOverviewV2DTO {
+        fatalError("Unexpected call to createOverviewForNonRace(targetType:trainingWeeks:availableDays:methodologyId:startFromStage:intendedRaceDistanceKm:)")
+    }
+
+    func getOverview() async throws -> PlanOverviewV2DTO {
+        throw overviewError ?? DomainError.noConnection
+    }
+
+    func updateOverview(overviewId: String, startFromStage: String?, methodologyId: String?) async throws -> PlanOverviewV2DTO {
+        fatalError("Unexpected call to updateOverview(overviewId:startFromStage:methodologyId:)")
+    }
+
+    func generateWeeklyPlan(
+        weekOfTraining: Int,
+        forceGenerate: Bool?,
+        promptVersion: String?,
+        methodology: String?
+    ) async throws -> WeeklyPlanV2DTO {
+        fatalError("Unexpected call to generateWeeklyPlan(weekOfTraining:forceGenerate:promptVersion:methodology:)")
+    }
+
+    func getWeeklyPlan(planId: String) async throws -> WeeklyPlanV2DTO {
+        throw weeklyPlanError ?? DomainError.noConnection
+    }
+
+    func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2DTO {
+        fatalError("Unexpected call to updateWeeklyPlan(planId:updates:)")
+    }
+
+    func deleteWeeklyPlan(planId: String) async throws {
+        fatalError("Unexpected call to deleteWeeklyPlan(planId:)")
+    }
+
+    func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewResponseDTO {
+        fatalError("Unexpected call to getWeeklyPreview(overviewId:)")
+    }
+
+    func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
+        fatalError("Unexpected call to getWeeklySummaries()")
+    }
+
+    func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2DTO {
+        fatalError("Unexpected call to generateWeeklySummary(weekOfPlan:forceUpdate:)")
+    }
+
+    func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO {
+        fatalError("Unexpected call to getWeeklySummary(weekOfPlan:)")
+    }
+
+    func deleteWeeklySummary(summaryId: String) async throws {
+        fatalError("Unexpected call to deleteWeeklySummary(summaryId:)")
     }
 }

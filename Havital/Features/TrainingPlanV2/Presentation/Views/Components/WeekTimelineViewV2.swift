@@ -3,7 +3,7 @@ import SwiftUI
 /// V2 週訓練時間軸視圖 - 顯示本週所有訓練的時間軸
 /// 基於 V1 WeekTimelineView，適配 V2 ViewModel 和 WeeklyPlanV2
 struct WeekTimelineViewV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
     @State private var selectedWorkout: WorkoutV2?
     /// 午夜跨日觸發器：值變化時強制重繪所有 TimelineItemViewV2，修正「兩天都顯示今日」
@@ -59,7 +59,7 @@ struct WeekTimelineViewV2: View {
 
 /// V2 時間軸單項視圖
 struct TimelineItemViewV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     let day: DayDetail
     let onWorkoutSelect: (WorkoutV2) -> Void
     let todayTrigger: Date

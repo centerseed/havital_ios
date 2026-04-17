@@ -238,6 +238,8 @@
 "profile.training_info" = "Training Info";
 "profile.heart_rate_info" = "Heart Rate Info";
 "profile.pace_zones" = "Pace Zones";
+"profile.physiology" = "Physiology";
+"common.not_set" = "Not Set";
 "profile.data_sources" = "Data Sources";
 "profile.settings" = "Settings";
 "profile.name" = "Name";
@@ -252,6 +254,26 @@
 "profile.max_hr" = "Max Heart Rate";
 "profile.weekly_mileage" = "Weekly Mileage";
 "profile.edit_profile" = "Edit Profile";
+
+// MARK: - Profile Subscription Section
+"profile.subscription.section_title" = "Subscription";
+"profile.subscription.plan" = "Plan";
+"profile.subscription.free" = "Free";
+"profile.subscription.trial" = "Trial";
+"profile.subscription.expired" = "Expired";
+"profile.subscription.trial_remaining" = "Trial Remaining";
+"profile.subscription.remaining" = "Time Remaining";
+"profile.subscription.days_remaining" = "%d days";
+"profile.subscription.expires" = "Expires";
+"profile.subscription.billing_issue" = "Billing Issue";
+"profile.subscription.cancelled" = "Cancelled";
+"profile.subscription.valid_until" = "Service valid until";
+"profile.subscription.grace_period" = "Billing processing, service unaffected";
+"profile.subscription.manage" = "Manage Subscription";
+"profile.subscription.resubscribe" = "Resubscribe";
+"profile.subscription.change_plan" = "Change Plan";
+"profile.subscription.plan.yearly" = "Annual";
+"profile.subscription.plan.monthly" = "Monthly";
 
 // MARK: - Data Sources
 "datasource.title" = "Data Sources";
@@ -686,6 +708,7 @@
 "common.later" = "Later";
 "common.reload" = "Reload";
 "common.ok" = "OK";
+"common.select" = "Select";
 "common.minutes_format" = "%d min";
 
 // MARK: - Workout Details
@@ -777,8 +800,11 @@
 "onboarding.goal_description" = "If you don't have a specific race, you can set a challenge goal for yourself, such as 'Complete first 5K' or 'Improve 10K speed'.";
 "onboarding.or_select_existing_target" = "Previously set target races";
 "onboarding.goal_name_placeholder" = "Goal name (e.g., Taipei Marathon or My 5K Challenge)";
+"onboarding.goal_name_label" = "Goal Name";
+"onboarding.goal_prefilled_from_race" = "Prefilled from race database. Switch to manual input to edit.";
 "onboarding.goal_date" = "Goal Date";
 "onboarding.weeks_until_race" = "Weeks until race: %d";
+"onboarding.weeks_until_race_label" = "Weeks until race";
 "onboarding.race_distance" = "Race Distance";
 "onboarding.race_distance.nav_title" = "Target Race";
 "onboarding.race_distance.title" = "What race are you targeting after off-season?";
@@ -796,6 +822,7 @@
 "onboarding.average_pace" = "Average pace: %@ /km";
 "onboarding.next_step" = "Next Step";
 "onboarding.distance_and_target_time" = "Distance & Target Time";
+"onboarding.edit_target_time" = "Edit Target Time";
 "onboarding.distance_time_hint" = "Tap to edit race distance and target finish time";
 "onboarding.edit_distance_time" = "Edit Distance & Time";
 "onboarding.common_times_reference" = "Common Times";
@@ -924,6 +951,8 @@
 "onboarding.adjust_weekly_volume" = "Please slide to adjust your current average weekly running volume.";
 "onboarding.weekly_volume_label" = "Estimated weekly volume: %.0f km";
 "onboarding.km_label" = "%.0f km";
+"onboarding.quick_select_label" = "Quick Select";
+"onboarding.fine_tune_label" = "Fine-tune (1 km steps)";
 "onboarding.weekly_distance_title" = "Your Weekly Running Volume";
 "onboarding.skip" = "Skip";
 
@@ -1016,6 +1045,7 @@
 "hr_zone.understand" = "Understand";
 "hr_zone.max_heart_rate_display" = "Max Heart Rate";
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
+"hr_zone.default_values_hint" = "Using estimated values for now. Update after connecting a heart rate device or fitness test for more accurate training recommendations";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "Recovery";
@@ -1242,9 +1272,9 @@
 // MARK: - New VO2max Improvement Training Info
 "training_type_info.norwegian_4x4.title" = "Norwegian 4x4";
 "training_type_info.norwegian_4x4.how_to_run" = "Perform 4 intervals of 4 minutes at high intensity (92% max heart rate), with 3 minutes of easy running recovery between each. Maintain a steady VO₂max pace—you should feel \"very hard but able to complete all intervals.\"";
-"training_type_info.norwegian_4x4.why_run" = "Norwegian 4x4 is the most efficient method for improving maximum oxygen uptake (VO₂max). Scientific research shows this protocol can boost aerobic capacity by approximately 7% in a short timeframe—a key workout before racing.";
-"training_type_info.norwegian_4x4.logic" = "Performed at VO₂max intensity (92% max heart rate, 95-100% VO₂max), it stimulates both aerobic and anaerobic systems to their limits. The 4-minute duration is long enough to fully challenge your heart and lungs, while 3 minutes of recovery allows you to complete all intervals. This design accumulates significant training load at peak intensity.";
-"training_type_info.norwegian_4x4.role" = "Typically used during build or race-prep phases, limited to once per week maximum. Pair with easy runs and ensure adequate recovery. Not suitable for consecutive weeks—needs to be balanced with recovery weeks.";
+"training_type_info.norwegian_4x4.why_run" = "Norwegian 4x4 builds top-end aerobic power, helping you handle hard efforts closer to your limit. It is especially useful when you want to raise your speed ceiling and sharpen race-day finishing strength.";
+"training_type_info.norwegian_4x4.logic" = "This is a VO₂max-focused interval workout. Four minutes is long enough to drive your cardiovascular system up, while the 3-minute recovery helps you keep the later reps strong and accumulate quality high-intensity work.";
+"training_type_info.norwegian_4x4.role" = "Usually placed in build or race-prep phases, with no more than one session per week. Pair it with easy runs and recovery days so the overall load stays manageable.";
 
 "training_type_info.short_interval.title" = "Short Interval";
 "training_type_info.short_interval.how_to_run" = "Perform 6-10 repetitions of short distances (400-600 meters) at high intensity, with 1-2 minutes of easy running recovery between each. Sprint hard and let your breathing rise significantly.";
@@ -2036,6 +2066,11 @@
 "hrvtrendchart.hrv" = "Diagnose HRV Issue";
 "login.demo_mode" = "Demo Mode";
 "login.for_apple_review" = "For Apple Review";
+"login.reviewer_access_title" = "Reviewer Access";
+"login.reviewer_access_message" = "Enter the reviewer passcode to activate the demo account.";
+"login.reviewer_passcode_placeholder" = "Reviewer passcode";
+"login.activate_demo_access" = "Activate Demo Access";
+"login.reviewer_access_failed" = "Reviewer access failed";
 "misc.reset" = "Reset";
 "misc.syncing" = "Syncing...";
 "myachievement.text_0" = "Fitness Index & Training Stress Balance";
@@ -2376,3 +2411,50 @@
 "time.quick.2m" = "2min";
 "time.quick.3m" = "3min";
 "edit_schedule.select_rest_time" = "Select Rest Time";
+
+// MARK: - Paywall
+"paywall.title" = "Upgrade";
+"paywall.restore_purchases" = "Restore Purchases";
+"paywall.header.api_gated" = "Subscription required to use this feature";
+"paywall.header.trial_expired" = "Trial period has ended";
+"paywall.header.feature_locked" = "Upgrade to unlock full features";
+"paywall.header.resubscribe" = "Resubscribe";
+"paywall.header.change_plan" = "Change Plan";
+"paywall.purchase_success_title" = "Purchase Successful!";
+"paywall.purchase_success_start" = "Start Using";
+"paywall.purchase_success_trial_note" = "Paid plan activates after trial ends";
+"reminder.trial_expiring_title" = "Trial Expiring Soon";
+"reminder.trial_expiring_message" = "Your trial ends in %1$d days (%2$@).\n\nSubscribing now won't affect your trial — billing starts only after the trial ends.";
+"reminder.expired_title" = "Subscription Expired";
+"reminder.expired_message" = "Your subscription has expired. Some features are no longer available. Upgrade to continue.";
+"paywall.trial_days_remaining" = "%d days remaining in trial";
+"paywall.offerings_coming_soon" = "Subscription plans coming soon";
+"paywall.offerings_unavailable" = "Subscription plans are temporarily unavailable. Please try again later.";
+"paywall.plan.yearly" = "Yearly";
+"paywall.plan.monthly" = "Monthly";
+"paywall.subtitle" = "Unlock your full potential with personalized training";
+"paywall.feature.training_plan" = "Personalized training plans";
+"paywall.feature.analytics" = "Advanced run analytics & insights";
+"paywall.feature.customization" = "Unlimited schedule customization";
+"paywall.badge.best_value" = "Best Value";
+"paywall.plan.yearly_note" = "Billed annually";
+"paywall.plan.original_price" = "Original %@";
+"paywall.plan.savings" = "Save %@ (%d%%)";
+"paywall.offer.badge_official" = "Official Offer";
+"paywall.offer.free" = "Free";
+"paywall.offer.discount_percent" = "Official discount %d%%";
+"paywall.offer.ends_on" = "Ends on %@";
+"paywall.offer.intro_free_trial" = "Free trial for %@";
+"paywall.offer.intro_pay_as_you_go" = "Intro offer %@ / %@";
+"paywall.offer.intro_pay_up_front" = "Intro offer %@ for %@";
+"paywall.offer.promotional" = "Promotional offer %@ for %@";
+"paywall.offer.win_back" = "Win-back offer %@ for %@";
+"paywall.offer.duration.day" = "%d day(s)";
+"paywall.offer.duration.week" = "%d week(s)";
+"paywall.offer.duration.month" = "%d month(s)";
+"paywall.offer.duration.year" = "%d year(s)";
+"paywall.purchase_error_title" = "Purchase Failed";
+"paywall.restore_no_active_subscription" = "No active subscription was found to restore";
+"paywall.purchase_pending_processing" = "Purchase is processing. Please try Restore Purchases again shortly.";
+"paywall.purchase_cancelled_retry" = "Apple sign-in completed. Please tap the plan again to finish the purchase.";
+"onboarding.clear_selected_race" = "Switch to manual input";

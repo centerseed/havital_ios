@@ -7,8 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000000000001 /* Havital/Core/Analytics/AnalyticsEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* Havital/Core/Analytics/AnalyticsEvent.swift */; };
+		A1B2C3D4E5F6000000000002 /* Havital/Core/Analytics/AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* Havital/Core/Analytics/AnalyticsService.swift */; };
+		A1B2C3D4E5F6000000000003 /* Havital/Core/Analytics/AnalyticsUserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000013 /* Havital/Core/Analytics/AnalyticsUserDefaults.swift */; };
+		A1B2C3D4E5F6000000000004 /* Havital/Core/Analytics/AttributionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* Havital/Core/Analytics/AttributionManager.swift */; };
+		A1B2C3D4E5F6000000000005 /* Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift */; };
+		A1B2C3D4E5F6000000000006 /* Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000016 /* Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift */; };
+		A1B2C3D4E5F6000000000007 /* Havital/Features/Race/Data/DTOs/RaceDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000017 /* Havital/Features/Race/Data/DTOs/RaceDTO.swift */; };
+		A1B2C3D4E5F6000000000008 /* Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000018 /* Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift */; };
+		A1B2C3D4E5F6000000000009 /* Havital/Features/Race/Data/Mappers/RaceMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000019 /* Havital/Features/Race/Data/Mappers/RaceMapper.swift */; };
+		A1B2C3D4E5F600000000000A /* Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001A /* Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift */; };
+		A1B2C3D4E5F600000000000B /* Havital/Features/Race/Domain/Entities/RaceEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001B /* Havital/Features/Race/Domain/Entities/RaceEvent.swift */; };
+		A1B2C3D4E5F600000000000C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift */; };
 		CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F9882E34D87600C7E5ED /* FirebaseMessaging */; };
 		CF19F98B2E34D8D200C7E5ED /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */; };
+		CFCABFC22F88A07700E3D25A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CFCABFC12F88A07700E3D25A /* RevenueCat */; };
 		CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683762D5B33B5008A8242 /* FirebaseAnalytics */; };
 		CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683782D5B33B5008A8242 /* FirebaseAppCheck */; };
 		CFD6837B2D5B33B5008A8242 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CFD6837A2D5B33B5008A8242 /* FirebaseAuth */; };
@@ -41,6 +54,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F6000000000011 /* Havital/Core/Analytics/AnalyticsEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsEvent.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000012 /* Havital/Core/Analytics/AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsService.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000013 /* Havital/Core/Analytics/AnalyticsUserDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsUserDefaults.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000014 /* Havital/Core/Analytics/AttributionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AttributionManager.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000015 /* Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000016 /* Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000017 /* Havital/Features/Race/Data/DTOs/RaceDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/DTOs/RaceDTO.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000018 /* Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6000000000019 /* Havital/Features/Race/Data/Mappers/RaceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/Mappers/RaceMapper.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001A /* Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001B /* Havital/Features/Race/Domain/Entities/RaceEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Entities/RaceEvent.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Repositories/RaceRepository.swift; sourceTree = SOURCE_ROOT; };
 		CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Havital.xctestplan; sourceTree = "<group>"; };
 		CFB67CF02D07047500F672E3 /* paceriz_dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = paceriz_dev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D022D07047800F672E3 /* HavitalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -96,6 +121,7 @@
 			files = (
 				CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */,
 				CFD683772D5B33B5008A8242 /* FirebaseAnalytics in Frameworks */,
+				CFCABFC22F88A07700E3D25A /* RevenueCat in Frameworks */,
 				CFD6837D2D5B33B5008A8242 /* FirebaseCore in Frameworks */,
 				CFD683792D5B33B5008A8242 /* FirebaseAppCheck in Frameworks */,
 				CFF518762D1E7D9500CF284A /* GoogleGenerativeAI in Frameworks */,
@@ -135,6 +161,25 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		CF3941912F8FD767004D37EE /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000011 /* Havital/Core/Analytics/AnalyticsEvent.swift */,
+				A1B2C3D4E5F6000000000012 /* Havital/Core/Analytics/AnalyticsService.swift */,
+				A1B2C3D4E5F6000000000013 /* Havital/Core/Analytics/AnalyticsUserDefaults.swift */,
+				A1B2C3D4E5F6000000000014 /* Havital/Core/Analytics/AttributionManager.swift */,
+				A1B2C3D4E5F6000000000015 /* Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift */,
+				A1B2C3D4E5F6000000000016 /* Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift */,
+				A1B2C3D4E5F6000000000017 /* Havital/Features/Race/Data/DTOs/RaceDTO.swift */,
+				A1B2C3D4E5F6000000000018 /* Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift */,
+				A1B2C3D4E5F6000000000019 /* Havital/Features/Race/Data/Mappers/RaceMapper.swift */,
+				A1B2C3D4E5F600000000001A /* Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift */,
+				A1B2C3D4E5F600000000001B /* Havital/Features/Race/Domain/Entities/RaceEvent.swift */,
+				A1B2C3D4E5F600000000001C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		CFB67CE72D07047500F672E3 = {
 			isa = PBXGroup;
 			children = (
@@ -144,6 +189,7 @@
 				CFB67D0F2D07047800F672E3 /* HavitalUITests */,
 				CF19F9872E34D87600C7E5ED /* Frameworks */,
 				CFB67CF12D07047500F672E3 /* Products */,
+				CF3941912F8FD767004D37EE /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -192,6 +238,7 @@
 				CFD683892D5B353F008A8242 /* GoogleSignInSwift */,
 				CF19F9882E34D87600C7E5ED /* FirebaseMessaging */,
 				CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */,
+				CFCABFC12F88A07700E3D25A /* RevenueCat */,
 			);
 			productName = Havital;
 			productReference = CFB67CF02D07047500F672E3 /* paceriz_dev.app */;
@@ -282,6 +329,7 @@
 				CFF518722D1E7D1300CF284A /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
 				CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				CFD683862D5B350B008A8242 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				CFCABFC02F88A07700E3D25A /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CFB67CF12D07047500F672E3 /* Products */;
@@ -362,6 +410,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F6000000000001 /* Havital/Core/Analytics/AnalyticsEvent.swift in Sources */,
+				A1B2C3D4E5F6000000000002 /* Havital/Core/Analytics/AnalyticsService.swift in Sources */,
+				A1B2C3D4E5F6000000000003 /* Havital/Core/Analytics/AnalyticsUserDefaults.swift in Sources */,
+				A1B2C3D4E5F6000000000004 /* Havital/Core/Analytics/AttributionManager.swift in Sources */,
+				A1B2C3D4E5F6000000000005 /* Havital/Core/Analytics/FirebaseAnalyticsServiceImpl.swift in Sources */,
+				A1B2C3D4E5F6000000000006 /* Havital/Features/Onboarding/Debug/UITestOnboardingHarness.swift in Sources */,
+				A1B2C3D4E5F6000000000007 /* Havital/Features/Race/Data/DTOs/RaceDTO.swift in Sources */,
+				A1B2C3D4E5F6000000000008 /* Havital/Features/Race/Data/DataSources/RaceRemoteDataSource.swift in Sources */,
+				A1B2C3D4E5F6000000000009 /* Havital/Features/Race/Data/Mappers/RaceMapper.swift in Sources */,
+				A1B2C3D4E5F600000000000A /* Havital/Features/Race/Data/Repositories/RaceRepositoryImpl.swift in Sources */,
+				A1B2C3D4E5F600000000000B /* Havital/Features/Race/Domain/Entities/RaceEvent.swift in Sources */,
+				A1B2C3D4E5F600000000000C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -484,7 +544,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -612,7 +672,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -803,7 +863,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -839,7 +899,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -971,6 +1031,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		CFCABFC02F88A07700E3D25A /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.67.2;
+			};
+		};
 		CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
@@ -1007,6 +1075,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CFD683752D5B322D008A8242 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseRemoteConfig;
+		};
+		CFCABFC12F88A07700E3D25A /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFCABFC02F88A07700E3D25A /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 		CFD683762D5B33B5008A8242 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;

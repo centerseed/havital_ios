@@ -134,7 +134,7 @@ struct ViewStateView_Previews: PreviewProvider {
 
             ViewStateView(state: ViewState<String>.loaded("Hello World")) { data in
                 Text(data)
-                    .font(.largeTitle)
+                    .font(AppFont.largeTitle())
             }
             .previewDisplayName("Loaded")
 

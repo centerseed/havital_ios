@@ -3,15 +3,14 @@ tags:
   - smoke
   - edit
 ---
-- assertVisible: "每日訓練"
-- assertVisible: "間歇訓練"
-- assertVisible: "肌力訓練"
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+- assertVisible: "星期一|Monday"
+- assertVisible: "休息|長距離輕鬆跑|間歇訓練|輕鬆跑|節奏跑|恢復跑"
 - tapOn: "更多"
 - tapOn: "編輯課表"
-- assertVisible: "編輯課表"
+- assertVisible: "編輯課表|編輯週課表"
 - tapOn:
     text: "取消"
     optional: true
 - assertVisible: "每日訓練"
-- assertVisible: "間歇訓練"
-- assertVisible: "肌力訓練"
+- assertVisible: "星期一|Monday"

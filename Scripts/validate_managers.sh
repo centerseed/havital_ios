@@ -22,6 +22,7 @@ TESTS_FAILED=0
 
 # 配置
 PROJECT_DIR="/Users/wubaizong/havital/apps/ios/Havital"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCHEME="Havital"
 # 自動檢測第一個可用的 iPhone Simulator
 SIMULATOR_NAME=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed 's/^[[:space:]]*//' | sed 's/ (.*//')
@@ -147,7 +148,7 @@ echo "📋 [5/10] 編譯檢查..."
 if [ "$SKIP_BUILD" = true ]; then
     echo -e "${YELLOW}⚡ 跳過 (快速模式)${NC}"
 else
-    if xcodebuild -project Havital.xcodeproj -scheme "$SCHEME" -destination "$DESTINATION" build -quiet 2>&1 | grep -i "error:"; then
+    if "$SCRIPT_DIR/run_xcodebuild.sh" -project Havital.xcodeproj -scheme "$SCHEME" -destination "$DESTINATION" build -quiet 2>&1 | grep -i "error:"; then
         echo -e "${RED}❌ 編譯失敗${NC}"
         ((ERRORS++))
         ((TESTS_FAILED++))
@@ -267,7 +268,7 @@ echo "📋 [11] 運行單元測試..."
 if [ "$SKIP_TESTS" = true ]; then
     echo -e "${YELLOW}⚡ 跳過 (快速模式)${NC}"
 elif [ -d "HavitalTests" ]; then
-    TEST_OUTPUT=$(xcodebuild test \
+    TEST_OUTPUT=$("$SCRIPT_DIR/run_xcodebuild.sh" test \
         -project Havital.xcodeproj \
         -scheme "$SCHEME" \
         -destination "$DESTINATION" \

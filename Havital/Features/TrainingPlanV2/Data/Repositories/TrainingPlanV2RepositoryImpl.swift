@@ -24,18 +24,24 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     // MARK: - Plan Status
 
-    func getPlanStatus() async throws -> PlanStatusV2Response {
-        Logger.debug("[TrainingPlanV2Repo] Getting plan status")
+    func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
+        Logger.debug("[TrainingPlanV2Repo] Getting plan status (forceRefresh=\(forceRefresh))")
 
-        do {
-            let response = try await remoteDataSource.getPlanStatus()
-            Logger.info("[TrainingPlanV2Repo] ✅ Plan status: week \(response.currentWeek)/\(response.totalWeeks), nextAction=\(response.nextAction)")
-            return response
-        } catch {
-            logErrorToCloud(module: "PlanStatus", operation: "fetch", error: error)
-            // 將錯誤轉換為 DomainError
-            throw error.toDomainError()
+        if forceRefresh {
+            return try await fetchAndCachePlanStatus(operation: "forceRefresh", markCooldown: true)
         }
+
+        if let cached = localDataSource.getPlanStatus() {
+            Logger.debug("[TrainingPlanV2Repo] Plan status cache hit")
+            if localDataSource.shouldRefresh(.planStatus) {
+                Task.detached(priority: .background) { [weak self] in
+                    await self?.refreshPlanStatusInBackground()
+                }
+            }
+            return cached
+        }
+
+        return try await fetchAndCachePlanStatus(operation: "fetch", markCooldown: false)
     }
 
     // MARK: - Target Types & Methodologies
@@ -112,16 +118,13 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     func getOverview() async throws -> PlanOverviewV2 {
         Logger.debug("[TrainingPlanV2Repo] getOverview")
 
-        // Track A: Check local cache
-        if let cached = localDataSource.getOverview(),
-           !localDataSource.isOverviewExpired() {
-            Logger.debug("[TrainingPlanV2Repo] Cache hit")
-            // Note: Track B (background refresh) is handled by ViewModel layer
+        if let cached = localDataSource.getOverview() {
+            let isExpired = localDataSource.isOverviewExpired()
+            Logger.debug("[TrainingPlanV2Repo] Overview cache \(isExpired ? "stale" : "hit")")
             return cached
         }
 
-        // Cache miss - fetch from API
-        Logger.debug("[TrainingPlanV2Repo] Cache miss, fetching from API")
+        Logger.debug("[TrainingPlanV2Repo] Overview cache miss, fetching from API")
         return try await fetchAndCacheOverview()
     }
 
@@ -183,14 +186,13 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         Logger.debug("[TrainingPlanV2Repo] getWeeklyPlan for week \(weekOfTraining), overviewId: \(overviewId)")
 
-        // Track A: Check local cache
-        if let cached = localDataSource.getWeeklyPlan(week: weekOfTraining),
-           !localDataSource.isWeeklyPlanExpired(week: weekOfTraining) {
-            Logger.debug("[TrainingPlanV2Repo] Cache hit for week \(weekOfTraining)")
+        if let cached = localDataSource.getWeeklyPlan(week: weekOfTraining) {
+            let isExpired = localDataSource.isWeeklyPlanExpired(week: weekOfTraining)
+            Logger.debug("[TrainingPlanV2Repo] Weekly plan cache \(isExpired ? "stale" : "hit") for week \(weekOfTraining)")
             return cached
         }
 
-        // Cache miss 或過期 — 用 overviewId 組出正確的 planId 呼叫 GET API
+        // 完全無快取，才用 overviewId 組出 planId 呼叫 GET API
         let planId = "\(overviewId)_\(weekOfTraining)"
         Logger.debug("[TrainingPlanV2Repo] Fetching from API with planId: \(planId)")
         return try await fetchAndCacheWeeklyPlan(planId: planId, week: weekOfTraining)
@@ -322,6 +324,20 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         Logger.info("[TrainingPlanV2Repo] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
     }
 
+    // MARK: - Synchronous Cache Read
+
+    func getCachedPlanStatus() -> PlanStatusV2Response? {
+        localDataSource.getPlanStatus()
+    }
+
+    func getCachedOverview() -> PlanOverviewV2? {
+        localDataSource.getOverview()
+    }
+
+    func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2? {
+        localDataSource.getWeeklyPlan(week: week)
+    }
+
     // MARK: - Cache Management
 
     func clearCache() async {
@@ -331,6 +347,7 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     func clearOverviewCache() async {
         Logger.debug("[TrainingPlanV2Repo] Clearing overview cache")
+        localDataSource.clearPlanStatus()
         localDataSource.clearOverview()
     }
 
@@ -443,6 +460,30 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
             Logger.debug("[TrainingPlanV2Repo] Background refresh completed for week \(week) plan")
         } catch {
             Logger.debug("[TrainingPlanV2Repo] Background refresh failed for week \(week) plan: \(error)")
+        }
+    }
+
+    /// AC-7: only mark cooldown on success; failures must not reset the timer.
+    private func fetchAndCachePlanStatus(operation: String, markCooldown: Bool) async throws -> PlanStatusV2Response {
+        do {
+            let response = try await remoteDataSource.getPlanStatus()
+            localDataSource.savePlanStatus(response)
+            if markCooldown {
+                localDataSource.markRefreshed(.planStatus)
+            }
+            Logger.info("[TrainingPlanV2Repo] ✅ Plan status (\(operation)): week \(response.currentWeek)/\(response.totalWeeks), nextAction=\(response.nextAction)")
+            return response
+        } catch {
+            logErrorToCloud(module: "PlanStatus", operation: operation, error: error)
+            throw error.toDomainError()
+        }
+    }
+
+    private func refreshPlanStatusInBackground() async {
+        do {
+            _ = try await fetchAndCachePlanStatus(operation: "backgroundRefresh", markCooldown: true)
+        } catch {
+            Logger.debug("[TrainingPlanV2Repo] Background refresh failed for plan status: \(error)")
         }
     }
 

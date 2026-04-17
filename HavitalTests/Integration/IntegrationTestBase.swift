@@ -14,6 +14,10 @@ import XCTest
 /// - 提供真實 API 調用能力
 @MainActor
 class IntegrationTestBase: XCTestCase {
+    private var reviewerPasscode: String {
+        ProcessInfo.processInfo.environment["HAVITAL_REVIEWER_PASSCODE"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
 
     // MARK: - Properties
 
@@ -31,6 +35,11 @@ class IntegrationTestBase: XCTestCase {
     /// 測試前設置 - 執行 Demo 登錄
     override func setUp() async throws {
         try await super.setUp()
+
+        try XCTSkipIf(
+            reviewerPasscode.isEmpty,
+            "Set HAVITAL_REVIEWER_PASSCODE to run integration tests that depend on reviewer demo login."
+        )
 
         print("🧪 ========================================")
         print("🧪 集成測試初始化開始 (Instance Setup)")
@@ -66,7 +75,7 @@ class IntegrationTestBase: XCTestCase {
 
         Task {
             // 使用 AuthenticationService 進行登入，確保 Token 被正確設置給 HTTPClient
-            await AuthenticationService.shared.demoLogin()
+            await AuthenticationService.shared.demoLogin(reviewerPasscode: self.reviewerPasscode)
 
             // 檢查認證狀態
             if AuthenticationService.shared.isAuthenticated {
@@ -149,5 +158,22 @@ extension IntegrationTestBase {
     /// 獲取 DependencyContainer 中的 UseCase
     func getUseCase<T>() -> T {
         return DependencyContainer.shared.resolve()
+    }
+
+    /// 訓練計畫相關整合測試需要有效訂閱；若 demo 帳號已過期則改為 skip，
+    /// 避免外部帳號狀態讓整包測試持續紅燈。
+    func requireActiveTrainingPlanAccess() async throws {
+        if !DependencyContainer.shared.isRegistered(SubscriptionRepository.self) {
+            DependencyContainer.shared.registerSubscriptionModule()
+        }
+
+        let repository: SubscriptionRepository = DependencyContainer.shared.resolve()
+        let status = try await repository.refreshStatus()
+
+        let hasAccess = status.status == .active || status.status == .trial
+        try XCTSkipIf(
+            !hasAccess,
+            "Demo subscription status is \(status.status.rawValue). Training plan integration tests require active access."
+        )
     }
 }

@@ -36,6 +36,9 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
     /// 週回顧錯誤
     @Published var summaryError: Error?
 
+    /// 付費牆觸發（nil 表示未觸發）
+    @Published var paywallTrigger: PaywallTrigger?
+
     // MARK: - Dependencies
 
     private let repository: TrainingPlanRepository
@@ -54,6 +57,22 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
     /// 是否正在載入
     var isLoading: Bool {
         return summaryState.isLoading || summariesState.isLoading
+    }
+
+    // MARK: - Subscription Helpers
+
+    private func resolvePaywallTrigger() -> PaywallTrigger {
+        guard let lastStatus = SubscriptionStateManager.shared.currentStatus else {
+            return .apiGated
+        }
+        switch lastStatus.status {
+        case .trial:
+            return .trialExpired
+        case .cancelled:
+            return .resubscribe
+        case .active, .gracePeriod, .expired, .none:
+            return .apiGated
+        }
     }
 
     // MARK: - Initialization
@@ -172,12 +191,18 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
             isGenerating = false
         } catch {
             let domainError = error.toDomainError()
-
-            // 取消錯誤不更新 UI
-            if case .cancellation = domainError {
+            switch domainError {
+            case .cancellation:
                 Logger.debug("[WeeklySummaryVM] Task cancelled")
                 isGenerating = false
                 return
+            case .subscriptionRequired, .trialExpired:
+                guard SubscriptionStateManager.shared.isEnforcementEnabled else { break }
+                paywallTrigger = resolvePaywallTrigger()
+                isGenerating = false
+                return
+            default:
+                break
             }
 
             summaryState = .error(domainError)
@@ -210,9 +235,17 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
             isGenerating = false
         } catch {
             let domainError = error.toDomainError()
-            if case .cancellation = domainError {
+            switch domainError {
+            case .cancellation:
                 isGenerating = false
                 return
+            case .subscriptionRequired, .trialExpired:
+                guard SubscriptionStateManager.shared.isEnforcementEnabled else { break }
+                paywallTrigger = resolvePaywallTrigger()
+                isGenerating = false
+                return
+            default:
+                break
             }
 
             summaryState = .error(domainError)

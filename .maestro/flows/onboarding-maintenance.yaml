@@ -4,54 +4,39 @@ tags:
   - critical
   - maintenance
 ---
-# T6: 維持訓練（aerobic_endurance）→ overview → weekly plan（P0）
+# A3: maintenance aerobic-endurance smoke gate
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-- assertVisible: "訓練目標"
-- tapOn: "維持訓練"
+- assertVisible:
+    id: "GoalType_NextButton"
 - tapOn:
-    text: "下一步"
-    optional: true
+    id: "GoalType_maintenance"
 - tapOn:
     id: "GoalType_NextButton"
+
+- runFlow: ../subflows/assert-onboarding-branch.yaml
+- tapOn:
+    id: "Methodology_aerobic_endurance"
     optional: true
 
-# 方法論（維持訓練有）
-- tapOn:
-    text: "有氧耐力提升"
-    optional: true
-- tapOn:
-    text: "下一步"
-    optional: true
 - tapOn:
     id: "Methodology_NextButton"
-    optional: true
 
-# 訓練週數 / 起始階段
+- runFlow: ../subflows/assert-onboarding-branch.yaml
+- assertVisible:
+    id: "TrainingWeeks_NextButton"
 - tapOn:
     id: "TrainingWeeks_NextButton"
-    optional: true
-- tapOn:
-    text: "下一步"
-    optional: true
-- tapOn:
-    id: "StartStage_NextButton"
-    optional: true
-- tapOn:
-    text: "繼續"
-    optional: true
 
-- assertVisible: "訓練偏好設定"
+- runFlow: ../subflows/assert-onboarding-branch.yaml
 - tapOn:
-    id: "TrainingDays_SaveButton"
+    text: "不確定（略過）|不確定 \\(略過\\)"
+    optional: true
+- tapOn:
+    id: "MaintenanceRaceDistance_NextButton"
+    optional: true
+- runFlow: ../subflows/assert-preference-persistence.yaml
 
-- runFlow: ../subflows/verify-plan-generated.yaml
-
-# === 課表合理性驗證（方法論特定） ===
-# 依據：aerobic-endurance-workout-spec.md — 不允許 interval/tempo/threshold/race_pace
 - runFlow: ../subflows/verify-methodology-maintenance.yaml
-
-# === 品質指南驗證 ===
-- runFlow: ../subflows/verify-plan-quality.yaml
+- runFlow: ../subflows/assert-coach-sanity-relationships.yaml

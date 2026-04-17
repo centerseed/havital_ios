@@ -7,24 +7,20 @@ tags:
 # 測試：跑步日 gear → 開跑步編輯器（不是 StrengthEditorV2）
 # 驗收 DC-3：跑步日 gear 不開 strength editor
 
-- launchApp:
-    stopApp: true
-    clearState: false
-- extendedWaitUntil:
-    visible: "每日訓練"
-    timeout: 45000
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 - tapOn: "更多"
 - tapOn: "編輯課表"
 - assertVisible: "編輯週課表"
 
-# 點星期一的 gear（accessibilityId: day_1_edit_gear）
+# 點第二天的 gear（第一天可能是休息日，無 gear）
 - tapOn:
-    id: "day_1_edit_gear"
+    id: "day_2_edit_gear"
 - assertVisible: "編輯訓練"
+- waitForAnimationToEnd
 
 # 確認是跑步編輯器：跑步日有距離設定（label 為 "距離 (公里)"）
-- assertVisible: "距離 (公里)"
+- assertVisible: "距離.*公里|Distance.*km|輕鬆跑設定"
 
 # 確認 gear 開啟了跑步編輯器（DC-3 核心驗收）
 

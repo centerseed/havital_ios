@@ -26,7 +26,7 @@ struct TopInfoOverlay: View {
                             .font(AppFont.title2())
                             .foregroundColor(.white)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            .minimumScaleFactor(0.85)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 42)
                             .padding(.vertical, 20)

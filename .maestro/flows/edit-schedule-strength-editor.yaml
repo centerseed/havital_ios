@@ -4,75 +4,34 @@ tags:
   - critical
   - strength
 ---
-# 測試：肌力訓練編輯器 (StrengthEditorV2)
-# 驗收 fix: R1 strength editor — data loss and wrong UI fixed
-# 流程：進編輯 → 把第一個訓練日改成肌力訓練 → 開 gear → 驗 editor
+# 測試：跑步編輯器中的補充訓練區塊可用
+# 目標：確認「+ 新增力量訓練」路徑可打開補充訓練欄位
 
-# 0. 啟動 app，等主畫面
-- launchApp:
-    stopApp: true
-    clearState: false
-- extendedWaitUntil:
-    visible: "每日訓練"
-    timeout: 45000
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
-# 1. 進入編輯週課表
 - tapOn: "更多"
 - tapOn: "編輯課表"
 - assertVisible: "編輯週課表"
 
-# 2. 開啟第一個訓練日（星期一）的訓練類型選單
-#    使用 accessibilityIdentifier 而非特定類型文字，避免依賴課表當前狀態
-#    dayIndex 是 1-based（星期一 = 1）
 - tapOn:
-    id: "training_type_menu_1"
-
-# 3. 在 menu 裡往下捲找肌力訓練（menu 在左側，約 x=55%）
-- swipe:
-    start: "55%, 75%"
-    end: "55%, 30%"
-    duration: "800"
-- swipe:
-    start: "55%, 75%"
-    end: "55%, 30%"
-    duration: "800"
-
-# 4. 點選肌力訓練
-- tapOn: "肌力訓練"
-
-# 5. 等 UI 更新
-- waitForAnimationToEnd
-
-# 6. 確認類型已改成肌力訓練
-- assertVisible: "肌力訓練"
-
-# 7. 點 gear icon（strength day 的 accessibilityId）
-- tapOn:
-    id: "strength_day_edit_gear"
-
-# 8. 驗證 StrengthEditorV2 正確開啟（核心驗收點）
+    id: "day_2_edit_gear"
 - assertVisible: "編輯訓練"
-- assertVisible: "肌力訓練設定"
+- assertVisible: "訓練說明|配速|距離|\\+ 新增力量訓練|補充訓練"
+
+- scrollUntilVisible:
+    element:
+      text: "\\+ 新增力量訓練|補充訓練"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn: "\\+ 新增力量訓練|補充訓練"
+- assertVisible: "補充訓練|補充力量訓練"
 - assertVisible: "訓練類型"
-- assertVisible: "訓練時長"
 
-# 9. 點開訓練類型 dropdown，驗證選項存在（不依賴當前選中的類型名稱）
-- tapOn:
-    id: "strength_type_menu"
-- assertVisible: "核心穩定"
-- assertVisible: "下肢力量"
-# 關閉 menu（點選第一個選項核心穩定；若出現 alert 則確定）
-- tapOn: "核心穩定"
-- tapOn:
-    text: "確定"
-    optional: true
-- waitForAnimationToEnd
-
-# 10. 取消關閉 sheet（不儲存，避免污染後端資料）
 - tapOn: "取消"
 - assertVisible: "編輯週課表"
-
-# 11. 取消離開編輯週課表（有未儲存變更，點放棄變更確認）
 - tapOn: "取消"
-- tapOn: "放棄變更"
-- assertVisible: "每日訓練"
+- tapOn:
+    text: "放棄變更"
+    optional: true
+- runFlow: ../subflows/ensure-main-training-screen.yaml

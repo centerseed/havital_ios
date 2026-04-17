@@ -2,6 +2,17 @@ import Foundation
 
 // MARK: - TrainingPlanV2LocalDataSource Protocol
 protocol TrainingPlanV2LocalDataSourceProtocol {
+    // Plan Status Cache
+    func getPlanStatus() -> PlanStatusV2Response?
+    func savePlanStatus(_ status: PlanStatusV2Response)
+    func isPlanStatusExpired() -> Bool
+    func clearPlanStatus()
+
+    // Background Refresh Cooldown
+    func shouldRefresh(_ resource: CooldownResource) -> Bool
+    func markRefreshed(_ resource: CooldownResource)
+    func invalidateCooldown(_ resource: CooldownResource)
+
     // Plan Overview Cache
     func getOverview() -> PlanOverviewV2?
     func saveOverview(_ overview: PlanOverviewV2)
@@ -41,6 +52,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Constants
 
     private enum Keys {
+        static let planStatus = "training_plan_v2_plan_status_cache"
         static let overview = "training_plan_v2_overview_cache"
         static let weeklyPlanPrefix = "training_plan_v2_weekly_"
         static let weeklySummaryPrefix = "training_plan_v2_summary_"
@@ -49,6 +61,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     }
 
     private enum TTL {
+        static let planStatus: TimeInterval = 3600          // 1 hour
         static let overview: TimeInterval = 3600            // 1 hour
         static let weeklyPlan: TimeInterval = 7200          // 2 hours
         static let weeklySummary: TimeInterval = 3600       // 1 hour
@@ -59,17 +72,67 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     private let defaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let clock: V2Clock
+
+    /// In-memory cooldown timestamps keyed by resource.
+    /// Uses TimeInterval (not Date) as value to comply with project constraints.
+    private var cooldownTimestamps: [CooldownResource: TimeInterval] = [:]
+    /// Guards `cooldownTimestamps` — Track B runs on `Task.detached`, reads happen on caller threads.
+    private let cooldownLock = NSLock()
 
     // MARK: - Initialization
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, clock: V2Clock = SystemV2Clock()) {
         self.defaults = defaults
+        self.clock = clock
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
 
         // Configure encoders for Date handling
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
+
+        CacheEventBus.shared.register(self)
+    }
+
+    // MARK: - Overview Cache
+
+    func getPlanStatus() -> PlanStatusV2Response? {
+        guard let data = defaults.data(forKey: Keys.planStatus) else {
+            return nil
+        }
+
+        do {
+            return try decoder.decode(PlanStatusV2Response.self, from: data)
+        } catch {
+            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode plan status, clearing cache")
+            clearPlanStatus()
+            return nil
+        }
+    }
+
+    func savePlanStatus(_ status: PlanStatusV2Response) {
+        do {
+            let data = try encoder.encode(status)
+            defaults.set(data, forKey: Keys.planStatus)
+            defaults.set(Date(), forKey: Keys.planStatus + Keys.timestampSuffix)
+            Logger.debug("[TrainingPlanV2LocalDS] Plan status saved to cache")
+        } catch {
+            Logger.error("[TrainingPlanV2LocalDS] Failed to encode plan status: \(error)")
+        }
+    }
+
+    func isPlanStatusExpired() -> Bool {
+        guard let timestamp = defaults.object(forKey: Keys.planStatus + Keys.timestampSuffix) as? Date else {
+            return true
+        }
+        return Date().timeIntervalSince(timestamp) > TTL.planStatus
+    }
+
+    func clearPlanStatus() {
+        defaults.removeObject(forKey: Keys.planStatus)
+        defaults.removeObject(forKey: Keys.planStatus + Keys.timestampSuffix)
+        Logger.debug("[TrainingPlanV2LocalDS] Plan status cache cleared")
     }
 
     // MARK: - Overview Cache
@@ -263,9 +326,71 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Utility
 
     func clearAll() {
+        clearPlanStatus()
         clearOverview()
         clearAllWeeklyPlans()
         clearAllWeeklySummaries()
+        clearAllWeeklyPreviews()
         Logger.info("[TrainingPlanV2LocalDS] All caches cleared")
+    }
+
+    // MARK: - Background Refresh Cooldown
+
+    /// Returns true when the resource's cooldown has expired (or never been set),
+    /// meaning a background refresh should be triggered.
+    func shouldRefresh(_ resource: CooldownResource) -> Bool {
+        cooldownLock.lock()
+        let lastRefreshedInterval = cooldownTimestamps[resource]
+        cooldownLock.unlock()
+        guard let lastRefreshedInterval else { return true }
+        let elapsed = clock.now().timeIntervalSince1970 - lastRefreshedInterval
+        return elapsed >= resource.duration
+    }
+
+    /// Records a successful background refresh, starting the cooldown timer.
+    func markRefreshed(_ resource: CooldownResource) {
+        let now = clock.now().timeIntervalSince1970
+        cooldownLock.lock()
+        cooldownTimestamps[resource] = now
+        cooldownLock.unlock()
+        Logger.debug("[TrainingPlanV2LocalDS] Cooldown marked for \(resource)")
+    }
+
+    /// Clears the cooldown for a resource, so the next cache-hit will trigger a refresh.
+    func invalidateCooldown(_ resource: CooldownResource) {
+        cooldownLock.lock()
+        cooldownTimestamps.removeValue(forKey: resource)
+        cooldownLock.unlock()
+        Logger.debug("[TrainingPlanV2LocalDS] Cooldown invalidated for \(resource)")
+    }
+
+    private func clearAllWeeklyPreviews() {
+        let allKeys = defaults.dictionaryRepresentation().keys
+        for key in allKeys where key.hasPrefix(Keys.weeklyPreviewPrefix) {
+            defaults.removeObject(forKey: key)
+        }
+    }
+}
+
+// MARK: - Cacheable Protocol Conformance
+extension TrainingPlanV2LocalDataSource: Cacheable {
+
+    var cacheIdentifier: String {
+        return "TrainingPlanV2LocalDataSource"
+    }
+
+    func clearCache() {
+        clearAll()
+    }
+
+    func getCacheSize() -> Int {
+        var size = 0
+        if let data = defaults.data(forKey: "training_plan_v2_plan_status_cache") { size += data.count }
+        if let data = defaults.data(forKey: "training_plan_v2_overview_cache") { size += data.count }
+        return size
+    }
+
+    func isExpired() -> Bool {
+        return isPlanStatusExpired() && isOverviewExpired()
     }
 }

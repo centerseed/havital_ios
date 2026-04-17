@@ -6,14 +6,13 @@ appId: com.havital.Havital.dev
     stopApp: true
     clearState: false
 
-- extendedWaitUntil:
-    visible:
-      id: "Login_DemoButton"
-    timeout: 15000
+- runFlow: ../subflows/reviewer-demo-login.yaml
 
 - tapOn:
-    id: "Login_DemoButton"
+    text: "稍後|Later|後で"
+    optional: true
 
 - extendedWaitUntil:
-    visible: "更多"
+    visible:
+      id: "ellipsis.circle"
     timeout: 30000

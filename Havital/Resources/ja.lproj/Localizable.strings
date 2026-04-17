@@ -238,6 +238,8 @@
 "profile.training_info" = "トレーニング情報";
 "profile.heart_rate_info" = "心拍数情報";
 "profile.pace_zones" = "ペースゾーン";
+"profile.physiology" = "生理指標";
+"common.not_set" = "未設定";
 "profile.data_sources" = "データソース";
 "profile.settings" = "設定";
 "profile.name" = "名前";
@@ -252,6 +254,26 @@
 "profile.max_hr" = "最大心拍数";
 "profile.weekly_mileage" = "週間走行距離";
 "profile.edit_profile" = "プロフィールを編集";
+
+// MARK: - Profile Subscription Section
+"profile.subscription.section_title" = "サブスクリプション";
+"profile.subscription.plan" = "プラン";
+"profile.subscription.free" = "無料";
+"profile.subscription.trial" = "トライアル";
+"profile.subscription.expired" = "期限切れ";
+"profile.subscription.trial_remaining" = "トライアル残り";
+"profile.subscription.remaining" = "残り時間";
+"profile.subscription.days_remaining" = "%d日";
+"profile.subscription.expires" = "有効期限";
+"profile.subscription.billing_issue" = "請求の問題";
+"profile.subscription.cancelled" = "キャンセル済み";
+"profile.subscription.valid_until" = "サービス有効期限";
+"profile.subscription.grace_period" = "請求処理中、サービスに影響なし";
+"profile.subscription.manage" = "サブスクリプション管理";
+"profile.subscription.resubscribe" = "再購読";
+"profile.subscription.change_plan" = "プラン変更";
+"profile.subscription.plan.yearly" = "年間サブスク";
+"profile.subscription.plan.monthly" = "月間サブスク";
 
 // MARK: - Data Sources
 "datasource.title" = "データソース";
@@ -685,6 +707,7 @@
 "common.later" = "後で";
 "common.reload" = "再読み込み";
 "common.ok" = "OK";
+"common.select" = "選択";
 "common.minutes_format" = "%d 分";
 
 // MARK: - Workout Details
@@ -776,8 +799,11 @@
 "onboarding.goal_description" = "特定のレースがない場合は、「初回5K完走」や「10Kスピード向上」などの挑戦目標を設定できます。";
 "onboarding.or_select_existing_target" = "以前に設定した目標レース";
 "onboarding.goal_name_placeholder" = "目標名（例：台北マラソンまたはマイ5Kチャレンジ）";
+"onboarding.goal_name_label" = "目標名";
+"onboarding.goal_prefilled_from_race" = "レースデータベースから反映済みです。編集する場合は手動入力に戻してください。";
 "onboarding.goal_date" = "目標日";
 "onboarding.weeks_until_race" = "レースまでの週数：%d";
+"onboarding.weeks_until_race_label" = "レースまでの週数";
 "onboarding.race_distance" = "レース距離";
 "onboarding.race_distance.nav_title" = "目標レース";
 "onboarding.race_distance.title" = "オフシーズン後に参加予定のレースは？";
@@ -795,6 +821,7 @@
 "onboarding.average_pace" = "平均ペース：%@ /km";
 "onboarding.next_step" = "次のステップ";
 "onboarding.distance_and_target_time" = "距離と目標タイム";
+"onboarding.edit_target_time" = "目標タイムを編集";
 "onboarding.distance_time_hint" = "タップしてレース距離と目標完走時間を編集";
 "onboarding.edit_distance_time" = "距離とタイムを編集";
 "onboarding.common_times_reference" = "参考タイム";
@@ -923,6 +950,8 @@
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
 "onboarding.weekly_volume_label" = "推定週間量：%.0f km";
 "onboarding.km_label" = "%.0f km";
+"onboarding.quick_select_label" = "クイック選択";
+"onboarding.fine_tune_label" = "微調整（1 km単位）";
 "onboarding.weekly_distance_title" = "あなたの週間ランニング量";
 "onboarding.skip" = "スキップ";
 
@@ -1015,6 +1044,7 @@
 "hr_zone.understand" = "理解しました";
 "hr_zone.max_heart_rate_display" = "最大心拍数";
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
+"hr_zone.default_values_hint" = "現在は推定値を使用しています。心拍計デバイスの接続または体力テスト後に更新すると、より精度の高いトレーニング提案が得られます";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "リカバリー";
@@ -1241,9 +1271,9 @@
 // MARK: - 新しいVO2max向上トレーニング情報
 "training_type_info.norwegian_4x4.title" = "ノルウェー4×4";
 "training_type_info.norwegian_4x4.how_to_run" = "4分間の高強度走を4セット行い（92% 最大心拍数）、各セット間に3分間のイージーラン回復を挟む。VO₂max ペースを安定して維持します。「非常に大変だけれど全セット完走できる」という感覚が目安です。";
-"training_type_info.norwegian_4x4.why_run" = "ノルウェー4×4はVO₂maxを向上させる最も効率的なトレーニング方法です。科学的研究では、このプロトコルが短期間で有酸素能力を約7%向上させることが示されており、レース前の重要なワークアウトです。";
-"training_type_info.norwegian_4x4.logic" = "VO₂max強度（92% 最大心拍数、95-100% VO₂max）で実施し、有酸素系と無酸素系の両方を最高レベルまで刺激します。4分間は心肺に十分な負荷をかけるのに長く、3分間の回復により全セット完了できます。この設計により最大強度でのトレーニング量が大きく蓄積されます。";
-"training_type_info.norwegian_4x4.role" = "通常、ビルドアップ期またはレース準備期に使用し、最大週1回に制限。イージーランと組み合わせ、十分な回復を確保してください。連続した週の実施には不向きで、回復週とのバランスが必要です。";
+"training_type_info.norwegian_4x4.why_run" = "ノルウェー4×4は、高強度でも押し切れる心肺出力を高めるためのトレーニングです。スピードの上限を引き上げたい時期や、レース終盤の粘りを強くしたい時期に特に向いています。";
+"training_type_info.norwegian_4x4.logic" = "VO₂max帯を狙う高強度インターバルです。4分間の負荷で心肺をしっかり引き上げ、3分間の回復で後半の本数も質を落としにくくし、効果的な高強度ボリュームを積み上げます。";
+"training_type_info.norwegian_4x4.role" = "通常はビルドアップ期やレース準備期に配置し、頻度は週1回までが目安です。前後はイージーランや回復日と組み合わせ、全体負荷が高くなりすぎないようにします。";
 
 "training_type_info.short_interval.title" = "短間隔走";
 "training_type_info.short_interval.how_to_run" = "短距離（400-600m）の高強度走を6-10本実施し、各本間に1-2分のイージーラン回復を挟む。全力でスプリントし、呼吸をしっかり上げます。";
@@ -2036,6 +2066,11 @@
 "hrvtrendchart.hrv" = "HRVの問題を診断";
 "login.demo_mode" = "デモモードを表示";
 "login.for_apple_review" = "Apple審査用";
+"login.reviewer_access_title" = "審査用アクセス";
+"login.reviewer_access_message" = "デモアカウントを有効化するには審査用パスコードを入力してください。";
+"login.reviewer_passcode_placeholder" = "審査用パスコード";
+"login.activate_demo_access" = "デモアクセスを有効化";
+"login.reviewer_access_failed" = "審査用アクセスの有効化に失敗しました";
 "misc.reset" = "リセット";
 "misc.syncing" = "同期中...";
 "myachievement.text_0" = "フィットネス指数 & トレーニング・ストレス・バランス";
@@ -2373,3 +2408,50 @@
 "time.quick.2m" = "2分";
 "time.quick.3m" = "3分";
 "edit_schedule.select_rest_time" = "休憩時間を選択";
+
+// MARK: - Paywall
+"paywall.title" = "アップグレード";
+"paywall.restore_purchases" = "購入を復元";
+"paywall.header.api_gated" = "この機能を使用するにはサブスクリプションが必要です";
+"paywall.header.trial_expired" = "トライアル期間が終了しました";
+"paywall.header.feature_locked" = "アップグレードして全機能を解放";
+"paywall.header.resubscribe" = "再購読";
+"paywall.header.change_plan" = "プラン変更";
+"paywall.purchase_success_title" = "購入完了！";
+"paywall.purchase_success_start" = "使い始める";
+"paywall.purchase_success_trial_note" = "有料プランはトライアル終了後に適用されます";
+"reminder.trial_expiring_title" = "トライアル期間まもなく終了";
+"reminder.trial_expiring_message" = "トライアル残り%1$d日（%2$@まで）。\n\n今すぐ購読してもトライアルには影響しません。請求はトライアル終了後に開始されます。";
+"reminder.expired_title" = "サブスクリプション期限切れ";
+"reminder.expired_message" = "サブスクリプションが期限切れです。一部の機能がご利用いただけなくなりました。";
+"paywall.trial_days_remaining" = "トライアル残り%d日";
+"paywall.offerings_coming_soon" = "サブスクリプションプランは近日公開";
+"paywall.offerings_unavailable" = "サブスクリプションプランは一時的に利用できません。しばらくしてから再試行してください。";
+"paywall.plan.yearly" = "年間プラン";
+"paywall.plan.monthly" = "月間プラン";
+"paywall.subtitle" = "専門的なトレーニングで可能性を解き放つ";
+"paywall.feature.training_plan" = "パーソナライズされたトレーニングプラン";
+"paywall.feature.analytics" = "高度なランニング分析とインサイト";
+"paywall.feature.customization" = "無制限のスケジュールカスタマイズ";
+"paywall.badge.best_value" = "お得";
+"paywall.plan.yearly_note" = "年額請求";
+"paywall.plan.original_price" = "通常価格 %@";
+"paywall.plan.savings" = "%@ お得（%d%%）";
+"paywall.offer.badge_official" = "公式オファー";
+"paywall.offer.free" = "無料";
+"paywall.offer.discount_percent" = "公式割引 %d%%";
+"paywall.offer.ends_on" = "本日開始した場合、%@ まで";
+"paywall.offer.intro_free_trial" = "%@ の無料トライアル";
+"paywall.offer.intro_pay_as_you_go" = "初回オファー %@ / %@";
+"paywall.offer.intro_pay_up_front" = "初回オファー %@（%@）";
+"paywall.offer.promotional" = "プロモーション %@（%@）";
+"paywall.offer.win_back" = "再加入オファー %@（%@）";
+"paywall.offer.duration.day" = "%d日";
+"paywall.offer.duration.week" = "%d週間";
+"paywall.offer.duration.month" = "%dか月";
+"paywall.offer.duration.year" = "%d年";
+"paywall.purchase_error_title" = "購入に失敗しました";
+"paywall.restore_no_active_subscription" = "復元できる有効なサブスクリプションが見つかりません";
+"paywall.purchase_pending_processing" = "購入を処理中です。少し待ってから再度「購入を復元」をお試しください。";
+"paywall.purchase_cancelled_retry" = "Appleアカウントへのサインインは完了しました。購入を完了するには、もう一度プランをタップしてください。";
+"onboarding.clear_selected_race" = "手動入力に戻る";

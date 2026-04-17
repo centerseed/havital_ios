@@ -13,6 +13,14 @@ import UIKit
 // 3. 移除 Singleton 模式，改用依賴注入
 @available(*, deprecated, message: "Needs refactoring to UseCase pattern")
 class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
+    typealias FirebaseLogHandler = (_ message: String, _ level: LogLevel, _ labels: [String: String], _ jsonPayload: [String: Any]?) -> Void
+
+    struct PendingWorkoutCheckErrorHandling {
+        let level: LogLevel
+        let action: String
+        let message: String
+        let isRecoverable: Bool
+    }
 
     // MARK: - Observer Debouncer
     // 用於合併多次 HKObserverQuery 回調，避免重複處理
@@ -486,13 +494,8 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
                 print("沒有發現需要處理的健身記錄")
             }
         } catch {
-            print("檢查待上傳健身記錄時出錯: \(error.localizedDescription)")
-            Logger.firebase(
-                "檢查待上傳健身記錄失敗",
-                level: .error,
-                labels: ["module": "WorkoutBackgroundManager", "action": "check_upload_error", "cloud_logging": "true"],
-                jsonPayload: ["error": error.localizedDescription]
-            )
+            let handling = Self.reportPendingWorkoutCheckError(error)
+            print("\(handling.message): \(error.localizedDescription)")
         }
         
         // 結束同步
@@ -618,6 +621,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 請求 HealthKit 授權（核心功能，失敗會 throw）
     private func requestHealthKitAuthorizationCore() async throws {
+        if CommandLine.arguments.contains("-skipHealthKitAuth") {
+            print("🧪 [UI Test] -skipHealthKitAuth detected, bypass WorkoutBackgroundManager HealthKit authorization request")
+            return
+        }
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             var typesToRead: Set<HKObjectType> = [HKObjectType.workoutType()]
             if let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) {
@@ -832,7 +840,76 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             healthStore.execute(query)
         }
     }
-    
+
+    static func isProtectedDataUnavailableError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        let normalizedDescription = nsError.localizedDescription.lowercased()
+        let healthKitDomainHints = ["com.apple.healthkit", "hkerrordomain"]
+        let protectedDataHints = [
+            "protected health data is inaccessible",
+            "protected data is inaccessible",
+            "device is locked",
+            "device locked"
+        ]
+
+        let isHealthKitError = error is HKError ||
+            healthKitDomainHints.contains { nsError.domain.lowercased().contains($0) }
+        let isProtectedDataMessage = protectedDataHints.contains { normalizedDescription.contains($0) }
+
+        return isHealthKitError && isProtectedDataMessage
+    }
+
+    static func classifyPendingWorkoutCheckError(_ error: Error) -> PendingWorkoutCheckErrorHandling {
+        if isProtectedDataUnavailableError(error) {
+            return PendingWorkoutCheckErrorHandling(
+                level: .info,
+                action: "check_upload_deferred",
+                message: "Workout 上傳檢查延後：裝置鎖定，待解鎖後重試",
+                isRecoverable: true
+            )
+        }
+
+        return PendingWorkoutCheckErrorHandling(
+            level: .error,
+            action: "check_upload_error",
+            message: "檢查待上傳健身記錄失敗",
+            isRecoverable: false
+        )
+    }
+
+    @discardableResult
+    static func reportPendingWorkoutCheckError(
+        _ error: Error,
+        logger: FirebaseLogHandler = defaultPendingWorkoutCheckLogger
+    ) -> PendingWorkoutCheckErrorHandling {
+        let handling = classifyPendingWorkoutCheckError(error)
+        logger(
+            handling.message,
+            handling.level,
+            ["module": "WorkoutBackgroundManager", "action": handling.action, "cloud_logging": "true"],
+            [
+                "error": error.localizedDescription,
+                "recoverable": handling.isRecoverable,
+                "classification": handling.isRecoverable ? "device_locked_deferred" : "check_upload_error"
+            ]
+        )
+        return handling
+    }
+
+    private static func defaultPendingWorkoutCheckLogger(
+        message: String,
+        level: LogLevel,
+        labels: [String: String],
+        jsonPayload: [String: Any]?
+    ) {
+        Logger.firebase(
+            message,
+            level: level,
+            labels: labels,
+            jsonPayload: jsonPayload
+        )
+    }
+
     
     // 上傳健身記錄
     @discardableResult

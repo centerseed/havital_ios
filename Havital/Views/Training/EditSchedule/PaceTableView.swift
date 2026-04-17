@@ -13,7 +13,7 @@ struct PaceTableView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     // 說明文字
                     Text(L10n.EditSchedule.paceTableDescription.localized)
-                        .font(.footnote)
+                        .font(AppFont.footnote())
                         .foregroundColor(.secondary)
                         .padding(.horizontal)
                         .padding(.top)

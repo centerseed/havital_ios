@@ -99,7 +99,7 @@ struct TodayTrainingContent: View {
 
                 if let distance = today.trainingDetails?.totalDistanceKm {
                     Text(String(format: "%.1f km", distance))
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(AppFont.systemScaled(size: 28, weight: .semibold))
                         .foregroundColor(.blue)
                 }
             }
@@ -137,7 +137,7 @@ struct TodayTrainingContent: View {
 
                 VStack(spacing: 2) {
                     Text(String(format: "%.1f", completedDistance))
-                        .font(.system(size: 24, weight: .bold))
+                        .font(AppFont.systemScaled(size: 24, weight: .bold))
                         .foregroundColor(.primary)
                     Text(String(format: "/ %.1f km", totalDistance))
                         .font(AppFont.caption())
@@ -157,7 +157,7 @@ struct TodayTrainingContent: View {
                     ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
                         HStack(spacing: 8) {
                             Image(systemName: "circle.fill")
-                                .font(.system(size: 8))
+                                .font(AppFont.systemScaled(size: 10))
                                 .foregroundColor(.blue)
 
                             if let description = segment.description {

@@ -500,12 +500,12 @@ struct IntervalSegmentRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.systemScaled(size: 12, weight: .medium))
                 .foregroundColor(.secondary)
             
             if let times = item.goals.times {
                 Text("× \(times)")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.systemScaled(size: 12, weight: .medium))
                     .foregroundColor(.orange)
             }
 
@@ -520,7 +520,7 @@ struct IntervalSegmentRow: View {
                         .font(AppFont.captionSmall())
                         .foregroundColor(.gray)
                     Text(NSLocalizedString("training_plan.rest_in_place", comment: "Rest in place"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
@@ -543,7 +543,7 @@ struct IntervalSegmentRow: View {
                             .font(AppFont.captionSmall())
                             .foregroundColor(.blue)
                         Text(formatRestTime(seconds))
-                            .font(.system(size: 11, weight: .medium))
+                            .font(AppFont.systemScaled(size: 12, weight: .medium))
                     }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -554,7 +554,7 @@ struct IntervalSegmentRow: View {
                 // 主動恢復或衝刺段：顯示配速和距離
                 if let pace = item.goals.pace {
                     Text(pace)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(Color.orange.opacity(0.15))
@@ -563,7 +563,7 @@ struct IntervalSegmentRow: View {
 
                 if let distance = item.goals.distanceKm {
                     Text(String(format: "%.1fkm", distance))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(Color.orange.opacity(0.15))

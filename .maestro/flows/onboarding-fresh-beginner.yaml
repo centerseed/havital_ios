@@ -17,8 +17,10 @@ tags:
 - runFlow: ../subflows/pass-weekly-distance.yaml
 
 # === Step 2: 選新手入門 ===
-- assertVisible: "訓練目標"
-- tapOn: "新手入門"
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_beginner"
 - tapOn:
     text: "下一步"
     optional: true
@@ -47,7 +49,8 @@ tags:
     optional: true
 
 # === Step 4: 訓練偏好 ===
-- assertVisible: "訓練偏好設定"
+- assertVisible:
+    id: "TrainingDays_SaveButton"
 - tapOn:
     id: "TrainingDays_SaveButton"
 

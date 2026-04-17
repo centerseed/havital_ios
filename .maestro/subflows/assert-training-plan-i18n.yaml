@@ -1,0 +1,31 @@
+appId: com.havital.Havital.dev
+---
+# Guardrail helper: localization must reach training-plan core UI.
+- assertVisible:
+    text: "Daily Training|Training Plan|日々のトレーニング|トレーニング計画|每日訓練|訓練計劃"
+
+- runFlow: assert-weekly-plan-7days.yaml
+
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+
+- assertVisible:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|Training Overview|トレーニング計画概要|トレーニング概要"
+    optional: true
+
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|Training Overview|トレーニング計画概要|トレーニング概要"
+    optional: true
+
+- assertVisible:
+    id: "TrainingOverview_WeeksLabel"
+    optional: true
+
+- back:
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "Daily Training|Training Plan|日々のトレーニング|トレーニング計画|每日訓練|訓練計劃"
+    timeout: 15000

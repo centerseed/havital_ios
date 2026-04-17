@@ -5,8 +5,8 @@ tags:
 - launchApp:
     stopApp: true
     clearState: false
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
     optional: true
 - extendedWaitUntil:
     visible:

@@ -14,7 +14,7 @@ class MockAppStateManager: AppStateManagerProtocol {
     @Published var currentState: AppStateManager.AppState = .initializing
     @Published var isUserAuthenticated: Bool = false
     @Published var userDataSource: DataSourceType = .unbound
-    @Published var subscriptionStatus: AppStateManager.SubscriptionStatus = .free
+    @Published var subscriptionStatus: AppStateManager.LocalSubscriptionStatus = .free
     @Published var initializationProgress: Double = 0.0
     
     // Call counts
@@ -44,5 +44,4 @@ class MockAppStateManager: AppStateManagerProtocol {
         return hasPermissionResult
     }
 }
-
 

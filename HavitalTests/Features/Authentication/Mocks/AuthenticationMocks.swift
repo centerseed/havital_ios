@@ -59,7 +59,7 @@ final class MockAuthRepository: AuthRepository {
         }
     }
 
-    func demoLogin() async throws -> AuthUser {
+    func demoLogin(reviewerPasscode: String) async throws -> AuthUser {
         demoLoginCalled = true
         switch demoLoginResult {
         case .success(let user):

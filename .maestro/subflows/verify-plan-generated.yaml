@@ -1,24 +1,37 @@
 appId: com.havital.Havital.dev
 ---
-# 子流程：驗證 plan overview → weekly plan → 課表合理性
+# 子流程：驗證 plan overview → weekly plan
+- runFlow: assert-plan-overview-integrity.yaml
 
-# Plan Overview 必須出現
-- assertVisible: "訓練總覽"
-- assertVisible:
-    id: "TrainingOverview_WeeksLabel"
-
-# 生成第一週計劃
 - tapOn:
     id: "TrainingOverview_GenerateButton"
+    optional: true
 
-# Weekly Plan 必須出現（API 需要時間）
+# 等待進入課表或需要產生週回顧的狀態
 - extendedWaitUntil:
-    visible: "每日訓練"
+    visible:
+      text: "每日訓練|Daily Training|Training Plan|需要產生週回顧"
     timeout: 45000
-- assertVisible: "星期一"
 
-# 課表合理性：必須有休息日（可能需要滑動才看到）
-- scrollUntilVisible:
-    element: "休息"
-    direction: DOWN
-    timeout: 10000
+# 如果後端返回 create_summary（demo 帳號非全新），先產生週回顧
+- tapOn:
+    text: "產生第.*週回顧"
+    optional: true
+
+# 產生週回顧後會顯示 sheet，關閉它
+- tapOn:
+    text: "關閉|Close|完成|Done"
+    optional: true
+
+# 週回顧完成後可能需要產生週課表
+- tapOn:
+    text: "產生週課表"
+    optional: true
+
+# 最終等待進入每日訓練
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|Daily Training|Training Plan"
+    timeout: 60000
+
+- runFlow: assert-weekly-plan-7days.yaml

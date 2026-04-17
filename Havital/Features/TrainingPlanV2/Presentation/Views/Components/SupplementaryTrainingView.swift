@@ -10,9 +10,9 @@ struct SupplementaryTrainingView: View {
             // 標題
             HStack(spacing: 4) {
                 Text("➕")
-                    .font(.caption)
+                    .font(AppFont.caption())
                 Text(NSLocalizedString("training.supplementary", comment: "Supplementary"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
             }
@@ -55,14 +55,14 @@ private struct StrengthActivityView: View {
             // 力量訓練類型和時長
             HStack {
                 Text(strengthTypeDisplayName(activity.strengthType))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
 
                 Spacer()
 
                 if let mins = activity.durationMinutes {
                     Text("\(mins)" + NSLocalizedString("training.minutes_unit", comment: "Minutes"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -70,7 +70,7 @@ private struct StrengthActivityView: View {
             // 描述
             if let desc = activity.description, !desc.isEmpty {
                 Text(desc)
-                    .font(.caption2)
+                    .font(AppFont.caption2())
                     .foregroundColor(.secondary)
             }
 
@@ -111,19 +111,19 @@ private struct CrossSupplementaryView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(crossTypeDisplayName(activity.crossType))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.medium)
 
                 Spacer()
 
                 Text("\(activity.durationMinutes) " + NSLocalizedString("training.minutes_unit", comment: "Minutes"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
 
             if let desc = activity.description, !desc.isEmpty {
                 Text(desc)
-                    .font(.caption2)
+                    .font(AppFont.caption2())
                     .foregroundColor(.secondary)
             }
         }

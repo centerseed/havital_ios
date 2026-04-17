@@ -1,0 +1,24 @@
+appId: com.havital.Havital.dev
+---
+# QA B1: 點「產生週課表」按鈕 → 後端回 403 → PaywallView 彈出
+# 前提：週課表已被刪除，頁面顯示「產生週課表」按鈕
+
+# 確認頁面狀態
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 10000
+
+- takeScreenshot: ".maestro/screenshots/B1_01_before_tap.png"
+
+# 點「產生週課表」按鈕
+- tapOn:
+    text: "產生週課表"
+
+- takeScreenshot: ".maestro/screenshots/B1_02_after_tap.png"
+
+# 等待 PaywallView 出現（loading 動畫 → 403 → PaywallView）
+- extendedWaitUntil:
+    visible: "升級|Upgrade|アップグレード"
+    timeout: 30000
+
+- takeScreenshot: ".maestro/screenshots/B1_03_paywall_appeared.png"

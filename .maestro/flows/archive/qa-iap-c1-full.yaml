@@ -1,0 +1,40 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP C1 Full: Demo login → 確認有「產生週課表」 → 觸發 → 驗證 PaywallView
+# 前置：App 在登入畫面，後端狀態 expired，課表已刪除
+
+# Step 1: 點 Demo Mode 按鈕
+- extendedWaitUntil:
+    visible:
+      id: "Login_DemoButton"
+    timeout: 15000
+
+- tapOn:
+    id: "Login_DemoButton"
+
+# Step 2: 等候主畫面載入
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 30000
+
+# 截圖確認登入後狀態
+- takeScreenshot: QA/screenshots/c1_after_login
+
+# Step 3: 確認「產生週課表」按鈕可見（noWeeklyPlan 狀態）
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 10000
+
+# 截圖：觸發前狀態
+- takeScreenshot: QA/screenshots/c1_before_generate
+
+# Step 4: 點擊「產生週課表」按鈕
+- tapOn: "產生週課表"
+
+# Step 5: 等待 PaywallView 出現（API 回 403 → paywallTrigger = .apiGated）
+- extendedWaitUntil:
+    visible: "需要訂閱才能使用此功能"
+    timeout: 20000
+
+# 截圖作為 C1 PASS 證據
+- takeScreenshot: QA/screenshots/c1_paywall_appeared

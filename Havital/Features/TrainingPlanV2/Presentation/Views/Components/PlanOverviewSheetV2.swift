@@ -3,7 +3,7 @@ import SwiftUI
 /// V2 訓練計畫概覽 Sheet
 /// 使用 Tab 顯示不同資訊：賽事資訊 & 訓練計畫概覽
 struct PlanOverviewSheetV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @StateObject private var targetViewModel = TargetFeatureViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
@@ -136,6 +136,11 @@ struct PlanOverviewSheetV2: View {
                     Logger.error("[🐛 TARGET_UPDATE] ❌ 無法解析 userInfo！")
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
+                Task {
+                    await targetViewModel.forceRefresh()
+                }
+            }
             .sheet(isPresented: $showEditMainTarget) {
                 if let target = targetViewModel.mainTarget {
                     EditTargetView(target: target)
@@ -193,7 +198,7 @@ private struct TargetInfoTabV2: View {
                                     showEditMainTarget = true
                                 } label: {
                                     Image(systemName: "pencil.circle.fill")
-                                        .font(.title3)
+                                        .font(AppFont.title3())
                                         .foregroundColor(.blue)
                                         .background(Circle().fill(Color(UIColor.systemBackground)))
                                 }
@@ -369,7 +374,7 @@ private struct TargetInfoTabV2: View {
 
 private struct TrainingOverviewTabV2: View {
     let overview: PlanOverviewV2
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @State private var selectedStageIndex: Int? = nil
     @State private var showMethodologySheet = false
     @State private var isChangingMethodology = false
@@ -463,7 +468,7 @@ private struct TrainingOverviewTabV2: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.caption)
+            .font(AppFont.caption())
             .fontWeight(.semibold)
             .foregroundColor(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -487,7 +492,7 @@ private struct TrainingOverviewTabV2: View {
                     }
                 } label: {
                     Text(NSLocalizedString("training.change_methodology", comment: "Change Methodology"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.blue)
                 }
             }
@@ -505,7 +510,7 @@ private struct TrainingOverviewTabV2: View {
                         .fill(Color.blue.opacity(0.12))
                         .frame(width: 36, height: 36)
                     Image(systemName: "sparkles")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(AppFont.systemScaled(size: 16, weight: .medium))
                         .foregroundColor(.blue)
                 }
 
@@ -529,7 +534,7 @@ private struct TrainingOverviewTabV2: View {
             // 強度分配
             HStack(spacing: 10) {
                 Image(systemName: "chart.bar.fill")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
                 Text(NSLocalizedString("training.intensity_distribution", comment: "Intensity Distribution"))
                     .font(AppFont.caption())
@@ -618,7 +623,7 @@ private struct TrainingOverviewTabV2: View {
                             .fill(isSelected ? Color.blue : Color.secondary.opacity(0.12))
                             .frame(width: 44, height: 44)
                         Image(systemName: methodologyIcon(for: methodology.id))
-                            .font(.system(size: 18, weight: .medium))
+                            .font(AppFont.systemScaled(size: 18, weight: .medium))
                             .foregroundColor(isSelected ? .white : .secondary)
                     }
 
@@ -630,7 +635,7 @@ private struct TrainingOverviewTabV2: View {
                     Spacer()
 
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.title3)
+                        .font(AppFont.title3())
                         .foregroundColor(isSelected ? .blue : Color.secondary.opacity(0.4))
                 }
                 .padding(.horizontal, 16)
@@ -655,12 +660,12 @@ private struct TrainingOverviewTabV2: View {
                     HStack(spacing: 10) {
                         if !methodology.phases.isEmpty {
                             Label("\(methodology.phases.count) 個階段", systemImage: "flag.fill")
-                                .font(.caption2)
+                                .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                         if methodology.crossTrainingEnabled {
                             Label("交叉訓練", systemImage: "figure.cross.training")
-                                .font(.caption2)
+                                .font(AppFont.caption2())
                                 .foregroundColor(.teal)
                         }
                         Spacer()
@@ -780,7 +785,7 @@ private struct TrainingOverviewTabV2: View {
                         .foregroundColor(.secondary)
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
+                        .font(AppFont.caption2())
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 16)
@@ -807,11 +812,11 @@ private struct TrainingOverviewTabV2: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Label {
                                 Text(NSLocalizedString("training.training_focus", comment: "Training Focus"))
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
                             } icon: {
                                 Image(systemName: "target")
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.blue)
                             }
                             Text(stage.trainingFocus)
@@ -828,11 +833,11 @@ private struct TrainingOverviewTabV2: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Label {
                                 Text(NSLocalizedString("training.weekly_km_target", comment: "Weekly KM Target"))
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
                             } icon: {
                                 Image(systemName: "chart.line.uptrend.xyaxis")
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.green)
                             }
                             Text({
@@ -853,18 +858,18 @@ private struct TrainingOverviewTabV2: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Label {
                                 Text(NSLocalizedString("training.key_workouts", comment: "Key Workouts"))
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
                             } icon: {
                                 Image(systemName: "star.fill")
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.orange)
                             }
 
                             FlowLayout(spacing: 6) {
                                 ForEach(keyWorkouts, id: \.self) { workout in
                                     Text(formatWorkoutType(workout))
-                                        .font(.caption2)
+                                        .font(AppFont.caption2())
                                         .fontWeight(.medium)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
@@ -946,7 +951,7 @@ private struct TrainingOverviewTabV2: View {
                     .fill(milestone.isKeyMilestone ? Color.orange : Color.blue.opacity(0.12))
                     .frame(width: 40, height: 40)
                 Text("W\(milestone.week)")
-                    .font(.caption2)
+                    .font(AppFont.caption2())
                     .fontWeight(.bold)
                     .foregroundColor(milestone.isKeyMilestone ? .white : .blue)
             }
@@ -959,7 +964,7 @@ private struct TrainingOverviewTabV2: View {
 
                     if milestone.isKeyMilestone {
                         Image(systemName: "star.fill")
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.orange)
                     }
                 }

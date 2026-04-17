@@ -2694,7 +2694,7 @@ struct TrainingLoadDetailExplanationView: View {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
                         Text(NSLocalizedString("trainingload.text_0", comment: ""))
-                            .font(.largeTitle)
+                            .font(AppFont.largeTitle())
                             .fontWeight(.bold)
 
                         Text(NSLocalizedString("trainingload.text_1", comment: ""))

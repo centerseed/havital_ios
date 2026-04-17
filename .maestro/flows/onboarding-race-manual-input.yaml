@@ -1,0 +1,37 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - race_run
+  - manual-input
+---
+# 手動輸入賽事（不使用資料庫）：驗證 graceful degradation 路徑
+# 測試範圍：P0-10 AC1（手動輸入入口）、AC11（API 不可用時 fallback）
+# 即使 API 可用，用戶也可以選擇手動輸入
+
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+# === Step 1: 選擇賽事目標類型 ===
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+# === Step 2: 賽事設定頁 — 跳過資料庫選擇，直接手動輸入 ===
+- extendedWaitUntil:
+    visible:
+      text: "設定.*目標|賽事|從賽事資料庫選擇|手動輸入"
+    timeout: 15000
+
+# 滾動到手動輸入區域（如果有「或手動輸入」分隔線）
+- scrollUntilVisible:
+    element: "RaceSetup_SaveButton"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+
+# === Step 3: 直接按下一步（使用預設值）===
+- tapOn:
+    id: "RaceSetup_SaveButton"
+
+# === Step 4: 驗證流程正常進入後續步驟 ===
+- runFlow: ../subflows/assert-onboarding-branch.yaml

@@ -1,0 +1,8 @@
+appId: com.havital.Havital.dev
+---
+# 驗證進度指示器存在（P1-1）
+# 進度條是 OnboardingProgressBar，在每個 onboarding 步驟都應可見
+
+- assertVisible:
+    id: "OnboardingProgressBar"
+    optional: true

@@ -6,7 +6,7 @@ struct BrandingFooter: View {
 
     var body: some View {
         Text(NSLocalizedString("share_card.branding", comment: "Branding text for share card"))
-            .font(.system(size: 36, weight: .regular))
+            .font(AppFont.systemScaled(size: 36, weight: .regular))
             .foregroundColor(textColor)
     }
 }

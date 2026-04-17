@@ -1,0 +1,11 @@
+appId: com.havital.Havital.dev
+---
+# Guardrail helper: onboarding must progress through an explicit branch page.
+- extendedWaitUntil:
+    visible:
+      text: "訓練目標|Training Goal|トレーニング目標|設定訓練目標|Set Training Goal|トレーニング目標を設定|選擇賽事|Select Race|レースを選択|方法論|訓練方法|Training Methodology|トレーニング方法|訓練週數|Training Weeks|トレーニング週数|起始階段|Training Start Stage|トレーニング開始フェーズ|訓練偏好設定|Training Preferences|トレーニング設定"
+    timeout: 15000
+
+- assertNotVisible:
+    text: "載入失敗|重試|Failed to load|Retry|読み込み失敗|再試行"
+    optional: true

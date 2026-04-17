@@ -2,7 +2,7 @@ import SwiftUI
 
 /// V2 訓練進度 Sheet - 顯示各階段週次列表，支援週次切換與歷史回顧
 struct TrainingProgressViewV2: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedStageIndex: Int? = nil
 
@@ -239,10 +239,10 @@ struct TrainingProgressViewV2: View {
                 if let skeleton = skeletonWeek {
                     HStack(spacing: 3) {
                         Image(systemName: "figure.run")
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                         Text("\(Int(skeleton.targetKmDisplay ?? skeleton.targetKm)) \(skeleton.distanceUnit ?? "km")")
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -258,9 +258,9 @@ struct TrainingProgressViewV2: View {
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "doc.text.magnifyingglass")
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppFont.systemScaled(size: 12, weight: .medium))
                                 Text(NSLocalizedString("training_progress.review", comment: "Review"))
-                                    .font(.footnote)
+                                    .font(AppFont.footnote())
                                     .fontWeight(.medium)
                             }
                             .fixedSize()
@@ -282,9 +282,9 @@ struct TrainingProgressViewV2: View {
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
                                 Image(systemName: "calendar")
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppFont.systemScaled(size: 12, weight: .medium))
                                 Text(NSLocalizedString("training_progress.schedule", comment: "Schedule"))
-                                    .font(.footnote)
+                                    .font(AppFont.footnote())
                                     .fontWeight(.medium)
                             }
                             .fixedSize()
@@ -303,7 +303,7 @@ struct TrainingProgressViewV2: View {
                 if skeleton.isRecovery {
                     HStack(spacing: 12) {
                         Text(NSLocalizedString("training.recovery_week", comment: "恢復週"))
-                            .font(.caption2)
+                            .font(AppFont.caption2())
                             .foregroundColor(.green)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -322,20 +322,20 @@ struct TrainingProgressViewV2: View {
                         if longRunDisplay != "—" {
                             HStack(spacing: 4) {
                                 Text(NSLocalizedString("training.workout_type.long_run", comment: "長跑:"))
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
                                 Text(longRunDisplay)
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .fontWeight(.medium)
                             }
                         }
                         if qualityDisplay != "—" {
                             HStack(spacing: 4) {
                                 Text(NSLocalizedString("training.quality_session", comment: "品質課:"))
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
                                 Text(qualityDisplay)
-                                    .font(.caption2)
+                                    .font(AppFont.caption2())
                                     .fontWeight(.medium)
                                     .lineLimit(1)
                             }

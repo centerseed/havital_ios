@@ -1,0 +1,57 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - precondition
+---
+# IAP precondition helper:
+# Ensure current week is in "noWeeklyPlan" state so "產生週課表" is visible.
+
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
+    optional: true
+
+- tapOn:
+    text: "完成|Done"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|訓練計劃|訓練計畫|每日訓練|Training Goal|Training Plan|Daily Training|更多|More|もっと見る"
+    timeout: 30000
+
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練目標|每日訓練|產生週課表|產生下週課表|接受調整並產生下週課表|Training Goal|Daily Training|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 20000
+
+# If weekly plan exists, remove it via debug tools.
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
+- tapOn:
+    text: "🐛 Debug 工具|Debug 工具|Debug Tools"
+    optional: true
+- tapOn:
+    text: "🗑️ 刪除當前週課表|Delete Current Weekly Plan"
+    optional: true
+
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- extendedWaitUntil:
+    visible: "產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
+    timeout: 20000

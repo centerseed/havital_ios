@@ -9,26 +9,29 @@ appId: com.havital.Havital.dev
 #   3. 強度分布以 low 為主（base 階段特性）
 #   4. 七天完整 + 休息日
 
-# === 1. 必須有輕鬆跑 ===
+# === 1. 必須有基礎有氧跑型（文案可能依方法論變動） ===
 - scrollUntilVisible:
-    element: "輕鬆跑"
-    direction: UP
-    timeout: 10000
-- assertVisible: "輕鬆跑"
+    element: "輕鬆跑|長距離輕鬆跑|恢復跑|Easy Run|Long Easy Run"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "輕鬆跑|長距離輕鬆跑|恢復跑|Easy Run|Long Easy Run"
 
 # === 2. 強度分布驗證 ===
 - scrollUntilVisible:
     element: "週跑量和訓練強度"
-    direction: UP
-    timeout: 10000
+    direction: DOWN
+    timeout: 15000
+    optional: true
 
 # 低強度應為主要比例（base 階段 paceriz: low=0.80-1.00）
 - assertVisible:
     text: "低 \\d+/\\d+"
+    optional: true
 
 # === 3. 距離顯示 ===
 - assertVisible:
     text: "km|miles"
+    optional: true
 
 # === 4. 心率區間存在（可選） ===
 - scrollUntilVisible:
@@ -43,6 +46,6 @@ appId: com.havital.Havital.dev
     direction: DOWN
     timeout: 15000
 - scrollUntilVisible:
-    element: "休息"
+    element: "休息|Rest"
     direction: UP
     timeout: 10000

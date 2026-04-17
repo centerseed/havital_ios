@@ -43,7 +43,7 @@ struct TargetRaceCard: View {
                             .foregroundColor(.primary)
 
                         Text("\(daysRemaining)")
-                            .font(.system(size: 40, weight: .bold))
+                            .font(AppFont.systemScaled(size: 40, weight: .bold))
                             .foregroundColor(.blue)
 
                         Text(NSLocalizedString("target_race_card.days_unit", comment: "天"))
@@ -83,7 +83,7 @@ struct TargetRaceCard: View {
                     // 目標時間
                     VStack(spacing: 8) {
                         Text(formatTime(target.targetTime))
-                            .font(.system(size: 28, weight: .bold))
+                            .font(AppFont.systemScaled(size: 28, weight: .bold))
                             .foregroundColor(.primary)
 
                         Text(NSLocalizedString("target_race_card.target_finish_time", comment: "目標時間"))
@@ -103,7 +103,7 @@ struct TargetRaceCard: View {
                     // 目標配速
                     VStack(spacing: 8) {
                         Text(target.targetPace)
-                            .font(.system(size: 28, weight: .bold))
+                            .font(AppFont.systemScaled(size: 28, weight: .bold))
                             .foregroundColor(.primary)
 
                         Text(NSLocalizedString("target_race_card.target_pace", comment: "目標配速"))

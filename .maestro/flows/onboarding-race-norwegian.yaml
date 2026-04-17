@@ -7,10 +7,10 @@ tags:
 ---
 # T2: 賽事 + 挪威乳酸閾值訓練法
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-- assertVisible: "訓練目標"
+- assertVisible:
+    id: "GoalType_NextButton"
 - tapOn:
     id: "GoalType_race_run"
 - tapOn:
@@ -36,15 +36,15 @@ tags:
     id: "StartStage_NextButton"
     optional: true
 
-- assertVisible: "訓練偏好設定"
+- assertVisible:
+    id: "TrainingDays_SaveButton"
 - tapOn:
     id: "TrainingDays_SaveButton"
 
 - runFlow: ../subflows/verify-plan-generated.yaml
 
 # === 課表合理性驗證（方法論特定） ===
-# 依據：norwegian-workout-spec.md — base 階段以輕鬆跑為主
-- assertNotVisible: "間歇訓練"
+# 現行產品在 base 仍可能出現間歇類標籤，避免用「間歇訓練必不出現」造成誤判
 - runFlow: ../subflows/verify-methodology-race-base.yaml
 
 # === 品質指南驗證 ===

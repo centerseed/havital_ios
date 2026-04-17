@@ -10,9 +10,9 @@ struct ExercisesListView: View {
             // 標題
             HStack(spacing: 4) {
                 Text("💪")
-                    .font(.caption)
+                    .font(AppFont.caption())
                 Text(NSLocalizedString("training.exercises", comment: "Exercises"))
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .fontWeight(.semibold)
             }
 
@@ -70,13 +70,13 @@ private struct ExerciseRowView: View {
         HStack(alignment: .top, spacing: 6) {
             // 序號
             Text("\(index).")
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .frame(width: 20, alignment: .leading)
 
             // 動作名稱
             Text(exercise.name)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.primary)
 
             Spacer()
@@ -85,25 +85,25 @@ private struct ExerciseRowView: View {
             HStack(spacing: 6) {
                 if let sets = exercise.sets {
                     Text("\(sets)" + NSLocalizedString("training.sets_unit", comment: "Sets"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
                 if let reps = exercise.reps, !reps.isEmpty {
                     Text("\(reps)" + NSLocalizedString("training.reps_unit", comment: "Reps"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
                 if let duration = exercise.durationSeconds {
                     Text("\(duration)" + NSLocalizedString("training.seconds_unit", comment: "Seconds"))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
 
                 if let weight = exercise.weightKg {
                     Text(String(format: "%.1fkg", weight))
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -113,7 +113,7 @@ private struct ExerciseRowView: View {
         // 動作描述（如果有）
         if let desc = exercise.description, !desc.isEmpty {
             Text(desc)
-                .font(.caption2)
+                .font(AppFont.caption2())
                 .foregroundColor(.secondary)
                 .padding(.leading, 26)
         }

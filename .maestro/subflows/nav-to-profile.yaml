@@ -5,10 +5,38 @@ appId: com.havital.Havital.dev
 # 後置：在個人資料頁（可見「個人資料」或「Profile」標題）
 # 支援：繁體中文 / English / 日本語（プロフィール）
 
-# 點擊右側選單（ellipsis.circle 按鈕）
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|完了"
+    optional: true
+
+# 點擊右側選單（優先使用穩定 id）
+- tapOn:
+    id: "TrainingPlan_MenuButton"
+    optional: true
+
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+
 - tapOn:
     text: "更多|More|もっと見る"
+    optional: true
+
+- tapOn:
+    id: "TrainingPlan_Menu_Profile"
+    optional: true
 
 # 進入個人資料頁（繁中 / English / 日文）
 - tapOn:
     text: "個人資料|Profile|プロフィール"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "Profile_Screen"
+    timeout: 15000
+    optional: true

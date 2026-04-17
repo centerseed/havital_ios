@@ -26,6 +26,10 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
         DependencyContainer.shared.resolve()
     }
 
+    private var subscriptionRepository: SubscriptionRepository {
+        DependencyContainer.shared.resolve()
+    }
+
     init(
         appStateManager: any AppStateManagerProtocol = AppStateManager.shared,
         workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
@@ -122,9 +126,13 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
         // 更新上次活躍的週一
         lastActiveMonday = currentMonday
 
-        _ = try? await workoutRepository.refreshWorkouts()
+        async let refreshWorkoutsTask = workoutRepository.refreshWorkouts()
+        async let refreshSubscriptionTask = subscriptionRepository.refreshStatus()
+
+        _ = try? await refreshWorkoutsTask
+        _ = try? await refreshSubscriptionTask
     }
-    
+
     /// 手動刷新數據（下拉刷新等）
     func refreshData() async {
         // 只有在 App 就緒狀態才執行刷新

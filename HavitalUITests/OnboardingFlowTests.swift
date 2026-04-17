@@ -11,135 +11,133 @@ final class OnboardingFlowTests: OnboardingE2ETestBase {
 
     // MARK: - Test 1: Full V2 Race Target Flow
 
-    /// Login → Intro → DataSource → HeartRateZone → PersonalBest → WeeklyDistance
-    /// → GoalType(race_run) → RaceSetup → StartStage → Methodology → TrainingWeeks → TrainingDays → TrainingOverview
+    /// Full race-run onboarding flow should complete and land on main content/fallback screen.
     func testFullOnboarding_V2_RaceTarget() {
-        // Common steps: Login → Intro → DataSource → HeartRateZone → PersonalBest → WeeklyDistance
-        performCommonSteps()
-
-        // GoalType: select race_run
-        goalTypePage.selectGoalType("race_run")
-        goalTypePage.tapNext()
-
-        // RaceSetup: use defaults (marathon 4h) and save
-        raceSetupPage.tapSave()
-
-        // StartStage: may or may not appear — tap next if visible
-        let startStageNext = app.descendants(matching: .any)["StartStage_NextButton"]
-        if startStageNext.waitForExistence(timeout: 10) {
-            startStagePage.tapNext()
-        }
-
-        // Methodology: select paceriz if page appears
-        let methodologyNext = app.descendants(matching: .any)["Methodology_NextButton"]
-        if methodologyNext.waitForExistence(timeout: 10) {
-            methodologyPage.selectMethodology("paceriz")
-            methodologyPage.tapNext()
-        }
-
-        // TrainingWeeks: may appear for race target — select if visible
-        let trainingWeeksNext = app.descendants(matching: .any)["TrainingWeeks_NextButton"]
-        if trainingWeeksNext.waitForExistence(timeout: 5) {
-            trainingWeeksPage.selectWeeks(12)
-            trainingWeeksPage.tapNext()
-        }
-
-        // TrainingDays: select Mon/Wed/Fri/Sat (need >= 3 days)
-        let trainingSave = app.descendants(matching: .any)["TrainingDays_SaveButton"]
-        XCTAssertTrue(trainingSave.waitForExistence(timeout: 10),
-                      "TrainingDays page should appear")
-        trainingDaysPage.deselectAllThenSelect([1, 3, 5, 6])
-        trainingDaysPage.tapSave()
-
-        // TrainingOverview: verify generate button exists
-        trainingOverviewPage.verifyWeeksLabel()
-        let generateButton = app.descendants(matching: .any)["TrainingOverview_GenerateButton"]
-        XCTAssertTrue(generateButton.waitForExistence(timeout: 15),
-                      "TrainingOverview should show Generate button")
+        runOnboardingFlow(config: TestMatrix.raceRunPacerizMarathon)
+        verifyOnboardingComplete()
     }
 
     // MARK: - Test 2: Full V2 Non-Race Target Flow
 
-    /// Login → Intro → DataSource → HeartRateZone → PersonalBest → WeeklyDistance
-    /// → GoalType(maintenance) → Methodology → TrainingWeeks → TrainingDays → TrainingOverview
+    /// Full non-race onboarding flow should complete and land on main content/fallback screen.
     func testFullOnboarding_V2_NonRaceTarget() {
-        performCommonSteps()
-
-        // GoalType: select maintenance (non-race)
-        goalTypePage.selectGoalType("maintenance")
-        goalTypePage.tapNext()
-
-        // No RaceSetup or StartStage for non-race targets
-
-        // Methodology: select if page appears
-        let methodologyNext = app.descendants(matching: .any)["Methodology_NextButton"]
-        if methodologyNext.waitForExistence(timeout: 10) {
-            methodologyPage.selectMethodology("paceriz")
-            methodologyPage.tapNext()
-        }
-
-        // TrainingWeeks: select 12 weeks
-        let trainingWeeksNext = app.descendants(matching: .any)["TrainingWeeks_NextButton"]
-        if trainingWeeksNext.waitForExistence(timeout: 10) {
-            trainingWeeksPage.selectWeeks(12)
-            trainingWeeksPage.tapNext()
-        }
-
-        // TrainingDays: select Tue/Thu/Sat
-        let trainingSave = app.descendants(matching: .any)["TrainingDays_SaveButton"]
-        XCTAssertTrue(trainingSave.waitForExistence(timeout: 10),
-                      "TrainingDays page should appear")
-        trainingDaysPage.deselectAllThenSelect([2, 4, 6])
-        trainingDaysPage.tapSave()
-
-        // TrainingOverview: verify generate button
-        trainingOverviewPage.verifyWeeksLabel()
-        let generateButton = app.descendants(matching: .any)["TrainingOverview_GenerateButton"]
-        XCTAssertTrue(generateButton.waitForExistence(timeout: 15),
-                      "TrainingOverview should show Generate button")
+        runOnboardingFlow(config: TestMatrix.maintenancePaceriz12w)
+        verifyOnboardingComplete()
     }
 
     // MARK: - Test 3: Step Navigation Smoke Test
 
-    /// Lightweight test: verify each onboarding step's key element is visible
+    /// Verify the optimized race onboarding exposes the expected UI contract on each critical screen.
     func testOnboarding_StepNavigation_EachStepVisible() {
-        // Login
-        let demoButton = app.buttons["Login_DemoButton"]
-        XCTAssertTrue(demoButton.waitForExistence(timeout: 10), "Login page should show Demo button")
         loginPage.loginWithDemo()
 
-        // Intro (demo login API + auth state + UI transition takes time)
-        let startButton = app.buttons["OnboardingStartButton"]
-        XCTAssertTrue(startButton.waitForExistence(timeout: 20), "Intro page should appear")
-        introPage.tapStart()
+        let introStartButton = app.buttons["OnboardingStartButton"].firstMatch
+        if introStartButton.waitForExistence(timeout: 5) {
+            introPage.verifyLayout()
+        }
+        introPage.enterOnboardingIfNeeded()
 
-        // DataSource
-        let appleHealth = app.descendants(matching: .any)["DataSourceOption_appleHealth"]
-        XCTAssertTrue(appleHealth.waitForExistence(timeout: 5), "DataSource page should show Apple Health option")
+        dataSourcePage.verifyLayout()
         dataSourcePage.selectAppleHealth()
         dataSourcePage.tapContinue()
 
-        // HealthKit auth is skipped via -skipHealthKitAuth launch argument
+        handleHealthKitAuthSheet()
         sleep(1)
 
-        // HeartRateZone
-        let hrContinue = app.descendants(matching: .any)["HeartRateZone_ContinueButton"]
-        XCTAssertTrue(hrContinue.waitForExistence(timeout: 10), "HeartRateZone page should appear")
-        heartRateZonePage.tapContinue()
+        let hrContinue = app.buttons["HeartRateZone_ContinueButton"].firstMatch
+        if hrContinue.waitForExistence(timeout: 15) {
+            heartRateZonePage.verifyLayout()
+            heartRateZonePage.tapContinue()
+        }
 
-        // PersonalBest
-        let pbContinue = app.descendants(matching: .any)["PersonalBest_ContinueButton"]
-        XCTAssertTrue(pbContinue.waitForExistence(timeout: 10), "PersonalBest page should appear")
-        personalBestPage.tapContinue()
+        let pbContinue = app.buttons["PersonalBest_ContinueButton"].firstMatch
+        if pbContinue.waitForExistence(timeout: 15) {
+            personalBestPage.verifyLayout()
+            personalBestPage.tapContinue()
+        }
 
-        // WeeklyDistance
-        let wdContinue = app.descendants(matching: .any)["WeeklyDistance_ContinueButton"]
-        XCTAssertTrue(wdContinue.waitForExistence(timeout: 15), "WeeklyDistance page should appear")
-        weeklyDistancePage.tapContinue()
+        let wdContinue = app.descendants(matching: .any)["WeeklyDistance_ContinueButton"].firstMatch
+        if wdContinue.waitForExistence(timeout: 15) {
+            weeklyDistancePage.verifyLayout()
+            weeklyDistancePage.tapContinue()
+        }
 
-        // GoalType
-        let goalNext = app.descendants(matching: .any)["GoalType_NextButton"]
-        XCTAssertTrue(goalNext.waitForExistence(timeout: 15), "GoalType page should appear")
-        // Don't proceed further — smoke test verified all common steps are visible
+        goalTypePage.verifyLayout()
+        let selected = goalTypePage.selectGoalTypeIfVisible("race_run", timeout: 10)
+        XCTAssertTrue(selected, "Race goal type should be selectable")
+        goalTypePage.tapNext()
+
+        raceSetupPage.verifyOptimizedLayout()
+        raceSetupPage.tapSave()
+
+        let methodologyScreen = app.descendants(matching: .any)["Methodology_Screen"].firstMatch
+        if methodologyScreen.waitForExistence(timeout: 10) {
+            methodologyPage.verifyLayout()
+            _ = methodologyPage.selectMethodologyIfVisible("paceriz", timeout: 4)
+            methodologyPage.tapNext()
+        }
+
+        let startStageScreen = app.descendants(matching: .any)["StartStage_Screen"].firstMatch
+        if startStageScreen.waitForExistence(timeout: 8) {
+            startStagePage.verifyLayout()
+            startStagePage.tapNext()
+        }
+
+        trainingDaysPage.verifyLayout()
+        trainingDaysPage.deselectAllThenSelect([1, 3, 5, 6])
+        XCTAssertTrue(trainingDaysPage.tapSaveWithScroll(), "Training days screen should allow saving")
+        trainingOverviewPage.verifyLayout()
+    }
+
+    /// Optimized race setup should keep a fixed CTA and expose at least one actionable entry point.
+    func testRaceSetup_OptimizedLayout_ShowsPrimaryActions() {
+        navigateToRaceSetup()
+        captureScreenshot("race-setup-screen")
+        raceSetupPage.verifyOptimizedLayout()
+    }
+
+    /// Race onboarding after race setup should still reach methodology / overview screens under Japanese longer labels.
+    func testRaceRun_AfterRaceSetup_ReachesTrainingOverview() {
+        navigateToRaceSetup()
+        captureScreenshot("race-setup-screen")
+        advanceRaceFlowToTrainingOverview()
+    }
+
+    /// Maintenance onboarding should expose training weeks and intended race distance before training preferences.
+    func testOnboarding_MaintenanceFlow_UIContracts_AllCriticalScreens() {
+        performCommonSteps()
+
+        goalTypePage.verifyLayout()
+        let selected = goalTypePage.selectGoalTypeIfVisible("maintenance", timeout: 10)
+        XCTAssertTrue(selected, "Maintenance goal type should be selectable")
+        goalTypePage.tapNext()
+
+        let methodologyScreen = app.descendants(matching: .any)["Methodology_Screen"].firstMatch
+        XCTAssertTrue(methodologyScreen.waitForExistence(timeout: 10), "Maintenance flow should show methodology selection")
+        methodologyPage.verifyLayout()
+        XCTAssertTrue(
+            methodologyPage.ensureMethodologySelection(preferred: "paceriz", timeout: 8),
+            "Maintenance flow should expose a selectable methodology or a ready default selection"
+        )
+        methodologyPage.tapNext()
+
+        XCTAssertTrue(trainingWeeksPage.isStepVisible(timeout: 12), "Maintenance flow should show training weeks selection")
+        trainingWeeksPage.verifyLayout()
+        trainingWeeksPage.selectWeeks(12)
+        trainingWeeksPage.tapNext()
+
+        let maintenanceRaceDistanceScreen = app.descendants(matching: .any)["MaintenanceRaceDistance_Screen"].firstMatch
+        XCTAssertTrue(maintenanceRaceDistanceScreen.waitForExistence(timeout: 10), "Maintenance flow should show intended race distance selection")
+        maintenanceRaceDistancePage.verifyLayout()
+        XCTAssertTrue(
+            maintenanceRaceDistancePage.selectOptionIfVisible("halfMarathon", timeout: 4),
+            "Maintenance intended race distance option should be selectable"
+        )
+        maintenanceRaceDistancePage.tapNext()
+
+        trainingDaysPage.verifyLayout()
+        trainingDaysPage.deselectAllThenSelect([1, 2, 4, 5, 6])
+        XCTAssertTrue(trainingDaysPage.tapSaveWithScroll(), "Training days screen should allow saving")
+        trainingOverviewPage.verifyLayout()
     }
 }

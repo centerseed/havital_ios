@@ -3,35 +3,49 @@
 //  Havital
 //
 //  Personal Best onboarding step
-//  Refactored to use OnboardingFeatureViewModel (Clean Architecture)
+//  Refactored to use shared OnboardingFeatureViewModel via @EnvironmentObject
 //
 
 import SwiftUI
 
 struct PersonalBestView: View {
-    @StateObject private var viewModel: OnboardingFeatureViewModel
+    @EnvironmentObject private var viewModel: OnboardingFeatureViewModel
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
-    // Clean Architecture: Use AuthenticationViewModel from environment
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
 
     let targetDistance: Double
 
-    init(targetDistance: Double) {
-        self.targetDistance = targetDistance
-        _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
-    }
-
     var body: some View {
-        ZStack {
-            Form {
-                Section(
-                    header: Text(NSLocalizedString("onboarding.personal_best_title", comment: "Personal Best Title")).padding(.top, 10),
-                    footer: Text(NSLocalizedString("onboarding.personal_best_description", comment: "Personal Best Description"))
-                ) {
-                    Toggle(NSLocalizedString("onboarding.has_personal_best", comment: "Has Personal Best"), isOn: $viewModel.hasPersonalBest)
-                    .accessibilityIdentifier("PersonalBest_HasPBToggle")
+        OnboardingPageTemplate(
+            ctaTitle: NSLocalizedString("onboarding.next", comment: "Next"),
+            ctaEnabled: !viewModel.isLoading && (!viewModel.hasPersonalBest || totalTimeInSeconds > 0),
+            isLoading: viewModel.isLoading,
+            skipTitle: nil,
+            ctaAccessibilityId: "PersonalBest_ContinueButton",
+            ctaAction: {
+                Task {
+                    let success = await viewModel.updatePersonalBest()
+                    if success {
+                        coordinator.navigate(to: .weeklyDistance)
+                    }
+                }
+            },
+            skipAction: nil
+        ) {
+            VStack(alignment: .leading, spacing: OnboardingLayout.sectionSpacing) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(NSLocalizedString("onboarding.personal_best_title", comment: "Personal Best Title"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                        .padding(.top, 10)
 
-                    // Show quick select list if user has existing PBs
+                    Toggle(NSLocalizedString("onboarding.has_personal_best", comment: "Has Personal Best"), isOn: $viewModel.hasPersonalBest)
+                        .padding(.vertical, 4)
+                        .accessibilityIdentifier("PersonalBest_HasPBToggle")
+
+                    Divider()
+
                     if viewModel.hasPersonalBest && !viewModel.availablePersonalBests.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(NSLocalizedString("onboarding.select_existing_pb", comment: "Or select existing personal best"))
@@ -78,10 +92,19 @@ struct PersonalBestView: View {
                         }
                         .padding(.vertical, 8)
                     }
+
+                    Text(NSLocalizedString("onboarding.personal_best_description", comment: "Personal Best Description"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
                 }
 
                 if viewModel.hasPersonalBest {
-                    Section(header: Text(NSLocalizedString("onboarding.personal_best_details", comment: "Personal Best Details"))) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(NSLocalizedString("onboarding.personal_best_details", comment: "Personal Best Details"))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+
                         Text(NSLocalizedString("onboarding.select_distance_time", comment: "Select Distance and Time"))
                             .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
@@ -94,42 +117,54 @@ struct PersonalBestView: View {
                             }
                         }
                         .pickerStyle(.menu)
+                        .padding(.vertical, 4)
 
-                        HStack {
+                        Divider()
+
+                        HStack(alignment: .center, spacing: 4) {
                             Picker(NSLocalizedString("onboarding.time_hours", comment: "Hours"), selection: $viewModel.personalBestHours) {
                                 ForEach(0...6, id: \.self) { hour in
-                                    Text("\(hour)")
+                                    Text("\(hour)").tag(hour)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: 120)
+                            .clipped()
+
                             Text("hrs")
                                 .fixedSize()
                                 .font(AppFont.caption())
+                                .foregroundColor(.secondary)
 
                             Picker(NSLocalizedString("onboarding.time_minutes", comment: "Minutes"), selection: $viewModel.personalBestMinutes) {
                                 ForEach(0...59, id: \.self) { minute in
-                                    Text("\(minute)")
+                                    Text(String(format: "%02d", minute)).tag(minute)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: 120)
+                            .clipped()
+
                             Text("min")
                                 .fixedSize()
                                 .font(AppFont.caption())
+                                .foregroundColor(.secondary)
 
                             Picker(NSLocalizedString("onboarding.time_seconds", comment: "Seconds"), selection: $viewModel.personalBestSeconds) {
                                 ForEach(0...59, id: \.self) { second in
-                                    Text("\(second)")
+                                    Text(String(format: "%02d", second)).tag(second)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: 120)
+                            .clipped()
+
                             Text("sec")
                                 .fixedSize()
                                 .font(AppFont.caption())
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 4)
 
                         if !viewModel.currentPace.isEmpty {
                             HStack {
@@ -145,23 +180,26 @@ struct PersonalBestView: View {
                         }
                     }
                 } else {
-                    Section(header: Text(NSLocalizedString("onboarding.skip_personal_best", comment: "Skip Personal Best"))) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(NSLocalizedString("onboarding.skip_personal_best", comment: "Skip Personal Best"))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+
                         Text(NSLocalizedString("onboarding.skip_personal_best_message", comment: "Skip Personal Best Message"))
                             .foregroundColor(.secondary)
                     }
                 }
 
                 if let error = viewModel.error {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                    }
+                    Text(error)
+                        .foregroundColor(.red)
                 }
             }
         }
+        .accessibilityIdentifier("PersonalBest_Screen")
         .navigationTitle(NSLocalizedString("onboarding.personal_best_title_nav", comment: "Personal Best"))
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
+        .navigationBarBackButtonHidden(coordinator.isReonboarding && coordinator.navigationPath.isEmpty)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 if coordinator.isReonboarding && coordinator.navigationPath.isEmpty {
@@ -170,40 +208,10 @@ struct PersonalBestView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                } else if !coordinator.navigationPath.isEmpty {
-                    Button {
-                        coordinator.goBack()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text(NSLocalizedString("common.back", comment: "Back"))
-                        }
-                    }
                 }
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    Task {
-                        let success = await viewModel.updatePersonalBest()
-                        if success {
-                            coordinator.navigate(to: .weeklyDistance)
-                        }
-                    }
-                }) {
-                    HStack {
-                        if viewModel.isLoading {
-                            ProgressView()
-                        } else {
-                            Text(NSLocalizedString("onboarding.next", comment: "Next"))
-                        }
-                    }
-                }
-                .disabled(viewModel.isLoading || (viewModel.hasPersonalBest && totalTimeInSeconds == 0))
-                .accessibilityIdentifier("PersonalBest_ContinueButton")
             }
         }
         .task {
-            // Set target distance and load existing PBs
             viewModel.targetDistance = targetDistance
             if targetDistance <= 5 {
                 viewModel.selectedPBDistance = "3"

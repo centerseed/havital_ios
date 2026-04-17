@@ -16,7 +16,10 @@ struct AppDependencyBootstrap {
         // - HTTPClient
         // - APIParser
 
-        // Step 2: Feature Modules (按依賴順序註冊)
+        // Step 2: Analytics (early — singletons use lazy resolve, but register before any tracking)
+        registerAnalyticsModule()
+
+        // Step 3: Feature Modules (按依賴順序註冊)
         registerFeatureModules()
 
         Logger.debug("[Bootstrap] ✅ 所有模組依賴註冊完成")
@@ -41,11 +44,21 @@ struct AppDependencyBootstrap {
         // 5. Target 模組 (獨立模組)
         registerTargetModule()
 
-        // 6. TrainingPlan V1 模組 (依賴 Workout, Target)
+        // 5.5 TrainingVersionRouter (依賴 UserProfile)
+        // 必須在 V1 模組前註冊，因為 V1RepositoryGuardDecorator 需要 router
+        registerTrainingVersionRouterModule()
+
+        // 6. TrainingPlan V1 模組 (依賴 Workout, Target, TrainingVersionRouter)
         registerTrainingPlanModule()
 
         // 7. TrainingPlanV2 模組 (依賴 UserProfile)
         registerTrainingPlanV2Module()
+
+        // 8. Subscription 模組 (Authentication 之後)
+        registerSubscriptionModule()
+
+        // 9. Announcement 模組 (獨立模組)
+        registerAnnouncementModule()
     }
 
     // MARK: - Individual Module Registration
@@ -110,6 +123,18 @@ struct AppDependencyBootstrap {
         Logger.debug("[Bootstrap] ✅ Target module registered")
     }
 
+    /// 註冊 TrainingVersionRouter（早註冊）
+    /// 必須在 V1 模組前，讓 V1RepositoryGuardDecorator 可解析 router
+    private static func registerTrainingVersionRouterModule() {
+        guard !DependencyContainer.shared.isRegistered(TrainingVersionRouter.self) else {
+            Logger.debug("[Bootstrap] TrainingVersionRouter already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerTrainingVersionRouter()
+        Logger.debug("[Bootstrap] ✅ TrainingVersionRouter registered (early)")
+    }
+
     /// 註冊 TrainingPlan V1 模組
     /// 包含: TrainingPlanRepository, DataSources, UseCases
     private static func registerTrainingPlanModule() {
@@ -132,6 +157,43 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerTrainingPlanV2Dependencies()
         Logger.debug("[Bootstrap] ✅ TrainingPlanV2 module registered")
+    }
+
+    /// 註冊 Subscription 模組
+    /// 包含: SubscriptionRepository, DataSources
+    private static func registerSubscriptionModule() {
+        guard !DependencyContainer.shared.isRegistered(SubscriptionRepository.self) else {
+            Logger.debug("[Bootstrap] Subscription module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerSubscriptionModule()
+        Logger.debug("[Bootstrap] ✅ Subscription module registered")
+    }
+
+    // MARK: - Analytics Module Registration
+
+    /// 註冊 Analytics 模組
+    private static func registerAnalyticsModule() {
+        guard !DependencyContainer.shared.isRegistered(AnalyticsService.self) else {
+            Logger.debug("[Bootstrap] Analytics module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerAnalyticsModule()
+        Logger.debug("[Bootstrap] ✅ Analytics module registered")
+    }
+
+    /// 註冊 Announcement 模組
+    /// 包含: AnnouncementRepository, AnnouncementRemoteDataSource
+    private static func registerAnnouncementModule() {
+        guard !DependencyContainer.shared.isRegistered(AnnouncementRepository.self) else {
+            Logger.debug("[Bootstrap] Announcement module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerAnnouncementModule()
+        Logger.debug("[Bootstrap] ✅ Announcement module registered")
     }
 
     // MARK: - Testing Support

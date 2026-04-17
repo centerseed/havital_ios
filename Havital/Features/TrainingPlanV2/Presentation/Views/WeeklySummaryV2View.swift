@@ -22,7 +22,7 @@ private enum SectionID: Hashable {
 /// V2 週訓練摘要畫面（漸進式揭露單頁 ScrollView）
 /// Hero 成績區塊永遠展開，三個折疊 section 按需展開
 struct WeeklySummaryV2View: View {
-    @ObservedObject var viewModel: TrainingPlanV2ViewModel
+    var viewModel: TrainingPlanV2ViewModel
     let weekOfPlan: Int
     var onGenerateNextWeek: (() -> Void)?
     var onSetNewGoal: (() -> Void)?
@@ -124,7 +124,7 @@ struct WeeklySummaryV2View: View {
                 Text(hasAdjustments
                     ? NSLocalizedString("training.accept_adjustments_and_generate", comment: "接受調整並產生下週課表")
                     : NSLocalizedString("training.generate_next_week_plan", comment: "產生下週課表"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -136,7 +136,7 @@ struct WeeklySummaryV2View: View {
         if let onSetNewGoal {
             VStack(spacing: 12) {
                 Text(NSLocalizedString("training.cycle_completed_message", comment: "Great job! Your training cycle is complete."))
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
@@ -146,7 +146,7 @@ struct WeeklySummaryV2View: View {
                         Image(systemName: "target")
                         Text(NSLocalizedString("training.set_new_goal", comment: "Set New Goal"))
                     }
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -200,7 +200,7 @@ struct WeeklySummaryV2View: View {
             ProgressView()
                 .padding(.top, 60)
             Text(NSLocalizedString("common.loading", comment: "載入中..."))
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -211,12 +211,12 @@ struct WeeklySummaryV2View: View {
     private func errorView(_ error: DomainError) -> some View {
         VStack(spacing: Layout.contentSpacing) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 48))
+                .font(AppFont.systemScaled(size: 48))
                 .foregroundColor(.orange)
                 .padding(.top, 40)
 
             Text(error.localizedDescription)
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -227,7 +227,7 @@ struct WeeklySummaryV2View: View {
                 }
             }) {
                 Text(NSLocalizedString("common.retry", comment: "重試"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 32)
@@ -243,16 +243,16 @@ struct WeeklySummaryV2View: View {
     private var emptyView: some View {
         VStack(spacing: Layout.contentSpacing) {
             Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 48))
+                .font(AppFont.systemScaled(size: 48))
                 .foregroundColor(.secondary)
                 .padding(.top, 40)
 
             Text(NSLocalizedString("training.no_weekly_summary", comment: "尚無週摘要"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             Text(NSLocalizedString("training.no_weekly_summary_hint", comment: "本週摘要將在訓練結束後自動產生"))
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -284,25 +284,25 @@ private struct CollapsibleSectionV2<Content: View>: View {
                 HStack(spacing: Layout.itemSpacing) {
                     Image(systemName: icon)
                         .foregroundColor(iconColor)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .frame(width: 22)
 
                     Text(title)
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.primary)
 
                     Spacer()
 
                     if !isExpanded {
                         Text(preview)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
 
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(.easeInOut(duration: 0.25), value: isExpanded)
@@ -360,9 +360,9 @@ private struct CompletionSectionV2: View {
             HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.blue)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Text(NSLocalizedString("training.completion", comment: "訓練完成度"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
             }
@@ -381,7 +381,7 @@ private struct CompletionSectionV2: View {
                         .rotationEffect(.degrees(-90))
 
                     Text("\(Int(completion.percentage))%")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(AppFont.systemScaled(size: 22, weight: .bold))
                         .foregroundColor(.primary)
                 }
 
@@ -391,9 +391,9 @@ private struct CompletionSectionV2: View {
                     HStack(spacing: Layout.iconSpacing) {
                         Image(systemName: "figure.run")
                             .foregroundColor(.blue)
-                            .font(.subheadline)
+                            .font(AppFont.subheadline())
                         Text(String(format: "%.1f / %.1f km", completion.completedKm, completion.plannedKm))
-                            .font(.subheadline)
+                            .font(AppFont.subheadline())
                             .foregroundColor(.primary)
                     }
 
@@ -401,15 +401,15 @@ private struct CompletionSectionV2: View {
                     HStack(spacing: Layout.iconSpacing) {
                         Image(systemName: "calendar.badge.checkmark")
                             .foregroundColor(.green)
-                            .font(.subheadline)
+                            .font(AppFont.subheadline())
                         Text(String(format: "%d / %d %@", completion.completedSessions, completion.plannedSessions, NSLocalizedString("training.sessions", comment: "場")))
-                            .font(.subheadline)
+                            .font(AppFont.subheadline())
                             .foregroundColor(.primary)
                     }
 
                     // 評語
                     Text(completion.evaluation)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
@@ -495,9 +495,9 @@ private struct IntensityDistributionCardV2: View {
             HStack(spacing: Layout.iconSpacing) {
                 Image(systemName: "flame.fill")
                     .foregroundColor(.orange)
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
                 Text(NSLocalizedString("training.intensity_distribution", comment: "強度分配"))
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
             }
@@ -528,19 +528,19 @@ private struct IntensityDistributionCardV2: View {
             // 標籤
             HStack(spacing: Layout.contentSpacing) {
                 Label(String(format: "%.0f%%", intensity.easyPercentage), systemImage: "circle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.green)
                 Label(String(format: "%.0f%%", intensity.moderatePercentage), systemImage: "circle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.orange)
                 Label(String(format: "%.0f%%", intensity.hardPercentage), systemImage: "circle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.red)
             }
 
             if let evaluation = intensity.evaluation {
                 Text(evaluation)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }
@@ -568,9 +568,9 @@ private struct AnalysisCardV2: View {
             HStack(spacing: Layout.iconSpacing) {
                 Image(systemName: icon)
                     .foregroundColor(iconColor)
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
                 Text(title)
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
             }
@@ -578,11 +578,11 @@ private struct AnalysisCardV2: View {
             ForEach(values, id: \.0) { label, value in
                 HStack {
                     Text(label)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
                     Spacer()
                     Text(value)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
                 }
@@ -590,7 +590,7 @@ private struct AnalysisCardV2: View {
 
             if let evaluation = evaluation {
                 Text(evaluation)
-                    .font(.caption)
+                    .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
         }
@@ -623,7 +623,7 @@ private struct HighlightsSectionV2: View {
             if !highlights.achievements.isEmpty {
                 VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                     Text(NSLocalizedString("training.achievements", comment: "成就"))
-                        .font(.subheadline)
+                        .font(AppFont.subheadline())
                         .fontWeight(.medium)
                         .foregroundColor(.green)
 
@@ -639,7 +639,7 @@ private struct HighlightsSectionV2: View {
             if showImprovements && !highlights.areasForImprovement.isEmpty {
                 VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                     Text(NSLocalizedString("training.areas_for_improvement", comment: "待改善"))
-                        .font(.subheadline)
+                        .font(AppFont.subheadline())
                         .fontWeight(.medium)
                         .foregroundColor(.orange)
 
@@ -659,10 +659,10 @@ private struct HighlightsSectionV2: View {
                 HStack(alignment: .top, spacing: Layout.itemSpacing) {
                     Image(systemName: icon)
                         .foregroundColor(color)
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .frame(width: 16)
                     Text(item)
-                        .font(.subheadline)
+                        .font(AppFont.subheadline())
                         .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -682,9 +682,9 @@ private struct ImprovementsSectionV2: View {
             HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "arrow.up.circle.fill")
                     .foregroundColor(.orange)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Text(NSLocalizedString("training.areas_for_improvement_title", comment: "待改善"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
             }
@@ -694,10 +694,10 @@ private struct ImprovementsSectionV2: View {
                     HStack(alignment: .top, spacing: Layout.itemSpacing) {
                         Image(systemName: "arrow.up.circle.fill")
                             .foregroundColor(.orange)
-                            .font(.caption)
+                            .font(AppFont.caption())
                             .frame(width: 16)
                         Text(area)
-                            .font(.subheadline)
+                            .font(AppFont.subheadline())
                             .foregroundColor(.primary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -718,16 +718,16 @@ private struct AdjustmentsSectionV2: View {
             HStack(spacing: Layout.itemSpacing) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .foregroundColor(.blue)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Text(NSLocalizedString("training.next_week_adjustments", comment: "下週調整建議"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
             }
 
             // 摘要
             Text(adjustments.summary)
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -767,12 +767,12 @@ private struct AdjustmentItemCardV2: View {
             HStack {
                 Image(systemName: categoryIcon)
                     .foregroundColor(priorityColor)
-                    .font(.subheadline)
+                    .font(AppFont.subheadline())
 
                 Spacer()
 
                 Text(item.priority.uppercased())
-                    .font(.system(size: 10, weight: .bold))
+                    .font(AppFont.systemScaled(size: 12, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -782,14 +782,14 @@ private struct AdjustmentItemCardV2: View {
 
             // 第二行：content text
             Text(item.content)
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
             // 第三行：reason
             Text(item.reason)
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

@@ -1,0 +1,20 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP C1: 刪除當前週課表，觸發「產生週課表」流程
+# 前提：App 已在 Training Plan V2 頁面，用戶已登入
+
+# 點擊右上角選單
+- tapOn:
+    id: "TrainingPlanV2_MenuButton"
+    optional: true
+
+# 若沒有 accessibility id，改用 ellipsis.circle 的系統圖示 label
+- tapOn:
+    text: "ellipsis.circle"
+    optional: true
+
+# 等選單出現
+- extendedWaitUntil:
+    visible: "Debug 工具"
+    timeout: 5000
+    optional: true

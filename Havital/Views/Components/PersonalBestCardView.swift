@@ -61,7 +61,7 @@ struct PersonalBestCardView: View {
                 .foregroundColor(.secondary)
 
             Text(record.formattedTime())
-                .font(.system(size: 20, weight: .bold))
+                .font(AppFont.systemScaled(size: 20, weight: .bold))
                 .foregroundColor(.blue)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

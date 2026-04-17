@@ -74,7 +74,7 @@ struct IntensityProgressView: View {
         VStack(spacing: 4) {
             HStack(alignment: .center) {
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(AppFont.systemScaled(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -83,19 +83,19 @@ struct IntensityProgressView: View {
                 
                 HStack(spacing: 4) { // A small spacing between main text and annotation
                     Text(state.mainText)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppFont.systemScaled(size: 12, weight: .medium))
                         .foregroundColor(state.valueColor)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.85)
                         .fixedSize(horizontal: false, vertical: true)
                         .layoutPriority(1) // Give priority to mainText
 
                     if let annotation = state.annotationText {
                         Text(annotation)
-                            .font(.system(size: 11, weight: .regular)) // Slightly smaller and regular weight
+                            .font(AppFont.systemScaled(size: 11, weight: .regular)) // Slightly smaller and regular weight
                             .foregroundColor(.gray)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.8)
                             .fixedSize(horizontal: false, vertical: true) // Allow annotation to shrink
                     }
                 }

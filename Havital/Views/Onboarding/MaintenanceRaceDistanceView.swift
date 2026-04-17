@@ -26,80 +26,74 @@ struct MaintenanceRaceDistanceView: View {
             case .unsure:       return nil
             }
         }
+
+        var accessibilityId: String {
+            switch self {
+            case .marathon: return "marathon"
+            case .halfMarathon: return "halfMarathon"
+            case .tenK: return "tenK"
+            case .fiveK: return "fiveK"
+            case .unsure: return "unsure"
+            }
+        }
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(NSLocalizedString("onboarding.race_distance.title", comment: "你休賽季後預計參加的目標賽事？"))
-                            .font(AppFont.title2())
-                            .fontWeight(.bold)
+        OnboardingPageTemplate(
+            ctaTitle: NSLocalizedString("onboarding.continue", comment: "下一步"),
+            ctaEnabled: selectedOption != nil,
+            isLoading: false,
+            skipTitle: nil,
+            ctaAccessibilityId: "MaintenanceRaceDistance_NextButton",
+            ctaAction: {
+                saveAndNavigate()
+            },
+            skipAction: nil
+        ) {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(NSLocalizedString("onboarding.race_distance.title", comment: "你休賽季後預計參加的目標賽事？"))
+                        .font(AppFont.title2())
+                        .fontWeight(.bold)
 
-                        Text(NSLocalizedString("onboarding.race_distance.subtitle", comment: "這將幫助我們設定合理的訓練里程碑"))
-                            .font(AppFont.bodySmall())
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 20)
+                    Text(NSLocalizedString("onboarding.race_distance.subtitle", comment: "這將幫助我們設定合理的訓練里程碑"))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 20)
 
-                    VStack(spacing: 12) {
-                        ForEach(RaceDistanceOption.allCases, id: \.self) { option in
-                            Button(action: { selectedOption = option }) {
-                                HStack {
-                                    Text(option.title)
-                                        .font(AppFont.body())
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    if selectedOption == option {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.accentColor)
-                                    } else {
-                                        Image(systemName: "circle")
-                                            .foregroundColor(.secondary)
-                                    }
+                VStack(spacing: 12) {
+                    ForEach(RaceDistanceOption.allCases, id: \.self) { option in
+                        Button(action: { selectedOption = option }) {
+                            HStack {
+                                Text(option.title)
+                                    .font(AppFont.body())
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                if selectedOption == option {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.accentColor)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(selectedOption == option
-                                              ? Color.accentColor.opacity(0.1)
-                                              : Color(UIColor.secondarySystemGroupedBackground))
-                                )
                             }
-                            .padding(.horizontal)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(selectedOption == option
+                                          ? Color.accentColor.opacity(0.1)
+                                          : Color(UIColor.secondarySystemGroupedBackground))
+                            )
                         }
+                        .accessibilityIdentifier("MaintenanceRaceDistance_\(option.accessibilityId)")
                     }
-
-                    Color.clear.frame(height: 100)
                 }
             }
-
-            bottomButton
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("MaintenanceRaceDistance_Screen")
         .navigationTitle(NSLocalizedString("onboarding.race_distance.nav_title", comment: "目標賽事"))
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    @ViewBuilder
-    private var bottomButton: some View {
-        VStack(spacing: 0) {
-            Divider()
-            Button(action: saveAndNavigate) {
-                Text(NSLocalizedString("onboarding.continue", comment: "下一步"))
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .accessibilityIdentifier("MaintenanceRaceDistance_NextButton")
-            .padding(.horizontal)
-            .padding(.vertical, 16)
-        }
-        .background(Color(.systemGroupedBackground))
     }
 
     private func saveAndNavigate() {

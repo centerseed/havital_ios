@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // MARK: - Auth Session Repository Implementation
 /// Implements authentication session and token management
@@ -81,11 +82,17 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             let idToken = try await firebaseAuth.getIdToken()
 
             // Step 3: Sync with backend to get latest data
+            // 必須帶 deviceInfo.appVersion，後端 version gate middleware 依此判定是否觸發 426
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
-                deviceInfo: nil
+                deviceInfo: DeviceInfo(
+                    model: UIDevice.current.model,
+                    osVersion: UIDevice.current.systemVersion,
+                    appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                    locale: Locale.current.identifier
+                )
             )
             let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
 

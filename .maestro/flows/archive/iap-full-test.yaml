@@ -1,0 +1,72 @@
+appId: com.havital.Havital.dev
+---
+# IAP 完整測試套件
+# 測試 B1/B2/B4/B5/C1 + C2（如果可觸發）
+# 前提：
+#   1. Scripts/iap_admin.sh set-expired（後端 expired）
+#   2. demo UID 已在 iap_test_uids 白名單中
+#   3. 第 1 週課表已被刪除
+
+# 重啟 app
+- launchApp:
+    stopApp: true
+    clearState: false
+
+# 處理系統彈窗
+- tapOn:
+    text: "關閉"
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+# Demo 登入（如果需要）
+- tapOn:
+    id: "Login_DemoButton"
+    optional: true
+
+# 等待主頁面
+- extendedWaitUntil:
+    visible: "訓練計劃"
+    timeout: 30000
+
+- tapOn: "訓練計劃"
+
+- extendedWaitUntil:
+    visible: "我的訓練目標"
+    timeout: 15000
+
+# === C1: expired → 產生課表 → 403 → PaywallView ===
+- takeScreenshot: c1_before
+
+# 等「產生週課表」出現
+- extendedWaitUntil:
+    visible: "產生週課表"
+    timeout: 10000
+
+- tapOn: "產生週課表"
+
+# 等待 PaywallView
+- extendedWaitUntil:
+    visible:
+      text: "需要訂閱才能使用此功能|升級以解鎖"
+    timeout: 15000
+
+# === B1: PaywallView 彈出 — PASS ===
+# === B2: header 文案 — PASS（上面 assert 已驗） ===
+- takeScreenshot: b1b2_paywall_header
+
+# === B4: offerings 狀態 ===
+# PaywallView 現在可見，截圖看 offerings section
+- takeScreenshot: b4_offerings_state
+
+# === B5: 關閉按鈕 ===
+- tapOn: "關閉"
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- assertVisible: "我的訓練目標"
+- takeScreenshot: b5_dismiss_ok

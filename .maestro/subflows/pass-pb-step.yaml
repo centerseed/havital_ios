@@ -1,16 +1,15 @@
 appId: com.havital.Havital.dev
 ---
 # 子流程：通過個人最佳成績頁面
-# Minutes picker 在畫面中間偏下，從 0 滑到 ~25 需要多次
-- assertVisible: "個人最佳成績"
-# swipe picker 分鐘數（iPhone 17 Pro 適用）
-- swipe:
-    start: "46%, 65%"
-    end: "46%, 50%"
-    duration: 300
-- swipe:
-    start: "46%, 65%"
-    end: "46%, 50%"
-    duration: 300
+# 若預設帶出「有個人最佳成績」但時間為 0，先關掉 toggle，避免下一步被 disabled。
+- assertVisible:
+    id: "PersonalBest_ContinueButton"
+- runFlow:
+    when:
+      visible: "請輸入有效的時間以計算配速。|Please enter a valid time to calculate pace.|ペースを計算するために有効な時間を入力してください。"
+    commands:
+      - tapOn:
+          id: "PersonalBest_HasPBToggle"
+      - waitForAnimationToEnd
 - tapOn:
     id: "PersonalBest_ContinueButton"

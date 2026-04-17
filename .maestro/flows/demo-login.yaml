@@ -4,13 +4,11 @@ tags:
 ---
 # 前置流程：Demo Mode 登入
 
-# === 確認在登入頁 ===
+# === 走 reviewer demo gate ===
 - assertVisible:
-    id: "Login_DemoButton"
+    id: "Login_ReviewerAccessTrigger"
 
-# === 點 Demo Mode ===
-- tapOn:
-    id: "Login_DemoButton"
+- runFlow: ../subflows/reviewer-demo-login.yaml
 
 # === 等待登入完成，進入主畫面 ===
 - assertVisible:

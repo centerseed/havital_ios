@@ -5,6 +5,7 @@ import XCTest
 /// Tests UI state management and authentication operations with Mock Repository
 @MainActor
 final class LoginViewModelTests: XCTestCase {
+    private let reviewerPasscode = "test-reviewer-passcode"
 
     // System Under Test
     var sut: LoginViewModel!
@@ -152,7 +153,7 @@ final class LoginViewModelTests: XCTestCase {
         mockAuthRepository.demoLoginResult = .success(expectedUser)
 
         // When
-        await sut.demoLogin()
+        await sut.demoLogin(passcode: reviewerPasscode)
 
         // Then
         XCTAssertTrue(mockAuthRepository.demoLoginCalled)
@@ -166,7 +167,7 @@ final class LoginViewModelTests: XCTestCase {
         mockAuthRepository.demoLoginResult = .failure(expectedError)
 
         // When
-        await sut.demoLogin()
+        await sut.demoLogin(passcode: reviewerPasscode)
 
         // Then
         XCTAssertTrue(mockAuthRepository.demoLoginCalled)

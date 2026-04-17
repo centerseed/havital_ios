@@ -20,6 +20,27 @@ struct AppFont {
         return cachedLanguage
     }
 
+    /// 小字級在 CJK 可讀性明顯較差，因此只對小尺寸做輕量放大。
+    private static func adjustedSystemSize(_ size: CGFloat) -> CGFloat {
+        switch currentLanguage() {
+        case .english:
+            return size
+        case .japanese, .traditionalChinese:
+            switch size {
+            case ...10:
+                return size + 3
+            case ...12:
+                return size + 3
+            case ...14:
+                return size + 2
+            case ...16:
+                return size + 1
+            default:
+                return size
+            }
+        }
+    }
+
     // MARK: - Large Titles (大標題)
     /// 用於主頁面標題 (54pt)
     static func largeTitle() -> Font {
@@ -92,6 +113,18 @@ struct AppFont {
         }
     }
 
+    // MARK: - Subheadline
+    /// 用於次級標題與說明 (15pt)
+    static func subheadline() -> Font {
+        let language = currentLanguage()
+        switch language {
+        case .english:
+            return .custom("Onest", size: 16, relativeTo: .subheadline)
+        case .japanese, .traditionalChinese:
+            return .system(size: 17, weight: .regular, design: .default)
+        }
+    }
+
     // MARK: - Body
     /// 用於主要內文 (16pt)
     static func body() -> Font {
@@ -100,7 +133,7 @@ struct AppFont {
         case .english:
             return .custom("Onest", size: 16, relativeTo: .body)
         case .japanese, .traditionalChinese:
-            return .system(size: 16, weight: .regular, design: .default)
+            return .system(size: 17, weight: .regular, design: .default)
         }
     }
 
@@ -112,7 +145,7 @@ struct AppFont {
         case .english:
             return .custom("Onest", size: 16, relativeTo: .body)
         case .japanese, .traditionalChinese:
-            return .system(size: 16, weight: .semibold, design: .default)
+            return .system(size: 17, weight: .semibold, design: .default)
         }
     }
 
@@ -124,7 +157,7 @@ struct AppFont {
         case .english:
             return .custom("Onest", size: 14, relativeTo: .subheadline)
         case .japanese, .traditionalChinese:
-            return .system(size: 14, weight: .regular, design: .default)
+            return .system(size: 16, weight: .regular, design: .default)
         }
     }
 
@@ -134,9 +167,9 @@ struct AppFont {
         let language = currentLanguage()
         switch language {
         case .english:
-            return .custom("Onest", size: 12, relativeTo: .caption)
+            return .custom("Onest", size: 13, relativeTo: .footnote)
         case .japanese, .traditionalChinese:
-            return .system(size: 12, weight: .regular, design: .default)
+            return .system(size: 15, weight: .regular, design: .default)
         }
     }
 
@@ -146,9 +179,9 @@ struct AppFont {
         let language = currentLanguage()
         switch language {
         case .english:
-            return .custom("Onest", size: 12, relativeTo: .caption)
+            return .custom("Onest", size: 13, relativeTo: .footnote)
         case .japanese, .traditionalChinese:
-            return .system(size: 12, weight: .semibold, design: .default)
+            return .system(size: 15, weight: .semibold, design: .default)
         }
     }
 
@@ -158,9 +191,39 @@ struct AppFont {
         let language = currentLanguage()
         switch language {
         case .english:
-            return .custom("Onest", size: 10, relativeTo: .caption2)
+            return .custom("Onest", size: 12, relativeTo: .caption)
         case .japanese, .traditionalChinese:
-            return .system(size: 10, weight: .regular, design: .default)
+            return .system(size: 14, weight: .regular, design: .default)
+        }
+    }
+
+    // MARK: - Footnote
+    /// 用於註解與次級說明 (13pt)
+    static func footnote() -> Font {
+        let language = currentLanguage()
+        switch language {
+        case .english:
+            return .custom("Onest", size: 14, relativeTo: .footnote)
+        case .japanese, .traditionalChinese:
+            return .system(size: 16, weight: .regular, design: .default)
+        }
+    }
+
+    // MARK: - Caption 2
+    /// 用於極短輔助標籤，避免小於 captionSmall 的可讀性問題。
+    static func caption2() -> Font {
+        captionSmall()
+    }
+
+    // MARK: - Callout
+    /// 用於提醒與短段落說明 (16pt)
+    static func callout() -> Font {
+        let language = currentLanguage()
+        switch language {
+        case .english:
+            return .custom("Onest", size: 16, relativeTo: .callout)
+        case .japanese, .traditionalChinese:
+            return .system(size: 17, weight: .regular, design: .default)
         }
     }
 
@@ -224,8 +287,22 @@ struct AppFont {
             return .custom("Onest", size: size, relativeTo: .body)
         case .japanese, .traditionalChinese:
             // 日文和中文使用系統字型
-            return .system(size: size, weight: weight, design: .default)
+            return .system(size: adjustedSystemSize(size), weight: weight, design: .default)
         }
+    }
+
+    /// 將原本散落在 view 的 `.system(size:)` 收斂到同一入口，
+    /// 並讓 CJK 小字可以共用一致的補償邏輯。
+    static func systemScaled(
+        size: CGFloat,
+        weight: Font.Weight = .regular,
+        design: Font.Design = .default
+    ) -> Font {
+        .system(size: adjustedSystemSize(size), weight: weight, design: design)
+    }
+
+    static func monospacedBody() -> Font {
+        .system(.body, design: .monospaced)
     }
 
     // MARK: - Helper

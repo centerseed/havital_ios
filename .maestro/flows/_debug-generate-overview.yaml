@@ -1,0 +1,21 @@
+appId: com.havital.Havital.dev
+---
+- launchApp:
+    stopApp: false
+    clearState: false
+
+- assertVisible:
+    id: "TrainingOverview_Screen"
+
+- tapOn:
+    id: "TrainingOverview_GenerateButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "TrainingOverview_ErrorMessage"
+    timeout: 15000
+    optional: true
+
+- assertVisible:
+    text: "每日訓練|Daily Training|Training Plan|日々のトレーニング|トレーニング計画"
+    optional: true

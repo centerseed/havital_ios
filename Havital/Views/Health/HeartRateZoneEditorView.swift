@@ -15,7 +15,7 @@ struct HRRHeartRateZoneEditorView: View {
             Form {
                 Section(header: Text(NSLocalizedString("hr_zone.settings", comment: "Heart Rate Zone Settings"))) {
                     Text(NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
-                        .font(.footnote)
+                        .font(AppFont.footnote())
                         .foregroundColor(.secondary)
                         .padding(.vertical, 8)
                 }

@@ -6,10 +6,18 @@ struct ContentView: View {
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @ObservedObject private var appStateManager = AppStateManager.shared
+    @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
+    @ObservedObject private var reminderManager = SubscriptionReminderManager.shared
 
     // 訓練版本路由狀態
-    @State private var trainingVersion: String = "v1"
+    // A-3b: 初始值改為 nil，避免 cold start race 期間誤 render V1 TrainingPlanView。
+    // 在 `checkTrainingVersion()` 完成前，`trainingPlanTab()` 一律顯示 ProgressView。
+    @State private var trainingVersion: String? = nil
     @State private var isCheckingVersion: Bool = true
+    // A-3b race guard: 每次 checkTrainingVersion() 遞增此 token。
+    // Task 完成時只有 token 仍匹配才寫回 state，避免舊 Task 覆寫新結果（re-onboarding / 快速帳號切換 race）。
+    @State private var versionCheckToken: Int = 0
+    @State private var reminderPaywallTrigger: PaywallTrigger?
 
     var body: some View {
         // 移除高頻日誌：body 每次重新評估都會觸發
@@ -28,6 +36,10 @@ struct ContentView: View {
                             ]
                         )
                     }
+            }
+            // 如果需要強制更新，顯示強制更新畫面（不可關閉）
+            else if authViewModel.requiresForceUpdate {
+                ForceUpdateView(updateUrl: authViewModel.forceUpdateUrl)
             }
             // 如果用戶未認證，顯示登入畫面
             else if !authViewModel.isAuthenticated {
@@ -204,6 +216,73 @@ struct ContentView: View {
             Text(L10n.ContentView.dataSourceRequiredMessage.localized)
         }
         .garminReconnectionAlert() // 添加 Garmin 重新連接警告
+        // P0-4: 狀態降級非阻斷通知
+        .onChange(of: subscriptionState.recentDowngrade) { _, downgrade in
+            guard let downgrade else { return }
+            Logger.debug("[ContentView] 訂閱狀態降級: \(downgrade.from.rawValue) → \(downgrade.to.rawValue)")
+            // 降級通知透過 reminder 系統顯示，觸發 expired 提醒
+            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+            subscriptionState.clearDowngrade()
+        }
+        // P1-9/P1-10: 訂閱到期提醒
+        .onAppear {
+            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+        }
+        .onChange(of: subscriptionState.currentStatus?.status) { _, _ in
+            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+        }
+        .alert(
+            subscriptionReminderTitle,
+            isPresented: Binding(
+                get: { reminderManager.pendingReminder != nil },
+                set: { if !$0 { reminderManager.dismissReminder() } }
+            )
+        ) {
+            Button(NSLocalizedString("paywall.title", comment: "Upgrade")) {
+                switch reminderManager.pendingReminder {
+                case .expired:
+                    reminderPaywallTrigger = .apiGated
+                case .trialExpiring:
+                    reminderPaywallTrigger = .trialExpired
+                case nil:
+                    reminderPaywallTrigger = .featureLocked
+                }
+                reminderManager.dismissReminder()
+            }
+            Button(NSLocalizedString("common.later", comment: "Later"), role: .cancel) {
+                reminderManager.dismissReminder()
+            }
+        } message: {
+            Text(subscriptionReminderMessage)
+        }
+        .sheet(item: $reminderPaywallTrigger) { trigger in
+            PaywallView(trigger: trigger)
+        }
+    }
+
+    private var subscriptionReminderTitle: String {
+        switch reminderManager.pendingReminder {
+        case .trialExpiring:
+            return NSLocalizedString("reminder.trial_expiring_title", comment: "Trial Expiring Soon")
+        case .expired:
+            return NSLocalizedString("reminder.expired_title", comment: "Subscription Expired")
+        case nil:
+            return ""
+        }
+    }
+
+    private var subscriptionReminderMessage: String {
+        switch reminderManager.pendingReminder {
+        case .trialExpiring(let days, let endsAt):
+            let dateStr = endsAt.map {
+                DateFormatter.localizedString(from: Date(timeIntervalSince1970: $0), dateStyle: .medium, timeStyle: .none)
+            } ?? ""
+            return String(format: NSLocalizedString("reminder.trial_expiring_message", comment: ""), days, dateStr)
+        case .expired:
+            return NSLocalizedString("reminder.expired_message", comment: "")
+        case nil:
+            return ""
+        }
     }
 
 
@@ -213,21 +292,25 @@ struct ContentView: View {
     /// 訓練計劃 Tab - 根據版本動態選擇 V1 或 V2
     @ViewBuilder
     private func trainingPlanTab() -> some View {
-        if isCheckingVersion {
-            // 正在檢查版本時顯示載入指示器
+        if isCheckingVersion || trainingVersion == nil {
+            // A-3b: 版本尚未確定（含 cold start 期間 trainingVersion == nil），顯示 loading，
+            // 避免 V2 用戶先 mount V1 TrainingPlanView，間接觸發 V1 WeeklyPlanViewModel → /plan/race_run/*
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityIdentifier("TrainingVersionCheck_Loading")
         } else if trainingVersion == "v2" {
             // V2 版本
             TrainingPlanV2View()
         } else {
-            // V1 版本（預設）
+            // V1 版本（確定為 v1 才走此分支）
             TrainingPlanView()
         }
     }
 
     /// 檢查訓練版本
     private func checkTrainingVersion() {
+        versionCheckToken &+= 1
+        let token = versionCheckToken
         Task {
             let container = DependencyContainer.shared
 
@@ -240,6 +323,10 @@ struct ContentView: View {
             let version = await router.getTrainingVersion()
 
             await MainActor.run {
+                guard token == self.versionCheckToken else {
+                    Logger.debug("[ContentView] Stale training version result discarded (token=\(token), current=\(self.versionCheckToken))")
+                    return
+                }
                 self.trainingVersion = version
                 self.isCheckingVersion = false
                 Logger.debug("[ContentView] Training version detected: \(version)")

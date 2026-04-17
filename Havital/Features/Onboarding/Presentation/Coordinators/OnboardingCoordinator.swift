@@ -17,6 +17,7 @@ class OnboardingCoordinator: ObservableObject {
         case weeklyDistance
         case goalType
         case raceSetup
+        case raceEventList
         case startStage
         case methodologySelection
         case trainingWeeksSetup
@@ -35,6 +36,7 @@ class OnboardingCoordinator: ObservableObject {
             case .weeklyDistance: return "Weekly Distance"
             case .goalType: return "Goal Type"
             case .raceSetup: return "Race Setup"
+            case .raceEventList: return NSLocalizedString("onboarding.race_event_list_nav_title", comment: "選擇賽事")
             case .startStage: return "Start Stage"
             case .methodologySelection: return NSLocalizedString("onboarding.methodology_nav_title", comment: "Training Methodology")
             case .trainingWeeksSetup: return NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration")
@@ -108,6 +110,19 @@ class OnboardingCoordinator: ObservableObject {
     /// Re-onboarding 的起始步驟（用於判斷 Back 按鈕行為）
     private var reonboardingStartStep: Step?
 
+    /// 已到達的最高步驟深度（用於進度指示器「只進不退」規則）
+    private var highestReachedDepth: Int = 0
+
+    // MARK: - Computed Properties
+
+    /// 進度指示器數值（0.0 ... 1.0），只進不退。
+    /// 估算步驟數為 10（考慮分支路徑的中位數），介面使用時無需精確。
+    var currentProgress: Double {
+        let estimatedTotalSteps = 10.0
+        let depth = Double(highestReachedDepth)
+        return min(depth / estimatedTotalSteps, 1.0)
+    }
+
     // MARK: - Private
 
     private var cancellables = Set<AnyCancellable>()
@@ -117,8 +132,28 @@ class OnboardingCoordinator: ObservableObject {
         DependencyContainer.shared.makeCompleteOnboardingUseCase()
     }()
 
+    // Lazy resolve — coordinator is a singleton so it cannot take constructor deps.
+    private var analyticsService: AnalyticsService {
+        DependencyContainer.shared.resolve()
+    }
+
     private init() {
-        // 移除原有的監聽器，狀態重置將由 completeOnboarding 或 ContentView 的 sheet logic 統一處理
+        CacheEventBus.shared.subscribe(forIdentifier: "OnboardingCoordinator") { [weak self] reason in
+            if case .userLogout = reason {
+                Task { @MainActor in
+                    self?.reset()
+                }
+            }
+        }
+    }
+
+    /// Call once when the onboarding session begins for a new user (not re-onboarding).
+    func trackOnboardingStart() {
+        guard !isReonboarding else { return }
+        UserDefaults.standard.analyticsOnboardingStartTime = Date().timeIntervalSince1970
+        let source = AttributionManager.shared.source
+        let campaignId = AttributionManager.shared.campaignId
+        analyticsService.track(.onboardingStart(source: source, campaignId: campaignId))
     }
 
     // MARK: - Navigation Methods
@@ -126,6 +161,8 @@ class OnboardingCoordinator: ObservableObject {
     /// 導航到下一步
     func navigate(to step: Step) {
         navigationPath.append(step)
+        // 進度只進不退：更新最高到達深度
+        highestReachedDepth = max(highestReachedDepth, navigationPath.count)
         print("[OnboardingCoordinator] 導航到: \(step.title), 路徑深度: \(navigationPath.count)")
     }
 
@@ -185,7 +222,9 @@ class OnboardingCoordinator: ObservableObject {
                 targetId: selectedTargetId,
                 methodologyId: resolvedMethodologyId,
                 trainingWeeks: trainingWeeks,
-                availableDays: availableDays
+                availableDays: availableDays,
+                previewOverviewId: trainingPlanOverviewV2?.id,
+                intendedRaceDistanceKm: intendedRaceDistanceKm
             )
 
             let output = try await completeOnboardingUseCase.execute(input: input)
@@ -203,10 +242,26 @@ class OnboardingCoordinator: ObservableObject {
             isCompleting = false
             print("[OnboardingCoordinator] Loading 動畫已關閉")
 
+            if !output.wasReonboarding {
+                let startTime = UserDefaults.standard.analyticsOnboardingStartTime
+                let durationSeconds = startTime > 0
+                    ? Int(Date().timeIntervalSince1970 - startTime)
+                    : 0
+                analyticsService.track(.onboardingComplete(durationSeconds: durationSeconds))
+            }
+
             // 清理 UI 狀態
             if output.wasReonboarding {
                 // Re-onboarding 模式：關閉 sheet 並通知所有訂閱者刷新資料
                 print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
+
+                // ⚠️ 順序很重要：必須先清除 user profile cache，再設定 isReonboardingMode = false。
+                // 設定 isReonboardingMode = false 會觸發 ContentView.checkTrainingVersion()，
+                // 該方法透過 TrainingVersionRouter → UserProfileRepository（cache-first）讀取版本。
+                // 若 cache 未清除，會返回 stale v1 profile，導致 UI 顯示 v1 訓練計畫。
+                let localDS: UserProfileLocalDataSourceProtocol = DependencyContainer.shared.resolve()
+                localDS.clearUserProfile()
+
                 AuthenticationViewModel.shared.isReonboardingMode = false
                 CacheEventBus.shared.publish(.onboardingCompleted)
             } else {
@@ -232,6 +287,7 @@ class OnboardingCoordinator: ObservableObject {
     /// 重置所有狀態
     func reset() {
         navigationPath.removeAll()
+        highestReachedDepth = 0
         targetDistance = 21.0975
         selectedTargetId = nil
         isBeginner = false
@@ -290,6 +346,9 @@ class OnboardingCoordinator: ObservableObject {
             return nil 
         case .raceSetup:
             // OnboardingView 會處理邏輯決定去 .startStage 還是 .trainingDays
+            return nil
+        case .raceEventList:
+            // RaceEventListView 選完後呼叫 goBack() 返回 raceSetup
             return nil
         case .startStage:
             return .trainingDays

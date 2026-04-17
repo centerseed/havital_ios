@@ -72,7 +72,7 @@ struct APICallHelper {
     /// This method handles:
     /// 1. HTTP request via HTTPClient
     /// 2. Response parsing via ResponseProcessor
-    /// 3. Cancellation error detection and conversion to SystemError.taskCancelled
+    /// 3. Unified cancellation detection (without type re-wrapping)
     /// 4. Logging for debugging
     ///
     /// - Parameters:
@@ -81,7 +81,7 @@ struct APICallHelper {
     ///   - method: HTTP method (defaults to GET)
     ///   - body: Request body data (optional)
     /// - Returns: Parsed response of type T
-    /// - Throws: SystemError.taskCancelled for cancelled requests, or original error
+    /// - Throws: Original error from lower layers
     func call<T: Codable>(
         _ type: T.Type,
         path: String,
@@ -92,7 +92,7 @@ struct APICallHelper {
             let rawData = try await httpClient.request(path: path, method: method, body: body)
             return try ResponseProcessor.extractData(type, from: rawData, using: parser)
         } catch {
-            throw handleError(error)
+            throw handleError(error, path: path, method: method)
         }
     }
 
@@ -104,7 +104,7 @@ struct APICallHelper {
     ///   - path: API endpoint path
     ///   - method: HTTP method (defaults to DELETE)
     ///   - body: Request body data (optional)
-    /// - Throws: SystemError.taskCancelled for cancelled requests, or original error
+    /// - Throws: Original error from lower layers
     func callNoResponse(
         path: String,
         method: HTTPMethod = .DELETE,
@@ -113,7 +113,7 @@ struct APICallHelper {
         do {
             _ = try await httpClient.request(path: path, method: method, body: body)
         } catch {
-            throw handleError(error)
+            throw handleError(error, path: path, method: method)
         }
     }
 
@@ -125,22 +125,75 @@ struct APICallHelper {
     /// previously duplicated across 30+ files.
     ///
     /// - Parameter error: The original error
-    /// - Returns: Processed error (SystemError.taskCancelled or original)
-    private func handleError(_ error: Error) -> Error {
-        // Check for cancellation using the unified isCancellationError extension
+    /// - Returns: Original error (type preserved)
+    private func handleError(_ error: Error, path: String, method: HTTPMethod) -> Error {
+        if let parseError = error as? ParseError {
+            reportDecodeIssue(parseError, path: path, method: method)
+        }
         if error.isCancellationError {
-            Logger.debug("[\(moduleName)] Task cancelled, converting to SystemError.taskCancelled")
-            return SystemError.taskCancelled
+            Logger.debug("[\(moduleName)] Task cancelled, preserving original error type")
         }
-
-        // Check for APIError.isCancelled (for backward compatibility)
-        if let apiError = error as? APIError, apiError.isCancelled {
-            Logger.debug("[\(moduleName)] APIError cancelled, converting to SystemError.taskCancelled")
-            return SystemError.taskCancelled
-        }
-
-        // Return original error
         return error
+    }
+
+    private func reportDecodeIssue(_ error: ParseError, path: String, method: HTTPMethod) {
+        var payload: [String: Any] = [
+            "module": moduleName,
+            "path": path,
+            "method": method.rawValue,
+            "error_type": "parse_error",
+            "error_description": error.localizedDescription
+        ]
+
+        if case .decodingFailed(let detail) = error {
+            payload["decode_error_kind"] = String(describing: detail.type)
+            payload["missing_field"] = detail.missingField ?? ""
+            payload["coding_path"] = detail.codingPath
+            payload["expected_type"] = detail.expectedType
+            payload["response_preview_size"] = detail.responsePreview.count
+            payload["response_preview_sanitized"] = sanitizeResponsePreview(detail.responsePreview)
+        }
+
+        Logger.firebase(
+            "API decode mismatch detected",
+            level: .error,
+            labels: [
+                "cloud_logging": "true",
+                "module": moduleName,
+                "operation": "decode_mismatch"
+            ],
+            jsonPayload: payload
+        )
+    }
+
+    /// Keep schema diagnostics while reducing sensitive payload leakage risk.
+    private func sanitizeResponsePreview(_ raw: String) -> String {
+        var sanitized = raw
+
+        let patterns: [(String, String)] = [
+            // bearer token
+            ("(?i)bearer\\s+[A-Za-z0-9\\-\\._~\\+/]+=*", "bearer [REDACTED]"),
+            // likely JWT
+            ("[A-Za-z0-9\\-_]{16,}\\.[A-Za-z0-9\\-_]{16,}\\.[A-Za-z0-9\\-_]{16,}", "[REDACTED_JWT]"),
+            // email
+            ("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[REDACTED_EMAIL]"),
+            // generic API key field values
+            ("(?i)\"(api_?key|token|access_?token|id_?token|authorization)\"\\s*:\\s*\"[^\"]+\"", "\"$1\":\"[REDACTED]\"")
+        ]
+
+        for (pattern, replacement) in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern) {
+                let range = NSRange(sanitized.startIndex..<sanitized.endIndex, in: sanitized)
+                sanitized = regex.stringByReplacingMatches(
+                    in: sanitized,
+                    options: [],
+                    range: range,
+                    withTemplate: replacement
+                )
+            }
+        }
+
+        return String(sanitized.prefix(160))
     }
 }
 

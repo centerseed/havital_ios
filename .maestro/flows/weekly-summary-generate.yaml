@@ -7,7 +7,7 @@ tags:
 # 前提：app 在主課表頁，有課表資料
 # 用 Debug 工具觸發週回顧產生
 
-- assertVisible: "每日訓練"
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # 開選單 → Debug 工具 → 產生週回顧
 - tapOn: "更多"
@@ -24,4 +24,4 @@ tags:
 - assertVisible: "本週亮點"
 - assertVisible: "訓練分析"
 - assertVisible: "下週調整建議"
-- assertVisible: "產生下週課表"
+- assertVisible: "接受調整並產生下週課表|產生下週課表"

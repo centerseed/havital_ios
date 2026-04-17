@@ -8,8 +8,9 @@ protocol TrainingPlanV2Repository {
     // MARK: - Plan Status
 
     /// 獲取計畫狀態（決定 UI 應顯示什麼）
+    /// - Parameter forceRefresh: 若為 true，略過 cooldown 並強制呼叫後端；預設 false（使用 SWR + cooldown 策略）
     /// - Returns: Plan Status Response
-    func getPlanStatus() async throws -> PlanStatusV2Response
+    func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response
 
     // MARK: - Target Types & Methodologies
 
@@ -142,6 +143,17 @@ protocol TrainingPlanV2Repository {
     /// - Parameter summaryId: 週摘要 ID
     func deleteWeeklySummary(summaryId: String) async throws
 
+    // MARK: - Synchronous Cache Read (for instant UI restore)
+
+    /// 同步讀取快取的 Plan Status（無 await，不觸發網路請求）
+    func getCachedPlanStatus() -> PlanStatusV2Response?
+
+    /// 同步讀取快取的 Plan Overview
+    func getCachedOverview() -> PlanOverviewV2?
+
+    /// 同步讀取快取的週課表
+    func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2?
+
     // MARK: - Cache Management
 
     /// 清除所有緩存
@@ -160,6 +172,15 @@ protocol TrainingPlanV2Repository {
 
     /// 預載入數據（用於優化啟動速度）
     func preloadData() async
+}
+
+// MARK: - TrainingPlanV2Repository Default Implementations
+extension TrainingPlanV2Repository {
+
+    /// 預設呼叫不帶 forceRefresh（forceRefresh = false）
+    func getPlanStatus() async throws -> PlanStatusV2Response {
+        try await getPlanStatus(forceRefresh: false)
+    }
 }
 
 // MARK: - Repository Errors

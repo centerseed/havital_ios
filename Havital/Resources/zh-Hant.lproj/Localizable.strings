@@ -238,6 +238,8 @@
 "profile.training_info" = "訓練資訊";
 "profile.heart_rate_info" = "心率資訊";
 "profile.pace_zones" = "配速區間";
+"profile.physiology" = "生理指標";
+"common.not_set" = "未設定";
 "profile.data_sources" = "數據來源";
 "profile.settings" = "設定";
 "profile.name" = "姓名";
@@ -252,6 +254,26 @@
 "profile.max_hr" = "最大心率";
 "profile.weekly_mileage" = "週跑量";
 "profile.edit_profile" = "編輯個人資料";
+
+// MARK: - Profile Subscription Section
+"profile.subscription.section_title" = "訂閱";
+"profile.subscription.plan" = "方案";
+"profile.subscription.free" = "免費";
+"profile.subscription.trial" = "試用";
+"profile.subscription.expired" = "已過期";
+"profile.subscription.trial_remaining" = "試用剩餘";
+"profile.subscription.remaining" = "剩餘時間";
+"profile.subscription.days_remaining" = "%d 天";
+"profile.subscription.expires" = "到期日";
+"profile.subscription.billing_issue" = "帳單問題";
+"profile.subscription.cancelled" = "已取消";
+"profile.subscription.valid_until" = "服務有效至";
+"profile.subscription.grace_period" = "帳務處理中，服務不受影響";
+"profile.subscription.manage" = "管理訂閱";
+"profile.subscription.resubscribe" = "重新訂閱";
+"profile.subscription.change_plan" = "變更方案";
+"profile.subscription.plan.yearly" = "年訂閱";
+"profile.subscription.plan.monthly" = "月訂閱";
 
 // MARK: - Data Sources
 "datasource.title" = "數據來源";
@@ -675,6 +697,7 @@
 "common.later" = "稍後";
 "common.reload" = "重新載入";
 "common.ok" = "好";
+"common.select" = "選擇";
 "common.minutes_format" = "%d 分鐘";
 
 // MARK: - Workout Details
@@ -771,8 +794,11 @@
 "onboarding.goal_description" = "如果沒有特定的賽事，可以設定挑戰目標，例如「完成人生第一個5K」或「提升10K速度」。";
 "onboarding.or_select_existing_target" = "先前設定的目標賽事";
 "onboarding.goal_name_placeholder" = "目標名稱 (例如：台北馬拉松 或 我的5K挑戰)";
+"onboarding.goal_name_label" = "目標名稱";
+"onboarding.goal_prefilled_from_race" = "已由賽事資料庫帶入，可改回手動輸入後編輯";
 "onboarding.goal_date" = "目標日期";
 "onboarding.weeks_until_race" = "距離賽事週數：%d";
+"onboarding.weeks_until_race_label" = "距離賽事週數";
 "onboarding.race_distance" = "賽事距離";
 "onboarding.race_distance.nav_title" = "目標賽事";
 "onboarding.race_distance.title" = "你休賽季後預計參加的目標賽事？";
@@ -790,6 +816,7 @@
 "onboarding.average_pace" = "平均配速：%@ /公里";
 "onboarding.next_step" = "下一步";
 "onboarding.distance_and_target_time" = "距離與目標時間";
+"onboarding.edit_target_time" = "編輯目標時間";
 "onboarding.distance_time_hint" = "點擊編輯以設定比賽距離和目標完賽時間";
 "onboarding.edit_distance_time" = "編輯距離與時間";
 "onboarding.common_times_reference" = "參考時間";
@@ -918,6 +945,8 @@
 "onboarding.adjust_weekly_volume" = "請滑動調整您目前平均每週的跑步總量。";
 "onboarding.weekly_volume_label" = "週跑量約為：%.0f 公里";
 "onboarding.km_label" = "%.0f 公里";
+"onboarding.quick_select_label" = "快速選擇";
+"onboarding.fine_tune_label" = "微調（每步 5 公里）";
 "onboarding.weekly_distance_title" = "您的週跑量";
 "onboarding.skip" = "略過";
 
@@ -1010,6 +1039,7 @@
 "hr_zone.understand" = "了解";
 "hr_zone.max_heart_rate_display" = "最大心率";
 "hr_zone.resting_heart_rate_display" = "靜息心率";
+"hr_zone.default_values_hint" = "目前使用預設值，日後連接心率裝置或進行體能測試後再更新，可獲得更精準的訓練建議";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "恢復";
@@ -1236,9 +1266,9 @@
 // MARK: - 新增VO2max提升訓練說明
 "training_type_info.norwegian_4x4.title" = "挪威4x4";
 "training_type_info.norwegian_4x4.how_to_run" = "進行4組4分鐘的高強度跑，每組之間休息3分鐘。保持穩定的VO₂max配速（92% 最大心率），衝刺但控制節奏——應該覺得「非常努力，但能撐完所有組」。";
-"training_type_info.norwegian_4x4.why_run" = "挪威4x4是提升最大攝氧量（VO₂max）最有效率的訓練。科學研究顯示，這種方法能在短時間內提升心肺功能約7%，是賽前強化的關鍵課。";
-"training_type_info.norwegian_4x4.logic" = "以VO₂max強度（92% 最大心率，95-100% VO₂max）進行，刺激有氧系統與無氧能力的上限。4分鐘足夠長以充分刺激心肺適應，3分鐘恢復讓你能完成所有組。這個設計讓身體在最高強度下累積更多訓練量。";
-"training_type_info.norwegian_4x4.role" = "通常在建強期或比賽準備期使用，每週最多1次。前後搭配輕鬆跑，並確保充分恢復。不適合連續多週進行，需要配合恢復週調整。";
+"training_type_info.norwegian_4x4.why_run" = "挪威4x4用來提升高強度下的心肺輸出，讓你更能承受接近極限的配速。它特別適合需要加強速度天花板與比賽衝刺能力的階段。";
+"training_type_info.norwegian_4x4.logic" = "屬於高強度間歇訓練，主打VO₂max區間。4分鐘工作時間足以把心肺系統推上來，3分鐘恢復則幫助你在後續組數維持品質，累積有效的高強度訓練量。";
+"training_type_info.norwegian_4x4.role" = "通常安排在建強期或比賽準備期，每週最多1次。前後建議搭配輕鬆跑與恢復日，避免連續多週都維持高壓負荷。";
 
 "training_type_info.short_interval.title" = "短間歇";
 "training_type_info.short_interval.how_to_run" = "進行 6-10 組短距離（400-600 公尺）的高強度衝刺，每組之間以輕鬆速度恢復約 1-2 分鐘。盡力衝刺，讓呼吸充分提升。";
@@ -2031,6 +2061,11 @@
 "hrvtrendchart.hrv" = "診斷 HRV 問題";
 "login.demo_mode" = "查看示範 / Demo Mode";
 "login.for_apple_review" = "Apple 審核用";
+"login.reviewer_access_title" = "審查員存取";
+"login.reviewer_access_message" = "請輸入審查用 passcode 以啟用 demo 帳號。";
+"login.reviewer_passcode_placeholder" = "輸入審查用 passcode";
+"login.activate_demo_access" = "啟用 Demo 存取";
+"login.reviewer_access_failed" = "審查用存取啟用失敗";
 "misc.reset" = "重置";
 "misc.syncing" = "同步中...";
 "myachievement.text_0" = "體適能指數 & 訓練壓力平衡";
@@ -2402,3 +2437,104 @@
 "time.quick.2m" = "2分";
 "time.quick.3m" = "3分";
 "edit_schedule.select_rest_time" = "選擇休息時間";
+
+// MARK: - Paywall
+"paywall.title" = "升級";
+"paywall.restore_purchases" = "恢復購買";
+"paywall.header.api_gated" = "需要訂閱才能使用此功能";
+"paywall.header.trial_expired" = "試用期已結束";
+"paywall.header.feature_locked" = "升級以解鎖完整功能";
+"paywall.header.resubscribe" = "重新訂閱";
+"paywall.header.change_plan" = "變更方案";
+"paywall.purchase_success_title" = "購買成功！";
+"paywall.purchase_success_start" = "開始使用";
+"paywall.purchase_success_trial_note" = "付費方案將在試用結束後啟用";
+"reminder.trial_expiring_title" = "試用即將到期";
+"reminder.trial_expiring_message" = "試用期還剩 %1$d 天（%2$@ 到期）。\n\n現在訂閱不影響試用期，訂閱將於試用期結束後才開始計費。";
+"reminder.expired_title" = "訂閱已到期";
+"reminder.expired_message" = "您的訂閱已到期，部分功能將無法使用。立即升級以繼續使用。";
+"paywall.trial_days_remaining" = "%d 天試用期剩餘";
+"paywall.offerings_coming_soon" = "付費方案即將推出";
+"paywall.offerings_unavailable" = "目前暫時無法取得訂閱方案，請稍後再試。";
+"paywall.plan.yearly" = "年訂閱";
+"paywall.plan.monthly" = "月訂閱";
+"paywall.subtitle" = "解鎖專屬訓練計畫，突破個人極限";
+"paywall.feature.training_plan" = "個人化訓練計畫";
+"paywall.feature.analytics" = "進階跑步分析與洞察";
+"paywall.feature.customization" = "無限調整與客製化課表";
+"paywall.badge.best_value" = "最超值";
+"paywall.plan.yearly_note" = "年繳方案，平均每月計費";
+"paywall.plan.original_price" = "原價 %@";
+"paywall.plan.savings" = "現省 %@（%d%%）";
+"paywall.offer.badge_official" = "官方優惠";
+"paywall.offer.free" = "免費";
+"paywall.offer.discount_percent" = "官方折扣 %d%%";
+"paywall.offer.ends_on" = "若今天開始，優惠至 %@";
+"paywall.offer.intro_free_trial" = "官方體驗優惠：%@ 免費試用";
+"paywall.offer.intro_pay_as_you_go" = "官方首購優惠：%@ / %@";
+"paywall.offer.intro_pay_up_front" = "官方首購優惠：%@（%@）";
+"paywall.offer.promotional" = "官方促銷優惠：%@（%@）";
+"paywall.offer.win_back" = "官方回流優惠：%@（%@）";
+"paywall.offer.duration.day" = "%d 天";
+"paywall.offer.duration.week" = "%d 週";
+"paywall.offer.duration.month" = "%d 個月";
+"paywall.offer.duration.year" = "%d 年";
+"paywall.purchase_error_title" = "購買失敗";
+"paywall.restore_no_active_subscription" = "找不到可恢復的有效訂閱";
+"paywall.purchase_pending_processing" = "付款正在確認中，請稍後再試一次恢復購買";
+"paywall.purchase_cancelled_retry" = "已完成 Apple 帳號登入，請再點一次方案完成購買。";
+
+/* Race time reference strings */
+"race_time_ref.5k_elite" = "15-20 分鐘 (精英跑者)";
+"race_time_ref.5k_advanced" = "20-30 分鐘 (進階跑者)";
+"race_time_ref.5k_casual" = "30-40 分鐘 (休閒跑者)";
+"race_time_ref.10k_elite" = "30-40 分鐘 (精英跑者)";
+"race_time_ref.10k_advanced" = "45-60 分鐘 (進階跑者)";
+"race_time_ref.10k_casual" = "60-75 分鐘 (休閒跑者)";
+"race_time_ref.half_marathon_elite" = "1:05-1:30 (精英跑者)";
+"race_time_ref.half_marathon_advanced" = "1:30-2:00 (進階跑者)";
+"race_time_ref.half_marathon_casual" = "2:00-2:30 (休閒跑者)";
+"race_time_ref.marathon_elite" = "2:30-3:30 (精英跑者)";
+"race_time_ref.marathon_advanced" = "3:30-4:30 (進階跑者)";
+"race_time_ref.marathon_casual" = "4:30-6:00 (休閒跑者)";
+
+// 賽事選擇 - RaceEventListView
+"onboarding.race_event_list_nav_title" = "選擇賽事";
+"onboarding.race_search_prompt" = "搜尋賽事名稱或城市";
+"onboarding.select_region" = "地區";
+"onboarding.race_list_empty" = "找不到符合條件的賽事";
+
+// 賽事距離篩選
+"race_filter.all" = "全部";
+"race_filter.full_marathon" = "全馬";
+"race_filter.half_marathon" = "半馬";
+"race_filter.10k" = "10K";
+"race_filter.5k" = "5K";
+"race_filter.other" = "其他";
+
+// 地區
+"region.taiwan" = "台灣";
+"region.japan" = "日本";
+
+// 賽事卡片 - RaceEventCard
+"race_card.today" = "今天";
+"race_card.tomorrow" = "明天";
+"race_card.days_until" = "還有 %d 天";
+"race_card.days_countdown" = "還有 %d 天";
+"race_card.entry_closed" = "報名截止";
+
+// 賽事距離選擇 - RaceDistanceSelectionSheet
+"onboarding.select_race_distance_title" = "選擇比賽距離";
+
+// 賽事距離名稱 fallback
+"race_distance.marathon" = "全程馬拉松";
+"race_distance.half_marathon" = "半程馬拉松";
+
+// 賽事設定 - OnboardingView
+"onboarding.browse_race_database" = "從賽事資料庫選擇";
+"onboarding.browse_race_database_desc" = "瀏覽即將舉辦的賽事，快速設定目標";
+"onboarding.or_manual_input" = "或手動輸入";
+"onboarding.change_race" = "更換賽事";
+"onboarding.clear_selected_race" = "改回手動輸入";
+"onboarding.tight_schedule_title" = "時間較緊迫";
+"onboarding.tight_schedule_message" = "距離賽事不足 4 週，系統會根據可用時間自動調整訓練計畫。";

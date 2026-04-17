@@ -93,7 +93,7 @@ struct ExerciseInstructionView: View {
             // Header
             HStack {
                 Text(NSLocalizedString("exercise.instruction.title", comment: "Exercise Guide"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .fontWeight(.bold)
                 Spacer()
                 Button {
@@ -101,7 +101,7 @@ struct ExerciseInstructionView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
-                        .font(.title3)
+                        .font(AppFont.title3())
                 }
             }
             .padding()
@@ -111,7 +111,7 @@ struct ExerciseInstructionView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     Text(exerciseName)
-                        .font(.title2)
+                        .font(AppFont.title2())
                         .fontWeight(.bold)
                         .padding(.top)
                     
@@ -122,7 +122,7 @@ struct ExerciseInstructionView: View {
                         .padding(.horizontal)
                     
                     Text(NSLocalizedString(instructionDesc, comment: ""))
-                        .font(.body)
+                        .font(AppFont.body())
                         .foregroundColor(.primary)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(4)

@@ -27,7 +27,7 @@ struct DateFormatterHelper {
         // ✅ 統一使用用戶設定的時區
         if useUserTimezone {
             if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-                formatter.timeZone = TimeZone(identifier: userTimezone)
+                formatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
             } else {
                 // 如果用戶未設定時區，使用設備當前時區
                 formatter.timeZone = TimeZone.current
@@ -72,7 +72,7 @@ struct DateFormatterHelper {
         formatter.locale = locale
 
         if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-            formatter.timeZone = TimeZone(identifier: userTimezone)
+            formatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
         } else {
             formatter.timeZone = TimeZone.current
         }
@@ -85,6 +85,17 @@ struct DateFormatterHelper {
     /// - Returns: 格式化後的字串，例如："2025-11-19"
     static func formatFullDate(_ date: Date) -> String {
         return formatter(dateFormat: "yyyy-MM-dd").string(from: date)
+    }
+
+    /// 格式化訂閱到期日，固定使用 UTC calendar date，避免本地時區跨日誤差。
+    /// - Parameter date: API 回傳的到期時間點
+    /// - Returns: 格式化後的字串，例如："2025/11/19"
+    static func formatSubscriptionExpiryDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.string(from: date)
     }
 
     /// 格式化為完整日期時間，包含秒（yyyy-MM-dd HH:mm:ss）
@@ -180,7 +191,7 @@ struct DateFormatterHelper {
             let weekdayFormatter = DateFormatter()
             weekdayFormatter.dateFormat = "EEEE HH:mm"
             if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-                weekdayFormatter.timeZone = TimeZone(identifier: userTimezone)
+                weekdayFormatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
             }
             return weekdayFormatter.string(from: date)
         }

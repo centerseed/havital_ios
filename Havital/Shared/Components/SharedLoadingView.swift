@@ -18,7 +18,7 @@ struct SharedLoadingView: View {
 
             if let message = message {
                 Text(message)
-                    .font(.body)
+                    .font(AppFont.body())
                     .foregroundColor(.secondary)
             }
         }

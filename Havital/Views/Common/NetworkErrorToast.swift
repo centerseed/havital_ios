@@ -10,7 +10,7 @@ struct NetworkErrorToast: View {
         HStack(spacing: 12) {
             Image(systemName: "wifi.exclamationmark")
                 .foregroundColor(.orange)
-                .font(.system(size: 16, weight: .medium))
+                .font(AppFont.systemScaled(size: 16, weight: .medium))
             
             Text(message)
                 .font(AppFont.bodySmall())
@@ -22,7 +22,7 @@ struct NetworkErrorToast: View {
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .foregroundColor(.secondary)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppFont.systemScaled(size: 12, weight: .medium))
             }
         }
         .padding(.horizontal, 16)

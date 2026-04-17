@@ -4,52 +4,32 @@ tags:
   - critical
   - beginner
 ---
-# T5: 新手入門 → overview → weekly plan（P0）
-# 預期：conversion/base 階段，只有輕鬆跑和休息，無高強度
+# A2: beginner default smoke gate
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-# 目標類型 → beginner
-- assertVisible: "訓練目標"
-- tapOn: "新手入門"
+- assertVisible:
+    id: "GoalType_NextButton"
 - tapOn:
-    text: "下一步"
-    optional: true
+    id: "GoalType_beginner"
 - tapOn:
     id: "GoalType_NextButton"
-    optional: true
 
-# 以下各頁都 optional，因為不同 target type 流程不同
-- tapOn:
-    id: "TrainingWeeks_NextButton"
-    optional: true
-- tapOn:
-    text: "下一步"
-    optional: true
-- tapOn:
-    id: "StartStage_NextButton"
-    optional: true
-- tapOn:
-    text: "繼續"
-    optional: true
+- runFlow: ../subflows/assert-onboarding-branch.yaml
 - tapOn:
     id: "Methodology_NextButton"
     optional: true
 - tapOn:
-    text: "下一步"
+    id: "TrainingWeeks_NextButton"
     optional: true
 
-# 訓練偏好 — 這步一定會到
-- assertVisible: "訓練偏好設定"
+- runFlow: ../subflows/assert-onboarding-branch.yaml
 - tapOn:
-    id: "TrainingDays_SaveButton"
+    id: "StartStage_NextButton"
+    optional: true
 
-- runFlow: ../subflows/verify-plan-generated.yaml
+- runFlow: ../subflows/assert-onboarding-branch.yaml
+- runFlow: ../subflows/assert-preference-persistence.yaml
 
-# === 課表合理性驗證（方法論特定） ===
-# 依據：complete-10k-workout-spec.md — 不允許任何 tempo/threshold/interval
 - runFlow: ../subflows/verify-methodology-beginner.yaml
-
-# === 品質指南驗證 ===
-- runFlow: ../subflows/verify-plan-quality.yaml
+- runFlow: ../subflows/assert-coach-sanity-relationships.yaml

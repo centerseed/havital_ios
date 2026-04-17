@@ -1,0 +1,117 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - layout
+  - regression
+---
+# 佈局一致性驗證：走完 beginner 路徑，驗證每一頁都有固定底部 CTA
+# 測試範圍：P0-1（統一佈局）、P0-2（按鈕不被推出）、P0-3（單一操作入口）、P0-6（導航一致）
+
+# === 登出重新登入取得全流程 ===
+- runFlow: ../subflows/logout-and-demo-login.yaml
+
+# === Intro 頁：CTA 固定底部（P0-2）===
+- assertVisible:
+    id: "OnboardingStartButton"
+- tapOn:
+    id: "OnboardingStartButton"
+
+# === DataSource 頁：有返回按鈕（P0-6, P0-7）===
+- assertVisible:
+    id: "DataSourceOption_appleHealth"
+    optional: true
+# 驗證 navigation bar 可見（非 hidden）— 有返回按鈕
+- tapOn:
+    id: "DataSourceOption_appleHealth"
+    optional: true
+- tapOn:
+    id: "OnboardingContinueButton"
+    optional: true
+
+# 處理 HealthKit 權限彈窗
+- tapOn:
+    text: "開啟全部"
+    optional: true
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+# === 心率區間頁（P1-3 心率預設值）===
+- tapOn:
+    id: "HeartRateZone_ContinueButton"
+    optional: true
+- tapOn:
+    text: "略過"
+    optional: true
+
+# === PB 頁：底部 CTA，無 toolbar 按鈕（P0-3）===
+- assertVisible:
+    text: "個人最佳成績"
+- assertVisible:
+    id: "PersonalBest_ContinueButton"
+# 驗證 toolbar 沒有重複的「下一步」（P0-3 AC1）
+- assertNotVisible:
+    id: "PersonalBest_ToolbarNext"
+    optional: true
+- swipe:
+    start: "46%, 65%"
+    end: "46%, 50%"
+    duration: 300
+- swipe:
+    start: "46%, 65%"
+    end: "46%, 50%"
+    duration: 300
+- tapOn:
+    id: "PersonalBest_ContinueButton"
+
+# === 週跑量頁：底部 CTA + 跳過文字連結（P0-3, D2）===
+- assertVisible:
+    text: "您的週跑量"
+- assertVisible:
+    id: "WeeklyDistance_ContinueButton"
+- tapOn:
+    id: "WeeklyDistance_ContinueButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    text: "略過"
+    optional: true
+
+# === Goal Type 頁 ===
+- extendedWaitUntil:
+    visible:
+      text: "訓練目標"
+    timeout: 15000
+- assertVisible:
+    id: "GoalType_NextButton"
+
+# 選 beginner 走完
+- tapOn: "新手入門"
+- tapOn:
+    id: "GoalType_NextButton"
+
+# === 後續頁面快速通過 ===
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+
+# === 訓練日頁：CTA 在底部，不在 Form Section 內 ===
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+# === Training Overview ===
+- assertVisible:
+    text: "訓練總覽|訓練計劃總覽"

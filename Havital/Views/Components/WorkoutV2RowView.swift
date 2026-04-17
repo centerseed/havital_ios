@@ -62,11 +62,11 @@ struct WorkoutV2RowView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         if let distanceMeters = workout.distanceMeters {
                             Text(formatDistance(distanceMeters))
-                                .font(.system(size: 18, weight: .bold))
+                                .font(AppFont.systemScaled(size: 18, weight: .bold))
                                 .foregroundColor(.primary)
                         } else {
                             Text("-")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(AppFont.systemScaled(size: 18, weight: .bold))
                                 .foregroundColor(.secondary)
                         }
                         Text(L10n.WorkoutMetrics.distance.localized)
@@ -78,7 +78,7 @@ struct WorkoutV2RowView: View {
                     // 時間
                     VStack(alignment: .leading, spacing: 4) {
                         Text(formatDuration(workout.duration))
-                            .font(.system(size: 18, weight: .bold))
+                            .font(AppFont.systemScaled(size: 18, weight: .bold))
                             .foregroundColor(.primary)
                         Text(L10n.WorkoutMetrics.time.localized)
                             .font(AppFont.caption())
@@ -90,11 +90,11 @@ struct WorkoutV2RowView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         if let calories = workout.calories {
                             Text(String(format: "%.0f kcal", calories))
-                                .font(.system(size: 18, weight: .bold))
+                                .font(AppFont.systemScaled(size: 18, weight: .bold))
                                 .foregroundColor(.primary)
                         } else {
                             Text("-")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(AppFont.systemScaled(size: 18, weight: .bold))
                                 .foregroundColor(.secondary)
                         }
                         Text(L10n.WorkoutMetrics.calories.localized)

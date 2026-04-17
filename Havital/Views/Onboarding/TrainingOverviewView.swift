@@ -3,7 +3,7 @@
 //  Havital
 //
 //  Training Overview onboarding step
-//  Refactored to use OnboardingFeatureViewModel (Clean Architecture)
+//  Refactored to use shared OnboardingFeatureViewModel via @EnvironmentObject
 //
 
 import SwiftUI
@@ -16,11 +16,10 @@ enum TrainingOverviewMode {
 
 // MARK: - View
 struct TrainingOverviewView: View {
-    @StateObject private var viewModel: OnboardingFeatureViewModel
+    @EnvironmentObject private var viewModel: OnboardingFeatureViewModel
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
     @Environment(\.dismiss) private var dismiss
 
-    // UI State
     @State private var targetPace: String = "6:00"
     @State private var isTargetEvaluateExpanded = false
     @State private var isHighlightExpanded = false
@@ -28,66 +27,77 @@ struct TrainingOverviewView: View {
     let mode: TrainingOverviewMode
     let initialOverview: TrainingPlanOverview?
 
-    /// 判斷是否為 V2 流程
     private var isV2Flow: Bool {
         return coordinator.selectedTargetTypeId != nil
     }
 
-    /// V2 Overview（優先從 coordinator 獲取）
     private var overviewV2: PlanOverviewV2? {
         return coordinator.trainingPlanOverviewV2 ?? viewModel.trainingOverviewV2
     }
 
-    /// V1 Overview（優先從 coordinator 獲取）
     private var overviewV1: TrainingPlanOverview? {
         return viewModel.trainingOverview ?? coordinator.trainingPlanOverview
     }
 
-    /// 是否有可顯示的 Overview
     private var hasOverview: Bool {
         return isV2Flow ? overviewV2 != nil : overviewV1 != nil
+    }
+
+    private var isShowingCoordinatorError: Binding<Bool> {
+        Binding(
+            get: { coordinator.error != nil },
+            set: { isPresented in
+                if !isPresented {
+                    coordinator.error = nil
+                }
+            }
+        )
     }
 
     init(mode: TrainingOverviewMode = .final, trainingOverview: TrainingPlanOverview? = nil, isBeginner: Bool = false) {
         self.mode = mode
         self.initialOverview = trainingOverview
-        _viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeOnboardingFeatureViewModel())
     }
 
     var body: some View {
-        ZStack {
-            // Main content area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if isV2Flow {
-                        // V2 Flow Content
-                        v2ContentSection
-                    } else {
-                        // V1 Flow Content
-                        v1ContentSection
-                    }
-
-                    // Bottom padding to avoid button overlay
-                    Color.clear.frame(height: 100)
+        OnboardingPageTemplate(
+            ctaTitle: mode == .preview
+                ? NSLocalizedString("onboarding.confirm_generate_first_week", comment: "Confirm and generate first week plan")
+                : NSLocalizedString("onboarding.generate_first_week", comment: "Generate first week plan"),
+            ctaEnabled: !coordinator.isCompleting && hasOverview,
+            isLoading: coordinator.isCompleting,
+            skipTitle: nil,
+            ctaAccessibilityId: "TrainingOverview_GenerateButton",
+            ctaAction: {
+                Task {
+                    await coordinator.completeOnboarding()
                 }
-                .padding()
-            }
+            },
+            skipAction: nil
+        ) {
+            VStack(alignment: .leading, spacing: 20) {
+                if isV2Flow {
+                    v2ContentSection
+                } else {
+                    v1ContentSection
+                }
 
-            // Bottom fixed button
-            VStack {
-                Spacer()
-                generateButton
+                if let error = coordinator.error, !error.isEmpty {
+                    Text(error)
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.red)
+                        .accessibilityIdentifier("TrainingOverview_ErrorMessage")
+                }
             }
+            .padding(.top, 8)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("TrainingOverview_Screen")
         .navigationTitle(NSLocalizedString("onboarding.training_overview_title", comment: "Training Overview"))
-        .navigationBarTitleDisplayMode(.inline)
         .task {
-            // Set isBeginner from coordinator
             viewModel.isBeginner = coordinator.isBeginner
 
             if isV2Flow {
-                // V2 流程：Overview 已經在 TrainingDaysSetupView 中創建
-                // 從 coordinator 獲取，更新 targetPace
                 if let overview = overviewV2 {
                     targetPace = overview.targetPace ?? "6:00"
                     Logger.debug("[TrainingOverviewView] V2 flow: Using overview from coordinator: \(overview.id)")
@@ -95,7 +105,6 @@ struct TrainingOverviewView: View {
                     Logger.warn("[TrainingOverviewView] V2 flow: No overview found in coordinator")
                 }
             } else {
-                // V1 流程：使用原有邏輯
                 if let overview = initialOverview {
                     viewModel.trainingOverview = overview
                     await loadTargetPace()
@@ -112,7 +121,7 @@ struct TrainingOverviewView: View {
                 NSLocalizedString("onboarding.almost_ready", comment: "Almost ready! Preparing your personalized schedule")
             ], totalDuration: 20)
         }
-        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: .constant(coordinator.error != nil)) {
+        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: isShowingCoordinatorError) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {
                 coordinator.error = nil
             }
@@ -131,16 +140,13 @@ struct TrainingOverviewView: View {
     // MARK: - V1 Content Section
     @ViewBuilder
     private var v1ContentSection: some View {
-        // Summary Section
         summarySection
 
-        // Target Evaluate (collapsible)
         if let overview = overviewV1,
            !overview.targetEvaluate.isEmpty {
             targetEvaluateSection(overview.targetEvaluate)
         }
 
-        // Training Timeline
         if let overview = overviewV1 {
             timelineSection(overview)
         }
@@ -150,23 +156,18 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private var v2ContentSection: some View {
         if let overview = overviewV2 {
-            // Summary Section - V2
             summarySectionV2(overview)
 
-            // Target Evaluate (collapsible)
             if let evaluate = overview.targetEvaluate, !evaluate.isEmpty {
                 targetEvaluateSection(evaluate)
             }
 
-            // Approach Summary (類似 V1 的 Training Highlight)
             if let summary = overview.approachSummary, !summary.isEmpty {
                 approachSummarySection(summary)
             }
 
-            // Training Timeline - V2
             timelineSectionV2(overview)
         } else {
-            // Loading state
             VStack(spacing: 16) {
                 ProgressView()
                 Text(NSLocalizedString("common.loading", comment: "Loading..."))
@@ -180,7 +181,6 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private func summarySectionV2(_ overview: PlanOverviewV2) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Total Weeks
             HStack {
                 Label(NSLocalizedString("onboarding.total_weeks", comment: "Total Weeks"), systemImage: "calendar")
                 Spacer()
@@ -189,7 +189,6 @@ struct TrainingOverviewView: View {
             }
             .accessibilityIdentifier("TrainingOverview_WeeksLabel")
 
-            // Target Type / Race Date
             if overview.isRaceRunTarget, let raceDate = overview.raceDateValue {
                 HStack {
                     Label(NSLocalizedString("onboarding.race_date", comment: "Race Date"), systemImage: "flag.checkered")
@@ -206,7 +205,6 @@ struct TrainingOverviewView: View {
                 }
             }
 
-            // Target Pace (if available)
             if let pace = overview.targetPace {
                 HStack {
                     Label(NSLocalizedString("onboarding.target_pace", comment: "Target Pace"), systemImage: "speedometer")
@@ -216,7 +214,6 @@ struct TrainingOverviewView: View {
                 }
             }
 
-            // Methodology (if available)
             if let methodology = overview.methodologyOverview {
                 HStack {
                     Label(NSLocalizedString("onboarding.methodology", comment: "Methodology"), systemImage: "book.closed")
@@ -281,7 +278,6 @@ struct TrainingOverviewView: View {
                 .font(AppFont.headline())
                 .padding(.bottom, 16)
 
-            // Stage cards - V2
             ForEach(Array(overview.trainingStages.enumerated()), id: \.offset) { index, stage in
                 stageCardV2(
                     stage,
@@ -297,18 +293,14 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private func stageCardV2(_ stage: TrainingStageV2, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // Left timeline (circle + connection line)
             ZStack(alignment: .top) {
-                // Dashed connection line (behind the circle, fills full height)
                 if !isLast, let nextColor = nextStageColor {
                     VStack(spacing: 0) {
-                        // Offset to start below circle center
                         Color.clear.frame(height: 10)
                         DashedTimelineLine(color: nextColor)
                     }
                 }
 
-                // Circle on top
                 Circle()
                     .fill(stageColor(for: stageIndex))
                     .frame(width: 20, height: 20)
@@ -320,7 +312,6 @@ struct TrainingOverviewView: View {
             }
             .frame(width: 20)
 
-            // Right content
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(stage.stageName)
@@ -331,7 +322,6 @@ struct TrainingOverviewView: View {
                         .foregroundColor(.secondary)
                 }
 
-                // Weekly distance range
                 Text({
                     if let display = stage.targetWeeklyKmRangeDisplay {
                         return "\(Int(display.lowDisplay))-\(Int(display.highDisplay)) \(display.distanceUnit)/\(NSLocalizedString("common.week_unit", comment: "week"))"
@@ -343,7 +333,6 @@ struct TrainingOverviewView: View {
                     .fontWeight(.semibold)
                     .foregroundColor(stageColor(for: stageIndex))
 
-                // Training Focus (brief)
                 if !stage.trainingFocus.isEmpty {
                     Text(stage.trainingFocus)
                         .font(AppFont.caption())
@@ -351,7 +340,6 @@ struct TrainingOverviewView: View {
                         .padding(.top, 2)
                 }
 
-                // Stage Description (detailed)
                 if !stage.stageDescription.isEmpty {
                     Text(stage.stageDescription)
                         .font(AppFont.caption())
@@ -441,13 +429,11 @@ struct TrainingOverviewView: View {
                 .font(AppFont.headline())
                 .padding(.bottom, 16)
 
-            // Training Highlight card (at top)
             if !overview.trainingHighlight.isEmpty {
                 highlightCard(overview.trainingHighlight)
                     .padding(.bottom, 16)
             }
 
-            // Stage cards
             ForEach(Array(overview.trainingStageDescription.enumerated()), id: \.offset) { index, stage in
                 stageCard(
                     stage,
@@ -464,9 +450,7 @@ struct TrainingOverviewView: View {
     @ViewBuilder
     private func stageCard(_ stage: TrainingStage, targetPace: String, stageIndex: Int, isLast: Bool, nextStageColor: Color?) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // Left timeline (circle + connection line)
             ZStack(alignment: .top) {
-                // Dashed connection line (behind the circle, fills full height)
                 if !isLast, let nextColor = nextStageColor {
                     VStack(spacing: 0) {
                         Color.clear.frame(height: 10)
@@ -474,7 +458,6 @@ struct TrainingOverviewView: View {
                     }
                 }
 
-                // Circle on top
                 Circle()
                     .fill(stageColor(for: stageIndex))
                     .frame(width: 20, height: 20)
@@ -486,7 +469,6 @@ struct TrainingOverviewView: View {
             }
             .frame(width: 20)
 
-            // Right content
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(stage.stageName)
@@ -553,40 +535,6 @@ struct TrainingOverviewView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Generate Button
-    @ViewBuilder
-    private var generateButton: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                gradient: Gradient(colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 20)
-
-            Button(action: {
-                Task {
-                    await coordinator.completeOnboarding()
-                }
-            }) {
-                Text(mode == .preview
-                    ? NSLocalizedString("onboarding.confirm_generate_first_week", comment: "Confirm and generate first week plan")
-                    : NSLocalizedString("onboarding.generate_first_week", comment: "Generate first week plan"))
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .disabled(coordinator.isCompleting || !hasOverview)
-            .accessibilityIdentifier("TrainingOverview_GenerateButton")
-            .padding(.horizontal)
-            .padding(.bottom, 20)
-            .background(Color(.systemBackground))
-        }
-    }
-
     // MARK: - Helper Methods
     private func weekRangeText(_ stage: TrainingStage) -> String {
         if let weekEnd = stage.weekEnd {
@@ -609,7 +557,6 @@ struct TrainingOverviewView: View {
 }
 
 // MARK: - Dashed Timeline Line
-/// A dashed vertical line with an arrow at the bottom, fills available height
 private struct DashedTimelineLine: View {
     let color: Color
 
@@ -620,7 +567,6 @@ private struct DashedTimelineLine: View {
             let lineHeight = max(0, totalHeight - arrowHeight)
 
             VStack(spacing: 0) {
-                // Dashed line
                 Path { path in
                     path.move(to: CGPoint(x: 1.5, y: 0))
                     path.addLine(to: CGPoint(x: 1.5, y: lineHeight))
@@ -628,9 +574,8 @@ private struct DashedTimelineLine: View {
                 .stroke(color.opacity(0.6), style: StrokeStyle(lineWidth: 3, dash: [6, 3]))
                 .frame(width: 3, height: lineHeight)
 
-                // Arrow
                 Image(systemName: "arrowtriangle.down.fill")
-                    .font(.system(size: 8))
+                    .font(AppFont.systemScaled(size: 10))
                     .foregroundColor(color.opacity(0.6))
                     .frame(height: arrowHeight)
             }

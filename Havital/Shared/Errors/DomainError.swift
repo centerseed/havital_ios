@@ -22,6 +22,20 @@ enum DomainError: Error, Equatable, LocalizedError {
     case validationFailure(String)
     case dataCorruption(String)
 
+    // MARK: - 訂閱相關
+    case subscriptionRequired    // 403 + subscription_required（一般過期）
+    case trialExpired            // 403 + subscription_required（試用期到期）
+    case rizoQuotaExceeded       // 429 + rizo_quota_exceeded
+
+    // MARK: - 版本強制更新
+    case forceUpdateRequired(updateUrl: String?)
+
+    // MARK: - 版本路由不一致（V2 用戶誤走 V1 路徑）
+    /// 發生於 V2 用戶被誤導到 V1 的 ViewModel / Repository 路徑。
+    /// - `context`: 發生點描述（如 "WeeklyPlanVM.loadWeeklyPlan" 或 "V1Guard.getOverview"）
+    /// - 重試沒用，需重啟 app
+    case incorrectVersionRouting(context: String)
+
     // MARK: - 取消（不應顯示 ErrorView）
     case cancellation
 
@@ -51,6 +65,16 @@ enum DomainError: Error, Equatable, LocalizedError {
             return message
         case .dataCorruption(let message):
             return NSLocalizedString("error.data_corruption", comment: "") + ": \(message)"
+        case .subscriptionRequired:
+            return NSLocalizedString("error.subscription_required", comment: "Subscription required")
+        case .trialExpired:
+            return NSLocalizedString("error.trial_expired", comment: "Trial period has ended")
+        case .rizoQuotaExceeded:
+            return NSLocalizedString("error.rizo_quota_exceeded", comment: "Rizo quota exceeded")
+        case .forceUpdateRequired:
+            return "App 版本過舊，請前往 App Store 更新"
+        case .incorrectVersionRouting(let context):
+            return "版本不一致，請重新啟動 App（\(context)）"
         case .cancellation:
             return nil // 取消不需要顯示
         case .unknown(let message):
@@ -73,6 +97,10 @@ enum DomainError: Error, Equatable, LocalizedError {
             return NSLocalizedString("error.resource_not_found", comment: "The requested resource was not found")
         case .cancellation:
             return ""
+        case .forceUpdateRequired:
+            return "請前往 App Store 更新至最新版本後繼續使用"
+        case .incorrectVersionRouting:
+            return "您的帳號為 V2，但載入了舊版畫面。請重新啟動 App 後再試。"
         default:
             return errorDescription ?? NSLocalizedString("error.unknown", comment: "An unexpected error occurred")
         }
@@ -85,6 +113,10 @@ enum DomainError: Error, Equatable, LocalizedError {
             return true
         case .unauthorized, .forbidden, .badRequest, .notFound, .validationFailure, .dataCorruption:
             return false
+        case .subscriptionRequired, .trialExpired, .rizoQuotaExceeded, .forceUpdateRequired:
+            return false
+        case .incorrectVersionRouting:
+            return false
         case .cancellation:
             return false
         case .unknown:
@@ -94,10 +126,14 @@ enum DomainError: Error, Equatable, LocalizedError {
 
     // MARK: - 是否應該顯示 ErrorView
     var shouldShowErrorView: Bool {
-        if case .cancellation = self {
+        switch self {
+        case .cancellation, .subscriptionRequired, .trialExpired, .rizoQuotaExceeded, .forbidden, .forceUpdateRequired:
             return false
+        case .incorrectVersionRouting:
+            return true
+        default:
+            return true
         }
-        return true
     }
 }
 
@@ -116,6 +152,24 @@ extension Error {
             return httpError.toDomainError()
         }
 
+        // ParseError 轉換（API decode/schema mismatch）
+        if let parseError = self as? ParseError {
+            switch parseError {
+            case .decodingFailed(let detail):
+                let field = detail.missingField ?? "unknown"
+                return .dataCorruption("decode_failed(type=\(detail.expectedType), field=\(field), path=\(detail.codingPath))")
+            case .fallbackFailed(let message):
+                return .dataCorruption("fallback_failed(\(message))")
+            case .invalidData(let message):
+                return .dataCorruption(message)
+            }
+        }
+
+        // 直接 DecodingError（未包成 ParseError 的情況）
+        if self is DecodingError {
+            return .dataCorruption(localizedDescription)
+        }
+
         // URLError 轉換
         if let urlError = self as? URLError {
             switch urlError.code {
@@ -130,14 +184,9 @@ extension Error {
             }
         }
 
-        // NSError 取消錯誤
-        let nsError = self as NSError
-        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-            return .cancellation
-        }
-
-        // CancellationError
-        if self is CancellationError {
+        // 統一取消錯誤檢查（涵蓋 CancellationError, NSURLErrorCancelled,
+        // SystemError.taskCancelled, HTTPError.cancelled, APIError 等所有類型）
+        if self.isCancellationError {
             return .cancellation
         }
 
@@ -165,6 +214,12 @@ extension HTTPError {
             return .unauthorized
         case .forbidden:
             return .forbidden
+        case .subscriptionRequired:
+            return .subscriptionRequired
+        case .rizoQuotaExceeded:
+            return .rizoQuotaExceeded
+        case .forceUpdateRequired(let payload):
+            return .forceUpdateRequired(updateUrl: payload.updateUrl)
         case .notFound(let message):
             return .notFound(message)
         case .httpError(let code, let message):

@@ -652,6 +652,7 @@ class TrainingPlanViewModel: ObservableObject {
                 self?.isLoadingWeeklySummaries = state.isLoading
             }
             .store(in: &cancellables)
+
     }
 
     /// 根據 ViewState 更新 PlanStatus

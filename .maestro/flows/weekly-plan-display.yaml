@@ -5,7 +5,7 @@ tags:
 ---
 # 週課表顯示正確性驗證
 
-- assertVisible: "每日訓練"
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 - assertVisible: "星期一"
 
 # 驗證週課表結構完整（星期一~日可見），不驗證特定訓練類型（動態資料）

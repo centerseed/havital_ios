@@ -7,11 +7,12 @@ tags:
 ---
 # T4: 賽事 + 極化訓練法
 
-- runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
-- assertVisible: "訓練目標"
-- tapOn: "賽事訓練"
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_race_run"
 - tapOn:
     text: "下一步"
     optional: true
@@ -39,7 +40,8 @@ tags:
     id: "StartStage_NextButton"
     optional: true
 
-- assertVisible: "訓練偏好設定"
+- assertVisible:
+    id: "TrainingDays_SaveButton"
 - tapOn:
     id: "TrainingDays_SaveButton"
 

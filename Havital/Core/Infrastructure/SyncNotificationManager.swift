@@ -43,7 +43,13 @@ class SyncNotificationManager {
         }
     }
     
-    private init() {}
+    private init() {
+        CacheEventBus.shared.subscribe(forIdentifier: "SyncNotificationManager") { [weak self] reason in
+            if case .userLogout = reason {
+                self?.reset()
+            }
+        }
+    }
     
     // 重置通知狀態（例如在用戶登出時）
     func reset() {

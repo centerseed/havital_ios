@@ -41,6 +41,10 @@ class GarminManager: NSObject, ObservableObject {
         DependencyContainer.shared.resolve()
     }
 
+    private var analyticsService: AnalyticsService {
+        DependencyContainer.shared.resolve()
+    }
+
     override init() {
 
 
@@ -80,6 +84,14 @@ class GarminManager: NSObject, ObservableObject {
         super.init()
         // 檢查連接狀態
         loadConnectionStatus()
+
+        CacheEventBus.shared.subscribe(forIdentifier: "GarminManager") { [weak self] reason in
+            if case .userLogout = reason {
+                Task { @MainActor in
+                    self?.resetSessionCheck()
+                }
+            }
+        }
     }
     
     /// 檢查 Client ID 是否有效（不為空且不是佔位符）
@@ -409,19 +421,21 @@ class GarminManager: NSObject, ObservableObject {
                 clearStoredCredentials()
                 isConnecting = false
                 connectionError = nil  // 清除之前的錯誤信息
-                
+
                 print("✅ Garmin 連接成功")
-                
+
+                analyticsService.track(.onboardingGarminConnect(success: true))
+
                 // 記錄連接成功和錯誤清除
                 Logger.firebase("Garmin 連接成功，錯誤信息已清除", level: .info, labels: [
                     "module": "GarminManager",
                     "action": "handleCallback",
                     "result": "success"
                 ])
-                
+
                 // 連接成功後自動切換到Garmin數據源
                 UserPreferencesManager.shared.dataSourcePreference = .garmin
-                
+
                 // 同步到後端 (Clean Architecture: Manager → Repository)
                 Task {
                     do {
@@ -430,12 +444,19 @@ class GarminManager: NSObject, ObservableObject {
 
                         // 🔄 觸發 Onboarding Backfill（背景執行，不影響用戶體驗）
                         BackfillService.shared.triggerOnboardingBackfill(provider: .garmin)
+
+                        // Assume history exists when backfill is triggered.
+                        // Refine if BackfillService ever returns an async result.
+                        await MainActor.run {
+                            self.analyticsService.track(.onboardingGarminComplete(hasHistory: true))
+                        }
                     } catch {
                         print("同步Garmin數據源設定到後端失敗: \(error.localizedDescription)")
                     }
                 }
             }
         } else {
+            analyticsService.track(.onboardingGarminConnect(success: false))
             await handleConnectionError("Garmin 連接失敗")
         }
     }

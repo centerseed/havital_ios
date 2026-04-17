@@ -1,0 +1,20 @@
+appId: com.havital.Havital.dev
+---
+# Guardrail helper: saving preferences must lead to overview and a valid weekly plan.
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- runFlow: assert-plan-overview-integrity.yaml
+
+- tapOn:
+    id: "TrainingOverview_GenerateButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "TrainingPlan_MenuButton"
+    timeout: 45000
+
+- runFlow: assert-weekly-plan-7days.yaml

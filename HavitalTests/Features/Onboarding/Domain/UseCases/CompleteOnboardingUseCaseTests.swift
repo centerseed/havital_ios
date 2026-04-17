@@ -51,7 +51,84 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
             targetId: nil,
             methodologyId: nil,
             trainingWeeks: nil,
-            availableDays: nil
+            availableDays: nil,
+            previewOverviewId: nil,
+            intendedRaceDistanceKm: nil
+        )
+    }
+
+    private func makeV2Input(
+        startFromStage: String? = "build",
+        previewOverviewId: String? = "overview_1",
+        intendedRaceDistanceKm: Int? = nil
+    ) -> CompleteOnboardingUseCase.Input {
+        CompleteOnboardingUseCase.Input(
+            startFromStage: startFromStage,
+            isBeginner: false,
+            isReonboarding: false,
+            targetTypeId: "race_run",
+            targetId: "target_1",
+            methodologyId: "paceriz",
+            trainingWeeks: nil,
+            availableDays: 4,
+            previewOverviewId: previewOverviewId,
+            intendedRaceDistanceKm: intendedRaceDistanceKm
+        )
+    }
+
+    private func makeOverview(
+        id: String = "overview_1",
+        totalWeeks: Int = 5,
+        startFromStage: String? = "build"
+    ) -> PlanOverviewV2 {
+        PlanOverviewV2(
+            id: id,
+            targetId: "target_1",
+            targetType: "race_run",
+            targetDescription: nil,
+            methodologyId: "paceriz",
+            totalWeeks: totalWeeks,
+            startFromStage: startFromStage,
+            raceDate: Int(Date().addingTimeInterval(86400 * 35).timeIntervalSince1970),
+            distanceKm: 21.0975,
+            distanceKmDisplay: nil,
+            distanceUnit: nil,
+            targetPace: "5:30",
+            targetTime: 7200,
+            isMainRace: true,
+            targetName: "Test Race",
+            methodologyOverview: nil,
+            targetEvaluate: nil,
+            approachSummary: nil,
+            trainingStages: [],
+            milestones: [],
+            createdAt: Date(),
+            methodologyVersion: nil,
+            milestoneBasis: nil
+        )
+    }
+
+    private func makeWeeklyPlanV2(id: String = "plan_1") -> WeeklyPlanV2 {
+        WeeklyPlanV2(
+            planId: id,
+            weekOfTraining: 1,
+            id: id,
+            purpose: "Test weekly plan",
+            weekOfPlan: 1,
+            totalWeeks: 5,
+            totalDistance: 30,
+            totalDistanceDisplay: nil,
+            totalDistanceUnit: nil,
+            totalDistanceReason: nil,
+            designReason: ["Test"],
+            days: [],
+            intensityTotalMinutes: nil,
+            createdAt: Date(),
+            updatedAt: Date(),
+            trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil,
+            realTimeAdjustments: nil,
+            apiVersion: "2.0"
         )
     }
 
@@ -162,5 +239,44 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         XCTAssertEqual(output.weeklyPlan?.id, expectedPlan.id)
         XCTAssertEqual(output.weeklyPlan?.weekOfPlan, expectedPlan.weekOfPlan)
         XCTAssertEqual(output.wasReonboarding, true)
+    }
+
+    func test_execute_v2RacePlanExpanderFailure_retriesWithFallbackStage() async throws {
+        // Given
+        mockV2Repository.overviewToReturn = makeOverview(startFromStage: "build")
+        mockV2Repository.weeklyPlanV2ToReturn = makeWeeklyPlanV2()
+        mockV2Repository.generateWeeklyPlanErrors = [
+            DomainError.badRequest("{\"error\":\"PlanExpander 展開失敗\"}")
+        ]
+
+        // When
+        let output = try await sut.execute(input: makeV2Input())
+
+        // Then
+        XCTAssertEqual(output.weeklyPlanV2?.id, "plan_1")
+        XCTAssertEqual(mockV2Repository.generateWeeklyPlanCallCount, 2)
+        XCTAssertEqual(mockV2Repository.createOverviewForRaceCallCount, 0)
+        XCTAssertEqual(mockV2Repository.updateOverviewCallCount, 1)
+        XCTAssertEqual(mockV2Repository.lastUpdatedOverviewId, "overview_1")
+        XCTAssertEqual(mockV2Repository.lastUpdatedOverviewStartFromStage, "peak")
+        XCTAssertEqual(mockV2Repository.lastUpdatedOverviewMethodologyId, "paceriz")
+    }
+
+    func test_execute_v2NonPlanExpanderFailure_doesNotRetryFallbackStage() async {
+        // Given
+        mockV2Repository.overviewToReturn = makeOverview(startFromStage: "build")
+        mockV2Repository.generateWeeklyPlanErrors = [
+            DomainError.badRequest("{\"error\":\"subscription required\"}")
+        ]
+
+        // When / Then
+        do {
+            _ = try await sut.execute(input: makeV2Input())
+            XCTFail("Expected error to be thrown")
+        } catch {
+            XCTAssertTrue(error is OnboardingError)
+            XCTAssertEqual(mockV2Repository.generateWeeklyPlanCallCount, 1)
+            XCTAssertEqual(mockV2Repository.updateOverviewCallCount, 0)
+        }
     }
 }

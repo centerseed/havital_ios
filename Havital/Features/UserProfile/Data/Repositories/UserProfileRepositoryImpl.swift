@@ -9,16 +9,19 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     private let remoteDataSource: UserProfileRemoteDataSourceProtocol
     private let localDataSource: UserProfileLocalDataSourceProtocol
     private let targetRemoteDataSource: TargetRemoteDataSourceProtocol
+    private let authSessionRepository: AuthSessionRepository
 
     // MARK: - Initialization
     init(
         remoteDataSource: UserProfileRemoteDataSourceProtocol = UserProfileRemoteDataSource(),
         localDataSource: UserProfileLocalDataSourceProtocol = UserProfileLocalDataSource(),
-        targetRemoteDataSource: TargetRemoteDataSourceProtocol = TargetRemoteDataSource()
+        targetRemoteDataSource: TargetRemoteDataSourceProtocol = TargetRemoteDataSource(),
+        authSessionRepository: AuthSessionRepository? = nil
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
         self.targetRemoteDataSource = targetRemoteDataSource
+        self.authSessionRepository = authSessionRepository ?? DependencyContainer.shared.resolve()
     }
 
     // MARK: - User Profile
@@ -276,6 +279,13 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     private func refreshInBackground() async {
         do {
             let profile = try await remoteDataSource.getUserProfile()
+
+            // Guard: skip cache write if user has logged out during the API call
+            guard authSessionRepository.getCurrentUser() != nil else {
+                Logger.debug("[UserProfileRepo] Background refresh skipped — user logged out")
+                return
+            }
+
             localDataSource.saveUserProfile(profile)
             Logger.debug("[UserProfileRepo] Background refresh success")
         } catch {

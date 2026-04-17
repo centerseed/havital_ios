@@ -1,7 +1,7 @@
 appId: com.havital.Havital.dev
 ---
-# 子流程：登出 → Demo 登入 → 進入 onboarding（模擬全新用戶）
-# 後置：在 onboarding 個人最佳成績頁面
+# 子流程：不登出的快速重置 → 進入 onboarding（模擬新一輪設定）
+# 後置：在 onboarding 個人最佳成績頁面（或下一步）
 #
 # 重要設計決策：
 # - 不使用 clearState: true，因為 iOS 26 的 HealthKit 授權 sheet 是
@@ -10,7 +10,7 @@ appId: com.havital.Havital.dev
 # - 改為保留 app 狀態，手動登出再登入，避免觸發系統權限彈窗。
 # - 需要在 simulator 上至少執行過一次手動 HealthKit 授權。
 
-# 重啟 app（保留 state）
+# 重啟 app（停掉再啟動，確保從乾淨狀態開始，但保留 state 避免觸發 HealthKit sheet）
 - launchApp:
     stopApp: true
     clearState: false
@@ -23,68 +23,51 @@ appId: com.havital.Havital.dev
     text: "好"
     optional: true
 
-# 嘗試登出（如果在主畫面）
-# 使用 repeat 確保這些步驟在登入頁時被安全跳過
-- tapOn:
-    text: "更多"
-    optional: true
-- tapOn:
-    text: "個人資料"
-    optional: true
-- scrollUntilVisible:
-    element: "登出"
-    direction: DOWN
-    timeout: 5000
-    optional: true
-- tapOn:
-    text: "登出"
-    optional: true
-# 登出確認 dialog（可能不出現）
-- tapOn:
-    text: "確認"
+# 若已在登入頁，直接走 reviewer demo gate；否則略過
+- runFlow:
+    file: reviewer-demo-login.yaml
     optional: true
 
-# 等待登入頁出現（兩條路徑都會到達這裡）
-- extendedWaitUntil:
-    visible:
-      id: "Login_DemoButton"
-    timeout: 30000
-
-# Demo 登入
+# 關閉可能殘留的 modal/sheet（如 TrainingOverview、WeeklySummary 等）
 - tapOn:
-    id: "Login_DemoButton"
-
-# 等待進入主頁面
-- extendedWaitUntil:
-    visible: "更多"
-    timeout: 30000
+    text: "關閉|Close|完成|Done"
+    optional: true
+- back:
+    optional: true
 
 # 透過「更多 → 個人資料 → 重新開始完整 Onboarding」觸發 onboarding
-- tapOn: "更多"
-- tapOn: "個人資料"
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+    optional: true
 - extendedWaitUntil:
-    visible: "個人資料"
-    timeout: 10000
+    visible: "個人資料|Profile|プロフィール"
+    timeout: 8000
 - scrollUntilVisible:
-    element: "重新設定目標"
+    element: "重新設定目標|Reset Goal|目標を再設定"
     direction: DOWN
     timeout: 15000
-- tapOn: "重新設定目標"
+- tapOn: "重新設定目標|Reset Goal|目標を再設定"
 
 # 確認 dialog（「確定要重新開始目標設定流程嗎？」）
 - tapOn:
-    text: "確認"
+    text: "確認|Confirm"
     optional: true
 
-# 等待進入 onboarding（可能直接進 PB，也可能有 intro 頁）
+# 等待進入 onboarding 或直接到訓練總覽（reonboarding 可能跳過所有步驟）
 - extendedWaitUntil:
     visible:
-      text: "歡迎來到|開始設定|個人最佳成績"
-    timeout: 30000
+      text: "歡迎來到|開始設定|個人最佳成績|Training Goal|訓練目標|訓練總覽|確認並生成"
+    timeout: 12000
 
 # Step 1: Intro → 點擊「開始設定」（如果有 intro 頁）
 - tapOn:
-    text: "開始設定"
+    text: "開始設定|Start Setup|設定開始"
     optional: true
 
 # Step 2: 數據來源選擇（如果出現）
@@ -100,7 +83,7 @@ appId: com.havital.Havital.dev
     text: "開啟全部"
     optional: true
 - waitForAnimationToEnd:
-    timeout: 3000
+    timeout: 1500
 - scrollUntilVisible:
     element: "允許"
     direction: DOWN
@@ -110,14 +93,14 @@ appId: com.havital.Havital.dev
     text: "允許"
     optional: true
 - waitForAnimationToEnd:
-    timeout: 3000
+    timeout: 1500
 
 # Step 3: 心率區間設定（如果出現）
 - tapOn:
     text: "下一步"
     optional: true
 
-# 等待進入 PB（個人最佳成績）步驟
+# 等待進入 PB 步驟或訓練總覽（reonboarding 可能已跳到 overview）
 - extendedWaitUntil:
-    visible: "個人最佳成績"
-    timeout: 30000
+    visible: "個人最佳成績|您的週跑量|訓練目標|訓練總覽|確認並生成"
+    timeout: 12000

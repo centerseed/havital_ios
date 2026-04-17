@@ -19,6 +19,8 @@ struct HeartRateZoneInfoView: View {
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
     @State private var navigateToBackfillPrompt = false
+    /// true = 用戶尚未手動設定過心率，目前顯示的是基於年齡的預設值（僅 onboarding 模式使用）
+    @State private var isUsingDefaultHeartRate = false
 
     private let backfillCoordinator = OnboardingBackfillCoordinator.shared
     private let mode: HeartRateViewMode
@@ -47,6 +49,7 @@ struct HeartRateZoneInfoView: View {
 
     var body: some View {
         contentView
+            .accessibilityIdentifier("HeartRateZone_Screen")
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(isOnboardingMode)
@@ -100,7 +103,7 @@ struct HeartRateZoneInfoView: View {
         Text(isOnboardingMode ?
              NSLocalizedString("onboarding.heart_rate_description", comment: "Heart rate description") :
              NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
-            .font(.footnote)
+            .font(AppFont.footnote())
             .foregroundColor(.secondary)
             .padding(.horizontal)
             .padding(.top)
@@ -148,6 +151,15 @@ struct HeartRateZoneInfoView: View {
             Divider().padding(.horizontal)
             restingHeartRateEditor
 
+            // 預設值說明文字：僅在 onboarding 模式且用戶尚未手動修改時顯示
+            if isOnboardingMode && isUsingDefaultHeartRate {
+                Text(NSLocalizedString("hr_zone.default_values_hint", comment: "Default heart rate values hint"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+            }
+
             if !isOnboardingMode {
                 Button(action: { Task { await saveHeartRateZones() } }) {
                     if isSaving {
@@ -189,6 +201,11 @@ struct HeartRateZoneInfoView: View {
                     }
                     .pickerStyle(.wheel)
                     .frame(width: 80)
+                    .onChange(of: maxHeartRate) { _ in
+                        if isOnboardingMode {
+                            isUsingDefaultHeartRate = false
+                        }
+                    }
 
                     Text("bpm")
                         .foregroundColor(.secondary)
@@ -230,6 +247,11 @@ struct HeartRateZoneInfoView: View {
                 }
                 .pickerStyle(.wheel)
                 .frame(width: 80)
+                .onChange(of: restingHeartRate) { _ in
+                    if isOnboardingMode {
+                        isUsingDefaultHeartRate = false
+                    }
+                }
 
                 Text("bpm")
                     .foregroundColor(.secondary)
@@ -359,6 +381,13 @@ struct HeartRateZoneInfoView: View {
     }
 
     // MARK: - Private Functions
+
+    /// 從本地存儲讀取用戶年齡，用於計算預設最大心率。
+    /// 不需要 async 載入：age 直接從 UserDefaults 讀取，與 UserPreferencesLocalDataSource 使用相同 key。
+    private var userAgeFromLocalStorage: Int {
+        UserDefaults.standard.object(forKey: "age") as? Int ?? 30
+    }
+
     @MainActor
     private func loadZoneData() async {
         isLoading = true
@@ -380,7 +409,13 @@ struct HeartRateZoneInfoView: View {
 
     private func loadCurrentValues() {
         if let maxHR = viewModel.maxHeartRate {
+            // 用戶已手動設定過心率，直接使用儲存值
             maxHeartRate = maxHR
+            isUsingDefaultHeartRate = false
+        } else if isOnboardingMode {
+            // Onboarding 首次進入且無心率記錄：使用基於年齡的預設值（220 - 年齡）
+            maxHeartRate = max(100, 220 - userAgeFromLocalStorage)
+            isUsingDefaultHeartRate = true
         } else {
             maxHeartRate = 190
         }
@@ -388,6 +423,7 @@ struct HeartRateZoneInfoView: View {
         if let restingHR = viewModel.restingHeartRate {
             restingHeartRate = restingHR
         } else {
+            // 靜息心率預設 60 bpm（常見健康成人靜息心率）
             restingHeartRate = 60
         }
     }

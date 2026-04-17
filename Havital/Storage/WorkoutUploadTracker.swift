@@ -19,7 +19,13 @@ class WorkoutUploadTracker {
     // 重试冷却时间：失败后 30 分钟内不再重试
     private let retryCooldownSeconds: TimeInterval = 30 * 60
 
-    private init() {}
+    private init() {
+        CacheEventBus.shared.subscribe(forIdentifier: "WorkoutUploadTracker") { [weak self] reason in
+            if case .userLogout = reason {
+                self?.clearUploadedWorkouts()
+            }
+        }
+    }
     
     /// 生成穩定的工作識別碼
     func generateStableWorkoutId(_ workout: HKWorkout) -> String {

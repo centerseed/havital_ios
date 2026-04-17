@@ -66,8 +66,14 @@ final class LoginViewModel: ObservableObject {
             publishAuthenticationEvent(user: authUser)
 
         } catch let error as AuthenticationError {
-            // Handle authentication errors
-            state = .error(error.toDomainError())
+            let domainErr = error.toDomainError()
+            if case .forceUpdateRequired(let url) = domainErr {
+                AuthenticationViewModel.shared.requiresForceUpdate = true
+                AuthenticationViewModel.shared.forceUpdateUrl = url
+                isGoogleSignInLoading = false
+                return
+            }
+            state = .error(domainErr)
             isGoogleSignInLoading = false
 
             Logger.error("[LoginViewModel] Google Sign-In failed: \(error.localizedDescription)")
@@ -104,16 +110,24 @@ final class LoginViewModel: ObservableObject {
             publishAuthenticationEvent(user: authUser)
 
         } catch let error as AuthenticationError {
-            // Handle authentication errors
-            state = .error(error.toDomainError())
-            isAppleSignInLoading = false
+            let domainErr = error.toDomainError()
+            if case .forceUpdateRequired(let url) = domainErr {
+                AuthenticationViewModel.shared.requiresForceUpdate = true
+                AuthenticationViewModel.shared.forceUpdateUrl = url
+                isAppleSignInLoading = false
+                return
+            }
 
             // Ignore user cancellation - don't show error
             if case .appleSignInFailed(let message) = error, message == "User cancelled sign-in" {
                 state = .empty
+                isAppleSignInLoading = false
                 Logger.debug("[LoginViewModel] Apple Sign-In cancelled by user")
                 return
             }
+
+            state = .error(domainErr)
+            isAppleSignInLoading = false
 
             Logger.error("[LoginViewModel] Apple Sign-In failed: \(error.localizedDescription)")
 
@@ -150,8 +164,14 @@ final class LoginViewModel: ObservableObject {
             publishAuthenticationEvent(user: authUser)
 
         } catch let error as AuthenticationError {
-            // Handle authentication errors
-            state = .error(error.toDomainError())
+            let domainErr = error.toDomainError()
+            if case .forceUpdateRequired(let url) = domainErr {
+                AuthenticationViewModel.shared.requiresForceUpdate = true
+                AuthenticationViewModel.shared.forceUpdateUrl = url
+                isAppleSignInLoading = false
+                return
+            }
+            state = .error(domainErr)
             isAppleSignInLoading = false
 
             Logger.error("[LoginViewModel] Apple Sign-In failed: \(error.localizedDescription)")
@@ -167,13 +187,13 @@ final class LoginViewModel: ObservableObject {
 
     /// Demo login for development and testing
     /// Simplified flow without real authentication
-    func demoLogin() async {
+    func demoLogin(passcode: String) async {
         state = .loading
 
         Logger.debug("[LoginViewModel] Starting Demo Login")
 
         do {
-            let authUser = try await authRepository.demoLogin()
+            let authUser = try await authRepository.demoLogin(reviewerPasscode: passcode)
 
             state = .loaded(authUser)
 
@@ -183,7 +203,11 @@ final class LoginViewModel: ObservableObject {
             publishAuthenticationEvent(user: authUser)
 
         } catch let error as AuthenticationError {
-            state = .error(error.toDomainError())
+            if error == .invalidCredentials {
+                state = .error(.validationFailure(NSLocalizedString("login.reviewer_access_failed", comment: "")))
+            } else {
+                state = .error(error.toDomainError())
+            }
 
             Logger.error("[LoginViewModel] Demo Login failed: \(error.localizedDescription)")
 
@@ -204,6 +228,13 @@ final class LoginViewModel: ObservableObject {
 
         // Publish user data change event
         CacheEventBus.shared.publish(.dataChanged(.user))
+
+        // 登入後拉取訂閱狀態（更新 SubscriptionStateManager）
+        Task {
+            let subscriptionRepository: SubscriptionRepository = DependencyContainer.shared.resolve()
+            _ = try? await subscriptionRepository.refreshStatus()
+            Logger.debug("[LoginViewModel] ✅ 訂閱狀態已刷新")
+        }
 
         Logger.debug("[LoginViewModel] Authentication event published for user: \(user.uid)")
     }

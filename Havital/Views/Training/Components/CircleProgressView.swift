@@ -50,37 +50,37 @@ struct CircleProgressView: View {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 // 當前進度（大號、粗體）
                                 Text(String(components[0]))
-                                    .font(.system(size: 18, weight: .bold))
+                                    .font(AppFont.systemScaled(size: 18, weight: .bold))
                                     .foregroundColor(.primary)
 
                                 // 分隔符（小號）
                                 Text("/")
-                                    .font(.system(size: 12, weight: .regular))
+                                    .font(AppFont.systemScaled(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
 
                                 // 目標值（小號）
                                 Text(String(components[1]))
-                                    .font(.system(size: 12, weight: .regular))
+                                    .font(AppFont.systemScaled(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.8)
                         } else {
                             // 降級顯示
                             Text(distanceInfo)
-                                .font(.system(size: 14, weight: .bold))
+                                .font(AppFont.systemScaled(size: 14, weight: .bold))
                                 .foregroundColor(.primary)
                                 .lineLimit(2)
-                                .minimumScaleFactor(0.6)
+                                .minimumScaleFactor(0.8)
                                 .multilineTextAlignment(.center)
                         }
                     } else {
                         // 沒有 "/" 的情況，正常顯示
                         Text(distanceInfo)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(AppFont.systemScaled(size: 14, weight: .bold))
                             .foregroundColor(.primary)
                             .lineLimit(2)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.8)
                             .multilineTextAlignment(.center)
                     }
 

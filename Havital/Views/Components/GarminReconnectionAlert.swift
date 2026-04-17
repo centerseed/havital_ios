@@ -8,7 +8,7 @@ struct GarminReconnectionAlert: View {
         VStack(spacing: 20) {
             // 圖示
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
+                .font(AppFont.systemScaled(size: 50))
                 .foregroundColor(.orange)
             
             // 標題

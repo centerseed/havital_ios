@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 import FirebaseAuth
 
 // MARK: - UserProfileFeatureViewModel
@@ -181,6 +182,9 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     // MARK: - Task Management
     let taskRegistry = TaskRegistry()
 
+    // MARK: - Combine
+    private var cancellables = Set<AnyCancellable>()
+
     // MARK: - Initialization
 
     init(
@@ -209,6 +213,13 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         self.authService = authService
 
         checkAuthenticationStatus()
+
+        VDOTManager.shared.$statistics
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] statistics in
+                self?.currentVDOT = statistics?.latestDynamicVdot ?? 0
+            }
+            .store(in: &cancellables)
     }
 
     /// Convenience initializer using DependencyContainer
@@ -257,6 +268,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// Load current VDOT value from VDOTManager
     func loadVDOT() {
+        VDOTManager.shared.loadLocalCacheSync()
         currentVDOT = VDOTManager.shared.currentVDOT
     }
 
@@ -489,14 +501,10 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         // ✅ STEP 2: Delete account from backend
         try await userRepository.deleteAccount(userId: userId)
 
-        // ✅ STEP 3: Publish user logout event to clear ALL caches (TrainingPlan, Workout, MonthlyStats, etc.)
-        // This ensures no local data remains when the user logs in again
-        CacheEventBus.shared.publish(.userLogout)
+        // ✅ STEP 3: Sign out via unified path (clears all local data + publishes .userLogout)
+        await AuthenticationViewModel.shared.signOut()
 
-        // ✅ STEP 4: Sign out (clears UserDefaults, Firebase session, etc.)
-        try await authService.signOut()
-
-        // Clear state
+        // Clear local ViewModel state
         profileState = .loading
         preferencesState = .loading
         heartRateZones = []
@@ -506,18 +514,13 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         currentUserId = nil
     }
 
-    /// Sign out
+    /// Sign out — delegates to unified Clean Architecture path
     func signOut() async throws {
-        Logger.debug("[UserProfileVM] Signing out")
+        Logger.debug("[UserProfileVM] Signing out via AuthenticationViewModel")
 
-        try await authService.signOut()
-        await userRepository.clearCache()
+        await AuthenticationViewModel.shared.signOut()
 
-        // Publish userLogout event so AuthenticationViewModel updates isAuthenticated
-        // This is required for Demo mode where Firebase listener doesn't fire on signOut
-        CacheEventBus.shared.publish(.userLogout)
-
-        // Clear state
+        // Clear local ViewModel state
         profileState = .loading
         preferencesState = .loading
         heartRateZones = []

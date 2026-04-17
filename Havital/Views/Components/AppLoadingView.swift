@@ -13,7 +13,7 @@ struct AppLoadingView: View {
             VStack(spacing: 24) {
                 // 應用圖示或 Logo
                 Image(systemName: "figure.run")
-                    .font(.system(size: 60))
+                    .font(AppFont.systemScaled(size: 60))
                     .foregroundColor(.blue)
                     .scaleEffect(appStateManager.initializationProgress > 0 ? 1.2 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true),
@@ -40,7 +40,7 @@ struct AppLoadingView: View {
                     VStack(spacing: 16) {
                         VStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 32))
+                                .font(AppFont.systemScaled(size: 32))
                                 .foregroundColor(.orange)
                             
                             Text(L10n.AppLoadingView.initializationFailed.localized)

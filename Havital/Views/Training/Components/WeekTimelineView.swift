@@ -179,7 +179,7 @@ struct TimelineItemView: View {
                         // 第二行：距離
                         if let distance = day.trainingDetails?.totalDistanceKm {
                             Text(String(format: "%.1f km", distance))
-                                .font(AppFont.caption())
+                                .font(AppFont.body())
                                 .foregroundColor(.secondary)
                                 .accessibilityIdentifier("day_\(day.dayIndexInt)_distance")
                         }
@@ -199,13 +199,13 @@ struct TimelineItemView: View {
                             if day.type != .norwegian4x4 && day.type != .yasso800 {
                                 if let desc = day.trainingDetails?.description, !desc.isEmpty {
                                     Text(desc)
-                                        .font(AppFont.caption())
+                                        .font(AppFont.bodySmall())
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
                                         .fixedSize(horizontal: false, vertical: true)
                                 } else {
                                     Text(day.dayTarget)
-                                        .font(AppFont.caption())
+                                        .font(AppFont.bodySmall())
                                         .foregroundColor(.secondary)
                                         .lineLimit(nil)
                                         .fixedSize(horizontal: false, vertical: true)

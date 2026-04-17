@@ -20,4 +20,4 @@ fi
 echo "✅ Clean complete!"
 echo ""
 echo "🔨 To rebuild the project, run:"
-echo "xcodebuild -project Havital.xcodeproj -scheme \"Havital Dev\" -destination 'platform=iOS Simulator,name=iPhone 16' build"
+echo "./Scripts/run_xcodebuild.sh -project Havital.xcodeproj -scheme \"Havital\" -destination 'platform=iOS Simulator,name=iPhone 16' build"

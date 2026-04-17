@@ -1,0 +1,12 @@
+appId: com.havital.Havital.dev
+---
+# QA IAP: 點選右上角選單並進入 Debug 工具
+# 前提：App 已在 Training Plan V2 頁面（我的訓練目標），已登入，已捲到頂部
+
+# 點右上角 ellipsis.circle 按鈕（不用 launchApp，直接操作當前畫面）
+- tapOn:
+    point: "96%,13%"
+
+- extendedWaitUntil:
+    visible: "Debug 工具"
+    timeout: 5000

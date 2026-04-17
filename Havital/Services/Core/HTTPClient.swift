@@ -291,20 +291,39 @@ actor DefaultHTTPClient: HTTPClient {
         return request
     }
     
+    private static let errorPayloadDecoder = JSONDecoder()
+
     private func validateHTTPResponse(_ response: HTTPURLResponse, data: Data) throws {
         guard (200...299).contains(response.statusCode) else {
             let errorBody = String(data: data, encoding: .utf8) ?? "無法解析錯誤回應"
             Logger.error("HTTP 錯誤 \(response.statusCode): \(errorBody)")
-            
+
             switch response.statusCode {
             case 400:
                 throw HTTPError.badRequest(errorBody)
             case 401:
                 throw HTTPError.unauthorized(errorBody)
             case 403:
+                if let wrapper = try? Self.errorPayloadDecoder.decode(SubscriptionErrorDetailWrapper.self, from: data) {
+                    throw HTTPError.subscriptionRequired(wrapper.detail)
+                }
                 throw HTTPError.forbidden(errorBody)
             case 404:
                 throw HTTPError.notFound(errorBody)
+            case 429:
+                if let wrapper = try? Self.errorPayloadDecoder.decode(RizoUsageDetailWrapper.self, from: data) {
+                    throw HTTPError.rizoQuotaExceeded(wrapper.detail)
+                }
+                throw HTTPError.httpError(429, errorBody)
+            case 426:
+                let payload = (try? Self.errorPayloadDecoder.decode(ForceUpdatePayload.self, from: data))
+                    ?? ForceUpdatePayload(error: "upgrade_required", updateUrl: nil, minAppVersion: nil)
+                NotificationCenter.default.post(
+                    name: .paceriZForceUpdateRequired,
+                    object: nil,
+                    userInfo: ["updateUrl": payload.updateUrl as Any]
+                )
+                throw HTTPError.forceUpdateRequired(payload)
             case 500...599:
                 throw HTTPError.serverError(response.statusCode, errorBody)
             default:
@@ -346,6 +365,9 @@ enum HTTPError: Error, LocalizedError {
     case badRequest(String)
     case unauthorized(String)
     case forbidden(String)
+    case subscriptionRequired(SubscriptionErrorPayload)
+    case rizoQuotaExceeded(RizoUsagePayload)
+    case forceUpdateRequired(ForceUpdatePayload)
     case notFound(String)
     case httpError(Int, String)
     case serverError(Int, String)
@@ -368,6 +390,12 @@ enum HTTPError: Error, LocalizedError {
             return "未授權: \(message)"
         case .forbidden(let message):
             return "禁止訪問: \(message)"
+        case .subscriptionRequired:
+            return "需要訂閱才能使用此功能"
+        case .rizoQuotaExceeded:
+            return "Rizo AI 使用次數已達上限"
+        case .forceUpdateRequired:
+            return "App 版本過舊，請前往 App Store 更新"
         case .notFound(let message):
             return "資源不存在: \(message)"
         case .httpError(let code, let message):
@@ -380,7 +408,7 @@ enum HTTPError: Error, LocalizedError {
             return "無效回應: \(message)"
         }
     }
-    
+
     // 判斷是否為取消錯誤
     var isCancelled: Bool {
         if case .cancelled = self {
@@ -398,4 +426,10 @@ enum HTTPError: Error, LocalizedError {
             return false
         }
     }
+}
+
+// MARK: - Force Update Notification
+
+extension Notification.Name {
+    static let paceriZForceUpdateRequired = Notification.Name("com.paceriz.forceUpdateRequired")
 }

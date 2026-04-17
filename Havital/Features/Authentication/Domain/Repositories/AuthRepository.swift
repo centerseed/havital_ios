@@ -35,9 +35,10 @@ protocol AuthRepository {
     func signInWithEmail(email: String, password: String) async throws -> AuthUser
 
     /// Demo login for development/testing
+    /// - Parameter reviewerPasscode: Reviewer access passcode collected from the hidden login gate
     /// - Returns: Demo user with pre-configured data
     /// - Throws: AuthenticationError if demo mode is not available
-    func demoLogin() async throws -> AuthUser
+    func demoLogin(reviewerPasscode: String) async throws -> AuthUser
 
     // MARK: - Sign-Out Operations
 

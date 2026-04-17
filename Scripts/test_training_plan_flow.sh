@@ -26,6 +26,7 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
+XC_BUILD_WRAPPER="$SCRIPT_DIR/run_xcodebuild.sh"
 
 SCHEME="Havital"
 PROJECT="Havital.xcodeproj"
@@ -178,7 +179,7 @@ echo ""
 # ================================
 
 TEST_CMD=(
-    "xcodebuild" "test"
+    "$XC_BUILD_WRAPPER" "test"
     "-project" "$PROJECT"
     "-scheme" "$SCHEME"
     "-destination" "platform=iOS Simulator,name=$SIMULATOR_NAME"

@@ -24,6 +24,12 @@ final class OnboardingFeatureViewModel: ObservableObject {
     private let targetRepository: TargetRepository
     private let trainingPlanRepository: TrainingPlanRepository
     private let trainingPlanV2Repository: TrainingPlanV2Repository
+    private let raceRepository: RaceRepository
+    private let versionRouter: TrainingVersionRouting
+
+    private var analyticsService: AnalyticsService {
+        DependencyContainer.shared.resolve()
+    }
 
     // MARK: - Shared State (across all steps)
 
@@ -39,7 +45,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
     @Published var personalBestMinutes: Int = 0
     @Published var personalBestSeconds: Int = 0
     @Published var selectedPBDistance: String = "5"
-    @Published var hasPersonalBest: Bool = true
+    @Published var hasPersonalBest: Bool = false
     @Published var availablePersonalBests: [String: [PersonalBestRecordV2]] = [:]
     @Published var selectedPersonalBestKey: String?
 
@@ -111,30 +117,122 @@ final class OnboardingFeatureViewModel: ObservableObject {
         "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
     ]
 
+    // MARK: - Race Setup State (merged from OnboardingViewModel)
+
+    /// 賽事名稱（手動輸入）
+    @Published var raceName: String = ""
+
+    /// 賽事日期
+    @Published var raceDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+
+    /// 選擇的距離（字串，用於 Picker 匹配）
+    @Published var selectedDistance: String = "42.195"
+
+    /// 目標完賽時數
+    @Published var targetHours: Int = 4
+
+    /// 目標完賽分鐘數
+    @Published var targetMinutes: Int = 0
+
+    /// 起始階段選擇相關狀態
+    @Published var selectedStartStage: TrainingStagePhase? = nil
+    @Published var shouldShowStageSelection: Bool = false
+
+    /// 未來目標選擇相關狀態
+    @Published var availableTargets: [Target] = []
+    @Published var selectedTargetKey: String?
+    @Published var isLoadingTargets: Bool = false
+
+    // MARK: - Race API State
+
+    /// 從 API 載入的精選賽事列表
+    @Published var raceEvents: [RaceEvent] = []
+
+    /// 賽事 API 是否可用
+    @Published var isRaceAPIAvailable: Bool = true
+
+    /// 賽事列表載入中
+    @Published var isLoadingRaces: Bool = false
+
+    /// 用戶選擇的賽事
+    @Published var selectedRaceEvent: RaceEvent? = nil
+
+    /// 用戶選擇的賽事距離
+    @Published var selectedRaceDistance: RaceDistance? = nil
+
+    /// 選擇的地區
+    @Published var selectedRegion: String = "tw"
+
+    // MARK: - Computed Properties (Race Setup)
+
+    /// 可選距離字典（用於 RaceSetup）
+    var availableDistances: [String: String] {
+        [
+            "5": NSLocalizedString("distance.5k", comment: "5K"),
+            "10": NSLocalizedString("distance.10k", comment: "10K"),
+            "21.0975": NSLocalizedString("distance.half_marathon", comment: "Half Marathon"),
+            "42.195": NSLocalizedString("distance.full_marathon", comment: "Full Marathon")
+        ]
+    }
+
+    /// 使用「週邊界」演算法計算訓練週數（與後端一致）
+    var trainingWeeks: Int {
+        return TrainingWeeksCalculator.calculateTrainingWeeks(
+            startDate: Date(),
+            raceDate: raceDate
+        )
+    }
+
+    /// 保留舊的計算方式用於對比（僅供參考）
+    var actualWeeksRemaining: Double {
+        let (_, weeks) = TrainingWeeksCalculator.calculateActualDateDifference(
+            startDate: Date(),
+            raceDate: raceDate
+        )
+        return weeks
+    }
+
+    /// 目標配速
+    var targetPace: String {
+        let totalSeconds = targetHours * 3600 + targetMinutes * 60
+        let distanceKm = Double(selectedDistance) ?? 42.195
+        let paceSeconds = Int(Double(totalSeconds) / distanceKm)
+        let paceMinutes = paceSeconds / 60
+        let paceRemainingSeconds = paceSeconds % 60
+        return String(format: "%d:%02d", paceMinutes, paceRemainingSeconds)
+    }
+
     // MARK: - Initialization
 
     init(
         userProfileRepository: UserProfileRepository,
         targetRepository: TargetRepository,
         trainingPlanRepository: TrainingPlanRepository,
-        trainingPlanV2Repository: TrainingPlanV2Repository
+        trainingPlanV2Repository: TrainingPlanV2Repository,
+        raceRepository: RaceRepository,
+        versionRouter: TrainingVersionRouting
     ) {
         self.userProfileRepository = userProfileRepository
         self.targetRepository = targetRepository
         self.trainingPlanRepository = trainingPlanRepository
         self.trainingPlanV2Repository = trainingPlanV2Repository
+        self.raceRepository = raceRepository
+        self.versionRouter = versionRouter
 
-        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2)")
+        Logger.debug("[OnboardingFeatureVM] Initialized with repositories (including V2 + Race + VersionRouter)")
     }
 
     /// Convenience initializer for DI
     convenience init() {
         let container = DependencyContainer.shared
+        container.registerTrainingVersionRouter()
         self.init(
             userProfileRepository: container.resolve(),
             targetRepository: container.resolve(),
             trainingPlanRepository: container.resolve(),
-            trainingPlanV2Repository: container.resolve()
+            trainingPlanV2Repository: container.resolve(),
+            raceRepository: container.resolve(),
+            versionRouter: container.resolve() as TrainingVersionRouting
         )
     }
 
@@ -148,11 +246,22 @@ final class OnboardingFeatureViewModel: ObservableObject {
             let user = try await userProfileRepository.getUserProfile()
 
             if let personalBestV2 = user.personalBestV2,
-               let raceRunData = personalBestV2["race_run"] {
+               let raceRunData = personalBestV2["race_run"],
+               !raceRunData.isEmpty {
                 self.availablePersonalBests = raceRunData
+                self.hasPersonalBest = true
+                prefillClosestPersonalBestIfAvailable()
                 Logger.debug("[OnboardingFeatureVM] Loaded \(raceRunData.count) PB distances")
+            } else {
+                clearPersonalBestSelection()
+                hasPersonalBest = false
+                availablePersonalBests = [:]
+                Logger.debug("[OnboardingFeatureVM] No PB found, defaulting hasPersonalBest to false")
             }
         } catch {
+            clearPersonalBestSelection()
+            hasPersonalBest = false
+            availablePersonalBests = [:]
             Logger.debug("[OnboardingFeatureVM] Failed to load PBs: \(error.localizedDescription)")
             // Don't show error - new users may not have PBs
         }
@@ -273,6 +382,15 @@ final class OnboardingFeatureViewModel: ObservableObject {
     }
 
     // MARK: - Goal Type Methods
+
+    /// Called from GoalTypeSelectionView for non-race paths where no additional race info is collected.
+    func trackTargetSetForNonRace(targetType: TargetTypeV2) {
+        analyticsService.track(.onboardingTargetSet(
+            targetType: targetType.id,
+            raceId: nil,
+            distanceKm: nil
+        ))
+    }
 
     /// Load V2 target types from API
     func loadTargetTypes() async {
@@ -417,18 +535,27 @@ final class OnboardingFeatureViewModel: ObservableObject {
             // Recovery path:
             // Some backend deployments may have succeeded in creating the overview
             // but returned a payload that fails DTO extraction on POST.
-            // Try fetching active overview once before surfacing error to UI.
+            // Retry fetching active overview before surfacing error to UI.
             do {
-                let recoveredOverview = try await trainingPlanV2Repository.refreshOverview()
+                let recoveredOverview = try await recoverOverviewAfterCreateFailure()
                 self.trainingOverviewV2 = recoveredOverview
-                Logger.warn("[OnboardingFeatureVM] ⚠️ POST create failed but recovered active overview via GET: \(recoveredOverview.id)")
+                Logger.warn("[OnboardingFeatureVM] ⚠️ POST create failed but recovered active overview via retry GET: \(recoveredOverview.id)")
                 isLoading = false
                 return recoveredOverview
             } catch {
-                self.error = error.localizedDescription
-                Logger.error("[OnboardingFeatureVM] ❌ Recovery via GET /v2/plan/overview also failed: \(error.localizedDescription)")
+                let previewOverview = await buildLocalPreviewOverview(
+                    targetType: targetType,
+                    trainingWeeks: trainingWeeks,
+                    targetId: targetId,
+                    startFromStage: startFromStage,
+                    methodologyId: resolvedMethodologyId,
+                    intendedRaceDistanceKm: intendedRaceDistanceKm
+                )
+
+                self.trainingOverviewV2 = previewOverview
+                Logger.warn("[OnboardingFeatureVM] ⚠️ Recovery via GET /v2/plan/overview failed. Falling back to local preview overview: \(previewOverview.id)")
                 isLoading = false
-                return nil
+                return previewOverview
             }
         }
     }
@@ -455,6 +582,12 @@ final class OnboardingFeatureViewModel: ObservableObject {
             _ = try await targetRepository.createTarget(target)
             isBeginner = true
             Logger.debug("[OnboardingFeatureVM] Beginner 5K goal created")
+
+            analyticsService.track(.onboardingTargetSet(
+                targetType: "beginner",
+                raceId: nil,
+                distanceKm: 5.0
+            ))
 
             isLoading = false
             return true
@@ -598,24 +731,64 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     // MARK: - Training Overview Methods
 
-    /// Load training overview
+    /// Load training overview（依據版本路由器分流到 V1 / V2 Repository）
+    ///
+    /// V2 primary 防線：V2 用戶走 `trainingPlanV2Repository.getOverview()`；
+    /// V1 用戶維持原本 `trainingPlanRepository.getOverview()`。
+    /// Decorator 為 double safety，這裡的分流才是主要防線。
     func loadTrainingOverview() async {
         isLoading = true
         error = nil
 
-        do {
-            let overview = try await trainingPlanRepository.getOverview()
-            trainingOverview = overview
-            Logger.debug("[OnboardingFeatureVM] Training overview loaded: \(overview.id)")
-        } catch {
-            self.error = error.localizedDescription
+        if await versionRouter.isV2User() {
+            do {
+                let overviewV2 = try await trainingPlanV2Repository.getOverview()
+                trainingOverviewV2 = overviewV2
+                Logger.firebase(
+                    "onboarding_load_overview_v2",
+                    level: .info,
+                    labels: [
+                        "cloud_logging": "true",
+                        "module": "OnboardingVM",
+                        "operation": "load_overview_v2"
+                    ],
+                    jsonPayload: [
+                        "uid": AuthenticationService.shared.user?.uid ?? "",
+                        "overview_id": overviewV2.id,
+                        "tracking": "OnboardingFeatureVM: loadTrainingOverviewV2"
+                    ]
+                )
+                Logger.debug("[OnboardingFeatureVM] V2 training overview loaded: \(overviewV2.id)")
+            } catch {
+                self.error = error.toDomainError().userFriendlyMessage
+                Logger.warn("[OnboardingFeatureVM] V2 loadTrainingOverview failed: \(error.localizedDescription)")
+            }
+        } else {
+            do {
+                let overview = try await trainingPlanRepository.getOverview()
+                trainingOverview = overview
+                Logger.debug("[OnboardingFeatureVM: loadTrainingOverviewV1] Training overview loaded: \(overview.id)")
+            } catch {
+                self.error = error.localizedDescription
+            }
         }
 
         isLoading = false
     }
 
     /// Load target pace from main race
+    ///
+    /// V2 用戶：優先從 `trainingOverviewV2.targetPace` 讀（overview 已嵌入 pace），
+    /// 沒有則 fallback "6:00"（PlanOverviewV2 沒有 `mainRaceId` 欄位，對應的是 `targetId`）。
+    /// V1 用戶：維持原本從 `trainingOverview.mainRaceId` 拉 target。
     func loadTargetPace() async -> String {
+        if await versionRouter.isV2User() {
+            if let overview = trainingOverviewV2, let pace = overview.targetPace, !pace.isEmpty {
+                return pace
+            }
+            return "6:00"
+        }
+
         guard let overview = trainingOverview, !overview.mainRaceId.isEmpty else {
             return "6:00"
         }
@@ -629,10 +802,48 @@ final class OnboardingFeatureViewModel: ObservableObject {
         }
     }
 
-    /// Complete onboarding by creating weekly plan
+    /// Complete onboarding by creating weekly plan（依據版本路由器分流）
+    ///
+    /// V2 用戶：呼叫 `trainingPlanV2Repository.generateWeeklyPlan(weekOfTraining: 1, ...)`，
+    /// methodology 視 `isBeginner` 決定：beginner → "beginner"，否則 "paceriz"。
+    /// V1 用戶：維持原本 `trainingPlanRepository.createWeeklyPlan(...)`。
     func completeOnboarding(startFromStage: String?) async -> Bool {
         isLoading = true
         error = nil
+
+        if await versionRouter.isV2User() {
+            do {
+                _ = try await trainingPlanV2Repository.generateWeeklyPlan(
+                    weekOfTraining: 1,
+                    forceGenerate: false,
+                    promptVersion: "v2",
+                    methodology: isBeginner ? "beginner" : "paceriz"
+                )
+
+                Logger.firebase(
+                    "onboarding_complete_v2",
+                    level: .info,
+                    labels: [
+                        "cloud_logging": "true",
+                        "module": "OnboardingVM",
+                        "operation": "complete_onboarding_v2"
+                    ],
+                    jsonPayload: [
+                        "uid": AuthenticationService.shared.user?.uid ?? "",
+                        "is_beginner": isBeginner,
+                        "tracking": "OnboardingFeatureVM: completeOnboardingV2"
+                    ]
+                )
+                Logger.debug("[OnboardingFeatureVM] V2 weekly plan generated, onboarding complete")
+                isLoading = false
+                return true
+            } catch {
+                self.error = error.toDomainError().userFriendlyMessage
+                Logger.warn("[OnboardingFeatureVM] V2 completeOnboarding failed: \(error.localizedDescription)")
+                isLoading = false
+                return false
+            }
+        }
 
         do {
             _ = try await trainingPlanRepository.createWeeklyPlan(
@@ -641,7 +852,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
                 isBeginner: isBeginner
             )
 
-            Logger.debug("[OnboardingFeatureVM] Weekly plan created, onboarding complete")
+            Logger.debug("[OnboardingFeatureVM: completeOnboardingV1] Weekly plan created, onboarding complete")
             isLoading = false
             return true
         } catch {
@@ -649,6 +860,155 @@ final class OnboardingFeatureViewModel: ObservableObject {
             isLoading = false
             return false
         }
+    }
+
+    // MARK: - Race Setup Methods (merged from OnboardingViewModel)
+
+    /// 從後端載入用戶的所有未來目標（只載入主要賽事 isMainRace=true）
+    func loadAvailableTargets() async {
+        isLoadingTargets = true
+
+        do {
+            let allTargets = try await targetRepository.getTargets()
+
+            let now = Date()
+            let futureMainTargets = allTargets.filter { target in
+                let targetDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+                return targetDate > now && target.isMainRace
+            }
+
+            self.availableTargets = futureMainTargets
+            Logger.debug("[OnboardingFeatureVM] 成功載入 \(futureMainTargets.count) 個未來主要目標")
+        } catch is CancellationError {
+            // Ignore cancellation
+        } catch {
+            Logger.warn("[OnboardingFeatureVM] 載入目標失敗: \(error.localizedDescription)")
+            // 不顯示錯誤，因為新用戶可能沒有目標
+        }
+
+        isLoadingTargets = false
+    }
+
+    /// 建立或更新主要賽事目標
+    func createRaceTarget() async -> Bool {
+        isLoading = true
+        self.error = nil
+
+        do {
+            if let selectedTargetId = selectedTargetKey, hasSelectedTargetBeenModified() {
+                // 更新已選擇的目標
+                let updatedTarget = Target(
+                    id: selectedTargetId,
+                    type: "race_run",
+                    name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
+                    distanceKm: Int(Double(selectedDistance) ?? 42.195),
+                    targetTime: targetHours * 3600 + targetMinutes * 60,
+                    targetPace: targetPace,
+                    raceDate: Int(raceDate.timeIntervalSince1970),
+                    isMainRace: true,
+                    trainingWeeks: trainingWeeks
+                )
+                _ = try await targetRepository.updateTarget(id: selectedTargetId, target: updatedTarget)
+                Logger.debug("[OnboardingFeatureVM] 目標已更新: \(updatedTarget.name)")
+            } else if selectedTargetKey == nil {
+                // 創建新的主要目標
+                let target = Target(
+                    id: UUID().uuidString,
+                    type: "race_run",
+                    name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
+                    distanceKm: Int(Double(selectedDistance) ?? 42.195),
+                    targetTime: targetHours * 3600 + targetMinutes * 60,
+                    targetPace: targetPace,
+                    raceDate: Int(raceDate.timeIntervalSince1970),
+                    isMainRace: true,
+                    trainingWeeks: trainingWeeks
+                )
+                let createdTarget = try await targetRepository.createTarget(target)
+                selectedTargetKey = createdTarget.id
+                Logger.debug("[OnboardingFeatureVM] 新目標創建成功: \(createdTarget.name), id: \(createdTarget.id)")
+            } else {
+                // 選擇了目標但沒有改動，直接跳過
+                Logger.debug("[OnboardingFeatureVM] 使用先前的目標賽事，不需要創建或更新")
+            }
+
+            let distanceKm = Double(selectedDistance) ?? 42.195
+            analyticsService.track(.onboardingTargetSet(
+                targetType: "race_run",
+                raceId: selectedTargetKey,
+                distanceKm: distanceKm
+            ))
+
+            isLoading = false
+            return true
+        } catch is CancellationError {
+            isLoading = false
+            return false
+        } catch {
+            self.error = error.localizedDescription
+            isLoading = false
+            return false
+        }
+    }
+
+    /// 當用戶選擇已有的目標時，填入表單
+    func selectTarget(_ target: Target) {
+        selectedRaceEvent = nil
+        selectedRaceDistance = nil
+        selectedTargetKey = target.id
+        raceName = target.name
+        raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+        selectedDistance = normalizeDistanceForPicker(target.distanceKm)
+
+        let totalSeconds = target.targetTime
+        targetHours = totalSeconds / 3600
+        targetMinutes = (totalSeconds % 3600) / 60
+
+        Logger.debug("[OnboardingFeatureVM] 選擇已有目標: \(target.name), 距離: \(target.distanceKm)km -> \(selectedDistance)")
+    }
+
+    // MARK: - Race API Methods
+
+    /// 從 API 載入精選賽事
+    func loadCuratedRaces() async {
+        isLoadingRaces = true
+        do {
+            raceEvents = try await raceRepository.getRaces(
+                region: selectedRegion,
+                distanceMin: nil,
+                distanceMax: nil,
+                dateFrom: nil,
+                dateTo: nil,
+                query: nil,
+                curatedOnly: true,
+                limit: 50,
+                offset: nil
+            )
+            isRaceAPIAvailable = !raceEvents.isEmpty
+        } catch {
+            isRaceAPIAvailable = false
+            Logger.warn("[Onboarding] Race API unavailable: \(error.localizedDescription)")
+        }
+        isLoadingRaces = false
+    }
+
+    /// 用戶從賽事資料庫選擇賽事，自動填入目標設定
+    func selectRaceEvent(_ event: RaceEvent, distance: RaceDistance) {
+        // 清除先前選擇的既有 target，確保 createRaceTarget() 走 CREATE 分支
+        // 而非因為 selectedTargetKey 殘留而跳過 API 呼叫
+        selectedTargetKey = nil
+        selectedRaceEvent = event
+        selectedRaceDistance = distance
+        // 自動填入賽事資訊到手動表單
+        raceName = event.name
+        raceDate = event.eventDate
+        selectedDistance = normalizeDistanceForPicker(Int(distance.distanceKm))
+    }
+
+    /// 清除賽事資料庫選擇，回到手動輸入模式。
+    /// 保留已帶入的欄位，讓使用者能直接微調而不是重填。
+    func clearSelectedRace() {
+        selectedRaceEvent = nil
+        selectedRaceDistance = nil
     }
 
     // MARK: - Private Helpers
@@ -666,6 +1026,155 @@ final class OnboardingFeatureViewModel: ObservableObject {
         if distance == 21 { return 21.0975 }
         if distance == 42 { return 42.195 }
         return distance
+    }
+
+    private func normalizeDistanceForPicker(_ distanceKm: Int) -> String {
+        switch distanceKm {
+        case 5: return "5"
+        case 10: return "10"
+        case 21: return "21.0975"
+        case 42: return "42.195"
+        default: return String(distanceKm)
+        }
+    }
+
+    private func clearPersonalBestSelection() {
+        selectedPersonalBestKey = nil
+        personalBestHours = 0
+        personalBestMinutes = 0
+        personalBestSeconds = 0
+    }
+
+    private func prefillClosestPersonalBestIfAvailable() {
+        let longestKey = availablePersonalBests.keys
+            .compactMap { key -> (String, Double)? in
+                guard let distance = Double(key) else { return nil }
+                return (key, distance)
+            }
+            .max { $0.1 < $1.1 }?
+            .0
+
+        if let longestKey {
+            selectPersonalBest(distanceKey: longestKey)
+        }
+    }
+
+    private func recoverOverviewAfterCreateFailure() async throws -> PlanOverviewV2 {
+        let retryDelays: [UInt64] = [
+            500_000_000,
+            1_000_000_000,
+            2_000_000_000,
+            4_000_000_000
+        ]
+
+        var lastError: Error?
+
+        for (index, delay) in retryDelays.enumerated() {
+            if index > 0 {
+                try await Task.sleep(nanoseconds: delay)
+            }
+
+            do {
+                Logger.warn("[OnboardingFeatureVM] Recovery attempt \(index + 1)/\(retryDelays.count) via GET /v2/plan/overview")
+                return try await trainingPlanV2Repository.refreshOverview()
+            } catch {
+                lastError = error
+                Logger.warn("[OnboardingFeatureVM] Recovery attempt \(index + 1) failed: \(error.localizedDescription)")
+            }
+        }
+
+        throw lastError ?? DomainError.unknown("Failed to recover plan overview")
+    }
+
+    private func buildLocalPreviewOverview(
+        targetType: TargetTypeV2,
+        trainingWeeks: Int?,
+        targetId: String?,
+        startFromStage: String?,
+        methodologyId: String?,
+        intendedRaceDistanceKm: Int?
+    ) async -> PlanOverviewV2 {
+        let resolvedMethodology = selectedMethodology
+            ?? availableMethodologies.first(where: { $0.id == methodologyId })
+            ?? availableMethodologies.first(where: { $0.id == targetType.defaultMethodology })
+
+        let methodologyOverview = resolvedMethodology.map {
+            MethodologyOverviewV2(
+                name: $0.name,
+                philosophy: $0.description,
+                intensityStyle: "balanced",
+                intensityDescription: $0.description
+            )
+        }
+
+        var resolvedTargetName: String?
+        var resolvedRaceDate: Int?
+        var resolvedDistanceKm: Double?
+        var resolvedTargetPace: String?
+        var resolvedTargetTime: Int?
+        var resolvedTotalWeeks = trainingWeeks ?? 0
+
+        if targetType.isRaceRunTarget, let targetId {
+            if let target = try? await targetRepository.getTarget(id: targetId) {
+                resolvedTargetName = target.name
+                resolvedRaceDate = target.raceDate
+                resolvedDistanceKm = Double(target.distanceKm)
+                resolvedTargetPace = target.targetPace
+                resolvedTargetTime = target.targetTime
+                if resolvedTotalWeeks <= 0 {
+                    resolvedTotalWeeks = target.trainingWeeks
+                }
+            }
+        }
+
+        if resolvedTotalWeeks <= 0 {
+            resolvedTotalWeeks = max(trainingWeeks ?? 0, 1)
+        }
+
+        if resolvedDistanceKm == nil, let intendedRaceDistanceKm {
+            resolvedDistanceKm = Double(intendedRaceDistanceKm)
+        }
+
+        return PlanOverviewV2(
+            id: "local_preview_\(UUID().uuidString)",
+            targetId: targetId,
+            targetType: targetType.id,
+            targetDescription: targetType.isRaceRunTarget ? nil : targetType.description,
+            methodologyId: methodologyId ?? resolvedMethodology?.id ?? targetType.defaultMethodology,
+            totalWeeks: resolvedTotalWeeks,
+            startFromStage: startFromStage,
+            raceDate: resolvedRaceDate,
+            distanceKm: resolvedDistanceKm,
+            distanceKmDisplay: nil,
+            distanceUnit: nil,
+            targetPace: resolvedTargetPace,
+            targetTime: resolvedTargetTime,
+            isMainRace: targetType.isRaceRunTarget ? true : nil,
+            targetName: resolvedTargetName,
+            methodologyOverview: methodologyOverview,
+            targetEvaluate: nil,
+            approachSummary: nil,
+            trainingStages: [],
+            milestones: [],
+            createdAt: Date(),
+            methodologyVersion: nil,
+            milestoneBasis: nil
+        )
+    }
+
+    private func hasSelectedTargetBeenModified() -> Bool {
+        guard let selectedTargetId = selectedTargetKey else { return false }
+        guard let selectedTarget = availableTargets.first(where: { $0.id == selectedTargetId }) else {
+            // 找不到原始 target 無法比較，視為已修改以觸發 UPDATE 而非靜默跳過
+            return true
+        }
+
+        let nameChanged = raceName != selectedTarget.name
+        let distanceChanged = Int(Double(selectedDistance) ?? 42.195) != selectedTarget.distanceKm
+        let timeChanged = (targetHours * 3600 + targetMinutes * 60) != selectedTarget.targetTime
+        let dateChanged = Int(raceDate.timeIntervalSince1970) != selectedTarget.raceDate
+
+        return nameChanged || distanceChanged || timeChanged || dateChanged
     }
 }
 
@@ -688,12 +1197,18 @@ extension DependencyContainer {
         if !isRegistered(TrainingPlanV2Repository.self) {
             registerTrainingPlanV2Dependencies()
         }
+        if !isRegistered(RaceRepository.self) {
+            registerRaceModule()
+        }
+        registerTrainingVersionRouter()
 
         return OnboardingFeatureViewModel(
             userProfileRepository: resolve(),
             targetRepository: resolve(),
             trainingPlanRepository: resolve(),
-            trainingPlanV2Repository: resolve()
+            trainingPlanV2Repository: resolve(),
+            raceRepository: resolve(),
+            versionRouter: resolve() as TrainingVersionRouting
         )
     }
 }

@@ -1,0 +1,197 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P1
+---
+# R2: IAP Console State Matrix
+#
+# Precondition (set by wrapper):
+#   - Backend: clear-override (clean start)
+#
+# Test flow:
+#   Tests all 4 console operations in sequence:
+#   1. Set Expired -> verify IAPConsole_AppStatus shows expired
+#   2. Set Subscribed -> verify shows subscribed/active
+#   3. Set Trial -> verify shows trial
+#   4. Clear Override -> verify returns to natural state
+#
+# Each state change uses the IAP Test Console in the app.
+# All assertions are NON-OPTIONAL.
+#
+# Note: This flow uses the in-app IAP Test Console (Debug feature),
+# NOT the backend API. It tests that the console UI correctly
+# reflects state changes.
+
+# Step 1: Launch and login
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
+    optional: true
+
+# Wait for any app screen to be ready (login, main, or profile)
+- extendedWaitUntil:
+    visible: "我的訓練目標|訓練計劃|每日訓練|更多|個人資料|完成|Done"
+    timeout: 30000
+
+# If on Profile page, tap "完成" to dismiss first
+- tapOn:
+    text: "完成|Done"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Navigate to Profile -> IAP Test Console
+- tapOn:
+    text: "更多"
+    optional: true
+- tapOn:
+    text: "個人資料"
+    optional: true
+- extendedWaitUntil:
+    visible: "個人資料"
+    timeout: 10000
+
+# Tap into Developer Tools section (text contains emoji: "🧪 開發者測試")
+- scrollUntilVisible:
+    element: ".*(Dev Test|開發者測試|開発者テスト).*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: ".*(Dev Test|開發者測試|開発者テスト).*"
+- extendedWaitUntil:
+    visible: "Developer Tools|開發者測試|開発者テスト"
+    timeout: 10000
+
+# Tap IAP Test Console button
+- scrollUntilVisible:
+    element: "IAP Test Console"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "IAP Test Console"
+- extendedWaitUntil:
+    visible: "IAP Test Console"
+    timeout: 10000
+
+# ===== Scenario 1: Set Expired =====
+- scrollUntilVisible:
+    element: "Set Expired"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Set Expired"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# Scroll to App Snapshot to see app status
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+# Refresh to get latest
+- tapOn: "Refresh Detail \\+ App Status"
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+# CRITICAL ASSERTION: App status should reflect expired
+- assertVisible:
+    id: "IAPConsole_AppStatus"
+- assertVisible:
+    id: "IAPConsole_AppStatus_expired"
+
+- takeScreenshot: ".maestro/screenshots/R2_01_expired.png"
+
+# ===== Scenario 2: Set Subscribed =====
+# Scroll back up to action buttons
+- scrollUntilVisible:
+    element: "Set Subscribed"
+    direction: UP
+    timeout: 15000
+- tapOn: "Set Subscribed"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "Refresh Detail \\+ App Status"
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- assertVisible:
+    id: "IAPConsole_AppStatus"
+- assertVisible:
+    id: "IAPConsole_AppStatus_active"
+
+- takeScreenshot: ".maestro/screenshots/R2_02_subscribed.png"
+
+# ===== Scenario 3: Set Trial =====
+- scrollUntilVisible:
+    element: "Set Trial"
+    direction: UP
+    timeout: 15000
+- tapOn: "Set Trial"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "Refresh Detail \\+ App Status"
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- assertVisible:
+    id: "IAPConsole_AppStatus"
+- assertVisible:
+    id: "IAPConsole_AppStatus_trial"
+
+- takeScreenshot: ".maestro/screenshots/R2_03_trial.png"
+
+# ===== Scenario 4: Clear Override =====
+- scrollUntilVisible:
+    element: "Clear Override"
+    direction: UP
+    timeout: 15000
+- tapOn: "Clear Override"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- scrollUntilVisible:
+    element: "App Snapshot"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "Refresh Detail \\+ App Status"
+
+- extendedWaitUntil:
+    visible:
+      id: "IAPConsole_AppStatus"
+    timeout: 20000
+
+- assertVisible:
+    id: "IAPConsole_AppStatus"
+
+- takeScreenshot: ".maestro/screenshots/R2_04_cleared.png"

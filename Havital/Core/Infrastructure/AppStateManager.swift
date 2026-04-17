@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 /// App 狀態管理中心 - 統一管理用戶狀態和初始化流程
 @MainActor
@@ -32,8 +33,8 @@ class AppStateManager: ObservableObject {
         }
     }
     
-    /// 用戶訂閱狀態
-    enum SubscriptionStatus: String, CaseIterable {
+    /// App 層本地使用的精簡訂閱狀態
+    enum LocalSubscriptionStatus: String, CaseIterable {
         case free = "free"
         case premium = "premium"
         case expired = "expired"
@@ -52,7 +53,7 @@ class AppStateManager: ObservableObject {
     @Published var currentState: AppState = .initializing
     @Published var isUserAuthenticated = false
     @Published var userDataSource: DataSourceType = .unbound
-    @Published var subscriptionStatus: SubscriptionStatus = .free
+    @Published var subscriptionStatus: LocalSubscriptionStatus = .free
     @Published var initializationProgress: Double = 0.0
     
     // MARK: - Private Properties
@@ -63,13 +64,35 @@ class AppStateManager: ObservableObject {
     private let workoutRepository: WorkoutRepository
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
+    // Lazy resolve: SubscriptionRepository 在 DI 註冊完成後才可用
+    private var subscriptionRepository: SubscriptionRepository {
+        DependencyContainer.shared.resolve()
+    }
+
+    private var analyticsService: AnalyticsService {
+        DependencyContainer.shared.resolve()
+    }
+
+    private var cancellables = Set<AnyCancellable>()
+
     private init() {
         // Initialize repositories via DI
         self.authSessionRepository = DependencyContainer.shared.resolve()
         self.workoutRepository = DependencyContainer.shared.resolve()
         print("🏁 AppStateManager: 已初始化")
+
+        // Keep the GA4 subscription_status user property in sync with live state changes.
+        SubscriptionStateManager.shared.$currentStatus
+            .compactMap { $0 }
+            .removeDuplicates { $0.status == $1.status }
+            .sink { [weak self] entity in
+                guard let self else { return }
+                let statusString = analyticsStatusString(for: entity.status)
+                self.analyticsService.setUserProperty(statusString, forName: "subscription_status")
+            }
+            .store(in: &cancellables)
     }
-    
+
     // MARK: - Public Methods
     
     /// 完整的 App 初始化流程
@@ -101,6 +124,8 @@ class AppStateManager: ObservableObject {
             // Phase 4: 完成初始化
             initializationProgress = 1.0
             currentState = .ready
+
+            trackAppOpen()
 
             print("✅ AppStateManager: 初始化完成")
             Logger.firebase("App 初始化完成", level: .info, labels: [
@@ -202,6 +227,7 @@ class AppStateManager: ObservableObject {
             print("⚠️ AppStateManager: 用戶未認證，跳過資料載入")
             userDataSource = .unbound
             subscriptionStatus = .free
+            await SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
             return
         }
         
@@ -231,7 +257,9 @@ class AppStateManager: ObservableObject {
 
             // 使用同步後的數據源設定
             userDataSource = UserPreferencesManager.shared.dataSourcePreference
-            subscriptionStatus = .free // 暫時設為免費版，未來可從 user.data 中獲取
+
+            // 從 API 拉取訂閱狀態（更新 SubscriptionStateManager + 本地緩存）
+            await loadSubscriptionStatus()
 
             print("✅ AppStateManager: 用戶資料同步完成")
             print("   - 最終數據源: \(userDataSource.rawValue)")
@@ -250,7 +278,8 @@ class AppStateManager: ObservableObject {
 
             // 使用本地設定作為備用
             userDataSource = UserPreferencesManager.shared.dataSourcePreference
-            subscriptionStatus = .free
+            // 嘗試用 cached subscription status，避免離線時誤顯示免費
+            await loadSubscriptionStatus()
 
             Logger.firebase("用戶資料載入失敗，使用本地設定", level: .error, labels: [
                 "module": "AppStateManager",
@@ -262,6 +291,40 @@ class AppStateManager: ObservableObject {
         }
     }
     
+    /// 載入訂閱狀態（優先直打 API，失敗才回退緩存）
+    /// 符合 ADR：後端 status API 為 SSOT，本地 cache 只作離線 fallback
+    private func loadSubscriptionStatus() async {
+        do {
+            let status = try await subscriptionRepository.refreshStatus()
+            subscriptionStatus = resolveLocalSubscriptionStatus(from: status)
+            Logger.debug("[AppStateManager] 訂閱狀態載入成功（backend refresh）: \(status.status.rawValue)")
+        } catch {
+            // API 失敗時才回退到本地 cache，避免冷啟動先吃舊狀態
+            if let cached = subscriptionRepository.getCachedStatus() {
+                subscriptionStatus = resolveLocalSubscriptionStatus(from: cached)
+                Logger.debug("[AppStateManager] backend refresh 失敗，使用緩存訂閱狀態: \(cached.status.rawValue)")
+            } else {
+                subscriptionStatus = .free
+                Logger.debug("[AppStateManager] 無訂閱資訊，預設免費")
+            }
+        }
+    }
+
+    /// 將 Domain Entity 的訂閱狀態映射為 AppStateManager 的本地枚舉
+    private func resolveLocalSubscriptionStatus(from entity: SubscriptionStatusEntity) -> LocalSubscriptionStatus {
+        switch entity.status {
+        case .active, .trial, .gracePeriod:
+            return .premium
+        case .cancelled:
+            // cancelled 但未到期，仍有服務權限
+            return .premium
+        case .expired:
+            return .expired
+        case .none:
+            return .free
+        }
+    }
+
     /// Phase 3: 設置服務
     private func setupServices() async {
         print("⚙️ AppStateManager: 開始設置服務")
@@ -285,6 +348,51 @@ class AppStateManager: ObservableObject {
         }
         
         print("✅ AppStateManager: 服務設置完成")
+    }
+}
+
+// MARK: - Analytics
+
+extension AppStateManager {
+
+    private func trackAppOpen() {
+        let installDate = UserDefaults.standard.analyticsFirstInstallDate
+        let daysSinceInstall = Calendar.current.dateComponents([.day], from: installDate, to: Date()).day ?? 0
+
+        let subscriptionString = analyticsSubscriptionString()
+
+        analyticsService.track(.appOpen(
+            daysSinceInstall: daysSinceInstall,
+            subscriptionStatus: subscriptionString
+        ))
+
+        // User properties (AC-12)
+        analyticsService.setUserProperty(subscriptionString, forName: "subscription_status")
+        analyticsService.setUserProperty(userDataSource.rawValue, forName: "data_source")
+
+        // target_type: read from UserDefaults (set by OnboardingCoordinator)
+        if let targetTypeId = UserDefaults.standard.string(forKey: "selectedTargetTypeId") {
+            analyticsService.setUserProperty(targetTypeId, forName: "target_type")
+        }
+    }
+
+    private func analyticsSubscriptionString() -> String {
+        guard let entity = SubscriptionStateManager.shared.currentStatus else {
+            return "free"
+        }
+        return analyticsStatusString(for: entity.status)
+    }
+}
+
+/// Free function outside AppStateManager to avoid shadowing by AppStateManager.SubscriptionStatus.
+private func analyticsStatusString(for domainStatus: SubscriptionStatus) -> String {
+    switch domainStatus {
+    case .trial:       return "trial"
+    case .active:      return "active"
+    case .expired:     return "expired"
+    case .none:        return "free"
+    case .cancelled:   return "active"
+    case .gracePeriod: return "active"
     }
 }
 

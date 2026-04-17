@@ -6,7 +6,7 @@ import Foundation
 /// UI 結構與 V1 EditScheduleView 一致，不依賴 V1 TrainingPlanViewModel
 struct EditScheduleViewV2: View {
     @ObservedObject var editViewModel: EditScheduleV2ViewModel
-    @ObservedObject var planViewModel: TrainingPlanV2ViewModel
+    var planViewModel: TrainingPlanV2ViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingUnsavedChangesAlert = false
     @State private var hasUnsavedChanges = false
@@ -105,12 +105,10 @@ struct EditScheduleViewV2: View {
 
     private func saveChanges() async {
         do {
-            let savedPlan = try await editViewModel.saveEdits()
-            await MainActor.run {
-                planViewModel.weeklyPlan = savedPlan
-                planViewModel.planStatus = .ready(savedPlan)
-                dismiss()
-            }
+            _ = try await editViewModel.saveEdits()
+            // savedPlan 已存在 editViewModel.savedPlan，
+            // 由父 view 在 sheet onDismiss 時讀取更新 planStatus
+            dismiss()
         } catch {
             // 錯誤已在 ViewModel 記錄，不需要額外處理
             Logger.error("[EditScheduleViewV2] saveChanges failed: \(error.localizedDescription)")

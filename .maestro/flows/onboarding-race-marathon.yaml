@@ -6,24 +6,7 @@ tags:
 ---
 # T1: 賽事訓練（全馬）→ plan overview → weekly plan
 
-- assertVisible:
-    text: "個人最佳成績"
-# swipe picker 分鐘數（iPhone 17 Pro 適用）
-- swipe:
-    start: "46%, 65%"
-    end: "46%, 50%"
-    duration: 300
-- swipe:
-    start: "46%, 65%"
-    end: "46%, 50%"
-    duration: 300
-- tapOn:
-    id: "PersonalBest_ContinueButton"
-
-- assertVisible:
-    text: ".*週跑量.*"
-- tapOn:
-    id: "WeeklyDistance_ContinueButton"
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
 
 - assertVisible:
     text: "目標|訓練目標"
@@ -66,7 +49,7 @@ tags:
 
 # 訓練偏好
 - assertVisible:
-    text: "訓練偏好設定"
+    id: "TrainingDays_SaveButton"
 - tapOn:
     id: "TrainingDays_SaveButton"
 

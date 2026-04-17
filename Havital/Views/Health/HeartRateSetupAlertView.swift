@@ -14,7 +14,7 @@ struct HeartRateSetupAlertView: View {
             VStack(spacing: 24) {
                 // 图标
                 Image(systemName: "heart.text.square.fill")
-                    .font(.system(size: 64))
+                    .font(AppFont.systemScaled(size: 64))
                     .foregroundColor(.red)
                     .padding(.top, 32)
 

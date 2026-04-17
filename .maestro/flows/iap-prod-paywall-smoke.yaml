@@ -1,0 +1,60 @@
+appId: com.havital.Havital
+tags:
+  - iap
+  - prod
+  - smoke
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-reviewerAccessPressDuration": "1.0"
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "Login_ReviewerAccessTrigger"
+    timeout: 15000
+- longPressOn:
+    id: "Login_ReviewerAccessTrigger"
+- extendedWaitUntil:
+    visible:
+      id: "Login_ReviewerPasscodeField"
+    timeout: 5000
+- tapOn:
+    id: "Login_ReviewerPasscodeField"
+- inputText: ${DEMO_REVIEWER_PASSCODE}
+- tapOn:
+    id: "Login_ReviewerActivateButton"
+- tapOn:
+    text: "不再提醒|Not Now|後で|Skip"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "更多|More|もっと見る|訓練計劃|訓練計畫|Training Plan|每日訓練|Daily Training"
+    timeout: 30000
+- tapOn:
+    text: "更多|More|もっと見る"
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+
+- extendedWaitUntil:
+    visible: "個人資料|Profile|プロフィール|訂閱|Subscription|サブスクリプション"
+    timeout: 15000
+- assertVisible:
+    id: "Subscription_UpgradeButton"
+- tapOn:
+    id: "Subscription_UpgradeButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "Paywall_Header"
+    timeout: 15000
+- assertVisible:
+    text: "升級以解鎖完整功能|Upgrade to unlock full features|アップグレードして全機能を解放"
+- takeScreenshot: "iap-prod-paywall-opened"

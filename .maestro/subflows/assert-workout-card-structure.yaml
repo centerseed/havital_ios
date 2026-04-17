@@ -1,0 +1,13 @@
+appId: com.havital.Havital.dev
+---
+# Guardrail helper: interval-style cards should retain their core structure.
+- scrollUntilVisible:
+    element:
+      text: "間歇訓練|短間歇|長間歇|Cruise Intervals|Interval Training|Long Interval|Short Interval"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+
+- assertVisible:
+    text: "暖身|熱身|Warm Up|Sprint|主課表|Main Set|恢復段|Recovery Segment|冷卻|Cool Down"
+    optional: true

@@ -1,0 +1,73 @@
+appId: com.havital.Havital.dev
+tags:
+  - onboarding
+  - race_run
+  - race-event-selection
+---
+# 賽事選擇功能：從賽事資料庫選擇 → 自動填入 → 完成 onboarding
+# 前提：需要 Race API 可用（/v2/races 回傳賽事列表）
+# 測試範圍：P0-10 AC1~AC9, AC11~AC12
+
+- runFlow: ../subflows/ensure-goal-type-screen.yaml
+
+# === Step 1: 選擇賽事目標類型 ===
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+# === Step 2: 賽事設定頁 — 驗證兩個入口（P0-10 AC1）===
+- extendedWaitUntil:
+    visible:
+      id: "RaceSetup_BrowseDatabaseButton"
+    timeout: 15000
+
+# === Step 3: 點擊「從賽事資料庫選擇」進入列表 ===
+- tapOn:
+    id: "RaceSetup_BrowseDatabaseButton"
+
+# === Step 4: 賽事列表頁驗證（P0-10 AC2）===
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事"
+    timeout: 15000
+
+# 驗證地區切換器存在（P0-10 AC5）
+- assertVisible:
+    text: "台灣"
+- assertVisible:
+    text: "日本"
+
+# 驗證有賽事卡片顯示
+- assertVisible:
+    text: ".*馬拉松.*|.*Marathon.*|.*路跑.*"
+    optional: true
+
+# === Step 5: 選擇一個賽事 ===
+# 點擊第一個賽事卡片
+- tapOn:
+    id: "RaceEventCard_0"
+
+# 如果有多距離 Sheet 彈出（P0-10 AC6），選第一個距離
+- tapOn:
+    id: "RaceDistanceOption_0"
+    optional: true
+
+# === Step 6: 回到賽事設定頁 — 驗證自動填入（P0-10 AC7）===
+- extendedWaitUntil:
+    visible:
+      text: "距離賽事.*天"
+    timeout: 10000
+
+# 驗證已選賽事摘要卡可見
+- assertVisible:
+    id: "RaceSetup_ChangeRaceButton"
+
+# === Step 7: 按下一步繼續（P0-10 AC9）===
+- tapOn:
+    id: "RaceSetup_SaveButton"
+
+# === Step 8: 驗證流程正常進入後續步驟 ===
+- runFlow: ../subflows/assert-onboarding-branch.yaml

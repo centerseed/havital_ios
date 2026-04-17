@@ -25,10 +25,10 @@ struct SideInfoOverlay: View {
                     // 主標題區域（如果標題為空字串則不顯示）
                     if !data.achievementTitle.isEmpty {
                         Text(data.achievementTitle)
-                            .font(.system(size: 48, weight: .semibold))
+                            .font(AppFont.systemScaled(size: 48, weight: .semibold))
                             .foregroundColor(.white)
                             .lineLimit(2)
-                            .minimumScaleFactor(0.7)
+                            .minimumScaleFactor(0.85)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 42)
                             .padding(.vertical, 20)
@@ -43,7 +43,7 @@ struct SideInfoOverlay: View {
                         if let distance = data.workout.distanceMeters {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(String(format: "%.2f", distance / 1000))
-                                    .font(.system(size: 54, weight: .semibold))
+                                    .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text(NSLocalizedString("sideinfooverlay.text_0", comment: "Distance (km)"))
                                     .font(AppFont.dataSmall())
@@ -54,7 +54,7 @@ struct SideInfoOverlay: View {
                         // 總計時間
                         VStack(alignment: .leading, spacing: 6) {
                             Text(data.workout.formattedDuration)
-                                .font(.system(size: 54, weight: .semibold))
+                                .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                 .foregroundColor(.white)
                             Text(NSLocalizedString("sideinfooverlay.text_1", comment: "Total Time"))
                                 .font(AppFont.dataSmall())
@@ -65,7 +65,7 @@ struct SideInfoOverlay: View {
                         if let paceText = getPaceText() {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(paceText)
-                                    .font(.system(size: 54, weight: .semibold))
+                                    .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text(NSLocalizedString("sideinfooverlay.text_2", comment: "Average Pace"))
                                     .font(AppFont.dataSmall())

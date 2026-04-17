@@ -89,6 +89,14 @@ class StravaManager: NSObject, ObservableObject {
         super.init()
         // 檢查連接狀態
         loadConnectionStatus()
+
+        CacheEventBus.shared.subscribe(forIdentifier: "StravaManager") { [weak self] reason in
+            if case .userLogout = reason {
+                Task { @MainActor in
+                    self?.resetSessionCheck()
+                }
+            }
+        }
     }
     
     /// 檢查 Client ID 和 Secret 是否有效

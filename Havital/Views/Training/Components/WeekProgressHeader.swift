@@ -10,7 +10,7 @@ struct WeekProgressHeader: View {
         VStack(spacing: 6) {
             HStack {
                 Text(NSLocalizedString("training.progress", comment: "Training Progress"))
-                    .font(.system(size: 14, weight: .medium))
+                    .font(AppFont.systemScaled(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 Spacer()
 
@@ -20,7 +20,7 @@ struct WeekProgressHeader: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("\(plan.weekOfPlan) / \(overview?.totalWeeks ?? plan.totalWeeks) 週")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(AppFont.systemScaled(size: 14, weight: .bold))
                             .foregroundColor(.primary)
                         Image(systemName: "chevron.down.circle.fill")
                             .font(AppFont.caption())
