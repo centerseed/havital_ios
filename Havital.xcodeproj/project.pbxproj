@@ -544,7 +544,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -672,7 +672,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -863,7 +863,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -899,7 +899,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				SWIFT_EMIT_LOC_STRINGS = YES;
