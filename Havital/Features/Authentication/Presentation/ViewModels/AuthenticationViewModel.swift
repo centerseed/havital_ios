@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import FirebaseAuth
+import FirebaseAnalytics
 import Combine
 import RevenueCat
 
@@ -35,6 +36,12 @@ final class AuthenticationViewModel: ObservableObject {
 
     /// Authentication error
     @Published var error: DomainError?
+
+    /// Version Gate: true when a forced app update is required
+    @Published var requiresForceUpdate: Bool = false
+
+    /// App Store update URL (nil shows plain text prompt in CTA)
+    @Published var forceUpdateUrl: String? = nil
 
     // MARK: - Dependencies
 
@@ -75,6 +82,17 @@ final class AuthenticationViewModel: ObservableObject {
 
         // Listen to Firebase Auth state changes
         setupAuthStateListener()
+
+        // Listen to Version Gate 426 broadcasts (AC-VG-03)
+        NotificationCenter.default.publisher(for: .paceriZForceUpdateRequired)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                let url = note.userInfo?["updateUrl"] as? String
+                self?.requiresForceUpdate = true
+                self?.forceUpdateUrl = url
+                Logger.warn("[AuthViewModel] 🚫 Force update triggered via 426 broadcast, updateUrl=\(url ?? "nil")")
+            }
+            .store(in: &cancellables)
 
         // Load onboarding status from UserDefaults
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -261,35 +279,52 @@ final class AuthenticationViewModel: ObservableObject {
     /// Sign out current user
     /// Clears authentication state and cache
     func signOut() async {
+        guard !isLoading else { return }
         isLoading = true
         error = nil
 
         Logger.debug("[AuthViewModel] Starting sign out")
 
         do {
-            // Execute sign out via Repository
+            // Step 1: Firebase sign out
             try await authRepository.signOut()
 
-            // Clear local state
+            // Step 2: Clear in-memory auth state
             isAuthenticated = false
             currentUser = nil
             hasCompletedOnboarding = false
             isReonboardingMode = false
             isLoading = false
 
-            // Clear onboarding status from UserDefaults
-            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            // Step 3: Nuclear clear — remove entire UserDefaults domain
+            if let bundleID = Bundle.main.bundleIdentifier {
+                UserDefaults.standard.removePersistentDomain(forName: bundleID)
+                UserDefaults.standard.synchronize()
+            }
 
-            Logger.debug("[AuthViewModel] Sign out succeeded")
+            // Step 4: Clear Keychain (OAuth tokens, credentials)
+            let secItemClasses: [CFString] = [
+                kSecClassGenericPassword,
+                kSecClassInternetPassword,
+                kSecClassCertificate,
+                kSecClassKey,
+                kSecClassIdentity
+            ]
+            for secItemClass in secItemClasses {
+                let query: [String: Any] = [kSecClass as String: secItemClass]
+                SecItemDelete(query as CFDictionary)
+            }
 
-            // Clear subscription cache (ADR-001)
-            let subscriptionRepository: SubscriptionRepository = DependencyContainer.shared.resolve()
-            subscriptionRepository.clearCache()
-            SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+            // Step 5: Clear Analytics user ID
+            Analytics.setUserID(nil)
 
-            // Publish user logout event
+            // Step 6: Publish logout event — triggers all registered Cacheable + subscribers
             CacheEventBus.shared.publish(.userLogout)
+
+            // Step 7: Reset RevenueCat identity
             scheduleRevenueCatIdentitySync(for: nil)
+
+            Logger.debug("[AuthViewModel] Sign out succeeded — all local data cleared")
 
         } catch {
             isLoading = false

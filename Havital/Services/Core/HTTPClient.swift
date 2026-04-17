@@ -315,6 +315,15 @@ actor DefaultHTTPClient: HTTPClient {
                     throw HTTPError.rizoQuotaExceeded(wrapper.detail)
                 }
                 throw HTTPError.httpError(429, errorBody)
+            case 426:
+                let payload = (try? Self.errorPayloadDecoder.decode(ForceUpdatePayload.self, from: data))
+                    ?? ForceUpdatePayload(error: "upgrade_required", updateUrl: nil, minAppVersion: nil)
+                NotificationCenter.default.post(
+                    name: .paceriZForceUpdateRequired,
+                    object: nil,
+                    userInfo: ["updateUrl": payload.updateUrl as Any]
+                )
+                throw HTTPError.forceUpdateRequired(payload)
             case 500...599:
                 throw HTTPError.serverError(response.statusCode, errorBody)
             default:
@@ -358,6 +367,7 @@ enum HTTPError: Error, LocalizedError {
     case forbidden(String)
     case subscriptionRequired(SubscriptionErrorPayload)
     case rizoQuotaExceeded(RizoUsagePayload)
+    case forceUpdateRequired(ForceUpdatePayload)
     case notFound(String)
     case httpError(Int, String)
     case serverError(Int, String)
@@ -384,6 +394,8 @@ enum HTTPError: Error, LocalizedError {
             return "需要訂閱才能使用此功能"
         case .rizoQuotaExceeded:
             return "Rizo AI 使用次數已達上限"
+        case .forceUpdateRequired:
+            return "App 版本過舊，請前往 App Store 更新"
         case .notFound(let message):
             return "資源不存在: \(message)"
         case .httpError(let code, let message):
@@ -414,4 +426,10 @@ enum HTTPError: Error, LocalizedError {
             return false
         }
     }
+}
+
+// MARK: - Force Update Notification
+
+extension Notification.Name {
+    static let paceriZForceUpdateRequired = Notification.Name("com.paceriz.forceUpdateRequired")
 }

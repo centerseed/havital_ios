@@ -52,3 +52,19 @@ struct RizoUsageRaw: Decodable {
     let used: Int
     let limit: Int
 }
+
+// MARK: - Force Update Error (426)
+// 後端用 JSONResponse 直接回傳，無 FastAPI {"detail": ...} 包裝
+// 格式：{"error": "...", "update_url": "...", "min_app_version": "..."}
+
+struct ForceUpdatePayload: Decodable {
+    let error: String
+    let updateUrl: String?
+    let minAppVersion: String?
+
+    enum CodingKeys: String, CodingKey {
+        case error
+        case updateUrl     = "update_url"
+        case minAppVersion = "min_app_version"
+    }
+}

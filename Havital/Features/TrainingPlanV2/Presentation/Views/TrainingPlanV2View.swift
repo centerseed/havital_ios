@@ -10,10 +10,15 @@ struct TrainingPlanV2View: View {
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
     @State private var showEditSchedule = false
+    @State private var editScheduleVM: EditScheduleV2ViewModel?
     @State private var showContactPaceriz = false
     @State private var showFeedbackReport = false
     @State private var showWeekSelector = false
+    @State private var showMessageCenter = false
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
+    @StateObject private var announcementViewModel = AnnouncementViewModel(
+        repository: DependencyContainer.shared.resolve()
+    )
 
     // MARK: - Initialization
 
@@ -70,6 +75,11 @@ struct TrainingPlanV2View: View {
                     .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
+                    // Announcement Banner（AC-ANN-01）
+                    if let banner = announcementViewModel.bannerAnnouncement {
+                        AnnouncementBannerView(announcement: banner)
+                    }
+
                     switch viewModel.planStatus {
                     case .ready(let weeklyPlan):
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
@@ -141,7 +151,7 @@ struct TrainingPlanV2View: View {
                             Image(systemName: "arrow.uturn.backward")
                             Text(String(format: NSLocalizedString("training_plan.back_to_current_week", comment: "返回本週 (Week %d)"), viewModel.currentWeek))
                         }
-                        .font(.subheadline)
+                        .font(AppFont.subheadline())
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .padding(.vertical, 10)
@@ -176,6 +186,7 @@ struct TrainingPlanV2View: View {
                         Button(action: { showUserProfile = true }) {
                             Label(userProfileMenuTitle, systemImage: "person.circle")
                         }
+                        .accessibilityIdentifier("TrainingPlan_Menu_Profile")
 
                         Button(action: { showPlanOverview = true }) {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
@@ -187,7 +198,7 @@ struct TrainingPlanV2View: View {
 
                         // 編輯週課表（只在有課表時顯示）
                         if case .ready = viewModel.planStatus {
-                            Button(action: { showEditSchedule = true }) {
+                            Button(action: { openEditSchedule() }) {
                                 Label(NSLocalizedString("training.edit_schedule", comment: "編輯週課表"), systemImage: "pencil")
                             }
                         }
@@ -195,6 +206,11 @@ struct TrainingPlanV2View: View {
                         Button(action: { showWeekSelector = true }) {
                             Label(NSLocalizedString("training.switch_week", comment: "切換週數"), systemImage: "list.number")
                         }
+
+                        Button(action: { showMessageCenter = true }) {
+                            Label("訊息中心", systemImage: "bell")
+                        }
+                        .accessibilityIdentifier("TrainingPlan_Menu_MessageCenter")
 
                         Divider()
 
@@ -240,10 +256,21 @@ struct TrainingPlanV2View: View {
                         Image(systemName: "ellipsis.circle")
                             .foregroundColor(.primary)
                     }
+                    .accessibilityIdentifier("TrainingPlan_MenuButton")
                 }
             }
             .sheet(isPresented: $showPlanOverview) {
                 PlanOverviewSheetV2(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showMessageCenter) {
+                NavigationStack {
+                    MessageCenterView(viewModel: announcementViewModel)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("關閉") { showMessageCenter = false }
+                            }
+                        }
+                }
             }
             // ✅ 全屏 Loading 動畫
             .sheet(isPresented: $bindableViewModel.isLoadingAnimation) {
@@ -265,21 +292,17 @@ struct TrainingPlanV2View: View {
                     showUserProfile = false
                 }
             }
-            .sheet(isPresented: $showEditSchedule) {
-                if case .ready(let weeklyPlan) = viewModel.planStatus {
-                    let startDate: Date = {
-                        if let overview = viewModel.planOverview, let createdAt = overview.createdAt {
-                            let formatter = ISO8601DateFormatter()
-                            let str = formatter.string(from: createdAt)
-                            return WeekDateService.weekDateInfo(
-                                createdAt: str,
-                                weekNumber: viewModel.selectedWeek
-                            )?.startDate ?? Date()
-                        }
-                        return Date()
-                    }()
+            .sheet(isPresented: $showEditSchedule, onDismiss: {
+                // 編輯 sheet 關閉後，套用儲存結果（避免 @Observable sheet 重建問題）
+                if let savedPlan = editScheduleVM?.savedPlan {
+                    viewModel.weeklyPlan = savedPlan
+                    viewModel.planStatus = .ready(savedPlan)
+                }
+                editScheduleVM = nil
+            }) {
+                if let editVM = editScheduleVM {
                     EditScheduleViewV2(
-                        editViewModel: EditScheduleV2ViewModel(weeklyPlan: weeklyPlan, startDate: startDate),
+                        editViewModel: editVM,
                         planViewModel: viewModel
                     )
                 }
@@ -381,6 +404,7 @@ struct TrainingPlanV2View: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.initialize()
+            announcementViewModel.loadBannerAnnouncement()
         }
         // 成功訊息 Toast
         .overlay(alignment: .top) {
@@ -453,6 +477,23 @@ struct TrainingPlanV2View: View {
 
     // MARK: - Helpers
 
+    private func openEditSchedule() {
+        guard case .ready(let weeklyPlan) = viewModel.planStatus else { return }
+        let startDate: Date = {
+            if let overview = viewModel.planOverview, let createdAt = overview.createdAt {
+                let formatter = ISO8601DateFormatter()
+                let str = formatter.string(from: createdAt)
+                return WeekDateService.weekDateInfo(
+                    createdAt: str,
+                    weekNumber: viewModel.selectedWeek
+                )?.startDate ?? Date()
+            }
+            return Date()
+        }()
+        editScheduleVM = EditScheduleV2ViewModel(weeklyPlan: weeklyPlan, startDate: startDate)
+        showEditSchedule = true
+    }
+
     private var isChineseLanguage: Bool {
         guard let lang = Bundle.main.preferredLocalizations.first else { return false }
         return lang.hasPrefix("zh")
@@ -468,16 +509,16 @@ private struct PlaceholderWeekTimelineView: View {
             HStack {
                 Image(systemName: "calendar")
                     .foregroundColor(.secondary)
-                    .font(.headline)
+                    .font(AppFont.headline())
                 Text(NSLocalizedString("training.daily_training", comment: "Daily Training"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
             }
             .padding(.horizontal, 4)
 
             Text(NSLocalizedString("training.weekly_schedule_wip", comment: "Weekly schedule feature is in development"))
-                .font(.caption)
+                .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -502,16 +543,16 @@ private struct GenerateWeeklyPlanPromptView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 60))
+                .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.blue)
                 .padding(.top, 40)
 
             Text(NSLocalizedString("training.no_weekly_plan_title", comment: "週課表尚未產生"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             Text(NSLocalizedString("training.no_weekly_plan_description", comment: "點擊下方按鈕產生本週課表"))
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -526,7 +567,7 @@ private struct GenerateWeeklyPlanPromptView: View {
                     Text(isWeekOne
                         ? NSLocalizedString("training.generate_weekly_plan", comment: "產生週課表")
                         : NSLocalizedString("training.get_weekly_summary", comment: "取得週回顧"))
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.white)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 32)
@@ -545,16 +586,16 @@ private struct NoPlanPromptView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.exclamationmark")
-                .font(.system(size: 60))
+                .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.secondary)
                 .padding(.top, 40)
 
             Text(NSLocalizedString("training.no_plan_title", comment: "No Plan Title"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             Text(NSLocalizedString("training.no_plan_description", comment: "No Plan Description"))
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -572,16 +613,16 @@ private struct GenerateWeeklySummaryPromptView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "chart.bar.doc.horizontal")
-                .font(.system(size: 60))
+                .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.blue)
                 .padding(.top, 40)
 
             Text(NSLocalizedString("training.need_weekly_summary_title", comment: "Need Weekly Summary"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             Text(String(format: NSLocalizedString("training.need_weekly_summary_description", comment: "Need Summary Description"), weekToSummarize))
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -594,7 +635,7 @@ private struct GenerateWeeklySummaryPromptView: View {
                         .padding(.horizontal, 32)
                 } else {
                     Text(String(format: NSLocalizedString("training.generate_week_summary", comment: "Generate Week Summary"), weekToSummarize))
-                        .font(.headline)
+                        .font(AppFont.headline())
                         .foregroundColor(.white)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 32)
@@ -615,16 +656,16 @@ private struct TrainingCompletedView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
+                .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.green)
                 .padding(.top, 40)
 
             Text(NSLocalizedString("training.completed_title", comment: "Training Completed"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             Text(NSLocalizedString("training.completed_description", comment: "Ready for New Plan"))
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -658,7 +699,7 @@ private struct GenerateNextWeekButtonV2: View {
         VStack(spacing: 16) {
             // 標題
             Text(NSLocalizedString("training.ready_for_next_week_title", comment: "Ready for Next Week"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             // 按鈕
@@ -668,7 +709,7 @@ private struct GenerateNextWeekButtonV2: View {
             } label: {
                 VStack(spacing: 8) {
                     Text(String(format: NSLocalizedString("training.generate_week_n_plan", comment: "Generate Week N Plan"), nextWeekInfo.weekNumber))
-                        .font(.headline)
+                        .font(AppFont.headline())
 
                     // 提示文字
                     if nextWeekInfo.requiresCurrentWeekSummary == true {
@@ -676,14 +717,14 @@ private struct GenerateNextWeekButtonV2: View {
                             Image(systemName: "lightbulb.fill")
                             Text(NSLocalizedString("training.need_complete_current_summary", comment: "Need Complete Summary"))
                         }
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.white.opacity(0.8))
                     } else {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                             Text(NSLocalizedString("training.current_summary_completed", comment: "Summary Completed"))
                         }
-                        .font(.caption)
+                        .font(AppFont.caption())
                         .foregroundColor(.white.opacity(0.8))
                     }
                 }
@@ -722,23 +763,23 @@ private struct ErrorView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 60))
+                .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.orange)
                 .padding(.top, 40)
 
             Text(NSLocalizedString("training.loading_failed", comment: "Loading Failed"))
-                .font(.headline)
+                .font(AppFont.headline())
                 .foregroundColor(.primary)
 
             Text(error.localizedDescription)
-                .font(.subheadline)
+                .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
             Button(action: retryAction) {
                 Text(NSLocalizedString("common.retry", comment: "Retry"))
-                    .font(.headline)
+                    .font(AppFont.headline())
                     .foregroundColor(.white)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 32)
@@ -768,14 +809,14 @@ private struct WeekSelectorSheetV2: View {
                 } label: {
                     HStack {
                         Text(String(format: NSLocalizedString("training.week_number", comment: "第 %d 週"), week))
-                            .font(.body)
+                            .font(AppFont.body())
                             .foregroundColor(.primary)
 
                         Spacer()
 
                         if week == viewModel.currentWeek {
                             Text(NSLocalizedString("training.current_week_label", comment: "本週"))
-                                .font(.caption)
+                                .font(AppFont.caption())
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
