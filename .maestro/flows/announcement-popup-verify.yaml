@@ -1,0 +1,75 @@
+appId: com.havital.Havital.dev
+name: announcement-popup-verify
+tags:
+  - announcement
+  - regression
+env:
+  DEMO_REVIEWER_PASSCODE: app_paceriz_tester
+---
+# 票 #3 [iOS] 公告 Banner + 訊息中心驗收
+# 前置（dev 後台需先建好 3 筆未 seen 公告）：
+#   A 完整（圖+CTA）
+#   B 純文字（無圖無 CTA）
+#   C 已過期（不應顯示）
+# Demo reviewer 帳號未 seen A/B 才可重跑。若已 seen 需先 admin API 清除 seen 紀錄。
+
+- launchApp:
+    clearState: false
+    stopApp: true
+
+- runFlow: ../subflows/reviewer-demo-login.yaml
+
+# 等待首頁載入
+- extendedWaitUntil:
+    visible:
+      text: "訓練計畫|每日訓練|Training Plan|Daily Training"
+    timeout: 15000
+
+# 第一個 popup（觀察結果：B 純文字先出，再 A 完整公告）
+# 排序由後端決定，目前為 published_at DESC
+- extendedWaitUntil:
+    visible:
+      id: "AnnouncementPopup_CloseButton"
+    timeout: 10000
+- takeScreenshot: /tmp/qa_t3_popup_first
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+
+# 第二個 popup
+- extendedWaitUntil:
+    visible:
+      id: "AnnouncementPopup_CloseButton"
+    timeout: 5000
+- takeScreenshot: /tmp/qa_t3_popup_second
+
+# 驗證完整公告含 CTA 按鈕
+- assertVisible:
+    id: "AnnouncementPopup_CTAButton"
+- assertVisible:
+    text: "立即查看|View Now"
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+
+# 確認沒有第 3 個 popup（C 過期過濾）
+- assertNotVisible:
+    id: "AnnouncementPopup_CloseButton"
+
+- takeScreenshot: /tmp/qa_t3_no_third_popup
+
+# 進訊息中心
+- tapOn:
+    point: "37,89"
+- takeScreenshot: /tmp/qa_t3_message_center
+
+# 驗證 A、B 都列出，C 不列
+- assertVisible:
+    text: "完整公告|Full Announcement"
+- assertVisible:
+    text: "純文字公告|Text-only"
+- assertNotVisible:
+    text: "已過期|Expired"
+
+# Note：CTA 開啟 URL 行為需手動驗（會跳出 app）
+# 或重置 demo 帳號的 seen 紀錄後重跑
