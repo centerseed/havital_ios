@@ -21,6 +21,7 @@ enum SubscriptionMapper {
             )
         }
         let expiresAt = dto.expiresAt.flatMap { parseISO8601ToTimeInterval($0) }
+        let trialEndAt = dto.trialEndAt.flatMap { parseISO8601ToTimeInterval($0) }
         let billingIssue = dto.billingIssue ?? false
 
         // active + billingIssue → gracePeriod（Apple billing retry 期間，服務不中斷但帳務異常）
@@ -45,7 +46,8 @@ enum SubscriptionMapper {
             trialRemainingDays: dto.trialRemainingDays,
             isEarlyBird: dto.isEarlyBird,
             hasOverride: dto.hasOverride,
-            inIntroTrial: dto.inIntroTrial
+            inIntroTrial: dto.inIntroTrial,
+            trialEndAt: trialEndAt
         )
     }
 

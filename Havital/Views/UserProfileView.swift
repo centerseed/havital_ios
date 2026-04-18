@@ -278,7 +278,31 @@ struct UserProfileView: View {
                 // 狀態輔助資訊（依 Spec UI 矩陣）
                 switch status.status {
                 case .trial:
-                    EmptyView()
+                    if let endAt = status.trialEndAt {
+                        subscriptionDateRow(
+                            title: NSLocalizedString("profile.subscription.trial_ends", comment: "Trial ends"),
+                            systemImage: "clock",
+                            expiresAt: endAt,
+                            color: .orange
+                        )
+                    }
+                    let days = status.trialRemainingDays ?? status.daysRemaining
+                    if days > 0 {
+                        Label(
+                            String(format: NSLocalizedString("profile.subscription.trial_remaining_days", comment: ""), days),
+                            systemImage: "hourglass"
+                        )
+                        .foregroundColor(.orange)
+                    }
+                    // expires_at 非 null = 試用期間已購買，訂閱待生效
+                    if status.expiresAt != nil {
+                        Label(
+                            NSLocalizedString("profile.subscription.trial_purchased_note", comment: "Subscribed, activates after trial"),
+                            systemImage: "checkmark.seal.fill"
+                        )
+                        .foregroundColor(.green)
+                        .accessibilityIdentifier("Trial_PurchasedNote")
+                    }
 
                 case .active:
                     subscriptionDateRow(

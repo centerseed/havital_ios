@@ -274,6 +274,9 @@
 "profile.subscription.change_plan" = "プラン変更";
 "profile.subscription.plan.yearly" = "年間サブスク";
 "profile.subscription.plan.monthly" = "月間サブスク";
+"profile.subscription.trial_ends" = "トライアル終了日";
+"profile.subscription.trial_remaining_days" = "残り%d日";
+"profile.subscription.trial_purchased_note" = "購読済み。トライアル終了後に有効化されます";
 
 // MARK: - Data Sources
 "datasource.title" = "データソース";

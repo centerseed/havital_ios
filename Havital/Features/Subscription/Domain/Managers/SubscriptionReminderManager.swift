@@ -64,18 +64,14 @@ final class SubscriptionReminderManager: ObservableObject {
     // MARK: - Private
 
     private func checkTrialReminder(status: SubscriptionStatusEntity) {
-        guard status.expiresAt != nil else {
-            pendingReminder = nil
-            return
-        }
-        let remainingDays = status.daysRemaining
-
-        guard remainingDays <= 7 && remainingDays > 0 else {
+        // 使用後端計算的 trialRemainingDays（SSOT），不依賴 expiresAt
+        guard let remainingDays = status.trialRemainingDays,
+              remainingDays > 0,
+              remainingDays <= 7 else {
             pendingReminder = nil
             return
         }
 
-        // 每日最多一次
         let today = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
         let lastShown = UserDefaults.standard.double(forKey: Keys.lastTrialReminderDate)
         guard lastShown < today else {
@@ -84,7 +80,7 @@ final class SubscriptionReminderManager: ObservableObject {
         }
 
         UserDefaults.standard.set(today, forKey: Keys.lastTrialReminderDate)
-        pendingReminder = .trialExpiring(daysRemaining: remainingDays, trialEndsAt: status.expiresAt)
+        pendingReminder = .trialExpiring(daysRemaining: remainingDays, trialEndsAt: status.trialEndAt)
     }
 
     private func checkExpiredReminder() {

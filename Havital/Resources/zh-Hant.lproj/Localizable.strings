@@ -274,6 +274,9 @@
 "profile.subscription.change_plan" = "變更方案";
 "profile.subscription.plan.yearly" = "年訂閱";
 "profile.subscription.plan.monthly" = "月訂閱";
+"profile.subscription.trial_ends" = "試用到期日";
+"profile.subscription.trial_remaining_days" = "剩餘 %d 天";
+"profile.subscription.trial_purchased_note" = "已訂閱，試用結束後自動生效";
 
 // MARK: - Data Sources
 "datasource.title" = "數據來源";

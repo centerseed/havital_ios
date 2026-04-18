@@ -274,6 +274,9 @@
 "profile.subscription.change_plan" = "Change Plan";
 "profile.subscription.plan.yearly" = "Annual";
 "profile.subscription.plan.monthly" = "Monthly";
+"profile.subscription.trial_ends" = "Trial ends";
+"profile.subscription.trial_remaining_days" = "%d days remaining";
+"profile.subscription.trial_purchased_note" = "Subscribed — activates after trial ends";
 
 // MARK: - Data Sources
 "datasource.title" = "Data Sources";

@@ -37,6 +37,9 @@ struct SubscriptionStatusEntity {
     /// 是否處於 App Store introductory offer / trial 期間
     let inIntroTrial: Bool?
 
+    /// 試用期結束時間（Unix timestamp）。來自後端 trial_end_at 欄位。
+    let trialEndAt: TimeInterval?
+
     // MARK: - Initialization
 
     init(
@@ -49,7 +52,8 @@ struct SubscriptionStatusEntity {
         trialRemainingDays: Int? = nil,
         isEarlyBird: Bool? = nil,
         hasOverride: Bool? = nil,
-        inIntroTrial: Bool? = nil
+        inIntroTrial: Bool? = nil,
+        trialEndAt: TimeInterval? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -61,6 +65,7 @@ struct SubscriptionStatusEntity {
         self.isEarlyBird = isEarlyBird
         self.hasOverride = hasOverride
         self.inIntroTrial = inIntroTrial
+        self.trialEndAt = trialEndAt
     }
 }
 
@@ -77,6 +82,7 @@ extension SubscriptionStatusEntity: Equatable {
             && lhs.isEarlyBird == rhs.isEarlyBird
             && lhs.hasOverride == rhs.hasOverride
             && lhs.inIntroTrial == rhs.inIntroTrial
+            && lhs.trialEndAt == rhs.trialEndAt
     }
 }
 

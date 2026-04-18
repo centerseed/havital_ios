@@ -28,6 +28,9 @@ struct SubscriptionStatusDTO: Codable {
     /// 是否處於 App Store introductory offer / trial 期間（StoreKit 判斷）
     let inIntroTrial: Bool?
 
+    /// 試用期結束時間（ISO8601）。status=trial_active 時後端提供此欄位。
+    let trialEndAt: String?
+
     // MARK: - Initialization
 
     /// 顯式 init（所有新欄位預設 nil，讓既有 call site 不需修改）
@@ -41,7 +44,8 @@ struct SubscriptionStatusDTO: Codable {
         trialRemainingDays: Int? = nil,
         isEarlyBird: Bool? = nil,
         hasOverride: Bool? = nil,
-        inIntroTrial: Bool? = nil
+        inIntroTrial: Bool? = nil,
+        trialEndAt: String? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -53,6 +57,7 @@ struct SubscriptionStatusDTO: Codable {
         self.isEarlyBird = isEarlyBird
         self.hasOverride = hasOverride
         self.inIntroTrial = inIntroTrial
+        self.trialEndAt = trialEndAt
     }
 
     // MARK: - CodingKeys
@@ -68,6 +73,7 @@ struct SubscriptionStatusDTO: Codable {
         case isEarlyBird = "is_early_bird"
         case hasOverride = "has_override"
         case inIntroTrial = "in_intro_trial"
+        case trialEndAt = "trial_end_at"
     }
 }
 
