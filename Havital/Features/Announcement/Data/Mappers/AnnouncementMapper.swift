@@ -28,7 +28,7 @@ enum AnnouncementMapper {
             ctaUrl: dto.ctaUrl,
             publishedAt: publishedAt,
             expiresAt: dto.expiresAt.flatMap { parseISO($0) },
-            isSeen: dto.isSeen
+            isSeen: dto.isSeen ?? false
         )
     }
 }

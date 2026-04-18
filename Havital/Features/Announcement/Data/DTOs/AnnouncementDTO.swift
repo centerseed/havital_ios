@@ -9,7 +9,7 @@ struct AnnouncementDTO: Codable {
     let ctaUrl: String?
     let publishedAt: String?
     let expiresAt: String?
-    let isSeen: Bool
+    let isSeen: Bool?   // nil when backend omits the field; mapper defaults to false (unread)
 
     enum CodingKeys: String, CodingKey {
         case id, title, body
@@ -22,8 +22,37 @@ struct AnnouncementDTO: Codable {
     }
 }
 
+// MARK: - Lossy list response
+
 struct AnnouncementListResponse: Codable {
     let announcements: [AnnouncementDTO]
+
+    enum CodingKeys: String, CodingKey { case announcements }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let throwables = try container.decode([ThrowableAnnouncementDTO].self, forKey: .announcements)
+        var items: [AnnouncementDTO] = []
+        items.reserveCapacity(throwables.count)
+        for (index, throwable) in throwables.enumerated() {
+            switch throwable.result {
+            case .success(let dto):
+                items.append(dto)
+            case .failure(let error):
+                Logger.warn("[AnnouncementListResponse] item[\(index)] decode skipped: \(error.localizedDescription)")
+            }
+        }
+        self.announcements = items
+    }
+}
+
+/// Wrapper that captures a single AnnouncementDTO decode result without propagating failure.
+private struct ThrowableAnnouncementDTO: Decodable {
+    let result: Result<AnnouncementDTO, Error>
+
+    init(from decoder: Decoder) throws {
+        result = Result(catching: { try AnnouncementDTO(from: decoder) })
+    }
 }
 
 struct SeenBatchRequest: Codable {
