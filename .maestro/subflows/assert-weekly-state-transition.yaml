@@ -4,7 +4,12 @@ appId: com.havital.Havital.dev
 - assertVisible:
     text: "每日訓練|Daily Training|Training Plan"
 
-- tapOn: "更多"
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
 - tapOn:
     text: "🐛 Debug 工具"
 - tapOn: "🗑️ 刪除當前週回顧"
@@ -14,27 +19,32 @@ appId: com.havital.Havital.dev
       text: "每日訓練|Daily Training|Training Plan"
     timeout: 10000
 
-- tapOn: "更多"
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
 - tapOn:
     text: "🐛 Debug 工具"
 - tapOn: "🗑️ 刪除當前週課表"
 
 - extendedWaitUntil:
     visible:
-      text: "產生週回顧|產生週課表|產生下週課表|接受調整並產生下週課表"
+      text: "產生週回顧|產生週課表|產生下週課表|接受調整並產生下週課表|Generate Weekly Summary|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
     timeout: 15000
 
 - tapOn:
-    text: "產生週回顧"
+    text: "產生週回顧|Generate Weekly Summary"
     optional: true
 
 - extendedWaitUntil:
     visible:
-      text: "訓練完成度|產生週課表|產生下週課表|接受調整並產生下週課表"
+      text: "訓練完成度|產生週課表|產生下週課表|接受調整並產生下週課表|Training Completion|Generate Weekly Plan|Generate Next Week Plan|Accept Adjustment and Generate Next Week Plan"
     timeout: 45000
 
 - tapOn:
-    text: "接受調整並產生下週課表|產生下週課表|產生週課表"
+    text: "接受調整並產生下週課表|產生下週課表|產生週課表|Accept Adjustment and Generate Next Week Plan|Generate Next Week Plan|Generate Weekly Plan"
 
 - extendedWaitUntil:
     visible:

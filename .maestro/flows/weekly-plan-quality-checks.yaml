@@ -8,6 +8,6 @@ tags:
 
 - runFlow: ../subflows/ensure-main-training-screen.yaml
 
-- assertVisible: "星期一"
+- assertVisible: "星期一|Monday|月曜日"
 
 - runFlow: ../subflows/verify-plan-quality.yaml

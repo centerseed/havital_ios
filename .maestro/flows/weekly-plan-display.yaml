@@ -6,16 +6,16 @@ tags:
 # 週課表顯示正確性驗證
 
 - runFlow: ../subflows/ensure-main-training-screen.yaml
-- assertVisible: "星期一"
+- assertVisible: "星期一|Monday|月曜日"
 
 # 驗證週課表結構完整（星期一~日可見），不驗證特定訓練類型（動態資料）
 - scrollUntilVisible:
-    element: "星期日"
+    element: "星期日|Sunday|日曜日"
     direction: DOWN
     timeout: 15000
 
 # 至少有一個休息日（合理課表必備）
 - scrollUntilVisible:
-    element: "休息"
+    element: "休息|Rest"
     direction: UP
     timeout: 10000

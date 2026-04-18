@@ -8,16 +8,16 @@ appId: com.havital.Havital.dev
     optional: true
 
 - scrollUntilVisible:
-    element: "週跑量和訓練強度"
+    element: "週跑量和訓練強度|Weekly Volume & Intensity|Weekly Volume"
     direction: DOWN
     timeout: 15000
     optional: true
 
 - assertVisible:
-    text: "低 \\d+/\\d+"
+    text: "低 \\d+/\\d+|Low \\d+/\\d+"
     optional: true
 - assertVisible:
-    text: "高 \\d+/\\d+"
+    text: "高 \\d+/\\d+|High \\d+/\\d+"
     optional: true
 
 - scrollUntilVisible:
@@ -28,6 +28,6 @@ appId: com.havital.Havital.dev
 
 - scrollUntilVisible:
     element:
-      text: "輕鬆跑|長距離輕鬆跑"
+      text: "輕鬆跑|長距離輕鬆跑|Easy Run|LSD Run|Long Easy Run"
     direction: UP
     timeout: 10000

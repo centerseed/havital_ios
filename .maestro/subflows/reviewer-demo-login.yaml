@@ -1,25 +1,27 @@
 appId: com.havital.Havital.dev
 ---
-- extendedWaitUntil:
-    visible:
-      id: "Login_ReviewerAccessTrigger"
-    timeout: 15000
+- runFlow:
+    when:
+      visible:
+        id: "Login_ReviewerAccessTrigger"
+    commands:
+      - longPressOn:
+          id: "Login_ReviewerAccessTrigger"
+      - extendedWaitUntil:
+          visible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 5000
 
-- longPressOn:
-    id: "Login_ReviewerAccessTrigger"
-
-- extendedWaitUntil:
-    visible:
-      id: "Login_ReviewerPasscodeField"
-    timeout: 5000
-
-- tapOn:
-    id: "Login_ReviewerPasscodeField"
-
-- inputText: ${DEMO_REVIEWER_PASSCODE}
-
-- tapOn:
-    id: "Login_ReviewerActivateButton"
+- runFlow:
+    when:
+      visible:
+        id: "Login_ReviewerPasscodeField"
+    commands:
+      - tapOn:
+          id: "Login_ReviewerPasscodeField"
+      - inputText: ${DEMO_REVIEWER_PASSCODE}
+      - tapOn:
+          id: "Login_ReviewerActivateButton"
 
 - tapOn:
     text: "稍後|Later|後で|不再提醒|Not Now|Skip"

@@ -10,18 +10,23 @@ tags:
 - runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # 開選單 → Debug 工具 → 產生週回顧
-- tapOn: "更多"
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
 - tapOn:
     text: "🐛 Debug 工具"
 - tapOn: "🐛 產生週回顧"
 
 # 等待產生（API + LLM 生成，可能需要 30 秒）
 - extendedWaitUntil:
-    visible: "訓練完成度"
+    visible: "訓練完成度|Completion|Training Completion"
     timeout: 45000
 
 # 驗證週回顧內容
-- assertVisible: "本週亮點"
-- assertVisible: "訓練分析"
-- assertVisible: "下週調整建議"
-- assertVisible: "接受調整並產生下週課表|產生下週課表"
+- assertVisible: "本週亮點|Weekly Highlights"
+- assertVisible: "訓練分析|Analysis|Training Analysis"
+- assertVisible: "下週調整建議|Next Week Adjustments"
+- assertVisible: "接受調整並產生下週課表|產生下週課表|Accept Adjustments & Generate Next Week|Accept Adjustment and Generate Next Week Plan|Generate Next Week Plan"
