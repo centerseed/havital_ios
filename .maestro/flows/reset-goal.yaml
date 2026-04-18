@@ -10,16 +10,19 @@ tags:
     optional: true
 - extendedWaitUntil:
     visible:
-      text: "訓練計畫|每日訓練"
+      text: "訓練計畫|每日訓練|Training Plan|Daily Training"
     timeout: 30000
-- tapOn: "更多"
-- tapOn: "個人資料"
+- runFlow:
+    file: ../subflows/nav-to-profile.yaml
 - scrollUntilVisible:
-    element: "重新設定目標"
+    element:
+      id: "Profile_ResetGoalButton"
     direction: DOWN
-- tapOn: "重新設定目標"
-- tapOn: "確認"
+- tapOn:
+    id: "Profile_ResetGoalButton"
+- tapOn:
+    text: "確認|Confirm"
 - extendedWaitUntil:
     visible:
-      text: "個人最佳成績|歡迎來到|開始設定"
+      text: "個人最佳成績|歡迎來到|開始設定|Personal Best|Welcome to Paceriz|Start Setup"
     timeout: 15000
