@@ -40,8 +40,8 @@ final class UserPreferencesService {
     private let httpClient: HTTPClient
     private let parser: APIParser
 
-    private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
-                 parser: APIParser = DefaultAPIParser.shared) {
+    init(httpClient: HTTPClient = DefaultHTTPClient.shared,
+         parser: APIParser = DefaultAPIParser.shared) {
         self.httpClient = httpClient
         self.parser = parser
     }

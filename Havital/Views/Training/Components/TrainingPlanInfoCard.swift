@@ -44,9 +44,9 @@ struct TrainingPlanInfoCard: View {
                         }
                         
                         // Display pace - use pace if available, otherwise show average of segments
-                        // 輕鬆跑不顯示配速（避免用戶過度追求配速而偏離輕鬆跑目的）
+                        // 低強度訓練（輕鬆跑 / LSD / 恢復跑）不顯示配速，避免用戶過度追求配速而偏離訓練目的
                         let displayPace = getDisplayPace(from: dailyPlan)
-                        if !displayPace.isEmpty && !isEasyRun(dailyPlan.trainingType) {
+                        if !displayPace.isEmpty && !shouldHidePace(dailyPlan.trainingType) {
                             TrainingInfoItem(
                                 title: NSLocalizedString("training.pace", comment: "Pace"),
                                 value: displayPace,
@@ -173,9 +173,9 @@ struct TrainingPlanInfoCard: View {
         return ""
     }
     
-    private func isEasyRun(_ type: String?) -> Bool {
+    private func shouldHidePace(_ type: String?) -> Bool {
         guard let type = type?.lowercased() else { return false }
-        return type == "easy_run" || type == "easy"
+        return type == "easy_run" || type == "easy" || type == "lsd" || type == "recovery_run"
     }
 
     private func formatTrainingType(_ type: String) -> String {

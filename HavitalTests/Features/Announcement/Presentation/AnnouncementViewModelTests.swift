@@ -44,8 +44,8 @@ final class AnnouncementViewModelTests: XCTestCase {
 
         sut.dismissCurrentPopup()
         await waitUntil {
-            self.sut.currentPopup?.id == "older"
-                && (await self.repository.markSeenIDsSnapshot()).count == 2
+            let markSeenIDs = await self.repository.markSeenIDsSnapshot()
+            return self.sut.currentPopup?.id == "older" && markSeenIDs.count == 2
         }
         let markSeenIDs = await repository.markSeenIDsSnapshot()
 

@@ -9,8 +9,8 @@ class FeedbackService {
 
     private let apiHelper: APICallHelper
 
-    private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
-                 parser: APIParser = DefaultAPIParser.shared) {
+    init(httpClient: HTTPClient = DefaultHTTPClient.shared,
+         parser: APIParser = DefaultAPIParser.shared) {
         self.apiHelper = APICallHelper(
             httpClient: httpClient,
             parser: parser,

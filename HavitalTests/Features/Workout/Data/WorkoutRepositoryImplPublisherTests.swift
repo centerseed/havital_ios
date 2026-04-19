@@ -16,9 +16,11 @@ final class StubWorkoutRemoteDataSource: WorkoutRemoteDataSource {
 
     var stubbedWorkouts: [WorkoutV2] = []
     var fetchCallCount = 0
+    var onFetchWorkouts: (() -> Void)?
 
     override func fetchWorkouts(pageSize: Int?, cursor: String?) async throws -> [WorkoutV2] {
         fetchCallCount += 1
+        onFetchWorkouts?()
         return stubbedWorkouts
     }
 }
@@ -67,11 +69,17 @@ final class WorkoutRepositoryImplPublisherTests: XCTestCase {
         localDataSource.saveWorkouts([cachedWorkout])
         remoteDataSource.stubbedWorkouts = [makeWorkout(id: "fresh_1"), makeWorkout(id: "fresh_2")]
 
-        let expectation = XCTestExpectation(description: "workoutsDidRefresh fires after background refresh")
-        expectation.expectedFulfillmentCount = 1
+        let fetchExpectation = XCTestExpectation(description: "background refresh fetch executes")
+        fetchExpectation.expectedFulfillmentCount = 1
+        remoteDataSource.onFetchWorkouts = {
+            fetchExpectation.fulfill()
+        }
+
+        let publisherExpectation = XCTestExpectation(description: "workoutsDidRefresh fires after background refresh")
+        publisherExpectation.expectedFulfillmentCount = 1
 
         repository.workoutsDidRefresh
-            .sink { expectation.fulfill() }
+            .sink { publisherExpectation.fulfill() }
             .store(in: &cancellables)
 
         // Bypass the 12-hour cooldown so Track B actually runs
@@ -80,8 +88,8 @@ final class WorkoutRepositoryImplPublisherTests: XCTestCase {
         // When: call getWorkouts — Track A returns cache, Track B fires in background
         _ = try? await repository.getWorkouts(limit: nil, offset: nil)
 
-        // Then: wait for the background Task to complete and signal
-        await fulfillment(of: [expectation], timeout: 3.0)
+        // Then: wait for the background Task to execute and publish.
+        await fulfillment(of: [fetchExpectation, publisherExpectation], timeout: 10.0)
 
         // Confirm the background fetch did happen
         XCTAssertGreaterThanOrEqual(remoteDataSource.fetchCallCount, 1,

@@ -96,8 +96,14 @@ final class SubscriptionReminderManagerTests: XCTestCase {
     }
 
     private func makeStatus(_ status: SubscriptionStatus, daysFromNow: Int? = nil) -> SubscriptionStatusEntity {
-        let expiresAt = daysFromNow.map { Date().addingTimeInterval(Double($0) * 86400).timeIntervalSince1970 }
-        return SubscriptionStatusEntity(status: status, expiresAt: expiresAt, planType: "premium")
+        let trialEndAt = daysFromNow.map { Date().addingTimeInterval(Double($0) * 86400).timeIntervalSince1970 }
+        return SubscriptionStatusEntity(
+            status: status,
+            expiresAt: trialEndAt,
+            planType: "premium",
+            trialRemainingDays: status == .trial ? daysFromNow : nil,
+            trialEndAt: status == .trial ? trialEndAt : nil
+        )
     }
 
     private func assertTrialExpiring(

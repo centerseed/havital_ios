@@ -107,7 +107,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
             Logger.debug("[WorkoutRepositoryImpl] Track A - 返回緩存數據，數量: \(cachedWorkouts.count)")
 
             // Track B: 背景刷新 API（保持新鮮）
-            Task.detached(priority: .background) { [weak self] in
+            Task { [weak self] in
                 await self?.backgroundRefreshWorkouts(pageSize: limit)
             }
 

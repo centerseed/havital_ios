@@ -1445,12 +1445,19 @@ extension LapData {
         type: String,
         metadata: [String: String]?
     ) -> LapData {
-        let safeOffset = startTimeOffset.isFinite ? Int(startTimeOffset) : 0
-        let safeDuration = duration.isFinite ? Int(duration) : nil
+        // 防禦：Double → Int 遇到超出 Int 範圍的有限值會 trap（EXC_BAD_INSTRUCTION）
+        // 實際遇過：第三方 app 寫入 HealthKit 的 workout activity 時間戳異常導致 timeIntervalSince 算出極大值
+        func safeInt(_ value: Double) -> Int? {
+            guard value.isFinite, value >= Double(Int.min), value <= Double(Int.max) else { return nil }
+            return Int(value)
+        }
+
+        let safeOffset = safeInt(startTimeOffset) ?? 0
+        let safeDuration = safeInt(duration)
         let safeDistance = distance?.isFinite == true ? distance : nil
-        let safeSpeed: Double? = if let d = safeDistance, duration > 0 { d / duration } else { nil }
+        let safeSpeed: Double? = if let d = safeDistance, duration > 0, duration.isFinite { d / duration } else { nil }
         let safePace = averagePace?.isFinite == true ? averagePace : nil
-        let safeHR = averageHeartRate.flatMap { $0.isFinite ? Int($0) : nil }
+        let safeHR = averageHeartRate.flatMap { safeInt($0) }
 
         return LapData(
             lapNumber: lapNumber,

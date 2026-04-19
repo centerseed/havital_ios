@@ -12,8 +12,8 @@ class BackfillService {
     /// 預設回填天數
     static let defaultBackfillDays = 14
 
-    private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
-                 parser: APIParser = DefaultAPIParser.shared) {
+    init(httpClient: HTTPClient = DefaultHTTPClient.shared,
+         parser: APIParser = DefaultAPIParser.shared) {
         self.httpClient = httpClient
         self.parser = parser
     }

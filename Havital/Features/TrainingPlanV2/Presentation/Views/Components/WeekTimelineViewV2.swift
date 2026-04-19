@@ -461,17 +461,22 @@ private struct PhaseRow: View {
     @ViewBuilder
     private var detailItems: some View {
         let items = buildDetailStrings()
-        if !items.isEmpty {
-            ForEach(items.indices, id: \.self) { idx in
-                if idx > 0 || true {
-                    Text("·")
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
-                Text(items[idx])
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-            }
+        ForEach(items.indices, id: \.self) { idx in
+            Text("·")
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+            Text(items[idx])
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+        }
+        if let hr = segment.heartRateRange, hr.isValid, let text = hr.displayText {
+            Text("·").font(AppFont.caption()).foregroundColor(.secondary)
+            Image(systemName: "heart.fill")
+                .font(.caption2)
+                .foregroundColor(.pink)
+            Text(text)
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
         }
     }
 
@@ -489,9 +494,6 @@ private struct PhaseRow: View {
         }
         if let pace = segment.pace {
             items.append(pace)
-        }
-        if let hr = segment.heartRateRange, hr.isValid, let text = hr.displayText {
-            items.append("HR \(text)")
         }
         return items
     }
@@ -546,7 +548,10 @@ private struct SimpleRunBadgesView: View {
             // 心率
             if let hr = activity.heartRateRange, hr.isValid, let text = hr.displayText {
                 Text("·").font(AppFont.caption()).foregroundColor(.secondary)
-                Text("HR \(text)")
+                Image(systemName: "heart.fill")
+                    .font(.caption2)
+                    .foregroundColor(.pink)
+                Text(text)
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
                     .accessibilityIdentifier("simple_run_heart_rate")
@@ -816,7 +821,10 @@ private struct SegmentsView: View {
 
                         if let hr = seg.heartRateRange, hr.isValid, let text = hr.displayText {
                             Text("·").font(AppFont.caption()).foregroundColor(.secondary)
-                            Text("HR \(text)")
+                            Image(systemName: "heart.fill")
+                                .font(.caption2)
+                                .foregroundColor(.pink)
+                            Text(text)
                                 .font(AppFont.caption())
                                 .foregroundColor(.secondary)
                         }
