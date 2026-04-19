@@ -164,39 +164,6 @@ enum DualTrackCacheHelper {
         }
     }
 
-    // MARK: - Event Publishing Helper
-
-    /// Execute background refresh with event publishing.
-    ///
-    /// Use this when you need to notify the UI layer after background refresh.
-    ///
-    /// - Parameters:
-    ///   - cacheKey: Unique identifier for logging purposes.
-    ///   - fetchFromAPI: Async closure to fetch data from remote API.
-    ///   - saveToCache: Closure to save fetched data to local cache.
-    ///   - eventType: DataType to publish via CacheEventBus after successful refresh.
-    static func backgroundRefreshWithEvent<T>(
-        cacheKey: String,
-        fetchFromAPI: @escaping () async throws -> T,
-        saveToCache: @escaping (T) -> Void,
-        eventType: DataType
-    ) {
-        Task.detached(priority: .background) {
-            do {
-                let data = try await fetchFromAPI()
-                saveToCache(data)
-                Logger.debug("[DualTrackCache] Background refresh success: \(cacheKey)")
-
-                // Publish event on main actor
-                await MainActor.run {
-                    CacheEventBus.shared.publish(.dataChanged(eventType))
-                }
-                Logger.debug("[DualTrackCache] Published event: dataChanged.\(eventType)")
-            } catch {
-                Logger.debug("[DualTrackCache] Background refresh failed (non-critical): \(cacheKey) - \(error.localizedDescription)")
-            }
-        }
-    }
 }
 
 // MARK: - Convenience Extension for Repositories

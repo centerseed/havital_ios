@@ -18,6 +18,11 @@ struct PlanOverviewSheetV2: View {
     @State private var pendingWeeksRemaining: Int = 12
     @State private var pendingDistanceKm: Double = 42.195
 
+    init(viewModel: TrainingPlanV2ViewModel, initialTab: Int = 0) {
+        self.viewModel = viewModel
+        _selectedTab = State(initialValue: initialTab)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -25,7 +30,7 @@ struct PlanOverviewSheetV2: View {
                 VStack(spacing: 0) {
                     // Tab 選擇器
                     Picker("", selection: $selectedTab) {
-                        Text(viewModel.planOverview?.isRaceRunTarget == true
+                        Text(viewModel.loader.planOverview?.isRaceRunTarget == true
                             ? NSLocalizedString("training.race_info", comment: "Race Info")
                             : NSLocalizedString("training.target_info", comment: "Target Info"))
                             .tag(0)
@@ -34,11 +39,12 @@ struct PlanOverviewSheetV2: View {
                     }
                     .pickerStyle(.segmented)
                     .padding()
+                    .accessibilityIdentifier("v2.overview.tab_picker")
 
                     // Tab 內容
                     TabView(selection: $selectedTab) {
                         // Tab 1: 賽事/目標資訊
-                        if let overview = viewModel.planOverview {
+                        if let overview = viewModel.loader.planOverview {
                             TargetInfoTabV2(
                                 overview: overview,
                                 targetViewModel: targetViewModel,
@@ -54,7 +60,7 @@ struct PlanOverviewSheetV2: View {
                         }
 
                         // Tab 2: 訓練計畫概覽
-                        if let overview = viewModel.planOverview {
+                        if let overview = viewModel.loader.planOverview {
                             TrainingOverviewTabV2(overview: overview, viewModel: viewModel)
                                 .tag(1)
                         } else {
@@ -83,8 +89,9 @@ struct PlanOverviewSheetV2: View {
                     .cornerRadius(16)
                 }
             }
-            .navigationTitle(viewModel.trainingPlanName)
+            .navigationTitle(viewModel.loader.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("v2.overview.screen")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(NSLocalizedString("common.close", comment: "Close")) {
@@ -116,14 +123,14 @@ struct PlanOverviewSheetV2: View {
                             try? await Task.sleep(nanoseconds: 400_000_000)
                             await targetViewModel.forceRefresh()
                             // Only show stage selection for race_run plans
-                            if viewModel.planOverview?.isRaceRunTarget == true {
+                            if viewModel.loader.planOverview?.isRaceRunTarget == true {
                                 Logger.debug("[🐛 TARGET_UPDATE] ④ 顯示起始階段選擇")
                                 pendingWeeksRemaining = weeks
                                 pendingDistanceKm = distance
                                 showStageSelection = true
                             } else {
                                 Logger.debug("[🐛 TARGET_UPDATE] ④ 非 race plan，跳過起始階段選擇，直接更新 overview")
-                                await viewModel.updateOverview(startFromStage: nil)
+                                await viewModel.generator.updateOverview(startFromStage: nil)
                             }
                         }
                     } else {
@@ -162,7 +169,7 @@ struct PlanOverviewSheetV2: View {
                     showStageSelection = false
                     Task {
                         withAnimation { isUpdatingOverview = true }
-                        await viewModel.updateOverview(startFromStage: selectedStageApiIdentifier)
+                        await viewModel.generator.updateOverview(startFromStage: selectedStageApiIdentifier)
                         withAnimation { isUpdatingOverview = false }
                     }
                 }
@@ -241,6 +248,7 @@ private struct TargetInfoTabV2: View {
                 Text(overview.targetName ?? NSLocalizedString("training.my_training_target", comment: "My Training Target"))
                     .font(AppFont.title3())
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("v2.overview.target_name")
 
                 // 賽事專屬資訊
                 if overview.isRaceRunTarget {
@@ -443,7 +451,7 @@ private struct TrainingOverviewTabV2: View {
             methodologySelectionSheet
         }
         .sheet(isPresented: $showStageSelectionForMethodology) {
-            let weeksRemaining = max(1, overview.totalWeeks - viewModel.currentWeek + 1)
+            let weeksRemaining = max(1, overview.totalWeeks - viewModel.loader.currentWeek + 1)
             let distanceKm = overview.distanceKm ?? 42.195
             EditTargetStageSelectionView(
                 weeksRemaining: weeksRemaining,
@@ -453,7 +461,7 @@ private struct TrainingOverviewTabV2: View {
                 if let methodologyId = pendingMethodologyId {
                     Task {
                         withAnimation { isChangingMethodology = true }
-                        await viewModel.changeMethodology(
+                        await viewModel.methodology.changeMethodology(
                             methodologyId: methodologyId,
                             startFromStage: selectedStageApiIdentifier
                         )
@@ -487,7 +495,7 @@ private struct TrainingOverviewTabV2: View {
                 Spacer()
                 Button {
                     Task {
-                        await viewModel.loadMethodologies()
+                        await viewModel.methodology.loadMethodologies()
                         showMethodologySheet = true
                     }
                 } label: {
@@ -518,6 +526,7 @@ private struct TrainingOverviewTabV2: View {
                     Text(methodology.name)
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
+                        .accessibilityIdentifier("v2.overview.methodology_name")
                     Text(methodology.philosophy)
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
@@ -551,6 +560,7 @@ private struct TrainingOverviewTabV2: View {
         }
         .background(Color(UIColor.systemBackground))
         .cornerRadius(12)
+        .accessibilityIdentifier("v2.overview.methodology_card")
     }
 
     // MARK: - 方法論選擇 Sheet
@@ -558,7 +568,7 @@ private struct TrainingOverviewTabV2: View {
     private var methodologySelectionSheet: some View {
         NavigationStack {
             Group {
-                if viewModel.availableMethodologies.isEmpty {
+                if viewModel.methodology.availableMethodologies.isEmpty {
                     VStack(spacing: 16) {
                         Spacer()
                         ProgressView()
@@ -571,7 +581,7 @@ private struct TrainingOverviewTabV2: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {
-                            ForEach(viewModel.availableMethodologies, id: \.id) { methodology in
+                            ForEach(viewModel.methodology.availableMethodologies, id: \.id) { methodology in
                                 methodologyOptionCard(methodology)
                             }
                         }
@@ -607,7 +617,7 @@ private struct TrainingOverviewTabV2: View {
                 } else {
                     // Non-race plan: change methodology directly without stage selection
                     withAnimation { isChangingMethodology = true }
-                    await viewModel.changeMethodology(
+                    await viewModel.methodology.changeMethodology(
                         methodologyId: methodology.id,
                         startFromStage: nil
                     )
@@ -724,6 +734,7 @@ private struct TrainingOverviewTabV2: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(UIColor.systemBackground))
         .cornerRadius(12)
+        .accessibilityIdentifier("v2.overview.stage_list")
     }
 
     // MARK: - 訓練階段 Section（單一卡片，標題在卡片內）
@@ -743,7 +754,7 @@ private struct TrainingOverviewTabV2: View {
             // 各 stage row（不帶獨立卡片，共用外層卡片）
             ForEach(overview.trainingStages.indices, id: \.self) { index in
                 let stage = overview.trainingStages[index]
-                let isCurrentStage = viewModel.currentWeek >= stage.weekStart && viewModel.currentWeek <= stage.weekEnd
+                let isCurrentStage = viewModel.loader.currentWeek >= stage.weekStart && viewModel.loader.currentWeek <= stage.weekEnd
                 stageRow(stage: stage, index: index, isCurrentStage: isCurrentStage)
                 if index < overview.trainingStages.count - 1 {
                     Divider()
@@ -793,6 +804,7 @@ private struct TrainingOverviewTabV2: View {
             }
             .buttonStyle(PlainButtonStyle())
             .background(isCurrentStage ? stageColor.opacity(0.06) : Color.clear)
+            .accessibilityIdentifier("v2.overview.stage.\(stage.stageId)")
 
             // 展開詳細資訊
             if isExpanded {
@@ -904,7 +916,7 @@ private struct TrainingOverviewTabV2: View {
             let stages = overview.trainingStages
 
             ForEach(weeks) { week in
-                let isCurrentWeek = week.week == viewModel.currentWeek
+                let isCurrentWeek = week.week == viewModel.loader.currentWeek
                 WeekPreviewRowV2(
                     week: week,
                     stageInfo: WeekPreviewRowV2.stageInfo(for: week, stages: stages),
@@ -990,7 +1002,7 @@ private struct TrainingOverviewTabV2: View {
 
     private func expandCurrentStage() {
         for (index, stage) in overview.trainingStages.enumerated() {
-            if stage.contains(week: viewModel.currentWeek) {
+            if stage.contains(week: viewModel.loader.currentWeek) {
                 selectedStageIndex = index
                 break
             }

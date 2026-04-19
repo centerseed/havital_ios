@@ -29,7 +29,7 @@ struct WeekOverviewCardV2: View {
 
     private var weekProgress: Double {
         guard plan.totalDistance > 0 else { return 0 }
-        return min(viewModel.currentWeekDistance / plan.totalDistance, 1.0)
+        return min(viewModel.loader.currentWeekDistance / plan.totalDistance, 1.0)
     }
 
     var body: some View {
@@ -66,7 +66,7 @@ struct WeekOverviewCardV2: View {
 
                     VStack(spacing: 2) {
                         HStack(spacing: 1) {
-                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.currentWeekDistance)))
+                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
                                 .font(AppFont.systemScaled(size: 17, weight: .bold))
                                 .foregroundColor(.primary)
                                 .minimumScaleFactor(0.8)
@@ -151,7 +151,7 @@ struct WeekOverviewCardV2: View {
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.low", comment: "Low"),
                     intensityKey: "low",
-                    current: Int(viewModel.currentWeekIntensity.low),
+                    current: Int(viewModel.loader.currentWeekIntensity.low),
                     target: lowIntensityTarget,
                     color: .green
                 )
@@ -160,7 +160,7 @@ struct WeekOverviewCardV2: View {
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.medium", comment: "Medium"),
                     intensityKey: "medium",
-                    current: Int(viewModel.currentWeekIntensity.medium),
+                    current: Int(viewModel.loader.currentWeekIntensity.medium),
                     target: mediumIntensityTarget,
                     color: .orange
                 )
@@ -169,12 +169,13 @@ struct WeekOverviewCardV2: View {
                 CompactIntensityBarV2(
                     label: NSLocalizedString("intensity.high", comment: "High"),
                     intensityKey: "high",
-                    current: Int(viewModel.currentWeekIntensity.high),
+                    current: Int(viewModel.loader.currentWeekIntensity.high),
                     target: highIntensityTarget,
                     color: .red
                 )
             }
-            .accessibilityIdentifier("intensity_distribution")
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("v2.weekly.intensity_distribution")
         }
         .padding()
         .background(
@@ -182,7 +183,7 @@ struct WeekOverviewCardV2: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
-        .accessibilityIdentifier("week_overview_card")
+        .accessibilityIdentifier("v2.weekly.overview_card")
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailViewV2(
@@ -240,7 +241,7 @@ struct CompactIntensityBarV2: View {
             .frame(height: 4)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("intensity_\(intensityKey)")
+        .accessibilityIdentifier("v2.weekly.intensity.\(intensityKey)")
     }
 }
 

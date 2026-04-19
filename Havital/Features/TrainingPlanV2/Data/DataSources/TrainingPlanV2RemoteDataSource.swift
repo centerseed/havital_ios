@@ -28,6 +28,7 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
     func getWeeklySummaries() async throws -> [WeeklySummaryItem]
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2DTO
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws
     func deleteWeeklySummary(summaryId: String) async throws
 }
 
@@ -78,13 +79,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func getTargetTypes() async throws -> [TargetTypeV2] {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching target types from /v2/target/types")
 
-        let response: TargetTypesResponseV2 = try await apiHelper.get(
-            TargetTypesResponseV2.self,
+        let response: TargetTypesResponseV2DTO = try await apiHelper.get(
+            TargetTypesResponseV2DTO.self,
             path: "/v2/target/types"
         )
 
         Logger.info("[TrainingPlanV2RemoteDS] ✅ Fetched \(response.targetTypes.count) target types")
-        return response.targetTypes
+        return TargetTypeV2Mapper.toEntities(response)
     }
 
     /// 獲取方法論列表
@@ -100,13 +101,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
 
         Logger.info("[TrainingPlanV2RemoteDS] 📡 API Request: GET \(path)")
 
-        let response: MethodologiesResponseV2 = try await apiHelper.get(
-            MethodologiesResponseV2.self,
+        let response: MethodologiesResponseV2DTO = try await apiHelper.get(
+            MethodologiesResponseV2DTO.self,
             path: path
         )
 
         Logger.info("[TrainingPlanV2RemoteDS] ✅ API Response: \(response.methodologies.count) methodologies - IDs: \(response.methodologies.map { $0.id })")
-        return response.methodologies
+        return MethodologyV2Mapper.toEntities(response)
     }
 
     // MARK: - Plan Overview APIs
@@ -321,6 +322,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly summaries list")
         return try await apiHelper.get([WeeklySummaryItem].self, path: "/summary/weekly/")
+    }
+
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        Logger.debug("[TrainingPlanV2RemoteDS] Applying \(appliedIndices.count) adjustment items for week \(weekOfPlan)")
+        let request = ApplyAdjustmentItemsRequest(weekOfPlan: weekOfPlan, appliedIndices: appliedIndices)
+        _ = try await apiHelper.post(ApplyAdjustmentItemsResponseDTO.self, path: "/v2/summary/weekly/apply-items", body: request)
+        Logger.info("[TrainingPlanV2RemoteDS] ✅ Adjustment items applied for week \(weekOfPlan)")
     }
 
     /// 刪除週摘要 (Debug)

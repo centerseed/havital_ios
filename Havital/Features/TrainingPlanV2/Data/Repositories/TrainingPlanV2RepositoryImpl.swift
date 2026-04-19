@@ -318,6 +318,10 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         return try await generateWeeklySummary(weekOfPlan: weekOfPlan, forceUpdate: true)
     }
 
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        try await remoteDataSource.applyAdjustmentItems(weekOfPlan: weekOfPlan, appliedIndices: appliedIndices)
+    }
+
     func deleteWeeklySummary(summaryId: String) async throws {
         Logger.debug("[TrainingPlanV2Repo] 🗑️ [DEBUG] Deleting weekly summary: \(summaryId)")
         try await remoteDataSource.deleteWeeklySummary(summaryId: summaryId)

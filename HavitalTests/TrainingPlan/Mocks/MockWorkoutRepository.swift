@@ -5,6 +5,7 @@
 //  Mock implementation of WorkoutRepository for testing
 //
 
+import Combine
 import Foundation
 @testable import paceriz_dev
 
@@ -36,6 +37,8 @@ class MockWorkoutRepository: WorkoutRepository {
     var workoutsDidUpdateNotification: Notification.Name {
         return .workoutsDidUpdate
     }
+
+    var workoutsDidRefresh: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
 
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] {
         getWorkoutsInDateRangeCallCount += 1

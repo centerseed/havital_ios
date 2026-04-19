@@ -24,6 +24,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var getWeeklySummaryCallCount = 0
     var refreshWeeklySummaryCallCount = 0
     var deleteWeeklySummaryCallCount = 0
+    var applyAdjustmentItemsCallCount = 0
+    var lastAppliedIndices: [Int] = []
+    var lastApplyAdjustmentItemsWeekOfPlan: Int?
     var getWeeklyPreviewCallCount = 0
     var clearCacheCallCount = 0
     var lastRequestedWeeklyPlanWeekOfTraining: Int?
@@ -46,6 +49,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var weeklySummaryV2ToReturn: WeeklySummaryV2?
     var errorToThrow: Error?
     var generateWeeklyPlanErrors: [Error] = []
+    var applyAdjustmentItemsError: Error?
 
     // MARK: - Reset
 
@@ -68,6 +72,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         getWeeklySummaryCallCount = 0
         refreshWeeklySummaryCallCount = 0
         deleteWeeklySummaryCallCount = 0
+        applyAdjustmentItemsCallCount = 0
+        lastAppliedIndices = []
+        lastApplyAdjustmentItemsWeekOfPlan = nil
         getWeeklyPreviewCallCount = 0
         clearCacheCallCount = 0
         lastRequestedWeeklyPlanWeekOfTraining = nil
@@ -80,6 +87,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastUpdatedOverviewMethodologyId = nil
         errorToThrow = nil
         generateWeeklyPlanErrors = []
+        applyAdjustmentItemsError = nil
     }
 
     // MARK: - Protocol Methods
@@ -250,6 +258,13 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
             throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
         }
         return summary
+    }
+
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        applyAdjustmentItemsCallCount += 1
+        lastApplyAdjustmentItemsWeekOfPlan = weekOfPlan
+        lastAppliedIndices = appliedIndices
+        if let error = applyAdjustmentItemsError { throw error }
     }
 
     func deleteWeeklySummary(summaryId: String) async throws {

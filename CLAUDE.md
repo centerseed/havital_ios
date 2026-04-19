@@ -16,6 +16,26 @@
 
 7. **Repository never touches CacheEventBus.** Repository is passive data access. Event flow belongs to ViewModels/Services — mixing it in creates hidden coupling that breaks layer independence.
 
+   **Correct pattern** — Repository exposes a Combine publisher; ViewModel subscribes and republishes:
+   ```swift
+   // Repository (Data layer)
+   private let refreshSubject = PassthroughSubject<Void, Never>()
+   var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
+   // on background refresh success:
+   refreshSubject.send()   // ← NOT CacheEventBus.shared.publish
+
+   // ViewModel (Presentation layer)
+   repository.workoutsDidRefresh
+       .sink { CacheEventBus.shared.publish(.dataChanged(.workouts)) }
+       .store(in: &cancellables)
+   ```
+
+   **Check for regressions:**
+   ```bash
+   grep -rn "CacheEventBus" Havital/Features/*/Data/ Havital/Features/*/Domain/ Havital/Core/Data/
+   # expected: no matches
+   ```
+
 ## Commands
 
 ```bash

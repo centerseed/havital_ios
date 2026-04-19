@@ -2294,6 +2294,9 @@
 "training_plan.current_week" = "Current Week";
 "training_plan.not_current_week" = "Not Current Week";
 "training.accept_adjustments_and_generate" = "Accept Adjustments & Generate Next Week";
+"training.apply_n_adjustments_and_generate" = "Apply %d Suggestions & Generate Next Week";
+"training.generate_without_adjustments" = "Generate Without Adjustments";
+"training.adjustment_selected_count" = "%d / %d selected";
 "training.achievements_count" = "%d achievements";
 "training.areas_for_improvement_title" = "Areas to Improve";
 "training.avg_heart_rate_preview" = "Avg HR %.0f bpm";

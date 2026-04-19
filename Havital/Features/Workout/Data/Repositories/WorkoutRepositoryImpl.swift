@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 // MARK: - Workout Repository Implementation
@@ -18,6 +19,13 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
     /// Track B cooldown: 背景刷新間隔至少 5 分鐘，避免重複 API 呼叫
     private var lastBackgroundRefreshTime: Date = .distantPast
     private let backgroundRefreshCooldown: TimeInterval = 43200 // 12 小時
+
+    // MARK: - Background Refresh Publisher
+
+    private let refreshSubject = PassthroughSubject<Void, Never>()
+    var workoutsDidRefresh: AnyPublisher<Void, Never> {
+        refreshSubject.eraseToAnyPublisher()
+    }
 
     // MARK: - Initialization
 
@@ -379,7 +387,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
     /// **Pattern**:
     /// 1. Fetch data from remote API
     /// 2. Save to local data source
-    /// 3. Publish CacheEventBus event
+    /// 3. Signal via refreshSubject (ViewModel republishes to EventBus)
     /// 4. Log success or error
     private func backgroundRefresh<T>(
         taskName: String,
@@ -391,11 +399,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
             save(data)
             Logger.debug("[WorkoutRepositoryImpl] Track B - \(taskName) 背景刷新完成")
 
-            // ✅ Clean Architecture: 只使用 CacheEventBus，不使用 NotificationCenter
-            await MainActor.run {
-                CacheEventBus.shared.publish(.dataChanged(.workouts))
-            }
-            Logger.debug("[WorkoutRepositoryImpl] ✅ 發布 CacheEventBus 事件: \(taskName) refreshed")
+            refreshSubject.send()
         } catch {
             Logger.error("[WorkoutRepositoryImpl] Track B - \(taskName) 背景刷新失敗: \(error.localizedDescription)")
         }

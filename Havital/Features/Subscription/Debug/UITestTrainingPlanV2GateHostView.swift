@@ -164,6 +164,10 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
         stubWeeklySummary(week: weekOfPlan)
     }
 
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        // Debug harness - no-op
+    }
+
     func deleteWeeklySummary(summaryId: String) async throws {}
 
     func getCachedPlanStatus() -> PlanStatusV2Response? { nil }
@@ -353,7 +357,7 @@ struct UITestTrainingPlanV2GateHostView: View {
             Button("Generate Weekly Plan") {
                 lastAction = "running_generate_plan"
                 Task {
-                    await viewModel.generateCurrentWeekPlan()
+                    await viewModel.generator.generateCurrentWeekPlan()
                     lastAction = "done_generate_plan"
                 }
             }
@@ -362,7 +366,7 @@ struct UITestTrainingPlanV2GateHostView: View {
             Button("Generate Weekly Summary") {
                 lastAction = "running_generate_summary"
                 Task {
-                    await viewModel.generateWeeklySummary()
+                    await viewModel.summary.generateWeeklySummary()
                     lastAction = "done_generate_summary"
                 }
             }
@@ -371,7 +375,7 @@ struct UITestTrainingPlanV2GateHostView: View {
             Button("Regenerate Overview") {
                 lastAction = "running_regenerate_overview"
                 Task {
-                    await viewModel.updateOverview(startFromStage: "base")
+                    await viewModel.generator.updateOverview(startFromStage: "base")
                     lastAction = "done_regenerate_overview"
                 }
             }
@@ -384,8 +388,8 @@ struct UITestTrainingPlanV2GateHostView: View {
                 SubscriptionStatusEntity(status: .none, enforcementEnabled: true)
             )
 
-            if viewModel.planOverview == nil {
-                viewModel.planOverview = UITestTrainingPlanV2GateRepository().getCachedOverview()
+            if viewModel.loader.planOverview == nil {
+                viewModel.loader.planOverview = UITestTrainingPlanV2GateRepository().getCachedOverview()
                     ?? PlanOverviewV2(
                         id: "ui_test_overview",
                         targetId: nil,

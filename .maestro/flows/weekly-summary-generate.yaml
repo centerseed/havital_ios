@@ -29,4 +29,4 @@ tags:
 - assertVisible: "本週亮點|Weekly Highlights"
 - assertVisible: "訓練分析|Analysis|Training Analysis"
 - assertVisible: "下週調整建議|Next Week Adjustments"
-- assertVisible: "接受調整並產生下週課表|產生下週課表|Accept Adjustments & Generate Next Week|Accept Adjustment and Generate Next Week Plan|Generate Next Week Plan"
+- assertVisible: "套用|不套用調整|產生下週課表|Apply|Generate Without Adjustments|Generate Next Week Plan"

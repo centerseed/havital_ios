@@ -58,9 +58,9 @@ struct TrainingPlanV2View: View {
 
     private var shouldShowNextWeekButton: Bool {
         Self.shouldShowNextWeekButton(
-            nextWeekInfo: viewModel.planStatusResponse?.nextWeekInfo,
-            selectedWeek: viewModel.selectedWeek,
-            currentWeek: viewModel.currentWeek
+            nextWeekInfo: viewModel.loader.planStatusResponse?.nextWeekInfo,
+            selectedWeek: viewModel.loader.selectedWeek,
+            currentWeek: viewModel.loader.currentWeek
         )
     }
 
@@ -75,7 +75,7 @@ struct TrainingPlanV2View: View {
                     .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
-                    switch viewModel.planStatus {
+                    switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
                         TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan)
@@ -89,22 +89,22 @@ struct TrainingPlanV2View: View {
 
                     case .noWeeklyPlan:
                         GenerateWeeklyPlanPromptView(
-                            isWeekOne: viewModel.currentWeek == 1,
-                            isGeneratingSummary: viewModel.isGeneratingSummary
+                            isWeekOne: viewModel.loader.currentWeek == 1,
+                            isGeneratingSummary: viewModel.summary.isGeneratingSummary
                         ) {
                             Task {
-                                await viewModel.generateCurrentWeekPlan()
+                                await viewModel.generator.generateCurrentWeekPlan()
                             }
                         }
 
                     case .needsWeeklySummary:
                         GenerateWeeklySummaryPromptView(
-                            weekToSummarize: viewModel.currentWeek - 1,
-                            isGenerating: viewModel.isGeneratingSummary
+                            weekToSummarize: viewModel.loader.currentWeek - 1,
+                            isGenerating: viewModel.summary.isGeneratingSummary
                         ) {
                             Task {
                                 // 產生上週回顧後，自動顯示 sheet
-                                await viewModel.createWeeklySummaryAndShow(week: viewModel.currentWeek - 1)
+                                await viewModel.summary.createWeeklySummaryAndShow(week: viewModel.loader.currentWeek - 1)
                             }
                         }
 
@@ -130,7 +130,7 @@ struct TrainingPlanV2View: View {
 
                     // 🆕 產生下週課表按鈕（週六日顯示，或 DEV 環境可提前產生）
                     if shouldShowNextWeekButton,
-                       let nextWeekInfo = viewModel.planStatusResponse?.nextWeekInfo {
+                       let nextWeekInfo = viewModel.loader.planStatusResponse?.nextWeekInfo {
                         GenerateNextWeekButtonV2(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
                             .transition(.opacity)
                     }
@@ -138,13 +138,13 @@ struct TrainingPlanV2View: View {
                 .padding(.horizontal)
             }
             .safeAreaInset(edge: .bottom) {
-                if viewModel.selectedWeek != viewModel.currentWeek {
+                if viewModel.loader.selectedWeek != viewModel.loader.currentWeek {
                     Button {
-                        Task { await viewModel.switchToWeek(viewModel.currentWeek) }
+                        Task { await viewModel.loader.switchToWeek(viewModel.loader.currentWeek) }
                     } label: {
                         HStack {
                             Image(systemName: "arrow.uturn.backward")
-                            Text(String(format: NSLocalizedString("training_plan.back_to_current_week", comment: "返回本週 (Week %d)"), viewModel.currentWeek))
+                            Text(String(format: NSLocalizedString("training_plan.back_to_current_week", comment: "返回本週 (Week %d)"), viewModel.loader.currentWeek))
                         }
                         .font(AppFont.subheadline())
                         .fontWeight(.medium)
@@ -162,7 +162,7 @@ struct TrainingPlanV2View: View {
             .refreshable {
                 await viewModel.refreshWeeklyPlan()
             }
-            .navigationTitle(viewModel.trainingPlanName)
+            .navigationTitle(viewModel.loader.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // 左側：訊息中心鈴鐺（含未讀 badge）
@@ -198,12 +198,12 @@ struct TrainingPlanV2View: View {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
 
-                        Button(action: { viewModel.showWeeklySummary = true }) {
+                        Button(action: { viewModel.summary.showWeeklySummary = true }) {
                             Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
                         }
 
                         // 編輯週課表（只在有課表時顯示）
-                        if case .ready = viewModel.planStatus {
+                        if case .ready = viewModel.loader.planStatus {
                             Button(action: { openEditSchedule() }) {
                                 Label(NSLocalizedString("training.edit_schedule", comment: "編輯週課表"), systemImage: "pencil")
                             }
@@ -275,7 +275,7 @@ struct TrainingPlanV2View: View {
             }
             // ✅ 全屏 Loading 動畫
             .sheet(isPresented: $bindableViewModel.isLoadingAnimation) {
-                if bindableViewModel.isLoadingWeeklySummary {
+                if bindableViewModel.summary.isLoadingWeeklySummary {
                     LoadingAnimationView(type: .generateReview, totalDuration: 30.0)
                         .ignoresSafeArea()
                 } else {
@@ -296,8 +296,8 @@ struct TrainingPlanV2View: View {
             .sheet(isPresented: $showEditSchedule, onDismiss: {
                 // 編輯 sheet 關閉後，套用儲存結果（避免 @Observable sheet 重建問題）
                 if let savedPlan = editScheduleVM?.savedPlan {
-                    viewModel.weeklyPlan = savedPlan
-                    viewModel.planStatus = .ready(savedPlan)
+                    viewModel.loader.weeklyPlan = savedPlan
+                    viewModel.loader.planStatus = .ready(savedPlan)
                 }
                 editScheduleVM = nil
             }) {
@@ -308,43 +308,52 @@ struct TrainingPlanV2View: View {
                     )
                 }
             }
-            .sheet(isPresented: $bindableViewModel.showWeeklySummary) {
+            .sheet(isPresented: $bindableViewModel.summary.showWeeklySummary) {
                 NavigationStack {
-                    // ⚠️ 週回顧應該顯示「已產生的週」，通常是 currentWeek - 1（上週）
-                    // 如果 weeklySummary 已載入，從 summary 中取得週數；否則預設為 currentWeek - 1
+                    // 週回顧 sheet 顯示的週數優先順序：
+                    // 1) 已載入的 summary.weekOfTraining（最準確）
+                    // 2) 觸發入口記錄的 lastRequestedSummaryWeek
+                    //    （週日情境=currentWeek；週一至週六情境=currentWeek-1）
+                    // 3) 最後防線 currentWeek-1（理論上不會被 hit，因為任何觸發 sheet 的入口
+                    //    都會先設定 lastRequestedSummaryWeek）
                     let weekToShow: Int = {
-                        if case .loaded(let summary) = viewModel.weeklySummary {
-                            return summary.weekOfTraining
+                        if case .loaded(let loadedSummary) = viewModel.summary.weeklySummary {
+                            return loadedSummary.weekOfTraining
                         }
-                        return max(1, viewModel.currentWeek - 1)
+                        if let requested = viewModel.summary.lastRequestedSummaryWeek {
+                            return requested
+                        }
+                        return max(1, viewModel.loader.currentWeek - 1)
                     }()
 
                     // ✅ V1 邏輯：只要訓練未完成，就顯示「產生下週課表」按鈕
-                    let isTrainingCompleted = viewModel.planStatus == .completed ||
-                        viewModel.planStatusResponse?.nextAction == "training_completed"
+                    let isTrainingCompleted = viewModel.loader.planStatus == .completed ||
+                        viewModel.loader.planStatusResponse?.nextAction == "training_completed"
 
                     WeeklySummaryV2View(
                         viewModel: viewModel,
                         weekOfPlan: weekToShow,
                         onGenerateNextWeek: isTrainingCompleted ? nil : {
-                            viewModel.showWeeklySummary = false
+                            viewModel.summary.showWeeklySummary = false
                             Task {
                                 // 等待 summary sheet dismiss 動畫完成，避免與 loading sheet 衝突
                                 try? await Task.sleep(nanoseconds: 600_000_000)
+                                let success = await viewModel.summary.applySelectedAdjustments(weekOfPlan: weekToShow)
+                                guard success else { return }
                                 // 依後端 nextWeekInfo 決定目標週，避免週日情境誤打到已存在的第 1 週
-                                let weekToGenerate = await viewModel.resolveWeekToGenerateAfterSummary(summaryWeek: weekToShow)
-                                await viewModel.generateWeeklyPlanDirectly(weekNumber: weekToGenerate)
+                                let weekToGenerate = await viewModel.generator.resolveWeekToGenerateAfterSummary(summaryWeek: weekToShow)
+                                await viewModel.generator.generateWeeklyPlanDirectly(weekNumber: weekToGenerate)
                             }
                         },
                         onSetNewGoal: isTrainingCompleted ? {
-                            viewModel.showWeeklySummary = false
+                            viewModel.summary.showWeeklySummary = false
                             authViewModel.startReonboarding()
                         } : nil
                     )
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button(NSLocalizedString("common.close", comment: "Close")) {
-                                viewModel.showWeeklySummary = false
+                                viewModel.summary.showWeeklySummary = false
                             }
                         }
                     }
@@ -411,7 +420,7 @@ struct TrainingPlanV2View: View {
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
-            await viewModel.initialize()
+            await viewModel.loader.initialize()
             if authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
                 announcementViewModel.loadAnnouncementsIfNeeded()
             }
@@ -488,14 +497,14 @@ struct TrainingPlanV2View: View {
     // MARK: - Helpers
 
     private func openEditSchedule() {
-        guard case .ready(let weeklyPlan) = viewModel.planStatus else { return }
+        guard case .ready(let weeklyPlan) = viewModel.loader.planStatus else { return }
         let startDate: Date = {
-            if let overview = viewModel.planOverview, let createdAt = overview.createdAt {
+            if let overview = viewModel.loader.planOverview, let createdAt = overview.createdAt {
                 let formatter = ISO8601DateFormatter()
                 let str = formatter.string(from: createdAt)
                 return WeekDateService.weekDateInfo(
                     createdAt: str,
-                    weekNumber: viewModel.selectedWeek
+                    weekNumber: viewModel.loader.selectedWeek
                 )?.startDate ?? Date()
             }
             return Date()
@@ -744,7 +753,7 @@ private struct GenerateNextWeekButtonV2: View {
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
-            .disabled(viewModel.planStatus == .loading)
+            .disabled(viewModel.loader.planStatus == .loading)
             .alert(NSLocalizedString("training.confirm_training_complete", comment: "Confirm Training Complete"), isPresented: $showConfirmation) {
                 Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {
                     Logger.debug("❌ [GenerateNextWeekButtonV2] 用戶取消產生課表")
@@ -752,7 +761,7 @@ private struct GenerateNextWeekButtonV2: View {
                 Button(NSLocalizedString("common.confirm", comment: "Confirm")) {
                     Logger.debug("✅ [GenerateNextWeekButtonV2] 用戶確認產生課表")
                     Task {
-                        await viewModel.generateNextWeekPlan()
+                        await viewModel.generator.generateNextWeekPlan()
                     }
                 }
             } message: {
@@ -813,7 +822,7 @@ private struct WeekSelectorSheetV2: View {
             List(1...max(viewModel.totalWeeks, 1), id: \.self) { week in
                 Button {
                     Task {
-                        await viewModel.switchToWeek(week)
+                        await viewModel.loader.switchToWeek(week)
                         isPresented = false
                     }
                 } label: {
@@ -824,7 +833,7 @@ private struct WeekSelectorSheetV2: View {
 
                         Spacer()
 
-                        if week == viewModel.currentWeek {
+                        if week == viewModel.loader.currentWeek {
                             Text(NSLocalizedString("training.current_week_label", comment: "本週"))
                                 .font(AppFont.caption())
                                 .foregroundColor(.white)
@@ -834,7 +843,7 @@ private struct WeekSelectorSheetV2: View {
                                 .cornerRadius(8)
                         }
 
-                        if week == viewModel.selectedWeek {
+                        if week == viewModel.loader.selectedWeek {
                             Image(systemName: "checkmark")
                                 .foregroundColor(.blue)
                         }

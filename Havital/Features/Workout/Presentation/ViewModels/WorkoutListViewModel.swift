@@ -32,6 +32,7 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
 
     private let getWorkoutsUseCase: GetWorkoutsUseCase
     private let deleteWorkoutUseCase: DeleteWorkoutUseCase
+    private let repository: WorkoutRepository
 
     // MARK: - TaskManageable
 
@@ -45,10 +46,12 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
 
     init(
         getWorkoutsUseCase: GetWorkoutsUseCase,
-        deleteWorkoutUseCase: DeleteWorkoutUseCase
+        deleteWorkoutUseCase: DeleteWorkoutUseCase,
+        repository: WorkoutRepository
     ) {
         self.getWorkoutsUseCase = getWorkoutsUseCase
         self.deleteWorkoutUseCase = deleteWorkoutUseCase
+        self.repository = repository
 
         setupEventSubscriptions()
     }
@@ -65,7 +68,8 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
 
         self.init(
             getWorkoutsUseCase: container.makeGetWorkoutsUseCase(),
-            deleteWorkoutUseCase: container.makeDeleteWorkoutUseCase()
+            deleteWorkoutUseCase: container.makeDeleteWorkoutUseCase(),
+            repository: container.resolve()
         )
     }
 
@@ -77,6 +81,15 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
 
     private func setupEventSubscriptions() {
         // ✅ Clean Architecture: 只訂閱 CacheEventBus 事件（不使用 NotificationCenter）
+
+        // 訂閱 Repository 背景刷新訊號，republish 到 EventBus 讓其他模組也收到
+        repository.workoutsDidRefresh
+            .receive(on: DispatchQueue.main)
+            .sink {
+                Logger.debug("[WorkoutListVM] 收到 Repository workoutsDidRefresh → republish EventBus")
+                CacheEventBus.shared.publish(.dataChanged(.workouts))
+            }
+            .store(in: &cancellables)
 
         // 事件 1: Workout 數據變更 → 直接從緩存讀取並更新 UI
         CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
@@ -134,6 +147,9 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
         do {
             // 使用 DeleteWorkoutUseCase
             try await deleteWorkoutUseCase.execute(workoutId: id)
+
+            // 通知其他模組 workout 數據已變更（EventBus 屬於 Presentation 層職責）
+            CacheEventBus.shared.publish(.dataChanged(.workouts))
 
             // 從當前狀態中移除已刪除的訓練
             if case .loaded(let currentWorkouts) = state {

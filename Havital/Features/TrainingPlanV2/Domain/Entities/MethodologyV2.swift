@@ -2,8 +2,7 @@ import Foundation
 
 // MARK: - MethodologyV2 Entity
 /// 方法論 V2 - Domain Layer 業務實體
-/// 用於 Methodologies V2 API 的響應格式
-struct MethodologyV2: Codable, Equatable, Identifiable {
+struct MethodologyV2: Equatable, Identifiable {
 
     // MARK: - Properties
 
@@ -41,21 +40,4 @@ struct MethodologyV2: Codable, Equatable, Identifiable {
     var supportsMaintenance: Bool {
         return targetTypes.contains("maintenance")
     }
-
-    // MARK: - CodingKeys
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case description
-        case targetTypes = "target_types"
-        case phases
-        case crossTrainingEnabled = "cross_training_enabled"
-    }
-}
-
-// MARK: - MethodologiesResponse
-/// 方法論列表響應
-struct MethodologiesResponseV2: Codable {
-    let methodologies: [MethodologyV2]
 }

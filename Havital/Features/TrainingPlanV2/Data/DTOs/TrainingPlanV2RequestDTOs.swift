@@ -99,3 +99,15 @@ struct GenerateWeeklySummaryRequest: Codable {
         case forceUpdate = "force_update"
     }
 }
+
+/// Request DTO for applying selected adjustment items
+/// POST /v2/summary/weekly/apply-items
+struct ApplyAdjustmentItemsRequest: Codable {
+    let weekOfPlan: Int
+    let appliedIndices: [Int]
+
+    enum CodingKeys: String, CodingKey {
+        case weekOfPlan = "week_of_plan"
+        case appliedIndices = "applied_indices"
+    }
+}

@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Combine
 @testable import paceriz_dev
 
 final class DeleteWorkoutUseCaseTests: XCTestCase {
@@ -62,5 +63,32 @@ final class DeleteWorkoutUseCaseTests: XCTestCase {
         } catch let error as WorkoutError {
             XCTAssertEqual(error, expectedError)
         }
+    }
+
+    // MARK: - Test 4: DeleteWorkoutUseCase does NOT publish CacheEventBus (negative test)
+
+    /// Regression: DeleteWorkoutUseCase must NOT touch CacheEventBus directly.
+    /// EventBus publish is WorkoutListViewModel's responsibility, not the use case.
+    /// Found by QA architecture-health-A review.
+    func testExecute_doesNotPublishCacheEventBus() async throws {
+        // Given
+        let notExpected = XCTestExpectation(description: "CacheEventBus must NOT receive event from UseCase")
+        notExpected.isInverted = true
+
+        let identifier = "QATest_deleteUseCase_negative_\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: identifier) { event in
+            if case .dataChanged(let dataType) = event, "\(dataType)" == "workouts" {
+                notExpected.fulfill()
+            }
+        }
+
+        // When
+        try await useCase.execute(workoutId: "workout_negative_test")
+
+        // Then: wait 0.5s — if EventBus fires, the inverted expectation fails
+        wait(for: [notExpected], timeout: 0.5)
+
+        // Cleanup
+        CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
     }
 }

@@ -33,8 +33,8 @@ struct TrainingProgressViewV2: View {
             expandCurrentStage()
         }
         .task {
-            if viewModel.weeklySummaries.isEmpty {
-                await viewModel.fetchWeeklySummaries()
+            if viewModel.summary.weeklySummaries.isEmpty {
+                await viewModel.summary.fetchWeeklySummaries()
             }
         }
     }
@@ -43,9 +43,9 @@ struct TrainingProgressViewV2: View {
 
     private var currentTrainingStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let overview = viewModel.planOverview, overview.totalWeeks > 0 {
+            if let overview = viewModel.loader.planOverview, overview.totalWeeks > 0 {
                 let totalWeeks = overview.totalWeeks
-                let currentWeek = viewModel.currentWeek
+                let currentWeek = viewModel.loader.currentWeek
                 let progress = min(Double(currentWeek) / Double(totalWeeks), 1.0)
 
                 HStack {
@@ -115,8 +115,8 @@ struct TrainingProgressViewV2: View {
             Text(NSLocalizedString("training.training_stages", comment: "Training Stages"))
                 .font(AppFont.headline())
 
-            if let overview = viewModel.planOverview {
-                let currentWeek = viewModel.currentWeek
+            if let overview = viewModel.loader.planOverview {
+                let currentWeek = viewModel.loader.currentWeek
                 ForEach(overview.trainingStages.indices, id: \.self) { index in
                     let stage = overview.trainingStages[index]
                     let isCurrentStage = currentWeek >= stage.weekStart && currentWeek <= stage.weekEnd
@@ -211,22 +211,22 @@ struct TrainingProgressViewV2: View {
     }
 
     private func weekRow(weekNumber: Int) -> some View {
-        let isCurrentWeek = viewModel.currentWeek == weekNumber
-        let isFutureWeek = weekNumber > viewModel.currentWeek
+        let isCurrentWeek = viewModel.loader.currentWeek == weekNumber
+        let isFutureWeek = weekNumber > viewModel.loader.currentWeek
 
         // 從批次資料判斷各週是否有課表/回顧
-        let weekSummaryItem = viewModel.weeklySummaries.first { $0.weekIndex == weekNumber }
+        let weekSummaryItem = viewModel.summary.weeklySummaries.first { $0.weekIndex == weekNumber }
         let hasWeekPlan = weekSummaryItem?.weekPlan != nil
         let hasSummary = weekSummaryItem?.weekSummary != nil
 
         // 若批次資料尚未載入，fallback 到位置推斷
-        let summariesLoaded = !viewModel.weeklySummaries.isEmpty
+        let summariesLoaded = !viewModel.summary.weeklySummaries.isEmpty
         let showSchedule = summariesLoaded ? hasWeekPlan : !isFutureWeek
         let showReview = summariesLoaded ? hasSummary : false
 
         // 骨架資料：只對當前週及未來週顯示
-        let skeletonWeek = weekNumber >= viewModel.currentWeek
-            ? viewModel.weeklyPreview?.weeks.first { $0.week == weekNumber }
+        let skeletonWeek = weekNumber >= viewModel.loader.currentWeek
+            ? viewModel.loader.weeklyPreview?.weeks.first { $0.week == weekNumber }
             : nil
 
         return VStack(alignment: .leading, spacing: 6) {
@@ -253,7 +253,7 @@ struct TrainingProgressViewV2: View {
                     if showReview {
                         Button {
                             Task {
-                                await viewModel.viewHistoricalSummary(week: weekNumber)
+                                await viewModel.summary.viewHistoricalSummary(week: weekNumber)
                             }
                         } label: {
                             HStack(alignment: .center, spacing: 4) {
@@ -276,7 +276,7 @@ struct TrainingProgressViewV2: View {
                     if showSchedule {
                         Button {
                             Task {
-                                await viewModel.switchToWeek(weekNumber)
+                                await viewModel.loader.switchToWeek(weekNumber)
                                 dismiss()
                             }
                         } label: {
@@ -373,8 +373,8 @@ struct TrainingProgressViewV2: View {
     }
 
     private func expandCurrentStage() {
-        guard let overview = viewModel.planOverview else { return }
-        let currentWeek = viewModel.currentWeek
+        guard let overview = viewModel.loader.planOverview else { return }
+        let currentWeek = viewModel.loader.currentWeek
         for (index, stage) in overview.trainingStages.enumerated() {
             if currentWeek >= stage.weekStart && currentWeek <= stage.weekEnd {
                 selectedStageIndex = index

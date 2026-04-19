@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Delete Workout Use Case
 /// 刪除訓練記錄 Use Case
-/// Domain Layer - 封裝刪除訓練的業務邏輯（API 刪除 + 緩存清理 + 事件通知）
+/// Domain Layer - 封裝刪除訓練的業務邏輯（API 刪除 + 緩存清理）
 class DeleteWorkoutUseCase {
 
     // MARK: - Dependencies
@@ -28,7 +28,6 @@ class DeleteWorkoutUseCase {
     /// 執行用例：刪除訓練記錄
     /// - Parameter workoutId: 訓練 ID
     /// - Throws: WorkoutError
-    @MainActor
     func execute(workoutId: String) async throws {
         Logger.debug("[DeleteWorkoutUseCase] Deleting workout: \(workoutId)")
 
@@ -38,12 +37,7 @@ class DeleteWorkoutUseCase {
         // 2. 清除相關緩存（確保下次載入最新數據）
         await repository.clearCache()
 
-        // 3. ✅ Clean Architecture: 發布 CacheEventBus 事件通知其他模組
-        await MainActor.run {
-            CacheEventBus.shared.publish(.dataChanged(.workouts))
-        }
-
-        // 4. 記錄日誌
+        // 3. 記錄日誌
         Logger.firebase(
             "訓練刪除成功",
             level: .info,

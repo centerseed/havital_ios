@@ -151,18 +151,18 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.weeklySummaryV2ToReturn = summary
 
         // When
-        await sut.loadWeeklySummary(weekOfPlan: 1)
+        await sut.summary.loadWeeklySummary(weekOfPlan: 1)
 
         // Then
         XCTAssertEqual(mockRepository.getWeeklySummaryCallCount, 1)
-        if case .loaded(let loadedSummary) = sut.weeklySummary {
+        if case .loaded(let loadedSummary) = sut.summary.weeklySummary {
             XCTAssertEqual(loadedSummary.id, "summary_test_1")
             XCTAssertEqual(loadedSummary.trainingCompletion.percentage, 0.85)
             XCTAssertEqual(loadedSummary.trainingCompletion.completedSessions, 4)
             XCTAssertEqual(loadedSummary.weeklyHighlights.highlights.count, 1)
             XCTAssertEqual(loadedSummary.nextWeekAdjustments.items.count, 1)
         } else {
-            XCTFail("Expected .loaded state, got \(sut.weeklySummary)")
+            XCTFail("Expected .loaded state, got \(sut.summary.weeklySummary)")
         }
     }
 
@@ -171,17 +171,17 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.errorToThrow = DomainError.networkFailure("Network unavailable")
 
         // When
-        await sut.loadWeeklySummary(weekOfPlan: 1)
+        await sut.summary.loadWeeklySummary(weekOfPlan: 1)
 
         // Then
-        if case .error(let error) = sut.weeklySummary {
+        if case .error(let error) = sut.summary.weeklySummary {
             if case .networkFailure(let message) = error {
                 XCTAssertEqual(message, "Network unavailable")
             } else {
                 XCTFail("Expected .networkFailure, got \(error)")
             }
         } else {
-            XCTFail("Expected .error state, got \(sut.weeklySummary)")
+            XCTFail("Expected .error state, got \(sut.summary.weeklySummary)")
         }
     }
 
@@ -190,10 +190,10 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.errorToThrow = NSError(domain: "test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"])
 
         // When
-        await sut.loadWeeklySummary(weekOfPlan: 1)
+        await sut.summary.loadWeeklySummary(weekOfPlan: 1)
 
         // Then
-        if case .error(let error) = sut.weeklySummary {
+        if case .error(let error) = sut.summary.weeklySummary {
             if case .unknown(let message) = error {
                 XCTAssertEqual(message, "Unknown error")
             } else {
@@ -212,11 +212,11 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.weeklySummaryV2ToReturn = summary
 
         // When
-        await sut.generateWeeklySummary()
+        await sut.summary.generateWeeklySummary()
 
         // Then
         XCTAssertEqual(mockRepository.generateWeeklySummaryCallCount, 1)
-        if case .loaded(let loadedSummary) = sut.weeklySummary {
+        if case .loaded(let loadedSummary) = sut.summary.weeklySummary {
             XCTAssertEqual(loadedSummary.id, "generated_1")
         } else {
             XCTFail("Expected .loaded state")
@@ -229,10 +229,10 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.errorToThrow = DomainError.serverError(500, "Server error")
 
         // When
-        await sut.generateWeeklySummary()
+        await sut.summary.generateWeeklySummary()
 
         // Then
-        if case .error(let error) = sut.weeklySummary {
+        if case .error(let error) = sut.summary.weeklySummary {
             if case .serverError = error {
                 // Expected
             } else {
@@ -249,13 +249,13 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.errorToThrow = DomainError.dataCorruption("decode mismatch")
 
         // When
-        await sut.loadWeeklySummary(weekOfPlan: 1)
+        await sut.summary.loadWeeklySummary(weekOfPlan: 1)
 
         // Then
-        if case .empty = sut.weeklySummary {
+        if case .empty = sut.summary.weeklySummary {
             // expected
         } else {
-            XCTFail("Expected .empty state for non-blocking data corruption, got \(sut.weeklySummary)")
+            XCTFail("Expected .empty state for non-blocking data corruption, got \(sut.summary.weeklySummary)")
         }
         XCTAssertEqual(sut.successToast, NSLocalizedString("error.data_corruption", comment: "Data corruption"))
     }
@@ -265,13 +265,13 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.errorToThrow = DomainError.dataCorruption("decode mismatch")
 
         // When
-        await sut.generateWeeklySummary()
+        await sut.summary.generateWeeklySummary()
 
         // Then
-        if case .empty = sut.weeklySummary {
+        if case .empty = sut.summary.weeklySummary {
             // expected
         } else {
-            XCTFail("Expected .empty state for non-blocking data corruption, got \(sut.weeklySummary)")
+            XCTFail("Expected .empty state for non-blocking data corruption, got \(sut.summary.weeklySummary)")
         }
         XCTAssertEqual(sut.successToast, NSLocalizedString("error.data_corruption", comment: "Data corruption"))
     }
@@ -284,17 +284,17 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.weeklySummaryV2ToReturn = summary
 
         // Initial state should be loading
-        if case .loading = sut.weeklySummary {
+        if case .loading = sut.summary.weeklySummary {
             // OK
         } else {
             XCTFail("Initial state should be .loading")
         }
 
         // When
-        await sut.loadWeeklySummary(weekOfPlan: 1)
+        await sut.summary.loadWeeklySummary(weekOfPlan: 1)
 
         // Then
-        if case .loaded = sut.weeklySummary {
+        if case .loaded = sut.summary.weeklySummary {
             // OK
         } else {
             XCTFail("Expected .loaded after successful load")
@@ -315,10 +315,10 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.weeklySummaryV2ToReturn = summary
 
         // When
-        await sut.loadWeeklySummary(weekOfPlan: 1)
+        await sut.summary.loadWeeklySummary(weekOfPlan: 1)
 
         // Then
-        if case .loaded(let loaded) = sut.weeklySummary {
+        if case .loaded(let loaded) = sut.summary.weeklySummary {
             // Completion
             XCTAssertEqual(loaded.trainingCompletion.percentage, 0.92)
             XCTAssertEqual(loaded.trainingCompletion.plannedKm, 40.0)
@@ -348,8 +348,8 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
 
     func testResolveWeekToGenerateAfterSummary_UsesBackendNextWeekInfo_OnSundayLikeState() async {
         // Given: currentWeek 尚未切到下一週（例如週日），但後端 nextWeekInfo 已指出應產生第 2 週
-        sut.currentWeek = 1
-        sut.planStatusResponse = PlanStatusV2Response(
+        sut.loader.currentWeek = 1
+        sut.loader.planStatusResponse = PlanStatusV2Response(
             currentWeek: 1,
             totalWeeks: 12,
             nextAction: "view_plan",
@@ -369,7 +369,7 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         )
 
         // When
-        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 1)
+        let weekToGenerate = await sut.generator.resolveWeekToGenerateAfterSummary(summaryWeek: 1)
 
         // Then
         XCTAssertEqual(weekToGenerate, 2)
@@ -377,11 +377,11 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
 
     func testResolveWeekToGenerateAfterSummary_FallbacksToSummaryPlusOne_WhenBackendMissing() async {
         // Given
-        sut.currentWeek = 1
-        sut.planStatusResponse = nil
+        sut.loader.currentWeek = 1
+        sut.loader.planStatusResponse = nil
 
         // When
-        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 1)
+        let weekToGenerate = await sut.generator.resolveWeekToGenerateAfterSummary(summaryWeek: 1)
 
         // Then
         XCTAssertEqual(weekToGenerate, 2)
@@ -389,8 +389,8 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
 
     func testResolveWeekToGenerateAfterSummary_MonToSatFlow_UsesBackendWeek() async {
         // Given: 週一到週六情境，currentWeek=3，回顧上週(summaryWeek=2)後應產生第 3 週
-        sut.currentWeek = 3
-        sut.planStatusResponse = PlanStatusV2Response(
+        sut.loader.currentWeek = 3
+        sut.loader.planStatusResponse = PlanStatusV2Response(
             currentWeek: 3,
             totalWeeks: 12,
             nextAction: "create_summary",
@@ -410,7 +410,7 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         )
 
         // When
-        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 2)
+        let weekToGenerate = await sut.generator.resolveWeekToGenerateAfterSummary(summaryWeek: 2)
 
         // Then
         XCTAssertEqual(weekToGenerate, 3)
@@ -418,8 +418,8 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
 
     func testResolveWeekToGenerateAfterSummary_PrefersBackendWeek_WhenAvailable() async {
         // Given: 後端可用時，直接使用後端值
-        sut.currentWeek = 5
-        sut.planStatusResponse = PlanStatusV2Response(
+        sut.loader.currentWeek = 5
+        sut.loader.planStatusResponse = PlanStatusV2Response(
             currentWeek: 5,
             totalWeeks: 12,
             nextAction: "view_plan",
@@ -439,7 +439,7 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         )
 
         // When
-        let weekToGenerate = await sut.resolveWeekToGenerateAfterSummary(summaryWeek: 4)
+        let weekToGenerate = await sut.generator.resolveWeekToGenerateAfterSummary(summaryWeek: 4)
 
         // Then
         XCTAssertEqual(weekToGenerate, 7)
@@ -485,20 +485,20 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         mockRepository.overviewToReturn = try loadOverviewFixture(named: "race_run_paceriz")
         mockRepository.weeklyPlanV2ToReturn = try loadWeeklyPlanFixture(named: "paceriz_42k_base_week")
 
-        sut.planOverview = mockRepository.overviewToReturn
-        sut.currentWeek = 1
-        sut.selectedWeek = 2
+        sut.loader.planOverview = mockRepository.overviewToReturn
+        sut.loader.currentWeek = 1
+        sut.loader.selectedWeek = 2
 
         await sut.refreshWeeklyPlan()
 
         XCTAssertEqual(mockRepository.refreshWeeklyPlanCallCount, 1)
         XCTAssertEqual(mockRepository.lastRefreshedWeeklyPlanWeekOfTraining, 2)
         XCTAssertEqual(mockRepository.getWeeklyPlanCallCount, 0)
-        XCTAssertEqual(sut.selectedWeek, 2)
-        if case .ready = sut.planStatus {
+        XCTAssertEqual(sut.loader.selectedWeek, 2)
+        if case .ready = sut.loader.planStatus {
             // expected
         } else {
-            XCTFail("Expected refreshed selected week to remain visible, got \(sut.planStatus)")
+            XCTFail("Expected refreshed selected week to remain visible, got \(sut.loader.planStatus)")
         }
     }
 }
@@ -535,11 +535,11 @@ final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
     func test_initialize_whenStartupNetworkFailsButCachedPlanExists_shouldStillShowCachedPlan() async {
         await sut.initialize()
 
-        if case .ready(let plan) = sut.planStatus {
+        if case .ready(let plan) = sut.loader.planStatus {
             XCTAssertEqual(plan.id, "overview_001_3")
             XCTAssertEqual(plan.effectiveWeek, 3)
         } else {
-            XCTFail("Expected cached weekly plan to remain visible, got \(sut.planStatus)")
+            XCTFail("Expected cached weekly plan to remain visible, got \(sut.loader.planStatus)")
         }
     }
 }
@@ -645,6 +645,8 @@ private final class StartupStatusFailureButCachedPlanRepository: TrainingPlanV2R
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
     }
+
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {}
 
     func deleteWeeklySummary(summaryId: String) async throws {}
 

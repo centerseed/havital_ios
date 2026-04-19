@@ -558,6 +558,10 @@ private final class FailingTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteD
         fatalError("Unexpected call to getWeeklySummary(weekOfPlan:)")
     }
 
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        fatalError("Unexpected call to applyAdjustmentItems(weekOfPlan:appliedIndices:)")
+    }
+
     func deleteWeeklySummary(summaryId: String) async throws {
         fatalError("Unexpected call to deleteWeeklySummary(summaryId:)")
     }

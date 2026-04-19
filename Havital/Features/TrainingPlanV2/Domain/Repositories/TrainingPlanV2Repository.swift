@@ -119,6 +119,12 @@ protocol TrainingPlanV2Repository {
 
     // MARK: - Weekly Summary
 
+    /// 套用選取的調整建議
+    /// - Parameters:
+    ///   - weekOfPlan: 要套用的週次
+    ///   - appliedIndices: 已選取的建議 0-based indices（[] = 全不套用）
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws
+
     /// 生成週摘要
     /// - Parameters:
     ///   - weekOfPlan: 訓練週次

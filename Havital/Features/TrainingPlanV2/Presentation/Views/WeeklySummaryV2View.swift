@@ -31,7 +31,7 @@ struct WeeklySummaryV2View: View {
 
     var body: some View {
         Group {
-            switch viewModel.weeklySummary {
+            switch viewModel.summary.weeklySummary {
             case .loaded(let summary):
                 loadedView(summary: summary)
 
@@ -49,7 +49,7 @@ struct WeeklySummaryV2View: View {
         .navigationTitle(String(format: NSLocalizedString("training.week_summary_title", comment: "第 %d 週摘要"), weekOfPlan))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadWeeklySummary(weekOfPlan: weekOfPlan)
+            await viewModel.summary.loadWeeklySummary(weekOfPlan: weekOfPlan)
         }
     }
 
@@ -69,6 +69,7 @@ struct WeeklySummaryV2View: View {
                     iconColor: .yellow,
                     title: NSLocalizedString("training.highlights", comment: "本週亮點"),
                     preview: highlightsPreview(summary.weeklyHighlights),
+                    accessibilityIdentifier: "v2.summary.highlights_toggle",
                     expandedSections: $expandedSections
                 ) {
                     HighlightsSectionV2(highlights: summary.weeklyHighlights, showImprovements: true)
@@ -82,6 +83,7 @@ struct WeeklySummaryV2View: View {
                     iconColor: .purple,
                     title: NSLocalizedString("training.analysis", comment: "訓練分析"),
                     preview: analysisPreview(summary.trainingAnalysis),
+                    accessibilityIdentifier: "v2.summary.analysis_toggle",
                     expandedSections: $expandedSections
                 ) {
                     AnalysisSectionV2(analysis: summary.trainingAnalysis)
@@ -95,13 +97,18 @@ struct WeeklySummaryV2View: View {
                     iconColor: .blue,
                     title: NSLocalizedString("training.next_week_adjustments", comment: "下週調整建議"),
                     preview: nextWeekPreview(summary.nextWeekAdjustments),
+                    accessibilityIdentifier: "v2.summary.next_week_toggle",
                     expandedSections: $expandedSections
                 ) {
                     VStack(spacing: Layout.contentSpacing) {
                         if !summary.weeklyHighlights.areasForImprovement.isEmpty {
                             ImprovementsSectionV2(areas: summary.weeklyHighlights.areasForImprovement)
                         }
-                        AdjustmentsSectionV2(adjustments: summary.nextWeekAdjustments)
+                        AdjustmentsSectionV2(
+                            adjustments: summary.nextWeekAdjustments,
+                            coordinator: viewModel.summary,
+                            showToggles: onGenerateNextWeek != nil
+                        )
                     }
                     .padding(.top, 8)
                 }
@@ -112,6 +119,7 @@ struct WeeklySummaryV2View: View {
             .padding(.horizontal)
             .padding(.vertical, 16)
         }
+        .accessibilityIdentifier("v2.summary.loaded_content")
     }
 
     // MARK: - Action Buttons
@@ -119,11 +127,8 @@ struct WeeklySummaryV2View: View {
     @ViewBuilder
     private func actionButtonsView(summary: WeeklySummaryV2) -> some View {
         if let onGenerateNextWeek {
-            let hasAdjustments = !summary.nextWeekAdjustments.items.isEmpty
             Button(action: onGenerateNextWeek) {
-                Text(hasAdjustments
-                    ? NSLocalizedString("training.accept_adjustments_and_generate", comment: "接受調整並產生下週課表")
-                    : NSLocalizedString("training.generate_next_week_plan", comment: "產生下週課表"))
+                Text(generateButtonText(summary: summary))
                     .font(AppFont.headline())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -154,6 +159,25 @@ struct WeeklySummaryV2View: View {
                     .cornerRadius(12)
                 }
             }
+        }
+    }
+
+    // MARK: - Button Text Helpers
+
+    private func generateButtonText(summary: WeeklySummaryV2) -> String {
+        let selectedCount = viewModel.summary.selectedCount
+        if summary.nextWeekAdjustments.items.isEmpty {
+            return NSLocalizedString("training.generate_next_week_plan", comment: "產生下週課表")
+        } else if selectedCount > 0 {
+            return String(format: NSLocalizedString(
+                "training.apply_n_adjustments_and_generate",
+                comment: "套用 %d 條建議並產生下週課表"
+            ), selectedCount)
+        } else {
+            return NSLocalizedString(
+                "training.generate_without_adjustments",
+                comment: "不套用調整，直接產生課表"
+            )
         }
     }
 
@@ -204,6 +228,7 @@ struct WeeklySummaryV2View: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("v2.summary.loading")
     }
 
     // MARK: - Error View
@@ -223,7 +248,7 @@ struct WeeklySummaryV2View: View {
 
             Button(action: {
                 Task {
-                    await viewModel.loadWeeklySummary(weekOfPlan: weekOfPlan)
+                    await viewModel.summary.loadWeeklySummary(weekOfPlan: weekOfPlan)
                 }
             }) {
                 Text(NSLocalizedString("common.retry", comment: "重試"))
@@ -236,6 +261,7 @@ struct WeeklySummaryV2View: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("v2.summary.error")
     }
 
     // MARK: - Empty View
@@ -258,6 +284,7 @@ struct WeeklySummaryV2View: View {
                 .padding(.horizontal)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("v2.summary.empty")
     }
 }
 
@@ -270,6 +297,7 @@ private struct CollapsibleSectionV2<Content: View>: View {
     let iconColor: Color
     let title: String
     let preview: String
+    let accessibilityIdentifier: String
     @Binding var expandedSections: Set<SectionID>
     @ViewBuilder let content: () -> Content
 
@@ -311,6 +339,7 @@ private struct CollapsibleSectionV2<Content: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier(accessibilityIdentifier)
 
             // 展開內容
             if isExpanded {
@@ -343,9 +372,14 @@ private struct CollapsibleSectionV2<Content: View>: View {
 private struct CompletionSectionV2: View {
     let completion: TrainingCompletionV2
 
-    /// API returns percentage as 0-100+ (e.g. 12.0 = 12%, 105.0 = 105%)
+    /// Some fixtures still encode completion as 0.0...1.0 while newer API contracts use 0...100.
+    /// Normalize both forms so render output and progress ring stay stable.
     private var normalizedPercentage: Double {
-        completion.percentage / 100.0
+        completion.percentage <= 1 ? completion.percentage : completion.percentage / 100.0
+    }
+
+    private var displayPercentage: Int {
+        Int(round(normalizedPercentage * 100))
     }
 
     private var progressColor: Color {
@@ -380,9 +414,10 @@ private struct CompletionSectionV2: View {
                         .frame(width: 100, height: 100)
                         .rotationEffect(.degrees(-90))
 
-                    Text("\(Int(completion.percentage))%")
+                    Text("\(displayPercentage)%")
                         .font(AppFont.systemScaled(size: 22, weight: .bold))
                         .foregroundColor(.primary)
+                        .accessibilityIdentifier("v2.summary.completion_percentage")
                 }
 
                 // 統計數字
@@ -421,6 +456,7 @@ private struct CompletionSectionV2: View {
                 .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .accessibilityIdentifier("v2.summary.completion_card")
     }
 }
 
@@ -712,6 +748,8 @@ private struct ImprovementsSectionV2: View {
 /// 下週調整建議區塊（折疊內容，無外框卡片）
 private struct AdjustmentsSectionV2: View {
     let adjustments: NextWeekAdjustmentsV2
+    let coordinator: WeeklySummaryCoordinator
+    let showToggles: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
@@ -723,6 +761,15 @@ private struct AdjustmentsSectionV2: View {
                     .font(AppFont.headline())
                     .foregroundColor(.primary)
                 Spacer()
+
+                if showToggles && !adjustments.items.isEmpty {
+                    Text(String(format: NSLocalizedString(
+                        "training.adjustment_selected_count",
+                        comment: "已選 %d / %d 條"
+                    ), coordinator.selectedCount, adjustments.items.count))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                }
             }
 
             // 摘要
@@ -732,8 +779,17 @@ private struct AdjustmentsSectionV2: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             // 建議項目列表
-            ForEach(Array(adjustments.items.enumerated()), id: \.offset) { _, item in
-                AdjustmentItemCardV2(item: item)
+            ForEach(Array(adjustments.items.enumerated()), id: \.offset) { index, item in
+                AdjustmentItemCardV2(
+                    item: item,
+                    index: index,
+                    isSelected: showToggles
+                        ? Binding(
+                            get: { coordinator.adjustmentSelections[index] ?? true },
+                            set: { coordinator.adjustmentSelections[index] = $0 }
+                          )
+                        : .constant(true)
+                )
             }
         }
     }
@@ -742,6 +798,8 @@ private struct AdjustmentsSectionV2: View {
 /// 調整建議項目卡片
 private struct AdjustmentItemCardV2: View {
     let item: AdjustmentItemV2
+    let index: Int
+    @Binding var isSelected: Bool
 
     private var priorityColor: Color {
         switch item.priority.lowercased() {
@@ -763,13 +821,16 @@ private struct AdjustmentItemCardV2: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.itemSpacing) {
-            // 第一行：icon + Spacer + priority badge
             HStack {
                 Image(systemName: categoryIcon)
                     .foregroundColor(priorityColor)
                     .font(AppFont.subheadline())
 
                 Spacer()
+
+                Toggle("", isOn: $isSelected)
+                    .labelsHidden()
+                    .accessibilityIdentifier("v2.summary.adjustment_toggle_\(index)")
 
                 Text(item.priority.uppercased())
                     .font(AppFont.systemScaled(size: 12, weight: .bold))
@@ -780,22 +841,36 @@ private struct AdjustmentItemCardV2: View {
                     .cornerRadius(4)
             }
 
-            // 第二行：content text
             Text(item.content)
                 .font(AppFont.subheadline())
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // 第三行：reason
             Text(item.reason)
                 .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !item.impact.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.right.circle.fill")
+                        .font(AppFont.caption())
+                        .foregroundColor(.blue.opacity(0.7))
+                    Text(item.impact)
+                        .font(AppFont.caption())
+                        .foregroundColor(.blue.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .padding(Layout.subCardPadding)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(8)
+        .opacity(isSelected ? 1.0 : 0.4)
+        .grayscale(isSelected ? 0.0 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .accessibilityIdentifier("v2.summary.adjustment_item_\(index)")
     }
 }
 

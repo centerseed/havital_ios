@@ -1,9 +1,16 @@
+import Combine
 import Foundation
 
 // MARK: - Workout Repository Protocol
 /// 定義訓練記錄數據存取介面
 /// Domain Layer - 只定義介面，不涉及實作細節
 protocol WorkoutRepository {
+
+    // MARK: - Background Refresh Signal
+
+    /// 背景刷新完成訊號（Track B 成功時觸發）
+    /// ViewModel 訂閱後自行決定如何通知 UI / 其他模組
+    var workoutsDidRefresh: AnyPublisher<Void, Never> { get }
 
     // MARK: - Query (DEPRECATED - Use Async versions)
 

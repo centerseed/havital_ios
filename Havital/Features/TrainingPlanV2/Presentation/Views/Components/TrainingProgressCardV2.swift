@@ -7,7 +7,7 @@ struct TrainingProgressCardV2: View {
     @State private var showTrainingProgress = false
 
     private var progress: Double {
-        guard let overview = viewModel.planOverview, overview.totalWeeks > 0 else { return 0 }
+        guard let overview = viewModel.loader.planOverview, overview.totalWeeks > 0 else { return 0 }
         return min(Double(plan.effectiveWeek) / Double(overview.totalWeeks), 1.0)
     }
 
@@ -28,7 +28,7 @@ struct TrainingProgressCardV2: View {
 
                     Spacer()
 
-                    if let overview = viewModel.planOverview {
+                    if let overview = viewModel.loader.planOverview {
                         Text(String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.effectiveWeek, overview.totalWeeks))
                             .font(AppFont.subheadline())
                             .fontWeight(.semibold)
@@ -41,7 +41,7 @@ struct TrainingProgressCardV2: View {
                 }
 
                 // 多階段彩色進度條
-                if let overview = viewModel.planOverview, !overview.trainingStages.isEmpty {
+                if let overview = viewModel.loader.planOverview, !overview.trainingStages.isEmpty {
                     stageProgressBar(overview: overview)
                         .padding(.vertical, 4)
                 } else {
@@ -51,7 +51,7 @@ struct TrainingProgressCardV2: View {
                 }
 
                 // 當前階段指示器（簡化版 - 待實作完整階段邏輯）
-                if let overview = viewModel.planOverview,
+                if let overview = viewModel.loader.planOverview,
                    let currentStage = getCurrentStage(from: overview) {
                     HStack(alignment: .center, spacing: 8) {
                         Circle()
@@ -62,6 +62,7 @@ struct TrainingProgressCardV2: View {
                             .font(AppFont.caption())
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
+                            .accessibilityIdentifier("v2.weekly.current_stage")
 
                         Spacer()
 
@@ -79,6 +80,7 @@ struct TrainingProgressCardV2: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityIdentifier("v2.weekly.progress_card")
         .sheet(isPresented: $showTrainingProgress) {
             TrainingProgressViewV2(viewModel: viewModel)
         }

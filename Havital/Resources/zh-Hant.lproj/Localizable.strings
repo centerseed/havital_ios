@@ -2219,6 +2219,9 @@
 "training.no_weekly_summary" = "尚無週回顧";
 "training.no_weekly_summary_hint" = "本週回顧將在訓練結束後自動產生";
 "training.accept_adjustments_and_generate" = "接受調整並產生下週課表";
+"training.apply_n_adjustments_and_generate" = "套用 %d 條建議並產生下週課表";
+"training.generate_without_adjustments" = "不套用調整，直接產生課表";
+"training.adjustment_selected_count" = "已選 %d / %d 條";
 "training.tab_results" = "本週成績";
 "training.tab_analysis" = "數據分析";
 "training.tab_next_week" = "下週計劃";

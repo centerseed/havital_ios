@@ -100,6 +100,10 @@ final class FakeTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourcePr
         fatalError("Unexpected call: getWeeklySummary")
     }
 
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        fatalError("Unexpected call: applyAdjustmentItems")
+    }
+
     func deleteWeeklySummary(summaryId: String) async throws {
         fatalError("Unexpected call: deleteWeeklySummary")
     }

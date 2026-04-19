@@ -2,8 +2,7 @@ import Foundation
 
 // MARK: - TargetTypeV2 Entity
 /// 目標類型 V2 - Domain Layer 業務實體
-/// 用於 Target Types V2 API 的響應格式
-struct TargetTypeV2: Codable, Equatable, Identifiable {
+struct TargetTypeV2: Equatable, Identifiable {
 
     // MARK: - Properties
 
@@ -37,25 +36,5 @@ struct TargetTypeV2: Codable, Equatable, Identifiable {
     /// 是否為維持目標
     var isMaintenanceTarget: Bool {
         return id == "maintenance"
-    }
-
-    // MARK: - CodingKeys
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case description
-        case defaultMethodology = "default_methodology"
-        case availableMethodologies = "available_methodologies"
-    }
-}
-
-// MARK: - TargetTypesResponse
-/// 目標類型列表響應
-struct TargetTypesResponseV2: Codable {
-    let targetTypes: [TargetTypeV2]
-
-    enum CodingKeys: String, CodingKey {
-        case targetTypes = "target_types"
     }
 }

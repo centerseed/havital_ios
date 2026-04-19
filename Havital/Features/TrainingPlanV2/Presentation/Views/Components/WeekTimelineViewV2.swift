@@ -22,6 +22,7 @@ struct WeekTimelineViewV2: View {
                 Spacer()
             }
             .padding(.horizontal, 4)
+            .accessibilityIdentifier("v2.weekly.timeline_header")
 
             // 時間軸列表（按 dayIndex 排序確保日期順序正確）
             VStack(spacing: 12) {
@@ -72,7 +73,7 @@ struct TimelineItemViewV2: View {
         // todayTrigger 參與 body，確保日期變化時 SwiftUI 重繪
         let _ = todayTrigger
         let isToday = viewModel.isToday(dayIndex: day.dayIndexInt)
-        let workouts = viewModel.workoutsByDay[day.dayIndexInt] ?? []
+        let workouts = viewModel.loader.workoutsByDay[day.dayIndexInt] ?? []
 
         // 判斷是否為過去的日期
         let isPast: Bool = {
@@ -160,7 +161,7 @@ struct TimelineItemViewV2: View {
                                         .cornerRadius(8)
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityIdentifier("day_\(day.dayIndexInt)_type")
+                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
                             } else {
                                 Text(day.type.localizedName)
                                     .font(AppFont.bodySmall())
@@ -170,7 +171,7 @@ struct TimelineItemViewV2: View {
                                     .padding(.vertical, 6)
                                     .background(getTypeColor().opacity(0.15))
                                     .cornerRadius(8)
-                                    .accessibilityIdentifier("day_\(day.dayIndexInt)_type")
+                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
                             }
 
                             // 展開/收起圖示
@@ -322,7 +323,7 @@ struct TimelineItemViewV2: View {
                 x: 0,
                 y: isToday ? 4 : 1
             )
-            .accessibilityIdentifier("weekly_plan_day_\(day.dayIndexInt)")
+            .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).card")
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {

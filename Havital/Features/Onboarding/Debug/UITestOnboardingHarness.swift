@@ -309,6 +309,10 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
         fatalError("Weekly summary is not expected in onboarding UI tests")
     }
 
+    func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
+        // Debug harness - no-op
+    }
+
     func deleteWeeklySummary(summaryId: String) async throws {}
 
     func getCachedPlanStatus() -> PlanStatusV2Response? {

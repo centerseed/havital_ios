@@ -93,6 +93,10 @@ struct HavitalApp: App {
             UITestOnboardingHarness.registerDependencies()
             print("🧪 [UI Test] 已切換為 Onboarding 測試依賴")
         }
+        if CommandLine.arguments.contains("-ui_testing_methodology_fixture") {
+            UITestMethodologyHarness.registerDependencies()
+            print("🧪 [UI Test] 已切換為 Methodology fixture 測試依賴")
+        }
         #endif
 
         // 🔍 DEBUG: 驗證 MonthlyStatsRepository 是否註冊
@@ -163,6 +167,8 @@ struct HavitalApp: App {
         WindowGroup {
             if isRunningTests && !shouldRenderRealUIInTests {
                 Text("Running Tests...")
+            } else if shouldLaunchMethodologyUITestHarness {
+                methodologyUITestHarnessView
             } else if shouldLaunchTrainingPlanV2GatesUITestHarness {
                 trainingPlanV2GateHarnessView
             } else if shouldLaunchLoadingCacheUITestHarness {
@@ -285,6 +291,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_paywall")
             || arguments.contains("-useStoreKitTestRepository")
             || arguments.contains("-ui_testing_training_v2_gates")
+            || arguments.contains("-ui_testing_methodology_fixture")
             || arguments.contains("-ui_testing_loading_cache")
             || arguments.contains("-ui_testing_typography_audit")
     }
@@ -309,6 +316,14 @@ struct HavitalApp: App {
     private var shouldLaunchTrainingPlanV2GatesUITestHarness: Bool {
         #if DEBUG
         CommandLine.arguments.contains("-ui_testing_training_v2_gates")
+        #else
+        false
+        #endif
+    }
+
+    private var shouldLaunchMethodologyUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_methodology_fixture")
         #else
         false
         #endif
@@ -343,6 +358,15 @@ struct HavitalApp: App {
     private var trainingPlanV2GateHarnessView: some View {
         #if DEBUG
         UITestTrainingPlanV2GateHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var methodologyUITestHarnessView: some View {
+        #if DEBUG
+        UITestMethodologyHostView()
         #else
         EmptyView()
         #endif

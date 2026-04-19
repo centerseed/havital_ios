@@ -6,46 +6,53 @@
 //  Re-written to fix compilation errors caused by mismatched model definitions.
 //
 
-import XCTest
 import Combine
+import XCTest
 @testable import paceriz_dev
 
 @MainActor
 final class WorkoutListViewModelTests: XCTestCase {
 
     var viewModel: WorkoutListViewModel!
-    
+    var mockRepository: WorkoutListTestMockRepository!
+
     // Mocks
     var mockGetWorkoutsUseCase: MockGetWorkoutsUseCase!
     var mockDeleteWorkoutUseCase: MockDeleteWorkoutUseCase!
 
+    // Combine cleanup
+    var cancellables = Set<AnyCancellable>()
+
     override func setUp() async throws {
         try await super.setUp()
-        
-        let repository = WorkoutListTestMockRepository()
-        
+
+        mockRepository = WorkoutListTestMockRepository()
+
         // Setup Mocks
-        mockGetWorkoutsUseCase = MockGetWorkoutsUseCase(repository: repository)
-        mockDeleteWorkoutUseCase = MockDeleteWorkoutUseCase(repository: repository)
-        
+        mockGetWorkoutsUseCase = MockGetWorkoutsUseCase(repository: mockRepository)
+        mockDeleteWorkoutUseCase = MockDeleteWorkoutUseCase(repository: mockRepository)
+
         // Manual Injection
         viewModel = WorkoutListViewModel(
             getWorkoutsUseCase: mockGetWorkoutsUseCase,
-            deleteWorkoutUseCase: mockDeleteWorkoutUseCase
+            deleteWorkoutUseCase: mockDeleteWorkoutUseCase,
+            repository: mockRepository
         )
     }
 
     override func tearDown() async throws {
+        cancellables.removeAll()
         viewModel = nil
         mockGetWorkoutsUseCase = nil
         mockDeleteWorkoutUseCase = nil
+        mockRepository = nil
         try await super.tearDown()
     }
 
+    // MARK: - Existing tests
+
     func testViewModel_Initialized() {
         XCTAssertNotNil(viewModel)
-        // Check initial state used to be loading, but after initialization 
-        // it might transition. For now, just checking it exists is fine.
     }
 
     func testLoadWorkouts_Success() async {
@@ -75,7 +82,6 @@ final class WorkoutListViewModelTests: XCTestCase {
         // Then
         if case .error(let error) = viewModel.state {
             XCTAssertNotNil(error)
-            // Assuming DomainError implies some error state. 
         } else {
             XCTFail("Expected state to be .error")
         }
@@ -92,13 +98,66 @@ final class WorkoutListViewModelTests: XCTestCase {
 
         // Then
         XCTAssertTrue(mockDeleteWorkoutUseCase.executeCalled)
-        // Should reload workouts after delete
         if case .loaded(_) = viewModel.state {
             // Success
         }
     }
-    
+
+    // MARK: - Test 2: VM republish EventBus when repository signals refresh
+
+    /// Regression: WorkoutListViewModel must republish CacheEventBus when repository workoutsDidRefresh fires.
+    /// Found by QA architecture-health-A review.
+    func test_repositoryRefreshSignal_republishesToEventBus() {
+        // Given
+        let expectation = XCTestExpectation(description: "EventBus receives dataChanged.workouts after repository refresh")
+        expectation.expectedFulfillmentCount = 1
+
+        let identifier = "QATest_repositoryRefreshSignal_\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: identifier) { event in
+            if case .dataChanged(let dataType) = event, "\(dataType)" == "workouts" {
+                expectation.fulfill()
+            }
+        }
+
+        // When: simulate repository background refresh completing
+        mockRepository.refreshSubject.send()
+
+        // Then
+        wait(for: [expectation], timeout: 2.0)
+
+        // Cleanup
+        CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
+    }
+
+    // MARK: - Test 3: deleteWorkout success path publishes EventBus
+
+    /// Regression: WorkoutListViewModel.deleteWorkout must publish CacheEventBus.dataChanged(.workouts) on success.
+    /// Found by QA architecture-health-A review.
+    func test_deleteWorkout_publishesEventBus() async {
+        // Given
+        let expectation = XCTestExpectation(description: "EventBus receives dataChanged.workouts after delete")
+        // Use >= 1: VM subscribes to its own event which may trigger another publish.
+        expectation.assertForOverFulfill = false
+
+        let identifier = "QATest_deleteWorkout_\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: identifier) { event in
+            if case .dataChanged(let dataType) = event, "\(dataType)" == "workouts" {
+                expectation.fulfill()
+            }
+        }
+
+        // When
+        _ = await viewModel.deleteWorkout(id: "1")
+
+        // Then
+        await fulfillment(of: [expectation], timeout: 2.0)
+
+        // Cleanup
+        CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
+    }
+
     // MARK: - Helper
+
     private func createMockWorkout(id: String) -> WorkoutV2 {
         return WorkoutV2(
             id: id,
@@ -164,13 +223,16 @@ class WorkoutListTestMockRepository: WorkoutRepository {
     func preloadData() async {}
 
     var workoutsDidUpdateNotification: Notification.Name { return Notification.Name("MockWorkoutUpdate") }
+
+    let refreshSubject = PassthroughSubject<Void, Never>()
+    var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
 }
 
 // 2. Mock UseCases
 class MockGetWorkoutsUseCase: GetWorkoutsUseCase {
     var executeReturnValue: [WorkoutV2] = []
     var shouldThrowError = false
-    
+
     // Override execute since it's a class method
     override func execute(limit: Int?, offset: Int?) async throws -> [WorkoutV2] {
         if shouldThrowError {
@@ -182,7 +244,7 @@ class MockGetWorkoutsUseCase: GetWorkoutsUseCase {
 
 class MockDeleteWorkoutUseCase: DeleteWorkoutUseCase {
     var executeCalled = false
-    
+
     // Override execute
     override func execute(workoutId: String) async throws {
         executeCalled = true
