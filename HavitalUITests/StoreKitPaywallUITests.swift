@@ -91,6 +91,20 @@ final class StoreKitPaywallUITests: XCTestCase {
         XCTAssertTrue(restoreButton.waitForExistence(timeout: 8), "Restore button should be visible for non-subscribed user")
     }
 
+    func testPaywallShowsRenewalDisclosureForVisiblePlans() {
+        let yearlyDisclosure = app.staticTexts["Paywall_YearlyDisclosure"]
+        let monthlyDisclosure = app.staticTexts["Paywall_MonthlyDisclosure"]
+
+        XCTAssertTrue(yearlyDisclosure.waitForExistence(timeout: 8), "Yearly plan should disclose renewal terms near CTA")
+        XCTAssertTrue(monthlyDisclosure.waitForExistence(timeout: 8), "Monthly plan should disclose renewal terms near CTA")
+        XCTAssertTrue(
+            yearlyDisclosure.label.localizedCaseInsensitiveContains("auto") ||
+            yearlyDisclosure.label.contains("自動") ||
+            yearlyDisclosure.label.contains("自動續訂"),
+            "Yearly disclosure should include auto-renew language"
+        )
+    }
+
     func testRestoreButtonHiddenWhenStatusIsActive() {
         XCTAssertTrue(
             purchaseUntilActive(packageButtonId: "Paywall_YearlyOption"),

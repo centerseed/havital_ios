@@ -265,6 +265,7 @@
 "profile.subscription.remaining" = "剩餘時間";
 "profile.subscription.days_remaining" = "%d 天";
 "profile.subscription.expires" = "到期日";
+"profile.subscription.renews_on" = "續訂日";
 "profile.subscription.billing_issue" = "帳單問題";
 "profile.subscription.cancelled" = "已取消";
 "profile.subscription.valid_until" = "服務有效至";
@@ -2485,6 +2486,15 @@
 "paywall.offer.duration.week" = "%d 週";
 "paywall.offer.duration.month" = "%d 個月";
 "paywall.offer.duration.year" = "%d 年";
+"paywall.disclosure.free_trial_then" = "先享 %@ 免費，之後 %@ / %@。";
+"paywall.disclosure.offer_then" = "%@ 優惠可用 %@，之後 %@ / %@。";
+"paywall.disclosure.renews_at_price" = "%@ / %@。";
+"paywall.disclosure.auto_renews_unless_cancelled" = "若未於目前訂閱週期結束前至少 24 小時取消，將自動續訂。";
+"paywall.disclosure.cycle.day" = "天";
+"paywall.disclosure.cycle.week" = "週";
+"paywall.disclosure.cycle.month" = "月";
+"paywall.disclosure.cycle.year" = "年";
+"paywall.disclosure.cycle.multiple" = "%d %@";
 "paywall.cta.subscribe" = "立即訂閱";
 "paywall.cta.start_offer" = "開始優惠";
 "paywall.cta.claim_offer" = "領取優惠";

@@ -265,6 +265,7 @@
 "profile.subscription.remaining" = "Time Remaining";
 "profile.subscription.days_remaining" = "%d days";
 "profile.subscription.expires" = "Expires";
+"profile.subscription.renews_on" = "Renews on";
 "profile.subscription.billing_issue" = "Billing Issue";
 "profile.subscription.cancelled" = "Cancelled";
 "profile.subscription.valid_until" = "Service valid until";
@@ -2459,6 +2460,15 @@
 "paywall.offer.duration.week" = "%d week(s)";
 "paywall.offer.duration.month" = "%d month(s)";
 "paywall.offer.duration.year" = "%d year(s)";
+"paywall.disclosure.free_trial_then" = "Free for %@, then %@ / %@.";
+"paywall.disclosure.offer_then" = "%@ applies for %@, then %@ / %@.";
+"paywall.disclosure.renews_at_price" = "%@ / %@.";
+"paywall.disclosure.auto_renews_unless_cancelled" = "Auto-renews unless cancelled at least 24 hours before the end of the current period.";
+"paywall.disclosure.cycle.day" = "day";
+"paywall.disclosure.cycle.week" = "week";
+"paywall.disclosure.cycle.month" = "month";
+"paywall.disclosure.cycle.year" = "year";
+"paywall.disclosure.cycle.multiple" = "%d %@";
 "paywall.cta.subscribe" = "Subscribe";
 "paywall.cta.start_offer" = "Start Offer";
 "paywall.cta.claim_offer" = "Claim Offer";

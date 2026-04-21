@@ -269,6 +269,7 @@ struct PaywallView: View {
                     let offerInfo = officialOfferDisplayInfo(for: yearly)
                     YearlyCard(package: yearly,
                                offerInfo: offerInfo,
+                               disclosureText: renewalDisclosureText(for: yearly),
                                actionTitle: purchaseActionTitle(for: yearly),
                                isSelected: selectedPackageId == yearly.id,
                                purchaseState: viewModel.purchaseState) {
@@ -290,6 +291,7 @@ struct PaywallView: View {
                     let offerInfo = officialOfferDisplayInfo(for: monthly)
                     MonthlyCard(package: monthly,
                                 offerInfo: offerInfo,
+                                disclosureText: renewalDisclosureText(for: monthly),
                                 actionTitle: purchaseActionTitle(for: monthly),
                                 isSelected: selectedPackageId == monthly.id,
                                 purchaseState: viewModel.purchaseState) {
@@ -448,6 +450,84 @@ struct PaywallView: View {
         }
     }
 
+    private func renewalDisclosureText(for package: SubscriptionPackageEntity) -> String {
+        let regularPriceText = String(
+            format: NSLocalizedString("paywall.disclosure.renews_at_price", comment: "Then %@ / %@."),
+            package.localizedPrice,
+            localizedBillingCycle(for: package)
+        )
+        let autoRenewText = NSLocalizedString(
+            "paywall.disclosure.auto_renews_unless_cancelled",
+            comment: "Auto-renews unless cancelled at least 24 hours before the end of the current period."
+        )
+
+        guard let offer = package.officialOffer else {
+            return [
+                regularPriceText,
+                autoRenewText
+            ].joined(separator: " ")
+        }
+
+        switch offer.type {
+        case .introductory:
+            switch offer.paymentMode {
+            case .freeTrial:
+                let trialText = String(
+                    format: NSLocalizedString("paywall.disclosure.free_trial_then", comment: "Free for %@, then %@ / %@."),
+                    localizedOfferDuration(offer),
+                    package.localizedPrice,
+                    localizedBillingCycle(for: package)
+                )
+                return [trialText, autoRenewText].joined(separator: " ")
+            case .payAsYouGo, .payUpFront:
+                let introText = String(
+                    format: NSLocalizedString("paywall.disclosure.offer_then", comment: "%@ applies for %@, then %@ / %@."),
+                    offer.localizedPrice,
+                    localizedOfferDuration(offer),
+                    package.localizedPrice,
+                    localizedBillingCycle(for: package)
+                )
+                return [introText, autoRenewText].joined(separator: " ")
+            }
+
+        case .promotional, .winBack:
+            let offerText = String(
+                format: NSLocalizedString("paywall.disclosure.offer_then", comment: "%@ applies for %@, then %@ / %@."),
+                offer.localizedPrice,
+                localizedOfferDuration(offer),
+                package.localizedPrice,
+                localizedBillingCycle(for: package)
+            )
+            return [offerText, autoRenewText].joined(separator: " ")
+        }
+    }
+
+    private func localizedBillingCycle(for package: SubscriptionPackageEntity) -> String {
+        let unitKey: String
+        switch package.billingPeriodUnit {
+        case .day:
+            unitKey = "paywall.disclosure.cycle.day"
+        case .week:
+            unitKey = "paywall.disclosure.cycle.week"
+        case .month:
+            unitKey = "paywall.disclosure.cycle.month"
+        case .year:
+            unitKey = "paywall.disclosure.cycle.year"
+        }
+
+        let unitText = NSLocalizedString(unitKey, comment: "billing cycle unit")
+        let value = max(1, package.billingPeriodValue)
+        if value == 1 {
+            return unitText
+        }
+
+        return String(
+            format: NSLocalizedString("paywall.disclosure.cycle.multiple", comment: "%d %@"),
+            value,
+            unitText
+        )
+    }
+
 }
 
 private struct OfficialOfferDisplayInfo {
@@ -488,6 +568,7 @@ private struct FeatureRow: View {
 private struct YearlyCard: View {
     let package: SubscriptionPackageEntity
     let offerInfo: OfficialOfferDisplayInfo?
+    let disclosureText: String
     let actionTitle: String
     let isSelected: Bool
     let purchaseState: PurchaseState
@@ -552,6 +633,12 @@ private struct YearlyCard: View {
                         Text(NSLocalizedString("paywall.plan.yearly_note", comment: "年繳方案說明"))
                             .font(AppFont.caption())
                             .foregroundColor(.white.opacity(0.75))
+                        Text(disclosureText)
+                            .font(AppFont.caption2())
+                            .foregroundColor(.white.opacity(0.82))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 4)
+                            .accessibilityIdentifier("Paywall_YearlyDisclosure")
                     }
                     Spacer()
                     if case .purchasing = purchaseState, isSelected {
@@ -593,6 +680,7 @@ private struct YearlyCard: View {
 private struct MonthlyCard: View {
     let package: SubscriptionPackageEntity
     let offerInfo: OfficialOfferDisplayInfo?
+    let disclosureText: String
     let actionTitle: String
     let isSelected: Bool
     let purchaseState: PurchaseState
@@ -640,6 +728,12 @@ private struct MonthlyCard: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+                    Text(disclosureText)
+                        .font(AppFont.caption2())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
+                        .accessibilityIdentifier("Paywall_MonthlyDisclosure")
                 }
                 Spacer()
                 if case .purchasing = purchaseState, isSelected {

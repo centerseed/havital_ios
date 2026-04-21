@@ -321,7 +321,7 @@ struct UserProfileView: View {
 
                 case .active:
                     subscriptionDateRow(
-                        title: NSLocalizedString("profile.subscription.expires", comment: "Expires"),
+                        title: NSLocalizedString("profile.subscription.renews_on", comment: "Renews on"),
                         systemImage: "calendar.badge.clock",
                         expiresAt: status.expiresAt,
                         color: .secondary
@@ -329,7 +329,7 @@ struct UserProfileView: View {
 
                 case .gracePeriod:
                     subscriptionDateRow(
-                        title: NSLocalizedString("profile.subscription.expires", comment: "Expires"),
+                        title: NSLocalizedString("profile.subscription.renews_on", comment: "Renews on"),
                         systemImage: "calendar.badge.clock",
                         expiresAt: status.expiresAt,
                         color: .secondary

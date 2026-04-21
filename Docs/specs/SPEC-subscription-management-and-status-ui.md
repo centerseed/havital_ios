@@ -64,7 +64,7 @@ Paceriz 目前的訂閱體驗存在一個關鍵斷層：用戶付費後，無法
 | 狀態 | 方案名稱 | 輔助資訊 | 主要按鈕 | 次要按鈕 |
 |------|---------|---------|---------|---------|
 | trial | 「試用中」 | 「剩餘 N 天」（橘色） | 升級 | -- |
-| active | 方案名稱（如 Premium） | 「到期日 YYYY/MM/DD」+「剩餘 N 天」 | 變更方案 | 管理訂閱 |
+| active | 方案名稱（如 Premium） | 「續訂日 YYYY/MM/DD」+「剩餘 N 天」 | 變更方案 | 管理訂閱 |
 | active + billing_issue | 方案名稱 | 到期日 + 帳務異常警告（紅色） | 管理訂閱 | -- |
 | grace_period | 方案名稱 | 「帳務處理中，服務不受影響」（黃色） | 管理訂閱 | -- |
 | cancelled | 「已取消」 | 「服務有效至 YYYY/MM/DD」+「剩餘 N 天」 | 重新訂閱 | 管理訂閱 |
@@ -106,6 +106,7 @@ Paceriz 目前的訂閱體驗存在一個關鍵斷層：用戶付費後，無法
 
 - **Acceptance Criteria**：
   - Given 用戶狀態為上述矩陣中任一狀態，When 用戶進入 Profile 訂閱區域，Then 顯示內容符合「Profile 訂閱區域」矩陣定義。
+  - Given 用戶狀態為 active 且無 billing_issue，When 用戶查看 Profile 訂閱區域，Then 日期欄位文案必須為「續訂日」等值語意，不得顯示為「到期日」。
   - Given 用戶狀態為 active 且無 billing_issue，When 用戶在 Profile 點擊「變更方案」，Then 進入 Paywall 且顯示當前方案與可切換方案。
   - Given 用戶狀態為 cancelled，When 嘗試進入 Paywall，Then Paywall 顯示且標題語境為「重新訂閱」，包含目前到期日 banner。
   - Given 用戶狀態為 cancelled，When 觸發 AI 受限功能，Then 功能正常執行不被阻擋。
@@ -206,6 +207,7 @@ Paceriz 目前的訂閱體驗存在一個關鍵斷層：用戶付費後，無法
 | AC-SUB-02d | cancelled 到期後轉為 expired |
 | AC-SUB-02e | cancelled 顯示重新訂閱 + 管理訂閱 |
 | AC-SUB-03a | Profile 區塊遵循訂閱狀態矩陣 |
+| AC-SUB-03a-1 | active / grace_period 在 Profile 以續訂日語意顯示日期 |
 | AC-SUB-03b | active 可從 Profile 進入變更方案 |
 | AC-SUB-03c | cancelled 進入 Paywall 為重新訂閱語境 |
 | AC-SUB-03d | cancelled 觸發 AI 功能時仍放行 |

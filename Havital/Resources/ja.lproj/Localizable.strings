@@ -265,6 +265,7 @@
 "profile.subscription.remaining" = "残り時間";
 "profile.subscription.days_remaining" = "%d日";
 "profile.subscription.expires" = "有効期限";
+"profile.subscription.renews_on" = "更新日";
 "profile.subscription.billing_issue" = "請求の問題";
 "profile.subscription.cancelled" = "キャンセル済み";
 "profile.subscription.valid_until" = "サービス有効期限";
@@ -2456,6 +2457,15 @@
 "paywall.offer.duration.week" = "%d週間";
 "paywall.offer.duration.month" = "%dか月";
 "paywall.offer.duration.year" = "%d年";
+"paywall.disclosure.free_trial_then" = "%@ は無料、その後 %@ / %@。";
+"paywall.disclosure.offer_then" = "%@ が %@ 適用され、その後 %@ / %@。";
+"paywall.disclosure.renews_at_price" = "%@ / %@。";
+"paywall.disclosure.auto_renews_unless_cancelled" = "現在の期間終了の24時間前までにキャンセルしない限り自動更新されます。";
+"paywall.disclosure.cycle.day" = "日";
+"paywall.disclosure.cycle.week" = "週";
+"paywall.disclosure.cycle.month" = "か月";
+"paywall.disclosure.cycle.year" = "年";
+"paywall.disclosure.cycle.multiple" = "%d%@";
 "paywall.cta.subscribe" = "登録する";
 "paywall.cta.start_offer" = "オファーを開始";
 "paywall.cta.claim_offer" = "オファーを利用";
