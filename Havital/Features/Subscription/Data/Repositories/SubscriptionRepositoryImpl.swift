@@ -184,12 +184,6 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             "packageId=\(request.packageId) offerType=\(request.offerType?.rawValue ?? "standard") " +
             "offerIdentifier=\(request.offerIdentifier ?? "none")"
         )
-        if let offerType = request.offerType, offerType == .winBack {
-            Logger.debug(
-                "[SubscriptionRepositoryImpl] purchase: \(offerType.rawValue) offer detected; " +
-                "falling back to standard RevenueCat package purchase until win-back flow is implemented"
-            )
-        }
         let offerings: Offerings
         if let cached = cachedOfferings {
             offerings = cached
@@ -210,20 +204,43 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             }
 
             let purchaseResultData: PurchaseResultData
-            if request.offerType == .promotional,
-               let promotionalOffer = await eligiblePromotionalOffer(
-                   for: package.storeProduct,
-                   preferredIdentifier: request.offerIdentifier
-               ) {
-                Logger.debug(
-                    "[SubscriptionRepositoryImpl] purchase: applying promotional offer " +
-                    "\(promotionalOffer.discount.offerIdentifier ?? promotionalOffer.signedData.identifier)"
-                )
-                purchaseResultData = try await Purchases.shared.purchase(
-                    package: package,
-                    promotionalOffer: promotionalOffer
-                )
-            } else {
+            switch request.offerType {
+            case .promotional:
+                if let promotionalOffer = await eligiblePromotionalOffer(
+                    for: package.storeProduct,
+                    preferredIdentifier: request.offerIdentifier
+                ) {
+                    Logger.debug(
+                        "[SubscriptionRepositoryImpl] purchase: applying promotional offer " +
+                        "\(promotionalOffer.discount.offerIdentifier ?? promotionalOffer.signedData.identifier)"
+                    )
+                    purchaseResultData = try await Purchases.shared.purchase(
+                        package: package,
+                        promotionalOffer: promotionalOffer
+                    )
+                } else {
+                    Logger.debug("[SubscriptionRepositoryImpl] purchase: no eligible promotional offer; using standard purchase")
+                    purchaseResultData = try await Purchases.shared.purchase(package: package)
+                }
+            case .winBack:
+                if #available(iOS 18.0, *),
+                   let winBackOffer = await eligibleWinBackOffer(
+                       for: package,
+                       preferredIdentifier: request.offerIdentifier
+                   ) {
+                    Logger.debug(
+                        "[SubscriptionRepositoryImpl] purchase: applying win-back offer " +
+                        "\(winBackOffer.discount.offerIdentifier ?? "unknown")"
+                    )
+                    let params = PurchaseParams.Builder(package: package)
+                        .with(winBackOffer: winBackOffer)
+                        .build()
+                    purchaseResultData = try await Purchases.shared.purchase(params)
+                } else {
+                    Logger.debug("[SubscriptionRepositoryImpl] purchase: no eligible win-back offer; using standard purchase")
+                    purchaseResultData = try await Purchases.shared.purchase(package: package)
+                }
+            case .introductory, nil:
                 purchaseResultData = try await Purchases.shared.purchase(package: package)
             }
 
@@ -356,6 +373,31 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         }
 
         Logger.debug("[SubscriptionRepositoryImpl] purchase: preferred promotional offer not found, using first eligible offer")
+        return eligibleOffers.first
+    }
+
+    @available(iOS 18.0, *)
+    private func eligibleWinBackOffer(
+        for package: Package,
+        preferredIdentifier: String?
+    ) async -> WinBackOffer? {
+        let eligibleOffers = await withCheckedContinuation { continuation in
+            Purchases.shared.eligibleWinBackOffers(forPackage: package) { offers, _ in
+                continuation.resume(returning: offers ?? [])
+            }
+        }
+
+        guard !eligibleOffers.isEmpty else {
+            Logger.debug("[SubscriptionRepositoryImpl] purchase: no eligible win-back offers found")
+            return nil
+        }
+
+        if let preferredIdentifier,
+           let matchingOffer = eligibleOffers.first(where: { $0.discount.offerIdentifier == preferredIdentifier }) {
+            return matchingOffer
+        }
+
+        Logger.debug("[SubscriptionRepositoryImpl] purchase: preferred win-back offer not found, using first eligible offer")
         return eligibleOffers.first
     }
 
