@@ -60,7 +60,10 @@ final class AuthenticationIntegrationTests: XCTestCase {
         )
 
         // ViewModels with real repositories
-        loginViewModel = LoginViewModel(authRepository: authRepository)
+        loginViewModel = LoginViewModel(
+            authRepository: authRepository,
+            authSessionRepository: authSessionRepository
+        )
         authCoordinatorViewModel = AuthCoordinatorViewModel(
             authSessionRepository: authSessionRepository,
             authRepository: authRepository,

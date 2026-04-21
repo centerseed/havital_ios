@@ -52,6 +52,30 @@ final class AnnouncementViewModelTests: XCTestCase {
         XCTAssertEqual(markSeenIDs, ["newer", "older"])
     }
 
+    /// Regression: 冷啟動當下沒有未讀公告時不應鎖死本 session 的 popup，
+    /// 之後再次 loadAnnouncementsIfNeeded 拿到新公告時 popup 仍要能彈出。
+    func testLoadAnnouncementsIfNeededPresentsPopupWhenFirstLoadHasNoUnread() async {
+        await repository.setAnnouncements([
+            makeAnnouncement(id: "seen-only", publishedAt: date(offset: -100), isSeen: true)
+        ])
+
+        sut.loadAnnouncementsIfNeeded()
+        await waitUntil { self.sut.unreadCount == 0 }
+        XCTAssertNil(sut.currentPopup)
+
+        // 新公告發出後，再次觸發 load（模擬 scenePhase 回到 active）
+        await repository.setAnnouncements([
+            makeAnnouncement(id: "seen-only", publishedAt: date(offset: -100), isSeen: true),
+            makeAnnouncement(id: "fresh", publishedAt: date(offset: -10), isSeen: false)
+        ])
+
+        sut.loadAnnouncementsIfNeeded()
+        await waitUntil { self.sut.currentPopup?.id == "fresh" }
+        let markSeenIDs = await repository.markSeenIDsSnapshot()
+
+        XCTAssertEqual(markSeenIDs, ["fresh"])
+    }
+
     func testLoadMessageCenterSortsItemsAndMarksUnreadBatchSeen() async {
         await repository.setAnnouncements([
             makeAnnouncement(id: "older-unread", publishedAt: date(offset: -300), isSeen: false),

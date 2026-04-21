@@ -48,7 +48,9 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     self.unreadCount = unread.count
-                    if !self.hasLoadedPopupThisSession {
+                    // 只有在實際有未讀時才鎖定本 session 的 popup，否則冷啟動當下若沒公告、
+                    // 之後背景→前景收到新公告時 popup 會被誤鎖只剩鈴鐺 badge。
+                    if !self.hasLoadedPopupThisSession, !unread.isEmpty {
                         self.hasLoadedPopupThisSession = true
                         self.buildPopupQueue(from: unread)
                         self.presentNextPopup()

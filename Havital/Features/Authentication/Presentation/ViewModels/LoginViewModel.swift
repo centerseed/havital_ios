@@ -24,13 +24,18 @@ final class LoginViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let authRepository: AuthRepository
+    private let authSessionRepository: AuthSessionRepository
 
     // MARK: - Initialization
 
     /// Main initializer with dependency injection
     /// - Parameter authRepository: Authentication repository protocol
-    init(authRepository: AuthRepository) {
+    init(
+        authRepository: AuthRepository,
+        authSessionRepository: AuthSessionRepository
+    ) {
         self.authRepository = authRepository
+        self.authSessionRepository = authSessionRepository
         Logger.debug("[LoginViewModel] Initialized")
     }
 
@@ -38,7 +43,8 @@ final class LoginViewModel: ObservableObject {
     convenience init() {
         let container = DependencyContainer.shared
         let authRepo: AuthRepository = container.resolve()
-        self.init(authRepository: authRepo)
+        let authSessionRepo: AuthSessionRepository = container.resolve()
+        self.init(authRepository: authRepo, authSessionRepository: authSessionRepo)
     }
 
     // MARK: - Sign-In Operations
@@ -51,6 +57,7 @@ final class LoginViewModel: ObservableObject {
         state = .loading
 
         Logger.debug("[LoginViewModel] Starting Google Sign-In")
+        let previousUserId = authSessionRepository.getCurrentUser()?.uid
 
         do {
             // Step 1-7: Execute authentication flow via Repository
@@ -63,7 +70,7 @@ final class LoginViewModel: ObservableObject {
             Logger.debug("[LoginViewModel] Google Sign-In succeeded: \(authUser.uid)")
 
             // ✅ Publish authentication event (ViewModel responsibility)
-            publishAuthenticationEvent(user: authUser)
+            publishAuthenticationEvent(previousUserId: previousUserId, user: authUser)
 
         } catch let error as AuthenticationError {
             let domainErr = error.toDomainError()
@@ -95,6 +102,7 @@ final class LoginViewModel: ObservableObject {
         state = .loading
 
         Logger.debug("[LoginViewModel] Starting Apple Sign-In")
+        let previousUserId = authSessionRepository.getCurrentUser()?.uid
 
         do {
             // Step 1-7: Execute authentication flow via Repository
@@ -107,7 +115,7 @@ final class LoginViewModel: ObservableObject {
             Logger.debug("[LoginViewModel] Apple Sign-In succeeded: \(authUser.uid)")
 
             // ✅ Publish authentication event (ViewModel responsibility)
-            publishAuthenticationEvent(user: authUser)
+            publishAuthenticationEvent(previousUserId: previousUserId, user: authUser)
 
         } catch let error as AuthenticationError {
             let domainErr = error.toDomainError()
@@ -149,6 +157,7 @@ final class LoginViewModel: ObservableObject {
         state = .loading
 
         Logger.debug("[LoginViewModel] Starting Apple Sign-In with credential")
+        let previousUserId = authSessionRepository.getCurrentUser()?.uid
 
         do {
             // Step 1-7: Execute authentication flow via Repository
@@ -161,7 +170,7 @@ final class LoginViewModel: ObservableObject {
             Logger.debug("[LoginViewModel] Apple Sign-In succeeded: \(authUser.uid)")
 
             // ✅ Publish authentication event (ViewModel responsibility)
-            publishAuthenticationEvent(user: authUser)
+            publishAuthenticationEvent(previousUserId: previousUserId, user: authUser)
 
         } catch let error as AuthenticationError {
             let domainErr = error.toDomainError()
@@ -191,6 +200,7 @@ final class LoginViewModel: ObservableObject {
         state = .loading
 
         Logger.debug("[LoginViewModel] Starting Demo Login")
+        let previousUserId = authSessionRepository.getCurrentUser()?.uid
 
         do {
             let authUser = try await authRepository.demoLogin(reviewerPasscode: passcode)
@@ -200,7 +210,7 @@ final class LoginViewModel: ObservableObject {
             Logger.debug("[LoginViewModel] Demo Login succeeded: \(authUser.uid)")
 
             // ✅ Publish authentication event
-            publishAuthenticationEvent(user: authUser)
+            publishAuthenticationEvent(previousUserId: previousUserId, user: authUser)
 
         } catch let error as AuthenticationError {
             if error == .invalidCredentials {
@@ -223,8 +233,13 @@ final class LoginViewModel: ObservableObject {
     /// Publish authentication success event
     /// ✅ CORRECT: ViewModel publishes events (Repository does NOT)
     /// - Parameter user: Authenticated user
-    private func publishAuthenticationEvent(user: AuthUser) {
+    private func publishAuthenticationEvent(previousUserId: String?, user: AuthUser) {
         Logger.debug("[LoginViewModel] Publishing user authentication event")
+
+        if let previousUserId, previousUserId != user.uid {
+            Logger.debug("[LoginViewModel] Detected user switch: \(previousUserId) -> \(user.uid)")
+            CacheEventBus.shared.publish(.userLogout)
+        }
 
         // Publish user data change event
         CacheEventBus.shared.publish(.dataChanged(.user))

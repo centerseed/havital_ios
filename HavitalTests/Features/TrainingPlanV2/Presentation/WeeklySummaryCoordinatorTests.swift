@@ -187,14 +187,10 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
         await coordinator.createWeeklySummaryAndShow(week: 2)
 
         // Assert
-        XCTAssertTrue(coordinator.showWeeklySummary, "showWeeklySummary should be true after success")
+        XCTAssertTrue(coordinator.summaryFlowActive, "summaryFlowActive should be true after success")
+        XCTAssertEqual(coordinator.summaryFlowPhase, WeeklySummaryCoordinator.SummaryFlowPhase.showingSummary)
         XCTAssertFalse(coordinator.isLoadingWeeklySummary, "isLoadingWeeklySummary should be false after completion")
         XCTAssertFalse(coordinator.isGeneratingSummary, "isGeneratingSummary should be false after completion")
-        // Verify loading animation was set true then false
-        XCTAssertTrue(loadingValues.contains(true), "setLoadingAnimation(true) should have been called")
-        XCTAssertTrue(loadingValues.contains(false), "setLoadingAnimation(false) should have been called")
-        XCTAssertEqual(loadingValues.first, true, "Loading animation should start as true")
-        XCTAssertEqual(loadingValues.last, false, "Loading animation should end as false")
     }
 
     // MARK: Test 5: viewHistoricalSummary with subscriptionRequired error routes error
@@ -217,7 +213,7 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
 
         // Assert
         XCTAssertNotNil(receivedError, "onNetworkError should have been called with the domain error")
-        XCTAssertFalse(coordinator.showWeeklySummary, "showWeeklySummary should remain false on error")
+        XCTAssertFalse(coordinator.summaryFlowActive, "summaryFlowActive should remain false on error")
         XCTAssertEqual(mockRepository.getWeeklySummaryCallCount, 1)
     }
 

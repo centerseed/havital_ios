@@ -62,12 +62,20 @@ final class WeeklyPlanGenerator {
         guard await prepareForGeneration() else { return }
 
         do {
+            let planLoadStart = Date()
             let plan = try await repository.generateWeeklyPlan(
                 weekOfTraining: loader.selectedWeek,
                 forceGenerate: nil,
                 promptVersion: nil,
                 methodology: nil
             )
+
+            // 補足 10 秒最短顯示時間
+            let elapsed = Date().timeIntervalSince(planLoadStart)
+            let remaining = max(0.0, 10.0 - elapsed)
+            if remaining > 0 {
+                try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+            }
 
             setLoadingAnimation(false)
             loader.currentWeek = loader.selectedWeek
@@ -115,12 +123,22 @@ final class WeeklyPlanGenerator {
     // MARK: - Generate Weekly Plan Directly
 
     /// 直接產生指定週次的課表（不經過 summary 流程）
-    func generateWeeklyPlanDirectly(weekNumber: Int) async {
+    /// - Parameter managedLoadingExternally: true 時 loading sheet 由呼叫方（summaryFlow）管理，
+    ///   此函式不呼叫 setLoadingAnimation。
+    func generateWeeklyPlanDirectly(weekNumber: Int, managedLoadingExternally: Bool = false) async {
         Logger.debug("[WeeklyPlanGenerator] 開始產生第 \(weekNumber) 週課表...")
 
-        guard await prepareForGeneration() else { return }
+        if !managedLoadingExternally {
+            guard await prepareForGeneration() else { return }
+        } else {
+            if await shouldBlockByRizoQuota() {
+                onRizoQuotaExceeded()
+                return
+            }
+        }
 
         do {
+            let planLoadStart = Date()
             let plan = try await repository.generateWeeklyPlan(
                 weekOfTraining: weekNumber,
                 forceGenerate: nil,
@@ -128,7 +146,14 @@ final class WeeklyPlanGenerator {
                 methodology: nil
             )
 
-            setLoadingAnimation(false)
+            // 補足 10 秒最短顯示時間
+            let elapsed = Date().timeIntervalSince(planLoadStart)
+            let remaining = max(0.0, 10.0 - elapsed)
+            if remaining > 0 {
+                try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+            }
+
+            if !managedLoadingExternally { setLoadingAnimation(false) }
             loader.currentWeek = weekNumber
             loader.selectedWeek = weekNumber
             loader.weeklyPlan = plan
@@ -141,7 +166,7 @@ final class WeeklyPlanGenerator {
 
             Logger.debug("[WeeklyPlanGenerator] ✅ 週課表產生成功: week=\(weekNumber)")
         } catch {
-            handleGenerationError(error)
+            handleGenerationError(error, skipLoadingReset: managedLoadingExternally)
         }
     }
 
@@ -207,10 +232,11 @@ final class WeeklyPlanGenerator {
         return true
     }
 
-    /// 處理課表產生失敗：關閉 loading，依錯誤類型路由到 paywall / quota / error state。
-    private func handleGenerationError(_ error: Error) {
+    /// 處理課表產生失敗：依錯誤類型路由到 paywall / quota / error state。
+    /// - Parameter skipLoadingReset: 當 loading 由外部（summaryFlow）管理時傳 true，跳過 setLoadingAnimation(false)。
+    private func handleGenerationError(_ error: Error, skipLoadingReset: Bool = false) {
         let domainError = error.toDomainError()
-        setLoadingAnimation(false)
+        if !skipLoadingReset { setLoadingAnimation(false) }
         switch domainError {
         case .subscriptionRequired, .trialExpired, .forbidden:
             triggerPaywallIfEnforced()

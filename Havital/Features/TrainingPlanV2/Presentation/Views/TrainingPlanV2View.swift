@@ -171,6 +171,8 @@ struct TrainingPlanV2View: View {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bell")
                                 .foregroundColor(.primary)
+                                .padding(.trailing, 6)
+                                .padding(.top, 4)
                             if announcementViewModel.unreadCount > 0 {
                                 Text(announcementViewModel.unreadCount > 99 ? "99+" : "\(announcementViewModel.unreadCount)")
                                     .font(.system(size: 10, weight: .bold))
@@ -179,7 +181,6 @@ struct TrainingPlanV2View: View {
                                     .padding(.vertical, 1)
                                     .background(Color.red)
                                     .clipShape(Capsule())
-                                    .offset(x: 8, y: -6)
                             }
                         }
                     }
@@ -198,7 +199,10 @@ struct TrainingPlanV2View: View {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
 
-                        Button(action: { viewModel.summary.showWeeklySummary = true }) {
+                        Button(action: {
+                            viewModel.summary.summaryFlowPhase = .showingSummary
+                            viewModel.summary.summaryFlowActive = true
+                        }) {
                             Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
                         }
 
@@ -273,15 +277,11 @@ struct TrainingPlanV2View: View {
                         }
                 }
             }
-            // ✅ 全屏 Loading 動畫
+            // ✅ Standalone Loading（updateOverview / debug 等非 summary flow）
             .sheet(isPresented: $bindableViewModel.isLoadingAnimation) {
-                if bindableViewModel.summary.isLoadingWeeklySummary {
-                    LoadingAnimationView(type: .generateReview, totalDuration: 30.0)
-                        .ignoresSafeArea()
-                } else {
-                    LoadingAnimationView(type: .generatePlan, totalDuration: 30.0)
-                        .ignoresSafeArea()
-                }
+                LoadingAnimationView(type: .generatePlan, totalDuration: 12.0)
+                    .ignoresSafeArea()
+                    .interactiveDismissDisabled(true)
             }
             .sheet(isPresented: $showUserProfile) {
                 NavigationView {
@@ -308,55 +308,67 @@ struct TrainingPlanV2View: View {
                     )
                 }
             }
-            .sheet(isPresented: $bindableViewModel.summary.showWeeklySummary) {
-                NavigationStack {
-                    // 週回顧 sheet 顯示的週數優先順序：
-                    // 1) 已載入的 summary.weekOfTraining（最準確）
-                    // 2) 觸發入口記錄的 lastRequestedSummaryWeek
-                    //    （週日情境=currentWeek；週一至週六情境=currentWeek-1）
-                    // 3) 最後防線 currentWeek-1（理論上不會被 hit，因為任何觸發 sheet 的入口
-                    //    都會先設定 lastRequestedSummaryWeek）
-                    let weekToShow: Int = {
-                        if case .loaded(let loadedSummary) = viewModel.summary.weeklySummary {
-                            return loadedSummary.weekOfTraining
-                        }
-                        if let requested = viewModel.summary.lastRequestedSummaryWeek {
-                            return requested
-                        }
-                        return max(1, viewModel.loader.currentWeek - 1)
-                    }()
+            // ✅ 合併 Sheet：loading review → summary → loading plan（零閃爍）
+            .sheet(isPresented: $bindableViewModel.summary.summaryFlowActive) {
+                let weekToShow: Int = {
+                    if case .loaded(let loadedSummary) = viewModel.summary.weeklySummary {
+                        return loadedSummary.weekOfTraining
+                    }
+                    if let requested = viewModel.summary.lastRequestedSummaryWeek {
+                        return requested
+                    }
+                    return max(1, viewModel.loader.currentWeek - 1)
+                }()
 
-                    // ✅ V1 邏輯：只要訓練未完成，就顯示「產生下週課表」按鈕
-                    let isTrainingCompleted = viewModel.loader.planStatus == .completed ||
-                        viewModel.loader.planStatusResponse?.nextAction == "training_completed"
+                let isTrainingCompleted = viewModel.loader.planStatus == .completed ||
+                    viewModel.loader.planStatusResponse?.nextAction == "training_completed"
 
-                    WeeklySummaryV2View(
-                        viewModel: viewModel,
-                        weekOfPlan: weekToShow,
-                        onGenerateNextWeek: isTrainingCompleted ? nil : {
-                            viewModel.summary.showWeeklySummary = false
-                            Task {
-                                // 等待 summary sheet dismiss 動畫完成，避免與 loading sheet 衝突
-                                try? await Task.sleep(nanoseconds: 600_000_000)
-                                let success = await viewModel.summary.applySelectedAdjustments(weekOfPlan: weekToShow)
-                                guard success else { return }
-                                // 依後端 nextWeekInfo 決定目標週，避免週日情境誤打到已存在的第 1 週
-                                let weekToGenerate = await viewModel.generator.resolveWeekToGenerateAfterSummary(summaryWeek: weekToShow)
-                                await viewModel.generator.generateWeeklyPlanDirectly(weekNumber: weekToGenerate)
-                            }
-                        },
-                        onSetNewGoal: isTrainingCompleted ? {
-                            viewModel.summary.showWeeklySummary = false
-                            authViewModel.startReonboarding()
-                        } : nil
-                    )
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(NSLocalizedString("common.close", comment: "Close")) {
-                                viewModel.summary.showWeeklySummary = false
+                switch viewModel.summary.summaryFlowPhase {
+                case .loadingReview:
+                    LoadingAnimationView(type: .generateReview, totalDuration: 30.0)
+                        .ignoresSafeArea()
+                        .interactiveDismissDisabled(true)
+
+                case .showingSummary:
+                    NavigationStack {
+                        WeeklySummaryV2View(
+                            viewModel: viewModel,
+                            weekOfPlan: weekToShow,
+                            onGenerateNextWeek: isTrainingCompleted ? nil : {
+                                viewModel.summary.summaryFlowPhase = .loadingPlan
+                                Task {
+                                    let success = await viewModel.summary.applySelectedAdjustments(weekOfPlan: weekToShow)
+                                    guard success else {
+                                        // 回到 summary phase 讓 error banner 可見，不要靜默關閉 sheet
+                                        viewModel.summary.summaryFlowPhase = .showingSummary
+                                        return
+                                    }
+                                    let weekToGenerate = await viewModel.generator.resolveWeekToGenerateAfterSummary(summaryWeek: weekToShow)
+                                    await viewModel.generator.generateWeeklyPlanDirectly(
+                                        weekNumber: weekToGenerate,
+                                        managedLoadingExternally: true
+                                    )
+                                    viewModel.summary.summaryFlowActive = false
+                                }
+                            },
+                            onSetNewGoal: isTrainingCompleted ? {
+                                viewModel.summary.summaryFlowActive = false
+                                authViewModel.startReonboarding()
+                            } : nil
+                        )
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(NSLocalizedString("common.close", comment: "Close")) {
+                                    viewModel.summary.summaryFlowActive = false
+                                }
                             }
                         }
                     }
+
+                case .loadingPlan:
+                    LoadingAnimationView(type: .generatePlan, totalDuration: 12.0)
+                        .ignoresSafeArea()
+                        .interactiveDismissDisabled(true)
                 }
             }
         } // ZStack

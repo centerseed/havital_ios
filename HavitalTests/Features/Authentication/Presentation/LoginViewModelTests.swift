@@ -12,16 +12,22 @@ final class LoginViewModelTests: XCTestCase {
 
     // Mock Dependencies
     var mockAuthRepository: MockAuthRepository!
+    var mockAuthSessionRepository: MockAuthSessionRepository!
 
     override func setUp() {
         super.setUp()
         mockAuthRepository = MockAuthRepository()
-        sut = LoginViewModel(authRepository: mockAuthRepository)
+        mockAuthSessionRepository = MockAuthSessionRepository()
+        sut = LoginViewModel(
+            authRepository: mockAuthRepository,
+            authSessionRepository: mockAuthSessionRepository
+        )
     }
 
     override func tearDown() {
         sut = nil
         mockAuthRepository = nil
+        mockAuthSessionRepository = nil
         super.tearDown()
     }
 
@@ -173,6 +179,42 @@ final class LoginViewModelTests: XCTestCase {
         XCTAssertTrue(mockAuthRepository.demoLoginCalled)
         XCTAssertTrue(sut.hasError)
         XCTAssertNil(sut.authenticatedUser)
+    }
+
+    func testSignInWithApple_UserSwitch_PublishesLogoutBeforeUserChanged() async {
+        let credential = TestCredentialFactory.makeAppleAuthCredential()
+        mockAuthSessionRepository.currentUser = AuthUserFactory.makeAuthenticatedUser(uid: "apple-user")
+        mockAuthRepository.signInWithAppleResult = .success(
+            AuthUserFactory.makeAuthenticatedUser(uid: "my-user")
+        )
+
+        let expectation = expectation(description: "Observe user switch events")
+        expectation.expectedFulfillmentCount = 2
+
+        var observedEvents: [String] = []
+        var sawLogout = false
+        let identifier = "LoginViewModelTests.userSwitch.\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
+            switch reason {
+            case .userLogout:
+                guard !sawLogout else { return }
+                sawLogout = true
+                observedEvents.append("userLogout")
+                expectation.fulfill()
+            case .dataChanged(.user):
+                guard sawLogout, observedEvents.count == 1 else { return }
+                observedEvents.append("dataChanged.user")
+                expectation.fulfill()
+            default:
+                break
+            }
+        }
+
+        await sut.signInWithApple(credential: credential)
+        await fulfillment(of: [expectation], timeout: 1.0)
+        CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
+
+        XCTAssertEqual(observedEvents, ["userLogout", "dataChanged.user"])
     }
 
     // MARK: - State Management Tests

@@ -65,6 +65,7 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
     func testInitialize_Authenticated_LoadsData() async {
         // Given
         mockAuthService.isAuthenticated = true
+        mockAuthService.appUser = UserProfileTestFixtures.testUser
         
         // When
         await viewModel.initialize()
@@ -91,6 +92,7 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
     func testLoadUserProfile_Success_UpdatesState() async {
         // Given
         mockAuthService.isAuthenticated = true
+        mockAuthService.appUser = UserProfileTestFixtures.testUser
         let expectedUser = UserProfileTestFixtures.testUser
         mockUserRepository.userToReturn = expectedUser
         
@@ -108,6 +110,7 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
     func testLoadUserProfile_Failure_UpdatesErrorState() async {
         // Given
         mockAuthService.isAuthenticated = true
+        mockAuthService.appUser = UserProfileTestFixtures.testUser
         mockUserRepository.errorToThrow = NSError(domain: "test", code: -1, userInfo: nil)
         
         // When
@@ -147,5 +150,44 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
         
         // Then
         XCTAssertEqual(viewModel.targets.count, expectedTargets.count)
+    }
+
+    func testUserLogoutEvent_ResetsUserScopedState() async {
+        mockAuthService.isAuthenticated = true
+        mockAuthService.appUser = UserProfileTestFixtures.testUser
+        mockUserRepository.userToReturn = UserProfileTestFixtures.testUser
+        mockUserRepository.targetsToReturn = UserProfileTestFixtures.testTargets
+        mockUserRepository.heartRateZonesToReturn = UserProfileTestFixtures.testHeartRateZones
+
+        await viewModel.loadAllData()
+        XCTAssertFalse(viewModel.targets.isEmpty)
+
+        CacheEventBus.shared.publish(.userLogout)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertTrue(viewModel.targets.isEmpty)
+        XCTAssertTrue(viewModel.heartRateZones.isEmpty)
+        XCTAssertNil(viewModel.statistics)
+        XCTAssertFalse(viewModel.isAuthenticated)
+        XCTAssertNil(viewModel.currentUserId)
+    }
+
+    func testUserChangedEvent_ForceRefreshesProfileForNewAccount() async {
+        mockAuthService.isAuthenticated = true
+        mockAuthService.appUser = UserProfileTestFixtures.testUser
+        mockUserRepository.userToReturn = UserProfileTestFixtures.testUser
+        mockUserRepository.targetsToReturn = UserProfileTestFixtures.testTargets
+        mockUserRepository.heartRateZonesToReturn = UserProfileTestFixtures.testHeartRateZones
+
+        CacheEventBus.shared.publish(.dataChanged(.user))
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertGreaterThanOrEqual(mockUserRepository.refreshUserProfileCallCount, 1)
+        XCTAssertEqual(viewModel.targets.count, UserProfileTestFixtures.testTargets.count)
+        if case .loaded(let user) = viewModel.profileState {
+            XCTAssertEqual(user.email, UserProfileTestFixtures.testUser.email)
+        } else {
+            XCTFail("State should be .loaded after user change refresh")
+        }
     }
 }

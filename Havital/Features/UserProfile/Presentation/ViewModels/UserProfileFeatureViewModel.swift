@@ -184,6 +184,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     // MARK: - Combine
     private var cancellables = Set<AnyCancellable>()
+    private var userStateGeneration = 0
 
     // MARK: - Initialization
 
@@ -212,6 +213,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         self.userRepository = userRepository
         self.authService = authService
 
+        setupEventSubscriptions()
         checkAuthenticationStatus()
 
         VDOTManager.shared.$statistics
@@ -253,28 +255,64 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         checkAuthenticationStatus()
 
         if isAuthenticated {
-            await loadAllData()
+            let generation = userStateGeneration
+            await loadAllData(for: generation)
+        }
+    }
+
+    // MARK: - Event Subscriptions
+
+    private func setupEventSubscriptions() {
+        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[UserProfileVM] 收到 userLogout 事件，重置目前帳號資料")
+
+            await self.resetUserScopedState(clearAuthContext: true)
+        }
+
+        CacheEventBus.shared.subscribe(for: "dataChanged.user") { [weak self] in
+            guard let self = self else { return }
+
+            Logger.debug("[UserProfileVM] 收到 dataChanged.user 事件，刷新目前帳號資料")
+
+            await self.handleAuthenticatedUserChange()
         }
     }
 
     /// Load all user data
     func loadAllData() async {
-        await loadUserProfile()
-        await loadHeartRateZones()
-        await loadTargets()
-        calculateStatistics()
-        loadVDOT()
+        let generation = userStateGeneration
+        await loadAllData(for: generation)
     }
 
     /// Load current VDOT value from VDOTManager
     func loadVDOT() {
-        VDOTManager.shared.loadLocalCacheSync()
-        currentVDOT = VDOTManager.shared.currentVDOT
+        loadVDOT(for: userStateGeneration)
     }
 
     /// Load user profile
     /// - Parameter forceRefresh: Force refresh from API
     func loadUserProfile(forceRefresh: Bool = false) async {
+        let generation = userStateGeneration
+        await loadUserProfile(forceRefresh: forceRefresh, generation: generation)
+    }
+
+    private func loadAllData(for generation: Int) async {
+        await loadUserProfile(forceRefresh: false, generation: generation)
+        guard isCurrentGeneration(generation) else { return }
+
+        await loadHeartRateZones(generation: generation)
+        guard isCurrentGeneration(generation) else { return }
+
+        await loadTargets(generation: generation)
+        guard isCurrentGeneration(generation) else { return }
+
+        calculateStatistics(for: generation)
+        loadVDOT(for: generation)
+    }
+
+    private func loadUserProfile(forceRefresh: Bool, generation: Int) async {
         Logger.debug("[UserProfileVM] Loading user profile (force: \(forceRefresh))")
 
         profileState = .loading
@@ -282,6 +320,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         do {
             let input = GetUserProfileUseCase.Input(forceRefresh: forceRefresh)
             let output = try await getUserProfileUseCase.execute(input: input)
+            guard isCurrentGeneration(generation) else { return }
 
             profileState = .loaded(output.profile)
 
@@ -304,6 +343,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
                 Logger.debug("[UserProfileVM] Profile load task cancelled, ignoring")
                 return
             }
+            guard isCurrentGeneration(generation) else { return }
             Logger.error("[UserProfileVM] Failed to load profile: \(error)")
             profileState = .error(mapToDomainError(error))
         }
@@ -363,12 +403,18 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// Load heart rate zones
     func loadHeartRateZones() async {
+        let generation = userStateGeneration
+        await loadHeartRateZones(generation: generation)
+    }
+
+    private func loadHeartRateZones(generation: Int) async {
         Logger.debug("[UserProfileVM] Loading heart rate zones")
 
         isLoadingZones = true
 
         do {
             let output = try await getHeartRateZonesUseCase.execute()
+            guard isCurrentGeneration(generation) else { return }
             heartRateZones = output.zones
             Logger.debug("[UserProfileVM] Loaded \(output.zones.count) zones")
 
@@ -376,14 +422,19 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             // Ignore cancellation errors
             if isTaskCancelled(error) {
                 Logger.debug("[UserProfileVM] HR zones load task cancelled, ignoring")
-                isLoadingZones = false
+                if isCurrentGeneration(generation) {
+                    isLoadingZones = false
+                }
                 return
             }
+            guard isCurrentGeneration(generation) else { return }
             Logger.debug("[UserProfileVM] HR zones not available: \(error.localizedDescription)")
             heartRateZones = []
         }
 
-        isLoadingZones = false
+        if isCurrentGeneration(generation) {
+            isLoadingZones = false
+        }
     }
 
     /// Update heart rate parameters
@@ -415,12 +466,18 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// Load user targets
     func loadTargets() async {
+        let generation = userStateGeneration
+        await loadTargets(generation: generation)
+    }
+
+    private func loadTargets(generation: Int) async {
         Logger.debug("[UserProfileVM] Loading targets")
 
         isLoadingTargets = true
 
         do {
             let output = try await getUserTargetsUseCase.execute()
+            guard isCurrentGeneration(generation) else { return }
             targets = output.targets
             Logger.debug("[UserProfileVM] Loaded \(output.targets.count) targets")
 
@@ -428,15 +485,20 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             // Ignore cancellation errors
             if isTaskCancelled(error) {
                 Logger.debug("[UserProfileVM] Targets load task cancelled, ignoring")
-                isLoadingTargets = false
+                if isCurrentGeneration(generation) {
+                    isLoadingTargets = false
+                }
                 return
             }
+            guard isCurrentGeneration(generation) else { return }
             Logger.debug("[UserProfileVM] Failed to load targets: \(error.localizedDescription)")
             targets = []
         }
 
-        isLoadingTargets = false
-        calculateStatistics()
+        if isCurrentGeneration(generation) {
+            isLoadingTargets = false
+            calculateStatistics(for: generation)
+        }
     }
 
     /// Create a new target
@@ -467,9 +529,14 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
 
     /// Calculate and update statistics
     func calculateStatistics() {
+        calculateStatistics(for: userStateGeneration)
+    }
+
+    private func calculateStatistics(for generation: Int) {
         Task { @MainActor [weak self] in
             guard let self = self else { return }
             if let output = await self.calculateUserStatsUseCase.execute() {
+                guard self.isCurrentGeneration(generation) else { return }
                 self.statistics = output.statistics
             }
         }
@@ -555,6 +622,59 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             isAuthenticated = false
             currentUserId = nil
         }
+    }
+
+    private func handleAuthenticatedUserChange() async {
+        await resetUserScopedState(clearAuthContext: false)
+        checkAuthenticationStatus()
+
+        guard isAuthenticated else { return }
+        let generation = userStateGeneration
+
+        await userRepository.clearCache()
+        await preferencesRepository.clearPreferences()
+        VDOTManager.shared.clearCache()
+
+        await loadUserProfile(forceRefresh: true, generation: generation)
+        guard isCurrentGeneration(generation) else { return }
+
+        await loadHeartRateZones(generation: generation)
+        guard isCurrentGeneration(generation) else { return }
+
+        await loadTargets(generation: generation)
+        guard isCurrentGeneration(generation) else { return }
+
+        calculateStatistics(for: generation)
+        loadVDOT(for: generation)
+    }
+
+    private func resetUserScopedState(clearAuthContext: Bool) async {
+        await MainActor.run {
+            self.userStateGeneration += 1
+            self.profileState = .loading
+            self.preferencesState = .loading
+            self.heartRateZones = []
+            self.targets = []
+            self.statistics = nil
+            self.currentVDOT = 0
+            self.isLoadingZones = false
+            self.isLoadingTargets = false
+
+            if clearAuthContext {
+                self.isAuthenticated = false
+                self.currentUserId = nil
+            }
+        }
+    }
+
+    private func loadVDOT(for generation: Int) {
+        VDOTManager.shared.loadLocalCacheSync()
+        guard isCurrentGeneration(generation) else { return }
+        currentVDOT = VDOTManager.shared.currentVDOT
+    }
+
+    private func isCurrentGeneration(_ generation: Int) -> Bool {
+        generation == userStateGeneration
     }
 
     private func mapToDomainError(_ error: Error) -> DomainError {

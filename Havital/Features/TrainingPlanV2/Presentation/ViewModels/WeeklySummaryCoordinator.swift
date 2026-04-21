@@ -9,11 +9,20 @@ import Observation
 @Observable
 final class WeeklySummaryCoordinator {
 
+    // MARK: - Flow Phase
+
+    enum SummaryFlowPhase {
+        case loadingReview
+        case showingSummary
+        case loadingPlan
+    }
+
     // MARK: - Observable State
 
     var weeklySummary: ViewState<WeeklySummaryV2> = .loading
     var weeklySummaries: [WeeklySummaryItem] = []
-    var showWeeklySummary: Bool = false
+    var summaryFlowActive: Bool = false
+    var summaryFlowPhase: SummaryFlowPhase = .loadingReview
     var isGeneratingSummary: Bool = false
     var isLoadingWeeklySummary: Bool = false
     var adjustmentSelections: [Int: Bool] = [:]
@@ -93,6 +102,7 @@ final class WeeklySummaryCoordinator {
     }
 
     func applySelectedAdjustments(weekOfPlan: Int) async -> Bool {
+        guard !selectedIndices.isEmpty else { return true }
         do {
             try await repository.applyAdjustmentItems(weekOfPlan: weekOfPlan, appliedIndices: selectedIndices)
             return true
@@ -173,10 +183,12 @@ final class WeeklySummaryCoordinator {
         lastRequestedSummaryWeek = week
         isGeneratingSummary = true
         isLoadingWeeklySummary = true
-        setLoadingAnimation(true)
+        summaryFlowPhase = .loadingReview
+        summaryFlowActive = true
 
         if await shouldBlockByRizoQuota() {
             onRizoQuotaExceeded()
+            summaryFlowActive = false
             stopLoadingAnimation()
             return
         }
@@ -187,17 +199,15 @@ final class WeeklySummaryCoordinator {
             weeklySummary = .loaded(summary)
             initializeSelections(from: summary.nextWeekAdjustments.items)
 
-            // 趁 loading sheet 還在時先更新 planStatusResponse
             await refreshPlanStatusResponse()
 
-            // 關閉 loading sheet，等待 dismiss 動畫完成，再開啟 summary sheet
+            // 不 dismiss sheet，直接切換 phase（零閃爍）
+            summaryFlowPhase = .showingSummary
             stopLoadingAnimation()
-            try await Task.sleep(nanoseconds: 600_000_000)
-
-            showWeeklySummary = true
 
             Logger.info("[WeeklySummaryCoordinator] ✅ 週摘要產生成功，顯示 sheet")
         } catch {
+            summaryFlowActive = false
             stopLoadingAnimation()
             let domainError = error.toDomainError()
             switch domainError {
@@ -237,7 +247,8 @@ final class WeeklySummaryCoordinator {
             let summary = try await repository.getWeeklySummary(weekOfPlan: week)
             self.weeklySummary = .loaded(summary)
             initializeSelections(from: summary.nextWeekAdjustments.items)
-            self.showWeeklySummary = true
+            self.summaryFlowPhase = .showingSummary
+            self.summaryFlowActive = true
             Logger.info("[WeeklySummaryCoordinator] ✅ 歷史週回顧載入成功，顯示 sheet")
         } catch {
             let domainError = error.toDomainError()
@@ -261,7 +272,8 @@ final class WeeklySummaryCoordinator {
             setLoadingAnimation(false)
             isLoadingWeeklySummary = false
             weeklySummary = .loaded(generated)
-            showWeeklySummary = true
+            summaryFlowPhase = .showingSummary
+            summaryFlowActive = true
             onSuccess("✅ [DEBUG] 週回顧已產生: week \(week)")
             Logger.info("[WeeklySummaryCoordinator] ✅ [DEBUG] Weekly summary generated: \(generated.id)")
         } catch {

@@ -3,19 +3,8 @@ import FirebaseMessaging
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
-    // MARK: - Clean Architecture Dependencies
-    private let userProfileRepository: UserProfileRepository
-    private let authSessionRepository: AuthSessionRepository
-
     // 防止重複上傳相同的 FCM token
     private var lastUploadedFCMToken: String?
-
-    override init() {
-        // 初始化 Repository (在 super.init() 之前)
-        self.userProfileRepository = DependencyContainer.shared.resolve()
-        self.authSessionRepository = DependencyContainer.shared.resolve()
-        super.init()
-    }
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -59,12 +48,22 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
 
         print("🔍 DEBUG: 嘗試上傳 FCM token: \(fcmToken.prefix(20))...")
 
+        guard let authSessionRepository: AuthSessionRepository = DependencyContainer.shared.tryResolve() else {
+            print("⚠️ AuthSessionRepository 尚未註冊，略過本次 FCM token 同步")
+            return
+        }
+
         // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
         let isAuthenticated = authSessionRepository.isAuthenticated()
         print("🔍 DEBUG: 用戶認證狀態: \(isAuthenticated)")
 
         guard isAuthenticated else {
             print("使用者尚未登入，暫不上傳 FCM token")
+            return
+        }
+
+        guard let userProfileRepository: UserProfileRepository = DependencyContainer.shared.tryResolve() else {
+            print("⚠️ UserProfileRepository 尚未註冊，略過本次 FCM token 同步")
             return
         }
 
@@ -76,7 +75,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
             await TrackedTask("AppDelegate: syncFCMTokenToBackend") {
                 do {
                     // ✅ 優化：FCM token 更新不需要返回完整的 User，丟棄返回值
-                    _ = try await self.userProfileRepository.updateUserProfile(["fcm_token": fcmToken])
+                    _ = try await userProfileRepository.updateUserProfile(["fcm_token": fcmToken])
                     print("✅ 已於登入後同步 FCM token 到後端")
                 } catch {
                     // ⚠️ 上傳失敗，清除標記，下次重試
@@ -104,7 +103,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
 
         // workout_processed 推播 → 無效化 cooldown，讓下次存取觸發 API 刷新
         if notificationType == "workout_processed" {
-            let workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
+            guard let workoutRepository: WorkoutRepository = DependencyContainer.shared.tryResolve() else {
+                print("⚠️ WorkoutRepository 尚未註冊，略過 workout_processed cooldown reset")
+                completionHandler(.noData)
+                return
+            }
             workoutRepository.invalidateRefreshCooldown()
             print("🔄 已重置 workout cooldown，下次存取將刷新資料")
             completionHandler(.newData)
