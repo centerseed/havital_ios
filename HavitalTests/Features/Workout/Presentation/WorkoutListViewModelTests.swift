@@ -90,7 +90,8 @@ final class WorkoutListViewModelTests: XCTestCase {
     func testDeleteWorkout_Success() async {
         // Given
         let workout = createMockWorkout(id: "1")
-        mockGetWorkoutsUseCase.executeReturnValue = [workout]
+        let remainingWorkout = createMockWorkout(id: "2")
+        mockGetWorkoutsUseCase.executeReturnValue = [workout, remainingWorkout]
         await viewModel.loadWorkouts() // Load initial state
 
         // When
@@ -98,8 +99,8 @@ final class WorkoutListViewModelTests: XCTestCase {
 
         // Then
         XCTAssertTrue(mockDeleteWorkoutUseCase.executeCalled)
-        if case .loaded(_) = viewModel.state {
-            // Success
+        if case .loaded(let workouts) = viewModel.state {
+            XCTAssertEqual(workouts.map(\.id), [remainingWorkout.id])
         }
     }
 

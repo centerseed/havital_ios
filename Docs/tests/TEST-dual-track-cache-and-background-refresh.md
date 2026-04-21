@@ -90,11 +90,11 @@ Given: `executeForCollection` 的 `getCached()` 回傳空集合
 When: 執行讀取
 Then: 系統必須向 API 取資料，而不是回傳空集合結束
 
-### S9: 背景刷新成功可發布資料更新事件
+### S9: 背景刷新成功會透過 repository publisher 觸發資料更新事件
 層級：Integration
-Given: repository 使用 `backgroundRefreshWithEvent`
+Given: repository 使用 `backgroundRefresh(..., onComplete:)`，成功後送出 repository publisher
 When: Track B 成功
-Then: `CacheEventBus` 收到對應 `dataChanged` 事件
+Then: ViewModel 訂閱 repository publisher 後 republish，`CacheEventBus` 收到對應 `dataChanged` 事件
 
 ### S10: 登出後快取會被清理
 層級：Integration
@@ -115,4 +115,3 @@ Then: 不會先看到 User A 的快取內容
 Given: 本地已有快取資料
 When: 使用者重新進入對應頁面
 Then: 畫面以內容為主，若有刷新也應是非阻斷式指示
-
