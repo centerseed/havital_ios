@@ -74,10 +74,12 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     }
 
     func purchase(request: SubscriptionPurchaseRequest) async {
-        let planType = request.packageId.lowercased().contains("yearly") || request.offeringId.lowercased().contains("yearly")
+        let purchaseContext = "\(request.offeringId.lowercased()) \(request.packageId.lowercased())"
+        let planType = purchaseContext.contains("yearly") || purchaseContext.contains("annual")
             ? "yearly"
             : "monthly"
-        analyticsService.track(.paywallTapSubscribe(planType: planType))
+        let analyticsOfferType = analyticsOfferType(for: request.offerType)
+        analyticsService.track(.paywallTapSubscribe(planType: planType, offerType: analyticsOfferType))
 
         purchaseState = .purchasing
         do {
@@ -102,11 +104,21 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                     ? .success
                     : .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
             case .failed(let error):
-                analyticsService.track(.purchaseFail(errorType: classifyPurchaseError(error)))
+                analyticsService.track(
+                    .purchaseFail(
+                        errorType: classifyPurchaseError(error),
+                        offerType: analyticsOfferType
+                    )
+                )
                 purchaseState = .failed(error.localizedDescription)
             }
         } catch {
-            analyticsService.track(.purchaseFail(errorType: classifyPurchaseError(error)))
+            analyticsService.track(
+                .purchaseFail(
+                    errorType: classifyPurchaseError(error),
+                    offerType: analyticsOfferType
+                )
+            )
             purchaseState = .failed(error.localizedDescription)
         }
     }
@@ -205,6 +217,10 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             return "store_error"
         }
         return "unknown"
+    }
+
+    private func analyticsOfferType(for offerType: SubscriptionOfferType?) -> String {
+        offerType?.rawValue ?? "standard"
     }
 
     private func refreshStatusWithRetry() async -> Bool {

@@ -5,12 +5,18 @@ import XCTest
 final class PaywallViewModelTests: XCTestCase {
 
     private var repository: MockSubscriptionRepository!
+    private var analyticsService: MockAnalyticsService!
     private var sut: PaywallViewModel!
 
     override func setUp() {
         super.setUp()
         repository = MockSubscriptionRepository()
-        sut = PaywallViewModel(trigger: .apiGated, subscriptionRepository: repository)
+        analyticsService = MockAnalyticsService()
+        sut = PaywallViewModel(
+            trigger: .apiGated,
+            subscriptionRepository: repository,
+            analyticsService: analyticsService
+        )
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
         SubscriptionStateManager.shared.clearDowngrade()
     }
@@ -19,6 +25,7 @@ final class PaywallViewModelTests: XCTestCase {
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
         SubscriptionStateManager.shared.clearDowngrade()
         sut = nil
+        analyticsService = nil
         repository = nil
         super.tearDown()
     }
@@ -181,6 +188,13 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertNil(repository.lastPurchaseRequest?.offerType)
         XCTAssertEqual(repository.refreshStatusCallCount, 0)
         XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
+        if case .paywallTapSubscribe(let planType, let offerType) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(planType, "monthly")
+            XCTAssertEqual(offerType, "standard")
+        } else {
+            XCTFail("Expected paywallTapSubscribe event")
+        }
     }
 
     func testPurchaseRequest_WhenOfferTypeProvided_ForwardsOfferTypeToRepository() async {
@@ -198,6 +212,33 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertEqual(repository.lastPurchaseRequest?.offeringId, "promo_offering")
         XCTAssertEqual(repository.lastPurchaseRequest?.packageId, "$rc_annual")
         XCTAssertEqual(repository.lastPurchaseRequest?.offerType, .promotional)
+        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
+        if case .paywallTapSubscribe(let planType, let offerType) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(planType, "yearly")
+            XCTAssertEqual(offerType, "promotional")
+        } else {
+            XCTFail("Expected paywallTapSubscribe event")
+        }
+    }
+
+    func testPurchase_WhenRepositoryReturnsFailure_TracksOfferTypeInPurchaseFail() async {
+        repository.purchaseResult = .failed(DomainError.validationFailure("promo failed"))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "winback_offering",
+                packageId: "$rc_monthly",
+                offerType: .winBack
+            )
+        )
+
+        XCTAssertEqual(analyticsService.trackedEvents.count, 2)
+        if case .purchaseFail(let errorType, let offerType) = analyticsService.trackedEvents[1] {
+            XCTAssertEqual(errorType, "unknown")
+            XCTAssertEqual(offerType, "winBack")
+        } else {
+            XCTFail("Expected purchaseFail event")
+        }
     }
 
     func testRedeemOfferCode_WhenSuccess_SetsSuccess() async {
@@ -288,4 +329,14 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
             throw restoreError
         }
     }
+}
+
+private final class MockAnalyticsService: AnalyticsService {
+    private(set) var trackedEvents: [AnalyticsEvent] = []
+
+    func track(_ event: AnalyticsEvent) {
+        trackedEvents.append(event)
+    }
+
+    func setUserProperty(_: String, forName _: String) {}
 }

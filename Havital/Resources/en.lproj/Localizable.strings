@@ -2459,6 +2459,10 @@
 "paywall.offer.duration.week" = "%d week(s)";
 "paywall.offer.duration.month" = "%d month(s)";
 "paywall.offer.duration.year" = "%d year(s)";
+"paywall.cta.subscribe" = "Subscribe";
+"paywall.cta.start_offer" = "Start Offer";
+"paywall.cta.claim_offer" = "Claim Offer";
+"paywall.cta.return_with_offer" = "Return with Offer";
 "paywall.purchase_error_title" = "Purchase Failed";
 "paywall.restore_no_active_subscription" = "No active subscription was found to restore";
 "paywall.purchase_pending_processing" = "Purchase is processing. Please try Restore Purchases again shortly.";

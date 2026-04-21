@@ -29,10 +29,10 @@ enum AnalyticsEvent {
     case paywallView(trigger: String, trialRemainingDays: Int?)
 
     /// Fired when the user taps a subscribe button.
-    case paywallTapSubscribe(planType: String)
+    case paywallTapSubscribe(planType: String, offerType: String)
 
     /// Fired when a purchase fails (user-cancelled purchases excluded).
-    case purchaseFail(errorType: String)
+    case purchaseFail(errorType: String, offerType: String)
 
     // MARK: Retention
 
@@ -92,11 +92,17 @@ extension AnalyticsEvent {
             if let days = trialRemainingDays { params["trial_remaining_days"] = days }
             return params
 
-        case .paywallTapSubscribe(let planType):
-            return ["plan_type": planType]
+        case .paywallTapSubscribe(let planType, let offerType):
+            return [
+                "plan_type": planType,
+                "offer_type": offerType
+            ]
 
-        case .purchaseFail(let errorType):
-            return ["error_type": errorType]
+        case .purchaseFail(let errorType, let offerType):
+            return [
+                "error_type": errorType,
+                "offer_type": offerType
+            ]
 
         case .appOpen(let daysSinceInstall, let subscriptionStatus):
             return [

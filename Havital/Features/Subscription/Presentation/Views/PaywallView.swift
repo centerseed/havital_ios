@@ -269,6 +269,7 @@ struct PaywallView: View {
                     let offerInfo = officialOfferDisplayInfo(for: yearly)
                     YearlyCard(package: yearly,
                                offerInfo: offerInfo,
+                               actionTitle: purchaseActionTitle(for: yearly),
                                isSelected: selectedPackageId == yearly.id,
                                purchaseState: viewModel.purchaseState) {
                         selectedPackageId = yearly.id
@@ -288,6 +289,7 @@ struct PaywallView: View {
                     let offerInfo = officialOfferDisplayInfo(for: monthly)
                     MonthlyCard(package: monthly,
                                 offerInfo: offerInfo,
+                                actionTitle: purchaseActionTitle(for: monthly),
                                 isSelected: selectedPackageId == monthly.id,
                                 purchaseState: viewModel.purchaseState) {
                         selectedPackageId = monthly.id
@@ -431,6 +433,19 @@ struct PaywallView: View {
         return percent > 0 ? percent : nil
     }
 
+    private func purchaseActionTitle(for package: SubscriptionPackageEntity) -> String {
+        switch package.officialOffer?.type {
+        case .introductory:
+            return NSLocalizedString("paywall.cta.start_offer", comment: "Start Offer")
+        case .promotional:
+            return NSLocalizedString("paywall.cta.claim_offer", comment: "Claim Offer")
+        case .winBack:
+            return NSLocalizedString("paywall.cta.return_with_offer", comment: "Return with Offer")
+        case nil:
+            return NSLocalizedString("paywall.cta.subscribe", comment: "Subscribe")
+        }
+    }
+
 }
 
 private struct OfficialOfferDisplayInfo {
@@ -471,6 +486,7 @@ private struct FeatureRow: View {
 private struct YearlyCard: View {
     let package: SubscriptionPackageEntity
     let offerInfo: OfficialOfferDisplayInfo?
+    let actionTitle: String
     let isSelected: Bool
     let purchaseState: PurchaseState
     let onTap: () -> Void
@@ -539,9 +555,14 @@ private struct YearlyCard: View {
                     if case .purchasing = purchaseState, isSelected {
                         ProgressView().tint(.white)
                     } else {
-                        Image(systemName: "chevron.right")
-                            .font(AppFont.systemScaled(size: 15, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.7))
+                        Text(actionTitle)
+                            .font(AppFont.caption())
+                            .fontWeight(.bold)
+                            .foregroundColor(Color(red: 0.95, green: 0.42, blue: 0.0))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(.white)
+                            .clipShape(Capsule())
                     }
                 }
                 .padding(.horizontal, 20)
@@ -570,6 +591,7 @@ private struct YearlyCard: View {
 private struct MonthlyCard: View {
     let package: SubscriptionPackageEntity
     let offerInfo: OfficialOfferDisplayInfo?
+    let actionTitle: String
     let isSelected: Bool
     let purchaseState: PurchaseState
     let onTap: () -> Void
@@ -621,9 +643,14 @@ private struct MonthlyCard: View {
                 if case .purchasing = purchaseState, isSelected {
                     ProgressView().tint(.orange)
                 } else {
-                    Image(systemName: "chevron.right")
-                        .font(AppFont.systemScaled(size: 15, weight: .semibold))
-                        .foregroundColor(.secondary)
+                    Text(actionTitle)
+                        .font(AppFont.caption())
+                        .fontWeight(.bold)
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Capsule())
                 }
             }
             .padding(.horizontal, 20)
