@@ -75,24 +75,34 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         do {
             let offerings = try await Purchases.shared.offerings()
             cachedOfferings = offerings
-            let entities = offerings.all.values.map { offering in
-                let packages = offering.availablePackages.map { package -> SubscriptionPackageEntity in
+            var entities: [SubscriptionOfferingEntity] = []
+
+            for offering in offerings.all.values {
+                var packages: [SubscriptionPackageEntity] = []
+
+                for package in offering.availablePackages {
                     let period: SubscriptionPeriod = package.packageType == .annual ? .yearly : .monthly
                     let storeProduct = package.storeProduct
                     let billingPeriodValue = storeProduct.subscriptionPeriod?.value ?? 1
                     let billingPeriodUnit = storeProduct.subscriptionPeriod.map { self.mapOfferPeriodUnit($0.unit) }
                         ?? (period == .yearly ? .year : .month)
+                    let eligibleOfferIdentifiers = await eligibleOfferIdentifiers(for: storeProduct)
 
                     var candidateDiscounts: [StoreProductDiscount] = []
                     if let intro = storeProduct.introductoryDiscount {
                         candidateDiscounts.append(intro)
                     }
-                    candidateDiscounts.append(contentsOf: storeProduct.discounts)
+                    candidateDiscounts.append(
+                        contentsOf: storeProduct.discounts.filter { discount in
+                            guard let identifier = discount.offerIdentifier else { return false }
+                            return eligibleOfferIdentifiers.contains(identifier)
+                        }
+                    )
 
                     Logger.debug(
                         "[SubscriptionRepositoryImpl] product=\(storeProduct.productIdentifier) " +
                         "base=\(package.localizedPriceString) intro=\(storeProduct.introductoryDiscount != nil) " +
-                        "discountCount=\(candidateDiscounts.count)"
+                        "eligibleOfferIdentifiers=\(eligibleOfferIdentifiers.count) displayDiscountCount=\(candidateDiscounts.count)"
                     )
 
                     let officialOffer = self.selectDisplayOffer(
@@ -113,7 +123,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                         Logger.debug("[SubscriptionRepositoryImpl] product=\(storeProduct.productIdentifier) no official offer")
                     }
 
-                    return SubscriptionPackageEntity(
+                    packages.append(
+                        SubscriptionPackageEntity(
                         id: package.identifier,
                         productId: storeProduct.productIdentifier,
                         localizedPrice: package.localizedPriceString,
@@ -125,12 +136,16 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                         billingPeriodUnit: billingPeriodUnit,
                         officialOffer: officialOffer
                     )
+                    )
                 }
-                return SubscriptionOfferingEntity(
+
+                entities.append(
+                    SubscriptionOfferingEntity(
                     id: offering.identifier,
                     title: offering.serverDescription,
                     description: offering.serverDescription,
                     packages: packages
+                )
                 )
             }
             let hasPackages = entities.contains { !$0.packages.isEmpty }
@@ -374,6 +389,35 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
         Logger.debug("[SubscriptionRepositoryImpl] purchase: preferred promotional offer not found, using first eligible offer")
         return eligibleOffers.first
+    }
+
+    private func eligibleOfferIdentifiers(for product: StoreProduct) async -> Set<String> {
+        var identifiers: Set<String> = []
+
+        let promotionalOffers = await product.eligiblePromotionalOffers()
+        identifiers.formUnion(
+            promotionalOffers.compactMap { offer in
+                offer.discount.offerIdentifier ?? offer.signedData.identifier
+            }
+        )
+
+        if #available(iOS 18.0, *),
+           let winBackIdentifier = await eligibleWinBackOfferIdentifier(for: product) {
+            identifiers.insert(winBackIdentifier)
+        }
+
+        return identifiers
+    }
+
+    @available(iOS 18.0, *)
+    private func eligibleWinBackOfferIdentifier(for product: StoreProduct) async -> String? {
+        let eligibleOffers = await withCheckedContinuation { continuation in
+            Purchases.shared.eligibleWinBackOffers(forProduct: product) { offers, _ in
+                continuation.resume(returning: offers ?? [])
+            }
+        }
+
+        return eligibleOffers.first?.discount.offerIdentifier
     }
 
     @available(iOS 18.0, *)
